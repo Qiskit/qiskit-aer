@@ -1729,10 +1729,10 @@ rvector_t State<statevec_t>::measure_probs(const int_t iChunk, const reg_t &qubi
 
   BaseState::qubits_inout(qubits,qubits_in_chunk,qubits_out_chunk);
 
-  if(BaseState::chunk_omp_parallel_){
-#pragma omp parallel for if(BaseState::chunk_omp_parallel_) private(i,j,k) 
-    for(i=0;i<BaseState::qregs_.size();i++){
-      if(qubits_in_chunk.size() > 0){
+  if(qubits_in_chunk.size() > 0){
+    if(BaseState::chunk_omp_parallel_){
+#pragma omp parallel for private(i,j,k) 
+      for(i=0;i<BaseState::qregs_.size();i++){
         auto chunkSum = BaseState::qregs_[i].probabilities(qubits_in_chunk);
 
         if(qubits_in_chunk.size() == qubits.size()){
@@ -1761,7 +1761,41 @@ rvector_t State<statevec_t>::measure_probs(const int_t iChunk, const reg_t &qubi
           }
         }
       }
-      else{ //there is no bit in chunk
+    }
+    else{
+      for(i=0;i<BaseState::qregs_.size();i++){
+        auto chunkSum = BaseState::qregs_[i].probabilities(qubits_in_chunk);
+
+        if(qubits_in_chunk.size() == qubits.size()){
+          for(j=0;j<dim;j++){
+            sum[j] += chunkSum[j];
+          }
+        }
+        else{
+          for(j=0;j<chunkSum.size();j++){
+            int idx = 0;
+            int i_in = 0;
+            for(k=0;k<qubits.size();k++){
+              if(qubits[k] < BaseState::chunk_bits_){
+                idx += (((j >> i_in) & 1) << k);
+                i_in++;
+              }
+              else{
+                if((((i + BaseState::global_chunk_index_) << BaseState::chunk_bits_) >> qubits[k]) & 1){
+                  idx += 1ull << k;
+                }
+              }
+            }
+            sum[idx] += chunkSum[j];
+          }
+        }
+      }
+    }
+  }
+  else{ //there is no bit in chunk
+    if(BaseState::chunk_omp_parallel_){
+#pragma omp parallel for private(i,j,k) 
+      for(i=0;i<BaseState::qregs_.size();i++){
         auto nr = std::real(BaseState::qregs_[i].norm());
         int idx = 0;
         for(k=0;k<qubits_out_chunk.size();k++){
@@ -1773,37 +1807,8 @@ rvector_t State<statevec_t>::measure_probs(const int_t iChunk, const reg_t &qubi
         sum[idx] += nr;
       }
     }
-  }
-  else{
-    for(i=0;i<BaseState::qregs_.size();i++){
-      if(qubits_in_chunk.size() > 0){
-        auto chunkSum = BaseState::qregs_[i].probabilities(qubits_in_chunk);
-
-        if(qubits_in_chunk.size() == qubits.size()){
-          for(j=0;j<dim;j++){
-            sum[j] += chunkSum[j];
-          }
-        }
-        else{
-          for(j=0;j<chunkSum.size();j++){
-            int idx = 0;
-            int i_in = 0;
-            for(k=0;k<qubits.size();k++){
-              if(qubits[k] < BaseState::chunk_bits_){
-                idx += (((j >> i_in) & 1) << k);
-                i_in++;
-              }
-              else{
-                if((((i + BaseState::global_chunk_index_) << BaseState::chunk_bits_) >> qubits[k]) & 1){
-                  idx += 1ull << k;
-                }
-              }
-            }
-            sum[idx] += chunkSum[j];
-          }
-        }
-      }
-      else{ //there is no bit in chunk
+    else{
+      for(i=0;i<BaseState::qregs_.size();i++){
         auto nr = std::real(BaseState::qregs_[i].norm());
         int idx = 0;
         for(k=0;k<qubits_out_chunk.size();k++){
@@ -2045,6 +2050,7 @@ std::vector<reg_t> State<statevec_t>::sample_measure(const reg_t &qubits,
     }
     all_samples.push_back(sample);
   }
+
   return all_samples;
 }
 
@@ -2301,6 +2307,7 @@ void State<statevec_t>::apply_kraus(const int_t iChunk, const reg_t &qubits,
     }
   }
 }
+
 
 //-------------------------------------------------------------------------
 } // namespace Statevector

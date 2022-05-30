@@ -13,6 +13,7 @@
 Compier to convert Qiskit control-flow to Aer backend.
 """
 from qiskit.circuit import QuantumCircuit
+from qiskit.extensions import Initialize
 from qiskit.pulse import Schedule, ScheduleBlock
 from qiskit.circuit.controlflow import (
     WhileLoopOp,
@@ -59,6 +60,8 @@ class AerCompiler:
             basis_gates = basis_gates + ['mark', 'jump']
             compiled_circuits = []
             for idx, circuit in enumerate(circuits):
+                # Resolve initialize
+                circuit = self._inline_initialize(circuit, compiled_optypes[idx])
                 if self._is_dynamic(circuit, compiled_optypes[idx]):
                     compiled_circ = transpile(
                         self._inline_circuit(circuit, None, None),
@@ -76,6 +79,28 @@ class AerCompiler:
         if optypes is None:
             return circuits
         return circuits, optypes
+
+    def _inline_initialize(self, circ, optype):
+        """inline initialize.definition gates if statevector is not used"""
+        if isinstance(optype, set) and Initialize not in optype:
+            return circ
+
+        for inst, _, _ in circ.data:
+            if isinstance(inst, Initialize) and not isinstance(inst.params[0], complex):
+                break
+        else:
+            return circ
+
+        new_circ = circ.copy()
+        new_circ.data = []
+        for inst, qargs, cargs in circ.data:
+            if isinstance(inst, Initialize) and not isinstance(inst.params[0], complex):
+                # Assume that the decomposed circuit of inst.definition consists of basis gates
+                new_circ.compose(inst.definition.decompose(), qargs, cargs, inplace=True)
+            else:
+                new_circ._append(inst, qargs, cargs)
+
+        return new_circ
 
     @staticmethod
     def _is_dynamic(circuit, optype=None):

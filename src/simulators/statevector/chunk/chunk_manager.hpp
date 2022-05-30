@@ -308,6 +308,7 @@ uint_t ChunkManager<data_t>::Allocate(int chunk_bits,int nqubits,uint_t nchunks,
       if(hybrid){
         nc /= 2;
       }
+      chunks_[iDev]->set_place(iDev,num_places_);
       chunks_[iDev]->set_chunk_index(chunk_index_ + chunks_allocated);  //set first chunk index for the container
       if(num_devices_ > 0)
         chunks_allocated += chunks_[iDev]->Allocate((iDev + idev_start)%num_devices_,chunk_bits,nqubits,nc,num_buffers,multi_shots_,matrix_bit,density_matrix_);

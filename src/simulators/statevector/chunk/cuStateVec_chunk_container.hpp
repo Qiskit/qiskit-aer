@@ -254,7 +254,6 @@ void cuStateVecChunkContainer<data_t>::apply_matrix(const uint_t iChunk,const re
 
   pMat = (thrust::complex<double>*)&mat[0];
   BaseContainer::set_device();
-  custatevecSetStream(custatevec_handle_,BaseContainer::stream_);
 
   std::vector<int32_t> qubits32(qubits.size());
   for(int_t i=0;i<qubits.size();i++)
@@ -326,7 +325,6 @@ void cuStateVecChunkContainer<data_t>::apply_diagonal_matrix(const uint_t iChunk
 
   pMat = (thrust::complex<double>*)&diag[0];
   BaseContainer::set_device();
-  custatevecSetStream(custatevec_handle_,BaseContainer::stream_);
 
   std::vector<int32_t> qubits32(qubits.size());
   for(int_t i=0;i<qubits.size();i++)
@@ -379,7 +377,6 @@ void cuStateVecChunkContainer<data_t>::apply_X(const uint_t iChunk,const reg_t& 
   int_t num_qubits = qubits.size();
 
   BaseContainer::set_device();
-  custatevecSetStream(custatevec_handle_,BaseContainer::stream_);
 
   uint_t perm_size = 1ull << num_qubits;
   std::vector<custatevecIndex_t> perm(perm_size);
@@ -439,7 +436,6 @@ void cuStateVecChunkContainer<data_t>::apply_Y(const uint_t iChunk,const reg_t& 
   int_t num_qubits = qubits.size();
 
   BaseContainer::set_device();
-  custatevecSetStream(custatevec_handle_,BaseContainer::stream_);
 
   uint_t perm_size = 1ull << num_qubits;
   cvector_t<double> diag(perm_size);
@@ -516,7 +512,6 @@ void cuStateVecChunkContainer<data_t>::apply_swap(const uint_t iChunk,const reg_
   int_t num_qubits = qubits.size();
 
   BaseContainer::set_device();
-  custatevecSetStream(custatevec_handle_,BaseContainer::stream_);
 
   uint_t perm_size = 1ull << num_qubits;
   std::vector<custatevecIndex_t> swap(perm_size);
@@ -575,7 +570,6 @@ template <typename data_t>
 void cuStateVecChunkContainer<data_t>::apply_permutation(const uint_t iChunk,const reg_t& qubits,const std::vector<std::pair<uint_t, uint_t>> &pairs, const uint_t count)
 {
   BaseContainer::set_device();
-  custatevecSetStream(custatevec_handle_,BaseContainer::stream_);
 
   int_t size = 1ull << qubits.size();
   custatevecIndex_t perm[size];
@@ -633,7 +627,6 @@ void cuStateVecChunkContainer<data_t>::apply_rotation(const uint_t iChunk,const 
   int nPauli = 1;
 
   BaseContainer::set_device();
-  custatevecSetStream(custatevec_handle_,BaseContainer::stream_);
 
   int control_bits = qubits.size() - 1;
 
@@ -726,7 +719,6 @@ template <typename data_t>
 double cuStateVecChunkContainer<data_t>::norm(uint_t iChunk,uint_t count) const 
 {
   BaseContainer::set_device();
-  custatevecSetStream(custatevec_handle_,BaseContainer::stream_);
 
   double ret = 0.0;
   uint_t bits;
@@ -755,7 +747,7 @@ double cuStateVecChunkContainer<data_t>::norm(uint_t iChunk,uint_t count) const
   custatevecStatus_t err;
   for(int_t i=0;i<nc;i++){
     double d;
-    err = custatevecAbs2SumArray(custatevec_handle_, BaseContainer::chunk_pointer(iChunk), state_type, bits, 
+    err = custatevecAbs2SumArray(custatevec_handle_, BaseContainer::chunk_pointer(iChunk) + (i << bits), state_type, bits, 
                            &d, nullptr, 0, nullptr,nullptr,0);
     if(err != CUSTATEVEC_STATUS_SUCCESS){
       std::stringstream str;
@@ -772,7 +764,18 @@ template <typename data_t>
 void cuStateVecChunkContainer<data_t>::probabilities(std::vector<double>& probs, const uint_t iChunk, const reg_t& qubits) const
 {
   BaseContainer::set_device();
-  custatevecSetStream(custatevec_handle_,BaseContainer::stream_);
+
+  probs.resize(1ull << qubits.size());
+  for(int_t i=0;i<probs.size();i++)
+    probs[i] = 0.0;
+  if(iChunk != 0)
+    return;
+
+  //calculate all chunks at once
+  uint_t bits;
+  uint_t nc;
+  bits = custatevec_chunk_total_qubits_;
+  nc = custatevec_chunk_count_;
 
   cudaDataType_t state_type;
   if(sizeof(data_t) == sizeof(double))
@@ -785,24 +788,27 @@ void cuStateVecChunkContainer<data_t>::probabilities(std::vector<double>& probs,
     qubits32[i] = qubits[i];
 
   custatevecStatus_t err;
-  if(qubits.size() == 1){
-    double p0,p1;
-    err = custatevecAbs2SumOnZBasis(custatevec_handle_, BaseContainer::chunk_pointer(iChunk), state_type, this->chunk_bits_, 
-                              &p0, &p1, &qubits32[0], 1);
-    probs.resize(2);
-    probs[0] = p0;
-    probs[1] = p1;
-  }
-  else{
-    probs.resize(1ull << qubits.size());
-    err = custatevecAbs2SumArray(custatevec_handle_, BaseContainer::chunk_pointer(iChunk), state_type, this->chunk_bits_, 
-                           &probs[0], &qubits32[0], qubits.size(), nullptr,nullptr,0);
-  }
+  for(int_t i=0;i<nc;i++){
+    if(qubits.size() == 1){
+      double p0,p1;
+      err = custatevecAbs2SumOnZBasis(custatevec_handle_, BaseContainer::chunk_pointer(iChunk) + (i << bits), state_type, bits, 
+                                &p0, &p1, &qubits32[0], 1);
+      probs[0] += p0;
+      probs[1] += p1;
+    }
+    else{
+      std::vector<double> tmp((1ull << qubits.size()));
+      err = custatevecAbs2SumArray(custatevec_handle_, BaseContainer::chunk_pointer(iChunk) + (i << bits), state_type, bits, 
+                             &tmp[0], &qubits32[0], qubits.size(), nullptr,nullptr,0);
+      for(int_t j=0;j<probs.size();j++)
+        probs[j] += tmp[j];
+    }
 
-  if(err != CUSTATEVEC_STATUS_SUCCESS){
-    std::stringstream str;
-    str << "cuStateVecChunkContainer::probabilities : " << custatevecGetErrorString(err);
-    throw std::runtime_error(str.str());
+    if(err != CUSTATEVEC_STATUS_SUCCESS){
+      std::stringstream str;
+      str << "cuStateVecChunkContainer::probabilities : " << custatevecGetErrorString(err);
+      throw std::runtime_error(str.str());
+    }
   }
 }
 
@@ -813,7 +819,6 @@ double cuStateVecChunkContainer<data_t>::expval_pauli(const uint_t iChunk,const 
     return BaseContainer::expval_pauli(iChunk, qubits, pauli, initial_phase);
   }
   BaseContainer::set_device();
-  custatevecSetStream(custatevec_handle_,BaseContainer::stream_);
 
   cudaDataType_t state_type;
   if(sizeof(data_t) == sizeof(double))

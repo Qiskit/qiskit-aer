@@ -1916,6 +1916,38 @@ public:
   }
 };
 
+template <typename data_t>
+class MultiSwap_func : public GateFuncWithCache<data_t>
+{
+protected:
+  
+public:
+
+  MultiSwap_func(uint_t nq) : GateFuncWithCache<data_t>(nq)
+  {
+  }
+
+  __host__ __device__ void run_with_cache(uint_t _tid,uint_t _idx,thrust::complex<data_t>* _cache) const
+  {
+    thrust::complex<data_t>* vec;
+    uint_t pos = _tid & 1023;
+    uint_t j;
+
+    vec = this->data_;
+
+    for(j=0;j<this->nqubits_;j+=2){
+      if((((pos >> j) & 1) ^ ((pos >> (j+1)) & 1)) != 0){
+        pos ^= ((1ull << j) | (1ull << (j+1)));
+      }
+    }
+    vec[_idx] = _cache[pos];
+  }
+  const char* name(void)
+  {
+    return "MultiSWAP";
+  }
+};
+
 //swap operator between chunks
 template <typename data_t>
 class CSwapChunk_func : public GateFuncBase<data_t>
@@ -1980,6 +2012,51 @@ public:
   const char* name(void)
   {
     return "Chunk SWAP";
+  }
+};
+
+
+//buffer swap
+template <typename data_t>
+class BufferSwap_func : public GateFuncBase<data_t>
+{
+protected:
+  uint_t mask;
+  thrust::complex<data_t>* vec0_;
+  thrust::complex<data_t>* vec1_;
+  uint_t size_;
+  bool write_back_;
+public:
+
+  BufferSwap_func(thrust::complex<data_t>* pVec0,thrust::complex<data_t>* pVec1,uint_t size,bool wb)
+  {
+    vec0_ = pVec0;
+    vec1_ = pVec1;
+    size_ = size;
+    write_back_ = wb;
+  }
+
+  bool is_diagonal(void)
+  {
+    return true;
+  }
+
+  __host__ __device__  void operator()(const uint_t &i) const
+  {
+    thrust::complex<data_t> q0,q1;
+
+    if(i < size_){
+      q1 = vec1_[i];
+      if(write_back_){
+        q0 = vec0_[i];
+        vec1_[i] = q0;
+      }
+      vec0_[i] = q1;
+    }
+  }
+  const char* name(void)
+  {
+    return "buffer swap";
   }
 };
 

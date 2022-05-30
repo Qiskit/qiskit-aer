@@ -1,0 +1,7 @@
+---
+upgrade:
+  - |
+    MPI parallelization for large number of qubits is optimized to apply
+    multiple chunk-swaps as all-to-all communication that can decrease
+    data size exchanged over MPI processes. This upgrade improve scalability
+    of parallelization.
