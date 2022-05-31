@@ -1,0 +1,7 @@
+---
+upgrade:
+  - |
+    This is update to support cuQuantum 22.5.0.41 including bug fix of
+    thread safety in some cuStateVec APIs. Now Qiskit Aer turns on
+    multi-threading for multi-shots and multi-chunk parallelization
+    when enabling cuStateVec.

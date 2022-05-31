@@ -313,6 +313,9 @@ protected:
   //-----------------------------------------------------------------------
   //swap between chunks
   void apply_chunk_swap(const reg_t &qubits) override;
+
+  //apply multiple swaps between chunks
+  void apply_multi_chunk_swap(const reg_t &qubits) override;
 };
 
 //=========================================================================
@@ -1965,6 +1968,34 @@ void State<densmat_t>::apply_chunk_swap(const reg_t &qubits)
   reg_t qs1 = {{q0, q1}};
   BaseState::apply_chunk_swap(qs1);
 }
+
+template <class densmat_t>
+void State<densmat_t>::apply_multi_chunk_swap(const reg_t &qubits)
+{
+  reg_t qubits_density;
+
+  for(int_t i=0;i<qubits.size();i+=2){
+    uint_t q0,q1;
+    q0 = qubits[i*2];
+    q1 = qubits[i*2+1];
+
+    std::swap(BaseState::qubit_map_[q0],BaseState::qubit_map_[q1]);
+
+    if(q1 >= BaseState::chunk_bits_){
+      q1 += BaseState::chunk_bits_;
+    }
+    qubits_density.push_back(q0);
+    qubits_density.push_back(q1);
+
+    q0 += BaseState::chunk_bits_;
+    if(q1 >= BaseState::chunk_bits_){
+      q1 += (BaseState::num_qubits_ - BaseState::chunk_bits_*2);
+    }
+  }
+
+  BaseState::apply_multi_chunk_swap(qubits_density);
+}
+
 
 //-------------------------------------------------------------------------
 } // end namespace DensityMatrix
