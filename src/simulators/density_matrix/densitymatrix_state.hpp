@@ -158,6 +158,9 @@ protected:
   // If the input is not in allowed_gates an exeption will be raised.
   void apply_gate(const int_t iChunk, const Operations::Op &op);
 
+  //apply (multi) control gate by statevector
+  void apply_gate_statevector(const int_t iChunk, const Operations::Op &op);
+
   // Measure qubits and return a list of outcomes [q0, q1, ...]
   // If a state subclass supports this function it then "measure"
   // should be contained in the set returned by the 'allowed_ops'
@@ -1336,6 +1339,40 @@ void State<densmat_t>::snapshot_density_matrix(const int_t iChunk, const Operati
 template <class densmat_t>
 void State<densmat_t>::apply_gate(const int_t iChunk, const Operations::Op &op) 
 {
+  if(!BaseState::global_index_optimization_){
+    reg_t qubits_in,qubits_out;
+    bool ctrl_chunk = true;
+    bool ctrl_chunk_sp = true;
+    BaseState::get_inout_ctrl_qubits(op,qubits_out,qubits_in);
+    if(qubits_out.size() > 0){
+      uint_t mask = 0;
+      for(int i=0;i<qubits_out.size();i++){
+        mask |= (1ull << (qubits_out[i] - BaseState::chunk_bits_));
+      }
+      if(((BaseState::global_chunk_index_ + iChunk) & mask) != mask){
+        ctrl_chunk = false;
+      }
+      if((((BaseState::global_chunk_index_ + iChunk) >> (BaseState::num_qubits_ - BaseState::chunk_bits_)) & mask) != mask){
+        ctrl_chunk_sp = false;
+      }
+      if(!ctrl_chunk && !ctrl_chunk_sp)
+        return;   //do nothing for this chunk
+      else{
+        Operations::Op new_op = BaseState::remake_gate_in_chunk_qubits(op,qubits_in);
+        if(ctrl_chunk && ctrl_chunk_sp)
+          apply_gate(iChunk,new_op);  //apply gate by using op with internal qubits
+        else if(ctrl_chunk)
+          apply_gate_statevector(iChunk,new_op);
+        else{
+          for(int i=0;i<new_op.qubits.size();i++)
+            new_op.qubits[i] += BaseState::chunk_bits_;
+          apply_gate_statevector(iChunk,new_op);
+        }
+        return;
+      }
+    }
+  }
+
   // Look for gate name in gateset
   auto it = gateset_.find(op.name);
   if (it == gateset_.end())
@@ -1357,7 +1394,7 @@ void State<densmat_t>::apply_gate(const int_t iChunk, const Operations::Op &op)
       BaseState::qregs_[iChunk].apply_cnot(op.qubits[0], op.qubits[1]);
       break;
     case Gates::cy:
-      BaseState::qregs_[iChunk].apply_unitary_matrix(op.qubits, Linalg::VMatrix::CY);
+      BaseState::qregs_[iChunk].apply_cy(op.qubits[0], op.qubits[1]);
       break;
     case Gates::cz:
       BaseState::qregs_[iChunk].apply_cphase(op.qubits[0], op.qubits[1], -1);
@@ -1441,6 +1478,42 @@ void State<densmat_t>::apply_gate(const int_t iChunk, const Operations::Op &op)
 }
 
 template <class densmat_t>
+void State<densmat_t>::apply_gate_statevector(const int_t iChunk, const Operations::Op &op)
+{
+  // Look for gate name in gateset
+  auto it = gateset_.find(op.name);
+  if (it == gateset_.end())
+    throw std::invalid_argument(
+        "DensityMatrixState::invalid gate instruction \'" + op.name + "\'.");
+  switch (it->second) {
+    case Gates::x:
+    case Gates::cx:
+      BaseState::qregs_[iChunk].apply_mcx(op.qubits);
+      break;
+    case Gates::u1:
+      if(op.qubits[op.qubits.size()-1] < BaseState::chunk_bits_){
+        BaseState::qregs_[iChunk].apply_mcphase(op.qubits,
+                                    std::exp(complex_t(0., 1.) * op.params[0]));
+      }
+      else{
+        BaseState::qregs_[iChunk].apply_mcphase(op.qubits,
+                                    std::conj(std::exp(complex_t(0., 1.) * op.params[0])));
+      }
+      break;
+    case Gates::y:
+      BaseState::qregs_[iChunk].apply_mcy(op.qubits);
+      break;
+    case Gates::z:
+      BaseState::qregs_[iChunk].apply_mcphase(op.qubits, -1);
+      break;
+    default:
+      // We shouldn't reach here unless there is a bug in gateset
+      throw std::invalid_argument(
+        "DensityMatrix::State::invalid gate instruction \'" + op.name + "\'.");
+  }
+}
+
+template <class densmat_t>
 void State<densmat_t>::apply_matrix(const int_t iChunk, const reg_t &qubits, const cmatrix_t &mat) {
   if (mat.GetRows() == 1) {
     apply_diagonal_unitary_matrix(iChunk, 
@@ -1460,7 +1533,7 @@ void State<densmat_t>::apply_gate_u3(const int_t iChunk, uint_t qubit, double th
 template <class densmat_t>
 void State<densmat_t>::apply_diagonal_unitary_matrix(const int_t iChunk, const reg_t &qubits, const cvector_t & diag)
 {
-  if(BaseState::thrust_optimization_ || !BaseState::multi_chunk_distribution_){
+  if(BaseState::global_index_optimization_ || !BaseState::multi_chunk_distribution_){
     //GPU computes all chunks in one kernel, so pass qubits and diagonal matrix as is
     BaseState::qregs_[iChunk].apply_diagonal_unitary_matrix(qubits,diag);
   }

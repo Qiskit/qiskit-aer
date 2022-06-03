@@ -114,6 +114,8 @@ protected:
   bool split_op(const Operations::Op& op,const reg_t blockedQubits,std::vector<Operations::Op>& out,std::vector<Operations::Op>& queue) const;
 
   bool is_blockable_operation(Operations::Op& op) const;
+
+  void target_qubits(Operations::Op& op, reg_t& targets) const;
 };
 
 void CacheBlocking::set_config(const json_t &config)
@@ -123,7 +125,7 @@ void CacheBlocking::set_config(const json_t &config)
   if (JSON::check_key("blocking_qubits", config_))
     JSON::get_value(block_bits_, "blocking_qubits", config_);
 
-  if(block_bits_ >= 2){
+  if(block_bits_ >= 1){
     blocking_enabled_ = true;
   }
 
@@ -217,10 +219,10 @@ void CacheBlocking::optimize_circuit(Circuit& circ,
     //loop over operations to find max number of parameters for cross-qubits operations
     int_t max_params = 1;
     for(uint_t i=0;i<circ.ops.size();i++){
-      if(is_cross_qubits_op(circ.ops[i])){
-        if(circ.ops[i].qubits.size() > max_params)
-          max_params = circ.ops[i].qubits.size();
-      }
+      reg_t targets;
+      target_qubits(circ.ops[i],targets);
+      if(targets.size() > max_params)
+        max_params = targets.size();
     }
     if(block_bits_ < max_params){
       block_bits_ = max_params;   //change blocking qubits so that we can put op with many params
@@ -272,6 +274,7 @@ void CacheBlocking::optimize_circuit(Circuit& circ,
   }
 
   circ.set_params();
+
 }
 
 void CacheBlocking::define_blocked_qubits(std::vector<Operations::Op>& ops,reg_t& blockedQubits,bool crossQubitOnly) const
@@ -283,35 +286,26 @@ void CacheBlocking::define_blocked_qubits(std::vector<Operations::Op>& ops,reg_t
     if(blockedQubits.size() >= block_bits_)
       break;
 
-    if(!is_blockable_operation(ops[i]))
-      continue;
+    reg_t targets;
+    target_qubits(ops[i],targets);
 
-    if(is_cross_qubits_op(ops[i])){
-      reg_t blockedQubits_add;
+    reg_t blockedQubits_add;
 
-      nq = blockedQubits.size();
-      for(iq=0;iq<ops[i].qubits.size();iq++){
-        exist = false;
-        for(j=0;j<nq;j++){
-          if(ops[i].qubits[iq] == blockedQubits[j]){
-            exist = true;
-            break;
-          }
-        }
-        if(!exist)
-          blockedQubits_add.push_back(ops[i].qubits[iq]);
-      }
-      //only if all the qubits of gate can be added
-      if(blockedQubits_add.size() + nq <= block_bits_){
-        blockedQubits.insert(blockedQubits.end(),blockedQubits_add.begin(),blockedQubits_add.end());
-      }
-    }
-    else if(!crossQubitOnly){
-      for(j=0;j<ops[i].qubits.size();j++){
-        blockedQubits.push_back(ops[i].qubits[j]);
-        if(blockedQubits.size() >= block_bits_)
+    nq = blockedQubits.size();
+    for(iq=0;iq<targets.size();iq++){
+      exist = false;
+      for(j=0;j<nq;j++){
+        if(targets[iq] == blockedQubits[j]){
+          exist = true;
           break;
+        }
       }
+      if(!exist)
+        blockedQubits_add.push_back(targets[iq]);
+    }
+    //only if all the qubits of gate can be added
+    if(blockedQubits_add.size() + nq <= block_bits_){
+      blockedQubits.insert(blockedQubits.end(),blockedQubits_add.begin(),blockedQubits_add.end());
     }
   }
 }
@@ -320,22 +314,25 @@ void CacheBlocking::define_blocked_qubits(std::vector<Operations::Op>& ops,reg_t
 bool CacheBlocking::can_block(Operations::Op& op,reg_t& blockedQubits) const
 {
   //check if the operation can be blocked in cache
-  if(op.qubits.size() > block_bits_){
+  reg_t targets;
+  target_qubits(op,targets);
+
+  if(targets.size() > block_bits_){
     return false;
   }
 
   uint_t j,iq,nq,nb;
   nq = blockedQubits.size();
   nb = 0;
-  for(iq=0;iq<op.qubits.size();iq++){
+  for(iq=0;iq<targets.size();iq++){
     for(j=0;j<nq;j++){
-      if(op.qubits[iq] == blockedQubits[j]){
+      if(targets[iq] == blockedQubits[j]){
         nb++;
         break;
       }
     }
   }
-  if(nb == op.qubits.size())
+  if(nb == targets.size())
     return true;
   return false;
 }
@@ -515,13 +512,7 @@ uint_t CacheBlocking::add_ops(std::vector<Operations::Op>& ops,std::vector<Opera
   num_gates_added = 0;
 
   //find qubits to be blocked
-  if(first && doSwap){
-    //use lower bits for initialization
-    for(i=0;i<block_bits_;i++){
-      blockedQubits.push_back(i);
-    }
-  }
-  else{
+  if(doSwap){
     if(crossQubitOnly){
       //add multi-qubits gate at first
       define_blocked_qubits(ops,blockedQubits,true);
@@ -746,6 +737,29 @@ bool CacheBlocking::is_diagonal_op(Operations::Op& op) const
     return true;
   }
   return false;
+}
+
+void CacheBlocking::target_qubits(Operations::Op& op, reg_t& targets) const
+{
+  if(op.type == Operations::OpType::gate){
+    bool swap = false;
+    if(op.name.find("swap") != std::string::npos){
+      swap = true;
+    }
+
+    if(op.name[0] == 'c' || op.name.find("mc") == 0){
+      //multi control gates
+      if(swap)
+        targets.push_back(op.qubits[op.qubits.size() - 2]);
+      targets.push_back(op.qubits[op.qubits.size() - 1]);
+    }
+    else{
+      targets = op.qubits;
+    }
+  }
+  else{
+    targets = op.qubits;
+  }
 }
 
 void CacheBlocking::insert_pauli(std::vector<Operations::Op>& ops,reg_t& qubits,std::string& pauli) const

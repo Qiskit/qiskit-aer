@@ -1528,7 +1528,24 @@ cmatrix_t State<statevec_t>::vec2density(const reg_t &qubits, const T &vec) {
 //=========================================================================
 
 template <class statevec_t>
-void State<statevec_t>::apply_gate(const int_t iChunk, const Operations::Op &op) {
+void State<statevec_t>::apply_gate(const int_t iChunk, const Operations::Op &op) 
+{
+  if(!BaseState::global_index_optimization_){
+    reg_t qubits_in,qubits_out;
+    BaseState::get_inout_ctrl_qubits(op,qubits_out,qubits_in);
+    if(qubits_out.size() > 0){
+      uint_t mask = 0;
+      for(int i=0;i<qubits_out.size();i++){
+        mask |= (1ull << (qubits_out[i] - BaseState::chunk_bits_));
+      }
+      if(((BaseState::global_chunk_index_ + iChunk) & mask) == mask){
+        Operations::Op new_op = BaseState::remake_gate_in_chunk_qubits(op,qubits_in);
+        apply_gate(iChunk, new_op);
+      }
+      return;
+    }
+  }
+
   // Look for gate name in gateset
   auto it = gateset_.find(op.name);
   if (it == gateset_.end())
@@ -1671,7 +1688,7 @@ void State<statevec_t>::apply_matrix(const int_t iChunk, const reg_t &qubits,
 template <class statevec_t>
 void State<statevec_t>::apply_diagonal_matrix(const int_t iChunk, const reg_t &qubits, const cvector_t & diag)
 {
-  if(BaseState::thrust_optimization_ || !BaseState::multi_chunk_distribution_){
+  if(BaseState::global_index_optimization_ || !BaseState::multi_chunk_distribution_){
     //GPU computes all chunks in one kernel, so pass qubits and diagonal matrix as is
     BaseState::qregs_[iChunk].apply_diagonal_matrix(qubits,diag);
   }

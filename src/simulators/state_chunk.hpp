@@ -87,7 +87,7 @@ public:
     distributed_proc_bits_ = 0;
 
     chunk_omp_parallel_ = false;
-    thrust_optimization_ = false;
+    global_index_optimization_ = false;
 
 #ifdef AER_MPI
     distributed_comm_ = MPI_COMM_WORLD;
@@ -379,7 +379,7 @@ protected:
   int_t distributed_proc_bits_; //distributed_procs_=2^distributed_proc_bits_  (if nprocs != power of 2, set -1)
 
   bool chunk_omp_parallel_;     //using thread parallel to process loop of chunks or not
-  bool thrust_optimization_;       //optimization for Thrust implementation
+  bool global_index_optimization_;  //using global index for control qubits and diagonal matrix
 
   bool multi_chunk_distribution_ = false; //distributing chunks to apply cache blocking parallelization
   bool multi_shots_parallelization_ = false; //using chunks as multiple shots parallelization
@@ -414,7 +414,7 @@ protected:
 
   //apply cache blocked ops in each chunk
   template <typename InputIterator>
-  void apply_cache_blocking_ops(const int_t iChunk, InputIterator first,
+  void apply_cache_blocking_ops(const int_t iGroup, InputIterator first,
                  InputIterator last,
                  ExperimentResult &result,
                  RngEngine &rng);
@@ -514,6 +514,12 @@ protected:
   {
     return multi_shots_parallelization_ ? (iChunk + local_shot_index_ + global_chunk_index_) : 0;
   }
+
+  //separate inside and outside qubits for (multi) control gates
+  void get_inout_ctrl_qubits(const Operations::Op &op, reg_t& qubits_out, reg_t& qubits_in);
+
+  //remake gate operation by qubits inside chunk
+  Operations::Op remake_gate_in_chunk_qubits(const Operations::Op &op, reg_t& qubits_in);
 
 #ifdef AER_MPI
   //communicator group to simulate a circuit (for multi-experiments)
@@ -648,7 +654,7 @@ bool StateChunk<state_t>::allocate(uint_t num_qubits,uint_t block_bits,uint_t nu
   global_chunk_index_ = chunk_index_begin_[distributed_rank_];
   local_shot_index_ = 0;
 
-  thrust_optimization_ = false;
+  global_index_optimization_ = false;
   chunk_omp_parallel_ = false;
   if(BaseState::sim_device_name_ == "GPU"){
 #ifdef _OPENMP
@@ -664,11 +670,11 @@ bool StateChunk<state_t>::allocate(uint_t num_qubits,uint_t block_bits,uint_t nu
     }
 
     if(!cuStateVec_enable_)
-      thrust_optimization_ = true;    //cuStateVec does not handle global chunk index for diagonal matrix
+      global_index_optimization_ = true;    //cuStateVec does not handle global chunk index for diagonal matrix
 #endif
   }
   else if(BaseState::sim_device_name_ == "Thrust"){
-    thrust_optimization_ = true;
+    global_index_optimization_ = true;
     chunk_omp_parallel_ = false;
   }
 
@@ -867,11 +873,11 @@ void StateChunk<state_t>::apply_ops_chunks(InputIterator first, InputIterator la
       if(num_groups_ > 1 && chunk_omp_parallel_){
 #pragma omp parallel for  num_threads(num_groups_)
         for(int_t ig=0;ig<num_groups_;ig++)
-          apply_cache_blocking_ops(top_chunk_of_group_[ig], first + iOpBegin, first + iOpEnd, result, rng);
+          apply_cache_blocking_ops(ig, first + iOpBegin, first + iOpEnd, result, rng);
       }
       else{
         for(int_t ig=0;ig<num_groups_;ig++)
-          apply_cache_blocking_ops(top_chunk_of_group_[ig], first + iOpBegin, first + iOpEnd, result, rng);
+          apply_cache_blocking_ops(ig, first + iOpBegin, first + iOpEnd, result, rng);
       }
       iOp = iOpEnd;
     }
@@ -879,11 +885,11 @@ void StateChunk<state_t>::apply_ops_chunks(InputIterator first, InputIterator la
       if(num_groups_ > 1 && chunk_omp_parallel_){
 #pragma omp parallel for num_threads(num_groups_)
         for(int_t ig=0;ig<num_groups_;ig++)
-          apply_cache_blocking_ops(top_chunk_of_group_[ig], first + iOp, first + iOp+1, result, rng);
+          apply_cache_blocking_ops(ig, first + iOp, first + iOp+1, result, rng);
       }
       else{
         for(int_t ig=0;ig<num_groups_;ig++)
-          apply_cache_blocking_ops(top_chunk_of_group_[ig], first + iOp, first + iOp+1, result, rng);
+          apply_cache_blocking_ops(ig, first + iOp, first + iOp+1, result, rng);
       }
     }
     else{
@@ -920,19 +926,59 @@ void StateChunk<state_t>::apply_ops_chunks(InputIterator first, InputIterator la
 
 template <class state_t>
 template <typename InputIterator>
-void StateChunk<state_t>::apply_cache_blocking_ops(const int_t iChunk, InputIterator first,
+void StateChunk<state_t>::apply_cache_blocking_ops(const int_t iGroup, InputIterator first,
                InputIterator last,
                ExperimentResult &result,
                RngEngine &rng)
 {
-  //fecth chunk in cache
-  if(qregs_[iChunk].fetch_chunk()){
-    for (auto it = first; it != last; ++it) {
-      apply_op(iChunk, *it, result, rng, false);
+  //for each chunk in group
+  for(int_t iChunk = top_chunk_of_group_[iGroup];iChunk < top_chunk_of_group_[iGroup + 1];iChunk++){
+    //fecth chunk in cache
+    if(qregs_[iChunk].fetch_chunk()){
+      for (auto it = first; it != last; ++it) {
+        apply_op(iChunk, *it, result, rng, false);
+      }
+      //release chunk from cache
+      qregs_[iChunk].release_chunk();
     }
-    //release chunk from cache
-    qregs_[iChunk].release_chunk();
   }
+}
+
+template <class state_t>
+void StateChunk<state_t>::get_inout_ctrl_qubits(const Operations::Op &op, reg_t& qubits_out, reg_t& qubits_in)
+{
+  if(op.type == Operations::OpType::gate && (op.name[0] == 'c' || op.name.find("mc") == 0)){
+    for(int i=0;i<op.qubits.size();i++){
+      if(op.qubits[i] < chunk_bits_)
+        qubits_in.push_back(op.qubits[i]);
+      else
+        qubits_out.push_back(op.qubits[i]);
+    }
+  }
+}
+
+template <class state_t>
+Operations::Op StateChunk<state_t>::remake_gate_in_chunk_qubits(const Operations::Op &op, reg_t& qubits_in)
+{
+  Operations::Op new_op = op;
+  new_op.qubits = qubits_in;
+  //change gate name if there is no control qubits inside chunk
+  if(op.name.find("swap") != std::string::npos && qubits_in.size() == 2){
+    new_op.name = "swap";
+  }
+  if(op.name.find("ccx") != std::string::npos){
+    if(qubits_in.size() == 1)
+      new_op.name = "x";
+    else
+      new_op.name = "cx";
+  }
+  else if(qubits_in.size() == 1){
+    if(op.name[0] == 'c')
+      new_op.name = op.name.substr(1);
+    else
+      new_op.name = op.name.substr(2);  //remove "mc"
+  }
+  return new_op;
 }
 
 template <class state_t>

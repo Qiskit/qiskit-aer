@@ -275,6 +275,7 @@ uint_t ChunkManager<data_t>::Allocate(int chunk_bits,int nqubits,uint_t nchunks,
           num_places_ = 1;
         }
       }
+
 #else
       num_places_ = 1;
 #endif
@@ -316,18 +317,20 @@ uint_t ChunkManager<data_t>::Allocate(int chunk_bits,int nqubits,uint_t nchunks,
         chunks_allocated += chunks_[iDev]->Allocate(iDev,chunk_bits,nqubits,nc,num_buffers,multi_shots_,matrix_bit,density_matrix_);
     }
     if(chunks_allocated < num_chunks_){
+      int nplace_add = 0;
       //rest of chunks are stored on host
       for(iDev=0;iDev<num_places_;iDev++){
         is = (num_chunks_ - chunks_allocated) * (uint_t)iDev / (uint_t)num_places_;
         ie = (num_chunks_ - chunks_allocated) * (uint_t)(iDev + 1) / (uint_t)num_places_;
         nc = ie - is;
         if(nc > 0){
-          chunks_[num_places_]->set_chunk_index(chunk_index_ + chunks_allocated + is);  //set first chunk index for the container
+          chunks_[num_places_+nplace_add]->set_chunk_index(chunk_index_ + chunks_allocated + is);  //set first chunk index for the container
           chunks_.push_back(std::make_shared<HostChunkContainer<data_t>>());
-          chunks_[num_places_]->Allocate(-1,chunk_bits,nqubits,nc,num_buffers,multi_shots_,matrix_bit,density_matrix_);
-          num_places_ += 1;
+          chunks_[num_places_+nplace_add]->Allocate(-1,chunk_bits,nqubits,nc,num_buffers,multi_shots_,matrix_bit,density_matrix_);
+          nplace_add++;
         }
       }
+      num_places_ += nplace_add;
     }
 
 #ifdef AER_DISABLE_GDR
