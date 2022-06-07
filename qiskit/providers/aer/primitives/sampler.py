@@ -21,11 +21,12 @@ from collections.abc import Iterable, Sequence
 from qiskit.circuit import Parameter, QuantumCircuit
 from qiskit.compiler import transpile
 from qiskit.exceptions import QiskitError
-from qiskit.primitives import BaseSampler, SamplerResult
+from qiskit.primitives import SamplerResult
 from qiskit.primitives.utils import init_circuit
 from qiskit.result import QuasiDistribution
 
 from .. import AerSimulator
+from .base_sampler import BaseSampler  # TODO: fix import path after Terra 0.21.
 
 
 class Sampler(BaseSampler):
