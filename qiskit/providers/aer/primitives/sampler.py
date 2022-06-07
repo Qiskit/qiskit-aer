@@ -25,7 +25,7 @@ from qiskit.primitives import BaseSampler, SamplerResult
 from qiskit.primitives.utils import init_circuit
 from qiskit.result import QuasiDistribution
 
-from qiskit.providers.aer import AerSimulator
+from .. import AerSimulator
 
 
 class Sampler(BaseSampler):

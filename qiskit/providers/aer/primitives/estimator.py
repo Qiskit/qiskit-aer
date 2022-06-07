@@ -26,7 +26,7 @@ from qiskit.primitives import BaseEstimator, EstimatorResult
 from qiskit.primitives.utils import init_circuit, init_observable
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 
-from qiskit.providers.aer import AerSimulator
+from .. import AerSimulator
 
 
 class Estimator(BaseEstimator):
