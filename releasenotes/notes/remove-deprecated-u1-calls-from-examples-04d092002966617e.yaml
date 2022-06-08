@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Parallel processing examples have been updated to no longer use the
+    deprecated :class:`~.circuit.gate.U1Gate`.
