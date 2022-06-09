@@ -1,5 +1,0 @@
----
-fixes:
-  - |
-    Parallel processing examples have been updated to no longer use the
-    deprecated :class:`~qiskit.circuit.library.U1Gate`.
