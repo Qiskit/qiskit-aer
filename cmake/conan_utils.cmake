@@ -14,21 +14,24 @@ macro(setup_conan)
     list(APPEND AER_CONAN_LIBS nlohmann_json spdlog)
     if(APPLE AND CMAKE_CXX_COMPILER_ID MATCHES "Clang")
         list(APPEND AER_CONAN_LIBS llvm-openmp)
-        if(SKBUILD)
-            if (DEFINED ENV{AER_CMAKE_OPENMP_BUILD})
-                conan_cmake_run(REQUIRES "llvm-openmp/12.0.1"
-                                OPTIONS "llvm-openmp:shared=True"
-                                ENV CONAN_CMAKE_PROGRAM=${CMAKE_COMMAND}
-                                BASIC_SETUP
-                                CMAKE_TARGETS
-                                KEEP_RPATHS
-                                BUILD llvm-openmp*)
+        if (DEFINED ENV{AER_CMAKE_OPENMP_BUILD})
+            if(SKBUILD)
+                set(AER_CONAN_OPTIONS "llvm-openmp:shared=True")
             else()
-                set(REQUIREMENTS ${REQUIREMENTS} llvm-openmp/12.0.1)
-                set(CONAN_OPTIONS ${CONAN_OPTIONS} "llvm-openmp:shared=True")
+                set(AER_CONAN_OPTIONS "llvm-openmp:shared=False")
             endif()
+            conan_cmake_run(REQUIRES "llvm-openmp/12.0.1"
+                            OPTIONS ${AER_CONAN_OPTIONS}
+                            ENV CONAN_CMAKE_PROGRAM=${CMAKE_COMMAND}
+                            BASIC_SETUP
+                            CMAKE_TARGETS
+                            KEEP_RPATHS
+                            BUILD llvm-openmp*)
         else()
             set(REQUIREMENTS ${REQUIREMENTS} llvm-openmp/12.0.1)
+            if(SKBUILD)
+                set(CONAN_OPTIONS ${CONAN_OPTIONS} "llvm-openmp:shared=True")
+            endif()
         endif()
     endif()
 
