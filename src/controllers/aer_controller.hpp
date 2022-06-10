@@ -828,7 +828,8 @@ size_t Controller::get_gpu_memory_mb() {
 Transpile::CacheBlocking
 Controller::transpile_cache_blocking(Controller::Method method, const Circuit &circ,
                                      const Noise::NoiseModel &noise,
-                                     const json_t &config) const {
+                                     const json_t &config) const 
+{
   Transpile::CacheBlocking cache_block_pass;
 
   const bool is_matrix = (method == Method::density_matrix
@@ -837,7 +838,9 @@ Controller::transpile_cache_blocking(Controller::Method method, const Circuit &c
                               ? sizeof(std::complex<float>)
                               : sizeof(std::complex<double>);
 
+  cache_block_pass.set_num_processes(num_process_per_experiment_);
   cache_block_pass.set_config(config);
+
   if (!cache_block_pass.enabled()) {
     // if blocking is not set by config, automatically set if required
     if (multiple_chunk_required(circ, noise, method)) {

@@ -77,6 +77,11 @@ public:
   //setting blocking parameters automatically
   void set_blocking(int bits, size_t min_memory, uint_t n_place, const size_t complex_size, bool is_matrix = false);
 
+  void set_num_processes(int np)
+  {
+    num_processes_ = np;
+  }
+
 protected:
   mutable int block_bits_;    //qubits less than this will be blocked
   mutable int qubits_;
@@ -87,6 +92,7 @@ protected:
   mutable bool save_state_ = false;
   int memory_blocking_bits_ = 0;
   bool density_matrix_ = false;
+  int num_processes_ = 1;
 
   bool block_circuit(Circuit& circ,bool doSwap) const;
 
@@ -228,6 +234,22 @@ void CacheBlocking::optimize_circuit(Circuit& circ,
       block_bits_ = max_params;   //change blocking qubits so that we can put op with many params
     }
 
+    if(num_processes_ > 1){
+      if(block_bits_ >= qubits_){
+        blocking_enabled_ = false;
+        std::string error = "cache blocking : there are gates operation can not chache blocked in blocking_qubits = " + std::to_string(block_bits_);
+        throw std::runtime_error(error);
+        return;
+      }
+      if((1ull << (qubits_ - block_bits_)) < num_processes_){
+        //not enough distribution
+        blocking_enabled_ = false;
+        std::string error = "cache blocking : blocking_qubits is to large to parallelize with " + std::to_string(num_processes_) +
+                            " processes ";
+        throw std::runtime_error(error);
+        return;
+      }
+    }
     if(block_bits_ >= qubits_){
       blocking_enabled_ = false;
       return;
@@ -274,7 +296,6 @@ void CacheBlocking::optimize_circuit(Circuit& circ,
   }
 
   circ.set_params();
-
 }
 
 void CacheBlocking::define_blocked_qubits(std::vector<Operations::Op>& ops,reg_t& blockedQubits,bool crossQubitOnly) const
@@ -512,7 +533,13 @@ uint_t CacheBlocking::add_ops(std::vector<Operations::Op>& ops,std::vector<Opera
   num_gates_added = 0;
 
   //find qubits to be blocked
-  if(doSwap){
+  if(first && doSwap){
+    //use lower bits for initialization
+    for(i=0;i<block_bits_;i++){
+      blockedQubits.push_back(i);
+    }
+  }
+  else{
     if(crossQubitOnly){
       //add multi-qubits gate at first
       define_blocked_qubits(ops,blockedQubits,true);
@@ -637,7 +664,7 @@ uint_t CacheBlocking::add_ops(std::vector<Operations::Op>& ops,std::vector<Opera
         }
         else if(ops[i].type != Operations::OpType::measure && ops[i].type != Operations::OpType::reset && 
                 ops[i].type != Operations::OpType::save_amps && ops[i].type != Operations::OpType::save_amps_sq &&
-                ops[i].type != Operations::OpType::save_densmat){
+                ops[i].type != Operations::OpType::save_densmat && ops[i].type != Operations::OpType::bfunc){
           if(!(ops[i].type == Operations::OpType::snapshot && ops[i].name == "density_matrix")){
             restore_qubits = true;
           }

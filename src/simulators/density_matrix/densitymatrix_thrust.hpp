@@ -523,8 +523,9 @@ protected:
   uint_t offset_;
   uint_t offset_sp_;
   uint_t cmask_;
+  bool enable_batch_;
 public:
-  DensityMCX(reg_t& qubits, uint_t num_cqubits, uint_t num_qubits)
+  DensityMCX(reg_t& qubits, uint_t num_cqubits, uint_t num_qubits,bool batch)
   {
     total_qubits_ = num_qubits;
     chunk_qubits_ = num_cqubits;
@@ -534,10 +535,15 @@ public:
     cmask_ = 0;
     for(int i=0;i<qubits.size()-1;i++)
       cmask_ |= (1ull << qubits[i]);
+    enable_batch_ = batch;
   }
   bool is_diagonal(void)
   {
     return true;
+  }
+  bool batch_enable(void) override
+  {
+    return enable_batch_;
   }
 
   __host__ __device__ void operator()(const uint_t &i) const
@@ -600,7 +606,7 @@ template <typename data_t>
 void DensityMatrixThrust<data_t>::apply_cnot(const uint_t qctrl, const uint_t qtrgt) 
 {
   reg_t qubits = {qctrl, qtrgt};
-  BaseVector::apply_function(DensityMCX<data_t>(qubits, num_qubits(), BaseVector::chunk_manager_->num_qubits()/2));
+  BaseVector::apply_function(DensityMCX<data_t>(qubits, num_qubits(), BaseVector::chunk_manager_->num_qubits()/2, !BaseVector::cuStateVec_enable_));
 
 #ifdef AER_DEBUG
   BaseVector::DebugMsg(" density::apply_cnot");
@@ -617,8 +623,9 @@ protected:
   uint_t offset_;
   uint_t offset_sp_;
   uint_t cmask_;
+  bool enable_batch_;
 public:
-  DensityMCY(reg_t& qubits, uint_t num_cqubits, uint_t num_qubits)
+  DensityMCY(reg_t& qubits, uint_t num_cqubits, uint_t num_qubits, bool batch)
   {
     total_qubits_ = num_qubits;
     chunk_qubits_ = num_cqubits;
@@ -628,10 +635,15 @@ public:
     cmask_ = 0;
     for(int i=0;i<qubits.size()-1;i++)
       cmask_ |= (1ull << qubits[i]);
+    enable_batch_ = batch;
   }
   bool is_diagonal(void)
   {
     return true;
+  }
+  bool batch_enable(void) override
+  {
+    return enable_batch_;
   }
 
   __host__ __device__ void operator()(const uint_t &i) const
@@ -703,7 +715,7 @@ template <typename data_t>
 void DensityMatrixThrust<data_t>::apply_cy(const uint_t qctrl, const uint_t qtrgt)
 {
   reg_t qubits = {qctrl, qtrgt};
-  BaseVector::apply_function(DensityMCY<data_t>(qubits, num_qubits(), BaseVector::chunk_manager_->num_qubits()/2));
+  BaseVector::apply_function(DensityMCY<data_t>(qubits, num_qubits(), BaseVector::chunk_manager_->num_qubits()/2, !BaseVector::cuStateVec_enable_));
 
 #ifdef AER_DEBUG
   BaseVector::DebugMsg(" density::apply_cy");
@@ -786,20 +798,27 @@ protected:
   uint_t cmask;
   uint_t cmask_sp;
   thrust::complex<double> phase_;
+  bool enable_batch_;
 public:
-  DensityCPhase(uint_t qc,uint_t qt,uint_t qs,std::complex<double> phase)
+  DensityCPhase(uint_t qc,uint_t qt,uint_t qs,std::complex<double> phase, bool batch)
   {
     offset = 1ull << qt;
     offset_sp = 1ull << (qt + qs);
     cmask = 1ull << qc;
     cmask_sp = 1ull << (qc + qs);
     phase_ = phase;
+    enable_batch_ = batch;
   }
 
   int qubits_count(void)
   {
     return 2;
   }
+  bool batch_enable(void) override
+  {
+    return enable_batch_;
+  }
+
   __host__ __device__ void operator()(const uint_t &i) const
   {
     uint_t i0,i1,i2;
@@ -846,7 +865,7 @@ template <typename data_t>
 void DensityMatrixThrust<data_t>::apply_cphase(const uint_t q0, const uint_t q1,
                                          const complex_t &phase) 
 {
-  BaseVector::apply_function(DensityCPhase<data_t>(q0, q1, num_qubits(), phase ));
+  BaseVector::apply_function(DensityCPhase<data_t>(q0, q1, num_qubits(), phase , !BaseVector::cuStateVec_enable_));
 
 #ifdef AER_DEBUG
 	BaseVector::DebugMsg(" density::apply_cphase");
@@ -1025,7 +1044,7 @@ void DensityMatrixThrust<data_t>::apply_toffoli(const uint_t qctrl0,
                                           const uint_t qtrgt) 
 {
   reg_t qubits = {qctrl0, qctrl1, qtrgt};
-  BaseVector::apply_function(DensityMCX<data_t>(qubits, num_qubits(), BaseVector::chunk_manager_->num_qubits()/2));
+  BaseVector::apply_function(DensityMCX<data_t>(qubits, num_qubits(), BaseVector::chunk_manager_->num_qubits()/2, !BaseVector::cuStateVec_enable_));
 
 #ifdef AER_DEBUG
 	BaseVector::DebugMsg(" density::apply_toffoli",qubits);
