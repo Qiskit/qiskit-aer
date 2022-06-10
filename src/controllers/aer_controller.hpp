@@ -1499,6 +1499,13 @@ void Controller::run_circuit_without_sampled_noise(Circuit &circ,
       for (auto &res : par_results) {
         result.combine(std::move(res));
       }
+
+      if (sim_device_name_ == "GPU"){
+        if(parallel_shots_ >= num_gpus_)
+          result.metadata.add(num_gpus_, "gpu_parallel_shots_");
+        else
+          result.metadata.add(parallel_shots_, "gpu_parallel_shots_");
+      }
     }
     // Add measure sampling metadata
     result.metadata.add(true, "measure_sampling");
@@ -1559,6 +1566,12 @@ void Controller::run_circuit_without_sampled_noise(Circuit &circ,
 
       for (auto &res : par_results) {
         result.combine(std::move(res));
+      }
+      if (sim_device_name_ == "GPU"){
+        if(par_shots >= num_gpus_)
+          result.metadata.add(num_gpus_, "gpu_parallel_shots_");
+        else
+          result.metadata.add(par_shots, "gpu_parallel_shots_");
       }
     }
   }
@@ -1624,6 +1637,13 @@ void Controller::run_circuit_with_sampled_noise(
 
   for (auto &res : par_results) {
     result.combine(std::move(res));
+  }
+
+  if (sim_device_name_ == "GPU"){
+    if(parallel_shots_ >= num_gpus_)
+      result.metadata.add(num_gpus_, "gpu_parallel_shots_");
+    else
+      result.metadata.add(parallel_shots_, "gpu_parallel_shots_");
   }
 }
 
