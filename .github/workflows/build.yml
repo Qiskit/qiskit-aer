@@ -134,6 +134,8 @@ jobs:
       - name: Install deps
         run: python -m pip install -U cibuildwheel==2.2.2
       - name: Build Wheels
+        env:
+          AER_CMAKE_OPENMP_BUILD: 1
         run: cibuildwheel --output-dir wheelhouse
       - uses: actions/upload-artifact@v2
         with:
