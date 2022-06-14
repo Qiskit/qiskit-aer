@@ -104,6 +104,9 @@ public:
   // Apply a 2-qubit Controlled-NOT gate to the state vector
   void apply_cnot(const uint_t qctrl, const uint_t qtrgt);
 
+ // Apply a 2-qubit Controlled-Y gate to the state vector
+  void apply_cy(const uint_t qctrl, const uint_t qtrgt);
+
   // Apply 2-qubit controlled-phase gate
   void apply_cphase(const uint_t q0, const uint_t q1, const complex_t &phase);
 
@@ -512,88 +515,210 @@ void DensityMatrixThrust<data_t>::apply_diagonal_unitary_matrix(const reg_t &qub
 // Apply Specialized Gates
 //-----------------------------------------------------------------------
 template <typename data_t>
-class DensityCX : public Chunk::GateFuncBase<data_t>
+class DensityMCX : public Chunk::GateFuncBase<data_t>
 {
 protected:
-  uint_t offset;
-  uint_t offset_sp;
-  uint_t cmask;
-  uint_t cmask_sp;
+  int total_qubits_;
+  int chunk_qubits_;
+  uint_t offset_;
+  uint_t offset_sp_;
+  uint_t cmask_;
+  bool enable_batch_;
 public:
-  DensityCX(uint_t qc,uint_t qt,uint_t qs)
+  DensityMCX(reg_t& qubits, uint_t num_cqubits, uint_t num_qubits,bool batch)
   {
-    offset = 1ull << qt;
-    offset_sp = 1ull << (qt + qs);
-    cmask = 1ull << qc;
-    cmask_sp = 1ull << (qc + qs);
+    total_qubits_ = num_qubits;
+    chunk_qubits_ = num_cqubits;
+
+    offset_ = 1ull << qubits[qubits.size()-1];
+    offset_sp_ = 1ull << (qubits[qubits.size()-1] + chunk_qubits_);
+    cmask_ = 0;
+    for(int i=0;i<qubits.size()-1;i++)
+      cmask_ |= (1ull << qubits[i]);
+    enable_batch_ = batch;
   }
-  int qubits_count(void)
+  bool is_diagonal(void)
   {
-    return 2;
+    return true;
+  }
+  bool batch_enable(void) override
+  {
+    return enable_batch_;
   }
 
   __host__ __device__ void operator()(const uint_t &i) const
   {
-    uint_t i0,i1,i2;
     thrust::complex<data_t>* vec0;
-    thrust::complex<data_t>* vec1;
-    thrust::complex<data_t>* vec2;
-    thrust::complex<data_t>* vec3;
-    thrust::complex<data_t> q0,q1,q2,q3,t;
+    thrust::complex<data_t>* vec1 = nullptr;
+    thrust::complex<data_t> q0,q1;
+
+    uint_t irow,icol,gid,local_mask,gcid;
+    uint_t irow_chunk,icol_chunk;
+
+    gid = this->base_index_;
+
+    gcid = (gid + i) >> (chunk_qubits_*2);
+    irow_chunk = gcid >> (total_qubits_ - chunk_qubits_);
+    icol_chunk = gcid & ((1ull << (total_qubits_ - chunk_qubits_))-1);
+
+    local_mask = (1ull << (chunk_qubits_*2)) - 1;
+    irow = (i & local_mask) >> chunk_qubits_;
+    icol = (i & local_mask) & ((1ull << chunk_qubits_)-1);
+
+    irow += (irow_chunk << chunk_qubits_);
+    icol += (icol_chunk << chunk_qubits_);
 
     vec0 = this->data_;
-    vec1 = vec0 + offset;
-    vec2 = vec0 + offset_sp;
-    vec3 = vec2 + offset;
-
-    i0 = i & (offset - 1);
-    i2 = (i - i0) << 1;
-    i1 = i2 & (offset_sp - 1);
-    i2 = (i2 - i1) << 1;
-
-    i0 = i0 + i1 + i2;
-
-    q0 = vec0[i0];
-    q1 = vec1[i0];
-    q2 = vec2[i0];
-    q3 = vec3[i0];
-
-    if((i0 & cmask) == cmask){
-      t = q0;
-      q0 = q1;
-      q1 = t;
-
-      t = q2;
-      q2 = q3;
-      q3 = t;
+    if((icol & cmask_) == cmask_){
+      if((irow & cmask_) == cmask_){
+        if(i < (i ^ offset_)){
+          if(i < (i ^ offset_sp_)){
+            vec1 = vec0 + offset_sp_ + offset_;
+          }
+          else{
+            vec1 = vec0 - offset_sp_ + offset_;
+          }
+        }
+      }
+      else if(i < (i ^ offset_)){
+        vec1 = vec0 + offset_;
+      }
+    }
+    else if((irow & cmask_) == cmask_ && i < (i ^ offset_sp_)){
+      vec1 = vec0 + offset_sp_;
     }
 
-    if((i0 & cmask_sp) == cmask_sp){
-      vec0[i0] = q2;
-      vec1[i0] = q3;
-      vec2[i0] = q0;
-      vec3[i0] = q1;
-    }
-    else{
-      vec0[i0] = q0;
-      vec1[i0] = q1;
-      vec2[i0] = q2;
-      vec3[i0] = q3;
+    if(vec1 != nullptr){
+      q0 = vec0[i];
+      q1 = vec1[i];
+
+      vec0[i] = q1;
+      vec1[i] = q0;
     }
   }
   const char* name(void)
   {
-    return "DensityCX";
+    return "DensityMCXY";
   }
 };
 
 template <typename data_t>
 void DensityMatrixThrust<data_t>::apply_cnot(const uint_t qctrl, const uint_t qtrgt) 
 {
-  BaseVector::apply_function(DensityCX<data_t>(qctrl, qtrgt, num_qubits()));
+  reg_t qubits = {qctrl, qtrgt};
+  BaseVector::apply_function(DensityMCX<data_t>(qubits, num_qubits(), BaseVector::chunk_manager_->num_qubits()/2, !BaseVector::cuStateVec_enable_));
 
 #ifdef AER_DEBUG
   BaseVector::DebugMsg(" density::apply_cnot");
+  DebugDump();
+#endif
+}
+
+template <typename data_t>
+class DensityMCY : public Chunk::GateFuncBase<data_t>
+{
+protected:
+  int total_qubits_;
+  int chunk_qubits_;
+  uint_t offset_;
+  uint_t offset_sp_;
+  uint_t cmask_;
+  bool enable_batch_;
+public:
+  DensityMCY(reg_t& qubits, uint_t num_cqubits, uint_t num_qubits, bool batch)
+  {
+    total_qubits_ = num_qubits;
+    chunk_qubits_ = num_cqubits;
+
+    offset_ = 1ull << qubits[qubits.size()-1];
+    offset_sp_ = 1ull << (qubits[qubits.size()-1] + chunk_qubits_);
+    cmask_ = 0;
+    for(int i=0;i<qubits.size()-1;i++)
+      cmask_ |= (1ull << qubits[i]);
+    enable_batch_ = batch;
+  }
+  bool is_diagonal(void)
+  {
+    return true;
+  }
+  bool batch_enable(void) override
+  {
+    return enable_batch_;
+  }
+
+  __host__ __device__ void operator()(const uint_t &i) const
+  {
+    thrust::complex<data_t>* vec0;
+    thrust::complex<data_t>* vec1 = nullptr;
+    thrust::complex<data_t> q0,q1,t0,t1;
+    thrust::complex<data_t> s0,s1;
+
+    uint_t irow,icol,gid,local_mask,gcid;
+    uint_t irow_chunk,icol_chunk;
+
+    gid = this->base_index_;
+
+    gcid = (gid + i) >> (chunk_qubits_*2);
+    irow_chunk = gcid >> (total_qubits_ - chunk_qubits_);
+    icol_chunk = gcid & ((1ull << (total_qubits_ - chunk_qubits_))-1);
+
+    local_mask = (1ull << (chunk_qubits_*2)) - 1;
+    irow = (i & local_mask) >> chunk_qubits_;
+    icol = (i & local_mask) & ((1ull << chunk_qubits_)-1);
+
+    irow += (irow_chunk << chunk_qubits_);
+    icol += (icol_chunk << chunk_qubits_);
+
+    vec0 = this->data_;
+    if((icol & cmask_) == cmask_){
+      if((irow & cmask_) == cmask_){
+        if(i < (i ^ offset_)){
+          if(i < (i ^ offset_sp_)){
+            vec1 = vec0 + offset_sp_ + offset_;
+            s0 = 1.0;
+            s1 = 1.0;
+          }
+          else{
+            vec1 = vec0 - offset_sp_ + offset_;
+            s0 = -1.0;
+            s1 = -1.0;
+          }
+        }
+      }
+      else if(i < (i ^ offset_)){
+        vec1 = vec0 + offset_;
+        s0 = thrust::complex<double>(0.0,-1.0);
+        s1 = thrust::complex<double>(0.0,1.0);
+      }
+    }
+    else if((irow & cmask_) == cmask_ && i < (i ^ offset_sp_)){
+      vec1 = vec0 + offset_sp_;
+      s0 = thrust::complex<double>(0.0,1.0);
+      s1 = thrust::complex<double>(0.0,-1.0);
+    }
+
+    if(vec1 != nullptr){
+      q0 = vec0[i];
+      q1 = vec1[i];
+
+      vec0[i] = s0*q1;
+      vec1[i] = s1*q0;
+    }
+  }
+  const char* name(void)
+  {
+    return "DensityMCXY";
+  }
+};
+
+template <typename data_t>
+void DensityMatrixThrust<data_t>::apply_cy(const uint_t qctrl, const uint_t qtrgt)
+{
+  reg_t qubits = {qctrl, qtrgt};
+  BaseVector::apply_function(DensityMCY<data_t>(qubits, num_qubits(), BaseVector::chunk_manager_->num_qubits()/2, !BaseVector::cuStateVec_enable_));
+
+#ifdef AER_DEBUG
+  BaseVector::DebugMsg(" density::apply_cy");
   DebugDump();
 #endif
 }
@@ -673,20 +798,27 @@ protected:
   uint_t cmask;
   uint_t cmask_sp;
   thrust::complex<double> phase_;
+  bool enable_batch_;
 public:
-  DensityCPhase(uint_t qc,uint_t qt,uint_t qs,std::complex<double> phase)
+  DensityCPhase(uint_t qc,uint_t qt,uint_t qs,std::complex<double> phase, bool batch)
   {
     offset = 1ull << qt;
     offset_sp = 1ull << (qt + qs);
     cmask = 1ull << qc;
     cmask_sp = 1ull << (qc + qs);
     phase_ = phase;
+    enable_batch_ = batch;
   }
 
   int qubits_count(void)
   {
     return 2;
   }
+  bool batch_enable(void) override
+  {
+    return enable_batch_;
+  }
+
   __host__ __device__ void operator()(const uint_t &i) const
   {
     uint_t i0,i1,i2;
@@ -733,7 +865,7 @@ template <typename data_t>
 void DensityMatrixThrust<data_t>::apply_cphase(const uint_t q0, const uint_t q1,
                                          const complex_t &phase) 
 {
-  BaseVector::apply_function(DensityCPhase<data_t>(q0, q1, num_qubits(), phase ));
+  BaseVector::apply_function(DensityCPhase<data_t>(q0, q1, num_qubits(), phase , !BaseVector::cuStateVec_enable_));
 
 #ifdef AER_DEBUG
 	BaseVector::DebugMsg(" density::apply_cphase");
@@ -909,14 +1041,11 @@ void DensityMatrixThrust<data_t>::apply_y(const uint_t qubit)
 template <typename data_t>
 void DensityMatrixThrust<data_t>::apply_toffoli(const uint_t qctrl0,
                                           const uint_t qctrl1,
-                                          const uint_t qtrgt) {
-  std::vector<std::pair<uint_t, uint_t>> pairs = {
-    {{3, 7}, {11, 15}, {19, 23}, {24, 56}, {25, 57}, {26, 58}, {27, 63},
-    {28, 60}, {29, 61}, {30, 62}, {31, 59}, {35, 39}, {43,47}, {51, 55}}
-  };
-  const reg_t qubits = {{qctrl0, qctrl1, qtrgt,
-                         qctrl0 + num_qubits(), qctrl1 + num_qubits(), qtrgt + num_qubits()}};
-  BaseVector::apply_permutation_matrix(qubits, pairs);
+                                          const uint_t qtrgt) 
+{
+  reg_t qubits = {qctrl0, qctrl1, qtrgt};
+  BaseVector::apply_function(DensityMCX<data_t>(qubits, num_qubits(), BaseVector::chunk_manager_->num_qubits()/2, !BaseVector::cuStateVec_enable_));
+
 #ifdef AER_DEBUG
 	BaseVector::DebugMsg(" density::apply_toffoli",qubits);
 #endif
