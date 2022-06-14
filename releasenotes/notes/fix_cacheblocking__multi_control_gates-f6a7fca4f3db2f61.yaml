@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    This is fix for cache blocking transpiler and chunk parallelization for
+    GPUs or MPI. This fix fixes issue with qubits which has many control or
+    target qubits (> blocking_qubits). From this fix, only target qubits of
+    the multi-controlled gate is cache blocked in blocking_qubits.
+    But it does not support case if number of target qubits is still larger
+    than blocking_qubits (i.e. large unitary matrix multiplication)
