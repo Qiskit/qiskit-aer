@@ -228,7 +228,7 @@ public:
   virtual void Zero(uint_t iChunk,uint_t count) = 0;
 
   template <typename Function>
-  void Execute(Function func,uint_t iChunk,uint_t count);
+  void Execute(Function func,uint_t iChunk,const uint_t gid, const uint_t count);
 
   template <typename Function>
   void ExecuteSum(double* pSum,Function func,uint_t iChunk,uint_t count) const;
@@ -326,31 +326,31 @@ public:
   virtual void request_creg_update(void){}
 
   //apply matrix 
-  virtual void apply_matrix(const uint_t iChunk,const reg_t& qubits,const int_t control_bits,const cvector_t<double> &mat,const uint_t count);
+  virtual void apply_matrix(const uint_t iChunk,const reg_t& qubits,const int_t control_bits,const cvector_t<double> &mat,const uint_t gid, const uint_t count);
 
   //apply diagonal matrix
-  virtual void apply_diagonal_matrix(const uint_t iChunk,const reg_t& qubits,const int_t control_bits,const cvector_t<double> &diag,const uint_t count);
+  virtual void apply_diagonal_matrix(const uint_t iChunk,const reg_t& qubits,const int_t control_bits,const cvector_t<double> &diag,const uint_t gid, const uint_t count);
 
   //apply (controlled) X
-  virtual void apply_X(const uint_t iChunk,const reg_t& qubits,const uint_t count);
+  virtual void apply_X(const uint_t iChunk,const reg_t& qubits,const uint_t gid, const uint_t count);
 
   //apply (controlled) Y
-  virtual void apply_Y(const uint_t iChunk,const reg_t& qubits,const uint_t count);
+  virtual void apply_Y(const uint_t iChunk,const reg_t& qubits,const uint_t gid, const uint_t count);
 
   //apply (controlled) phase
-  virtual void apply_phase(const uint_t iChunk,const reg_t& qubits,const int_t control_bits,const std::complex<double> phase,const uint_t count);
+  virtual void apply_phase(const uint_t iChunk,const reg_t& qubits,const int_t control_bits,const std::complex<double> phase,const uint_t gid, const uint_t count);
 
   //apply (controlled) swap gate
-  virtual void apply_swap(const uint_t iChunk,const reg_t& qubits,const int_t control_bits,const uint_t count);
+  virtual void apply_swap(const uint_t iChunk,const reg_t& qubits,const int_t control_bits,const uint_t gid, const uint_t count);
 
   //apply multiple swap gates
-  virtual void apply_multi_swaps(const uint_t iChunk,const reg_t& qubits,const uint_t count);
+  virtual void apply_multi_swaps(const uint_t iChunk,const reg_t& qubits,const uint_t gid, const uint_t count);
 
   //apply permutation
-  virtual void apply_permutation(const uint_t iChunk,const reg_t& qubits,const std::vector<std::pair<uint_t, uint_t>> &pairs, const uint_t count);
+  virtual void apply_permutation(const uint_t iChunk,const reg_t& qubits,const std::vector<std::pair<uint_t, uint_t>> &pairs, const uint_t gid, const uint_t count);
 
   //apply rotation around axis
-  virtual void apply_rotation(const uint_t iChunk,const reg_t &qubits, const Rotation r, const double theta, const uint_t count);
+  virtual void apply_rotation(const uint_t iChunk,const reg_t &qubits, const Rotation r, const double theta, const uint_t gid, const uint_t count);
 
   //get probabilities of chunk
   virtual void probabilities(std::vector<double>& probs, const uint_t iChunk, const reg_t& qubits) const;
@@ -424,11 +424,11 @@ void ChunkContainer<data_t>::unmap_all(void)
 
 template <typename data_t>
 template <typename Function>
-void ChunkContainer<data_t>::Execute(Function func,uint_t iChunk,uint_t count)
+void ChunkContainer<data_t>::Execute(Function func,uint_t iChunk,const uint_t gid, const uint_t count)
 {
   set_device();
 
-  func.set_base_index((chunk_index_ + iChunk) << chunk_bits_);
+  func.set_base_index(gid << chunk_bits_);
   func.set_data( chunk_pointer(iChunk) );
   func.set_matrix( matrix_pointer(iChunk) );
   func.set_params( param_pointer(iChunk) );
@@ -836,18 +836,18 @@ void ChunkContainer<data_t>::deallocate_chunks(void)
 }
 
 template <typename data_t>
-void ChunkContainer<data_t>::apply_matrix(const uint_t iChunk,const reg_t& qubits,const int_t control_bits,const cvector_t<double> &mat,const uint_t count)
+void ChunkContainer<data_t>::apply_matrix(const uint_t iChunk,const reg_t& qubits,const int_t control_bits,const cvector_t<double> &mat,const uint_t gid, const uint_t count)
 {
   const size_t N = qubits.size() - control_bits;
 
   if(N == 1){
     if(control_bits == 0)
-      Execute(MatrixMult2x2<data_t>(mat,qubits[0]), iChunk, count);
+      Execute(MatrixMult2x2<data_t>(mat,qubits[0]), iChunk, gid, count);
     else  //2x2 matrix with control bits
-      Execute(MatrixMult2x2Controlled<data_t>(mat,qubits), iChunk, count);
+      Execute(MatrixMult2x2Controlled<data_t>(mat,qubits), iChunk, gid, count);
   }
   else if(N == 2){
-    Execute(MatrixMult4x4<data_t>(mat,qubits[0],qubits[1]), iChunk, count);
+    Execute(MatrixMult4x4<data_t>(mat,qubits[0],qubits[1]), iChunk, gid, count);
   }
   else{
     auto qubits_sorted = qubits;
@@ -855,11 +855,11 @@ void ChunkContainer<data_t>::apply_matrix(const uint_t iChunk,const reg_t& qubit
 #ifndef AER_THRUST_CUDA
     if(N == 3){
       StoreMatrix(mat, iChunk);
-      Execute(MatrixMult8x8<data_t>(qubits,qubits_sorted), iChunk, count);
+      Execute(MatrixMult8x8<data_t>(qubits,qubits_sorted), iChunk, gid, count);
     }
     else if(N == 4){
       StoreMatrix(mat, iChunk);
-      Execute(MatrixMult16x16<data_t>(qubits,qubits_sorted), iChunk, count);
+      Execute(MatrixMult16x16<data_t>(qubits,qubits_sorted), iChunk, gid, count);
     }
     else if(N <= 10){
 #else
@@ -872,7 +872,7 @@ void ChunkContainer<data_t>::apply_matrix(const uint_t iChunk,const reg_t& qubit
       StoreMatrix(mat, iChunk);
       StoreUintParams(qubits_sorted, iChunk);
 
-      Execute(MatrixMultNxN<data_t>(N), iChunk, count);
+      Execute(MatrixMultNxN<data_t>(N), iChunk, gid, count);
     }
     else{
       cvector_t<double> matLU;
@@ -882,60 +882,60 @@ void ChunkContainer<data_t>::apply_matrix(const uint_t iChunk,const reg_t& qubit
       StoreMatrix(matLU, iChunk);
       StoreUintParams(params, iChunk);
 
-      Execute(f, iChunk, count);
+      Execute(f, iChunk, gid, count);
     }
   }
 }
 
 template <typename data_t>
-void ChunkContainer<data_t>::apply_diagonal_matrix(const uint_t iChunk,const reg_t& qubits,const int_t control_bits,const cvector_t<double> &diag,const uint_t count)
+void ChunkContainer<data_t>::apply_diagonal_matrix(const uint_t iChunk,const reg_t& qubits,const int_t control_bits,const cvector_t<double> &diag,const uint_t gid, const uint_t count)
 {
   const size_t N = qubits.size() - control_bits;
 
   if(N == 1){
     if(control_bits == 0)
-      Execute(DiagonalMult2x2<data_t>(diag,qubits[0]), iChunk, count);
+      Execute(DiagonalMult2x2<data_t>(diag,qubits[0]), iChunk, gid, count);
     else
-      Execute(DiagonalMult2x2Controlled<data_t>(diag,qubits), iChunk, count);
+      Execute(DiagonalMult2x2Controlled<data_t>(diag,qubits), iChunk, gid, count);
   }
   else if(N == 2){
-    Execute(DiagonalMult4x4<data_t>(diag,qubits[0],qubits[1]), iChunk, count);
+    Execute(DiagonalMult4x4<data_t>(diag,qubits[0],qubits[1]), iChunk, gid, count);
   }
   else{
     StoreMatrix(diag, iChunk);
     StoreUintParams(qubits, iChunk);
 
-    Execute(DiagonalMultNxN<data_t>(qubits), iChunk, count);
+    Execute(DiagonalMultNxN<data_t>(qubits), iChunk, gid, count);
   }
 }
 
 template <typename data_t>
-void ChunkContainer<data_t>::apply_X(const uint_t iChunk,const reg_t& qubits,const uint_t count)
+void ChunkContainer<data_t>::apply_X(const uint_t iChunk,const reg_t& qubits,const uint_t gid, const uint_t count)
 {
-  Execute(CX_func<data_t>(qubits), iChunk, count);
+  Execute(CX_func<data_t>(qubits), iChunk, gid, count);
 }
 
 template <typename data_t>
-void ChunkContainer<data_t>::apply_Y(const uint_t iChunk,const reg_t& qubits,const uint_t count)
+void ChunkContainer<data_t>::apply_Y(const uint_t iChunk,const reg_t& qubits,const uint_t gid, const uint_t count)
 {
-  Execute(CY_func<data_t>(qubits), iChunk, count);
+  Execute(CY_func<data_t>(qubits), iChunk, gid, count);
 }
 
 template <typename data_t>
-void ChunkContainer<data_t>::apply_phase(const uint_t iChunk,const reg_t& qubits,const int_t control_bits,const std::complex<double> phase,const uint_t count)
+void ChunkContainer<data_t>::apply_phase(const uint_t iChunk,const reg_t& qubits,const int_t control_bits,const std::complex<double> phase,const uint_t gid, const uint_t count)
 {
-  Execute(phase_func<data_t>(qubits,*(thrust::complex<double>*)&phase), iChunk, count );
+  Execute(phase_func<data_t>(qubits,*(thrust::complex<double>*)&phase), iChunk, gid, count );
 }
 
 template <typename data_t>
-void ChunkContainer<data_t>::apply_swap(const uint_t iChunk,const reg_t& qubits,const int_t control_bits,const uint_t count)
+void ChunkContainer<data_t>::apply_swap(const uint_t iChunk,const reg_t& qubits,const int_t control_bits,const uint_t gid, const uint_t count)
 {
-  Execute(CSwap_func<data_t>(qubits), iChunk, count);
+  Execute(CSwap_func<data_t>(qubits), iChunk, gid, count);
 }
 
 
 template <typename data_t>
-void ChunkContainer<data_t>::apply_multi_swaps(const uint_t iChunk,const reg_t& qubits,const uint_t count)
+void ChunkContainer<data_t>::apply_multi_swaps(const uint_t iChunk,const reg_t& qubits,const uint_t gid,const uint_t count)
 {
   //max 5 swaps can be applied at once using GPU's shared memory
   for(int_t i=0;i<qubits.size();i+=10){
@@ -948,12 +948,12 @@ void ChunkContainer<data_t>::apply_multi_swaps(const uint_t iChunk,const reg_t& 
     qubits_swap.insert(qubits_swap.end(), qubits.begin() + i,qubits.begin() + i + n);
 
     StoreUintParams(qubits_swap, iChunk);
-    Execute(MultiSwap_func<data_t>(n), iChunk, count);
+    Execute(MultiSwap_func<data_t>(n), iChunk, gid, count);
   }
 }
 
 template <typename data_t>
-void ChunkContainer<data_t>::apply_permutation(const uint_t iChunk,const reg_t& qubits,const std::vector<std::pair<uint_t, uint_t>> &pairs, const uint_t count)
+void ChunkContainer<data_t>::apply_permutation(const uint_t iChunk,const reg_t& qubits,const std::vector<std::pair<uint_t, uint_t>> &pairs, const uint_t gid, const uint_t count)
 {
   const size_t N = qubits.size();
   auto qubits_sorted = qubits;
@@ -964,34 +964,34 @@ void ChunkContainer<data_t>::apply_permutation(const uint_t iChunk,const reg_t& 
 
   StoreUintParams(params, iChunk);
 
-  Execute(f, iChunk, count);
+  Execute(f, iChunk, gid, count);
 }
 
 template <typename data_t>
-void ChunkContainer<data_t>::apply_rotation(const uint_t iChunk,const reg_t &qubits, const Rotation r, const double theta, const uint_t count)
+void ChunkContainer<data_t>::apply_rotation(const uint_t iChunk,const reg_t &qubits, const Rotation r, const double theta, const uint_t gid, const uint_t count)
 {
   int control_bits = qubits.size() - 1;
   switch(r){
     case Rotation::x:
-      apply_matrix(iChunk, qubits, control_bits, Linalg::VMatrix::rx(theta), count);
+      apply_matrix(iChunk, qubits, control_bits, Linalg::VMatrix::rx(theta), gid, count);
       break;
     case Rotation::y:
-      apply_matrix(iChunk, qubits, control_bits, Linalg::VMatrix::ry(theta), count);
+      apply_matrix(iChunk, qubits, control_bits, Linalg::VMatrix::ry(theta), gid, count);
       break;
     case Rotation::z:
-      apply_diagonal_matrix(iChunk, qubits, control_bits, Linalg::VMatrix::rz_diag(theta), count);
+      apply_diagonal_matrix(iChunk, qubits, control_bits, Linalg::VMatrix::rz_diag(theta), gid, count);
       break;
     case Rotation::xx:
-      apply_matrix(iChunk, qubits, control_bits-1, Linalg::VMatrix::rxx(theta), count);
+      apply_matrix(iChunk, qubits, control_bits-1, Linalg::VMatrix::rxx(theta), gid, count);
       break;
     case Rotation::yy:
-      apply_matrix(iChunk, qubits, control_bits-1, Linalg::VMatrix::ryy(theta), count);
+      apply_matrix(iChunk, qubits, control_bits-1, Linalg::VMatrix::ryy(theta), gid, count);
       break;
     case Rotation::zz:
-      apply_diagonal_matrix(iChunk, qubits, control_bits-1, Linalg::VMatrix::rzz_diag(theta), count);
+      apply_diagonal_matrix(iChunk, qubits, control_bits-1, Linalg::VMatrix::rzz_diag(theta), gid, count);
       break;
     case Rotation::zx:
-      apply_matrix(iChunk, qubits, control_bits-1, Linalg::VMatrix::rzx(theta), count);
+      apply_matrix(iChunk, qubits, control_bits-1, Linalg::VMatrix::rzx(theta), gid, count);
       break;
     default:
       throw std::invalid_argument(

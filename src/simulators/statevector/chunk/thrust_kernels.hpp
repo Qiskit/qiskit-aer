@@ -1372,7 +1372,7 @@ public:
     i0 = (i - i1) << 1;
     i0 += i1;
 
-    if((i0 & cmask) == cmask){
+    if(((i0 + this->base_index_) & cmask) == cmask){
       q0 = vec0[i0];
       q1 = vec1[i0];
 
@@ -1753,7 +1753,7 @@ public:
     i0 = (i - i1) << 1;
     i0 += i1;
 
-    if((i0 & cmask) == cmask){
+    if(((i0 + this->base_index_) & cmask) == cmask){
       q0 = vec0[i0];
       q1 = vec1[i0];
 
@@ -1819,7 +1819,7 @@ public:
     i0 = (i - i1) << 1;
     i0 += i1;
 
-    if((i0 & cmask) == cmask){
+    if(((i0 + this->base_index_) & cmask) == cmask){
       q0 = vec0[i0];
       q1 = vec1[i0];
 
@@ -1903,7 +1903,7 @@ public:
 
     i0 = i0 + i1 + i2;
 
-    if((i0 & cmask) == cmask){
+    if(((i0 + this->base_index_) & cmask) == cmask){
       q1 = vec1[i0];
       q2 = vec2[i0];
       vec1[i0] = q2;

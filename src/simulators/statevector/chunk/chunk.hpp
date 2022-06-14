@@ -119,8 +119,11 @@ public:
   }
   void unmap_cache(void)
   {
-    cache_->unmap();
-    cache_.reset();
+    if(cache_){
+      cache_->unmap();
+      cache_.reset();
+      cache_ = nullptr;
+    }
   }
   
   bool is_mapped(void)
@@ -141,6 +144,10 @@ public:
   void set_chunk_index(uint_t id)
   {
     chunk_index_ = id;
+  }
+  uint_t chunk_index(void)
+  {
+    return chunk_index_;
   }
 
   uint_t matrix_bits(void)
@@ -237,10 +244,10 @@ public:
   void Execute(Function func,uint_t count)
   {
     if(cache_){
-      cache_->Execute(func,count);
+      cache_->chunk_container_.lock()->Execute(func,cache_->chunk_pos_,chunk_index_,count);
     }
     else{
-      chunk_container_.lock()->Execute(func,chunk_pos_,count);
+      chunk_container_.lock()->Execute(func,chunk_pos_,chunk_index_,count);
     }
   }
 
@@ -371,48 +378,75 @@ public:
   //apply matrix
   void apply_matrix(const reg_t& qubits,const int_t control_bits,const cvector_t<double> &mat,const uint_t count)
   {
-    chunk_container_.lock()->apply_matrix(chunk_pos_,qubits,control_bits,mat,count);
+    if(cache_)
+      cache_->chunk_container_.lock()->apply_matrix(cache_->chunk_pos_, qubits,control_bits,mat,chunk_index_,count);
+    else
+      chunk_container_.lock()->apply_matrix(chunk_pos_,qubits,control_bits,mat,chunk_index_,count);
   }
   //apply diagonal matrix
   void apply_diagonal_matrix(const reg_t& qubits,const int_t control_bits,const cvector_t<double> &diag,const uint_t count)
   {
-    chunk_container_.lock()->apply_diagonal_matrix(chunk_pos_,qubits,control_bits,diag,count);
+    if(cache_)
+      cache_->chunk_container_.lock()->apply_diagonal_matrix(cache_->chunk_pos_, qubits,control_bits,diag,chunk_index_,count);
+    else
+      chunk_container_.lock()->apply_diagonal_matrix(chunk_pos_,qubits,control_bits,diag,chunk_index_,count);
   }
   //apply (controlled) X
   void apply_X(const reg_t& qubits,const uint_t count)
   {
-    chunk_container_.lock()->apply_X(chunk_pos_,qubits,count);
+    if(cache_)
+      cache_->chunk_container_.lock()->apply_X(cache_->chunk_pos_, qubits,chunk_index_,count);
+    else
+      chunk_container_.lock()->apply_X(chunk_pos_,qubits,chunk_index_,count);
   }
   //apply (controlled) Y
   void apply_Y(const reg_t& qubits,const uint_t count)
   {
-    chunk_container_.lock()->apply_Y(chunk_pos_,qubits,count);
+    if(cache_)
+      cache_->chunk_container_.lock()->apply_Y(cache_->chunk_pos_, qubits,chunk_index_,count);
+    else
+      chunk_container_.lock()->apply_Y(chunk_pos_,qubits,chunk_index_,count);
   }
   //apply (controlled) phase
   void apply_phase(const reg_t& qubits,const int_t control_bits,const std::complex<double> phase,const uint_t count)
   {
-    chunk_container_.lock()->apply_phase(chunk_pos_,qubits,control_bits,phase,count);
+    if(cache_)
+      cache_->chunk_container_.lock()->apply_phase(cache_->chunk_pos_, qubits,control_bits,phase,chunk_index_,count);
+    else
+      chunk_container_.lock()->apply_phase(chunk_pos_,qubits,control_bits,phase,chunk_index_,count);
   }
   //apply (controlled) swap gate
   void apply_swap(const reg_t& qubits,const int_t control_bits,const uint_t count)
   {
-    chunk_container_.lock()->apply_swap(chunk_pos_,qubits,control_bits,count);
+    if(cache_)
+      cache_->chunk_container_.lock()->apply_swap(cache_->chunk_pos_, qubits,control_bits,chunk_index_,count);
+    else
+      chunk_container_.lock()->apply_swap(chunk_pos_,qubits,control_bits,chunk_index_,count);
   }
   //apply multiple swap gates
   void apply_multi_swaps(const reg_t& qubits,const uint_t count)
   {
-    chunk_container_.lock()->apply_multi_swaps(chunk_pos_,qubits,count);
+    if(cache_)
+      cache_->chunk_container_.lock()->apply_multi_swaps(cache_->chunk_pos_, qubits,chunk_index_,count);
+    else
+      chunk_container_.lock()->apply_multi_swaps(chunk_pos_,qubits,chunk_index_,count);
   }
   //apply permutation
   void apply_permutation(const reg_t& qubits,const std::vector<std::pair<uint_t, uint_t>> &pairs, const uint_t count)
   {
-    chunk_container_.lock()->apply_permutation(chunk_pos_,qubits,pairs,count);
+    if(cache_)
+      cache_->chunk_container_.lock()->apply_permutation(cache_->chunk_pos_, qubits,pairs,chunk_index_,count);
+    else
+      chunk_container_.lock()->apply_permutation(chunk_pos_,qubits,pairs,chunk_index_,count);
   }
 
   //apply rotation around axis
   void apply_rotation(const reg_t &qubits, const Rotation r, const double theta, const uint_t count)
   {
-    chunk_container_.lock()->apply_rotation(chunk_pos_,qubits,r,theta,count);
+    if(cache_)
+      cache_->chunk_container_.lock()->apply_rotation(cache_->chunk_pos_, qubits,r,theta,chunk_index_,count);
+    else
+      chunk_container_.lock()->apply_rotation(chunk_pos_,qubits,r,theta,chunk_index_,count);
   }
 
   //get probabilities of chunk

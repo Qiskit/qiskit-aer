@@ -53,28 +53,28 @@ public:
   double norm(uint_t iChunk,uint_t count) const override;
 
   //apply matrix
-  void apply_matrix(const uint_t iChunk,const reg_t& qubits,const int_t control_bits,const cvector_t<double> &mat,const uint_t count) override;
+  void apply_matrix(const uint_t iChunk,const reg_t& qubits,const int_t control_bits,const cvector_t<double> &mat,const uint_t gid, const uint_t count) override;
 
   //apply diagonal matrix
-  void apply_diagonal_matrix(const uint_t iChunk,const reg_t& qubits,const int_t control_bits,const cvector_t<double> &diag,const uint_t count) override;
+  void apply_diagonal_matrix(const uint_t iChunk,const reg_t& qubits,const int_t control_bits,const cvector_t<double> &diag,const uint_t gid, const uint_t count) override;
 
   //apply (controlled) X
-  void apply_X(const uint_t iChunk,const reg_t& qubits,const uint_t count) override;
+  void apply_X(const uint_t iChunk,const reg_t& qubits,const uint_t gid, const uint_t count) override;
 
   //apply (controlled) Y
-  void apply_Y(const uint_t iChunk,const reg_t& qubits,const uint_t count) override;
+  void apply_Y(const uint_t iChunk,const reg_t& qubits,const uint_t gid, const uint_t count) override;
 
   //apply (controlled) phase
-  virtual void apply_phase(const uint_t iChunk,const reg_t& qubits,const int_t control_bits,const std::complex<double> phase,const uint_t count) override;
+  virtual void apply_phase(const uint_t iChunk,const reg_t& qubits,const int_t control_bits,const std::complex<double> phase,const uint_t gid, const uint_t count) override;
 
   //apply (controlled) swap gate
-  void apply_swap(const uint_t iChunk,const reg_t& qubits,const int_t control_bits,const uint_t count) override;
+  void apply_swap(const uint_t iChunk,const reg_t& qubits,const int_t control_bits,const uint_t gid, const uint_t count) override;
 
   //apply permutation
-  void apply_permutation(const uint_t iChunk,const reg_t& qubits,const std::vector<std::pair<uint_t, uint_t>> &pairs, const uint_t count) override;
+  void apply_permutation(const uint_t iChunk,const reg_t& qubits,const std::vector<std::pair<uint_t, uint_t>> &pairs, const uint_t gid, const uint_t count) override;
 
   //apply rotation around axis
-  void apply_rotation(const uint_t iChunk,const reg_t &qubits, const Rotation r, const double theta, const uint_t count) override;
+  void apply_rotation(const uint_t iChunk,const reg_t &qubits, const Rotation r, const double theta, const uint_t gid, const uint_t count) override;
 
   //get probabilities of chunk
   void probabilities(std::vector<double>& probs, const uint_t iChunk, const reg_t& qubits) const override;
@@ -247,7 +247,7 @@ reg_t cuStateVecChunkContainer<data_t>::sample_measure(uint_t iChunk,const std::
 }
 
 template <typename data_t>
-void cuStateVecChunkContainer<data_t>::apply_matrix(const uint_t iChunk,const reg_t& qubits,const int_t control_bits,const cvector_t<double> &mat,const uint_t count)
+void cuStateVecChunkContainer<data_t>::apply_matrix(const uint_t iChunk,const reg_t& qubits,const int_t control_bits,const cvector_t<double> &mat,const uint_t gid, const uint_t count)
 {
   thrust::complex<double>* pMat;
   int_t num_qubits = qubits.size()-control_bits;
@@ -273,7 +273,7 @@ void cuStateVecChunkContainer<data_t>::apply_matrix(const uint_t iChunk,const re
   else{
     nc = count;
     bits = this->chunk_bits_;
-    if(nc > 0){
+    if(nc > 1){
       while((nc & 1) == 0){
         nc >>= 1;
         bits++;
@@ -305,7 +305,7 @@ void cuStateVecChunkContainer<data_t>::apply_matrix(const uint_t iChunk,const re
 }
 
 template <typename data_t>
-void cuStateVecChunkContainer<data_t>::apply_diagonal_matrix(const uint_t iChunk,const reg_t& qubits,const int_t control_bits,const cvector_t<double> &diag,const uint_t count)
+void cuStateVecChunkContainer<data_t>::apply_diagonal_matrix(const uint_t iChunk,const reg_t& qubits,const int_t control_bits,const cvector_t<double> &diag,const uint_t gid, const uint_t count)
 {
   thrust::complex<double>* pMat;
   int_t num_qubits = qubits.size();
@@ -320,7 +320,7 @@ void cuStateVecChunkContainer<data_t>::apply_diagonal_matrix(const uint_t iChunk
     for(int_t i=0;i<diag.size();i++)
       diag_ctrl[(i << control_bits)+offset] = diag[i];
 
-    return apply_diagonal_matrix(iChunk, qubits, 0, diag_ctrl, count);
+    return apply_diagonal_matrix(iChunk, qubits, 0, diag_ctrl, gid, count);
   }
 
   pMat = (thrust::complex<double>*)&diag[0];
@@ -344,7 +344,7 @@ void cuStateVecChunkContainer<data_t>::apply_diagonal_matrix(const uint_t iChunk
   else{
     nc = count;
     bits = this->chunk_bits_;
-    if(nc > 0){
+    if(nc > 1){
       while((nc & 1) == 0){
         nc >>= 1;
         bits++;
@@ -372,7 +372,7 @@ void cuStateVecChunkContainer<data_t>::apply_diagonal_matrix(const uint_t iChunk
 }
 
 template <typename data_t>
-void cuStateVecChunkContainer<data_t>::apply_X(const uint_t iChunk,const reg_t& qubits,const uint_t count)
+void cuStateVecChunkContainer<data_t>::apply_X(const uint_t iChunk,const reg_t& qubits,const uint_t gid, const uint_t count)
 {
   int_t num_qubits = qubits.size();
 
@@ -403,7 +403,7 @@ void cuStateVecChunkContainer<data_t>::apply_X(const uint_t iChunk,const reg_t& 
   else{
     nc = count;
     bits = this->chunk_bits_;
-    if(nc > 0){
+    if(nc > 1){
       while((nc & 1) == 0){
         nc >>= 1;
         bits++;
@@ -431,7 +431,7 @@ void cuStateVecChunkContainer<data_t>::apply_X(const uint_t iChunk,const reg_t& 
 }
 
 template <typename data_t>
-void cuStateVecChunkContainer<data_t>::apply_Y(const uint_t iChunk,const reg_t& qubits,const uint_t count)
+void cuStateVecChunkContainer<data_t>::apply_Y(const uint_t iChunk,const reg_t& qubits,const uint_t gid, const uint_t count)
 {
   int_t num_qubits = qubits.size();
 
@@ -467,7 +467,7 @@ void cuStateVecChunkContainer<data_t>::apply_Y(const uint_t iChunk,const reg_t& 
   else{
     nc = count;
     bits = this->chunk_bits_;
-    if(nc > 0){
+    if(nc > 1){
       while((nc & 1) == 0){
         nc >>= 1;
         bits++;
@@ -495,7 +495,7 @@ void cuStateVecChunkContainer<data_t>::apply_Y(const uint_t iChunk,const reg_t& 
 }
 
 template <typename data_t>
-void cuStateVecChunkContainer<data_t>::apply_phase(const uint_t iChunk,const reg_t& qubits,const int_t control_bits,const std::complex<double> phase,const uint_t count)
+void cuStateVecChunkContainer<data_t>::apply_phase(const uint_t iChunk,const reg_t& qubits,const int_t control_bits,const std::complex<double> phase,const uint_t gid, const uint_t count)
 {
   uint_t size = 1ull << qubits.size();
   cvector_t<double> diag(size);
@@ -503,11 +503,11 @@ void cuStateVecChunkContainer<data_t>::apply_phase(const uint_t iChunk,const reg
     diag[i] = 1.0;
   diag[size-1] = phase;
 
-  apply_diagonal_matrix(iChunk, qubits, 0, diag, count);
+  apply_diagonal_matrix(iChunk, qubits, 0, diag, gid, count);
 }
 
 template <typename data_t>
-void cuStateVecChunkContainer<data_t>::apply_swap(const uint_t iChunk,const reg_t& qubits,const int_t control_bits,const uint_t count)
+void cuStateVecChunkContainer<data_t>::apply_swap(const uint_t iChunk,const reg_t& qubits,const int_t control_bits,const uint_t gid, const uint_t count)
 {
   int_t num_qubits = qubits.size();
 
@@ -539,7 +539,7 @@ void cuStateVecChunkContainer<data_t>::apply_swap(const uint_t iChunk,const reg_
   else{
     nc = count;
     bits = this->chunk_bits_;
-    if(nc > 0){
+    if(nc > 1){
       while((nc & 1) == 0){
         nc >>= 1;
         bits++;
@@ -567,7 +567,7 @@ void cuStateVecChunkContainer<data_t>::apply_swap(const uint_t iChunk,const reg_
 }
 
 template <typename data_t>
-void cuStateVecChunkContainer<data_t>::apply_permutation(const uint_t iChunk,const reg_t& qubits,const std::vector<std::pair<uint_t, uint_t>> &pairs, const uint_t count)
+void cuStateVecChunkContainer<data_t>::apply_permutation(const uint_t iChunk,const reg_t& qubits,const std::vector<std::pair<uint_t, uint_t>> &pairs, const uint_t gid, const uint_t count)
 {
   BaseContainer::set_device();
 
@@ -593,7 +593,7 @@ void cuStateVecChunkContainer<data_t>::apply_permutation(const uint_t iChunk,con
   else{
     nc = count;
     bits = this->chunk_bits_;
-    if(nc > 0){
+    if(nc > 1){
       while((nc & 1) == 0){
         nc >>= 1;
         bits++;
@@ -621,7 +621,7 @@ void cuStateVecChunkContainer<data_t>::apply_permutation(const uint_t iChunk,con
 }
 
 template <typename data_t>
-void cuStateVecChunkContainer<data_t>::apply_rotation(const uint_t iChunk,const reg_t &qubits, const Rotation r, const double theta, const uint_t count)
+void cuStateVecChunkContainer<data_t>::apply_rotation(const uint_t iChunk,const reg_t &qubits, const Rotation r, const double theta, const uint_t gid, const uint_t count)
 {
   custatevecPauli_t pauli[2];
   int nPauli = 1;
@@ -687,7 +687,7 @@ void cuStateVecChunkContainer<data_t>::apply_rotation(const uint_t iChunk,const 
   else{
     nc = count;
     bits = this->chunk_bits_;
-    if(nc > 0){
+    if(nc > 1){
       while((nc & 1) == 0){
         nc >>= 1;
         bits++;
@@ -730,7 +730,7 @@ double cuStateVecChunkContainer<data_t>::norm(uint_t iChunk,uint_t count) const
   else{
     nc = count;
     bits = this->chunk_bits_;
-    if(nc > 0){
+    if(nc > 1){
       while((nc & 1) == 0){
         nc >>= 1;
         bits++;
