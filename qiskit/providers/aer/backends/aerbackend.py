@@ -384,13 +384,12 @@ class AerBackend(Backend, ABC):
             if parameter_binds:
                 # Handle parameter binding
                 parameterizations = self._convert_binds(circuits, parameter_binds)
-                assemble_binds = []
-                assemble_binds.append({param: 1 for bind in parameter_binds for param in bind})
+                circuits = [circuit.bind_parameters({param: 1 for param in circuit.parameters})
+                            for circuit in circuits]
 
                 qobj = assemble(
                     circuits,
                     backend=self,
-                    parameter_binds=assemble_binds,
                     parameterizations=parameterizations)
             else:
                 qobj = assemble(circuits, backend=self)
