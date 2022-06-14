@@ -514,10 +514,10 @@ protected:
   // Statevector update with Lambda function
   //-----------------------------------------------------------------------
   template <typename Function>
-  void apply_function(Function func) const;
+  void apply_function(Function func, uint_t count = 0) const;
 
   template <typename Function>
-  void apply_function(Function func, const std::vector<std::complex<double>>& mat, const std::vector<uint_t>& prm) const;
+  void apply_function(Function func, const std::vector<std::complex<double>>& mat, const std::vector<uint_t>& prm, uint_t count = 0) const;
 
   template <typename Function>
   void apply_function_sum(double* pSum,Function func,bool async=false) const;
@@ -525,6 +525,9 @@ protected:
   template <typename Function>
   void apply_function_sum2(double* pSum,Function func,bool async=false) const;
 
+  //get number of chunk to be applied
+  uint_t get_chunk_count(void);
+  
 #ifdef AER_DEBUG
   //for debugging
   mutable uint_t debug_count;
@@ -1034,8 +1037,8 @@ template <typename data_t>
 void QubitVectorThrust<data_t>::release_chunk(bool write_back) const
 {
   if(chunk_.device() < 0){    //on host
-    buffer_chunk_.synchronize();
     buffer_chunk_.CopyOut(chunk_);
+    buffer_chunk_.synchronize();
     chunk_manager_->UnmapBufferChunk(buffer_chunk_);
     chunk_.unmap_cache();
   }
@@ -1152,6 +1155,22 @@ bool QubitVectorThrust<data_t>::enable_batch(bool flg) const
   enable_batch_ = flg;
 
   return prev;
+}
+
+template <typename data_t>
+uint_t QubitVectorThrust<data_t>::get_chunk_count(void)
+{
+  if(multi_chunk_distribution_){
+    if(chunk_.device() < 0 || cuStateVec_enable_)
+      return 1;
+    else if(chunk_.pos() != 0)
+      return 0;   //first chunk execute all in batch
+  }
+  else{   //multi-shots
+    if(enable_batch_ && chunk_.pos() != 0)
+      return 0;   //first chunk execute all in batch
+  }
+  return chunk_.container()->num_chunks();
 }
 
 //------------------------------------------------------------------------------
@@ -1286,66 +1305,57 @@ void QubitVectorThrust<data_t>::initialize_creg(uint_t num_memory,
 
 template <typename data_t>
 template <typename Function>
-void QubitVectorThrust<data_t>::apply_function(Function func) const
+void QubitVectorThrust<data_t>::apply_function(Function func, uint_t count) const
 {
+  uint_t chunk_count = count;
+  if(chunk_count == 0){
+    if(!cuStateVec_enable_ && func.batch_enable() && ((multi_chunk_distribution_ && chunk_.device() >= 0) || enable_batch_)){
+      if(chunk_.pos() == 0)        //only first chunk on device calculates all the chunks
+        chunk_count = chunk_.container()->num_chunks();
+      else
+        return;
+    }
+    else
+      chunk_count = 1;
+  }
+
   //set global state index
   func.set_base_index(chunk_index_ << num_qubits_);
 
-  if(func.batch_enable() && ((multi_chunk_distribution_ && chunk_.device() >= 0) || enable_batch_)){
-    if(chunk_.pos() == 0){
-      //only first chunk on device calculates all the chunks
-      chunk_.Execute(func, chunk_.container()->num_chunks());
+  chunk_.Execute(func, chunk_count);
 
 #ifdef AER_DEBUG
-      DebugMsg(func.name(), 0);
-      DebugDump();
+  DebugMsg(func.name(), chunk_count);
+  DebugDump();
 #endif
-    }
-  }
-  else{
-    chunk_.Execute(func, 1);
-
-#ifdef AER_DEBUG
-    DebugMsg(func.name(), 1);
-    DebugDump();
-#endif
-  }
 }
 
 template <typename data_t>
 template <typename Function>
-void QubitVectorThrust<data_t>::apply_function(Function func, const std::vector<std::complex<double>>& mat, const std::vector<uint_t>& prm) const
+void QubitVectorThrust<data_t>::apply_function(Function func, const std::vector<std::complex<double>>& mat, const std::vector<uint_t>& prm, uint_t count) const
 {
-  //set global state index
-  func.set_base_index(chunk_index_ << num_qubits_);
-
-  if(func.batch_enable() && ((multi_chunk_distribution_ && chunk_.device() >= 0) || enable_batch_)){
-    if(chunk_.pos() == 0){
-      //only first chunk on device calculates all the chunks
-      if(mat.size() > 0)
-        chunk_.StoreMatrix(mat);
-      if(prm.size() > 0)
-        chunk_.StoreUintParams(prm);
-      chunk_.Execute(func, chunk_.container()->num_chunks());
-
-#ifdef AER_DEBUG
-      DebugMsg(func.name(), chunk_.container()->num_chunks());
-      DebugDump();
-#endif
+  uint_t chunk_count = count;
+  if(chunk_count == 0){
+    if(!cuStateVec_enable_ && func.batch_enable() && ((multi_chunk_distribution_ && chunk_.device() >= 0) || enable_batch_)){
+      if(chunk_.pos() == 0)        //only first chunk on device calculates all the chunks
+        chunk_count = chunk_.container()->num_chunks();
+      else
+        return;
     }
+    else
+      chunk_count = 1;
   }
-  else{
-    if(mat.size() > 0)
-      chunk_.StoreMatrix(mat);
-    if(prm.size() > 0)
-      chunk_.StoreUintParams(prm);
-    chunk_.Execute(func, 1);
+
+  if(mat.size() > 0)
+    chunk_.StoreMatrix(mat);
+  if(prm.size() > 0)
+    chunk_.StoreUintParams(prm);
+  chunk_.Execute(func, chunk_count);
 
 #ifdef AER_DEBUG
-    DebugMsg(func.name(), 1);
-    DebugDump();
+  DebugMsg(func.name(), chunk_count);
+  DebugDump();
 #endif
-  }
 }
 
 template <typename data_t>
@@ -1354,7 +1364,7 @@ void QubitVectorThrust<data_t>::apply_function_sum(double* pSum,Function func,bo
 {
   uint_t count = 1;
 #ifdef AER_THRUST_CUDA
-  if(func.batch_enable() && ((multi_chunk_distribution_ && chunk_.device() >= 0 && num_qubits_ == num_qubits()) || (enable_batch_))){
+  if(!cuStateVec_enable_ && func.batch_enable() && ((multi_chunk_distribution_ && chunk_.device() >= 0 && num_qubits_ == num_qubits()) || (enable_batch_))){
     if(chunk_.pos() != 0){
       //only first chunk on device calculates all the chunks
       if(pSum)
@@ -1381,7 +1391,7 @@ void QubitVectorThrust<data_t>::apply_function_sum2(double* pSum,Function func,b
 {
   uint_t count = 1;
 #ifdef AER_THRUST_CUDA
-  if(func.batch_enable() && ((multi_chunk_distribution_ && chunk_.device() >= 0 && num_qubits_ == num_qubits()) || (enable_batch_))){
+  if(!cuStateVec_enable_ && func.batch_enable() && ((multi_chunk_distribution_ && chunk_.device() >= 0 && num_qubits_ == num_qubits()) || (enable_batch_))){
     if(chunk_.pos() != 0){
       //only first chunk on device calculates all the chunks
       if(pSum){
@@ -1446,13 +1456,14 @@ template <typename data_t>
 void QubitVectorThrust<data_t>::apply_matrix(const reg_t &qubits,
                                        const cvector_t<double> &mat)
 {
-  if(((multi_chunk_distribution_ && chunk_.device() >= 0) || enable_batch_) && chunk_.pos() != 0)
-    return;   //first chunk execute all in batch
+  uint_t count = get_chunk_count();
+  if(count == 0)
+    return;
 
   if(qubits.size() == 1 && register_blocking_)
     chunk_.queue_blocked_gate('u',qubits[0],0,&mat[0]);
   else
-    chunk_.apply_matrix(qubits,0,mat,chunk_.container()->num_chunks());
+    chunk_.apply_matrix(qubits,0,mat,count);
 }
 
 template <typename data_t>
@@ -1495,14 +1506,15 @@ template <typename data_t>
 void QubitVectorThrust<data_t>::apply_diagonal_matrix(const reg_t &qubits,
                                                 const cvector_t<double> &diag)
 {
-  if(((multi_chunk_distribution_ && chunk_.device() >= 0) || enable_batch_) && chunk_.pos() != 0)
-    return;   //first chunk execute all in batch
+  uint_t count = get_chunk_count();
+  if(count == 0)
+    return;
 
   const int_t N = qubits.size();
   if(N == 1 && register_blocking_)
     chunk_.queue_blocked_gate('d',qubits[0],0,&diag[0]);
   else
-    chunk_.apply_diagonal_matrix(qubits,0,diag,chunk_.container()->num_chunks());
+    chunk_.apply_diagonal_matrix(qubits,0,diag,count);
 }
 
 
@@ -1510,10 +1522,11 @@ template <typename data_t>
 void QubitVectorThrust<data_t>::apply_permutation_matrix(const reg_t& qubits,
              const std::vector<std::pair<uint_t, uint_t>> &pairs)
 {
-  if(((multi_chunk_distribution_ && chunk_.device() >= 0) || enable_batch_) && chunk_.pos() != 0)
-    return;   //first chunk execute all in batch
+  uint_t count = get_chunk_count();
+  if(count == 0)
+    return;
 
-  chunk_.apply_permutation(qubits,pairs,chunk_.container()->num_chunks());
+  chunk_.apply_permutation(qubits,pairs,count);
 }
 
 
@@ -1529,8 +1542,9 @@ void QubitVectorThrust<data_t>::apply_permutation_matrix(const reg_t& qubits,
 template <typename data_t>
 void QubitVectorThrust<data_t>::apply_mcx(const reg_t &qubits) 
 {
-  if(((multi_chunk_distribution_ && chunk_.device() >= 0) || enable_batch_) && chunk_.pos() != 0)
-    return;   //first chunk execute all in batch
+  uint_t count = get_chunk_count();
+  if(count == 0)
+    return;
 
   if(register_blocking_){
     int i;
@@ -1541,7 +1555,7 @@ void QubitVectorThrust<data_t>::apply_mcx(const reg_t &qubits)
     chunk_.queue_blocked_gate('x',qubits[qubits.size()-1],mask);
   }
   else{
-    chunk_.apply_X(qubits, chunk_.container()->num_chunks());
+    chunk_.apply_X(qubits, count);
   }
 }
 
@@ -1549,8 +1563,9 @@ void QubitVectorThrust<data_t>::apply_mcx(const reg_t &qubits)
 template <typename data_t>
 void QubitVectorThrust<data_t>::apply_mcy(const reg_t &qubits) 
 {
-  if(((multi_chunk_distribution_ && chunk_.device() >= 0) || enable_batch_) && chunk_.pos() != 0)
-    return;   //first chunk execute all in batch
+  uint_t count = get_chunk_count();
+  if(count == 0)
+    return;
 
   if(register_blocking_){
     int i;
@@ -1561,24 +1576,27 @@ void QubitVectorThrust<data_t>::apply_mcy(const reg_t &qubits)
     chunk_.queue_blocked_gate('y',qubits[qubits.size()-1],mask);
   }
   else{
-    chunk_.apply_Y(qubits, chunk_.container()->num_chunks());
+    chunk_.apply_Y(qubits, count);
   }
 }
 
 template <typename data_t>
 void QubitVectorThrust<data_t>::apply_mcswap(const reg_t &qubits)
 {
-  if(((multi_chunk_distribution_ && chunk_.device() >= 0) || enable_batch_) && chunk_.pos() != 0)
-    return;   //first chunk execute all in batch
+  uint_t count = get_chunk_count();
+  if(count == 0)
+    return;
 
-  chunk_.apply_swap(qubits,qubits.size()-2,chunk_.container()->num_chunks());
+  chunk_.apply_swap(qubits,qubits.size()-2,count);
 }
 
 template <typename data_t>
 void QubitVectorThrust<data_t>::apply_multi_swaps(const reg_t &qubits)
 {
-  if(((multi_chunk_distribution_ && chunk_.device() >= 0) || enable_batch_) && chunk_.pos() != 0)
-    return;   //first chunk execute all in batch
+  uint_t count = get_chunk_count();
+  if(count == 0)
+    return;
+
   chunk_.apply_multi_swaps(qubits,chunk_.container()->num_chunks());
 }
 
@@ -1596,65 +1614,72 @@ void QubitVectorThrust<data_t>::apply_chunk_swap(const reg_t &qubits, QubitVecto
     q1 = t;
   }
 
-  thrust::complex<data_t>* pChunk0;
-  thrust::complex<data_t>* pChunk1;
-  Chunk::Chunk<data_t> bufferChunk;
-  bool exec_on_src = false;
-
-  if(chunk_.device() >= 0){
-    if(chunk_.container()->peer_access(src.chunk_.device())){
-      pChunk1 = src.chunk_.pointer();
-    }
-    else{
-      do{
-        chunk_manager_->MapBufferChunk(bufferChunk,chunk_.place());
-      }while(!bufferChunk.is_mapped());
-      bufferChunk.CopyIn(src.chunk_);
-      pChunk1 = bufferChunk.pointer();
-    }
-    pChunk0 = chunk_.pointer();
+  if(q0 >= num_qubits_){  //exchange whole of chunk each other
+    if(chunk_.device() >= 0 || src.chunk_.device() < 0)
+      chunk_.Swap(src.chunk_);
+    else
+      src.chunk_.Swap(chunk_);
   }
   else{
-    if(src.chunk_.device() >= 0){
-      do{
-        chunk_manager_->MapBufferChunk(bufferChunk,src.chunk_.place());
-      }while(!bufferChunk.is_mapped());
-      bufferChunk.CopyIn(chunk_);
-      pChunk0 = bufferChunk.pointer();
-      pChunk1 = src.chunk_.pointer();
-      exec_on_src = true;
-    }
-    else{
-      pChunk1 = src.chunk_.pointer();
+    thrust::complex<data_t>* pChunk0;
+    thrust::complex<data_t>* pChunk1;
+    Chunk::Chunk<data_t> bufferChunk;
+
+    if(chunk_.device() >= 0){
+      if(chunk_.container()->peer_access(src.chunk_.device())){
+        pChunk1 = src.chunk_.pointer();
+      }
+      else{
+        do{
+          chunk_manager_->MapBufferChunk(bufferChunk,chunk_.place());
+        }while(!bufferChunk.is_mapped());
+        bufferChunk.set_chunk_index(src.chunk_index_);
+        bufferChunk.CopyIn(src.chunk_);
+        pChunk1 = bufferChunk.pointer();
+      }
       pChunk0 = chunk_.pointer();
     }
-  }
+    else{
+      if(src.chunk_.device() >= 0){
+        do{
+          chunk_manager_->MapBufferChunk(bufferChunk,src.chunk_.place());
+        }while(!bufferChunk.is_mapped());
+        bufferChunk.set_chunk_index(chunk_index_);
+        bufferChunk.CopyIn(chunk_);
+        pChunk0 = bufferChunk.pointer();
+        pChunk1 = src.chunk_.pointer();
+      }
+      else{
+        pChunk1 = src.chunk_.pointer();
+        pChunk0 = chunk_.pointer();
+      }
+    }
 
 #ifdef AER_DEBUG
-  DebugMsg("chunk swap",qubits);
+    DebugMsg("chunk swap",qubits);
 #endif
 
-  if(q0 < num_qubits_){
-    if(chunk_index_ < src.chunk_index_)
-      pChunk0 += (1ull << q0);
-    else
-      pChunk1 += (1ull << q0);
-  }
+    if(q0 < num_qubits_){
+      if(chunk_index_ < src.chunk_index_)
+        pChunk0 += (1ull << q0);
+      else
+        pChunk1 += (1ull << q0);
+    }
 
-  if(exec_on_src){
-    src.apply_function(Chunk::CSwapChunk_func<data_t>(qubits,num_qubits_,pChunk0,pChunk1,true));
-    src.chunk_.synchronize();    //should be synchronized here
-    if(bufferChunk.is_mapped())
-      bufferChunk.CopyOut(chunk_);
+    if(bufferChunk.is_mapped()){
+      bufferChunk.Execute(Chunk::CSwapChunk_func<data_t>(qubits,num_qubits_,pChunk0,pChunk1,true), 1);
+      if(pChunk1 == bufferChunk.pointer())
+        bufferChunk.CopyOut(src.chunk_);
+      else
+        bufferChunk.CopyOut(chunk_);
+      bufferChunk.synchronize();
+      chunk_manager_->UnmapBufferChunk(bufferChunk);
+    }
+    else{
+      chunk_.Execute(Chunk::CSwapChunk_func<data_t>(qubits,num_qubits_,pChunk0,pChunk1,true), 1);
+      chunk_.synchronize();
+    }
   }
-  else{
-    apply_function(Chunk::CSwapChunk_func<data_t>(qubits,num_qubits_,pChunk0,pChunk1,true));
-    if(bufferChunk.is_mapped())
-      bufferChunk.CopyOut(src.chunk_);
-    chunk_.synchronize();    //should be synchronized here
-  }
-  if(bufferChunk.is_mapped())
-    chunk_manager_->UnmapBufferChunk(bufferChunk);
 }
 
 template <typename data_t>
@@ -1733,8 +1758,9 @@ void QubitVectorThrust<data_t>::apply_chunk_swap(QubitVectorThrust<data_t> &src,
 template <typename data_t>
 void QubitVectorThrust<data_t>::apply_mcphase(const reg_t &qubits, const std::complex<double> phase)
 {
-  if(((multi_chunk_distribution_ && chunk_.device() >= 0) || enable_batch_) && chunk_.pos() != 0)
-    return;   //first chunk execute all in batch
+  uint_t count = get_chunk_count();
+  if(count == 0)
+    return;
 
   if(register_blocking_){
     int i;
@@ -1745,7 +1771,7 @@ void QubitVectorThrust<data_t>::apply_mcphase(const reg_t &qubits, const std::co
     chunk_.queue_blocked_gate('p',qubits[qubits.size()-1],mask,&phase);
   }
   else{
-    chunk_.apply_phase(qubits,qubits.size()-1,phase,chunk_.container()->num_chunks());
+    chunk_.apply_phase(qubits,qubits.size()-1,phase,count);
   }
 }
 
@@ -1754,9 +1780,6 @@ template <typename data_t>
 void QubitVectorThrust<data_t>::apply_mcu(const reg_t &qubits,
                                     const cvector_t<double> &mat) 
 {
-  if(((multi_chunk_distribution_ && chunk_.device() >= 0) || enable_batch_) && chunk_.pos() != 0)
-    return;   //first chunk execute all in batch
-
   // Calculate the permutation positions for the last qubit.
   const size_t N = qubits.size();
 
@@ -1787,7 +1810,11 @@ void QubitVectorThrust<data_t>::apply_mcu(const reg_t &qubits,
         chunk_.queue_blocked_gate('d',qubits[qubits.size()-1],mask,&diag[0]);
       }
       else{
-        chunk_.apply_diagonal_matrix(qubits,qubits.size()-1,diag,chunk_.container()->num_chunks());
+        uint_t count = get_chunk_count();
+        if(count == 0)
+          return;
+
+        chunk_.apply_diagonal_matrix(qubits,qubits.size()-1,diag,count);
       }
     }
   }
@@ -1807,7 +1834,11 @@ void QubitVectorThrust<data_t>::apply_mcu(const reg_t &qubits,
         chunk_.queue_blocked_gate('u',qubits[qubits.size()-1],mask,&mat[0]);
       }
       else{
-        chunk_.apply_matrix(qubits,qubits.size()-1,mat,chunk_.container()->num_chunks());
+        uint_t count = get_chunk_count();
+        if(count == 0)
+          return;
+
+        chunk_.apply_matrix(qubits,qubits.size()-1,mat,count);
       }
     }
   }
@@ -1816,10 +1847,11 @@ void QubitVectorThrust<data_t>::apply_mcu(const reg_t &qubits,
 template <typename data_t>
 void QubitVectorThrust<data_t>::apply_rotation(const reg_t &qubits, const Rotation r, const double theta)
 {
-  if(((multi_chunk_distribution_ && chunk_.device() >= 0) || enable_batch_) && chunk_.pos() != 0)
-    return;   //first chunk execute all in batch
+  uint_t count = get_chunk_count();
+  if(count == 0)
+    return;
 
-  chunk_.apply_rotation(qubits,r,theta,chunk_.container()->num_chunks());
+  chunk_.apply_rotation(qubits,r,theta,count);
 }
 
 //------------------------------------------------------------------------------
@@ -1830,8 +1862,9 @@ template <typename data_t>
 void QubitVectorThrust<data_t>::apply_matrix(const uint_t qubit,
                                        const cvector_t<double>& mat)
 {
-  if(((multi_chunk_distribution_ && chunk_.device() >= 0) || enable_batch_) && chunk_.pos() != 0)
-    return;   //first chunk execute all in batch
+  uint_t count = get_chunk_count();
+  if(count == 0)
+    return;
 
   // Check if matrix is diagonal and if so use optimized lambda
   if (mat[1] == 0.0 && mat[2] == 0.0) {
@@ -1844,7 +1877,7 @@ void QubitVectorThrust<data_t>::apply_matrix(const uint_t qubit,
   }
   else{
     reg_t qubits = {qubit};
-    chunk_.apply_matrix(qubits,0,mat,chunk_.container()->num_chunks());
+    chunk_.apply_matrix(qubits,0,mat,count);
   }
 }
 
@@ -1852,15 +1885,16 @@ template <typename data_t>
 void QubitVectorThrust<data_t>::apply_diagonal_matrix(const uint_t qubit,
                                                 const cvector_t<double>& diag) 
 {
-  if(((multi_chunk_distribution_ && chunk_.device() >= 0) || enable_batch_) && chunk_.pos() != 0)
-    return;   //first chunk execute all in batch
+  uint_t count = get_chunk_count();
+  if(count == 0)
+    return;
 
   if(register_blocking_){
     chunk_.queue_blocked_gate('d',qubit,0,&diag[0]);
   }
   else{
     reg_t qubits = {qubit};
-    chunk_.apply_diagonal_matrix(qubits,0,diag,chunk_.container()->num_chunks());
+    chunk_.apply_diagonal_matrix(qubits,0,diag,count);
   }
 }
 
