@@ -21,6 +21,8 @@ DISABLE_WARNING_POP
 #include "controllers/aer_controller.hpp"
 #include "controllers/controller_execute.hpp"
 
+#include "controllers/state_controller.hpp"
+
 template<typename T>
 class ControllerExecutor {
 public:
@@ -46,5 +48,92 @@ PYBIND11_MODULE(controller_wrappers, m) {
     aer_ctrl.def("__call__", &ControllerExecutor<AER::Controller>::operator());
     aer_ctrl.def("__reduce__", [aer_ctrl](const ControllerExecutor<AER::Controller> &self) {
         return py::make_tuple(aer_ctrl, py::tuple());
+    });
+
+    py::class_<AER::AerState> aer_state(m, "AerStateWrapper");
+    
+    aer_state.def(py::init<int>(), "constructor", py::arg("seed") = 0);
+
+    aer_state.def("__repr__", [](const AER::AerState &state) {
+      std::stringstream ss;
+      ss << "AerStateWrapper("
+          << "initialized=" << state.is_initialized()
+          << ", num_of_qubits=" << state.num_of_qubits();
+      ss << ")";
+      return ss.str();
+    });
+
+    aer_state.def("configure",  &AER::AerState::configure);
+    aer_state.def("allocate_qubits",  &AER::AerState::allocate_qubits);
+    aer_state.def("clear",  &AER::AerState::clear);
+    aer_state.def("num_of_qubits",  &AER::AerState::num_of_qubits);
+    aer_state.def("apply_unitary", [aer_state](AER::AerState &state,
+                                                   const reg_t &qubits,
+                                                   const py::array_t<std::complex<double>> &values) {
+      size_t mat_len = (1UL << qubits.size());
+      auto ptr = values.unchecked<2>();
+      AER::cmatrix_t mat(mat_len, mat_len);
+      for (auto i = 0; i < mat_len; ++i)
+        for (auto j = 0; j < mat_len; ++j)
+          mat(i, j) = ptr(i, j);
+      state.apply_unitary(qubits, mat);
+    });
+
+    aer_state.def("apply_multiplexer", [aer_state](AER::AerState &state,
+                                                       const reg_t &control_qubits,
+                                                       const reg_t &target_qubits,
+                                                       const py::array_t<std::complex<double>> &values) {
+      size_t mat_len = (1UL << target_qubits.size());
+      size_t mat_size = (1UL << control_qubits.size());
+      auto ptr = values.unchecked<3>();
+      std::vector<AER::cmatrix_t> mats;
+      for (auto i = 0; i < mat_size; ++i) {
+        AER::cmatrix_t mat(mat_len, mat_len);
+        for (auto j = 0; j < mat_len; ++j)
+          for (auto k = 0; k < mat_len; ++k)
+            mat(j, k) = ptr(i, j, k);
+        mats.push_back(mat);
+      }
+      state.apply_multiplexer(control_qubits, target_qubits, mats);
+    });
+
+    aer_state.def("apply_diagonal",  &AER::AerState::apply_diagonal_matrix);
+    aer_state.def("apply_mcx",  &AER::AerState::apply_mcx);
+    aer_state.def("apply_mcy",  &AER::AerState::apply_mcy);
+    aer_state.def("apply_mcz",  &AER::AerState::apply_mcz);
+    aer_state.def("apply_mcphase",  &AER::AerState::apply_mcphase);
+    aer_state.def("apply_mcu",  &AER::AerState::apply_mcu);
+    aer_state.def("apply_mcswap",  &AER::AerState::apply_mcswap);
+    aer_state.def("apply_measure",  &AER::AerState::apply_measure);
+    aer_state.def("apply_reset",  &AER::AerState::apply_reset);
+    aer_state.def("probability",  &AER::AerState::probability);
+    aer_state.def("probabilities", [aer_state](AER::AerState &state,
+                                                   const reg_t qubits) {
+      if (qubits.empty())
+        return state.probabilities();
+      else
+        return state.probabilities(qubits);
+    }, py::arg("qubits") = reg_t());
+    aer_state.def("sample_measure",  &AER::AerState::sample_measure);
+    
+    /* Caution: values object must not be collected until aer_state releases statevector */
+    aer_state.def("initialize_statevector", [aer_state](AER::AerState &state,
+                                                        int num_of_qubits,
+                                                        py::array_t<std::complex<double>> &values) {
+      if (values.owndata() || !values.writeable() || !(values.flags() | py::array::c_style)) {
+        auto ptr = values.unchecked<1>();
+        AER::QV::QubitVector<double> qv(num_of_qubits);
+        for (uint_t i = 0; i < (1UL << num_of_qubits); ++i)
+          qv[i] = ptr(i);
+        state.initialize_statevector(num_of_qubits, qv);
+      } else {
+        std::complex<double>* data = reinterpret_cast<std::complex<double>*>(values.mutable_data(0));
+        state.initialize_statevector(num_of_qubits, data);
+      }
+    });
+
+    aer_state.def("release_statevector", [aer_state](AER::AerState &state) {
+      return AerToPy::to_numpy(std::move(state.release_statevector()));
+
     });
 }

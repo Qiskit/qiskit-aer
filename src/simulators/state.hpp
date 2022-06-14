@@ -31,8 +31,32 @@ namespace Base {
 // State interface base class for Qiskit-Aer
 //=========================================================================
 
+class StateBase {
+public:
+  StateBase() = default;
+  virtual ~StateBase() = default;
+
+  virtual void initialize_qreg(uint_t num_qubits) = 0;
+
+  virtual void initialize_creg(uint_t num_memory, uint_t num_register) = 0;
+
+  virtual void apply_op(const Operations::Op &op,
+                        ExperimentResult &result,
+                        RngEngine& rng,
+                        bool final_op = false) = 0;
+
+  virtual void set_config(const json_t &config) = 0;
+
+  virtual ClassicalRegister &creg() = 0;
+  virtual const ClassicalRegister &creg() const = 0;
+
+  virtual std::vector<reg_t> sample_measure(const reg_t &qubits,
+                                            uint_t shots,
+                                            RngEngine &rng) = 0;
+};
+
 template <class state_t>
-class State {
+class State: public StateBase {
 
 public:
   using ignore_argument = void;
@@ -79,8 +103,8 @@ public:
   const auto &qreg() const { return qreg_; }
 
   // Return the state creg object
-  auto &creg() { return creg_; }
-  const auto &creg() const { return creg_; }
+  ClassicalRegister &creg() { return creg_; }
+  const ClassicalRegister &creg() const { return creg_; }
 
   // Return the state opset object
   auto &opset() { return opset_; }

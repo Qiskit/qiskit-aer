@@ -67,6 +67,7 @@ public:
   QubitVector();
   explicit QubitVector(size_t num_qubits);
   virtual ~QubitVector();
+  QubitVector(size_t num_qubits, std::complex<data_t>* data);
   QubitVector(const QubitVector& obj) {};
   QubitVector &operator=(const QubitVector& obj) {};
 
@@ -707,11 +708,17 @@ void QubitVector<data_t>::check_checkpoint() const {
 //------------------------------------------------------------------------------
 
 template <typename data_t>
+QubitVector<data_t>::QubitVector(size_t num_qubits, std::complex<data_t>* data)
+  : num_qubits_(num_qubits), data_(data), checkpoint_(0) {
+    set_transformer_method();
+}
+
+template <typename data_t>
 QubitVector<data_t>::QubitVector(size_t num_qubits)
   : num_qubits_(0), data_(nullptr), checkpoint_(0) {
     set_num_qubits(num_qubits);
     set_transformer_method();
-  }
+}
 
 template <typename data_t>
 QubitVector<data_t>::QubitVector() : QubitVector(0) {}

@@ -199,7 +199,7 @@ public:
   void apply_op(const Operations::Op &op,
                       ExperimentResult &result,
                       RngEngine& rng,
-                      bool final_op = false) override final {}
+                      bool final_op = false) override final { apply_op(0, op, result, rng, final_op); }
 
   //so this one is used
   virtual void apply_op(const int_t iChunk, const Operations::Op &op,
