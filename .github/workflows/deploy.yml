@@ -183,3 +183,35 @@ jobs:
         run : |
           pip install -U twine
           twine upload wheelhouse/*
+  cuQuantum-build:
+    name: Build qiskit-aer-cuQuantum wheels
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        name: Install Python
+        with:
+          python-version: '3.7'
+      - name: Add msbuild to PATH
+        uses: microsoft/setup-msbuild@v1.0.2
+        if: runner.os == 'Windows'
+      - name: Install cibuildwheel
+        run: |
+          python -m pip install cibuildwheel==2.2.2
+      - name: Build wheels
+        env:
+          CIBW_BEFORE_ALL: "yum install -y yum-utils wget && wget -q https://developer.download.nvidia.com/compute/cuda/11.7.0/local_installers/cuda-repo-rhel8-11-7-local-11.7.0_515.43.04-1.x86_64.rpm && rpm -i cuda-repo-rhel8-11-7-local-11.7.0_515.43.04-1.x86_64.rpm && yum clean all && yum -y install cuda-11-7 openblas-devel && dnf config-manager --add-repo https://developer.download.nvidia.com/compute/cuda/repos/rhel8/x86_64/cuda-rhel8.repo && dnf clean all && dnf -y install cuquantum cuquantum-devel cuquantum-doc"
+          CIBW_SKIP: "*-manylinux_i686 cp310* pp* cp36* *musllinux*"
+          CIBW_ENVIRONMENT: QISKIT_AER_PACKAGE_NAME=qiskit-aer-cuQuantum AER_THRUST_BACKEND=CUDA CUSTATEVEC_ROOT=/opt/nvidia/cuquantum CUDACXX=/usr/local/cuda/bin/nvcc
+        run: |
+          python -m cibuildwheel --output-dir wheelhouse
+      - uses: actions/upload-artifact@v2
+        with:
+          path: ./wheelhouse/*.whl
+      - name: Publish Wheels
+        env:
+          TWINE_PASSWORD: ${{ secrets.TWINE_PASSWORD }}
+          TWINE_USERNAME: qiskit
+        run : |
+          pip install -U twine
+          twine upload wheelhouse/*
