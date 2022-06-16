@@ -51,14 +51,14 @@ Example: Threadpool execution
     circ.h(0)
     circ.cx(0, 1)
     circ.cx(1, 2)
-    circ.u1(pi/2,2)
+    circ.p(pi/2, 2)
     circ.measure([0, 1, 2], [0, 1 ,2])
 
     circ2 = qiskit.QuantumCircuit(15, 15)
     circ2.h(0)
     circ2.cx(0, 1)
     circ2.cx(1, 2)
-    circ2.u1(pi/2,2)
+    circ2.p(pi/2, 2)
     circ2.measure([0, 1, 2], [0, 1 ,2])
     circ_list = [circ, circ2]
 
@@ -87,14 +87,14 @@ guard it by an ``if __name__ == "__main__":`` block.
         circ.h(0)
         circ.cx(0, 1)
         circ.cx(1, 2)
-        circ.u1(pi/2,2)
+        circ.p(pi/2, 2)
         circ.measure([0, 1, 2], [0, 1 ,2])
 
         circ2 = qiskit.QuantumCircuit(15, 15)
         circ2.h(0)
         circ2.cx(0, 1)
         circ2.cx(1, 2)
-        circ2.u1(pi/2,2)
+        circ2.p(pi/2, 2)
         circ2.measure([0, 1, 2], [0, 1 ,2])
 
         circ_list = [circ, circ2]

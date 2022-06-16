@@ -102,6 +102,9 @@ public:
   // Apply a 2-qubit Controlled-NOT gate to the state vector
   void apply_cnot(const uint_t qctrl, const uint_t qtrgt);
 
+ // Apply a 2-qubit Controlled-Y gate to the state vector
+  void apply_cy(const uint_t qctrl, const uint_t qtrgt);
+
   // Apply 2-qubit controlled-phase gate
   void apply_cphase(const uint_t q0, const uint_t q1, const complex_t &phase);
 
@@ -291,6 +294,13 @@ void DensityMatrix<data_t>::apply_cnot(const uint_t qctrl, const uint_t qtrgt) {
   const size_t nq = num_qubits();
   const reg_t qubits = {{qctrl, qtrgt, qctrl + nq, qtrgt + nq}};
   BaseVector::apply_permutation_matrix(qubits, pairs);
+}
+
+template <typename data_t>
+void DensityMatrix<data_t>::apply_cy(const uint_t qctrl, const uint_t qtrgt)
+{
+  const reg_t qubits = {{qctrl, qtrgt}};
+  apply_unitary_matrix(qubits, Linalg::VMatrix::CY);
 }
 
 template <typename data_t>

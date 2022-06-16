@@ -148,9 +148,16 @@ class AerSimulator(AerBackend):
     initialization or with :meth:`set_options`. The list of supported devices
     for the current system can be returned using :meth:`available_devices`.
 
+    For multiple shots simulation, OpenMP threads should be exploited for
+    multi-GPUs. Number of GPUs used for multi-shots is reported in
+    metadata ``gpu_parallel_shots_`` or is batched execution is done reported
+    in metadata ``batched_shots_optimization_parallel_gpus``.
+    For large qubits circuits with multiple GPUs, number of GPUs is reported
+    in metadata ``chunk_parallel_gpus`` in ``cacheblocking``.
+
     If AerSimulator is built with cuStateVec support, cuStateVec APIs are enabled
-    by setting ``cuStateVec_enable=True``. This is experimental implementation
-    based on cuQuantum Beta 2.
+    by setting ``cuStateVec_enable=True``.
+
 
     **Additional Backend Options**
 
@@ -237,6 +244,8 @@ class AerSimulator(AerBackend):
       ``"statevector"``, ``"density_matrix"`` and ``"unitary"``.
       This option should be set when using option ``blocking_enable=True``
       (Default: 0).
+      If multiple GPUs are used for parallelization number of GPUs is
+      reported to ``chunk_parallel_gpus`` in ``cacheblocking`` metadata.
 
     * ``chunk_swap_buffer_qubits`` (int): Sets the number of qubits of
       maximum buffer size (=2^chunk_swap_buffer_qubits) used for multiple
@@ -253,6 +262,8 @@ class AerSimulator(AerBackend):
       on GPUs. If there are multiple GPUs on the system, shots are distributed
       automatically across available GPUs. Also this option distributes multiple
       shots to parallel processes of MPI (Default: True).
+      If multiple GPUs are used for batched exectuion number of GPUs is
+      reported to ``batched_shots_optimization_parallel_gpus`` metadata.
 
     * ``batched_shots_gpu_max_qubits`` (int): This option sets the maximum
       number of qubits for enabling the ``batched_shots_gpu`` option. If the
