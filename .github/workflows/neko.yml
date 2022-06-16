@@ -13,4 +13,4 @@ jobs:
     steps:
       - uses: Qiskit/qiskit-neko@main
         with:
-          test_selection: aer
+          test_selection: backend
