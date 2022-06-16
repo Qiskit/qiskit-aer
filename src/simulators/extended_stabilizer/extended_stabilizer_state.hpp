@@ -66,10 +66,10 @@ enum class Snapshots {
   probs
 };
 
-class State: public Base::State<chstate_t>
+class State: public QuantumState::State<chstate_t>
 {
 public:
-  using BaseState = Base::State<chstate_t>;
+  using BaseState = QuantumState::State<chstate_t>;
   
   State() : BaseState(StateOpSet) {}
   virtual ~State() = default;
@@ -826,8 +826,8 @@ void State::apply_save_statevector(const Operations::Op &op,
   if (BaseState::has_global_phase_) {
     statevec *= BaseState::global_phase_;
   }
-  BaseState::save_data_pershot(
-    result, op.string_params[0],
+  result.save_data_pershot(
+    creg(), op.string_params[0],
     std::move(statevec),
     op.type, op.save_type);
 }
@@ -858,9 +858,9 @@ void State::apply_save_expval(const Operations::Op &op,
     std::vector<double> expval_var(2);
     expval_var[0] = expval;  // mean
     expval_var[1] = sq_expval - expval * expval;  // variance
-    save_data_average(result, op.string_params[0], expval_var, op.type, op.save_type);
+    result.save_data_average(creg(), op.string_params[0], expval_var, op.type, op.save_type);
   } else {
-    save_data_average(result, op.string_params[0], expval, op.type, op.save_type);
+    result.save_data_average(creg(), op.string_params[0], expval, op.type, op.save_type);
   }
 }
 

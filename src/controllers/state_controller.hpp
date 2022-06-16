@@ -47,15 +47,22 @@ DISABLE_WARNING_POP
 #include "transpile/cacheblocking.hpp"
 #include "transpile/fusion.hpp"
 
+#include "simulators/density_matrix/densitymatrix.hpp"
 #include "simulators/density_matrix/densitymatrix_state.hpp"
 #include "simulators/extended_stabilizer/extended_stabilizer_state.hpp"
 #include "simulators/matrix_product_state/matrix_product_state.hpp"
 #include "simulators/stabilizer/stabilizer_state.hpp"
 #include "simulators/statevector/qubitvector.hpp"
-#include "simulators/statevector/qubitvector.hpp"
 #include "simulators/statevector/statevector_state.hpp"
 #include "simulators/superoperator/superoperator_state.hpp"
+#include "simulators/unitary/unitarymatrix.hpp"
 #include "simulators/unitary/unitary_state.hpp"
+
+#ifdef AER_THRUST_SUPPORTED
+#include "simulators/density_matrix/densitymatrix_thrust.hpp"
+#include "simulators/statevector/qubitvector_thrust.hpp"
+#include "simulators/unitary/unitarymatrix_thrust.hpp"
+#endif
 
 using int_t = int_fast64_t;
 using uint_t = uint_fast64_t; 
@@ -72,10 +79,27 @@ namespace AER {
 
 class AerState {
 public:
+  // Simulation methods for the Qasm Controller
+  enum class Method {
+    statevector,
+    density_matrix,
+    matrix_product_state,
+    stabilizer,
+    extended_stabilizer,
+    unitary,
+    superop
+  };
+
+  // Simulation devices
+  enum class Device { CPU, GPU, ThrustCPU };
+
+  // Simulation precision
+  enum class Precision { Double, Single };
+
   //-----------------------------------------------------------------------
   // Constructors
   //-----------------------------------------------------------------------
-  AerState(int seed = 0) : seed_(seed){ rng_.set_seed(seed); }
+  AerState() = default;
 
   virtual ~AerState() { };
 
@@ -83,9 +107,27 @@ public:
   // Configuration
   //-----------------------------------------------------------------------
   
-  // Set configuration. All of the configuration must be done before calling
-  // any gate operations.
+  // set configuration. 
+  // All of the configuration must be done before calling any gate operations.
   virtual void configure(const std::string& key, const std::string& value);
+
+  // configure a method.
+  virtual bool set_method(const std::string& name);
+
+  // configure a device.
+  virtual bool set_device(const std::string& name);
+
+  // configure a precision.
+  virtual bool set_precision(const std::string& name);
+
+  // configure custatevec enabled or not
+  virtual bool set_custatevec(const bool& enabled);
+
+  // configure seed
+  virtual bool set_seed_simulator(const int& seed);
+
+  // configure number of threads to update state
+  virtual bool set_parallel_state_update(const uint_t& parallel_state_update);
 
   // Return true if gate operations have been performed and no configuration
   // is permitted.
@@ -103,14 +145,14 @@ public:
   virtual reg_t initialize_statevector(uint_t num_qubits, complex_t* data);
 
   // Allocate qubits with qubit vector
-  virtual reg_t initialize_statevector(uint_t num_of_qubits, QV::QubitVector<double> qv);
+  virtual reg_t initialize_statevector(uint_t num_of_qubits, QV::QubitVector<double>&& qv);
 
   // Clear qubits
   virtual void clear();
 
   // Release internal statevector
   // The caller must free the returned pointer
-  virtual AER::Vector<complex_t> release_statevector();
+  virtual AER::Vector<complex_t> move_to_vector();
 
   //-----------------------------------------------------------------------
   // Apply Matrices
@@ -209,36 +251,165 @@ public:
   // Return the probability amplitude for outcome in [0, 2^num_qubits - 1]
   virtual complex_t amplitude(const uint_t outcome);
 
-  // // Return the probabilities for all measurement outcomes in the current vector
-  // // This is equivalent to returning a new vector with  new[i]=|orig[i]|^2.
-  // // Eg. For 2-qubits this is [P(00), P(01), P(010), P(11)]
+  // Return the probabilities for all measurement outcomes in the current vector
+  // This is equivalent to returning a new vector with  new[i]=|orig[i]|^2.
+  // Eg. For 2-qubits this is [P(00), P(01), P(010), P(11)]
   virtual std::vector<double> probabilities();
 
-  // // Return the Z-basis measurement outcome probabilities [P(0), ..., P(2^N-1)]
-  // // for measurement of N-qubits.
+  // Return the Z-basis measurement outcome probabilities [P(0), ..., P(2^N-1)]
+  // for measurement of N-qubits.
   virtual std::vector<double> probabilities(const reg_t &qubits);
 
-  // // Return M sampled outcomes for Z-basis measurement of all qubits
-  // // The input is a length M list of random reals between [0, 1) used for
-  // // generating samples.
+  // Return M sampled outcomes for Z-basis measurement of all qubits
+  // The input is a length M list of random reals between [0, 1) used for
+  // generating samples.
   virtual std::unordered_map<uint_t, uint_t> sample_measure(uint_t shots);
+
+protected:
+  //-----------------------------------------------------------------------
+  // Operation management
+  //-----------------------------------------------------------------------
+  // Buffer Operations::Op
+  virtual void buffer_op(const Operations::Op&& op);
+
+  // Flush buffered Operations::Op
+  virtual void flush_ops();
+
+  // Clear buffered Operations::Op
+  virtual void clear_ops();
+
+  // Transpile
+  virtual void transpile_ops();
 
 private:
   void assert_initialized() const;
   void assert_not_initialized() const;
   void initialize_if_necessary();
+  bool is_gpu(bool raise_error) const;
 
 private:
   bool initialized_ = false;
   uint_t num_of_qubits_ = 0;
   RngEngine rng_;
-  const int seed_;
-  std::shared_ptr<Base::StateBase> state_;
+  int seed_;
+  std::shared_ptr<QuantumState::Base> state_;
   json_t configs_;
+
+  Method method_ = Method::statevector;
+
+  const std::unordered_map<Method, std::string> method_names_ = {
+    {Method::statevector, "statevector"},
+    {Method::density_matrix, "density_matrix"},
+    {Method::matrix_product_state, "matrix_product_state"},
+    {Method::stabilizer, "stabilizer"},
+    {Method::extended_stabilizer, "extended_stabilizer"},
+    {Method::unitary, "unitary"},
+    {Method::superop, "superop"}
+  };
+
+  Device device_ = Device::CPU;
+
+  Precision precision_ = Precision::Double;
+
+  bool cuStateVec_enable_ = false;
+
+  uint_t parallel_state_update_;
+
+  Circuit buffer_;
+
+  Noise::NoiseModel noise_model_;
+
+  Transpile::Fusion fusion_pass_;
 };
 
-void AerState::configure(const std::string& key, const std::string& value) {
+bool AerState::is_gpu(bool raise_error) const {
+#ifndef AER_THRUST_CUDA
+  if (raise_error)
+    throw std::runtime_error("Simulation device \"GPU\" is not supported on this system");
+  else
+    return false;
+#else
+  int nDev;
+  if (cudaGetDeviceCount(&nDev) != cudaSuccess) {
+      if (raise_error) {
+        cudaGetLastError();
+        throw std::runtime_error("No CUDA device available!");
+      } else return false;
+  }
+#endif
+  return true;
+}
+
+void AerState::configure(const std::string& _key, const std::string& _value) {
+
+  std::string key = _key;
+  std::transform(key.begin(), key.end(), key.begin(), ::tolower);  
+  std::string value = _value;
+  std::transform(value.begin(), value.end(), value.begin(), ::tolower);  
+
   configs_[key] = value;
+
+  if ((key == "method" && !set_method(value))
+      || (key == "device" && !set_device(value)) 
+      || (key == "precision" && !set_precision(value))
+      || (key == "cuwtatevec_enable" && !set_custatevec("true" == value))
+      || (key == "seed_simulator" && !set_seed_simulator(std::stoi(value)))
+      || (key == "parallel_state_update" && !set_parallel_state_update(std::stoul(value)))
+      ) {
+    std::stringstream msg;
+    msg << "unknown " << key << ": " << value << std::endl;
+    throw std::runtime_error(msg.str());
+  }
+};
+
+bool AerState::set_method(const std::string& method_name) {
+  assert_not_initialized();
+  auto it = find_if(method_names_.begin(), method_names_.end(), [method_name](const auto& vt) { return vt.second == method_name; });
+  if (it == method_names_.end()) return false;
+  method_ = it->first;
+  return true;
+};
+
+bool AerState::set_device(const std::string& device_name) {
+  assert_not_initialized();
+  if (device_name == "CPU")
+    device_ = Device::CPU;
+  else if (device_name == "GPU" && is_gpu(true))
+    device_ = Device::GPU;
+  else if (device_name == "ThrustCPU")
+    device_ = Device::ThrustCPU;
+  else
+    return false;
+  return true;
+};
+
+bool AerState::set_precision(const std::string& precision_name) {
+  assert_not_initialized();
+  if (precision_name == "single")
+    precision_ = Precision::Single;
+  else if (precision_name == "double")
+    precision_ = Precision::Double;
+  else
+    return false;
+  return true;
+};
+
+bool AerState::set_custatevec(const bool& enabled) {
+  assert_not_initialized();
+  cuStateVec_enable_ = enabled;
+  return true;
+};
+
+bool AerState::set_seed_simulator(const int& seed) {
+  assert_not_initialized();
+  seed_ = seed;
+  return true;
+};
+
+bool AerState::set_parallel_state_update(const uint_t& parallel_state_update) {
+  assert_not_initialized();
+  parallel_state_update_ = parallel_state_update;
+  return true;
 };
 
 void AerState::assert_initialized() const {
@@ -259,11 +430,86 @@ void AerState::assert_not_initialized() const {
 
 void AerState::initialize_if_necessary() {
   if (initialized_) return;
-  state_ = std::make_shared<Statevector::State<QV::QubitVector<double>>>();
+
+  if (method_ == Method::statevector) {
+    if (device_ == Device::CPU)
+      if (precision_ == Precision::Double)
+        state_ = std::make_shared<Statevector::State<QV::QubitVector<double>>>();
+      else
+        state_ = std::make_shared<Statevector::State<QV::QubitVector<float>>>();
+    else // if (device_ == Device::GPU)
+#ifdef AER_THRUST_SUPPORTED
+      if (precision_ == Precision::Double)
+        state_ = std::make_shared<Statevector::State<QV::QubitVectorThrust<double>>>();
+      else
+        state_ = std::make_shared<Statevector::State<QV::QubitVectorThrust<float>>>();
+#else
+      throw std::runtime_error("specified method does not support non-CPU device: method=statevector");
+#endif
+  } else if (method_ == Method::density_matrix) {
+    if (device_ == Device::CPU)
+      if (precision_ == Precision::Double)
+        state_ = std::make_shared<DensityMatrix::State<QV::DensityMatrix<double>>>();
+      else
+        state_ = std::make_shared<DensityMatrix::State<QV::DensityMatrix<float>>>();
+    else // if (device_ == Device::GPU)
+#ifdef AER_THRUST_SUPPORTED
+      if (precision_ == Precision::Double)
+        state_ = std::make_shared<DensityMatrix::State<QV::DensityMatrixThrust<double>>>();
+      else
+        state_ = std::make_shared<DensityMatrix::State<QV::DensityMatrixThrust<float>>>();
+#else
+      throw std::runtime_error("specified method does not support non-CPU device: method=density_matrix");
+#endif
+  } else if (method_ == Method::unitary) {
+    if (device_ == Device::CPU)
+      if (precision_ == Precision::Double)
+        state_ = std::make_shared<QubitUnitary::State<QV::UnitaryMatrix<double>>>();
+      else
+        state_ = std::make_shared<QubitUnitary::State<QV::UnitaryMatrix<float>>>();
+    else // if (device_ == Device::GPU)
+#ifdef AER_THRUST_SUPPORTED
+      if (precision_ == Precision::Double)
+        state_ = std::make_shared<QubitUnitary::State<QV::UnitaryMatrixThrust<double>>>();
+      else
+        state_ = std::make_shared<QubitUnitary::State<QV::UnitaryMatrixThrust<float>>>();
+#else
+      throw std::runtime_error("specified method does not support non-CPU device: method=unitary");
+#endif
+  } else if (method_ == Method::matrix_product_state) {
+    if (device_ == Device::CPU)
+      state_ = std::make_shared<MatrixProductState::State>();
+    else // if (device_ == Device::GPU)
+        throw std::runtime_error("specified method does not support non-CPU device: method=matrix_product_state");
+  } else if (method_ == Method::stabilizer) {
+    if (device_ == Device::CPU)
+      state_ = std::make_shared<Stabilizer::State>();
+    else // if (device_ == Device::GPU)
+        throw std::runtime_error("specified method does not support non-CPU device: method=stabilizer");
+  } else if (method_ == Method::extended_stabilizer) {
+    if (device_ == Device::CPU)
+      state_ = std::make_shared<ExtendedStabilizer::State>();
+    else // if (device_ == Device::GPU)
+        throw std::runtime_error("specified method does not support non-CPU device: method=extended_stabilizer");
+  } else if (method_ == Method::superop) {
+    if (device_ == Device::CPU)
+      if (precision_ == Precision::Double)
+        state_ = std::make_shared<QubitSuperoperator::State<QV::Superoperator<double>>>();
+      else
+        state_ = std::make_shared<QubitSuperoperator::State<QV::Superoperator<float>>>();
+    else // if (device_ == Device::GPU)
+        throw std::runtime_error("specified method does not support non-CPU device: method=superop");
+  } else {
+      throw std::runtime_error("not supported method.");
+  }
+
   state_->initialize_qreg(num_of_qubits_);
   state_->initialize_creg(num_of_qubits_, num_of_qubits_);
   state_->set_config(configs_);
   rng_.set_seed(seed_);
+
+  clear_ops();
+
   initialized_ = true;
 };
 
@@ -276,10 +522,10 @@ reg_t AerState::allocate_qubits(uint_t num_qubits) {
 };
 
 reg_t AerState::initialize_statevector(uint_t num_of_qubits, complex_t* data) {
+  assert_not_initialized();
   num_of_qubits_ = num_of_qubits;
-  auto qv = QV::QubitVector<double>(num_of_qubits_, data);
   auto state = std::make_shared<Statevector::State<QV::QubitVector<double>>>();
-  state->initialize_qreg(num_of_qubits_, qv);
+  state->initialize_qreg(num_of_qubits_, QV::QubitVector<double>(num_of_qubits_, data));
   state->initialize_creg(num_of_qubits_, num_of_qubits_);
   state->set_config(configs_);
   state_ = state;
@@ -292,7 +538,7 @@ reg_t AerState::initialize_statevector(uint_t num_of_qubits, complex_t* data) {
   return ret;
 };
 
-reg_t AerState::initialize_statevector(uint_t num_of_qubits, QV::QubitVector<double> qv) {
+reg_t AerState::initialize_statevector(uint_t num_of_qubits, QV::QubitVector<double>&& qv) {
   num_of_qubits_ = num_of_qubits;
   auto state = std::make_shared<Statevector::State<QV::QubitVector<double>>>();
   state->initialize_qreg(num_of_qubits_, qv);
@@ -311,13 +557,16 @@ reg_t AerState::initialize_statevector(uint_t num_of_qubits, QV::QubitVector<dou
 void AerState::clear() {
   if (initialized_) {
     state_.reset();
+    clear_ops();
     initialized_ = false;
   }
   num_of_qubits_ = 0;
 };
 
-AER::Vector<complex_t> AerState::release_statevector() {
+AER::Vector<complex_t> AerState::move_to_vector() {
   initialize_if_necessary();
+
+  flush_ops();
 
   Operations::Op op;
   op.type = Operations::OpType::save_statevec;
@@ -351,8 +600,7 @@ void AerState::apply_unitary(const reg_t &qubits, const cmatrix_t &mat) {
   op.qubits = qubits;
   op.mats.push_back(mat);
 
-  ExperimentResult ret;
-  state_->apply_op(op, ret, rng_);
+  buffer_op(std::move(op));
 }
 
 void AerState::apply_diagonal_matrix(const reg_t &qubits, const cvector_t &mat) {
@@ -363,8 +611,7 @@ void AerState::apply_diagonal_matrix(const reg_t &qubits, const cvector_t &mat) 
   op.qubits = qubits;
   op.params = mat;
 
-  ExperimentResult ret;
-  state_->apply_op(op, ret, rng_);
+  buffer_op(std::move(op));
 }
 
 void AerState::apply_multiplexer(const reg_t &control_qubits, const reg_t &target_qubits, const std::vector<cmatrix_t> &mats) {
@@ -399,8 +646,7 @@ void AerState::apply_multiplexer(const reg_t &control_qubits, const reg_t &targe
   op.regs = std::vector<reg_t>({control_qubits, target_qubits});
   op.mats = mats;
 
-  ExperimentResult ret;
-  state_->apply_op(op, ret, rng_);
+  buffer_op(std::move(op));
 }
 
 //-----------------------------------------------------------------------
@@ -415,8 +661,7 @@ void AerState::apply_mcx(const reg_t &qubits) {
   op.name = "mcx";
   op.qubits = qubits;
 
-  ExperimentResult ret;
-  state_->apply_op(op, ret, rng_);
+  buffer_op(std::move(op));
 }
 
 void AerState::apply_mcy(const reg_t &qubits) {
@@ -427,8 +672,7 @@ void AerState::apply_mcy(const reg_t &qubits) {
   op.name = "mcy";
   op.qubits = qubits;
 
-  ExperimentResult ret;
-  state_->apply_op(op, ret, rng_);
+  buffer_op(std::move(op));
 }
 
 void AerState::apply_mcz(const reg_t &qubits) {
@@ -439,8 +683,7 @@ void AerState::apply_mcz(const reg_t &qubits) {
   op.name = "mcz";
   op.qubits = qubits;
 
-  ExperimentResult ret;
-  state_->apply_op(op, ret, rng_);
+  buffer_op(std::move(op));
 }
 
 void AerState::apply_mcphase(const reg_t &qubits, const std::complex<double> phase) {
@@ -452,8 +695,7 @@ void AerState::apply_mcphase(const reg_t &qubits, const std::complex<double> pha
   op.qubits = qubits;
   op.params.push_back(phase);
 
-  ExperimentResult ret;
-  state_->apply_op(op, ret, rng_);
+  buffer_op(std::move(op));
 }
 
 void AerState::apply_mcu(const reg_t &qubits, const double theta, const double phi, const double lambda) {
@@ -465,8 +707,7 @@ void AerState::apply_mcu(const reg_t &qubits, const double theta, const double p
   op.qubits = qubits;
   op.params = {theta, phi, lambda};
 
-  ExperimentResult ret;
-  state_->apply_op(op, ret, rng_);
+  buffer_op(std::move(op));
 }
 
 void AerState::apply_mcswap(const reg_t &qubits) {
@@ -477,8 +718,7 @@ void AerState::apply_mcswap(const reg_t &qubits) {
   op.name = "mcswap";
   op.qubits = qubits;
 
-  ExperimentResult ret;
-  state_->apply_op(op, ret, rng_);
+  buffer_op(std::move(op));
 }
 
 void AerState::apply_mcrx(const reg_t &qubits, const double theta) {
@@ -490,8 +730,7 @@ void AerState::apply_mcrx(const reg_t &qubits, const double theta) {
   op.qubits = qubits;
   op.params = {theta};
 
-  ExperimentResult ret;
-  state_->apply_op(op, ret, rng_);
+  buffer_op(std::move(op));
 }
 
 void AerState::apply_mcry(const reg_t &qubits, const double theta) {
@@ -503,8 +742,7 @@ void AerState::apply_mcry(const reg_t &qubits, const double theta) {
   op.qubits = qubits;
   op.params = {theta};
 
-  ExperimentResult ret;
-  state_->apply_op(op, ret, rng_);
+  buffer_op(std::move(op));
 }
 
 void AerState::apply_mcrz(const reg_t &qubits, const double theta) {
@@ -516,8 +754,7 @@ void AerState::apply_mcrz(const reg_t &qubits, const double theta) {
   op.qubits = qubits;
   op.params = {theta};
 
-  ExperimentResult ret;
-  state_->apply_op(op, ret, rng_);
+  buffer_op(std::move(op));
 }
 
 //-----------------------------------------------------------------------
@@ -526,6 +763,8 @@ void AerState::apply_mcrz(const reg_t &qubits, const double theta) {
 
 uint_t AerState::apply_measure(const reg_t &qubits) {
   initialize_if_necessary();
+
+  flush_ops();
 
   Operations::Op op;
   op.type = Operations::OpType::measure;
@@ -550,6 +789,8 @@ uint_t AerState::apply_measure(const reg_t &qubits) {
 void AerState::apply_reset(const reg_t &qubits) {
   initialize_if_necessary();
 
+  flush_ops();
+
   Operations::Op op;
   op.type = Operations::OpType::reset;
   op.name = "reset";
@@ -565,6 +806,8 @@ void AerState::apply_reset(const reg_t &qubits) {
 
 double AerState::probability(const uint_t outcome) {
   assert_initialized();
+
+  flush_ops();
 
   Operations::Op op;
   op.type = Operations::OpType::save_amps_sq;
@@ -583,6 +826,8 @@ double AerState::probability(const uint_t outcome) {
 complex_t AerState::amplitude(const uint_t outcome) {
   assert_initialized();
 
+  flush_ops();
+
   Operations::Op op;
   op.type = Operations::OpType::save_amps;
   op.name = "save_amplitudes";
@@ -599,6 +844,8 @@ complex_t AerState::amplitude(const uint_t outcome) {
 std::vector<double> AerState::probabilities() {
   assert_initialized();
 
+  flush_ops();
+
   Operations::Op op;
   op.type = Operations::OpType::save_probs;
   op.name = "save_probs";
@@ -613,6 +860,8 @@ std::vector<double> AerState::probabilities() {
 
 std::vector<double> AerState::probabilities(const reg_t &qubits) {
   assert_initialized();
+
+  flush_ops();
 
   Operations::Op op;
   op.type = Operations::OpType::save_probs;
@@ -629,6 +878,9 @@ std::vector<double> AerState::probabilities(const reg_t &qubits) {
 
 std::unordered_map<uint_t, uint_t> AerState::sample_measure(uint_t shots) {
   assert_initialized();
+
+  flush_ops();
+
   reg_t qubits;
   qubits.reserve(num_of_qubits_);
   for (uint_t i = 0; i < num_of_qubits_; ++i)
@@ -648,6 +900,79 @@ std::unordered_map<uint_t, uint_t> AerState::sample_measure(uint_t shots) {
       ++ret[sample_u];
   }
   return ret;
+}
+
+//-----------------------------------------------------------------------
+// Operation management
+//-----------------------------------------------------------------------
+void AerState::buffer_op(const Operations::Op&& op) {
+  assert_initialized();
+  buffer_.ops.push_back(std::move(op));
+};
+
+void AerState::flush_ops() {
+  assert_initialized();
+
+  if (buffer_.ops.empty()) return;
+
+  buffer_.set_params(false);
+  transpile_ops();
+
+  ExperimentResult ret;
+  state_->apply_ops(buffer_.ops.begin(), buffer_.ops.end(), ret, rng_);
+
+  clear_ops();
+};
+
+void AerState::clear_ops() {
+  assert_initialized();
+
+  buffer_ = Circuit();
+  buffer_.seed = seed_;
+};
+
+void AerState::transpile_ops() {
+  fusion_pass_ = Transpile::Fusion();
+  
+  fusion_pass_.set_parallelization(parallel_state_update_);
+
+  if (buffer_.opset().contains(Operations::OpType::superop))
+    fusion_pass_.allow_superop = true;
+  if (buffer_.opset().contains(Operations::OpType::kraus))
+    fusion_pass_.allow_kraus = true;
+
+  switch (method_) {
+  case Method::density_matrix:
+  case Method::superop: {
+    // Halve the default threshold and max fused qubits for density matrix
+    fusion_pass_.threshold /= 2;
+    fusion_pass_.max_qubit /= 2;
+    break;
+  }
+  case Method::matrix_product_state: {
+    fusion_pass_.active = false;
+  }
+  case Method::statevector: {
+    if (fusion_pass_.allow_kraus) {
+      // Halve default max fused qubits for Kraus noise fusion
+      fusion_pass_.max_qubit /= 2;
+    }
+    break;
+  }
+  case Method::unitary: {
+    // max_qubit is the same with statevector
+    fusion_pass_.threshold /= 2;
+    break;
+  }
+  default: {
+    fusion_pass_.active = false;
+  }
+  }
+  // Override default fusion settings with custom config
+  fusion_pass_.set_config(configs_);
+  
+  ExperimentResult result;
+  fusion_pass_.optimize_circuit(buffer_, noise_model_, state_->opset(), result);
 }
 
 //-------------------------------------------------------------------------

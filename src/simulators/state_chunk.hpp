@@ -33,7 +33,7 @@
 
 namespace AER {
 
-namespace Base {
+namespace QuantumState {
 
 #define STATE_APPLY_TO_ALL_CHUNKS     0
 

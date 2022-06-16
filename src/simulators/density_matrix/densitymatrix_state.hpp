@@ -81,9 +81,9 @@ enum class Snapshots {
 //=========================================================================
 
 template <class densmat_t = QV::DensityMatrix<double>>
-class State : public Base::StateChunk<densmat_t> {
+class State : public QuantumState::StateChunk<densmat_t> {
 public:
-  using BaseState = Base::StateChunk<densmat_t>;
+  using BaseState = QuantumState::StateChunk<densmat_t>;
 
   State() : BaseState(StateOpSet) {}
   virtual ~State() = default;

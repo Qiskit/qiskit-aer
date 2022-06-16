@@ -5,8 +5,7 @@
 extern "C" {
 
 void* aer_state_initialize() {
-  int seed = 0;
-  AER::AerState* handler = new AER::AerState(seed);
+  AER::AerState* handler = new AER::AerState();
   return handler;
 };
 
@@ -54,7 +53,7 @@ complex_t aer_amplitude(void* handler, uint_t outcome) {
 // returned pointer must be freed in the caller
 complex_t* aer_release_statevector(void* handler) {
   AER::AerState* state = reinterpret_cast<AER::AerState*>(handler);
-  AER::Vector<complex_t> sv = state->release_statevector();
+  AER::Vector<complex_t> sv = state->move_to_vector();
   return sv.move_to_buffer();
 };
 

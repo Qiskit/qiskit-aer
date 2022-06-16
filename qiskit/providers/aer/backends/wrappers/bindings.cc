@@ -52,7 +52,7 @@ PYBIND11_MODULE(controller_wrappers, m) {
 
     py::class_<AER::AerState> aer_state(m, "AerStateWrapper");
     
-    aer_state.def(py::init<int>(), "constructor", py::arg("seed") = 0);
+    aer_state.def(py::init<>(), "constructor");
 
     aer_state.def("__repr__", [](const AER::AerState &state) {
       std::stringstream ss;
@@ -116,24 +116,23 @@ PYBIND11_MODULE(controller_wrappers, m) {
     }, py::arg("qubits") = reg_t());
     aer_state.def("sample_measure",  &AER::AerState::sample_measure);
     
-    /* Caution: values object must not be collected until aer_state releases statevector */
     aer_state.def("initialize_statevector", [aer_state](AER::AerState &state,
                                                         int num_of_qubits,
                                                         py::array_t<std::complex<double>> &values) {
-      if (values.owndata() || !values.writeable() || !(values.flags() | py::array::c_style)) {
+      std::complex<double>* data_ptr = reinterpret_cast<std::complex<double>*>(values.mutable_data(0));
+      if (AerToPy::is_python_owned(data_ptr)) {
+        AerToPy::shared_numpy_with_cpp(data_ptr);
+        state.initialize_statevector(num_of_qubits, data_ptr);
+      } else {
         auto ptr = values.unchecked<1>();
         AER::QV::QubitVector<double> qv(num_of_qubits);
         for (uint_t i = 0; i < (1UL << num_of_qubits); ++i)
           qv[i] = ptr(i);
-        state.initialize_statevector(num_of_qubits, qv);
-      } else {
-        std::complex<double>* data = reinterpret_cast<std::complex<double>*>(values.mutable_data(0));
-        state.initialize_statevector(num_of_qubits, data);
+        state.initialize_statevector(num_of_qubits, std::move(qv));
       }
     });
 
     aer_state.def("release_statevector", [aer_state](AER::AerState &state) {
-      return AerToPy::to_numpy(std::move(state.release_statevector()));
-
+      return AerToPy::to_numpy_managed(std::move(state.move_to_vector()));
     });
 }

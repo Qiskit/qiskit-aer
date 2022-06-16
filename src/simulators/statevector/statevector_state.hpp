@@ -100,9 +100,9 @@ enum class SnapshotDataType { average, average_var, pershot };
 //=========================================================================
 
 template <class statevec_t = QV::QubitVector<double>>
-class State : public Base::StateChunk<statevec_t> {
+class State : public QuantumState::StateChunk<statevec_t> {
 public:
-  using BaseState = Base::StateChunk<statevec_t>;
+  using BaseState = QuantumState::StateChunk<statevec_t>;
 
   State() : BaseState(StateOpSet) {}
   virtual ~State() = default;

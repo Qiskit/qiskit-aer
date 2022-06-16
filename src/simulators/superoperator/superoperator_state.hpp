@@ -66,9 +66,9 @@ enum class Snapshots { superop };
 //=========================================================================
 
 template <class data_t = QV::Superoperator<double>>
-class State : public Base::State<data_t> {
+class State : public QuantumState::State<data_t> {
 public:
-  using BaseState = Base::State<data_t>;
+  using BaseState = QuantumState::State<data_t>;
 
   State() : BaseState(StateOpSet) {}
   virtual ~State() = default;
@@ -558,15 +558,15 @@ void State<statevec_t>::apply_save_state(const Operations::Op &op,
                       ? "superop"
                       : op.string_params[0];
   if (last_op) {
-    BaseState::save_data_pershot(result, key,
-                                 BaseState::qreg_.move_to_matrix(),
-                                 Operations::OpType::save_superop,
-                                 op.save_type);
+    result.save_data_pershot(BaseState::creg(), key,
+                             BaseState::qreg_.move_to_matrix(),
+                             Operations::OpType::save_superop,
+                             op.save_type);
   } else {
-    BaseState::save_data_pershot(result, key,
-                                 BaseState::qreg_.copy_to_matrix(),
-                                 Operations::OpType::save_superop,
-                                 op.save_type);
+    result.save_data_pershot(BaseState::creg(), key,
+                             BaseState::qreg_.copy_to_matrix(),
+                             Operations::OpType::save_superop,
+                             op.save_type);
   }
 }
 

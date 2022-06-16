@@ -67,10 +67,10 @@ enum class SnapshotDataType {average, average_var, pershot};
 // Stabilizer Table state class
 //============================================================================
 
-class State : public Base::State<Clifford::Clifford> {
+class State : public QuantumState::State<Clifford::Clifford> {
 
 public:
-  using BaseState = Base::State<Clifford::Clifford>;
+  using BaseState = QuantumState::State<Clifford::Clifford>;
 
   State() : BaseState(StateOpSet) {}
 
@@ -561,7 +561,7 @@ void State::apply_save_stabilizer(const Operations::Op &op,
       throw std::invalid_argument("Invalid save state instruction for stabilizer");
   }
   json_t clifford = BaseState::qreg_;
-  BaseState::save_data_pershot(result, key, std::move(clifford), op_type, op.save_type);
+  result.save_data_pershot(creg(), key, std::move(clifford), op_type, op.save_type);
 }
 
 void State::apply_save_probs(const Operations::Op &op,
@@ -584,14 +584,14 @@ void State::apply_save_probs(const Operations::Op &op,
     std::map<std::string, double> probs;
     get_probabilities_auxiliary(
         op.qubits, std::string(op.qubits.size(), 'X'), 1, probs);
-    BaseState::save_data_average(result, op.string_params[0],
-                                 std::move(probs), op.type, op.save_type);
+    result.save_data_average(creg(), op.string_params[0],
+                             std::move(probs), op.type, op.save_type);
   } else {
     std::vector<double> probs(1ULL << op.qubits.size(), 0.);
     get_probabilities_auxiliary(
       op.qubits, std::string(op.qubits.size(), 'X'), 1, probs); 
-    BaseState::save_data_average(result, op.string_params[0],
-                                 std::move(probs), op.type, op.save_type);
+    result.save_data_average(creg(), op.string_params[0],
+                             std::move(probs), op.type, op.save_type);
   }
 }
 
@@ -608,8 +608,8 @@ void State::apply_save_amplitudes_sq(const Operations::Op &op,
   for (size_t i = 0; i < op.int_params.size(); i++) {
     amps_sq[i] = get_probability(op.qubits, Utils::int2bin(op.int_params[i], num_qubits));
   }
-  BaseState::save_data_average(result, op.string_params[0],
-                               std::move(amps_sq), op.type, op.save_type);
+  result.save_data_average(creg(), op.string_params[0],
+                           std::move(amps_sq), op.type, op.save_type);
 }
 
 double State::expval_pauli(const reg_t &qubits,

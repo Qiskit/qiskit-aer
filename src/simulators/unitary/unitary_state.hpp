@@ -65,9 +65,9 @@ enum class Gates {
 //=========================================================================
 
 template <class unitary_matrix_t = QV::UnitaryMatrix<double>>
-class State : public virtual Base::StateChunk<unitary_matrix_t> {
+class State : public virtual QuantumState::StateChunk<unitary_matrix_t> {
 public:
-  using BaseState = Base::StateChunk<unitary_matrix_t>;
+  using BaseState = QuantumState::StateChunk<unitary_matrix_t>;
 
   State() : BaseState(StateOpSet) {}
   virtual ~State() = default;

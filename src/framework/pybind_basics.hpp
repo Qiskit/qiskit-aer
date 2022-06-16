@@ -187,6 +187,43 @@ py::array_t<T> to_numpy(AER::Vector<T> &&src) {
   );
 }
 
+std::unordered_map<void*, void*> python_owned;
+std::unordered_map<void*, void*> cpp_owned;
+
+/* thread unsafe */
+template <typename T>
+py::array_t<T> to_numpy_managed(AER::Vector<T> &&src) {
+  AER::Vector<T>* src_ptr = new AER::Vector<T>(std::move(src));
+  auto capsule = py::capsule(src_ptr, [](void* p) {
+    auto src_ptr = (reinterpret_cast<AER::Vector<T>*>(p));
+    void* data_ptr = src_ptr->data();
+    if (python_owned.find(data_ptr) != python_owned.end()) {
+      python_owned.erase(data_ptr);
+      delete src_ptr;
+    }
+  });
+  python_owned[src_ptr->data()] = src_ptr;
+  return py::array_t<T>(
+    src_ptr->size(),  // shape of array
+    src_ptr->data(),  // c-style contiguous strides for vector
+    capsule           // numpy array references this parent
+  );
+}
+
+/* thread unsafe */
+bool is_python_owned(void* data_ptr) {
+  return python_owned.find(data_ptr) != python_owned.end();
+}
+
+/* thread unsafe */
+bool is_cpp_owned(void* data_ptr) {
+  return cpp_owned.find(data_ptr) != cpp_owned.end();
+}
+
+/* thread unsafe */
+void shared_numpy_with_cpp(void* data_ptr) {
+  cpp_owned[data_ptr] = python_owned[data_ptr];
+}
 
 template <typename T>
 py::array_t<T> to_numpy(std::vector<T> &&src) {
