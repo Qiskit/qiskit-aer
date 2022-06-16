@@ -34,9 +34,15 @@ class Estimator(BaseEstimator):
     """
     Aer implmentation of Estimator.
 
-    """
+    :Run Options:
+        - **shots** (None or int) --
+          The number of shots. If None, it calculates the exact expectation
+          values. Otherwise, it samples from normal distributions with standard errors as standard
+          deviations using normal distribution approximation.
 
-    # TODO: write more docs. esp, options
+        - **seed_primitive** (np.random.Generator or int) --
+          Set a fixed seed or generator for rng. If shots is None, this option is ignored.
+    """
 
     def __init__(
         self,
@@ -46,6 +52,17 @@ class Estimator(BaseEstimator):
         backend_options: dict | None = None,
         transpile_options: dict | None = None,
     ):
+        """
+        Args:
+            circuits: Quantum circuits that represent quantum states.
+            observables: Observables.
+            parameters: Parameters of quantum circuits, specifying the order in which values
+                will be bound. Defaults to ``[circ.parameters for circ in circuits]``
+                The indexing is such that ``parameters[i, j]`` is the j-th formal parameter of
+                ``circuits[i]``.
+            backend_options: Options passed to AerSimulator.
+            transpile_options: Options passed to transpile.
+        """
         if isinstance(circuits, QuantumCircuit):
             circuits = (circuits,)
         circuits = tuple(init_circuit(circuit) for circuit in circuits)

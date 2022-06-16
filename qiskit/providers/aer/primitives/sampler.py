@@ -32,9 +32,16 @@ from .base_sampler import BaseSampler  # TODO: fix import path after Terra 0.21.
 class Sampler(BaseSampler):
     """
     Aer implementation of Sampler class.
-    """
 
-    # TODO: write more docs. esp. options
+    :Run Options:
+
+        - **shots** (None or int) --
+          The number of shots. If None, it calculates the probabilities.
+          Otherwise, it samples from multinomial distributions.
+
+        - **seed_primitive** (np.random.Generator or int) --
+          Set a fixed seed or generator for rng. If shots is None, this option is ignored.
+    """
 
     def __init__(
         self,
