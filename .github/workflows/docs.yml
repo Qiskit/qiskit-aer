@@ -74,7 +74,7 @@ jobs:
           pip install -U -r requirements-dev.txt -c constraints.txt
           pip install -c constraints.txt git+https://github.com/Qiskit/qiskit-terra
           pip install -c constraints.txt .
-          pip install -U "qiskit-ibmq-provider" "z3-solver" "qiskit-ignis" "qiskit-aqua" "pyscf<1.7.4" "matplotlib<3.3.0" jupyter pylatexenc nbsphinx sphinx_rtd_theme cvxpy -c constraints.txt
+          pip install -U "qiskit-ibmq-provider" "z3-solver" "qiskit-ignis" "qiskit-aqua" "pyscf<1.7.4" "matplotlib<3.3.0" jupyter pylatexenc nbsphinx cvxpy qiskit-sphinx-theme -c constraints.txt
           sudo apt install -y graphviz pandoc libopenblas-dev
           pip check
         shell: bash
