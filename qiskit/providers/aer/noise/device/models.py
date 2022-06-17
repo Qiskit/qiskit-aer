@@ -129,7 +129,7 @@ def basic_device_gate_errors(properties,
                  " and their default values are always used.", UserWarning)
 
         if gate_lengths:
-            raise NoiseError("When `target` is supplied, `gate_lengths` option is disabled."
+            raise NoiseError("When `target` is supplied, `gate_lengths` option is not allowed."
                              "Use `duration` property in target's InstructionProperties instead.")
 
         return _basic_device_target_gate_errors(
@@ -218,6 +218,8 @@ def _basic_device_target_gate_errors(target,
     """Return QuantumErrors derived from a devices Target."""
     errors = []
     for op_name, inst_prop_dic in target.items():
+        if inst_prop_dic is None:
+            continue
         for qubits, inst_prop in inst_prop_dic.items():
             depol_error = None
             relax_error = None
