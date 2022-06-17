@@ -76,7 +76,7 @@ def basic_device_gate_errors(properties,
                              gate_length_units='ns',
                              temperature=0,
                              standard_gates=None,
-                             warnings=True,
+                             warnings=None,
                              target=None):
     """
     Return QuantumErrors derived from a devices BackendProperties.
@@ -102,7 +102,7 @@ def basic_device_gate_errors(properties,
         standard_gates (bool): DEPRECATED, If true return errors as standard
                                qobj gates. If false return as unitary
                                qobj instructions (Default: None).
-        warnings (bool): PLAN TO BE DEPRECATED, Display warnings (Default: True).
+        warnings (bool): PLAN TO BE DEPRECATED, Display warnings (Default: None).
         target (Target): device backend target (Default: None). When this is supplied,
                          several options are disabled:
                          `properties`, `gate_lengths` and `gate_length_units` are not used
@@ -122,6 +122,13 @@ def basic_device_gate_errors(properties,
             '"standard_gates" option has been deprecated as of qiskit-aer 0.10.0'
             ' and will be removed no earlier than 3 months from that release date.',
             DeprecationWarning, stacklevel=2)
+
+    if warnings is not None:
+        warn(
+            '"warnings" option is planed to be deprecated as of qiskit-aer 0.11.0.',
+            PendingDeprecationWarning, stacklevel=2)
+    else:
+        warnings = True
 
     if target is not None:
         if not standard_gates or not warnings:
@@ -218,7 +225,7 @@ def _basic_device_target_gate_errors(target,
     """Return QuantumErrors derived from a devices Target."""
     errors = []
     for op_name, inst_prop_dic in target.items():
-        if inst_prop_dic is None:
+        if inst_prop_dic is None:  # ideal simulator
             continue
         for qubits, inst_prop in inst_prop_dic.items():
             depol_error = None

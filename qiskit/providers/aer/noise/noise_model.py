@@ -216,7 +216,7 @@ class NoiseModel:
                      gate_lengths=None,
                      gate_length_units='ns',
                      standard_gates=None,
-                     warnings=True):
+                     warnings=None):
         """Return a noise model derived from a devices backend properties.
 
         This function generates a noise model based on:
@@ -297,7 +297,7 @@ class NoiseModel:
             standard_gates (bool): DEPRECATED, If true return errors as standard
                                    qobj gates. If false return as unitary
                                    qobj instructions (Default: None)
-            warnings (bool): PLAN TO BE DEPRECATED, Display warnings (Default: True).
+            warnings (bool): PLAN TO BE DEPRECATED, Display warnings (Default: None).
 
         Returns:
             NoiseModel: An approximate noise model for the device backend.
@@ -310,6 +310,13 @@ class NoiseModel:
                 '"standard_gates" option has been deprecated as of qiskit-aer 0.10.0'
                 ' and will be removed no earlier than 3 months from that release date.',
                 DeprecationWarning, stacklevel=2)
+
+        if warnings is not None:
+            warn(
+                '"warnings" option is planed to be deprecated as of qiskit-aer 0.11.0.',
+                PendingDeprecationWarning, stacklevel=2)
+        else:
+            warnings = True
 
         backend_interface_version = getattr(backend, "version", None)
         if not isinstance(backend_interface_version, int):
