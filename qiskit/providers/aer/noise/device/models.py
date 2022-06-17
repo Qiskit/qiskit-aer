@@ -232,10 +232,12 @@ def _basic_device_target_gate_errors(target,
         if inst_prop_dic is None:  # ideal simulator
             continue
         for qubits, inst_prop in inst_prop_dic.items():
+            if inst_prop is None:
+                continue
             depol_error = None
             relax_error = None
             # Get relaxation error
-            if thermal_relaxation:
+            if thermal_relaxation and inst_prop.duration:
                 relax_params = {q: (target.qubit_properties[q].t1,
                                     target.qubit_properties[q].t2,
                                     target.qubit_properties[q].frequency)
@@ -247,7 +249,7 @@ def _basic_device_target_gate_errors(target,
                     temperature=temperature,
                 )
             # Get depolarizing error
-            if gate_error:
+            if gate_error and inst_prop.error:
                 depol_error = _device_depolarizing_error(
                     qubits=qubits,
                     error_param=inst_prop.error,
