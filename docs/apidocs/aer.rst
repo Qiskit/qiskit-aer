@@ -11,6 +11,7 @@ Qiskit Aer API Reference
     aer_jobs
     aer_library
     aer_noise
+    aer_primitives
     aer_pulse
     aer_utils
     aer_extensions
