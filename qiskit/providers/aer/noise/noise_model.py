@@ -25,10 +25,10 @@ from qiskit.providers import QubitProperties
 from qiskit.providers.exceptions import BackendPropertyError
 from qiskit.providers.models import BackendProperties
 from qiskit.transpiler import PassManager
+from qiskit.utils import apply_prefix
 from .device.models import _excited_population, _truncate_t2_value
 from .device.models import basic_device_gate_errors
 from .device.models import basic_device_readout_errors
-from .device.parameters import _NANOSECOND_UNITS
 from .errors.quantum_error import QuantumError
 from .errors.readout_error import ReadoutError
 from .noiseerror import NoiseError
@@ -353,7 +353,7 @@ class NoiseModel:
                 target = copy.deepcopy(target)
                 for op_name, qubits, value in gate_lengths:
                     prop = target[op_name][qubits]
-                    prop.duration = value * _NANOSECOND_UNITS[gate_length_units]
+                    prop.duration = apply_prefix(value, gate_length_units)  # convert to seconds
                     target.update_instruction_properties(op_name, qubits, prop)
             all_qubit_properties = backend.target.qubit_properties
             if not all_qubit_properties:
