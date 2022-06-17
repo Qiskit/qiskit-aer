@@ -388,7 +388,12 @@ class NoiseModel:
             filterwarnings(
                 "ignore",
                 category=DeprecationWarning,
-                module="qiskit.providers.aer.noise.device.models"
+                module="qiskit.providers.aer.noise"
+            )
+            filterwarnings(
+                "ignore",
+                category=PendingDeprecationWarning,
+                module="qiskit.providers.aer.noise"
             )
             gate_errors = basic_device_gate_errors(
                 properties,

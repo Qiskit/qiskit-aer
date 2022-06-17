@@ -137,7 +137,7 @@ def basic_device_gate_errors(properties,
     if target is not None:
         if not standard_gates or not warnings:
             warn("When `target` is supplied, `standard_gates` and `warnings` are ignored,"
-                 " and their default values are always used.", UserWarning)
+                 " and they are always set to true.", UserWarning)
 
         if gate_lengths:
             raise NoiseError("When `target` is supplied, `gate_lengths` option is not allowed."
