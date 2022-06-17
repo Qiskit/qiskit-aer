@@ -82,8 +82,9 @@ class Sampler(BaseSampler):
             raise QiskitError("The primitive has been closed.")
 
         seed_primitive = run_options.pop("seed_primitive", None)
-        seed_simulator = seed_primitive
-        run_options.setdefault("seed_simulator", seed_simulator)
+        if seed_primitive is not None:
+            seed_simulator = seed_primitive
+            run_options.setdefault("seed_simulator", seed_simulator)
 
         experiments = []
         parameter_binds = []

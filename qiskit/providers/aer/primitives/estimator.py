@@ -110,7 +110,7 @@ class Estimator(BaseEstimator):
                     f"the number of parameters ({len(self._parameters[i])})."
                 )
 
-            circuit = self._circuits[i]
+            circuit = self._circuits[i].copy()
             observable = self._observables[j]
             if circuit.num_qubits != observable.num_qubits:
                 raise QiskitError(
@@ -133,7 +133,7 @@ class Estimator(BaseEstimator):
         metadata = [{}] * len(circuits)
 
         if shots is None:
-            expectation_values = [result.data(i)["expectation_value"] for i in range(len(metadata))]
+            expectation_values = [result.data(i)["expectation_value"] for i in range(len(circuits))]
         else:
             expectation_values = []
             for i, meta in enumerate(metadata):
