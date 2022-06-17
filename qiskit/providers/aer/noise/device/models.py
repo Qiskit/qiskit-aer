@@ -33,11 +33,10 @@ from ..noiseerror import NoiseError
 logger = logging.getLogger(__name__)
 
 
-def basic_device_readout_errors(properties, target=None):
+def basic_device_readout_errors(properties=None, target=None):
     """
     Return readout error parameters from either of device Target or BackendProperties.
 
-    If ``properties`` is supplied, ``target`` will be ignored.
     If ``target`` is supplied, ``properties`` will be ignored.
 
     Args:
@@ -47,9 +46,14 @@ def basic_device_readout_errors(properties, target=None):
     Returns:
         list: A list of pairs ``(qubits, ReadoutError)`` for qubits with
         non-zero readout error values.
+
+    Raises:
+        NoiseError: if neither properties nor target is supplied.
     """
     errors = []
     if target is None:
+        if properties is None:
+            raise NoiseError("Either properties or target must be supplied.")
         # create from BackendProperties
         for qubit, value in enumerate(readout_error_values(properties)):
             if value is not None and not allclose(value, [0, 0]):
