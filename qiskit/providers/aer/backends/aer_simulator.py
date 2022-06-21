@@ -155,8 +155,8 @@ class AerSimulator(AerBackend):
     For large qubits circuits with multiple GPUs, number of GPUs is reported
     in metadata ``chunk_parallel_gpus`` in ``cacheblocking``.
 
-    If AerSimulator is built with cuStateVec support, cuStateVec APIs are enabled
-    by setting ``cuStateVec_enable=True``.
+    If AerSimulator is built with cuStateVec support, cuStateVec support
+    can be disabled by setting ``cuStateVec_enable=False``.
 
 
     **Additional Backend Options**
@@ -229,7 +229,7 @@ class AerSimulator(AerBackend):
 
     * ``cuStateVec_enable`` (bool): This option enables accelerating by
       cuStateVec library of cuQuantum from NVIDIA, that has highly optimized
-      kernels for GPUs (Default: False). This option will be ignored
+      kernels for GPUs (Default: True). This option will be ignored
       if AerSimulator is not built with cuStateVec support.
 
     * ``blocking_enable`` (bool): This option enables parallelization with
@@ -567,7 +567,7 @@ class AerSimulator(AerBackend):
             noise_model=None,
             seed_simulator=None,
             # cuStateVec (cuQuantum) option
-            cuStateVec_enable=False,
+            cuStateVec_enable=True,
             # cache blocking for multi-GPUs/MPI options
             blocking_qubits=None,
             blocking_enable=False,

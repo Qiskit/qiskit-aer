@@ -655,17 +655,18 @@ For example,
 if you want to link cuQuantum library statically, set `CUSTATEVEC_STATIC` to setup.py. 
 Otherwise you also have to set environmental variable LD_LIBRARY_PATH to indicate path to the cuQuantum libraries.
 
-To run with cuStateVec, set `device='GPU'` to AerSimulator option and set `cuStateVec_enable=True` to option in execute method.
+To run with cuStateVec, set `device='GPU'` to AerSimulator option.
+`cuStateVec_enable=True/False` option can enable/disable cuStateVec support. For small number of qubits, please try both.
 
 ```
-sim = AerSimulator(method='statevector', device='GPU')
-results = execute(circuit,sim,cuStateVec_enable=True).result()
+sim = AerSimulator(method='statevector', device='GPU',sim,cuStateVec_enable=True)
+results = execute(circuit,sim).result()
 ```
 
 Also you can accelrate density matrix and unitary matrix simulations as well.
 ```
-sim = AerSimulator(method='density_matrix', device='GPU')
-results = execute(circuit,sim,cuStateVec_enable=True).result()
+sim = AerSimulator(method='density_matrix', device='GPU',sim,cuStateVec_enable=True)
+results = execute(circuit,sim).result()
 ```
 
 

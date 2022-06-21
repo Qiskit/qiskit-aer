@@ -558,7 +558,9 @@ void StateChunk<state_t>::set_config(const json_t &config)
     JSON::get_value(chunk_swap_buffer_qubits_, "chunk_swap_buffer_qubits", config);
   }
 
+  cuStateVec_enable_ = false;
 #ifdef AER_CUSTATEVEC
+  cuStateVec_enable_ = true;
   //cuStateVec configs
   if(JSON::check_key("cuStateVec_enable", config)) {
     JSON::get_value(cuStateVec_enable_, "cuStateVec_enable", config);
