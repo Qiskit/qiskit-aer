@@ -231,6 +231,39 @@ class TestParameterizedQobj(common.QiskitAerTestCase):
         counts = res.get_counts()
         self.assertEqual(counts, [{'00': shots}, {'11': shots}, {'00': shots}] * 3)
 
+    def test_run_path_multiple_different_circuits(self):
+        """Test parameterized circuit path via backed.run()"""
+        shots = 1000
+        backend = AerSimulator()
+
+        circuit1 = QuantumCircuit(2)
+        theta1 = Parameter('theta1')
+        circuit1.rx(theta1, 0)
+        circuit1.cx(0, 1)
+        circuit1.measure_all()
+
+        circuit2 = QuantumCircuit(2)
+        theta2 = Parameter('theta2')
+        circuit2.rx(theta2, 0)
+        circuit2.cx(0, 1)
+        circuit2.measure_all()
+
+        circuit3 = QuantumCircuit(2)
+        theta3_1 = Parameter('theta3_1')
+        theta3_2 = Parameter('theta3_2')
+        circuit3.rx(theta3_1, 0)
+        circuit3.rx(theta3_2, 0)
+        circuit3.cx(0, 1)
+        circuit3.measure_all()
+
+        parameter_binds = [{theta1: [0, pi, 2 * pi]},
+                           {theta2: [0, pi, 2 * pi]},
+                           {theta3_1: [0, pi / 2, pi], theta3_2: [0, pi / 2, pi]}]
+        res = backend.run([circuit1, circuit2, circuit3], shots=shots, parameter_binds=parameter_binds).result()
+        counts = res.get_counts()
+        self.assertEqual(counts, [{'00': shots}, {'11': shots}, {'00': shots}] * 3)
+
+
     def test_run_path_with_expressions_multiple_circuits(self):
         """Test parameterized circuit path via backed.run()"""
         shots = 1000
