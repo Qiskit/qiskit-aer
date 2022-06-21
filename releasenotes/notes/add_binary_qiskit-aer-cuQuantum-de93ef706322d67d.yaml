@@ -1,0 +1,7 @@
+---
+features:
+  - |
+    Add binary distribution that supports cuQuantum SDK for GPU acceleration.
+    User can install by `pip install qiskit-aer-cuQuantum`
+    This binary is only available for Linux x86_64, Volta and Ampare GPUs
+    and CUDA Toolkit 11.x.

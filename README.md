@@ -26,10 +26,11 @@ CUDA&reg; itself would require a set of specific GPU drivers. Please follow CUDA
 If you want to install our GPU supported simulators, you have to install this other package:
 
 ```bash
+pip uninstall qiskit-aer
 pip install qiskit-aer-gpu
 ```
 
-This will overwrite your current `qiskit-aer` package installation giving you
+This will give you
 the same functionality found in the canonical `qiskit-aer` package, plus the
 ability to run the GPU supported simulators: statevector, density matrix, and unitary.
 
@@ -37,6 +38,25 @@ ability to run the GPU supported simulators: statevector, density matrix, and un
 that have CUDA support you will have to build from source. You can refer to
 the [contributing guide](CONTRIBUTING.md#building-with-gpu-support)
 for instructions on doing this.
+
+
+### Installing cuQuantum support
+
+Qiskit Aer also support accelerating simulations by GPUs and using NVIDIA&reg;'s cuQuantum SDK. [web](https://developer.nvidia.com/cuquantum-sdk).
+The separate binary should be installed from the previous GPU support.
+
+
+```bash
+pip uninstall qiskit-aer
+pip install qiskit-aer-cuQuantum
+```
+
+Also `cuStateVec_enable=True` option should be passed to AerSimulator to enable cuQuantum support.
+Because the original implementation is faster for smaller number of qubits (under 20 qubits) please try both enabling/disabling this option.
+
+
+**Note**: This package is only available on x86_64 Linux. cuQuantum SDK supports Volta and Ampare (and later) GPUs, and requires CUDA Toolkit 11.x.
+
 
 ## Simulating your first quantum program with Qiskit Aer
 Now that you have Qiskit Aer installed, you can start simulating quantum circuits with noise. Here is a basic example:
