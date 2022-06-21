@@ -51,8 +51,8 @@ pip uninstall qiskit-aer
 pip install qiskit-aer-cuQuantum
 ```
 
-Also `cuStateVec_enable=True` option should be passed to AerSimulator to enable cuQuantum support.
-Because the original implementation is faster for smaller number of qubits (under 20 qubits) please try both enabling/disabling this option.
+By using this binary, `cuStateVec_enable=True` option is enabled by default.
+Because the original implementation is faster for smaller number of qubits (under 20 qubits) please try `cuStateVec_enable=False` to disable cuQuantum.
 
 
 **Note**: This package is only available on x86_64 Linux. cuQuantum SDK supports Volta and Ampare (and later) GPUs, and requires CUDA Toolkit 11.x.

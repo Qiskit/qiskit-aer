@@ -469,7 +469,11 @@ void Controller::set_config(const json_t &config) {
   }
 
   //cuStateVec configs
+#ifdef AER_CUSTATEVEC
+  cuStateVec_enable_ = true;
+#else
   cuStateVec_enable_ = false;
+#endif
   if(JSON::check_key("cuStateVec_enable", config)) {
     JSON::get_value(cuStateVec_enable_, "cuStateVec_enable", config);
   }
