@@ -171,9 +171,9 @@ class TestEstimator(QiskitAerTestCase):
             # TODO: uncomment after https://github.com/Qiskit/qiskit-aer/pull/1538
             # result = est([0, 1, 0], [0, 1, 2], [theta1, theta2, theta3])
             # self.assertIsInstance(result, EstimatorResult)
-            #np.testing.assert_allclose(
+            # np.testing.assert_allclose(
             #    result.values, [1.5555572817900956, 0.17849238433885167, -1.0876631752254926]
-            #)
+            # )
             # self.assertEqual(len(result.metadata), 3)
 
             # It is possible to pass objects.
@@ -338,9 +338,7 @@ class TestEstimator(QiskitAerTestCase):
     def test_with_shots_option(self):
         """test with shots option."""
         with Estimator([self.ansatz], [self.observable]) as est:
-            result = est(
-                [0], [0], parameter_values=[[0, 1, 1, 2, 3, 5]], shots=1024, seed_primitive=15
-            )
+            result = est([0], [0], parameter_values=[[0, 1, 1, 2, 3, 5]], shots=1024, seed=15)
         self.assertIsInstance(result, EstimatorResult)
         np.testing.assert_allclose(result.values, [-1.307397243478641])
 

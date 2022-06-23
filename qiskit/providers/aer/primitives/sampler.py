@@ -39,7 +39,7 @@ class Sampler(BaseSampler):
           The number of shots. If None, it calculates the probabilities.
           Otherwise, it samples from multinomial distributions.
 
-        - **seed_primitive** (np.random.Generator or int) --
+        - **seed** (np.random.Generator or int) --
           Set a fixed seed or generator for rng. If shots is None, this option is ignored.
     """
 
@@ -81,9 +81,9 @@ class Sampler(BaseSampler):
         if self._is_closed:
             raise QiskitError("The primitive has been closed.")
 
-        seed_primitive = run_options.pop("seed_primitive", None)
-        if seed_primitive is not None:
-            seed_simulator = seed_primitive
+        seed = run_options.pop("seed", None)
+        if seed is not None:
+            seed_simulator = seed
             run_options.setdefault("seed_simulator", seed_simulator)
 
         experiments = []

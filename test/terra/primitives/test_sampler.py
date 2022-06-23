@@ -116,7 +116,7 @@ class TestSampler(QiskitAerTestCase):
 
         # executes a Bell circuit
         with Sampler(circuits=[bell], parameters=[[]]) as sampler:
-            result = sampler(parameter_values=[[]], circuits=[0], seed_primitive=15)
+            result = sampler(parameter_values=[[]], circuits=[0], seed=15)
             self.assertIsInstance(result, SamplerResult)
             self.assertEqual(len(result.quasi_dists), 1)
             self.assertDictAlmostEqual(result.quasi_dists[0], {0: 0.5244140625, 3: 0.4755859375})
@@ -124,7 +124,7 @@ class TestSampler(QiskitAerTestCase):
 
         # executes three Bell circuits
         with Sampler([bell] * 3, [[]] * 3) as sampler:
-            result = sampler([0, 1, 2], [[]] * 3, seed_primitive=15)
+            result = sampler([0, 1, 2], [[]] * 3, seed=15)
             self.assertIsInstance(result, SamplerResult)
             self.assertEqual(len(result.quasi_dists), 3)
             self.assertEqual(len(result.metadata), 3)
@@ -133,7 +133,7 @@ class TestSampler(QiskitAerTestCase):
             self.assertDictAlmostEqual(result.quasi_dists[2], {0: 0.5048828125, 3: 0.4951171875})
 
         with Sampler([bell]) as sampler:
-            result = sampler([bell, bell, bell], seed_primitive=15)
+            result = sampler([bell, bell, bell], seed=15)
             self.assertIsInstance(result, SamplerResult)
             self.assertEqual(len(result.quasi_dists), 3)
             self.assertEqual(len(result.metadata), 3)
@@ -153,36 +153,36 @@ class TestSampler(QiskitAerTestCase):
 
         # TODO: uncomment after https://github.com/Qiskit/qiskit-aer/pull/1538
         # with Sampler(circuits=[pqc, pqc2], parameters=[pqc.parameters, pqc2.parameters]) as sampler:
-            # result = sampler([0, 0, 1], [theta1, theta2, theta3], seed_primitive=15)
-            # self.assertIsInstance(result, SamplerResult)
-            # self.assertEqual(len(result.quasi_dists), 3)
-            # self.assertEqual(len(result.metadata), 3)
+        # result = sampler([0, 0, 1], [theta1, theta2, theta3], seed=15)
+        # self.assertIsInstance(result, SamplerResult)
+        # self.assertEqual(len(result.quasi_dists), 3)
+        # self.assertEqual(len(result.metadata), 3)
 
-            # keys, values = zip(*sorted(result.quasi_dists[0].items()))
-            # self.assertTupleEqual(keys, tuple(range(4)))
-            # np.testing.assert_allclose(
-                # values,
-                # [0.13092484629757767, 0.3608720796028449, 0.09324865232050054, 0.414954421779077],
-            # )
+        # keys, values = zip(*sorted(result.quasi_dists[0].items()))
+        # self.assertTupleEqual(keys, tuple(range(4)))
+        # np.testing.assert_allclose(
+        # values,
+        # [0.13092484629757767, 0.3608720796028449, 0.09324865232050054, 0.414954421779077],
+        # )
 
-            # keys, values = zip(*sorted(result.quasi_dists[1].items()))
-            # self.assertTupleEqual(keys, tuple(range(4)))
-            # np.testing.assert_allclose(
-                # values,
-                # [0.06282290651933871, 0.02877144385576703, 0.606654494132085, 0.3017511554928095],
-            # )
+        # keys, values = zip(*sorted(result.quasi_dists[1].items()))
+        # self.assertTupleEqual(keys, tuple(range(4)))
+        # np.testing.assert_allclose(
+        # values,
+        # [0.06282290651933871, 0.02877144385576703, 0.606654494132085, 0.3017511554928095],
+        # )
 
-            # keys values = zip(*sorted(result.quasi_dists[2].items()))
-            # self.assertTupleEqual(keys, tuple(range(4)))
-            # np.testing.assert_allclose(
-                # values,
-                # [
-                    # 0.18802639943804164,
-                    # 0.6881971261189544,
-                    # 0.09326232720582446,
-                    # 0.030514147237179882,
-                # ],
-            # )
+        # keys values = zip(*sorted(result.quasi_dists[2].items()))
+        # self.assertTupleEqual(keys, tuple(range(4)))
+        # np.testing.assert_allclose(
+        # values,
+        # [
+        # 0.18802639943804164,
+        # 0.6881971261189544,
+        # 0.09326232720582446,
+        # 0.030514147237179882,
+        # ],
+        # )
 
     def test_sampler_param_order(self):
         """test for sampler with different parameter orders"""
@@ -229,7 +229,7 @@ class TestSampler(QiskitAerTestCase):
 
         with Sampler([qc, qc], [[x, y], [y, x]]) as sampler:
             result = sampler(
-                [0, 1, 0, 1], [[0, 0], [0, 0], [np.pi / 2, 0], [np.pi / 2, 0]], seed_primitive=15
+                [0, 1, 0, 1], [[0, 0], [0, 0], [np.pi / 2, 0], [np.pi / 2, 0]], seed=15
             )
             self.assertIsInstance(result, SamplerResult)
             self.assertEqual(len(result.quasi_dists), 4)
@@ -344,7 +344,7 @@ class TestSampler(QiskitAerTestCase):
         """test with shots option."""
         params, target = self._generate_params_target([1])
         with Sampler(circuits=self._pqc) as sampler:
-            result = sampler(circuits=[0], parameter_values=params, shots=1024, seed_primitive=15)
+            result = sampler(circuits=[0], parameter_values=params, shots=1024, seed=15)
             self._compare_probs(result.quasi_dists, target)
 
 
