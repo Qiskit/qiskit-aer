@@ -39,8 +39,15 @@ class Sampler(BaseSampler):
           The number of shots. If None, it calculates the probabilities.
           Otherwise, it samples from multinomial distributions.
 
-        - **seed** (np.random.Generator or int) --
-          Set a fixed seed or generator for rng. If shots is None, this option is ignored.
+        - **seed** (int) --
+          Set a fixed seed for seed_simulator. If shots is None, this option is ignored.
+
+    .. note::
+        Precedence of seeding is as follows:
+
+        1. ``seed`` in runtime (i.e. in :meth:`__call__`)
+        2. ``seed_simulator`` of backend_options.
+        3. default.
     """
 
     def __init__(
