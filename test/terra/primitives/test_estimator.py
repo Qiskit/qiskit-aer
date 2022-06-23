@@ -168,13 +168,12 @@ class TestEstimator(QiskitAerTestCase):
             # calculate [ <psi1(theta1)|op1|psi1(theta1)>,
             #             <psi2(theta2)|op2|psi2(theta2)>,
             #             <psi1(theta3)|op3|psi1(theta3)> ]
-            # TODO: uncomment after https://github.com/Qiskit/qiskit-aer/pull/1538
-            # result = est([0, 1, 0], [0, 1, 2], [theta1, theta2, theta3])
-            # self.assertIsInstance(result, EstimatorResult)
-            # np.testing.assert_allclose(
-            #    result.values, [1.5555572817900956, 0.17849238433885167, -1.0876631752254926]
-            # )
-            # self.assertEqual(len(result.metadata), 3)
+            result = est([0, 1, 0], [0, 1, 2], [theta1, theta2, theta3])
+            self.assertIsInstance(result, EstimatorResult)
+            np.testing.assert_allclose(
+                result.values, [1.5555572817900956, 0.17849238433885167, -1.0876631752254926]
+            )
+            self.assertEqual(len(result.metadata), 3)
 
             # It is possible to pass objects.
             # calculate [ <psi2(theta2)|H2|psi2(theta2)> ]

@@ -151,38 +151,22 @@ class TestSampler(QiskitAerTestCase):
         theta2 = [1, 2, 3, 4, 5, 6]
         theta3 = [0, 1, 2, 3, 4, 5, 6, 7]
 
-        # TODO: uncomment after https://github.com/Qiskit/qiskit-aer/pull/1538
-        # with Sampler(circuits=[pqc, pqc2], parameters=[pqc.parameters, pqc2.parameters]) as sampler:
-        # result = sampler([0, 0, 1], [theta1, theta2, theta3], seed=15)
-        # self.assertIsInstance(result, SamplerResult)
-        # self.assertEqual(len(result.quasi_dists), 3)
-        # self.assertEqual(len(result.metadata), 3)
+        with Sampler(circuits=[pqc, pqc2], parameters=[pqc.parameters, pqc2.parameters]) as sampler:
+            result = sampler([0, 0, 1], [theta1, theta2, theta3], seed=15)
 
-        # keys, values = zip(*sorted(result.quasi_dists[0].items()))
-        # self.assertTupleEqual(keys, tuple(range(4)))
-        # np.testing.assert_allclose(
-        # values,
-        # [0.13092484629757767, 0.3608720796028449, 0.09324865232050054, 0.414954421779077],
-        # )
-
-        # keys, values = zip(*sorted(result.quasi_dists[1].items()))
-        # self.assertTupleEqual(keys, tuple(range(4)))
-        # np.testing.assert_allclose(
-        # values,
-        # [0.06282290651933871, 0.02877144385576703, 0.606654494132085, 0.3017511554928095],
-        # )
-
-        # keys values = zip(*sorted(result.quasi_dists[2].items()))
-        # self.assertTupleEqual(keys, tuple(range(4)))
-        # np.testing.assert_allclose(
-        # values,
-        # [
-        # 0.18802639943804164,
-        # 0.6881971261189544,
-        # 0.09326232720582446,
-        # 0.030514147237179882,
-        # ],
-        # )
+        self.assertIsInstance(result, SamplerResult)
+        self.assertEqual(len(result.quasi_dists), 3)
+        self.assertEqual(len(result.metadata), 3)
+        self.assertDictAlmostEqual(
+            result.quasi_dists[0], {0: 0.14453125, 1: 0.3583984375, 2: 0.1083984375, 3: 0.388671875}
+        )
+        self.assertDictAlmostEqual(
+            result.quasi_dists[1],
+            {0: 0.0478515625, 1: 0.033203125, 2: 0.6162109375, 3: 0.302734375},
+        )
+        self.assertDictAlmostEqual(
+            result.quasi_dists[2], {0: 0.1787109375, 1: 0.7060546875, 2: 0.08984375, 3: 0.025390625}
+        )
 
     def test_sampler_param_order(self):
         """test for sampler with different parameter orders"""
