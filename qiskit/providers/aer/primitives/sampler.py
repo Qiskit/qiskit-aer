@@ -115,6 +115,7 @@ class Sampler(BaseSampler):
             quasi = QuasiDistribution({k: v / shots for k, v in counts.items()})
             quasis.append(quasi)
             meta["shots"] = shots
+            meta["simulator_metadata"] = result.results[i].metadata
 
         return SamplerResult(quasis, metadata)
 

@@ -144,6 +144,7 @@ class Estimator(BaseEstimator):
                 expectation_values.append(expectation_value_with_error)
                 meta["variance"] = variance
                 meta["shots"] = shots
+                meta["simulator_metadata"] = result.results[i].metadata
 
         return EstimatorResult(np.real_if_close(expectation_values), metadata)
 
