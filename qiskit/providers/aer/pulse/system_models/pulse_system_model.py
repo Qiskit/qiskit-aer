@@ -17,12 +17,12 @@
 
 from warnings import warn
 from collections import OrderedDict
-from qiskit.providers import Backend
+from qiskit.providers import Backend, BackendV2
 from ...aererror import AerError
 from .hamiltonian_model import HamiltonianModel
 
 
-class PulseSystemModel():
+class PulseSystemModel:
     r"""Physical model object for pulse simulator.
 
     This class contains model information required by the
@@ -97,18 +97,47 @@ class PulseSystemModel():
         if not isinstance(backend, Backend):
             raise AerError("{} is not a Qiskit backend".format(backend))
 
-        # get relevant information from backend
-        config = backend.configuration()
+        open_pulse = False
+        if isinstance(backend, BackendV2):
+            if backend.target.instruction_schedule_map().instructions:
+                open_pulse = True
+        else:
+            open_pulse = backend.configuration().open_pulse
 
-        if not config.open_pulse:
+        if not open_pulse:
             raise AerError('{} is not an open pulse backend'.format(backend))
 
+        if isinstance(backend, BackendV2):
+            # Minimum custom configuration class sufficient to create a pulse system model
+            from dataclasses import dataclass
+            from typing import List
+            from qiskit.providers.models import UchannelLO
+
+            @dataclass
+            class ConfigV2:
+                hamiltonian: str
+                u_channel_lo: List[List[UchannelLO]]
+
+            configv2 = ConfigV2(hamiltonian=backend.hamiltonian, u_channel_lo=backend.u_channel_lo)
+            return cls.from_config(configv2, subsystem_list or list(range(backend.num_qubits)))
+
+        config = backend.configuration()
         return cls.from_config(config, subsystem_list)
 
     @classmethod
     def from_config(cls, configuration, subsystem_list=None):
-        """Construct a model from configuration and defaults."""
+        """Construct a model from configuration and defaults.
 
+        Args:
+            configuration (PulseBackendConfiguration): object to draw information from.
+            subsystem_list (list): a list of ints for which qubits to include in the model.
+
+        Returns:
+            PulseSystemModel: the PulseSystemModel constructed from the configuration.
+
+        Raises:
+            AerError: If Hamiltonian string does not contain an expected u channel.
+        """
         # draw from configuration
         # if no subsystem_list, use all for device
         subsystem_list = subsystem_list or list(range(configuration.n_qubits))
@@ -125,31 +154,31 @@ class PulseSystemModel():
             for u_idx, u_lo in enumerate(u_channel_lo):
                 # find drive index
                 drive_idx = None
-                while drive_idx is None:
-                    u_str_label = 'U{0}'.format(str(u_idx))
-                    for h_term_str in ham_string['h_str']:
-                        # check if this string corresponds to this u channel
-                        if u_str_label in h_term_str:
-                            # get index of X operator drive term
-                            x_idx = h_term_str.find('X')
-                            # if 'X' is found, and is not at the end of the string, drive_idx
-                            # is the subsequent character
-                            if x_idx != -1 and x_idx + 1 < len(h_term_str):
-                                drive_idx = int(h_term_str[x_idx + 1])
+                u_str_label = 'U{0}'.format(str(u_idx))
+                for h_term_str in ham_string['h_str']:
+                    # check if this string corresponds to this u channel
+                    if u_str_label in h_term_str:
+                        # get index of X operator drive term
+                        x_idx = h_term_str.find('X')
+                        # if 'X' is found, and is not at the end of the string, drive_idx
+                        # is the subsequent character
+                        if x_idx != -1 and x_idx + 1 < len(h_term_str):
+                            drive_idx = int(h_term_str[x_idx + 1])
+                if drive_idx is None:
+                    raise AerError(f"No {u_str_label} channel is found in Hamiltonian")
 
-                if drive_idx is not None:
-                    # construct string for u channel
-                    u_string = ''
-                    for u_term_dict in u_lo:
-                        scale = getattr(u_term_dict, 'scale', [1.0, 0])
-                        q_idx = getattr(u_term_dict, 'q')
-                        if len(u_string) > 0:
-                            u_string += ' + '
-                        if isinstance(scale, complex):
-                            u_string += str(scale) + 'q' + str(q_idx)
-                        else:
-                            u_string += str(scale[0] + scale[1] * 1j) + 'q' + str(q_idx)
-                    control_channel_labels[u_idx] = {'driven_q': drive_idx, 'freq': u_string}
+                # construct string for u channel
+                u_string = ''
+                for u_term_dict in u_lo:
+                    scale = getattr(u_term_dict, 'scale', 1.0+0j)
+                    q_idx = getattr(u_term_dict, 'q')
+                    if len(u_string) > 0:
+                        u_string += ' + '
+                    if isinstance(scale, complex):
+                        u_string += str(scale) + 'q' + str(q_idx)
+                    else:
+                        u_string += str(scale[0] + scale[1] * 1j) + 'q' + str(q_idx)
+                control_channel_labels[u_idx] = {'driven_q': drive_idx, 'freq': u_string}
 
         return cls(hamiltonian=hamiltonian,
                    u_channel_lo=u_channel_lo,

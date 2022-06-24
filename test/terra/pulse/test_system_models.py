@@ -15,14 +15,18 @@ Tests for PulseSystemModel and HamiltonianModel functionality
 
 import unittest
 import warnings
+
 import numpy as np
 from numpy.linalg import norm
-from test.terra.common import QiskitAerTestCase
-from qiskit.test.mock import FakeOpenPulse2Q
-from qiskit.providers.aer.pulse.system_models.pulse_system_model import PulseSystemModel
+from qiskit.providers.aer import AerError
 from qiskit.providers.aer.pulse.system_models.hamiltonian_model import HamiltonianModel
-from qiskit.test.mock import FakeArmonk
+from qiskit.providers.aer.pulse.system_models.pulse_system_model import PulseSystemModel
+
+from qiskit.providers.fake_provider import FakeManilaV2
 from qiskit.providers.models.backendconfiguration import UchannelLO
+from qiskit.test.mock import FakeArmonk, FakeArmonkV2
+from qiskit.test.mock import FakeOpenPulse2Q, FakeBackendV2
+from test.terra.common import QiskitAerTestCase
 
 
 class BaseTestPulseSystemModel(QiskitAerTestCase):
@@ -108,6 +112,17 @@ class TestPulseSystemModel(BaseTestPulseSystemModel):
 
         self.assertEqual(system_model.control_channel_labels, expected)
 
+    def test_control_channel_labels_from_backendv2(self):
+        """Test correct importing of backend V2 control channel description."""
+        backend = FakeManilaV2()
+        system_model = PulseSystemModel.from_backend(backend)
+        expected = [{'driven_q': 0, 'freq': '(1+0j)q1'},
+                    {'driven_q': 1, 'freq': '(1+0j)q0'}, {'driven_q': 1, 'freq': '(1+0j)q2'},
+                    {'driven_q': 2, 'freq': '(1+0j)q1'}, {'driven_q': 2, 'freq': '(1+0j)q3'},
+                    {'driven_q': 3, 'freq': '(1+0j)q2'}, {'driven_q': 3, 'freq': '(1+0j)q4'},
+                    {'driven_q': 4, 'freq': '(1+0j)q3'}]
+        self.assertEqual(system_model.control_channel_labels, expected)
+
     def test_qubit_lo_from_hamiltonian(self):
         """Test computation of qubit_lo_freq from the hamiltonian itself."""
         test_model = self._simple_system_model()
@@ -137,19 +152,20 @@ class TestPulseSystemModel(BaseTestPulseSystemModel):
         expected = getattr(backend.configuration(), 'hamiltonian')['vars']['wq0'] / (2 * np. pi)
         self.assertAlmostEqual(freqs['D0'], expected, places=5)
 
-    def _compute_u_lo_freqs(self, qubit_lo_freq):
-        """
-        Given qubit_lo_freq, return the computed u_channel_lo.
-        """
-        u_lo_freqs = []
-        for scales in self._u_channel_lo:
-            u_lo_freq = 0
-            for u_lo_idx in scales:
-                qfreq = qubit_lo_freq[u_lo_idx.q]
-                qscale = u_lo_idx.scale.real
-                u_lo_freq += qfreq * qscale
-            u_lo_freqs.append(u_lo_freq)
-        return u_lo_freqs
+    def test_qubit_lo_from_backendv2(self):
+        """Test computation of qubit_lo_freq from backendv2."""
+        backend = FakeArmonkV2()
+        test_model = PulseSystemModel.from_backend(backend)
+        qubit_lo_from_hamiltonian = test_model.hamiltonian.get_qubit_lo_from_drift()
+        freqs = test_model.calculate_channel_frequencies(qubit_lo_from_hamiltonian)
+        expected = getattr(backend, 'hamiltonian')['vars']['wq0'] / (2 * np. pi)
+        self.assertAlmostEqual(freqs['D0'], expected, places=5)
+
+    def test_fail_to_construct_from_non_pulse_backendv2(self):
+        """Test fail to construct from backend V2 not supporting open pulse."""
+        with self.assertRaises(AerError):
+            PulseSystemModel.from_backend(FakeBackendV2())
+
 
 class TestHamiltonianModel(QiskitAerTestCase):
     """Tests for HamiltonianModel"""
