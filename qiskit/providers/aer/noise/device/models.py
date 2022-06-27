@@ -62,7 +62,12 @@ def basic_device_readout_errors(properties=None, target=None):
     else:
         # create from Target
         for q in range(target.num_qubits):
-            prop = target['measure'][(q,)]
+            meas_props = target.get("measure", None)
+            if meas_props is None:
+                continue
+            prop = meas_props.get((q,), None)
+            if prop is None:
+                continue
             if hasattr(prop, "prob_meas1_prep0") and hasattr(prop, "prob_meas0_prep1"):
                 p0m1, p1m0 = prop.prob_meas1_prep0, prop.prob_meas0_prep1
             else:
@@ -129,7 +134,8 @@ def basic_device_gate_errors(properties,
 
     if warnings is not None:
         warn(
-            '"warnings" argument will be deprecated as part of the qiskit-aer 0.12.0 and subsequently removed',
+            '"warnings" argument will be deprecated as part of the qiskit-aer 0.12.0 and '
+            'subsequently removed',
             PendingDeprecationWarning, stacklevel=2)
     else:
         warnings = True

@@ -313,7 +313,8 @@ class NoiseModel:
 
         if warnings is not None:
             warn(
-                '"warnings" argument will be deprecated as part of the qiskit-aer 0.12.0 and subsequently removed',
+                '"warnings" argument will be deprecated as part of the qiskit-aer 0.12.0 and '
+                'subsequently removed',
                 PendingDeprecationWarning, stacklevel=2)
         else:
             warnings = True
