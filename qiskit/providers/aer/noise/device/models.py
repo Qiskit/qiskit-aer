@@ -129,7 +129,7 @@ def basic_device_gate_errors(properties,
 
     if warnings is not None:
         warn(
-            '"warnings" option is planed to be deprecated as of qiskit-aer 0.11.0.',
+            '"warnings" argument will be deprecated as part of the qiskit-aer 0.12.0 and subsequently removed',
             PendingDeprecationWarning, stacklevel=2)
     else:
         warnings = True
