@@ -20,8 +20,8 @@ import numpy as np
 from test.terra import common
 
 from qiskit import QuantumCircuit, transpile, schedule
-from qiskit.test.mock.backends.armonk.fake_armonk import FakeArmonk
-from qiskit.test.mock.backends.athens.fake_athens import FakeAthens
+from qiskit.providers.fake_provider.backends.armonk.fake_armonk import FakeArmonk
+from qiskit.providers.fake_provider.backends.athens.fake_athens import FakeAthens
 
 from qiskit.providers.aer.backends import PulseSimulator
 from qiskit.pulse import (Schedule, Play, ShiftPhase, SetPhase, Delay, Acquire,
