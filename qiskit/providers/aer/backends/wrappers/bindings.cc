@@ -65,8 +65,41 @@ PYBIND11_MODULE(controller_wrappers, m) {
 
     aer_state.def("configure",  &AER::AerState::configure);
     aer_state.def("allocate_qubits",  &AER::AerState::allocate_qubits);
+    aer_state.def("reallocate_qubits",  &AER::AerState::reallocate_qubits);
     aer_state.def("clear",  &AER::AerState::clear);
     aer_state.def("num_of_qubits",  &AER::AerState::num_of_qubits);
+
+    aer_state.def("initialize",  &AER::AerState::initialize);
+    aer_state.def("initialize_statevector", [aer_state](AER::AerState &state,
+                                                        int num_of_qubits,
+                                                        py::array_t<std::complex<double>> &values) {
+      std::complex<double>* data_ptr = reinterpret_cast<std::complex<double>*>(values.mutable_data(0));
+      if (AerToPy::is_python_owned(data_ptr)) {
+        state.configure("method", "statevector");
+        state.initialize_statevector(num_of_qubits, data_ptr);
+        return true;
+      } else {
+        return false;
+      }
+    });
+
+    aer_state.def("move_to_buffer",  [aer_state](AER::AerState &state) {
+      return state.move_to_vector().move_to_buffer();
+    });
+
+    aer_state.def("move_to_ndarray", [aer_state](AER::AerState &state) {
+      auto vec = state.move_to_vector();
+      
+      std::complex<double>* data_ptr = vec.data();
+      if (AerToPy::is_python_owned(data_ptr)) {
+        vec.move_to_buffer(); // intentinal memory leak
+        throw std::runtime_error(std::string("this vector has already be moved to python."));
+      }
+      auto ret = AerToPy::to_numpy(std::move(vec));
+      return ret;
+    });
+
+    aer_state.def("apply_initialize",  &AER::AerState::apply_initialize);
     aer_state.def("apply_unitary", [aer_state](AER::AerState &state,
                                                    const reg_t &qubits,
                                                    const py::array_t<std::complex<double>> &values) {
@@ -115,24 +148,5 @@ PYBIND11_MODULE(controller_wrappers, m) {
         return state.probabilities(qubits);
     }, py::arg("qubits") = reg_t());
     aer_state.def("sample_measure",  &AER::AerState::sample_measure);
-    
-    aer_state.def("initialize_statevector", [aer_state](AER::AerState &state,
-                                                        int num_of_qubits,
-                                                        py::array_t<std::complex<double>> &values) {
-      std::complex<double>* data_ptr = reinterpret_cast<std::complex<double>*>(values.mutable_data(0));
-      if (AerToPy::is_python_owned(data_ptr)) {
-        AerToPy::shared_numpy_with_cpp(data_ptr);
-        state.initialize_statevector(num_of_qubits, data_ptr);
-      } else {
-        auto ptr = values.unchecked<1>();
-        AER::QV::QubitVector<double> qv(num_of_qubits);
-        for (uint_t i = 0; i < (1UL << num_of_qubits); ++i)
-          qv[i] = ptr(i);
-        state.initialize_statevector(num_of_qubits, std::move(qv));
-      }
-    });
 
-    aer_state.def("release_statevector", [aer_state](AER::AerState &state) {
-      return AerToPy::to_numpy_managed(std::move(state.move_to_vector()));
-    });
 }

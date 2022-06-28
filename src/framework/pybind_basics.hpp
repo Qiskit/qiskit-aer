@@ -176,59 +176,51 @@ py::array_t<T, py::array::f_style> to_numpy(matrix<T> &&src) {
   return py::array_t<T, py::array::f_style>(shape, src_ptr->data(), capsule);
 }
 
-template <typename T>
-py::array_t<T> to_numpy(AER::Vector<T> &&src) {
-  AER::Vector<T>* src_ptr = new AER::Vector<T>(std::move(src));
-  auto capsule = py::capsule(src_ptr, [](void* p) { delete reinterpret_cast<AER::Vector<T>*>(p); });
-  return py::array_t<T>(
-    src_ptr->size(),  // shape of array
-    src_ptr->data(),  // c-style contiguous strides for vector
-    capsule           // numpy array references this parent
-  );
-}
-
 std::unordered_map<void*, void*> python_owned;
-std::unordered_map<void*, void*> cpp_owned;
-
-/* thread unsafe */
-template <typename T>
-py::array_t<T> to_numpy_managed(AER::Vector<T> &&src) {
-  AER::Vector<T>* src_ptr = new AER::Vector<T>(std::move(src));
-  auto capsule = py::capsule(src_ptr, [](void* p) {
-    auto src_ptr = (reinterpret_cast<AER::Vector<T>*>(p));
-    void* data_ptr = src_ptr->data();
-    if (python_owned.find(data_ptr) != python_owned.end()) {
-      python_owned.erase(data_ptr);
-      delete src_ptr;
-    }
-  });
-  python_owned[src_ptr->data()] = src_ptr;
-  return py::array_t<T>(
-    src_ptr->size(),  // shape of array
-    src_ptr->data(),  // c-style contiguous strides for vector
-    capsule           // numpy array references this parent
-  );
-}
 
 /* thread unsafe */
 bool is_python_owned(void* data_ptr) {
   return python_owned.find(data_ptr) != python_owned.end();
 }
 
-/* thread unsafe */
-bool is_cpp_owned(void* data_ptr) {
-  return cpp_owned.find(data_ptr) != cpp_owned.end();
-}
+template <typename T>
+py::array_t<T> to_numpy(AER::Vector<T> &&src) {
+  AER::Vector<T>* src_ptr = new AER::Vector<T>(std::move(src));
 
-/* thread unsafe */
-void shared_numpy_with_cpp(void* data_ptr) {
-  cpp_owned[data_ptr] = python_owned[data_ptr];
+  if (is_python_owned(src_ptr->data()))
+    throw std::runtime_error(std::string("this data has already been in python."));
+
+  python_owned[src_ptr->data()] = src_ptr;
+
+  auto capsule = py::capsule(src_ptr, [](void* p) {
+    auto src_ptr = (reinterpret_cast<AER::Vector<T>*>(p));
+    void* data_ptr = src_ptr->data();
+    python_owned.erase(data_ptr);
+    delete src_ptr;
+  });
+
+  return py::array_t<T>(
+    src_ptr->size(),  // shape of array
+    src_ptr->data(),  // c-style contiguous strides for vector
+    capsule           // numpy array references this parent
+  );
 }
 
 template <typename T>
 py::array_t<T> to_numpy(std::vector<T> &&src) {
   std::vector<T>* src_ptr = new std::vector<T>(std::move(src));
-  auto capsule = py::capsule(src_ptr, [](void* p) { delete reinterpret_cast<std::vector<T>*>(p); });
+  
+  if (is_python_owned(src_ptr->data()))
+    throw std::runtime_error(std::string("this data has already been in python."));
+
+  python_owned[src_ptr->data()] = src_ptr;
+
+  auto capsule = py::capsule(src_ptr, [](void* p) {
+    auto src_ptr = (reinterpret_cast<AER::Vector<T>*>(p));
+    void* data_ptr = src_ptr->data();
+    python_owned.erase(data_ptr);
+    delete src_ptr;
+  });
   return py::array_t<T>(
     src_ptr->size(),  // shape of array
     src_ptr->data(),  // c-style contiguous strides for vector

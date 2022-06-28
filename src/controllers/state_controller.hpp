@@ -137,22 +137,38 @@ public:
   // `0` with incrementation `+1`.
   virtual reg_t allocate_qubits(uint_t num_qubits);
 
+  // Reallocate qubits and return a list of qubit identifiers, which start
+  // `0` with incrementation `+1`.
+  virtual reg_t reallocate_qubits(uint_t num_qubits);
+
   // Return a number of qubits.
   virtual uint_t num_of_qubits() const { return num_of_qubits_; };
 
+  // Clear all the configurations
+  virtual void clear();
+
+  //-----------------------------------------------------------------------
+  // Initialization
+  //-----------------------------------------------------------------------
+
+  // Initialize state with given configuration
+  void initialize();
+
   // Allocate qubits with inputted complex array
   // method must be statevector and the length of the array must be 2^{num_qubits}
+  // given data will not be freed in this class
   virtual reg_t initialize_statevector(uint_t num_qubits, complex_t* data);
-
-  // Allocate qubits with qubit vector
-  virtual reg_t initialize_statevector(uint_t num_of_qubits, QV::QubitVector<double>&& qv);
-
-  // Clear qubits
-  virtual void clear();
 
   // Release internal statevector
   // The caller must free the returned pointer
   virtual AER::Vector<complex_t> move_to_vector();
+
+  //-----------------------------------------------------------------------
+  // Apply initialization
+  //-----------------------------------------------------------------------
+
+  // Apply an initialization op
+  void apply_initialize(const reg_t &qubits, cvector_t &&mat);
 
   //-----------------------------------------------------------------------
   // Apply Matrices
@@ -284,7 +300,6 @@ protected:
 private:
   void assert_initialized() const;
   void assert_not_initialized() const;
-  void initialize_if_necessary();
   bool is_gpu(bool raise_error) const;
 
 private:
@@ -415,7 +430,7 @@ bool AerState::set_parallel_state_update(const uint_t& parallel_state_update) {
 void AerState::assert_initialized() const {
   if (!initialized_) {
     std::stringstream msg;
-    msg << "this AerState has not initialized." << std::endl;
+    msg << "this AerState has not been initialized." << std::endl;
     throw std::runtime_error(msg.str());
   }
 };
@@ -423,13 +438,13 @@ void AerState::assert_initialized() const {
 void AerState::assert_not_initialized() const {
   if (initialized_) {
     std::stringstream msg;
-    msg << "this AerState has already initialized." << std::endl;
+    msg << "this AerState has already been initialized." << std::endl;
     throw std::runtime_error(msg.str());
   }
 };
 
-void AerState::initialize_if_necessary() {
-  if (initialized_) return;
+void AerState::initialize() {
+  assert_not_initialized();
 
   if (method_ == Method::statevector) {
     if (device_ == Device::CPU)
@@ -521,27 +536,21 @@ reg_t AerState::allocate_qubits(uint_t num_qubits) {
   return ret;
 };
 
+reg_t AerState::reallocate_qubits(uint_t num_qubits) {
+  assert_not_initialized();
+  num_of_qubits_ = 0;
+  return allocate_qubits(num_qubits);
+};
+
 reg_t AerState::initialize_statevector(uint_t num_of_qubits, complex_t* data) {
   assert_not_initialized();
+  if (device_ != Device::CPU)
+    throw std::runtime_error("only CPU device supports initialize_statevector()");
+  if (precision_ != Precision::Double)
+    throw std::runtime_error("only Double precision supports initialize_statevector()");
   num_of_qubits_ = num_of_qubits;
   auto state = std::make_shared<Statevector::State<QV::QubitVector<double>>>();
   state->initialize_qreg(num_of_qubits_, QV::QubitVector<double>(num_of_qubits_, data));
-  state->initialize_creg(num_of_qubits_, num_of_qubits_);
-  state->set_config(configs_);
-  state_ = state;
-  rng_.set_seed(seed_);
-  initialized_ = true;
-  reg_t ret;
-  ret.reserve(num_of_qubits);
-  for (auto i = 0; i < num_of_qubits; ++i)
-    ret.push_back(i);
-  return ret;
-};
-
-reg_t AerState::initialize_statevector(uint_t num_of_qubits, QV::QubitVector<double>&& qv) {
-  num_of_qubits_ = num_of_qubits;
-  auto state = std::make_shared<Statevector::State<QV::QubitVector<double>>>();
-  state->initialize_qreg(num_of_qubits_, qv);
   state->initialize_creg(num_of_qubits_, num_of_qubits_);
   state->set_config(configs_);
   state_ = state;
@@ -564,7 +573,7 @@ void AerState::clear() {
 };
 
 AER::Vector<complex_t> AerState::move_to_vector() {
-  initialize_if_necessary();
+  assert_initialized();
 
   flush_ops();
 
@@ -577,14 +586,31 @@ AER::Vector<complex_t> AerState::move_to_vector() {
   op.string_params.push_back("s");
   op.save_type = Operations::DataSubType::list;
 
-  ExperimentResult ret;
-  state_->apply_op(op, ret, rng_);
+  ExperimentResult *ret = new ExperimentResult();
+  state_->apply_op(op, *ret, rng_);
 
-  AER::Vector<complex_t> sv = std::move(std::move(((DataMap<ListData, Vector<complex_t>>)ret.data).value()["s"].value())[0]);
+  auto sv = AER::Vector<complex_t>(std::move(((DataMap<ListData, Vector<complex_t>>)ret->data).value()["s"].value()[0]));
+  clear();
 
-  this->clear();
+  free(ret);
 
   return std::move(sv);
+};
+
+//-----------------------------------------------------------------------
+// Apply Initialization
+//-----------------------------------------------------------------------
+
+void AerState::apply_initialize(const reg_t &qubits, cvector_t && vec) {
+  assert_initialized();
+  Operations::Op op;
+  op.type = Operations::OpType::initialize;
+  op.name = "initialize";
+  op.qubits = qubits;
+  op.params = std::move(vec);
+
+  ExperimentResult ret;
+  state_->apply_op(op, ret, rng_);
 };
 
 
@@ -593,7 +619,7 @@ AER::Vector<complex_t> AerState::move_to_vector() {
 //-----------------------------------------------------------------------
 
 void AerState::apply_unitary(const reg_t &qubits, const cmatrix_t &mat) {
-  initialize_if_necessary();
+  assert_initialized();
   Operations::Op op;
   op.type = Operations::OpType::matrix;
   op.name = "unitary";
@@ -604,7 +630,7 @@ void AerState::apply_unitary(const reg_t &qubits, const cmatrix_t &mat) {
 }
 
 void AerState::apply_diagonal_matrix(const reg_t &qubits, const cvector_t &mat) {
-  initialize_if_necessary();
+  assert_initialized();
   Operations::Op op;
   op.type = Operations::OpType::diagonal_matrix;
   op.name = "diagonal";
@@ -615,7 +641,7 @@ void AerState::apply_diagonal_matrix(const reg_t &qubits, const cvector_t &mat) 
 }
 
 void AerState::apply_multiplexer(const reg_t &control_qubits, const reg_t &target_qubits, const std::vector<cmatrix_t> &mats) {
-  initialize_if_necessary();
+  assert_initialized();
 
   if (mats.empty())
     throw std::invalid_argument("no matrix input.");
@@ -626,7 +652,7 @@ void AerState::apply_multiplexer(const reg_t &control_qubits, const reg_t &targe
   if (1ULL << num_targets != dim || num_targets != target_qubits.size())
     throw std::invalid_argument("invalid multiplexer matrix dimension.");
 
-  size_t num_mats = control_qubits.size();
+  size_t num_mats = mats.size();
   auto num_controls = static_cast<uint_t>(std::log2(num_mats));
   if (1ULL << num_controls != num_mats)
     throw std::invalid_argument("invalid number of multiplexer matrices.");
@@ -654,7 +680,7 @@ void AerState::apply_multiplexer(const reg_t &control_qubits, const reg_t &targe
 //-----------------------------------------------------------------------
 
 void AerState::apply_mcx(const reg_t &qubits) {
-  initialize_if_necessary();
+  assert_initialized();
 
   Operations::Op op;
   op.type = Operations::OpType::gate;
@@ -665,7 +691,7 @@ void AerState::apply_mcx(const reg_t &qubits) {
 }
 
 void AerState::apply_mcy(const reg_t &qubits) {
-  initialize_if_necessary();
+  assert_initialized();
 
   Operations::Op op;
   op.type = Operations::OpType::gate;
@@ -676,7 +702,7 @@ void AerState::apply_mcy(const reg_t &qubits) {
 }
 
 void AerState::apply_mcz(const reg_t &qubits) {
-  initialize_if_necessary();
+  assert_initialized();
 
   Operations::Op op;
   op.type = Operations::OpType::gate;
@@ -687,7 +713,7 @@ void AerState::apply_mcz(const reg_t &qubits) {
 }
 
 void AerState::apply_mcphase(const reg_t &qubits, const std::complex<double> phase) {
-  initialize_if_necessary();
+  assert_initialized();
 
   Operations::Op op;
   op.type = Operations::OpType::gate;
@@ -699,7 +725,7 @@ void AerState::apply_mcphase(const reg_t &qubits, const std::complex<double> pha
 }
 
 void AerState::apply_mcu(const reg_t &qubits, const double theta, const double phi, const double lambda) {
-  initialize_if_necessary();
+  assert_initialized();
 
   Operations::Op op;
   op.type = Operations::OpType::gate;
@@ -711,7 +737,7 @@ void AerState::apply_mcu(const reg_t &qubits, const double theta, const double p
 }
 
 void AerState::apply_mcswap(const reg_t &qubits) {
-  initialize_if_necessary();
+  assert_initialized();
 
   Operations::Op op;
   op.type = Operations::OpType::gate;
@@ -722,7 +748,7 @@ void AerState::apply_mcswap(const reg_t &qubits) {
 }
 
 void AerState::apply_mcrx(const reg_t &qubits, const double theta) {
-  initialize_if_necessary();
+  assert_initialized();
 
   Operations::Op op;
   op.type = Operations::OpType::gate;
@@ -734,7 +760,7 @@ void AerState::apply_mcrx(const reg_t &qubits, const double theta) {
 }
 
 void AerState::apply_mcry(const reg_t &qubits, const double theta) {
-  initialize_if_necessary();
+  assert_initialized();
 
   Operations::Op op;
   op.type = Operations::OpType::gate;
@@ -746,7 +772,7 @@ void AerState::apply_mcry(const reg_t &qubits, const double theta) {
 }
 
 void AerState::apply_mcrz(const reg_t &qubits, const double theta) {
-  initialize_if_necessary();
+  assert_initialized();
 
   Operations::Op op;
   op.type = Operations::OpType::gate;
@@ -762,7 +788,7 @@ void AerState::apply_mcrz(const reg_t &qubits, const double theta) {
 //-----------------------------------------------------------------------
 
 uint_t AerState::apply_measure(const reg_t &qubits) {
-  initialize_if_necessary();
+  assert_initialized();
 
   flush_ops();
 
@@ -787,7 +813,7 @@ uint_t AerState::apply_measure(const reg_t &qubits) {
 }
 
 void AerState::apply_reset(const reg_t &qubits) {
-  initialize_if_necessary();
+  assert_initialized();
 
   flush_ops();
 
@@ -925,8 +951,6 @@ void AerState::flush_ops() {
 };
 
 void AerState::clear_ops() {
-  assert_initialized();
-
   buffer_ = Circuit();
   buffer_.seed = seed_;
 };
