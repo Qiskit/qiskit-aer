@@ -44,14 +44,13 @@ of systems.
     duffing_system_model
 """
 
-# pylint: disable=import-error
-import distutils.sysconfig  # noqa
+import sysconfig
 import numpy as np
 
 from .system_models.duffing_model_generators import duffing_system_model
 from .system_models.pulse_system_model import PulseSystemModel
 
 # Remove -Wstrict-prototypes from cflags
-CFG_VARS = distutils.sysconfig.get_config_vars()
+CFG_VARS = sysconfig.get_config_vars()
 if "CFLAGS" in CFG_VARS:
     CFG_VARS["CFLAGS"] = CFG_VARS["CFLAGS"].replace("-Wstrict-prototypes", "")
