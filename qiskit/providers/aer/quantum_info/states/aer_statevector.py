@@ -17,6 +17,7 @@ from qiskit.quantum_info.states import Statevector
 from qiskit.circuit import QuantumCircuit, Instruction
 from qiskit.providers.aer.quantum_info.states.aer_state import AerState
 
+
 class AerStatevector(Statevector):
     """AerStatevector class"""
 
@@ -41,7 +42,7 @@ class AerStatevector(Statevector):
         super().__init__(data)
 
     @classmethod
-    def from_instruction(cls, instruction):
+    def from_instruction(cls, inst):
         """Return the output statevector of an instruction.
 
         The statevector is initialized in the state :math:`|{0,\\ldots,0}\\rangle` of the
@@ -49,7 +50,7 @@ class AerStatevector(Statevector):
         by the input instruction, and the output statevector returned.
 
         Args:
-            instruction (qiskit.circuit.Instruction or QuantumCircuit): instruction or circuit
+            inst (qiskit.circuit.Instruction or QuantumCircuit): instruction or circuit
 
         Returns:
             Statevector: The final statevector.
@@ -59,22 +60,24 @@ class AerStatevector(Statevector):
                          the statevector simulation.
         """
         aer_state = AerState()
-        if isinstance(instruction, QuantumCircuit):
-            circuit = instruction
+        if isinstance(inst, QuantumCircuit):
+            circuit = inst
             aer_state.allocate_qubits(circuit.num_qubits)
             aer_state.initialize()
             AerStatevector._evolve_circuit(aer_state, circuit, range(circuit.num_qubits))
         else:
-            aer_state.allocate_qubits(instruction.num_qubits)
-            AerStatevector._evolve_instruction(aer_state, instruction, range(instruction.num_qubits))
+            aer_state.allocate_qubits(inst.num_qubits)
+            AerStatevector._evolve_instruction(aer_state, inst, range(inst.num_qubits))
 
         return aer_state.move_to_ndarray()
 
     @classmethod
     def _evolve_circuit(cls, aer_state, circuit, qubits):
         """Apply circuit into aer_state"""
-        for inst, qargs, cargs in circuit.data:
-            AerStatevector._evolve_instruction(aer_state, inst, [qubits[circuit.find_bit(qarg).index] for qarg in qargs])
+        for inst, qargs, _ in circuit.data:
+            AerStatevector._evolve_instruction(aer_state, inst,
+                                               [qubits[circuit.find_bit(qarg).index]
+                                                for qarg in qargs])
 
     @classmethod
     def _evolve_instruction(cls, aer_state, inst, qubits):
@@ -97,5 +100,3 @@ class AerStatevector(Statevector):
             if definition is inst:
                 raise AerError('cannot decompose ' + inst.name)
             AerStatevector._evolve_circuit(aer_state, definition, qubits)
-
-

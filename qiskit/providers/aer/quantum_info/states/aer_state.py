@@ -16,6 +16,7 @@ import numpy as np
 from qiskit.providers.aer.backends.controller_wrappers import AerStateWrapper
 from ...backends.aerbackend import AerError
 
+
 class AerState:
 
     _data_in_use = {}
@@ -27,7 +28,7 @@ class AerState:
     @staticmethod
     def _not_in_use(data):
         del AerState._data_in_use[id(data)]
-  
+
     @staticmethod
     def _is_in_use(data):
         return id(data) in AerState._data_in_use
@@ -281,5 +282,3 @@ class AerState:
 
         # retrieve probability
         return self._state.probabilities(qubits)
-
-  
