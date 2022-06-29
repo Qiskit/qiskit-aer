@@ -160,6 +160,13 @@ class AerState:
         elif qubit < 0 or qubit > self._last_qubit:
             raise AerError('invalid qubit: index={}'.format(qubit))
 
+    def flush(self):
+        self._assert_initialized_state()
+        return self._state.flush()
+
+    def last_result(self):
+        return self._state.last_result()
+
     def apply_unitary(self, qubits, data):
         self._assert_initialized_state()
         self._assert_in_allocated_qubits(qubits)

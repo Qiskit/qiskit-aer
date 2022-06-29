@@ -19,6 +19,7 @@
 #include <complex>
 #include <string>
 #include <vector>
+#include <chrono>
 
 #include "framework/rng.hpp"
 #include "misc/warnings.hpp"
@@ -74,6 +75,7 @@ using cmatrix_t = matrix<complex_t>;
 using cmatrixf_t = matrix<complexf_t>;
 using reg_t = std::vector<uint_t>;
 using json_t = nlohmann::json;
+using myclock_t = std::chrono::high_resolution_clock;
 
 namespace AER {
 
@@ -146,6 +148,8 @@ public:
 
   // Clear all the configurations
   virtual void clear();
+
+  virtual ExperimentResult& last_result() { return last_result_; };
 
   //-----------------------------------------------------------------------
   // Initialization
@@ -281,7 +285,6 @@ public:
   // generating samples.
   virtual std::unordered_map<uint_t, uint_t> sample_measure(uint_t shots);
 
-protected:
   //-----------------------------------------------------------------------
   // Operation management
   //-----------------------------------------------------------------------
@@ -309,6 +312,7 @@ private:
   int seed_;
   std::shared_ptr<QuantumState::Base> state_;
   json_t configs_;
+  ExperimentResult last_result_;
 
   Method method_ = Method::statevector;
 
@@ -328,7 +332,7 @@ private:
 
   bool cuStateVec_enable_ = false;
 
-  uint_t parallel_state_update_;
+  uint_t parallel_state_update_ = 0;
 
   Circuit buffer_;
 
@@ -518,6 +522,13 @@ void AerState::initialize() {
       throw std::runtime_error("not supported method.");
   }
 
+#ifdef _OPENMP
+  if (parallel_state_update_ == 0) {
+    parallel_state_update_ = omp_get_max_threads();
+  }
+#endif
+  state_->set_parallelization(parallel_state_update_);
+
   state_->initialize_qreg(num_of_qubits_);
   state_->initialize_creg(num_of_qubits_, num_of_qubits_);
   state_->set_config(configs_);
@@ -609,8 +620,8 @@ void AerState::apply_initialize(const reg_t &qubits, cvector_t && vec) {
   op.qubits = qubits;
   op.params = std::move(vec);
 
-  ExperimentResult ret;
-  state_->apply_op(op, ret, rng_);
+  last_result_ = ExperimentResult();
+  state_->apply_op(op, last_result_, rng_);
 };
 
 
@@ -799,8 +810,8 @@ uint_t AerState::apply_measure(const reg_t &qubits) {
   op.memory = qubits;
   op.registers = qubits;
 
-  ExperimentResult ret;
-  state_->apply_op(op, ret, rng_);
+  last_result_ = ExperimentResult();
+  state_->apply_op(op, last_result_, rng_);
 
   uint_t bitstring = 0;
   uint_t bit = 1;
@@ -822,8 +833,8 @@ void AerState::apply_reset(const reg_t &qubits) {
   op.name = "reset";
   op.qubits = qubits;
 
-  ExperimentResult ret;
-  state_->apply_op(op, ret, rng_);
+  last_result_ = ExperimentResult();
+  state_->apply_op(op, last_result_, rng_);
 }
 
 //-----------------------------------------------------------------------
@@ -842,10 +853,10 @@ double AerState::probability(const uint_t outcome) {
   op.int_params.push_back(outcome);
   op.save_type = Operations::DataSubType::list;
 
-  ExperimentResult ret;
-  state_->apply_op(op, ret, rng_);
+  last_result_ = ExperimentResult();
+  state_->apply_op(op, last_result_, rng_);
 
-  return ((DataMap<ListData, rvector_t>)ret.data).value()["s"].value()[0][0];
+  return ((DataMap<ListData, rvector_t>)last_result_.data).value()["s"].value()[0][0];
 }
 
 // Return the probability amplitude for outcome in [0, 2^num_qubits - 1]
@@ -861,10 +872,10 @@ complex_t AerState::amplitude(const uint_t outcome) {
   op.int_params.push_back(outcome);
   op.save_type = Operations::DataSubType::list;
 
-  ExperimentResult ret;
-  state_->apply_op(op, ret, rng_);
+  last_result_ = ExperimentResult();
+  state_->apply_op(op, last_result_, rng_);
 
-  return ((DataMap<ListData, Vector<complex_t>>)ret.data).value()["s"].value()[0][0];
+  return ((DataMap<ListData, Vector<complex_t>>)last_result_.data).value()["s"].value()[0][0];
 };
 
 std::vector<double> AerState::probabilities() {
@@ -878,10 +889,10 @@ std::vector<double> AerState::probabilities() {
   op.string_params.push_back("s");
   op.save_type = Operations::DataSubType::list;
 
-  ExperimentResult ret;
-  state_->apply_op(op, ret, rng_);
+  last_result_ = ExperimentResult();
+  state_->apply_op(op, last_result_, rng_);
 
-  return ((DataMap<ListData, rvector_t>)ret.data).value()["s"].value()[0];
+  return ((DataMap<ListData, rvector_t>)last_result_.data).value()["s"].value()[0];
 }
 
 std::vector<double> AerState::probabilities(const reg_t &qubits) {
@@ -896,10 +907,10 @@ std::vector<double> AerState::probabilities(const reg_t &qubits) {
   op.qubits = qubits;
   op.save_type = Operations::DataSubType::list;
 
-  ExperimentResult ret;
-  state_->apply_op(op, ret, rng_);
+  last_result_ = ExperimentResult();
+  state_->apply_op(op, last_result_, rng_);
 
-  return ((DataMap<ListData, rvector_t>)ret.data).value()["s"].value()[0];
+  return ((DataMap<ListData, rvector_t>)last_result_.data).value()["s"].value()[0];
 }
 
 std::unordered_map<uint_t, uint_t> AerState::sample_measure(uint_t shots) {
@@ -941,13 +952,17 @@ void AerState::flush_ops() {
 
   if (buffer_.ops.empty()) return;
 
+  auto timer_start = myclock_t::now();
+
   buffer_.set_params(false);
   transpile_ops();
 
-  ExperimentResult ret;
-  state_->apply_ops(buffer_.ops.begin(), buffer_.ops.end(), ret, rng_);
+  last_result_ = ExperimentResult();
+  state_->apply_ops(buffer_.ops.begin(), buffer_.ops.end(), last_result_, rng_);
 
   clear_ops();
+
+  last_result_.time_taken = std::chrono::duration<double>(myclock_t::now() - timer_start).count();
 };
 
 void AerState::clear_ops() {

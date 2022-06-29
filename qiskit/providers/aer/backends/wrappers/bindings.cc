@@ -99,6 +99,13 @@ PYBIND11_MODULE(controller_wrappers, m) {
       return ret;
     });
 
+    aer_state.def("flush",  &AER::AerState::flush_ops);
+
+    aer_state.def("last_result",  [aer_state](AER::AerState &state) {
+      return AerToPy::to_python(state.last_result().to_json());
+    });
+
+
     aer_state.def("apply_initialize",  &AER::AerState::apply_initialize);
     aer_state.def("apply_unitary", [aer_state](AER::AerState &state,
                                                    const reg_t &qubits,
