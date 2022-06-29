@@ -379,7 +379,7 @@ void AerState::configure(const std::string& _key, const std::string& _value) {
   if ((key == "method" && !set_method(value))
       || (key == "device" && !set_device(value)) 
       || (key == "precision" && !set_precision(value))
-      || (key == "cuwtatevec_enable" && !set_custatevec("true" == value))
+      || (key == "custatevec_enable" && !set_custatevec("true" == value))
       || (key == "seed_simulator" && !set_seed_simulator(std::stoi(value)))
       || (key == "parallel_state_update" && !set_parallel_state_update(std::stoul(value)))
       ) {
@@ -399,11 +399,11 @@ bool AerState::set_method(const std::string& method_name) {
 
 bool AerState::set_device(const std::string& device_name) {
   assert_not_initialized();
-  if (device_name == "CPU")
+  if (device_name == "cpu")
     device_ = Device::CPU;
-  else if (device_name == "GPU" && is_gpu(true))
+  else if (device_name == "gpu" && is_gpu(true))
     device_ = Device::GPU;
-  else if (device_name == "ThrustCPU")
+  else if (device_name == "thrustcpu")
     device_ = Device::ThrustCPU;
   else
     return false;
