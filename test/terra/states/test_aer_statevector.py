@@ -46,6 +46,22 @@ class TestAerStatevector(common.QiskitAerTestCase):
         for e, s in zip(expected, state):
             self.assertAlmostEqual(e, s)
 
+    def test_method_and_device_properties(self):
+        """Test method and device properties"""
+        from qiskit.providers.aer.quantum_info.states import AerStatevector
+        circ = QuantumVolume(5, seed=1111)
+        state1 = AerStatevector(circ)
+
+        self.assertEqual('statevector', state1.method)
+        self.assertEqual('CPU', state1.device)
+
+        state2 = AerStatevector(circ, method='matrix_product_state')
+        self.assertEqual('matrix_product_state', state2.method)
+        self.assertEqual('CPU', state2.device)
+
+        for pa1, pa2 in zip(state1, state2):
+            self.assertAlmostEqual(pa1, pa2)
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -304,6 +304,8 @@ private:
   void assert_initialized() const;
   void assert_not_initialized() const;
   bool is_gpu(bool raise_error) const;
+  void initialize_experiment_result();
+  void finalize_experiment_result(bool success, double time_taken);
 
 private:
   bool initialized_ = false;
@@ -327,6 +329,12 @@ private:
   };
 
   Device device_ = Device::CPU;
+
+  const std::unordered_map<Device, std::string> device_names_ = {
+    {Device::CPU, "CPU"},
+    {Device::GPU, "GPU"},
+    {Device::ThrustCPU, "ThrustCPU"}
+  };
 
   Precision precision_ = Precision::Double;
 
@@ -947,6 +955,28 @@ void AerState::buffer_op(const Operations::Op&& op) {
   buffer_.ops.push_back(std::move(op));
 };
 
+void AerState::initialize_experiment_result() {
+  last_result_ = ExperimentResult();
+  last_result_.legacy_data.set_config(configs_);
+  last_result_.set_config(configs_);
+  last_result_.metadata.add(method_names_.at(method_), "method");
+  if (method_ == Method::statevector || method_ == Method::density_matrix || method_ == Method::unitary)
+    last_result_.metadata.add(device_names_.at(device_), "device");
+  else
+    last_result_.metadata.add("CPU", "device");
+  
+  last_result_.metadata.add(num_of_qubits_, "num_qubits");
+  last_result_.header = buffer_.header;
+  last_result_.shots = 1;
+  last_result_.seed = buffer_.seed;
+  last_result_.metadata.add(parallel_state_update_, "parallel_state_update");
+};
+
+void AerState::finalize_experiment_result(bool success, double time_taken) {
+  last_result_.status = success? ExperimentResult::Status::completed : ExperimentResult::Status::error;
+  last_result_.time_taken = time_taken;
+};
+
 void AerState::flush_ops() {
   assert_initialized();
 
@@ -954,15 +984,14 @@ void AerState::flush_ops() {
 
   auto timer_start = myclock_t::now();
 
+  initialize_experiment_result();
+
   buffer_.set_params(false);
   transpile_ops();
-
-  last_result_ = ExperimentResult();
   state_->apply_ops(buffer_.ops.begin(), buffer_.ops.end(), last_result_, rng_);
-
+  
+  finalize_experiment_result(true, std::chrono::duration<double>(myclock_t::now() - timer_start).count());
   clear_ops();
-
-  last_result_.time_taken = std::chrono::duration<double>(myclock_t::now() - timer_start).count();
 };
 
 void AerState::clear_ops() {
@@ -1009,9 +1038,7 @@ void AerState::transpile_ops() {
   }
   // Override default fusion settings with custom config
   fusion_pass_.set_config(configs_);
-  
-  ExperimentResult result;
-  fusion_pass_.optimize_circuit(buffer_, noise_model_, state_->opset(), result);
+  fusion_pass_.optimize_circuit(buffer_, noise_model_, state_->opset(), last_result_);
 }
 
 //-------------------------------------------------------------------------

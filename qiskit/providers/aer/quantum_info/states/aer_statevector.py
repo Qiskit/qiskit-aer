@@ -21,7 +21,7 @@ from qiskit.providers.aer.quantum_info.states.aer_state import AerState
 class AerStatevector(Statevector):
     """AerStatevector class"""
 
-    def __init__(self, data):
+    def __init__(self, data, **configs):
         """Initialize a statevector object.
 
         Args:
@@ -32,17 +32,44 @@ class AerStatevector(Statevector):
                 ``QuantumCircuit`` or ``Instruction``.  If the data is a circuit or instruction,
                 the statevector is constructed by assuming that all qubits are initialized to the
                 zero state.
+            configs (kwargs): configurations of ```AerState`. All the keys are handeld as string
 
         Raises:
             QiskitError: if input data is not valid.
 
         """
         if isinstance(data, (QuantumCircuit, Instruction)):
-            data = AerStatevector.from_instruction(data)
+            data, aer_state = AerStatevector.from_instruction(data, **configs)
         super().__init__(data)
+        self._aer_state = aer_state
+        self._result = None
+
+    def _last_result(self):
+        if self._result is None:
+            self._result = self._aer_state.last_result()
+        return self._result
+
+    def _metadata(self):
+        return self._last_result()['metadata']
+
+    @property
+    def method(self):
+        return self._metadata()['method']
+
+    @property
+    def device(self):
+        return self._metadata()['device']
+
+    @property
+    def fusion_config(self):
+        return self._metadata()['fusion']
+
+    @property
+    def parallel_state_update(self):
+        return self._metadata()['parallel_state_update']
 
     @classmethod
-    def from_instruction(cls, inst):
+    def from_instruction(cls, inst, **configs):
         """Return the output statevector of an instruction.
 
         The statevector is initialized in the state :math:`|{0,\\ldots,0}\\rangle` of the
@@ -51,6 +78,7 @@ class AerStatevector(Statevector):
 
         Args:
             inst (qiskit.circuit.Instruction or QuantumCircuit): instruction or circuit
+            configs (kwargs): configurations of ```AerState`. All the keys are handeld as string
 
         Returns:
             Statevector: The final statevector.
@@ -60,6 +88,10 @@ class AerStatevector(Statevector):
                          the statevector simulation.
         """
         aer_state = AerState()
+
+        for config_key in configs:
+            aer_state.configure(config_key, configs[config_key])
+
         if isinstance(inst, QuantumCircuit):
             circuit = inst
             aer_state.allocate_qubits(circuit.num_qubits)
@@ -69,7 +101,7 @@ class AerStatevector(Statevector):
             aer_state.allocate_qubits(inst.num_qubits)
             AerStatevector._evolve_instruction(aer_state, inst, range(inst.num_qubits))
 
-        return aer_state.move_to_ndarray()
+        return aer_state.move_to_ndarray(), aer_state
 
     @classmethod
     def _evolve_circuit(cls, aer_state, circuit, qubits):
