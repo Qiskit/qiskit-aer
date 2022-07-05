@@ -91,11 +91,11 @@ class PulseSystemModel:
             PulseSystemModel: the PulseSystemModel constructed from the backend.
 
         Raises:
-            AerError: If channel or u_channel_lo are invalid.
+            AerError: If supplied backend is invalid.
         """
 
         if not isinstance(backend, Backend):
-            raise AerError("{} is not a Qiskit backend".format(backend))
+            raise AerError(f"{backend} is not a Qiskit backend")
 
         open_pulse = False
         if isinstance(backend, BackendV2):
@@ -105,21 +105,20 @@ class PulseSystemModel:
             open_pulse = backend.configuration().open_pulse
 
         if not open_pulse:
-            raise AerError('{} is not an open pulse backend'.format(backend))
+            raise AerError(f"{backend} is not an open pulse backend")
 
         if isinstance(backend, BackendV2):
-            # Minimum custom configuration class sufficient to create a pulse system model
-            from dataclasses import dataclass
-            from typing import List
-            from qiskit.providers.models import UchannelLO
+            # This code block only works for backends with two custom attributes:
+            # hamiltonian and u_channel_lo.
+            # That suggests it should be rewritten when BackendV2 supports alternative attributes.
+            if not all(hasattr(backend, attr) for attr in ["hamiltonian", "u_channel_lo"]):
+                raise AerError("Backends without hamiltonian and u_channel_lo attributes "
+                               "are not supported.")
 
-            @dataclass
-            class ConfigV2:
-                hamiltonian: str
-                u_channel_lo: List[List[UchannelLO]]
-
-            configv2 = ConfigV2(hamiltonian=backend.hamiltonian, u_channel_lo=backend.u_channel_lo)
-            return cls.from_config(configv2, subsystem_list or list(range(backend.num_qubits)))
+            return cls.from_config(
+                configuration=backend,  # a hack for v2: set backend as config intentionally
+                subsystem_list=subsystem_list or list(range(backend.num_qubits))
+            )
 
         config = backend.configuration()
         return cls.from_config(config, subsystem_list)
