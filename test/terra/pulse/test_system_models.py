@@ -112,6 +112,7 @@ class TestPulseSystemModel(BaseTestPulseSystemModel):
 
         self.assertEqual(system_model.control_channel_labels, expected)
 
+    @unittest.skip("Until V2 fake backends support hamiltonian and u_channel_lo attributes")
     def test_control_channel_labels_from_backendv2(self):
         """Test correct importing of backend V2 control channel description."""
         backend = FakeManilaV2()
@@ -152,6 +153,7 @@ class TestPulseSystemModel(BaseTestPulseSystemModel):
         expected = getattr(backend.configuration(), 'hamiltonian')['vars']['wq0'] / (2 * np. pi)
         self.assertAlmostEqual(freqs['D0'], expected, places=5)
 
+    @unittest.skip("Until V2 fake backends support hamiltonian and u_channel_lo attributes")
     def test_qubit_lo_from_backendv2(self):
         """Test computation of qubit_lo_freq from backendv2."""
         backend = FakeArmonkV2()
