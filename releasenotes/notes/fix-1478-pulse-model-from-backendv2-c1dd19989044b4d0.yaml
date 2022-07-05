@@ -1,0 +1,9 @@
+---
+features:
+  - |
+    Added support for ``BackendV2`` to
+    :meth:`~qiskit.providers.aer.pulse.PulseSystemModel.from_backend`.
+    Now `PulseSystemModel`` can be generated from a ``BackendV2``,
+    which has custom attributes ``hamiltonian`` and ``u_channel_lo``.
+    Those attributes should store values in the same format as
+    those in :meth:`BackendV1.configuration`.
