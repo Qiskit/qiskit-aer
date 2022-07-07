@@ -374,19 +374,54 @@ void AerState::configure(const std::string& _key, const std::string& _value) {
   std::string value = _value;
   std::transform(value.begin(), value.end(), value.begin(), ::tolower);  
 
-  configs_[key] = value;
+  bool error = false;
+  if (key == "method") {
+    error = !set_method(value);
+  } else if (key == "device") {
+    error = !set_device(value);
+  } else if (key == "precision") {
+    error = !set_precision(value);
+  } else if (key == "custatevec_enable") {
+    error = !set_custatevec("true" == value);
+  } else if (key == "seed_simulator") {
+    error = !set_seed_simulator(std::stoi(value));
+  } else if (key == "parallel_state_update") {
+    error = !set_parallel_state_update(std::stoul(value));
+  }
 
-  if ((key == "method" && !set_method(value))
-      || (key == "device" && !set_device(value)) 
-      || (key == "precision" && !set_precision(value))
-      || (key == "custatevec_enable" && !set_custatevec("true" == value))
-      || (key == "seed_simulator" && !set_seed_simulator(std::stoi(value)))
-      || (key == "parallel_state_update" && !set_parallel_state_update(std::stoul(value)))
-      ) {
+  if (error) {
     std::stringstream msg;
-    msg << "unknown " << key << ": " << value << std::endl;
+    msg << "invalid configuration: " << key << "=" << value << std::endl;
     throw std::runtime_error(msg.str());
   }
+
+  static std::unordered_set<std::string> str_config = { "method", "device", "precision", "extended_stabilizer_sampling_method",
+                                                        "mps_sample_measure_algorithm", "mps_log_data", "mps_swap_direction"};
+  static std::unordered_set<std::string> int_config = { "seed_simulator", "max_parallel_threads", "max_memory_mb", "parallel_state_update",
+                                                        "blocking_qubits", "batched_shots_gpu_max_qubits", "statevector_parallel_threshold", 
+                                                        "statevector_sample_measure_opt", "stabilizer_max_snapshot_probabilities",
+                                                        "extended_stabilizer_metropolis_mixing_time", "extended_stabilizer_norm_estimation_samples",
+                                                        "extended_stabilizer_norm_estimation_repetitions", "extended_stabilizer_parallel_threshold",
+                                                        "extended_stabilizer_probabilities_snapshot_samples", "matrix_product_state_max_bond_dimension",
+                                                        "fusion_max_qubit", "fusion_threshold"};
+  static std::unordered_set<std::string> double_config = { "extended_stabilizer_approximation_error", "matrix_product_state_truncation_threshold",
+                                                           };
+  static std::unordered_set<std::string> bool_config = { "custatevec_enable", "blocking_enable", "batched_shots_gpu", "fusion_enable", "fusion_verbose"};
+
+  if (str_config.find(key) != str_config.end() ) {
+    configs_[_key] = _value;
+  } else if (int_config.find(key) != int_config.end() ) {
+    configs_[_key] = std::stoi(value);
+  } else if (bool_config.find(key) != bool_config.end() ) {
+    configs_[_key] = "true" == value;
+  } else if (double_config.find(key) != double_config.end() ) {
+    configs_[_key] = std::stod(value);
+  } else {
+    std::stringstream msg;
+    msg << "not supportted configuration" << key << "=" << value << std::endl;
+    throw std::runtime_error(msg.str());
+  }
+
 };
 
 bool AerState::set_method(const std::string& method_name) {
