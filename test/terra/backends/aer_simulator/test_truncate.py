@@ -11,7 +11,7 @@ AerSimulator Integration Tests
 from ddt import ddt
 from qiskit import transpile, QuantumCircuit, Aer
 from qiskit.providers.aer.noise import NoiseModel
-from qiskit.test import mock
+from qiskit.providers.fake_provider import FakeQuito
 from test.terra.backends.simulator_test_case import (
     SimulatorTestCase, supported_methods)
 
@@ -41,7 +41,7 @@ class TestTruncateQubits(SimulatorTestCase):
         return circuit
 
     def device_backend(self):
-        return mock.FakeQuito()
+        return FakeQuito()
 
     def test_truncate_ideal_sparse_circuit(self):
         """Test qubit truncation for large circuit with unused qubits."""
