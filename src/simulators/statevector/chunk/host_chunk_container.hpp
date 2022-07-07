@@ -222,23 +222,18 @@ void HostChunkContainer<data_t>::CopyOut(thrust::complex<data_t>* dest,uint_t iC
 template <typename data_t>
 void HostChunkContainer<data_t>::Swap(Chunk<data_t>& src,uint_t iChunk, uint_t dest_offset, uint_t src_offset, uint_t size_in, bool write_back)
 {
-  uint_t size = 1ull << this->chunk_bits_;
-  if(src.device() >= 0){
-    src.set_device();
-
-    AERHostVector<thrust::complex<data_t>> tmp1(size);
-    auto src_cont = std::static_pointer_cast<DeviceChunkContainer<data_t>>(src.container());
-    
-    thrust::copy_n(thrust::omp::par,data_.begin() + (iChunk << this->chunk_bits_),size,tmp1.begin());
-
-    thrust::copy_n(src_cont->vector().begin() + (src.pos() << this->chunk_bits_),size,data_.begin() + (iChunk << this->chunk_bits_));
-    thrust::copy_n(tmp1.begin(),size,src_cont->vector().begin() + (src.pos() << this->chunk_bits_));
-  }
-  else{
+  uint_t size = size_in;
+  if(size == 0)
+    size = 1ull << this->chunk_bits_;
+//  if(src.device() >= 0){
+//    src.swap(*this,dest_offset,src_offset,size_in,write_back);
+//  }
+//  else{
     auto src_cont = std::static_pointer_cast<HostChunkContainer<data_t>>(src.container());
 
-    thrust::swap_ranges(thrust::omp::par,data_.begin() + (iChunk << this->chunk_bits_),data_.begin() + (iChunk << this->chunk_bits_) + size,src_cont->vector().begin() + (src.pos() << this->chunk_bits_));
-  }
+    this->Execute(BufferSwap_func<data_t>(chunk_pointer(iChunk) + dest_offset,src.pointer() + src_offset, size, write_back), iChunk,0, 1);
+//    thrust::swap_ranges(thrust::omp::par,data_.begin() + (iChunk << this->chunk_bits_) + dest_offset,data_.begin() + (iChunk << this->chunk_bits_) + dest_offset + size,src_cont->vector().begin() + (src.pos() << this->chunk_bits_) + src_offset);
+//  }
 }
 
 

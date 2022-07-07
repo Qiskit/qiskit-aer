@@ -439,7 +439,7 @@ This will build and install `Aer` with the default options which is probably sui
 There's another Pythonic approach to build and install software: build the wheels distributable file.
 
 
-   qiskit-aer$ python ./setup.py bdist_wheel
+    qiskit-aer$ python ./setup.py bdist_wheel
 
 
 This is also the way we will choose to change default `Aer` behavior by passing parameters to the build system.
@@ -542,7 +542,7 @@ This will build and install `Aer` with the default options which is probably sui
 There's another Pythonic approach to build and install software: build the wheels distributable file.
 
 
-   (QiskitDevEnv) qiskit-aer > python ./setup.py bdist_wheel
+    (QiskitDevEnv) qiskit-aer > python ./setup.py bdist_wheel
 
 
 This is also the way we will choose to change default `Aer` behavior by passing parameters to the build system.
