@@ -131,6 +131,9 @@ public:
   // configure number of threads to update state
   virtual bool set_parallel_state_update(const uint_t& parallel_state_update);
 
+  // configure max number of qubits for a gate
+  virtual bool set_max_gate_qubits(const uint_t& max_gate_qubits);
+
   // Return true if gate operations have been performed and no configuration
   // is permitted.
   virtual bool is_initialized() const { return initialized_; };
@@ -342,6 +345,8 @@ private:
 
   uint_t parallel_state_update_ = 0;
 
+  uint_t max_gate_qubits_ = 5;
+
   Circuit buffer_;
 
   Noise::NoiseModel noise_model_;
@@ -387,6 +392,8 @@ void AerState::configure(const std::string& _key, const std::string& _value) {
     error = !set_seed_simulator(std::stoi(value));
   } else if (key == "parallel_state_update") {
     error = !set_parallel_state_update(std::stoul(value));
+  } else if (key == "fusion_max_qubit") {
+    error = !set_max_gate_qubits(std::stoul(value));
   }
 
   if (error) {
@@ -471,6 +478,12 @@ bool AerState::set_seed_simulator(const int& seed) {
 bool AerState::set_parallel_state_update(const uint_t& parallel_state_update) {
   assert_not_initialized();
   parallel_state_update_ = parallel_state_update;
+  return true;
+};
+
+bool AerState::set_max_gate_qubits(const uint_t& max_gate_qubits) {
+  assert_not_initialized();
+  max_gate_qubits_ = max_gate_qubits;
   return true;
 };
 
@@ -570,11 +583,13 @@ void AerState::initialize() {
     parallel_state_update_ = omp_get_max_threads();
   }
 #endif
+  state_->set_config(configs_);
+  state_->set_distribution(1);
+  state_->set_max_matrix_qubits(max_gate_qubits_);
   state_->set_parallelization(parallel_state_update_);
 
   state_->initialize_qreg(num_of_qubits_);
   state_->initialize_creg(num_of_qubits_, num_of_qubits_);
-  state_->set_config(configs_);
   rng_.set_seed(seed_);
 
   clear_ops();
@@ -604,9 +619,11 @@ reg_t AerState::initialize_statevector(uint_t num_of_qubits, complex_t* data) {
     throw std::runtime_error("only Double precision supports initialize_statevector()");
   num_of_qubits_ = num_of_qubits;
   auto state = std::make_shared<Statevector::State<QV::QubitVector<double>>>();
+  state->set_config(configs_);
+  state->set_distribution(1);
+  state->set_max_matrix_qubits(max_gate_qubits_);
   state->initialize_qreg(num_of_qubits_, QV::QubitVector<double>(num_of_qubits_, data));
   state->initialize_creg(num_of_qubits_, num_of_qubits_);
-  state->set_config(configs_);
   state_ = state;
   rng_.set_seed(seed_);
   initialized_ = true;
