@@ -22,10 +22,11 @@ from qiskit.providers.aer import AerError
 from qiskit.providers.aer.pulse.system_models.hamiltonian_model import HamiltonianModel
 from qiskit.providers.aer.pulse.system_models.pulse_system_model import PulseSystemModel
 
-from qiskit.providers.fake_provider import FakeManilaV2
+from qiskit.providers.fake_provider import (
+    FakeOpenPulse2Q, FakeArmonk,
+    FakeBackendV2, FakeArmonkV2, FakeManilaV2,
+)
 from qiskit.providers.models.backendconfiguration import UchannelLO
-from qiskit.test.mock import FakeArmonk, FakeArmonkV2
-from qiskit.test.mock import FakeOpenPulse2Q, FakeBackendV2
 from test.terra.common import QiskitAerTestCase
 
 
