@@ -49,11 +49,14 @@ class Estimator(BaseEstimator):
           Set a fixed seed for the sampling. If shots is None, this option is ignored.
 
     .. note::
-        Precedence of seeding is as follows:
+        Precedence of seeding for ``seed_simulator`` is as follows:
 
-        1. ``seed`` in runtime (i.e. in :meth:`__call__`)
-        2. ``seed_simulator`` of ``backend_options``.
-        3. default.
+        1. ``seed_simulator`` in runtime (i.e. in :meth:`__call__`)
+        2. ``seed`` in runtime (i.e. in :meth:`__call__`)
+        3. ``seed_simulator`` of ``backend_options``.
+        4. default.
+
+        ``seed`` is also used for sampling from a normal distribution when approximation is True.
     """
 
     def __init__(
@@ -112,10 +115,11 @@ class Estimator(BaseEstimator):
             raise QiskitError("The primitive has been closed.")
 
         seed = run_options.pop("seed", None)
+        if seed is not None:
+            run_options.setdefault("seed_simulator", seed)
 
         if self.approximation:
             shots = run_options.pop("shots", None)
-            rng = _get_rng(seed)
 
             experiments = []
             parameter_binds = []
@@ -156,6 +160,10 @@ class Estimator(BaseEstimator):
                     meta["simulator_metadata"] = result.results[i].metadata
             else:
                 expectation_values = []
+                if seed is None:
+                    rng = np.random.default_rng()
+                else:
+                    rng = np.random.default_rng(seed)
                 for i, meta in enumerate(metadata):
                     expectation_value, variance = result.data(i)["expectation_value_variance"]
                     standard_error = np.sqrt(variance / shots)
@@ -195,7 +203,7 @@ class Estimator(BaseEstimator):
                     parameter_binds.append(parameter)
             experiments = transpile(experiments, self._backend, **self._transpile_options.__dict__)
             result = self._backend.run(
-                experiments, parameter_binds=parameter_binds, seed_simulator=seed, **run_options
+                experiments, parameter_binds=parameter_binds, **run_options
             ).result()
             results = result.results
             header_metadata = [res.header.metadata for res in result.results]
@@ -291,13 +299,3 @@ def _expval_with_variance(
             )
         variance = np.float64(0.0)
     return expval.item(), variance.item()
-
-
-def _get_rng(seed):
-    if seed is None:
-        rng = np.random.default_rng()
-    elif isinstance(seed, np.random.Generator):
-        rng = seed
-    else:
-        rng = np.random.default_rng(seed)
-    return rng

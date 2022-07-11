@@ -44,9 +44,10 @@ class Sampler(BaseSampler):
     .. note::
         Precedence of seeding is as follows:
 
-        1. ``seed`` in runtime (i.e. in :meth:`__call__`)
-        2. ``seed_simulator`` of ``backend_options``.
-        3. default.
+        1. ``seed_simulator`` in runtime (i.e. in :meth:`__call__`)
+        2. ``seed`` in runtime (i.e. in :meth:`__call__`)
+        3. ``seed_simulator`` of ``backend_options``.
+        4. default.
     """
 
     def __init__(
