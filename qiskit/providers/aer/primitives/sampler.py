@@ -89,8 +89,7 @@ class Sampler(BaseSampler):
 
         seed = run_options.pop("seed", None)
         if seed is not None:
-            seed_simulator = seed
-            run_options.setdefault("seed_simulator", seed_simulator)
+            run_options.setdefault("seed_simulator", seed)
 
         experiments = []
         parameter_binds = []

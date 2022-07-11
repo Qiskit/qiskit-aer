@@ -46,8 +46,14 @@ class Estimator(BaseEstimator):
           expectation values. Otherwise, it calculates expectation values with sampling.
 
         - **seed** (np.random.Generator or int) --
-          Set a fixed seed or generator for the normal distribution. If shots is None,
-          this option is ignored.
+          Set a fixed seed for the sampling. If shots is None, this option is ignored.
+
+    .. note::
+        Precedence of seeding is as follows:
+
+        1. ``seed`` in runtime (i.e. in :meth:`__call__`)
+        2. ``seed_simulator`` of ``backend_options``.
+        3. default.
     """
 
     def __init__(
@@ -109,12 +115,7 @@ class Estimator(BaseEstimator):
 
         if self.approximation:
             shots = run_options.pop("shots", None)
-            if seed is None:
-                rng = np.random.default_rng()
-            elif isinstance(seed, np.random.Generator):
-                rng = seed
-            else:
-                rng = np.random.default_rng(seed)
+            rng = _get_rng(seed)
 
             experiments = []
             parameter_binds = []
@@ -290,3 +291,13 @@ def _expval_with_variance(
             )
         variance = np.float64(0.0)
     return expval.item(), variance.item()
+
+
+def _get_rng(seed):
+    if seed is None:
+        rng = np.random.default_rng()
+    elif isinstance(seed, np.random.Generator):
+        rng = seed
+    else:
+        rng = np.random.default_rng(seed)
+    return rng
