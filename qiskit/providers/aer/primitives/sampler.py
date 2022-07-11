@@ -40,13 +40,13 @@ class Sampler(BaseSampler):
           Otherwise, it samples from multinomial distributions.
 
         - **seed** (int) --
-          Set a fixed seed for seed_simulator. If shots is None, this option is ignored.
+          Set a fixed seed for ``seed_simulator``. If shots is None, this option is ignored.
 
     .. note::
         Precedence of seeding is as follows:
 
         1. ``seed`` in runtime (i.e. in :meth:`__call__`)
-        2. ``seed_simulator`` of backend_options.
+        2. ``seed_simulator`` of ``backend_options``.
         3. default.
     """
 
@@ -59,7 +59,7 @@ class Sampler(BaseSampler):
     ):
         """
         Args:
-            circuits: circuits to be executed.
+            circuits: Circuits to be executed.
             parameters: Parameters of each of the quantum circuits.
                 Defaults to ``[circ.parameters for circ in circuits]``.
             backend_options: Options passed to AerSimulator.
