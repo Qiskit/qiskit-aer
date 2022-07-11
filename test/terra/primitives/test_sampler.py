@@ -86,7 +86,9 @@ class TestSampler(QiskitAerTestCase):
         """test for sampler"""
         circuits, target = self._generate_circuits_target(indices)
         with Sampler(circuits=circuits) as sampler:
-            result = sampler(list(range(len(indices))), parameter_values=[[] for _ in indices])
+            result = sampler(
+                list(range(len(indices))), parameter_values=[[] for _ in indices], seed=15
+            )
             self._compare_probs(result.quasi_dists, target)
 
     @data([0], [1], [0, 1])
@@ -94,7 +96,7 @@ class TestSampler(QiskitAerTestCase):
         """test for sampler with a parametrized circuit"""
         params, target = self._generate_params_target(indices)
         with Sampler(circuits=self._pqc) as sampler:
-            result = sampler([0] * len(params), params)
+            result = sampler([0] * len(params), params, seed=15)
             self._compare_probs(result.quasi_dists, target)
 
     @data([0, 0], [0, 1], [1, 1])
@@ -103,7 +105,7 @@ class TestSampler(QiskitAerTestCase):
         circs = [self._pqc, self._pqc]
         params, target = self._generate_params_target(indices)
         with Sampler(circuits=circs) as sampler:
-            result = sampler(indices, parameter_values=params)
+            result = sampler(indices, parameter_values=params, seed=15)
             self._compare_probs(result.quasi_dists, target)
 
     def test_sampler_example(self):
@@ -315,7 +317,7 @@ class TestSampler(QiskitAerTestCase):
 
         with self.subTest("Valid test"):
             with Sampler(circuits=self._pqc) as sampler:
-                result = sampler(circuits=[self._pqc], parameter_values=params)
+                result = sampler(circuits=[self._pqc], parameter_values=params, seed=15)
                 self._compare_probs(result.quasi_dists, target)
 
         with self.subTest("Invalid circuit test"):

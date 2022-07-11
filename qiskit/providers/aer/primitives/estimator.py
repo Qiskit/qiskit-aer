@@ -45,8 +45,8 @@ class Estimator(BaseEstimator):
           The number of shots. If None and approximation is True, it calculates the exact
           expectation values. Otherwise, it calculates expectation values with sampling.
 
-        - **seed** (np.random.Generator or int) --
-          Set a fixed seed for the sampling. If shots is None, this option is ignored.
+        - **seed** (int) --
+          Set a fixed seed for the sampling.
 
     .. note::
         Precedence of seeding for ``seed_simulator`` is as follows:
@@ -87,7 +87,9 @@ class Estimator(BaseEstimator):
 
         if isinstance(observables, (PauliSumOp, BaseOperator)):
             observables = (observables,)
-        observables = tuple(init_observable(observable) for observable in observables)
+        observables = tuple(
+            init_observable(observable).simplify(atol=0) for observable in observables
+        )
 
         super().__init__(
             circuits=circuits,
@@ -96,7 +98,11 @@ class Estimator(BaseEstimator):
         )
         self._is_closed = False
         backend_options = {} if backend_options is None else backend_options
-        method = "density_matrix" if "noise_model" in backend_options else "statevector"
+        method = (
+            "density_matrix"
+            if approximation and "noise_model" in backend_options
+            else "statevector"
+        )
         self._backend = AerSimulator(method=method)
         self._backend.set_options(**backend_options)
         self._transpile_options = Options()
@@ -149,9 +155,7 @@ class Estimator(BaseEstimator):
                 experiments, parameter_binds=parameter_binds, **run_options
             ).result()
 
-            # Initialize metadata
             metadata = [{}] * len(circuits)
-
             if shots is None:
                 expectation_values = [
                     result.data(i)["expectation_value"] for i in range(len(circuits))
@@ -176,6 +180,7 @@ class Estimator(BaseEstimator):
             experiments = []
             parameter_binds = []
             num_observable = []
+            circuit_data = []
             for i, j, value in zip(circuits, observables, parameter_values):
                 if len(value) != len(self._parameters[i]):
                     raise QiskitError(
@@ -190,14 +195,17 @@ class Estimator(BaseEstimator):
                 # Measurement circuit
                 for pauli, coeff in observable.label_iter():
                     meas_circuit = _create_measurement_circuit(num_qubits, pauli)
-                    basis = "".join(char for char in pauli if char != "I") or "I"
+                    basis = "".join(char for char in pauli if char != "I")
                     coeff = np.real_if_close(coeff).item()
-                    meas_circuit.metadata = {"basis": basis, "coeff": {basis: coeff}}
+                    circuit_data.append({"basis": basis, "coeff": coeff})
+                    if basis == "":
+                        experiments.append(QuantumCircuit(0))
+                        parameter_binds.append({})
+                        continue
                     experiment = circuit.copy()
                     for creg in meas_circuit.cregs:
                         experiment.add_register(creg)
                     experiment.compose(meas_circuit, inplace=True)
-                    experiment.metadata = meas_circuit.metadata
                     experiments.append(experiment)
                     parameter = {k: [v] for k, v in zip(self._parameters[i], value)}
                     parameter_binds.append(parameter)
@@ -206,37 +214,31 @@ class Estimator(BaseEstimator):
                 experiments, parameter_binds=parameter_binds, **run_options
             ).result()
             results = result.results
-            header_metadata = [res.header.metadata for res in result.results]
 
-            # Initialize metadata
             metadata = [{}] * len(circuits)
-            accum = [0] + list(accumulate(num_observable))
+            experiment_index = [0] + list(accumulate(num_observable))
 
             expectation_values = []
-            for start, end, meta in zip(accum, accum[1:], metadata):
+            for start, end, meta in zip(experiment_index, experiment_index[1:], metadata):
                 combined_expval = 0.0
                 combined_var = 0.0
-                # combined_stderr = 0.0
                 meta["shots"] = 0
                 meta["simulator_metadata"] = []
-                for result, sim_meta in zip(results[start:end], header_metadata[start:end]):
-                    count = result.data.counts
-                    meta["simulator_metadata"].append(result.metadata)
-                    basis = sim_meta.get("basis", None)
-                    coeff = sim_meta.get("coeff", 1)
-                    basis_coeff = coeff if isinstance(coeff, dict) else {basis: coeff}
-                    for basis, coeff in basis_coeff.items():
-                        diagonal = (
-                            str2diag(basis.translate(_Z_TRANS)) if basis is not None else None
-                        )
+                for result, circuit_datum in zip(results[start:end], circuit_data[start:end]):
+                    basis = circuit_datum["basis"]
+                    coeff = circuit_datum["coeff"]
+                    if basis == "":
+                        expval, var = 1, 0
+                    else:
+                        count = result.data.counts
+                        meta["simulator_metadata"].append(result.metadata)
+                        diagonal = str2diag(basis.translate(_Z_TRANS))
                         shots = sum(count.values())
                         meta["shots"] += shots
-                        # Compute expval component
                         expval, var = _expval_with_variance(count, diagonal)
-                        # Accumulate
-                        combined_expval += expval * coeff
-                        combined_var += var * coeff**2
-                        # combined_stderr += np.sqrt(max(var * coeff**2 / shots, 0.0))
+                    # Accumulate
+                    combined_expval += expval * coeff
+                    combined_var += var * coeff**2
                 expectation_values.append(combined_expval)
                 meta["variance"] = combined_var
 
@@ -248,7 +250,7 @@ class Estimator(BaseEstimator):
 
 def _create_measurement_circuit(num_qubits: int, pauli: str):
     reversed_pauli = pauli[::-1]
-    qubit_indices = [i for i, char in enumerate(reversed_pauli) if char != "I"] or [0]
+    qubit_indices = [i for i, char in enumerate(reversed_pauli) if char != "I"]
     meas_circuit = QuantumCircuit(num_qubits, len(qubit_indices))
     for clbit, i in enumerate(qubit_indices):
         val = reversed_pauli[i]

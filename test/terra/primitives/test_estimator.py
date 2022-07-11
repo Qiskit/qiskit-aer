@@ -174,9 +174,6 @@ class TestEstimator(QiskitAerTestCase):
             #             <psi1(theta3)|op3|psi1(theta3)> ]
             result = est([0, 1, 0], [0, 1, 2], [theta1, theta2, theta3], seed=15)
             self.assertIsInstance(result, EstimatorResult)
-            print(result.values[0])
-            print(result.values[1])
-            print(result.values[2])
             np.testing.assert_allclose(result.values, [1.57421875, 0.138671875, -1.078125])
             self.assertEqual(len(result.metadata), 3)
 
