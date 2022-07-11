@@ -23,12 +23,11 @@ from qiskit.circuit import Parameter, QuantumCircuit
 from qiskit.compiler import transpile
 from qiskit.exceptions import QiskitError
 from qiskit.opflow import PauliSumOp
-from qiskit.primitives import EstimatorResult
+from qiskit.primitives import BaseEstimator, EstimatorResult
 from qiskit.primitives.utils import init_circuit, init_observable
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 
 from .. import AerSimulator
-from .base_estimator import BaseEstimator  # TODO: fix import path after Terra 0.21.
 
 
 class Estimator(BaseEstimator):
