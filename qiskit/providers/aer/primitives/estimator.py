@@ -18,7 +18,6 @@ from __future__ import annotations
 
 from collections.abc import Iterable, Sequence
 from itertools import accumulate
-from warnings import warn
 
 import numpy as np
 from qiskit.circuit import Parameter, QuantumCircuit
@@ -27,9 +26,8 @@ from qiskit.exceptions import QiskitError
 from qiskit.opflow import PauliSumOp
 from qiskit.primitives import BaseEstimator, EstimatorResult
 from qiskit.primitives.utils import init_circuit, init_observable
+from qiskit.quantum_info import Pauli
 from qiskit.quantum_info.operators.base_operator import BaseOperator
-from qiskit.result import Counts
-from qiskit.result.mitigation.utils import str2diag
 
 from qiskit.providers import Options
 
@@ -193,17 +191,17 @@ class Estimator(BaseEstimator):
                 circuit = self._circuits[i].copy()
                 num_qubits = circuit.num_qubits
                 # Measurement circuit
-                for pauli, coeff in observable.label_iter():
-                    meas_circuit = _create_measurement_circuit(num_qubits, pauli)
-                    basis = "".join(char for char in pauli if char != "I")
+                for pauli, coeff in zip(observable.paulis, observable.coeffs):
                     coeff = np.real_if_close(coeff).item()
-                    circuit_data.append({"basis": basis, "coeff": coeff})
+                    is_identity = not pauli.x.any() and not pauli.z.any()
+                    circuit_data.append({"is_identity": is_identity, "coeff": coeff})
                     # If observable is constant multiplicaition of I, empty circuit is set.
-                    if basis == "":
+                    if is_identity:
                         experiments.append(QuantumCircuit(0))
                         parameter_binds.append({})
                         continue
                     experiment = circuit.copy()
+                    meas_circuit = _measurement_circuit(num_qubits, pauli)
                     for creg in meas_circuit.cregs:
                         experiment.add_register(creg)
                     experiment.compose(meas_circuit, inplace=True)
@@ -228,19 +226,17 @@ class Estimator(BaseEstimator):
                 meta["shots"] = 0
                 meta["simulator_metadata"] = []
                 for result, circuit_datum in zip(results[start:end], circuit_data[start:end]):
-                    basis = circuit_datum["basis"]
-                    coeff = circuit_datum["coeff"]
                     # If observable is constant multiplicaition of I, expval is trivial.
-                    if basis == "":
+                    if circuit_datum["is_identity"]:
                         expval, var = 1, 0
                     else:
                         count = result.data.counts
                         meta["simulator_metadata"].append(result.metadata)
-                        diagonal = str2diag(basis.translate(_Z_TRANS))
                         shots = sum(count.values())
                         meta["shots"] += shots
-                        expval, var = _expval_with_variance(count, diagonal)
+                        expval, var = _expval_with_variance(count)
                     # Accumulate
+                    coeff = circuit_datum["coeff"]
                     combined_expval += expval * coeff
                     combined_var += var * coeff**2
                 expectation_values.append(combined_expval)
@@ -252,56 +248,30 @@ class Estimator(BaseEstimator):
         self._is_closed = True
 
 
-def _create_measurement_circuit(num_qubits: int, pauli: str):
-    reversed_pauli = pauli[::-1]
-    qubit_indices = [i for i, char in enumerate(reversed_pauli) if char != "I"]
+def _measurement_circuit(num_qubits: int, pauli: Pauli):
+    qubit_indices = np.arange(pauli.num_qubits)[pauli.z | pauli.x]
     meas_circuit = QuantumCircuit(num_qubits, len(qubit_indices))
     for clbit, i in enumerate(qubit_indices):
-        val = reversed_pauli[i]
-        if val == "Y":
-            meas_circuit.sdg(i)
-        if val in ["Y", "X"]:
+        if pauli.x[i]:
+            if pauli.z[i]:
+                meas_circuit.sdg(i)
             meas_circuit.h(i)
         meas_circuit.measure(i, clbit)
     return meas_circuit
 
 
-_Z_TRANS = str.maketrans({"X": "Z", "Y": "Z"})
+def _expval_with_variance(counts) -> tuple[float, float]:
 
+    denom = 0
+    expval = 0
+    for bin_outcome, freq in counts.items():
+        outcome = int(bin_outcome, 16)
+        denom += freq
+        expval += freq * (-1) ** bin(outcome).count("1")
 
-def _expval_with_variance(
-    counts: Counts,
-    diagonal: np.ndarray | None = None,
-) -> tuple[float, float]:
-
-    probs = np.fromiter(counts.values(), dtype=float)
-    shots = probs.sum()
-    probs = probs / shots
-
-    # Get diagonal operator coefficients
-    if diagonal is None:
-        coeffs = np.array([(-1) ** key.count("1") for key in counts.keys()], dtype=probs.dtype)
-    else:
-        keys = [int(key, 16) for key in counts.keys()]
-        coeffs = np.asarray(diagonal[keys], dtype=probs.dtype)
-
-    # Compute expval
-    expval = coeffs.dot(probs)
+    # Divide by total shots
+    expval /= denom
 
     # Compute variance
-    if diagonal is None:
-        # The square of the parity diagonal is the all 1 vector
-        sq_expval = np.sum(probs)
-    else:
-        sq_expval = (coeffs**2).dot(probs)
-    variance = sq_expval - expval**2
-
-    # Compute standard deviation
-    if variance < 0:
-        if not np.isclose(variance, 0):
-            warn(
-                "Encountered a negative variance in expectation value calculation."
-                f"({variance}). Setting standard deviation of result to 0.",
-            )
-        variance = np.float64(0.0)
-    return expval.item(), variance.item()
+    variance = 1 - expval**2
+    return expval, variance
