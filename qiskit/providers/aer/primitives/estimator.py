@@ -16,9 +16,9 @@ Estimator class.
 
 from __future__ import annotations
 
-import copy
 from collections.abc import Iterable, Sequence
 from itertools import accumulate
+from warnings import warn
 
 import numpy as np
 from qiskit.circuit import Parameter, QuantumCircuit
@@ -28,6 +28,7 @@ from qiskit.opflow import PauliSumOp
 from qiskit.primitives import BaseEstimator, EstimatorResult
 from qiskit.primitives.utils import init_circuit, init_observable
 from qiskit.quantum_info.operators.base_operator import BaseOperator
+from qiskit.result import Counts
 from qiskit.result.mitigation.utils import str2diag
 
 from qiskit.providers import Options
@@ -177,7 +178,6 @@ class Estimator(BaseEstimator):
                 num_observable.append(len(observable))
                 circuit = self._circuits[i].copy()
                 num_qubits = circuit.num_qubits
-                meas_circuits = []
                 # Measurement circuit
                 for pauli, coeff in observable.label_iter():
                     meas_circuit = _create_measurement_circuit(num_qubits, pauli)
@@ -217,7 +217,9 @@ class Estimator(BaseEstimator):
                     coeff = sim_meta.get("coeff", 1)
                     basis_coeff = coeff if isinstance(coeff, dict) else {basis: coeff}
                     for basis, coeff in basis_coeff.items():
-                        diagonal = str2diag(basis.translate(_trans)) if basis is not None else None
+                        diagonal = (
+                            str2diag(basis.translate(_Z_TRANS)) if basis is not None else None
+                        )
                         shots = sum(count.values())
                         meta["shots"] += shots
                         # Compute expval component
@@ -249,7 +251,7 @@ def _create_measurement_circuit(num_qubits: int, pauli: str):
     return meas_circuit
 
 
-_trans = str.maketrans({"X": "Z", "Y": "Z"})
+_Z_TRANS = str.maketrans({"X": "Z", "Y": "Z"})
 
 
 def _expval_with_variance(
