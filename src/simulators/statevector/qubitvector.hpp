@@ -67,7 +67,7 @@ public:
   QubitVector();
   explicit QubitVector(size_t num_qubits);
   virtual ~QubitVector();
-  QubitVector(size_t num_qubits, std::complex<data_t>* data);
+  QubitVector(size_t num_qubits, std::complex<data_t>* data, bool copy=false);
   QubitVector(const QubitVector& obj) {};
   QubitVector &operator=(const QubitVector& obj) {};
 
@@ -708,9 +708,14 @@ void QubitVector<data_t>::check_checkpoint() const {
 //------------------------------------------------------------------------------
 
 template <typename data_t>
-QubitVector<data_t>::QubitVector(size_t num_qubits, std::complex<data_t>* data)
+QubitVector<data_t>::QubitVector(size_t num_qubits, std::complex<data_t>* data, bool copy)
   : num_qubits_(num_qubits), data_(data), checkpoint_(0) {
     set_transformer_method();
+    if (copy) {
+      checkpoint();
+      data_ = checkpoint_;
+      checkpoint_ = 0;
+    }
 }
 
 template <typename data_t>
@@ -919,7 +924,6 @@ void QubitVector<data_t>::checkpoint() {
   for (int_t k = 0; k < END; ++k)
     checkpoint_[k] = data_[k];
 }
-
 
 template <typename data_t>
 void QubitVector<data_t>::revert(bool keep) {

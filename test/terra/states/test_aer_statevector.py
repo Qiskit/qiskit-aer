@@ -62,6 +62,18 @@ class TestAerStatevector(common.QiskitAerTestCase):
         for pa1, pa2 in zip(state1, state2):
             self.assertAlmostEqual(pa1, pa2)
 
+    def test_evolve(self):
+        """Test method and device properties"""
+        from qiskit.providers.aer.quantum_info.states import AerStatevector
+        circ1 = QuantumVolume(5, seed=1111)
+        circ2 = circ1.compose(circ1)
+
+        state1 = AerStatevector(circ1).evolve(circ1)
+        state2 = AerStatevector(circ2)
+
+        for pa1, pa2 in zip(state1, state2):
+            self.assertAlmostEqual(pa1, pa2)
+
 
 if __name__ == '__main__':
     unittest.main()

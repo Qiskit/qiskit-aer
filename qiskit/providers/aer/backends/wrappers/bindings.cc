@@ -72,11 +72,12 @@ PYBIND11_MODULE(controller_wrappers, m) {
     aer_state.def("initialize",  &AER::AerState::initialize);
     aer_state.def("initialize_statevector", [aer_state](AER::AerState &state,
                                                         int num_of_qubits,
-                                                        py::array_t<std::complex<double>> &values) {
+                                                        py::array_t<std::complex<double>> &values,
+                                                        bool copy) {
       std::complex<double>* data_ptr = reinterpret_cast<std::complex<double>*>(values.mutable_data(0));
       if (AerToPy::is_python_owned(data_ptr)) {
         state.configure("method", "statevector");
-        state.initialize_statevector(num_of_qubits, data_ptr);
+        state.initialize_statevector(num_of_qubits, data_ptr, copy);
         return true;
       } else {
         return false;

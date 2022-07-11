@@ -25,68 +25,113 @@ class AerStatevector(Statevector):
         """Initialize a statevector object.
 
         Args:
-            data (np.array or list or Statevector or Operator or QuantumCircuit or
-                  qiskit.circuit.Instruction):
+            data (np.array or list or Statevector or QuantumCircuit or qiskit.circuit.Instruction):
                 Data from which the statevector can be constructed. This can be either a complex
-                vector, another statevector, a ``Operator`` with only one column or a
-                ``QuantumCircuit`` or ``Instruction``.  If the data is a circuit or instruction,
-                the statevector is constructed by assuming that all qubits are initialized to the
-                zero state.
+                vector, another statevector or a ``QuantumCircuit`` or ``Instruction``
+                (``Operator`` is not supportted in the current implementation).  If the data is
+                a circuit or instruction, the statevector is constructed by assuming that all
+                qubits are initialized to the zero state.
             configs (kwargs): configurations of ```AerState`. All the keys are handeld as string
 
         Raises:
             QiskitError: if input data is not valid.
 
         """
+        if '_aer_state' in configs:
+            self._aer_state = configs['_aer_state']
         if isinstance(data, (QuantumCircuit, Instruction)):
-            data, aer_state = AerStatevector.from_instruction(data, **configs)
+            data, aer_state = AerStatevector._from_instruction(data, None, **configs)
+            self._aer_state = aer_state
+        else:
+            self._aer_state = None
         super().__init__(data)
-        self._aer_state = aer_state
         self._result = None
+        self._configs = configs
+
+    def aer(self):
+        return self._aer_state is not None
+
+    def _assert_aer_mode(self):
+        if not self.aer():
+            raise AerError('AerState was not used.')
 
     def _last_result(self):
+        self._assert_aer_mode()
         if self._result is None:
             self._result = self._aer_state.last_result()
         return self._result
 
     def _metadata(self):
+        self._assert_aer_mode()
+        if self._last_result() is None:
+            raise AerError('AerState was not used and metdata does not exist.')
         return self._last_result()['metadata']
 
     @property
     def method(self):
+        self._assert_aer_mode()
         return self._metadata()['method']
 
     @property
     def device(self):
+        self._assert_aer_mode()
         return self._metadata()['device']
 
     @property
     def fusion_config(self):
+        self._assert_aer_mode()
         return self._metadata()['fusion']
 
     @property
     def parallel_state_update(self):
+        self._assert_aer_mode()
         return self._metadata()['parallel_state_update']
 
-    @classmethod
-    def from_instruction(cls, inst, **configs):
-        """Return the output statevector of an instruction.
-
-        The statevector is initialized in the state :math:`|{0,\\ldots,0}\\rangle` of the
-        same number of qubits as the input instruction or circuit, evolved
-        by the input instruction, and the output statevector returned.
+    def evolve(self, other, qargs=None):
+        """Evolve a quantum state by the operator.
 
         Args:
-            inst (qiskit.circuit.Instruction or QuantumCircuit): instruction or circuit
-            configs (kwargs): configurations of ```AerState`. All the keys are handeld as string
+            other (Operator): The operator to evolve by.
+            qargs (list): a list of Statevector subsystem positions to apply
+                           the operator on.
 
         Returns:
-            Statevector: The final statevector.
+            Statevector: the output quantum state.
 
         Raises:
-            QiskitError: if the instruction contains invalid instructions for
-                         the statevector simulation.
+            QiskitError: if the operator dimension does not match the
+                         specified Statevector subsystem dimensions.
         """
+        if qargs is None:
+            qargs = getattr(other, "qargs", None)
+
+        if isinstance(other, (QuantumCircuit, Instruction)):
+            data, aer_state = AerStatevector._from_instruction(other, self._data, **self._configs)
+            return AerStatevector(data, _aer_state=aer_state, **self._configs)
+
+        ret = copy.copy(self)
+
+        # Evolution by a circuit or instruction
+        if isinstance(other, QuantumCircuit):
+            other = other.to_instruction()
+        if isinstance(other, Instruction):
+            if self.num_qubits is None:
+                raise QiskitError("Cannot apply QuantumCircuit to non-qubit Statevector.")
+            return self._evolve_instruction(ret, other, qargs=qargs)
+
+        # Evolution by an Operator
+        if not isinstance(other, Operator):
+            other = Operator(other)
+
+        # check dimension
+        if self.dims(qargs) != other.input_dims():
+            raise QiskitError(
+                "Operator input dimensions are not equal to statevector subsystem dimensions."
+            )
+        return Statevector._evolve_operator(ret, other, qargs=qargs)
+
+    @classmethod
+    def _from_instruction(cls, inst, init_data, **configs):
         aer_state = AerState()
 
         for config_key in configs:
@@ -95,11 +140,18 @@ class AerStatevector(Statevector):
         if isinstance(inst, QuantumCircuit):
             circuit = inst
             aer_state.allocate_qubits(circuit.num_qubits)
-            aer_state.initialize()
-            AerStatevector._evolve_circuit(aer_state, circuit, range(circuit.num_qubits))
+            num_qubits = circuit.num_qubits
         else:
             aer_state.allocate_qubits(inst.num_qubits)
-            AerStatevector._evolve_instruction(aer_state, inst, range(inst.num_qubits))
+            aer_state.initialize()
+            num_qubits = inst.num_qubits
+
+        if init_data is not None:
+            aer_state.initialize(data=init_data, copy=True)
+        else:
+            aer_state.initialize()
+
+        AerStatevector._evolve_circuit(aer_state, circuit, range(num_qubits))
 
         return aer_state.move_to_ndarray(), aer_state
 

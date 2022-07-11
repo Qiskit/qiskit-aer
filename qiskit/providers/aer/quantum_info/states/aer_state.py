@@ -88,20 +88,20 @@ class AerState:
             value = str(value)
         self._state.configure(key, value)
 
-    def initialize(self, data=None):
+    def initialize(self, data=None, copy=False):
         """Initialize state"""
         self._assert_created_state()
 
         if data is None:
             self._state.initialize()
         elif isinstance(data, np.ndarray):
-            self._initialize_with_ndarray(data)
+            self._initialize_with_ndarray(data, copy)
         else:
             raise AerError('unsupported init data.')
 
         self._shift_to_initialized_state()
 
-    def _initialize_with_ndarray(self, data):
+    def _initialize_with_ndarray(self, data, copy):
         if AerState._is_in_use(data):
             raise AerError('another AerState owns this data')
 
@@ -113,9 +113,10 @@ class AerState:
         initialized = False
         if(isinstance(data, np.ndarray) and
            self._method == 'statevector' and
-           self._state.initialize_statevector(num_of_qubits, data)):
-            self._init_data = data
-            AerState._in_use(data)
+           self._state.initialize_statevector(num_of_qubits, data, copy)):
+            if not copy:
+                self._init_data = data
+                AerState._in_use(data)
             initialized = True
 
         if not initialized:

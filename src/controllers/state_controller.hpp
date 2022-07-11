@@ -164,7 +164,7 @@ public:
   // Allocate qubits with inputted complex array
   // method must be statevector and the length of the array must be 2^{num_qubits}
   // given data will not be freed in this class
-  virtual reg_t initialize_statevector(uint_t num_qubits, complex_t* data);
+  virtual reg_t initialize_statevector(uint_t num_qubits, complex_t* data, bool copy);
 
   // Release internal statevector
   // The caller must free the returned pointer
@@ -611,7 +611,7 @@ reg_t AerState::reallocate_qubits(uint_t num_qubits) {
   return allocate_qubits(num_qubits);
 };
 
-reg_t AerState::initialize_statevector(uint_t num_of_qubits, complex_t* data) {
+reg_t AerState::initialize_statevector(uint_t num_of_qubits, complex_t* data, bool copy) {
   assert_not_initialized();
   if (device_ != Device::CPU)
     throw std::runtime_error("only CPU device supports initialize_statevector()");
@@ -622,7 +622,7 @@ reg_t AerState::initialize_statevector(uint_t num_of_qubits, complex_t* data) {
   state->set_config(configs_);
   state->set_distribution(1);
   state->set_max_matrix_qubits(max_gate_qubits_);
-  state->initialize_qreg(num_of_qubits_, QV::QubitVector<double>(num_of_qubits_, data));
+  state->initialize_qreg(num_of_qubits_, QV::QubitVector<double>(num_of_qubits_, data, copy));
   state->initialize_creg(num_of_qubits_, num_of_qubits_);
   state_ = state;
   rng_.set_seed(seed_);
