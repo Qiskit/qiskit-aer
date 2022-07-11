@@ -148,8 +148,7 @@ class Estimator(BaseEstimator):
                 else:
                     circuit.save_expectation_value_variance(observable, range(circuit.num_qubits))
                 experiments.append(circuit)
-                parameter = {k: [v] for k, v in zip(self._parameters[i], value)}
-                parameter_binds.append(parameter)
+                parameter_binds.append({k: [v] for k, v in zip(self._parameters[i], value)})
             experiments = transpile(experiments, self._backend, **self._transpile_options.__dict__)
             result = self._backend.run(
                 experiments, parameter_binds=parameter_binds, **run_options
@@ -170,6 +169,7 @@ class Estimator(BaseEstimator):
                     rng = np.random.default_rng(seed)
                 for i, meta in enumerate(metadata):
                     expectation_value, variance = result.data(i)["expectation_value_variance"]
+                    # Sampling from normal distribution
                     standard_error = np.sqrt(variance / shots)
                     expectation_value_with_error = rng.normal(expectation_value, standard_error)
                     expectation_values.append(expectation_value_with_error)
@@ -198,6 +198,7 @@ class Estimator(BaseEstimator):
                     basis = "".join(char for char in pauli if char != "I")
                     coeff = np.real_if_close(coeff).item()
                     circuit_data.append({"basis": basis, "coeff": coeff})
+                    # If observable is constant multiplicaition of I, empty circuit is set.
                     if basis == "":
                         experiments.append(QuantumCircuit(0))
                         parameter_binds.append({})
@@ -207,19 +208,21 @@ class Estimator(BaseEstimator):
                         experiment.add_register(creg)
                     experiment.compose(meas_circuit, inplace=True)
                     experiments.append(experiment)
-                    parameter = {k: [v] for k, v in zip(self._parameters[i], value)}
-                    parameter_binds.append(parameter)
+                    parameter_binds.append({k: [v] for k, v in zip(self._parameters[i], value)})
+            # Transpile and run
             experiments = transpile(experiments, self._backend, **self._transpile_options.__dict__)
             result = self._backend.run(
                 experiments, parameter_binds=parameter_binds, **run_options
             ).result()
             results = result.results
-
-            metadata = [{}] * len(circuits)
             experiment_index = [0] + list(accumulate(num_observable))
+
+            # Initialize metadata
+            metadata = [{}] * len(circuits)
 
             expectation_values = []
             for start, end, meta in zip(experiment_index, experiment_index[1:], metadata):
+                # Initialize
                 combined_expval = 0.0
                 combined_var = 0.0
                 meta["shots"] = 0
@@ -227,6 +230,7 @@ class Estimator(BaseEstimator):
                 for result, circuit_datum in zip(results[start:end], circuit_data[start:end]):
                     basis = circuit_datum["basis"]
                     coeff = circuit_datum["coeff"]
+                    # If observable is constant multiplicaition of I, expval is trivial.
                     if basis == "":
                         expval, var = 1, 0
                     else:

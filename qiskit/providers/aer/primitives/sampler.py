@@ -92,6 +92,7 @@ class Sampler(BaseSampler):
         if seed is not None:
             run_options.setdefault("seed_simulator", seed)
 
+        # Prepare circuits and parameter_binds
         experiments = []
         parameter_binds = []
         for i, value in zip(circuits, parameter_values):
@@ -106,6 +107,7 @@ class Sampler(BaseSampler):
             parameter = {k: [v] for k, v in zip(self._parameters[i], value)}
             parameter_binds.append(parameter)
 
+        # Transpile and Run
         experiments = transpile(experiments, self._backend, **self._transpile_options)
         result = self._backend.run(
             experiments, parameter_binds=parameter_binds, **run_options
@@ -115,11 +117,11 @@ class Sampler(BaseSampler):
         metadata = [{}] * len(circuits)
         quasis = []
 
+        # Postprocessing
         for i, meta in enumerate(metadata):
             counts = result.get_counts(i)
             shots = counts.shots()
-            quasi = QuasiDistribution({k: v / shots for k, v in counts.items()})
-            quasis.append(quasi)
+            quasis.append(QuasiDistribution({k: v / shots for k, v in counts.items()}))
             meta["shots"] = shots
             meta["simulator_metadata"] = result.results[i].metadata
 
