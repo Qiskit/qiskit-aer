@@ -14,7 +14,7 @@
 Sampler class tests
 """
 
-
+import unittest
 from test.terra.common import QiskitAerTestCase
 
 import numpy as np
@@ -322,7 +322,7 @@ class TestSampler(QiskitAerTestCase):
             circuit = QuantumCircuit(2)
             with Sampler(circuits=self._pqc) as sampler:
                 with self.assertRaises(QiskitError):
-                    result = sampler(circuits=[circuit], parameter_values=params)
+                    sampler(circuits=[circuit], parameter_values=params)
 
     def test_with_shots_option(self):
         """test with shots option."""
