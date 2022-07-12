@@ -21,34 +21,60 @@ from warnings import warn, catch_warnings, filterwarnings
 from numpy import inf, exp, allclose
 
 import qiskit.quantum_info as qi
-from .parameters import readout_error_values
-from .parameters import gate_param_values
-from .parameters import thermal_relaxation_values
 from .parameters import _NANOSECOND_UNITS
-
+from .parameters import gate_param_values
+from .parameters import readout_error_values
+from .parameters import thermal_relaxation_values
 from ..errors.readout_error import ReadoutError
 from ..errors.standard_errors import depolarizing_error
 from ..errors.standard_errors import thermal_relaxation_error
+from ..noiseerror import NoiseError
 
 logger = logging.getLogger(__name__)
 
 
-def basic_device_readout_errors(properties):
+def basic_device_readout_errors(properties=None, target=None):
     """
-    Return readout error parameters from a devices BackendProperties.
+    Return readout error parameters from either of device Target or BackendProperties.
+
+    If ``target`` is supplied, ``properties`` will be ignored.
 
     Args:
         properties (BackendProperties): device backend properties
+        target (Target): device backend target
 
     Returns:
         list: A list of pairs ``(qubits, ReadoutError)`` for qubits with
         non-zero readout error values.
+
+    Raises:
+        NoiseError: if neither properties nor target is supplied.
     """
     errors = []
-    for qubit, value in enumerate(readout_error_values(properties)):
-        if value is not None and not allclose(value, [0, 0]):
-            probabilities = [[1 - value[0], value[0]], [value[1], 1 - value[1]]]
-            errors.append(([qubit], ReadoutError(probabilities)))
+    if target is None:
+        if properties is None:
+            raise NoiseError("Either properties or target must be supplied.")
+        # create from BackendProperties
+        for qubit, value in enumerate(readout_error_values(properties)):
+            if value is not None and not allclose(value, [0, 0]):
+                probabilities = [[1 - value[0], value[0]], [value[1], 1 - value[1]]]
+                errors.append(([qubit], ReadoutError(probabilities)))
+    else:
+        # create from Target
+        for q in range(target.num_qubits):
+            meas_props = target.get("measure", None)
+            if meas_props is None:
+                continue
+            prop = meas_props.get((q,), None)
+            if prop is None:
+                continue
+            if hasattr(prop, "prob_meas1_prep0") and hasattr(prop, "prob_meas0_prep1"):
+                p0m1, p1m0 = prop.prob_meas1_prep0, prop.prob_meas0_prep1
+            else:
+                p0m1, p1m0 = prop.error, prop.error
+            probabilities = [[1 - p0m1, p0m1], [p1m0, 1 - p1m0]]
+            errors.append(([q], ReadoutError(probabilities)))
+
     return errors
 
 
@@ -59,7 +85,8 @@ def basic_device_gate_errors(properties,
                              gate_length_units='ns',
                              temperature=0,
                              standard_gates=None,
-                             warnings=True):
+                             warnings=None,
+                             target=None):
     """
     Return QuantumErrors derived from a devices BackendProperties.
 
@@ -84,18 +111,51 @@ def basic_device_gate_errors(properties,
         standard_gates (bool): DEPRECATED, If true return errors as standard
                                qobj gates. If false return as unitary
                                qobj instructions (Default: None).
-        warnings (bool): Display warnings (Default: True).
+        warnings (bool): PLAN TO BE DEPRECATED, Display warnings (Default: None).
+        target (Target): device backend target (Default: None). When this is supplied,
+                         several options are disabled:
+                         `properties`, `gate_lengths` and `gate_length_units` are not used
+                         during the construction of gate errors.
+                         Default values are always used for `standard_gates` and `warnings`.
 
     Returns:
         list: A list of tuples ``(label, qubits, QuantumError)``, for gates
         with non-zero quantum error terms, where `label` is the label of the
         noisy gate, `qubits` is the list of qubits for the gate.
+
+    Raises:
+        NoiseError: If invalid arguments are supplied.
     """
     if standard_gates is not None:
         warn(
             '"standard_gates" option has been deprecated as of qiskit-aer 0.10.0'
             ' and will be removed no earlier than 3 months from that release date.',
             DeprecationWarning, stacklevel=2)
+
+    if warnings is not None:
+        warn(
+            '"warnings" argument will be deprecated as part of the qiskit-aer 0.12.0 and '
+            'subsequently removed',
+            PendingDeprecationWarning, stacklevel=2)
+    else:
+        warnings = True
+
+    if target is not None:
+        if not standard_gates or not warnings:
+            warn("When `target` is supplied, `standard_gates` and `warnings` are ignored,"
+                 " and they are always set to true.", UserWarning)
+
+        if gate_lengths:
+            raise NoiseError("When `target` is supplied, `gate_lengths` option is not allowed."
+                             "Use `duration` property in target's InstructionProperties instead.")
+
+        return _basic_device_target_gate_errors(
+            target=target,
+            gate_error=gate_error,
+            thermal_relaxation=thermal_relaxation,
+            temperature=temperature
+        )
+
     # Initilize empty errors
     depol_error = None
     relax_error = None
@@ -151,20 +211,61 @@ def basic_device_gate_errors(properties,
                     qubits, error_param, relax_error, standard_gates, warnings=warnings)
 
         # Combine errors
-        if depol_error is None and relax_error is None:
-            # No error for this gate
-            pass
-        elif depol_error is not None and relax_error is None:
-            # Append only the depolarizing error
-            errors.append((name, qubits, depol_error))
-            # Append only the relaxation error
-        elif relax_error is not None and depol_error is None:
-            errors.append((name, qubits, relax_error))
-        else:
-            # Append a combined error of depolarizing error
-            # followed by a relaxation error
-            combined_error = depol_error.compose(relax_error)
+        combined_error = _combine_depol_and_relax_error(depol_error, relax_error)
+        if combined_error:
             errors.append((name, qubits, combined_error))
+
+    return errors
+
+
+def _combine_depol_and_relax_error(depol_error, relax_error):
+    if depol_error and relax_error:
+        return depol_error.compose(relax_error)
+    if depol_error:
+        return depol_error
+    if relax_error:
+        return relax_error
+    return None
+
+
+def _basic_device_target_gate_errors(target,
+                                     gate_error=True,
+                                     thermal_relaxation=True,
+                                     temperature=0):
+    """Return QuantumErrors derived from a devices Target."""
+    errors = []
+    for op_name, inst_prop_dic in target.items():
+        if inst_prop_dic is None:  # ideal simulator
+            continue
+        for qubits, inst_prop in inst_prop_dic.items():
+            if inst_prop is None:
+                continue
+            depol_error = None
+            relax_error = None
+            # Get relaxation error
+            if thermal_relaxation and inst_prop.duration:
+                relax_params = {q: (target.qubit_properties[q].t1,
+                                    target.qubit_properties[q].t2,
+                                    target.qubit_properties[q].frequency)
+                                for q in qubits}
+                relax_error = _device_thermal_relaxation_error(
+                    qubits=qubits,
+                    gate_time=inst_prop.duration,
+                    relax_params=relax_params,
+                    temperature=temperature,
+                )
+            # Get depolarizing error
+            if gate_error and inst_prop.error:
+                depol_error = _device_depolarizing_error(
+                    qubits=qubits,
+                    error_param=inst_prop.error,
+                    relax_error=relax_error,
+                )
+            # Combine errors
+            combined_error = _combine_depol_and_relax_error(depol_error, relax_error)
+            if combined_error:
+                errors.append((op_name, qubits, combined_error))
+
     return errors
 
 
