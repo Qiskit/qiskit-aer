@@ -84,8 +84,8 @@ MC_GATES = [
     (C3XGate, 0, False),
     (C4XGate, 0, False),
     # Parameterized Gates
-    (RC3XGate, 1, False),
-    (RCCXGate, 1, False),
+    (RC3XGate, 0, False),
+    (RCCXGate, 0, False),
     (MCXGate, 0, True),
     (MCPhaseGate, 1, True),
     (MCXGrayCode, 0, True),

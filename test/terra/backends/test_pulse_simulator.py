@@ -36,7 +36,7 @@ from qiskit.providers.aer.pulse.system_models.pulse_system_model import PulseSys
 from qiskit.providers.aer.pulse.system_models.hamiltonian_model import HamiltonianModel
 from qiskit.providers.models.backendconfiguration import UchannelLO
 from qiskit.providers.aer.aererror import AerError
-from qiskit.test.mock import FakeArmonk
+from qiskit.providers.fake_provider import FakeArmonk
 
 from .pulse_sim_independent import (simulate_1q_model,
                                     simulate_2q_exchange_model,

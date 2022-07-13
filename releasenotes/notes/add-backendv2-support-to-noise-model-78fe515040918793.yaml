@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    Added support for ``BackendV2`` to :meth:`~qiskit.providers.aer.noise.NoiseModel.from_backend`.
+    Now it can generate ``NoiseModel`` from a valid ``BackendV2``, in which case
+    the two deprecated options, ``standard_gates`` and ``warnings``, are gracefully ignored.
