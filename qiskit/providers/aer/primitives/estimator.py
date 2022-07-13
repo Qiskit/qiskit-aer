@@ -126,35 +126,21 @@ class Estimator(BaseEstimator):
         # Key for cache
         key = (tuple(circuits), tuple(observables), self.approximation)
 
+        experiments = []
+        parameter_binds = []
         if self.approximation:
-            experiments = []
-            parameter_binds = []
             if key in self._transpiled_circuits:
                 experiments = self._transpiled_circuits[key]
                 for i, j, value in zip(circuits, observables, parameter_values):
-                    if len(value) != len(self._parameters[i]):
-                        raise QiskitError(
-                            f"The number of values ({len(value)}) does not match "
-                            f"the number of parameters ({len(self._parameters[i])})."
-                        )
+                    self._validate_parameter_length(value, i)
                     observable = self._observables[j]
                     parameter_binds.append({k: [v] for k, v in zip(self._parameters[i], value)})
             else:
 
                 for i, j, value in zip(circuits, observables, parameter_values):
-                    if len(value) != len(self._parameters[i]):
-                        raise QiskitError(
-                            f"The number of values ({len(value)}) does not match "
-                            f"the number of parameters ({len(self._parameters[i])})."
-                        )
-
+                    self._validate_parameter_length(value, i)
                     circuit = self._circuits[i].copy()
                     observable = self._observables[j]
-                    if circuit.num_qubits != observable.num_qubits:
-                        raise QiskitError(
-                            f"The number of qubits of a circuit ({circuit.num_qubits}) does not "
-                            f"match the number of qubits of a observable ({observable.num_qubits})."
-                        )
                     circuit.save_expectation_value_variance(observable, range(circuit.num_qubits))
                     experiments.append(circuit)
                     parameter_binds.append({k: [v] for k, v in zip(self._parameters[i], value)})
@@ -191,8 +177,6 @@ class Estimator(BaseEstimator):
                     meta["shots"] = shots
                     meta["simulator_metadata"] = result.results[i].metadata
         else:
-            experiments = []
-            parameter_binds = []
             num_observable = []
             circuit_data = []
 
@@ -200,21 +184,13 @@ class Estimator(BaseEstimator):
             if key in self._transpiled_circuits:
                 experiments, num_observable, circuit_data = self._transpiled_circuits[key]
                 for i, j, value in zip(circuits, observables, parameter_values):
-                    if len(value) != len(self._parameters[i]):
-                        raise QiskitError(
-                            f"The number of values ({len(value)}) does not match "
-                            f"the number of parameters ({len(self._parameters[i])})."
-                        )
+                    self._validate_parameter_length(value, i)
                     observable = self._observables[j]
                     for _ in range(len(observable)):
                         parameter_binds.append({k: [v] for k, v in zip(self._parameters[i], value)})
             else:
                 for i, j, value in zip(circuits, observables, parameter_values):
-                    if len(value) != len(self._parameters[i]):
-                        raise QiskitError(
-                            f"The number of values ({len(value)}) does not match "
-                            f"the number of parameters ({len(self._parameters[i])})."
-                        )
+                    self._validate_parameter_length(value, i)
                     observable = self._observables[j]
                     num_observable.append(len(observable))
                     circuit = self._circuits[i].copy()
@@ -277,6 +253,13 @@ class Estimator(BaseEstimator):
 
     def close(self):
         self._is_closed = True
+
+    def _validate_parameter_length(self, parameter, circuit_index):
+        if len(parameter) != len(self._parameters[circuit_index]):
+            raise QiskitError(
+                f"The number of values ({len(parameter)}) does not match "
+                f"the number of parameters ({len(self._parameters[circuit_index])})."
+            )
 
 
 def _measurement_circuit(num_qubits: int, pauli: Pauli):
