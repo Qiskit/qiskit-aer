@@ -67,12 +67,32 @@ class TestAerStatevector(common.QiskitAerTestCase):
         from qiskit.providers.aer.quantum_info.states import AerStatevector
         circ1 = QuantumVolume(5, seed=1111)
         circ2 = circ1.compose(circ1)
+        circ3 = circ2.compose(circ1)
 
-        state1 = AerStatevector(circ1).evolve(circ1)
+        state1 = AerStatevector(circ1)
         state2 = AerStatevector(circ2)
+        state3 = AerStatevector(circ3)
+
+        for pa1, pa2 in zip(state1.evolve(circ1), state2):
+            self.assertAlmostEqual(pa1, pa2)
+
+        for pa1, pa2 in zip(state1.evolve(circ1).evolve(circ1), state3):
+            self.assertAlmostEqual(pa1, pa2)
+
+
+    def test_deepcopy(self):
+        """Test deep copy"""
+        import copy
+        from qiskit.providers.aer.quantum_info.states import AerStatevector
+        circ1 = QuantumVolume(5, seed=1111)
+
+        state1 = AerStatevector(circ1)
+        state2 = copy.deepcopy(state1)
 
         for pa1, pa2 in zip(state1, state2):
             self.assertAlmostEqual(pa1, pa2)
+        
+        self.assertNotEqual(id(state1._data), id(state2._data))
 
 
 if __name__ == '__main__':

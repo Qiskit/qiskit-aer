@@ -836,11 +836,11 @@ void State<unitary_matrix_t>::apply_save_unitary(const int_t iChunk, const Opera
   std::string key = (op.string_params[0] == "_method_") ? "unitary" : op.string_params[0];
 
   if (last_op) {
-    BaseState::save_data_pershot(iChunk, result, key, move_to_matrix(iChunk),
+    result.save_data_pershot(BaseState::chunk_creg(iChunk), key, move_to_matrix(iChunk),
                                  Operations::OpType::save_unitary,
                                  op.save_type);
   } else {
-    BaseState::save_data_pershot(iChunk, result, key, copy_to_matrix(iChunk),
+    result.save_data_pershot(BaseState::chunk_creg(iChunk), key, copy_to_matrix(iChunk),
                                  Operations::OpType::save_unitary,
                                  op.save_type);
   }

@@ -247,7 +247,7 @@ void State<data_t>::apply_op(const Operations::Op &op,
                              ExperimentResult &result,
                              RngEngine &rng,
                              bool final_op) {
-  if (BaseState::creg_.check_conditional(op)) {
+  if (BaseState::creg().check_conditional(op)) {
     switch (op.type) {
       case Operations::OpType::barrier:
       case Operations::OpType::qerror_loc:
@@ -256,10 +256,10 @@ void State<data_t>::apply_op(const Operations::Op &op,
         apply_gate(op);
         break;
       case Operations::OpType::bfunc:
-          BaseState::creg_.apply_bfunc(op);
+          BaseState::creg().apply_bfunc(op);
         break;
       case Operations::OpType::roerror:
-          BaseState::creg_.apply_roerror(op, rng);
+          BaseState::creg().apply_roerror(op, rng);
         break;
       case Operations::OpType::reset:
         apply_reset(op.qubits);

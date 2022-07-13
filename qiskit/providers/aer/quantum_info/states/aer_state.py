@@ -161,6 +161,11 @@ class AerState:
         elif qubit < 0 or qubit > self._last_qubit:
             raise AerError('invalid qubit: index={}'.format(qubit))
 
+    @property
+    def num_qubits(self):
+        self._assert_initialized_state()
+        return self._last_qubit + 1
+
     def flush(self):
         self._assert_initialized_state()
         return self._state.flush()

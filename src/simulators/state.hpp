@@ -60,7 +60,9 @@ public:
   // For snapshot ops allowed snapshots are specified by a set of string names,
   // For example this could include {"probabilities", "pauli_observable"}
 
-  Base(const Operations::OpSet &opset) : opset_(opset) {}
+  Base(const Operations::OpSet &opset) : opset_(opset) {
+    cregs_.resize(1);
+  }
 
   virtual ~Base() = default;
 
@@ -69,8 +71,10 @@ public:
   //-----------------------------------------------------------------------
 
   // Return the state creg object
-  ClassicalRegister &creg() { return creg_; }
-  const ClassicalRegister &creg() const { return creg_; }
+  auto &creg(uint_t idx=0) { return cregs_[idx]; }
+  const auto &creg(uint_t idx=0) const { return cregs_[idx]; }
+  std::vector<ClassicalRegister> &cregs() { return cregs_; }
+  const std::vector<ClassicalRegister> &cregs() const { return cregs_; }
 
   // Return the state opset object
   Operations::OpSet &opset() { return opset_; }
@@ -245,7 +249,7 @@ public:
 protected:
 
   // Classical register data
-  ClassicalRegister creg_;
+  std::vector<ClassicalRegister> cregs_;
 
   // Opset of instructions supported by the state
   Operations::OpSet opset_;
@@ -320,14 +324,14 @@ void Base::apply_ops(const OpItr first, const OpItr last,
 
 void Base::initialize_creg(uint_t num_memory, uint_t num_register) 
 {
-  creg_.initialize(num_memory, num_register);
+  creg().initialize(num_memory, num_register);
 }
 
 void Base::initialize_creg(uint_t num_memory,
                                 uint_t num_register,
                                 const std::string &memory_hex,
                                 const std::string &register_hex) {
-  creg_.initialize(num_memory, num_register, memory_hex, register_hex);
+  creg().initialize(num_memory, num_register, memory_hex, register_hex);
 }
 
 template <class state_t>
@@ -427,7 +431,7 @@ void Base::snapshot_creg_memory(const Operations::Op &op,
                                           std::string name) const {
   result.legacy_data.add_pershot_snapshot(name,
                                op.string_params[0],
-                               creg_.memory_hex());
+                               creg().memory_hex());
 }
 
 
@@ -436,7 +440,7 @@ void Base::snapshot_creg_register(const Operations::Op &op,
                                             std::string name) const {
   result.legacy_data.add_pershot_snapshot(name,
                                op.string_params[0],
-                               creg_.register_hex());
+                               creg().register_hex());
 }
 
 

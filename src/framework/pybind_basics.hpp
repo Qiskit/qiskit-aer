@@ -209,18 +209,9 @@ py::array_t<T> to_numpy(AER::Vector<T> &&src) {
 template <typename T>
 py::array_t<T> to_numpy(std::vector<T> &&src) {
   std::vector<T>* src_ptr = new std::vector<T>(std::move(src));
-  
-  if (is_python_owned(src_ptr->data()))
-    throw std::runtime_error(std::string("this data has already been in python."));
 
-  python_owned[src_ptr->data()] = src_ptr;
+  auto capsule = py::capsule(src_ptr, [](void* p) { delete reinterpret_cast<std::vector<T>*>(p); });
 
-  auto capsule = py::capsule(src_ptr, [](void* p) {
-    auto src_ptr = (reinterpret_cast<AER::Vector<T>*>(p));
-    void* data_ptr = src_ptr->data();
-    python_owned.erase(data_ptr);
-    delete src_ptr;
-  });
   return py::array_t<T>(
     src_ptr->size(),  // shape of array
     src_ptr->data(),  // c-style contiguous strides for vector

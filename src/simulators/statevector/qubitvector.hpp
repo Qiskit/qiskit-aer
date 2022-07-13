@@ -709,7 +709,7 @@ void QubitVector<data_t>::check_checkpoint() const {
 
 template <typename data_t>
 QubitVector<data_t>::QubitVector(size_t num_qubits, std::complex<data_t>* data, bool copy)
-  : num_qubits_(num_qubits), data_(data), checkpoint_(0) {
+  : num_qubits_(num_qubits), data_size_(BITS[num_qubits]), data_(data), checkpoint_(0) {
     set_transformer_method();
     if (copy) {
       checkpoint();

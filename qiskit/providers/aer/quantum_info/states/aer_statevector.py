@@ -13,6 +13,8 @@
 """
 Statevector quantum state class.
 """
+import copy
+
 from qiskit.quantum_info.states import Statevector
 from qiskit.circuit import QuantumCircuit, Instruction
 from qiskit.providers.aer.quantum_info.states.aer_state import AerState
@@ -38,7 +40,7 @@ class AerStatevector(Statevector):
 
         """
         if '_aer_state' in configs:
-            self._aer_state = configs['_aer_state']
+            self._aer_state = configs.pop('_aer_state')
         if isinstance(data, (QuantumCircuit, Instruction)):
             data, aer_state = AerStatevector._from_instruction(data, None, **configs)
             self._aer_state = aer_state
@@ -86,6 +88,16 @@ class AerStatevector(Statevector):
     def parallel_state_update(self):
         self._assert_aer_mode()
         return self._metadata()['parallel_state_update']
+
+    def __deepcopy__(self, _memo=None):
+        if self.aer():
+            data, aer_state = AerStatevector._from_instruction(
+                QuantumCircuit(self._aer_state.num_qubits),
+                self._data, **self._configs)
+            return AerStatevector(data, _aer_state=aer_state, **self._configs)
+        else:
+            data = copy.deepcopy(self._data)
+            return AerStatevector(data, **self._configs)
 
     def evolve(self, other, qargs=None):
         """Evolve a quantum state by the operator.

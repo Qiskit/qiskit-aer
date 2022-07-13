@@ -1381,7 +1381,7 @@ void Controller::run_single_shot(const Circuit &circ, State_t &state,
   state.initialize_qreg(circ.num_qubits);
   state.initialize_creg(circ.num_memory, circ.num_registers);
   state.apply_ops(circ.ops.cbegin(), circ.ops.cend(), result, rng, true);
-  result.save_count_data(state.creg(), save_creg_memory_);
+  result.save_count_data(state.cregs(), save_creg_memory_);
 }
 
 template <class State_t>
@@ -1512,7 +1512,7 @@ void Controller::run_circuit_without_sampled_noise(Circuit &circ,
 
       state.apply_ops_multi_shots(circ.ops.cbegin(), circ.ops.cend(), noise, result, circ.seed, true);
 
-      result.save_count_data(state.creg(), save_creg_memory_);
+      result.save_count_data(state.cregs(), save_creg_memory_);
 
       // Add batched multi-shots optimizaiton metadata
       result.metadata.add(true, "batched_shots_optimization");
@@ -1681,7 +1681,7 @@ void Controller::measure_sampler(
   // Check if meas_circ is empty, and if so return initial creg
   if (first_meas == last_meas) {
     while (shots-- > 0) {
-      result.save_count_data(state.creg(), save_creg_memory_);
+      result.save_count_data(state.cregs(), save_creg_memory_);
     }
     return;
   }
