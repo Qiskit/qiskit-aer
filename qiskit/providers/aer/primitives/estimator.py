@@ -107,6 +107,7 @@ class Estimator(BaseEstimator):
         if transpile_options is not None:
             self._transpile_options.update_options(**transpile_options)
         self.approximation = approximation
+        self._transpiled_circuits = {}
 
     def _call(
         self,
@@ -122,40 +123,55 @@ class Estimator(BaseEstimator):
         if seed is not None:
             run_options.setdefault("seed_simulator", seed)
 
-        if self.approximation:
-            shots = run_options.pop("shots", None)
+        # Key for cache
+        key = (tuple(circuits), tuple(observables), self.approximation)
 
+        if self.approximation:
             experiments = []
             parameter_binds = []
-            for i, j, value in zip(circuits, observables, parameter_values):
-                if len(value) != len(self._parameters[i]):
-                    raise QiskitError(
-                        f"The number of values ({len(value)}) does not match "
-                        f"the number of parameters ({len(self._parameters[i])})."
-                    )
+            if key in self._transpiled_circuits:
+                experiments = self._transpiled_circuits[key]
+                for i, j, value in zip(circuits, observables, parameter_values):
+                    if len(value) != len(self._parameters[i]):
+                        raise QiskitError(
+                            f"The number of values ({len(value)}) does not match "
+                            f"the number of parameters ({len(self._parameters[i])})."
+                        )
+                    observable = self._observables[j]
+                    parameter_binds.append({k: [v] for k, v in zip(self._parameters[i], value)})
+            else:
 
-                circuit = self._circuits[i].copy()
-                observable = self._observables[j]
-                if circuit.num_qubits != observable.num_qubits:
-                    raise QiskitError(
-                        f"The number of qubits of a circuit ({circuit.num_qubits}) does not match "
-                        f"the number of qubits of a observable ({observable.num_qubits})."
-                    )
-                if shots is None:
-                    circuit.save_expectation_value(observable, range(circuit.num_qubits))
-                else:
+                for i, j, value in zip(circuits, observables, parameter_values):
+                    if len(value) != len(self._parameters[i]):
+                        raise QiskitError(
+                            f"The number of values ({len(value)}) does not match "
+                            f"the number of parameters ({len(self._parameters[i])})."
+                        )
+
+                    circuit = self._circuits[i].copy()
+                    observable = self._observables[j]
+                    if circuit.num_qubits != observable.num_qubits:
+                        raise QiskitError(
+                            f"The number of qubits of a circuit ({circuit.num_qubits}) does not "
+                            f"match the number of qubits of a observable ({observable.num_qubits})."
+                        )
                     circuit.save_expectation_value_variance(observable, range(circuit.num_qubits))
-                experiments.append(circuit)
-                parameter_binds.append({k: [v] for k, v in zip(self._parameters[i], value)})
-            experiments = transpile(experiments, self._backend, **self._transpile_options.__dict__)
+                    experiments.append(circuit)
+                    parameter_binds.append({k: [v] for k, v in zip(self._parameters[i], value)})
+                experiments = transpile(
+                    experiments, self._backend, **self._transpile_options.__dict__
+                )
+                self._transpiled_circuits[key] = experiments
+            # Transpile and run
+            shots = run_options.pop("shots", None)
             result = self._backend.run(
                 experiments, parameter_binds=parameter_binds, **run_options
             ).result()
 
             metadata = [{}] * len(circuits)
             if shots is None:
-                expectation_values = [
-                    result.data(i)["expectation_value"] for i in range(len(circuits))
+                expectation_values, _ = [
+                    result.data(i)["expectation_value_variance"] for i in range(len(circuits))
                 ]
                 for i, meta in enumerate(metadata):
                     meta["simulator_metadata"] = result.results[i].metadata
@@ -179,36 +195,51 @@ class Estimator(BaseEstimator):
             parameter_binds = []
             num_observable = []
             circuit_data = []
-            for i, j, value in zip(circuits, observables, parameter_values):
-                if len(value) != len(self._parameters[i]):
-                    raise QiskitError(
-                        f"The number of values ({len(value)}) does not match "
-                        f"the number of parameters ({len(self._parameters[i])})."
-                    )
 
-                observable = self._observables[j]
-                num_observable.append(len(observable))
-                circuit = self._circuits[i].copy()
-                num_qubits = circuit.num_qubits
-                # Measurement circuit
-                for pauli, coeff in zip(observable.paulis, observable.coeffs):
-                    coeff = np.real_if_close(coeff).item()
-                    is_identity = not pauli.x.any() and not pauli.z.any()
-                    circuit_data.append({"is_identity": is_identity, "coeff": coeff})
-                    # If observable is constant multiplicaition of I, empty circuit is set.
-                    if is_identity:
-                        experiments.append(QuantumCircuit(0))
-                        parameter_binds.append({})
-                        continue
-                    experiment = circuit.copy()
-                    meas_circuit = _measurement_circuit(num_qubits, pauli)
-                    for creg in meas_circuit.cregs:
-                        experiment.add_register(creg)
-                    experiment.compose(meas_circuit, inplace=True)
-                    experiments.append(experiment)
-                    parameter_binds.append({k: [v] for k, v in zip(self._parameters[i], value)})
             # Transpile and run
-            experiments = transpile(experiments, self._backend, **self._transpile_options.__dict__)
+            if key in self._transpiled_circuits:
+                experiments, num_observable, circuit_data = self._transpiled_circuits[key]
+                for i, j, value in zip(circuits, observables, parameter_values):
+                    if len(value) != len(self._parameters[i]):
+                        raise QiskitError(
+                            f"The number of values ({len(value)}) does not match "
+                            f"the number of parameters ({len(self._parameters[i])})."
+                        )
+                    observable = self._observables[j]
+                    for _ in range(len(observable)):
+                        parameter_binds.append({k: [v] for k, v in zip(self._parameters[i], value)})
+            else:
+                for i, j, value in zip(circuits, observables, parameter_values):
+                    if len(value) != len(self._parameters[i]):
+                        raise QiskitError(
+                            f"The number of values ({len(value)}) does not match "
+                            f"the number of parameters ({len(self._parameters[i])})."
+                        )
+                    observable = self._observables[j]
+                    num_observable.append(len(observable))
+                    circuit = self._circuits[i].copy()
+                    num_qubits = circuit.num_qubits
+                    # Measurement circuit
+                    for pauli, coeff in zip(observable.paulis, observable.coeffs):
+                        coeff = np.real_if_close(coeff).item()
+                        is_identity = not pauli.x.any() and not pauli.z.any()
+                        circuit_data.append({"is_identity": is_identity, "coeff": coeff})
+                        # If observable is constant multiplicaition of I, empty circuit is set.
+                        if is_identity:
+                            experiments.append(QuantumCircuit(0))
+                            parameter_binds.append({})
+                            continue
+                        experiment = circuit.copy()
+                        meas_circuit = _measurement_circuit(num_qubits, pauli)
+                        for creg in meas_circuit.cregs:
+                            experiment.add_register(creg)
+                        experiment.compose(meas_circuit, inplace=True)
+                        experiments.append(experiment)
+                        parameter_binds.append({k: [v] for k, v in zip(self._parameters[i], value)})
+                    experiments = transpile(
+                        experiments, self._backend, **self._transpile_options.__dict__
+                    )
+                    self._transpiled_circuits[key] = (experiments, num_observable, circuit_data)
             result = self._backend.run(
                 experiments, parameter_binds=parameter_binds, **run_options
             ).result()
