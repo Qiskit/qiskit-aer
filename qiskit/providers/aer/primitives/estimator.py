@@ -97,9 +97,7 @@ class Estimator(BaseEstimator):
         self._is_closed = False
         backend_options = {} if backend_options is None else backend_options
         method = (
-            "density_matrix"
-            if approximation and "noise_model" in backend_options
-            else "statevector"
+            "density_matrix" if approximation and "noise_model" in backend_options else "automatic"
         )
         self._backend = AerSimulator(method=method)
         self._backend.set_options(**backend_options)
@@ -128,9 +126,11 @@ class Estimator(BaseEstimator):
 
         experiments = []
         parameter_binds = []
+        experiment_data = []
         if self.approximation:
+            shots = run_options.pop("shots", None)
             if key in self._transpiled_circuits:
-                experiments = self._transpiled_circuits[key]
+                experiments, experiment_data = self._transpiled_circuits[key]
                 for i, j, value in zip(circuits, observables, parameter_values):
                     self._validate_parameter_length(value, i)
                     observable = self._observables[j]
@@ -141,48 +141,56 @@ class Estimator(BaseEstimator):
                     self._validate_parameter_length(value, i)
                     circuit = self._circuits[i].copy()
                     observable = self._observables[j]
-                    circuit.save_expectation_value_variance(observable, range(circuit.num_qubits))
+                    experiment_data.append(np.real_if_close(observable.coeffs))
+                    if shots is None:
+                        circuit.save_expectation_value(observable, range(circuit.num_qubits))
+                    else:
+                        for term_index, pauli in enumerate(observable.paulis):
+                            circuit.save_expectation_value(
+                                pauli, range(circuit.num_qubits), label=str(term_index)
+                            )
                     experiments.append(circuit)
                     parameter_binds.append({k: [v] for k, v in zip(self._parameters[i], value)})
                 experiments = transpile(
                     experiments, self._backend, **self._transpile_options.__dict__
                 )
-                self._transpiled_circuits[key] = experiments
+                self._transpiled_circuits[key] = (experiments, experiment_data)
             # Transpile and run
-            shots = run_options.pop("shots", None)
             result = self._backend.run(
                 experiments, parameter_binds=parameter_binds, **run_options
             ).result()
 
             metadata = [{}] * len(circuits)
             if shots is None:
-                expectation_values, _ = [
-                    result.data(i)["expectation_value_variance"] for i in range(len(circuits))
+                expectation_values = [
+                    result.data(i)["expectation_value"] for i in range(len(circuits))
                 ]
                 for i, meta in enumerate(metadata):
                     meta["simulator_metadata"] = result.results[i].metadata
             else:
                 expectation_values = []
-                if seed is None:
-                    rng = np.random.default_rng()
-                else:
-                    rng = np.random.default_rng(seed)
+                rng = np.random.default_rng(seed)
                 for i, meta in enumerate(metadata):
-                    expectation_value, variance = result.data(i)["expectation_value_variance"]
+                    combined_expval = 0.0
+                    combined_var = 0.0
+                    for term_index, expval in result.data(i).items():
+                        var = 1 - expval**2
+                        coeff = experiment_data[i][int(term_index)]
+                        combined_expval += expval * coeff
+                        combined_var += var * coeff**2
                     # Sampling from normal distribution
-                    standard_error = np.sqrt(variance / shots)
-                    expectation_value_with_error = rng.normal(expectation_value, standard_error)
+                    standard_error = np.sqrt(combined_var / shots)
+                    expectation_value_with_error = rng.normal(combined_expval, standard_error)
                     expectation_values.append(expectation_value_with_error)
-                    meta["variance"] = variance
+                    meta["variance"] = combined_var
                     meta["shots"] = shots
                     meta["simulator_metadata"] = result.results[i].metadata
         else:
             num_observable = []
-            circuit_data = []
 
             # Transpile and run
             if key in self._transpiled_circuits:
-                experiments, num_observable, circuit_data = self._transpiled_circuits[key]
+                experiments, num_observable, experiment_data = self._transpiled_circuits[key]
                 for i, j, value in zip(circuits, observables, parameter_values):
                     self._validate_parameter_length(value, i)
                     observable = self._observables[j]
@@ -199,7 +207,7 @@ class Estimator(BaseEstimator):
                     for pauli, coeff in zip(observable.paulis, observable.coeffs):
                         coeff = np.real_if_close(coeff).item()
                         is_identity = not pauli.x.any() and not pauli.z.any()
-                        circuit_data.append({"is_identity": is_identity, "coeff": coeff})
+                        experiment_data.append({"is_identity": is_identity, "coeff": coeff})
                         # If observable is constant multiplicaition of I, empty circuit is set.
                         if is_identity:
                             experiments.append(QuantumCircuit(0))
@@ -215,7 +223,7 @@ class Estimator(BaseEstimator):
                     experiments = transpile(
                         experiments, self._backend, **self._transpile_options.__dict__
                     )
-                    self._transpiled_circuits[key] = (experiments, num_observable, circuit_data)
+                    self._transpiled_circuits[key] = (experiments, num_observable, experiment_data)
             result = self._backend.run(
                 experiments, parameter_binds=parameter_binds, **run_options
             ).result()
@@ -232,9 +240,9 @@ class Estimator(BaseEstimator):
                 combined_var = 0.0
                 meta["shots"] = 0
                 meta["simulator_metadata"] = []
-                for result, circuit_datum in zip(results[start:end], circuit_data[start:end]):
+                for result, experiment_datum in zip(results[start:end], experiment_data[start:end]):
                     # If observable is constant multiplicaition of I, expval is trivial.
-                    if circuit_datum["is_identity"]:
+                    if experiment_datum["is_identity"]:
                         expval, var = 1, 0
                     else:
                         count = result.data.counts
@@ -243,7 +251,7 @@ class Estimator(BaseEstimator):
                         meta["shots"] += shots
                         expval, var = _expval_with_variance(count)
                     # Accumulate
-                    coeff = circuit_datum["coeff"]
+                    coeff = experiment_datum["coeff"]
                     combined_expval += expval * coeff
                     combined_var += var * coeff**2
                 expectation_values.append(combined_expval)
@@ -275,17 +283,14 @@ def _measurement_circuit(num_qubits: int, pauli: Pauli):
 
 
 def _expval_with_variance(counts) -> tuple[float, float]:
-
     denom = 0
     expval = 0
     for bin_outcome, freq in counts.items():
         outcome = int(bin_outcome, 16)
         denom += freq
         expval += freq * (-1) ** bin(outcome).count("1")
-
     # Divide by total shots
     expval /= denom
-
     # Compute variance
     variance = 1 - expval**2
     return expval, variance
