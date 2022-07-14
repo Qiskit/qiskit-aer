@@ -126,7 +126,7 @@ class TestEstimator(QiskitAerTestCase):
         with Estimator(circuit, ["ZZZ", "III"]) as est:
             result = est(circuits=[0, 0], observables=[0, 1], seed=15)
         self.assertIsInstance(result, EstimatorResult)
-        np.testing.assert_allclose(result.values, [0.03125, 1.0])
+        np.testing.assert_allclose(result.values, [0.00390625, 1.0])
 
     def test_estimator_example(self):
         """test for Estimator example"""
@@ -342,7 +342,7 @@ class TestEstimator(QiskitAerTestCase):
         with Estimator([self.ansatz], [self.observable], approximation=True) as est:
             result = est([0], [0], parameter_values=[[0, 1, 1, 2, 3, 5]], shots=1024, seed=15)
         self.assertIsInstance(result, EstimatorResult)
-        np.testing.assert_allclose(result.values, [-1.307397243478641])
+        np.testing.assert_allclose(result.values, [-1.3088991960117797])
 
     def test_with_shots_option_without_approximation(self):
         """test with shots option."""
