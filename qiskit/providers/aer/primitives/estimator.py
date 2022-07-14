@@ -65,6 +65,7 @@ class Estimator(BaseEstimator):
         backend_options: dict | None = None,
         transpile_options: dict | None = None,
         approximation: bool = False,
+        skip_transpilation: bool = False,
     ):
         """
         Args:
@@ -78,6 +79,7 @@ class Estimator(BaseEstimator):
             transpile_options: Options passed to transpile.
             approximation: if True, it calculates expectation values with normal distribution
                 approximation.
+            skip_transpilation: if True, transpilation is skipped.
         """
         if isinstance(circuits, QuantumCircuit):
             circuits = (circuits,)
@@ -105,6 +107,8 @@ class Estimator(BaseEstimator):
         if transpile_options is not None:
             self._transpile_options.update_options(**transpile_options)
         self.approximation = approximation
+        self._skip_transpilation = skip_transpilation
+        self._cache = {}
         self._transpiled_circuits = {}
 
     def _call(
@@ -134,25 +138,28 @@ class Estimator(BaseEstimator):
     def _compute(self, circuits, observables, parameter_values, run_options):
         # Key for cache
         key = (tuple(circuits), tuple(observables), self.approximation)
-        experiments = []
         parameter_binds = []
-        experiment_data = []
-        num_observable = []
 
         # Transpile and run
-        if key in self._transpiled_circuits:
-            experiments, num_observable, experiment_data = self._transpiled_circuits[key]
+        if key in self._cache:
+            experiments, num_observable, experiment_data = self._cache[key]
             for i, j, value in zip(circuits, observables, parameter_values):
                 self._validate_parameter_length(value, i)
                 observable = self._observables[j]
                 for _ in range(len(observable)):
                     parameter_binds.append({k: [v] for k, v in zip(self._parameters[i], value)})
         else:
+            experiments = []
+            experiment_data = []
+            num_observable = []
+            self._transpile_circuits(circuits)
             for i, j, value in zip(circuits, observables, parameter_values):
                 self._validate_parameter_length(value, i)
                 observable = self._observables[j]
                 num_observable.append(len(observable))
-                circuit = self._circuits[i].copy()
+                circuit = (
+                    self._circuits[i] if self._skip_transpilation else self._transpiled_circuits[i]
+                )
                 num_qubits = circuit.num_qubits
                 # Measurement circuit
                 for pauli, coeff in zip(observable.paulis, observable.coeffs):
@@ -165,16 +172,13 @@ class Estimator(BaseEstimator):
                         parameter_binds.append({})
                         continue
                     experiment = circuit.copy()
-                    meas_circuit = _measurement_circuit(num_qubits, pauli)
+                    meas_circuit = self._measurement_circuit(num_qubits, pauli)
                     for creg in meas_circuit.cregs:
                         experiment.add_register(creg)
                     experiment.compose(meas_circuit, inplace=True)
                     experiments.append(experiment)
                     parameter_binds.append({k: [v] for k, v in zip(self._parameters[i], value)})
-                experiments = transpile(
-                    experiments, self._backend, **self._transpile_options.__dict__
-                )
-                self._transpiled_circuits[key] = (experiments, num_observable, experiment_data)
+                self._cache[key] = (experiments, num_observable, experiment_data)
         result = self._backend.run(
             experiments, parameter_binds=parameter_binds, **run_options
         ).result()
@@ -215,20 +219,24 @@ class Estimator(BaseEstimator):
     ):
         # Key for cache
         key = (tuple(circuits), tuple(observables), self.approximation)
-        experiments = []
         parameter_binds = []
-        experiment_data = []
         shots = run_options.pop("shots", None)
-        if key in self._transpiled_circuits:
-            experiments, experiment_data = self._transpiled_circuits[key]
+        if key in self._cache:
+            experiments, experiment_data = self._cache[key]
             for i, j, value in zip(circuits, observables, parameter_values):
                 self._validate_parameter_length(value, i)
                 parameter_binds.append({k: [v] for k, v in zip(self._parameters[i], value)})
         else:
-
+            self._transpile_circuits(circuits)
+            experiments = []
+            experiment_data = []
             for i, j, value in zip(circuits, observables, parameter_values):
                 self._validate_parameter_length(value, i)
-                circuit = self._circuits[i].copy()
+                circuit = (
+                    self._circuits[i].copy()
+                    if self._skip_transpilation
+                    else self._transpiled_circuits[i].copy()
+                )
                 observable = self._observables[j]
                 experiment_data.append(np.real_if_close(observable.coeffs))
                 if shots is None:
@@ -240,9 +248,8 @@ class Estimator(BaseEstimator):
                         )
                 experiments.append(circuit)
                 parameter_binds.append({k: [v] for k, v in zip(self._parameters[i], value)})
-            experiments = transpile(experiments, self._backend, **self._transpile_options.__dict__)
-            self._transpiled_circuits[key] = (experiments, experiment_data)
-        # Transpile and run
+            experiments = self._transpile(experiments)
+            self._cache[key] = (experiments, experiment_data)
         result = self._backend.run(
             experiments, parameter_binds=parameter_binds, **run_options
         ).result()
@@ -280,17 +287,26 @@ class Estimator(BaseEstimator):
                 f"the number of parameters ({len(self._parameters[circuit_index])})."
             )
 
+    def _measurement_circuit(self, num_qubits: int, pauli: Pauli):
+        qubit_indices = np.arange(pauli.num_qubits)[pauli.z | pauli.x]
+        meas_circuit = QuantumCircuit(num_qubits, len(qubit_indices))
+        for clbit, i in enumerate(qubit_indices):
+            if pauli.x[i]:
+                if pauli.z[i]:
+                    meas_circuit.sdg(i)
+                meas_circuit.h(i)
+            meas_circuit.measure(i, clbit)
+        meas_circuit = self._transpile(meas_circuit)
+        return meas_circuit
 
-def _measurement_circuit(num_qubits: int, pauli: Pauli):
-    qubit_indices = np.arange(pauli.num_qubits)[pauli.z | pauli.x]
-    meas_circuit = QuantumCircuit(num_qubits, len(qubit_indices))
-    for clbit, i in enumerate(qubit_indices):
-        if pauli.x[i]:
-            if pauli.z[i]:
-                meas_circuit.sdg(i)
-            meas_circuit.h(i)
-        meas_circuit.measure(i, clbit)
-    return meas_circuit
+    def _transpile(self, circuits):
+        return transpile(circuits, self._backend, **self._transpile_options.__dict__)
+
+    def _transpile_circuits(self, circuits):
+        if not self._skip_transpilation:
+            for i in set(circuits):
+                if i not in self._transpiled_circuits:
+                    self._transpiled_circuits[i] = self._transpile(self._circuits[i])
 
 
 def _expval_with_variance(counts) -> tuple[float, float]:
