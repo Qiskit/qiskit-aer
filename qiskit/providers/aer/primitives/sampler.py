@@ -56,6 +56,7 @@ class Sampler(BaseSampler):
         parameters: Iterable[Iterable[Parameter]] | None = None,
         backend_options: dict | None = None,
         transpile_options: dict | None = None,
+        skip_transpilation: bool = False,
     ):
         """
         Args:
@@ -64,6 +65,7 @@ class Sampler(BaseSampler):
                 Defaults to ``[circ.parameters for circ in circuits]``.
             backend_options: Options passed to AerSimulator.
             transpile_options: Options passed to transpile.
+            skip_transpilation: if True, transpilation is skipped.
         """
         if isinstance(circuits, QuantumCircuit):
             circuits = (circuits,)
@@ -78,6 +80,7 @@ class Sampler(BaseSampler):
         backend_options = {} if backend_options is None else backend_options
         self._backend.set_options(**backend_options)
         self._transpile_options = {} if transpile_options is None else transpile_options
+        self._skip_transpilation = skip_transpilation
 
     def _call(
         self,
@@ -108,7 +111,8 @@ class Sampler(BaseSampler):
             parameter_binds.append(parameter)
 
         # Transpile and Run
-        experiments = transpile(experiments, self._backend, **self._transpile_options)
+        if not self._skip_transpilation:
+            experiments = transpile(experiments, self._backend, **self._transpile_options)
         result = self._backend.run(
             experiments, parameter_binds=parameter_binds, **run_options
         ).result()
