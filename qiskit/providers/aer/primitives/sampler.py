@@ -117,17 +117,14 @@ class Sampler(BaseSampler):
             experiments, parameter_binds=parameter_binds, **run_options
         ).result()
 
-        # Initialize metadata
-        metadata = [{}] * len(circuits)
-        quasis = []
-
         # Postprocessing
-        for i, meta in enumerate(metadata):
+        metadata = []
+        quasis = []
+        for i in range(len(experiments)):
             counts = result.get_counts(i)
             shots = counts.shots()
             quasis.append(QuasiDistribution({k: v / shots for k, v in counts.items()}))
-            meta["shots"] = shots
-            meta["simulator_metadata"] = result.results[i].metadata
+            metadata.append({"shots": shots, "simulator_metadata": result.results[i].metadata})
 
         return SamplerResult(quasis, metadata)
 
