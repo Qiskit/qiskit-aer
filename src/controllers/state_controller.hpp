@@ -134,6 +134,9 @@ public:
   // configure max number of qubits for a gate
   virtual bool set_max_gate_qubits(const uint_t& max_gate_qubits);
 
+  // configure cache blocking qubits
+  virtual bool set_blocking_qubits(const uint_t& blocking_qubits);
+
   // Return true if gate operations have been performed and no configuration
   // is permitted.
   virtual bool is_initialized() const { return initialized_; };
@@ -352,6 +355,15 @@ private:
   Noise::NoiseModel noise_model_;
 
   Transpile::Fusion fusion_pass_;
+
+  // process information (MPI)
+  int myrank_ = 0;
+  int num_processes_ = 1;
+  int num_process_per_experiment_ = 1;
+
+  uint_t cache_block_qubits_ = 0;
+
+  Transpile::CacheBlocking cache_block_pass_;
 };
 
 bool AerState::is_gpu(bool raise_error) const {
@@ -394,6 +406,8 @@ void AerState::configure(const std::string& _key, const std::string& _value) {
     error = !set_parallel_state_update(std::stoul(value));
   } else if (key == "fusion_max_qubit") {
     error = !set_max_gate_qubits(std::stoul(value));
+  } else if (key == "blocking_qubits") {
+    error = !set_blocking_qubits(std::stoul(value));
   }
 
   if (error) {
@@ -487,6 +501,13 @@ bool AerState::set_max_gate_qubits(const uint_t& max_gate_qubits) {
   return true;
 };
 
+bool AerState::set_blocking_qubits(const uint_t& blocking_qubits)
+{
+  assert_not_initialized();
+  cache_block_qubits_ = blocking_qubits;
+  return true;
+}
+
 void AerState::assert_initialized() const {
   if (!initialized_) {
     std::stringstream msg;
@@ -505,6 +526,12 @@ void AerState::assert_not_initialized() const {
 
 void AerState::initialize() {
   assert_not_initialized();
+
+#ifdef AER_MPI
+  MPI_Comm_size(MPI_COMM_WORLD, &num_processes_);
+  MPI_Comm_rank(MPI_COMM_WORLD, &myrank_);
+  num_process_per_experiment_ = num_processes_;
+#endif
 
   if (method_ == Method::statevector) {
     if (device_ == Device::CPU)
@@ -583,10 +610,18 @@ void AerState::initialize() {
     parallel_state_update_ = omp_get_max_threads();
   }
 #endif
+
+  uint_t block_qubits = cache_block_qubits_;
+  cache_block_pass_.set_num_processes(num_process_per_experiment_);
+  cache_block_pass_.set_config(configs_);
+  if(!cache_block_pass_.enabled() || !state_->multi_chunk_distribution_supported())
+    block_qubits = num_of_qubits_;
+
   state_->set_config(configs_);
-  state_->set_distribution(1);
+  state_->set_distribution(num_process_per_experiment_);
   state_->set_max_matrix_qubits(max_gate_qubits_);
   state_->set_parallelization(parallel_state_update_);
+  state_->allocate(num_of_qubits_, block_qubits);
 
   state_->initialize_qreg(num_of_qubits_);
   state_->initialize_creg(num_of_qubits_, num_of_qubits_);
@@ -613,6 +648,15 @@ reg_t AerState::reallocate_qubits(uint_t num_qubits) {
 
 reg_t AerState::initialize_statevector(uint_t num_of_qubits, complex_t* data, bool copy) {
   assert_not_initialized();
+#ifdef AER_MPI
+  MPI_Comm_size(MPI_COMM_WORLD, &num_processes_);
+  MPI_Comm_rank(MPI_COMM_WORLD, &myrank_);
+  num_process_per_experiment_ = num_processes_;
+#endif
+  uint_t block_qubits = cache_block_qubits_;
+  cache_block_pass_.set_num_processes(num_process_per_experiment_);
+  cache_block_pass_.set_config(configs_);
+
   if (device_ != Device::CPU)
     throw std::runtime_error("only CPU device supports initialize_statevector()");
   if (precision_ != Precision::Double)
@@ -620,8 +664,11 @@ reg_t AerState::initialize_statevector(uint_t num_of_qubits, complex_t* data, bo
   num_of_qubits_ = num_of_qubits;
   auto state = std::make_shared<Statevector::State<QV::QubitVector<double>>>();
   state->set_config(configs_);
-  state->set_distribution(1);
+  state->set_distribution(num_process_per_experiment_);
   state->set_max_matrix_qubits(max_gate_qubits_);
+  if(!cache_block_pass_.enabled() || !state->multi_chunk_distribution_supported())
+    block_qubits = num_of_qubits_;
+  state->allocate(num_of_qubits_, block_qubits);
   state->initialize_qreg(num_of_qubits_, QV::QubitVector<double>(num_of_qubits_, data, copy));
   state->initialize_creg(num_of_qubits_, num_of_qubits_);
   state_ = state;
@@ -1091,6 +1138,11 @@ void AerState::transpile_ops() {
   // Override default fusion settings with custom config
   fusion_pass_.set_config(configs_);
   fusion_pass_.optimize_circuit(buffer_, noise_model_, state_->opset(), last_result_);
+
+  //cache blocking
+  if(cache_block_pass_.enabled() && state_->multi_chunk_distribution_supported()){
+    cache_block_pass_.optimize_circuit(buffer_, noise_model_, state_->opset(), last_result_);
+  }
 }
 
 //-------------------------------------------------------------------------
