@@ -17,6 +17,7 @@ Estimator class.
 from __future__ import annotations
 
 from collections.abc import Iterable, Sequence
+from copy import copy
 from itertools import accumulate
 
 import numpy as np
@@ -110,6 +111,7 @@ class Estimator(BaseEstimator):
         self._skip_transpilation = skip_transpilation
         self._cache = {}
         self._transpiled_circuits = {}
+        self._layouts = {}
 
     def _call(
         self,
@@ -160,7 +162,6 @@ class Estimator(BaseEstimator):
                 circuit = (
                     self._circuits[i] if self._skip_transpilation else self._transpiled_circuits[i]
                 )
-                num_qubits = circuit.num_qubits
                 # Measurement circuit
                 for pauli, coeff in zip(observable.paulis, observable.coeffs):
                     coeff = np.real_if_close(coeff).item()
@@ -172,7 +173,7 @@ class Estimator(BaseEstimator):
                         parameter_binds.append({})
                         continue
                     experiment = circuit.copy()
-                    meas_circuit = self._measurement_circuit(num_qubits, pauli)
+                    meas_circuit = self._measurement_circuit(observable.num_qubits, pauli, i)
                     for creg in meas_circuit.cregs:
                         experiment.add_register(creg)
                     experiment.compose(meas_circuit, inplace=True)
@@ -241,13 +242,16 @@ class Estimator(BaseEstimator):
                 )
                 observable = self._observables[j]
                 experiment_data.append(np.real_if_close(observable.coeffs))
+                qargs = (
+                    range(circuit.num_qubits)
+                    if self._skip_transpilation
+                    else self._layouts[i]
+                )
                 if shots is None:
-                    circuit.save_expectation_value(observable, range(circuit.num_qubits))
+                    circuit.save_expectation_value(observable, qargs)
                 else:
-                    for term_index, pauli in enumerate(observable.paulis):
-                        circuit.save_expectation_value(
-                            pauli, range(circuit.num_qubits), label=str(term_index)
-                        )
+                    for term_ind, pauli in enumerate(observable.paulis):
+                        circuit.save_expectation_value(pauli, qargs, label=str(term_ind))
                 experiments.append(circuit)
                 parameter_binds.append({k: [v] for k, v in zip(self._parameters[i], value)})
             experiments = self._transpile(experiments)
@@ -268,9 +272,9 @@ class Estimator(BaseEstimator):
             for i in range(len(experiments)):
                 combined_expval = 0.0
                 combined_var = 0.0
-                for term_index, expval in result.data(i).items():
+                for term_ind, expval in result.data(i).items():
                     var = 1 - expval**2
-                    coeff = experiment_data[i][int(term_index)]
+                    coeff = experiment_data[i][int(term_ind)]
                     combined_expval += expval * coeff
                     combined_var += var * coeff**2
                 # Sampling from normal distribution
@@ -293,7 +297,7 @@ class Estimator(BaseEstimator):
                 f"the number of parameters ({len(self._parameters[circuit_index])})."
             )
 
-    def _measurement_circuit(self, num_qubits: int, pauli: Pauli):
+    def _measurement_circuit(self, num_qubits: int, pauli: Pauli, circuit_index: int):
         qubit_indices = np.arange(pauli.num_qubits)[pauli.z | pauli.x]
         meas_circuit = QuantumCircuit(num_qubits, len(qubit_indices))
         for clbit, i in enumerate(qubit_indices):
@@ -302,17 +306,29 @@ class Estimator(BaseEstimator):
                     meas_circuit.sdg(i)
                 meas_circuit.h(i)
             meas_circuit.measure(i, clbit)
-        meas_circuit = self._transpile(meas_circuit)
-        return meas_circuit
+        if self._skip_transpilation:
+            return meas_circuit
+        transpile_opts = copy(self._transpile_options)
+        transpile_opts.update_options(initial_layout=self._layouts[circuit_index])
+        return transpile(meas_circuit, self._backend, **transpile_opts.__dict__)
 
     def _transpile(self, circuits):
         return transpile(circuits, self._backend, **self._transpile_options.__dict__)
 
     def _transpile_circuits(self, circuits):
-        if not self._skip_transpilation:
-            for i in set(circuits):
-                if i not in self._transpiled_circuits:
-                    self._transpiled_circuits[i] = self._transpile(self._circuits[i])
+        if self._skip_transpilation:
+            return
+        for i in set(circuits):
+            if i not in self._transpiled_circuits:
+                circuit = self._circuits[i].copy()
+                circuit.measure_all()
+                num_qubits = circuit.num_qubits
+                circuit = self._transpile(circuit)
+                bit_map = {bit: index for index, bit in enumerate(circuit.qubits)}
+                layout = [bit_map[qr[0]] for _, qr, _ in circuit[-num_qubits:]]
+                circuit.remove_final_measurements()
+                self._transpiled_circuits[i] = circuit
+                self._layouts[i] = layout
 
 
 def _expval_with_variance(counts) -> tuple[float, float]:
