@@ -50,6 +50,7 @@ public:
   using BaseState = State<state_t>;
   using DataSubType = Operations::DataSubType;
   using OpType = Operations::OpType;
+  using OpItr = std::vector<Operations::Op>::const_iterator;
 
   //-----------------------------------------------------------------------
   // Constructors
@@ -193,12 +194,11 @@ public:
   // The `final_ops` flag indicates no more instructions will be applied
   // to the state after this sequence, so the state can be modified at the
   // end of the instructions.
-  template <typename InputIterator>
-  void apply_ops(InputIterator first,
-                 InputIterator last,
+  void apply_ops(OpItr first,
+                 OpItr last,
                  ExperimentResult &result,
                  RngEngine &rng,
-                 bool final_ops = false);
+                 bool final_ops = false) override;
 
   //apply ops to multiple shots
   //this function should be separately defined since apply_ops is called in quantum_error
@@ -682,52 +682,16 @@ uint_t StateChunk<state_t>::get_process_by_chunk(uint_t cid)
 }
 
 template <class state_t>
-template <typename InputIterator>
-void StateChunk<state_t>::apply_ops(InputIterator first, InputIterator last,
+void StateChunk<state_t>::apply_ops(OpItr first, OpItr last,
                                ExperimentResult &result,
                                RngEngine &rng,
                                bool final_ops) 
 {
   if(multi_chunk_distribution_){
-    return apply_ops_chunks(first,last,result,rng,final_ops);
+    apply_ops_chunks(first,last,result,rng,final_ops);
   }
-
-  std::unordered_map<std::string, InputIterator> marks;
-  // Simple loop over vector of input operations
-  for (auto it = first; it != last; ++it) {
-    switch (it->type) {
-    case Operations::OpType::mark: {
-      marks[it->string_params[0]] = it;
-      break;
-    }
-    case Operations::OpType::jump: {
-      if (check_conditional(0, *it)) {
-        const auto& mark_name = it->string_params[0];
-        auto mark_it = marks.find(mark_name);
-        if (mark_it != marks.end()) {
-          it = mark_it->second;
-        } else {
-          for (++it; it != last; ++it) {
-            if (it->type == Operations::OpType::mark) {
-              marks[it->string_params[0]] = it;
-              if (it->string_params[0] == mark_name) {
-                break;
-              }
-            }
-          }
-          if (it == last) {
-            std::stringstream msg;
-            msg << "Invalid jump destination:\"" << mark_name << "\"." << std::endl;
-            throw std::runtime_error(msg.str());
-          }
-        }
-      }
-      break;
-    }
-    default: {
-    apply_op(0, *it, result, rng, final_ops && (it + 1 == last) );
-    }
-    }
+  else{
+    Base::apply_ops(first, last, result, rng,final_ops);
   }
 
   qregs_[0].synchronize();
