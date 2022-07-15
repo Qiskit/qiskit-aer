@@ -185,32 +185,34 @@ class Estimator(BaseEstimator):
         results = result.results
         experiment_index = [0] + list(accumulate(num_observable))
 
-        # Initialize metadata
-        metadata = [{}] * len(circuits)
-
         expectation_values = []
-        for start, end, meta in zip(experiment_index, experiment_index[1:], metadata):
-            # Initialize
+        metadata = []
+        for start, end in zip(experiment_index, experiment_index[1:]):
             combined_expval = 0.0
             combined_var = 0.0
-            meta["shots"] = 0
-            meta["simulator_metadata"] = []
+            shots = 0
+            simulator_metadata = []
             for result, experiment_datum in zip(results[start:end], experiment_data[start:end]):
                 # If observable is constant multiplicaition of I, expval is trivial.
                 if experiment_datum["is_identity"]:
                     expval, var = 1, 0
                 else:
                     count = result.data.counts
-                    meta["simulator_metadata"].append(result.metadata)
-                    shots = sum(count.values())
-                    meta["shots"] += shots
+                    shots += sum(count.values())
                     expval, var = _expval_with_variance(count)
+                    simulator_metadata.append(result.metadata)
                 # Accumulate
                 coeff = experiment_datum["coeff"]
                 combined_expval += expval * coeff
                 combined_var += var * coeff**2
             expectation_values.append(combined_expval)
-            meta["variance"] = combined_var
+            metadata.append(
+                {
+                    "shots": shots,
+                    "variance": combined_var,
+                    "simulator_metadata": simulator_metadata,
+                }
+            )
 
         return EstimatorResult(np.real_if_close(expectation_values), metadata)
 
@@ -254,15 +256,16 @@ class Estimator(BaseEstimator):
             experiments, parameter_binds=parameter_binds, **run_options
         ).result()
 
-        metadata = [{}] * len(circuits)
         if shots is None:
             expectation_values = [result.data(i)["expectation_value"] for i in range(len(circuits))]
-            for i, meta in enumerate(metadata):
-                meta["simulator_metadata"] = result.results[i].metadata
+            metadata = [
+                {"simulator_metadata": result.results[i].metadata} for i in range(len(experiments))
+            ]
         else:
             expectation_values = []
             rng = np.random.default_rng(seed)
-            for i, meta in enumerate(metadata):
+            metadata = []
+            for i in range(len(experiments)):
                 combined_expval = 0.0
                 combined_var = 0.0
                 for term_index, expval in result.data(i).items():
@@ -272,11 +275,14 @@ class Estimator(BaseEstimator):
                     combined_var += var * coeff**2
                 # Sampling from normal distribution
                 standard_error = np.sqrt(combined_var / shots)
-                expectation_value_with_error = rng.normal(combined_expval, standard_error)
-                expectation_values.append(expectation_value_with_error)
-                meta["variance"] = combined_var
-                meta["shots"] = shots
-                meta["simulator_metadata"] = result.results[i].metadata
+                expectation_values.append(rng.normal(combined_expval, standard_error))
+                metadata.append(
+                    {
+                        "variance": combined_var,
+                        "shots": shots,
+                        "simulator_metadata": result.results[i].metadata,
+                    }
+                )
 
         return EstimatorResult(np.real_if_close(expectation_values), metadata)
 
