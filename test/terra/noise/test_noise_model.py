@@ -32,7 +32,10 @@ from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.circuit.library.generalized_gates import PauliGate
 from qiskit.circuit.library.standard_gates import IGate, XGate
 from qiskit.compiler import transpile
-from qiskit.providers.fake_provider import FakeBackend, FakeSingapore, FakeAlmaden, FakeMumbai, FakeLagos
+from qiskit.providers.fake_provider import (
+    FakeBackend, FakeAlmaden, FakeLagos, FakeSingapore, FakeMumbai,
+    FakeBackendV2, FakeLagosV2
+)
 from test.terra.common import QiskitAerTestCase
 
 
@@ -229,6 +232,32 @@ class TestNoiseModel(QiskitAerTestCase):
 
         backend = FakeMumbai()
         noise_model = NoiseModel.from_backend(backend)
+        circ = transpile(circ, backend, optimization_level=0)
+        result = AerSimulator().run(circ, noise_model=noise_model).result()
+        self.assertTrue(result.success)
+
+    def test_noise_model_from_backend_v2(self):
+        circ = QuantumCircuit(2)
+        circ.x(0)
+        circ.x(1)
+        circ.measure_all()
+
+        backend = FakeBackendV2()
+        noise_model = NoiseModel.from_backend(backend)
+        self.assertEquals([0, 1], noise_model.noise_qubits)
+        circ = transpile(circ, backend, optimization_level=0)
+        result = AerSimulator().run(circ, noise_model=noise_model).result()
+        self.assertTrue(result.success)
+
+    def test_noise_model_from_lagos_v2(self):
+        circ = QuantumCircuit(2)
+        circ.x(0)
+        circ.cx(0, 1)
+        circ.measure_all()
+
+        backend = FakeLagosV2()
+        noise_model = NoiseModel.from_backend(backend)
+        self.assertEquals([0, 1, 2, 3, 4, 5, 6], noise_model.noise_qubits)
         circ = transpile(circ, backend, optimization_level=0)
         result = AerSimulator().run(circ, noise_model=noise_model).result()
         self.assertTrue(result.success)
