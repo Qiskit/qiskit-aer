@@ -142,8 +142,8 @@ class Estimator(BaseEstimator):
         key = (tuple(circuits), tuple(observables), self.approximation)
         parameter_binds = []
 
-        # Transpile and run
-        if key in self._cache:
+        # Create expectation value experiments.
+        if key in self._cache:  # Use a cache
             experiments, num_observable, experiment_data = self._cache[key]
             for i, j, value in zip(circuits, observables, parameter_values):
                 self._validate_parameter_length(value, i)
@@ -180,12 +180,14 @@ class Estimator(BaseEstimator):
                     experiments.append(experiment)
                     parameter_binds.append({k: [v] for k, v in zip(self._parameters[i], value)})
                 self._cache[key] = (experiments, num_observable, experiment_data)
+        # Run experiments
         result = self._backend.run(
             experiments, parameter_binds=parameter_binds, **run_options
         ).result()
         results = result.results
-        experiment_index = [0] + list(accumulate(num_observable))
 
+        # Post processing (calculate expectation values)
+        experiment_index = [0] + list(accumulate(num_observable))
         expectation_values = []
         metadata = []
         for start, end in zip(experiment_index, experiment_index[1:]):
@@ -224,7 +226,8 @@ class Estimator(BaseEstimator):
         key = (tuple(circuits), tuple(observables), self.approximation)
         parameter_binds = []
         shots = run_options.pop("shots", None)
-        if key in self._cache:
+        # Create expectation value experiments.
+        if key in self._cache:  # Use a cache
             experiments, experiment_data = self._cache[key]
             for i, j, value in zip(circuits, observables, parameter_values):
                 self._validate_parameter_length(value, i)
@@ -255,6 +258,7 @@ class Estimator(BaseEstimator):
             experiments, parameter_binds=parameter_binds, **run_options
         ).result()
 
+        # Post processing (calculate expectation values)
         if shots is None:
             expectation_values = [result.data(i)["expectation_value"] for i in range(len(circuits))]
             metadata = [
