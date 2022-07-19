@@ -241,17 +241,12 @@ class Estimator(BaseEstimator):
                     else self._transpiled_circuits[i].copy()
                 )
                 observable = self._observables[j]
-                experiment_data.append(np.real_if_close(observable.coeffs))
-                qargs = (
-                    range(circuit.num_qubits)
-                    if self._skip_transpilation
-                    else self._layouts[i]
-                )
+                experiment_data.append(observable)
                 if shots is None:
-                    circuit.save_expectation_value(observable, qargs)
+                    circuit.save_expectation_value(observable, self._layouts[i])
                 else:
                     for term_ind, pauli in enumerate(observable.paulis):
-                        circuit.save_expectation_value(pauli, qargs, label=str(term_ind))
+                        circuit.save_expectation_value(pauli, self._layouts[i], label=str(term_ind))
                 experiments.append(circuit)
                 parameter_binds.append({k: [v] for k, v in zip(self._parameters[i], value)})
             experiments = self._transpile(experiments)
@@ -272,9 +267,11 @@ class Estimator(BaseEstimator):
             for i in range(len(experiments)):
                 combined_expval = 0.0
                 combined_var = 0.0
+                coeffs = np.real_if_close(experiment_data[i].coeffs)
+                paulis = experiment_data[i].paulis
                 for term_ind, expval in result.data(i).items():
                     var = 1 - expval**2
-                    coeff = experiment_data[i][int(term_ind)]
+                    coeff = coeffs[int(term_ind)]
                     combined_expval += expval * coeff
                     combined_var += var * coeff**2
                 # Sampling from normal distribution
@@ -313,10 +310,15 @@ class Estimator(BaseEstimator):
         return transpile(meas_circuit, self._backend, **transpile_opts.__dict__)
 
     def _transpile(self, circuits):
+        if self._skip_transpilation:
+            return circuits
         return transpile(circuits, self._backend, **self._transpile_options.__dict__)
 
     def _transpile_circuits(self, circuits):
         if self._skip_transpilation:
+            for i in set(circuits):
+                num_qubits = self._circuits[i].num_qubits
+                self._layouts[i] = list(range(num_qubits))
             return
         for i in set(circuits):
             if i not in self._transpiled_circuits:
