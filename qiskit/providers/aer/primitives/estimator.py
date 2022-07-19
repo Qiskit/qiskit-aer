@@ -268,7 +268,6 @@ class Estimator(BaseEstimator):
                 combined_expval = 0.0
                 combined_var = 0.0
                 coeffs = np.real_if_close(experiment_data[i].coeffs)
-                paulis = experiment_data[i].paulis
                 for term_ind, expval in result.data(i).items():
                     var = 1 - expval**2
                     coeff = coeffs[int(term_ind)]
