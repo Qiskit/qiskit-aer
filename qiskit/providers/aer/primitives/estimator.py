@@ -78,9 +78,9 @@ class Estimator(BaseEstimator):
                 ``circuits[i]``.
             backend_options: Options passed to AerSimulator.
             transpile_options: Options passed to transpile.
-            approximation: if True, it calculates expectation values with normal distribution
+            approximation: If True, it calculates expectation values with normal distribution
                 approximation.
-            skip_transpilation: if True, transpilation is skipped.
+            skip_transpilation: If True, transpilation is skipped.
         """
         if isinstance(circuits, QuantumCircuit):
             circuits = (circuits,)
