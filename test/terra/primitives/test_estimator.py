@@ -145,43 +145,49 @@ class TestEstimator(QiskitAerTestCase):
             theta2 = [0, 1, 1, 2, 3, 5, 8, 13]
             theta3 = [1, 2, 3, 4, 5, 6]
 
-            # calculate [ <psi1(theta1)|op1|psi1(theta1)> ]
-            result = est([0], [0], [theta1], seed=15)
-            self.assertIsInstance(result, EstimatorResult)
-            np.testing.assert_allclose(result.values, [1.57421875])
-            self.assertEqual(len(result.metadata), 1)
+            with self.subTest("test circuit 0, observable 0"):
+                # calculate [ <psi1(theta1)|op1|psi1(theta1)> ]
+                result = est([0], [0], [theta1], seed=15)
+                self.assertIsInstance(result, EstimatorResult)
+                np.testing.assert_allclose(result.values, [1.57421875])
+                self.assertEqual(len(result.metadata), 1)
 
-            # calculate [ <psi1(theta1)|op2|psi1(theta1)>, <psi1(theta1)|op3|psi1(theta1)> ]
-            result = est([0, 0], [1, 2], [theta1] * 2, seed=15)
-            self.assertIsInstance(result, EstimatorResult)
-            np.testing.assert_allclose(result.values, [-0.5234375, 0.037109375])
-            self.assertEqual(len(result.metadata), 2)
+            with self.subTest("test circuit [0, 0], observable [1, 2]"):
+                # calculate [ <psi1(theta1)|op2|psi1(theta1)>, <psi1(theta1)|op3|psi1(theta1)> ]
+                result = est([0, 0], [1, 2], [theta1] * 2, seed=15)
+                self.assertIsInstance(result, EstimatorResult)
+                np.testing.assert_allclose(result.values, [-0.5234375, 0.037109375])
+                self.assertEqual(len(result.metadata), 2)
 
-            # calculate [ <psi2(theta2)|op2|psi2(theta2)> ]
-            result = est([1], [1], [theta2], seed=15)
-            self.assertIsInstance(result, EstimatorResult)
-            np.testing.assert_allclose(result.values, [0.232421875])
-            self.assertEqual(len(result.metadata), 1)
+            with self.subTest("test circuit 1, observable 1"):
+                # calculate [ <psi2(theta2)|op2|psi2(theta2)> ]
+                result = est([1], [1], [theta2], seed=15)
+                self.assertIsInstance(result, EstimatorResult)
+                np.testing.assert_allclose(result.values, [0.232421875])
+                self.assertEqual(len(result.metadata), 1)
 
-            # calculate [ <psi1(theta1)|op1|psi1(theta1)>, <psi1(theta3)|op1|psi1(theta3)> ]
-            result = est([0, 0], [0, 0], [theta1, theta3], seed=15)
-            self.assertIsInstance(result, EstimatorResult)
-            np.testing.assert_allclose(result.values, [1.57421875, 1.0859375])
-            self.assertEqual(len(result.metadata), 2)
+            with self.subTest("test circuit [0, 0], observable [0, 0]"):
+                # calculate [ <psi1(theta1)|op1|psi1(theta1)>, <psi1(theta3)|op1|psi1(theta3)> ]
+                result = est([0, 0], [0, 0], [theta1, theta3], seed=15)
+                self.assertIsInstance(result, EstimatorResult)
+                np.testing.assert_allclose(result.values, [1.57421875, 1.0859375])
+                self.assertEqual(len(result.metadata), 2)
 
-            # calculate [ <psi1(theta1)|op1|psi1(theta1)>,
-            #             <psi2(theta2)|op2|psi2(theta2)>,
-            #             <psi1(theta3)|op3|psi1(theta3)> ]
-            result = est([0, 1, 0], [0, 1, 2], [theta1, theta2, theta3], seed=15)
-            self.assertIsInstance(result, EstimatorResult)
-            np.testing.assert_allclose(result.values, [1.57421875, 0.138671875, -1.078125])
-            self.assertEqual(len(result.metadata), 3)
+            with self.subTest("test circuit [0, 1, 0], observable [0, 1, 2]"):
+                # calculate [ <psi1(theta1)|op1|psi1(theta1)>,
+                #             <psi2(theta2)|op2|psi2(theta2)>,
+                #             <psi1(theta3)|op3|psi1(theta3)> ]
+                result = est([0, 1, 0], [0, 1, 2], [theta1, theta2, theta3], seed=15)
+                self.assertIsInstance(result, EstimatorResult)
+                np.testing.assert_allclose(result.values, [1.57421875, 0.138671875, -1.078125])
+                self.assertEqual(len(result.metadata), 3)
 
-            # It is possible to pass objects.
-            # calculate [ <psi2(theta2)|H2|psi2(theta2)> ]
-            result = est([psi2], [op2], [theta2], seed=15)
-            np.testing.assert_allclose(result.values, [0.232421875])
-            self.assertEqual(len(result.metadata), 1)
+            with self.subTest("test circuit psi2, observable op2"):
+                # It is possible to pass objects.
+                # calculate [ <psi2(theta2)|H2|psi2(theta2)> ]
+                result = est([psi2], [op2], [theta2], seed=15)
+                np.testing.assert_allclose(result.values, [0.232421875])
+                self.assertEqual(len(result.metadata), 1)
 
     def test_1qubit(self):
         """Test for 1-qubit cases"""
@@ -193,21 +199,25 @@ class TestEstimator(QiskitAerTestCase):
         op2 = SparsePauliOp.from_list([("Z", 1)])
 
         with Estimator([qc, qc2], [op, op2], [[]] * 2) as est:
-            result = est([0], [0], [[]])
-            self.assertIsInstance(result, EstimatorResult)
-            np.testing.assert_allclose(result.values, [1])
+            with self.subTest("test circuit 0, observable 0"):
+                result = est([0], [0], [[]])
+                self.assertIsInstance(result, EstimatorResult)
+                np.testing.assert_allclose(result.values, [1])
 
-            result = est([0], [1], [[]])
-            self.assertIsInstance(result, EstimatorResult)
-            np.testing.assert_allclose(result.values, [1])
+            with self.subTest("test circuit 0, observable 1"):
+                result = est([0], [1], [[]])
+                self.assertIsInstance(result, EstimatorResult)
+                np.testing.assert_allclose(result.values, [1])
 
-            result = est([1], [0], [[]])
-            self.assertIsInstance(result, EstimatorResult)
-            np.testing.assert_allclose(result.values, [1])
+            with self.subTest("test circuit 1, observable 0"):
+                result = est([1], [0], [[]])
+                self.assertIsInstance(result, EstimatorResult)
+                np.testing.assert_allclose(result.values, [1])
 
-            result = est([1], [1], [[]])
-            self.assertIsInstance(result, EstimatorResult)
-            np.testing.assert_allclose(result.values, [-1])
+            with self.subTest("test circuit 1, observable 1"):
+                result = est([1], [1], [[]])
+                self.assertIsInstance(result, EstimatorResult)
+                np.testing.assert_allclose(result.values, [-1])
 
     def test_2qubits(self):
         """Test for 2-qubit cases (to check endian)"""
@@ -220,29 +230,35 @@ class TestEstimator(QiskitAerTestCase):
         op3 = SparsePauliOp.from_list([("IZ", 1)])
 
         with Estimator([qc, qc2], [op, op2, op3], [[]] * 2) as est:
-            result = est([0], [0], [[]])
-            self.assertIsInstance(result, EstimatorResult)
-            np.testing.assert_allclose(result.values, [1])
+            with self.subTest("test circuit 0, observable 0"):
+                result = est([0], [0], [[]])
+                self.assertIsInstance(result, EstimatorResult)
+                np.testing.assert_allclose(result.values, [1])
 
-            result = est([1], [0], [[]])
-            self.assertIsInstance(result, EstimatorResult)
-            np.testing.assert_allclose(result.values, [1])
+            with self.subTest("test circuit 1, observable 0"):
+                result = est([1], [0], [[]])
+                self.assertIsInstance(result, EstimatorResult)
+                np.testing.assert_allclose(result.values, [1])
 
-            result = est([0], [1], [[]])
-            self.assertIsInstance(result, EstimatorResult)
-            np.testing.assert_allclose(result.values, [1])
+            with self.subTest("test circuit 0, observable 1"):
+                result = est([0], [1], [[]])
+                self.assertIsInstance(result, EstimatorResult)
+                np.testing.assert_allclose(result.values, [1])
 
-            result = est([1], [1], [[]])
-            self.assertIsInstance(result, EstimatorResult)
-            np.testing.assert_allclose(result.values, [1])
+            with self.subTest("test circuit 1, observable 1"):
+                result = est([1], [1], [[]])
+                self.assertIsInstance(result, EstimatorResult)
+                np.testing.assert_allclose(result.values, [1])
 
-            result = est([0], [2], [[]])
-            self.assertIsInstance(result, EstimatorResult)
-            np.testing.assert_allclose(result.values, [1])
+            with self.subTest("test circuit 0, observable 2"):
+                result = est([0], [2], [[]])
+                self.assertIsInstance(result, EstimatorResult)
+                np.testing.assert_allclose(result.values, [1])
 
-            result = est([1], [2], [[]])
-            self.assertIsInstance(result, EstimatorResult)
-            np.testing.assert_allclose(result.values, [-1])
+            with self.subTest("test circuit 1, observable 2"):
+                result = est([1], [2], [[]])
+                self.assertIsInstance(result, EstimatorResult)
+                np.testing.assert_allclose(result.values, [-1])
 
     def test_errors(self):
         """Test for errors"""
