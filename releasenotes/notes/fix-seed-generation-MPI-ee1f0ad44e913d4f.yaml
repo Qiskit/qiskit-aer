@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    This is the fix for Issue #1557. Different seed numbers are generated for
+    each process if `seed_simulator` option is not set. This fix average seed
+    set in Circuit for all processes to use the same seed number.
