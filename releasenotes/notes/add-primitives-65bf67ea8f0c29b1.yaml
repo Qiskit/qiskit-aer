@@ -1,0 +1,5 @@
+---
+features:
+  - |
+    Added Aer implementation of Primitives (:class:`~primitives.Sampler` and :class:`~primitives.Estimator`).
+    See the docs https://qiskit.org/documentation/apidoc/primitives.html for general descriptions.
