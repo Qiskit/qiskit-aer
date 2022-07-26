@@ -978,6 +978,19 @@ Result Controller::execute(std::vector<Circuit> &circuits,
     }
 #endif
 
+#ifdef AER_MPI
+    //average random seed to set the same seed to each process (when seed_simulator is not set)
+    if(num_processes_ > 1){
+      reg_t seeds(circuits.size());
+      reg_t avg_seeds(circuits.size());
+      for(int_t i=0;i<circuits.size();i++)
+        seeds[i] = circuits[i].seed;
+      MPI_Allreduce(seeds.data(), avg_seeds.data(), circuits.size(), MPI_UINT64_T, MPI_SUM, MPI_COMM_WORLD);
+      for(int_t i=0;i<circuits.size();i++)
+        circuits[i].seed = avg_seeds[i]/num_processes_;
+    }
+#endif
+
     const int NUM_RESULTS = result.results.size();
     //following looks very similar but we have to separate them to avoid omp nested loops that causes performance degradation
     //(DO NOT use if statement in #pragma omp)
