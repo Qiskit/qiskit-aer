@@ -83,7 +83,7 @@ extras_requirements = {
 if not _DISABLE_CONAN:
     setup_requirements.append('conan>=1.22.2')
 
-requirements = common_requirements + ['qiskit-terra>=0.20.0', 'scipy>=1.0']
+requirements = common_requirements + ['qiskit-terra>=0.21.0', 'scipy>=1.0']
 
 VERSION_PATH = os.path.join(os.path.dirname(__file__),
                             "qiskit_aer", "VERSION.txt")
