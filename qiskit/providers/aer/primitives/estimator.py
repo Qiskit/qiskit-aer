@@ -181,6 +181,7 @@ class Estimator(BaseEstimator):
                     parameter_binds.append({k: [v] for k, v in zip(self._parameters[i], value)})
                 self._cache[key] = (experiments, num_observable, experiment_data)
         # Run experiments
+        parameter_binds = parameter_binds if any(parameter_binds) else None
         result = self._backend.run(
             experiments, parameter_binds=parameter_binds, **run_options
         ).result()
@@ -254,6 +255,7 @@ class Estimator(BaseEstimator):
                 parameter_binds.append({k: [v] for k, v in zip(self._parameters[i], value)})
             experiments = self._transpile(experiments)
             self._cache[key] = (experiments, experiment_data)
+        parameter_binds = parameter_binds if any(parameter_binds) else None
         result = self._backend.run(
             experiments, parameter_binds=parameter_binds, **run_options
         ).result()
