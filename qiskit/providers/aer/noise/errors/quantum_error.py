@@ -42,7 +42,8 @@ class QuantumError(BaseOperator, TolerancesMixin):
     """
     Quantum error class for Qiskit Aer noise model
 
-    WARNING: The init interface for this class is not finalized and may
+    .. warning::
+             The init interface for this class is not finalized and may
              change in future releases. For maximum backwards compatibility
              use the QuantumError generating functions in the `noise.errors`
              module.
