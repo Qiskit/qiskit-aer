@@ -20,7 +20,7 @@ from test.terra.reference.ref_2q_clifford import (cx_gate_counts_nondeterministi
                                                   cx_gate_counts_deterministic)
 from test.terra.reference.ref_non_clifford import (ccx_gate_counts_nondeterministic,
                                                    ccx_gate_counts_deterministic)
-
+from qiskit.quantum_info.states import Statevector
 
 def multiplexer_cx_gate_circuits_deterministic(final_measure=True):
     """multiplexer-gate simulating cx gate, test circuits with deterministic counts."""
@@ -291,6 +291,12 @@ def multiplexer_no_control_qubits(final_measure=True):
     vector_circuit.isometry(vector / np.linalg.norm(vector), [0], None)
     vector_circuit = vector_circuit.inverse()
     qc.append(vector_circuit, [0])
+
+    sv = Statevector(qc)
+    gate_list = [np.array([[sv[0], -sv[1]], [sv[1], sv[0]]])]
+    qc = QuantumCircuit(1, 1)
+    qc.uc(gate_list, [], [0])
+
     if final_measure:
       qc.measure(0,0)
     return [transpile(qc, basis_gates=['multiplexer', 'measure'])]
