@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Previously ``Aer.get_backend`` method ignores all options. With this fix,
+    all keyword arguments of ``get_backend`` are set to a returned backend
+    by calling its `set_options` metehod.

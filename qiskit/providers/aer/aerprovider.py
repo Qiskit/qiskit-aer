@@ -59,7 +59,9 @@ class AerProvider(Provider):
             AerProvider._BACKENDS = backends
 
     def get_backend(self, name=None, **kwargs):
-        return super().get_backend(name=name, **kwargs)
+        backend = super().get_backend(name=name, **kwargs)
+        backend.set_options(**kwargs)
+        return backend
 
     def backends(self, name=None, filters=None, **kwargs):
         # pylint: disable=arguments-differ
