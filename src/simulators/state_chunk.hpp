@@ -985,6 +985,14 @@ Operations::Op StateChunk<state_t>::remake_gate_in_chunk_qubits(const Operations
     else
       new_op.name = "cx";
   }
+  else if(qubits_in.size() == 1){
+    if(op.name[0] == 'c')
+      new_op.name = op.name.substr(1);
+    else if(op.name == "mcphase")
+      new_op.name = "p";
+    else
+      new_op.name = op.name.substr(2);  //remove "mc"
+  }
   return new_op;
 }
 
