@@ -294,7 +294,7 @@ def multiplexer_no_control_qubits(final_measure=True):
 
     sv = Statevector(qc)
     gate_list = [np.array([[sv[0], -sv[1]], [sv[1], sv[0]]])]
-    qc = QuantumCircuit(1,1)
+    qc = QuantumCircuit(1, 1)
     qc.uc(gate_list, [], [0])
 
     if final_measure:
