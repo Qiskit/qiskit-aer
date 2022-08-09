@@ -765,6 +765,13 @@ myrank = meta['mpi_rank']
 Multiple shots are also distributed to multiple nodes when setting `device=GPU` and `batched_shots_gpu=True`. The results are distributed to each processes.
 
 
+Note : In the script, make sure that the same random seed should be used for all processes so that the consistent circuits and parameters are passed to Qiskit Aer. To do so add following option to the script.
+```
+from qiskit.utils import algorithm_globals
+algorithm_globals.random_seed = consistent_seed_to_all_processes
+```
+
+
 ### Building a statically linked wheel
 
 If you encounter an error similar to the following, you may are likely in the need of compiling a
