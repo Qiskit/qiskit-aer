@@ -1052,7 +1052,7 @@ std::vector<reg_t> State::
     rnds_list.push_back(rands);
   }
 
-  #pragma omp parallel if (BaseState::threads_ > 1) num_threads(BaseState::threads_)
+  #pragma omp parallel if (BaseState::threads_ > 1) num_threads(std::min(50, BaseState::threads_))
   {
     MPS temp;
     #pragma omp for
