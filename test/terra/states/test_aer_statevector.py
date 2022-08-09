@@ -95,5 +95,18 @@ class TestAerStatevector(common.QiskitAerTestCase):
         self.assertNotEqual(id(state1._data), id(state2._data))
 
 
+    def test_initialize_with_ndarray(self):
+        """Test ndarray initialization """
+        from qiskit.providers.aer.quantum_info.states import AerStatevector
+        circ = QuantumVolume(5, seed=1111)
+        expected = Statevector(circ)
+        state = AerStatevector(expected.data)
+
+        self.assertTrue(state.aer())
+
+        for e, s in zip(expected, state):
+            self.assertAlmostEqual(e, s)
+
+
 if __name__ == '__main__':
     unittest.main()

@@ -14,6 +14,7 @@
 Statevector quantum state class.
 """
 import copy
+import numpy as np
 
 from qiskit.quantum_info.states import Statevector
 from qiskit.circuit import QuantumCircuit, Instruction
@@ -44,6 +45,9 @@ class AerStatevector(Statevector):
         if isinstance(data, (QuantumCircuit, Instruction)):
             data, aer_state = AerStatevector._from_instruction(data, None, **configs)
             self._aer_state = aer_state
+        elif isinstance(data, np.ndarray):
+            data, aer_state = AerStatevector._from_ndarray(data, **configs)
+            self._aer_state = aer_state
         else:
             self._aer_state = None
         super().__init__(data)
@@ -71,22 +75,18 @@ class AerStatevector(Statevector):
 
     @property
     def method(self):
-        self._assert_aer_mode()
         return self._metadata()['method']
 
     @property
     def device(self):
-        self._assert_aer_mode()
         return self._metadata()['device']
 
     @property
     def fusion_config(self):
-        self._assert_aer_mode()
         return self._metadata()['fusion']
 
     @property
     def parallel_state_update(self):
-        self._assert_aer_mode()
         return self._metadata()['parallel_state_update']
 
     def __deepcopy__(self, _memo=None):
@@ -123,14 +123,6 @@ class AerStatevector(Statevector):
 
         ret = copy.copy(self)
 
-        # Evolution by a circuit or instruction
-        if isinstance(other, QuantumCircuit):
-            other = other.to_instruction()
-        if isinstance(other, Instruction):
-            if self.num_qubits is None:
-                raise QiskitError("Cannot apply QuantumCircuit to non-qubit Statevector.")
-            return self._evolve_instruction(ret, other, qargs=qargs)
-
         # Evolution by an Operator
         if not isinstance(other, Operator):
             other = Operator(other)
@@ -141,6 +133,20 @@ class AerStatevector(Statevector):
                 "Operator input dimensions are not equal to statevector subsystem dimensions."
             )
         return Statevector._evolve_operator(ret, other, qargs=qargs)
+
+    @classmethod
+    def _from_ndarray(cls, init_data, **configs):
+        aer_state = AerState()
+
+        for config_key in configs:
+            aer_state.configure(config_key, configs[config_key])
+
+        num_qubits = int(np.log2(len(init_data)))
+
+        aer_state.allocate_qubits(num_qubits)
+        aer_state.initialize(data=init_data, copy=True)
+
+        return aer_state.move_to_ndarray(), aer_state
 
     @classmethod
     def _from_instruction(cls, inst, init_data, **configs):

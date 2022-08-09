@@ -111,7 +111,7 @@ class AerState:
         qubits = [qubit for qubit in range(num_of_qubits)]
 
         initialized = False
-        if(isinstance(data, np.ndarray) and
+        if (isinstance(data, np.ndarray) and
            self._method == 'statevector' and
            self._state.initialize_statevector(num_of_qubits, data, copy)):
             if not copy:
