@@ -26,7 +26,7 @@ LOGGER = logging.getLogger(__name__)
 class AerJob(Job):
     """AerJob class for Qiskit Aer Simulators."""
 
-    def __init__(self, backend, job_id, fn, qobj, executor=None):
+    def __init__(self, backend, job_id, fn, qobj, executor=None, raise_error=False):
         """ Initializes the asynchronous job.
 
         Args:
@@ -38,12 +38,14 @@ class AerJob(Job):
             qobj(QasmQobj): qobj to execute
             executor(ThreadPoolExecutor or dask.distributed.client):
                 The executor to be used to submit the job.
+            raise_error(boolean): set `JobStatus.ERROR` if simulation fails
         """
         super().__init__(backend, job_id)
         self._fn = fn
         self._qobj = qobj
         self._executor = executor or DEFAULT_EXECUTOR
         self._future = None
+        self._raise_error = raise_error
 
     def submit(self):
         """Submit the job to the backend for execution.
@@ -55,7 +57,8 @@ class AerJob(Job):
         """
         if self._future is not None:
             raise JobError("Aer job has already been submitted.")
-        self._future = self._executor.submit(self._fn, self._qobj, self._job_id)
+        self._future = self._executor.submit(self._fn, self._qobj, self._job_id,
+                                             raise_error=self._raise_error)
 
     @requires_submit
     def result(self, timeout=None):

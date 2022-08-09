@@ -161,6 +161,12 @@ class AerBackend(Backend, ABC):
         Raises:
             ValueError: if run is not implemented
         """
+
+        ibmq_semantics = run_options.get('ibmq_semantics',
+                                         self.options.get('ibmq_semantics', False))
+        if 'ibmq_semantics' in run_options:
+            ibmq_semantics = run_options['ibmq_semantics']
+
         if isinstance(circuits, (QasmQobj, PulseQobj)):
             warnings.warn(
                 'Using a qobj for run() is deprecated as of qiskit-aer 0.9.0'
@@ -184,6 +190,10 @@ class AerBackend(Backend, ABC):
                         run_options[key] = value
             qobj = self._assemble(circuits, **run_options)
         else:
+            if isinstance(circuits, (QuantumCircuit, Schedule, ScheduleBlock)):
+                circuits = [circuits]
+            if ibmq_semantics and parameter_binds:
+                parameter_binds = self._convert_ibmq_binds(parameter_binds, circuits)
             qobj = self._assemble(circuits, parameter_binds=parameter_binds, **run_options)
 
         # Optional validation
@@ -211,7 +221,8 @@ class AerBackend(Backend, ABC):
         if isinstance(experiments, list):
             aer_job = AerJobSet(self, job_id, self._run, experiments, executor)
         else:
-            aer_job = AerJob(self, job_id, self._run, experiments, executor)
+            aer_job = AerJob(self, job_id, self._run, experiments, executor,
+                             raise_error=ibmq_semantics)
         aer_job.submit()
 
         # Restore removed executor after submission
@@ -219,6 +230,16 @@ class AerBackend(Backend, ABC):
             self._options.executor = opts_executor
 
         return aer_job
+
+    def _convert_ibmq_binds(self, ibmq_param_binds, circuits):
+        """Convert parameter-binding format from IBM Provider to Aer"""
+
+        if len(ibmq_param_binds) == 0:
+            return None
+
+        parameter_bind = {param: [ibmq_param_bind[param] for ibmq_param_bind in ibmq_param_binds]
+                          for param in ibmq_param_binds[0]}
+        return [parameter_bind] * len(circuits)
 
     def configuration(self):
         """Return the simulator backend configuration.
@@ -283,7 +304,7 @@ class AerBackend(Backend, ABC):
             pending_jobs=0,
             status_msg='')
 
-    def _run(self, qobj, job_id='', format_result=True):
+    def _run(self, qobj, job_id='', format_result=True, raise_error=False):
         """Run a job"""
         # Start timer
         start = time.time()
@@ -343,6 +364,9 @@ class AerBackend(Backend, ABC):
             if "status" in output:
                 msg += f" and returned the following error message:\n{output['status']}"
             logger.warning(msg)
+            if raise_error:
+                raise AerError(msg)
+
         if format_result:
             return self._format_results(output)
         return output

@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    Introduce a new option ``ibmq_semantics`` that support the same semantics
+    with IBMQ Provider: `JobStatus.ERROR` is returned when simulation fails and
+    list of ``dict`` as a ``parameter_binds`` (``[{param0:1.0, param1:2.0}]``).

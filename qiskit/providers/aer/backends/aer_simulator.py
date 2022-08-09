@@ -566,6 +566,7 @@ class AerSimulator(AerBackend):
             memory=None,
             noise_model=None,
             seed_simulator=None,
+            ibmq_semantics=False,
             # cuStateVec (cuQuantum) option
             cuStateVec_enable=False,
             # cache blocking for multi-GPUs/MPI options
