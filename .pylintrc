@@ -70,7 +70,8 @@ disable=no-self-use,        # disabled as it is too verbose
     unnecessary-pass,   # allow for methods with just "pass", for clarity
     no-else-return,     # relax "elif" after a clause with a return
     docstring-first-line-empty, # relax docstring style
-    unsubscriptable-object # pylint can't determine this for numpy types
+    unsubscriptable-object, # pylint can't determine this for numpy types
+    bad-continuation, bad-whitespace # differences of opinion with black
 
 
 
