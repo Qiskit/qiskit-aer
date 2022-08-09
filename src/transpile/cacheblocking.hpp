@@ -225,10 +225,12 @@ void CacheBlocking::optimize_circuit(Circuit& circ,
     //loop over operations to find max number of parameters for cross-qubits operations
     int_t max_params = 1;
     for(uint_t i=0;i<circ.ops.size();i++){
-      reg_t targets;
-      target_qubits(circ.ops[i],targets);
-      if(targets.size() > max_params)
-        max_params = targets.size();
+      if(is_blockable_operation(circ.ops[i]) && is_cross_qubits_op(circ.ops[i])){
+        reg_t targets;
+        target_qubits(circ.ops[i],targets);
+        if(targets.size() > max_params)
+          max_params = targets.size();
+      }
     }
     if(block_bits_ < max_params){
       block_bits_ = max_params;   //change blocking qubits so that we can put op with many params
@@ -237,7 +239,7 @@ void CacheBlocking::optimize_circuit(Circuit& circ,
     if(num_processes_ > 1){
       if(block_bits_ >= qubits_){
         blocking_enabled_ = false;
-        std::string error = "cache blocking : there are gates operation can not chache blocked in blocking_qubits = " + std::to_string(block_bits_);
+        std::string error = "cache blocking : there are gates operation can not cache blocked in blocking_qubits = " + std::to_string(block_bits_);
         throw std::runtime_error(error);
         return;
       }
