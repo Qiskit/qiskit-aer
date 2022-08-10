@@ -208,10 +208,7 @@ jobs:
       - uses: actions/upload-artifact@v2
         with:
           path: ./wheelhouse/*.whl
-      - name: Publish Wheels
-        env:
-          TWINE_PASSWORD: ${{ secrets.TWINE_PASSWORD }}
-          TWINE_USERNAME: qiskit
-        run : |
-          pip install -U twine
-          twine upload wheelhouse/*
+      - name: Publish release artifacts to github release page
+        uses: softprops/action-gh-release@v1
+        with:
+           files: ./wheelhouse/*.whl
