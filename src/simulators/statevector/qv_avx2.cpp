@@ -1169,13 +1169,11 @@ Avx apply_diagonal_matrix_avx<double>(double* qv_data_,
 #if defined(_OPENMP)
 #pragma omp parallel if (omp_threads > 1) num_threads(omp_threads)
   {
+#endif
 #if !defined(_WIN64) && !defined(_WIN32)
   void* data = nullptr;
   posix_memalign(&data, 64, sizeof(std::complex<double>) * 2);
   auto double_tmp = reinterpret_cast<std::complex<double>*>(data);
-#else
-  auto double_tmp = reinterpret_cast<std::complex<double>*>(malloc(sizeof(std::complex<double>) * 2));
-#endif
 #else
   auto double_tmp = reinterpret_cast<std::complex<double>*>(malloc(sizeof(std::complex<double>) * 2));
 #endif
