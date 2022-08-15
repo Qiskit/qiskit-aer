@@ -586,7 +586,6 @@ bool StateChunk<state_t>::allocate(uint_t num_qubits,uint_t block_bits,uint_t nu
       chunk_omp_parallel_ = true;
 #endif
 
-#ifdef AER_CUSTATEVEC
     //set cuStateVec_enable_ 
     if(cuStateVec_enable_){
       if(multi_shots_parallelization_)
@@ -595,7 +594,6 @@ bool StateChunk<state_t>::allocate(uint_t num_qubits,uint_t block_bits,uint_t nu
 
     if(!cuStateVec_enable_)
       global_chunk_indexing_ = true;    //cuStateVec does not handle global chunk index for diagonal matrix
-#endif
   }
   else if(BaseState::sim_device_name_ == "Thrust"){
     global_chunk_indexing_ = true;
@@ -713,6 +711,7 @@ void StateChunk<state_t>::apply_ops_chunks(InputIterator first, InputIterator la
 
   nOp = std::distance(first, last);
   iOp = 0;
+
   while(iOp < nOp){
     const Operations::Op op_iOp = *(first + iOp);
 
@@ -877,6 +876,8 @@ Operations::Op StateChunk<state_t>::remake_gate_in_chunk_qubits(const Operations
   else if(qubits_in.size() == 1){
     if(op.name[0] == 'c')
       new_op.name = op.name.substr(1);
+    else if(op.name == "mcphase")
+      new_op.name = "p";
     else
       new_op.name = op.name.substr(2);  //remove "mc"
   }
@@ -2116,37 +2117,29 @@ void StateChunk<state_t>::gather_state(std::vector<std::complex<data_t>>& state)
   if(distributed_procs_ > 1){
     uint_t size,local_size,global_size,offset;
     int i;
-    MPI_Status st;
-    MPI_Request reqSend,reqRecv;
+    std::vector<int> recv_counts(distributed_procs_);
+    std::vector<int> recv_offset(distributed_procs_);
 
-    local_size = state.size();
-    MPI_Allreduce(&local_size,&global_size,1,MPI_UINT64_T,MPI_SUM,distributed_comm_);
-
+    global_size = 0;
+    for(i=0;i<distributed_procs_;i++){
+      recv_offset[i] = (int)(chunk_index_begin_[i] << (chunk_bits_*qubit_scale()))*2;
+      recv_counts[i] = (int)((chunk_index_end_[i] - chunk_index_begin_[i]) << (chunk_bits_*qubit_scale()));
+      global_size += recv_counts[i];
+      recv_counts[i] *= 2;
+    }
     if((global_size >> 21) > Utils::get_system_memory_mb()){
       throw std::runtime_error(std::string("There is not enough memory to gather state"));
     }
+    std::vector<std::complex<data_t>> local_state = state;
+    state.resize(global_size);
 
-    if(distributed_rank_ == 0){
-      if((global_size >> 21) > Utils::get_system_memory_mb()){
-        throw std::runtime_error(std::string("There is not enough memory to gather state"));
-      }
-
-      state.resize(global_size);
-
-      offset = 0;
-      for(i=1;i<distributed_procs_;i++){
-        MPI_Irecv(&size,1,MPI_UINT64_T,i,i*2,distributed_comm_,&reqRecv);
-        MPI_Wait(&reqRecv,&st);
-        MPI_Irecv(&state[offset],size*sizeof(std::complex<data_t>),MPI_BYTE,i,i*2+1,distributed_comm_,&reqRecv);
-        MPI_Wait(&reqRecv,&st);
-        offset += size;
-      }
+    if(sizeof(std::complex<data_t>) == 16){
+      MPI_Allgatherv(local_state.data(),recv_counts[distributed_rank_],MPI_DOUBLE_PRECISION,
+                     state.data(),&recv_counts[0],&recv_offset[0],MPI_DOUBLE_PRECISION,distributed_comm_);
     }
     else{
-      MPI_Isend(&local_size,1,MPI_UINT64_T,0,i*2,distributed_comm_,&reqSend);
-      MPI_Wait(&reqSend,&st);
-      MPI_Isend(&state[0],local_size*sizeof(std::complex<data_t>),MPI_BYTE,0,i*2+1,distributed_comm_,&reqSend);
-      MPI_Wait(&reqSend,&st);
+      MPI_Allgatherv(local_state.data(),recv_counts[distributed_rank_],MPI_FLOAT,
+                     state.data(),&recv_counts[0],&recv_offset[0],MPI_FLOAT,distributed_comm_);
     }
   }
 #endif
@@ -2160,37 +2153,30 @@ void StateChunk<state_t>::gather_state(AER::Vector<std::complex<data_t>>& state)
   if(distributed_procs_ > 1){
     uint_t size,local_size,global_size,offset;
     int i;
-    MPI_Status st;
-    MPI_Request reqSend,reqRecv;
 
-    local_size = state.size();
-    MPI_Allreduce(&local_size,&global_size,1,MPI_UINT64_T,MPI_SUM,distributed_comm_);
+    std::vector<int> recv_counts(distributed_procs_);
+    std::vector<int> recv_offset(distributed_procs_);
 
+    global_size = 0;
+    for(i=0;i<distributed_procs_;i++){
+      recv_offset[i] = (int)(chunk_index_begin_[i] << (chunk_bits_*qubit_scale()))*2;
+      recv_counts[i] = (int)((chunk_index_end_[i] - chunk_index_begin_[i]) << (chunk_bits_*qubit_scale()));
+      global_size += recv_counts[i];
+      recv_counts[i] *= 2;
+    }
     if((global_size >> 21) > Utils::get_system_memory_mb()){
       throw std::runtime_error(std::string("There is not enough memory to gather state"));
     }
+    AER::Vector<std::complex<data_t>> local_state = state;
+    state.resize(global_size);
 
-    if(distributed_rank_ == 0){
-      if((global_size >> 21) > Utils::get_system_memory_mb()){
-        throw std::runtime_error(std::string("There is not enough memory to gather state"));
-      }
-
-      state.resize(global_size);
-
-      offset = 0;
-      for(i=1;i<distributed_procs_;i++){
-        MPI_Irecv(&size,1,MPI_UINT64_T,i,i*2,distributed_comm_,&reqRecv);
-        MPI_Wait(&reqRecv,&st);
-        MPI_Irecv(state.data() + offset,size*sizeof(std::complex<data_t>),MPI_BYTE,i,i*2+1,distributed_comm_,&reqRecv);
-        MPI_Wait(&reqRecv,&st);
-        offset += size;
-      }
+    if(sizeof(std::complex<data_t>) == 16){
+      MPI_Allgatherv(local_state.data(),recv_counts[distributed_rank_],MPI_DOUBLE_PRECISION,
+                     state.data(),&recv_counts[0],&recv_offset[0],MPI_DOUBLE_PRECISION,distributed_comm_);
     }
     else{
-      MPI_Isend(&local_size,1,MPI_UINT64_T,0,i*2,distributed_comm_,&reqSend);
-      MPI_Wait(&reqSend,&st);
-      MPI_Isend(state.data(),local_size*sizeof(std::complex<data_t>),MPI_BYTE,0,i*2+1,distributed_comm_,&reqSend);
-      MPI_Wait(&reqSend,&st);
+      MPI_Allgatherv(local_state.data(),recv_counts[distributed_rank_],MPI_FLOAT,
+                     state.data(),&recv_counts[0],&recv_offset[0],MPI_FLOAT,distributed_comm_);
     }
   }
 #endif
