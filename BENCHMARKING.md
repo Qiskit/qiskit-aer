@@ -5,10 +5,8 @@ We have only implemented benchmarks for the Qiskit Addon, not the standalone mod
 
 # Where are the benchmarks
 All the benchmarks are under the `test/benchmark` directory.
-There you'll find a bunch of `*_benchmarks.py` files which represent the different type of benchmarks we will run:
-- Quantum Volume with different number of qubits and noise models
-- Simple one-gate circuits with different number of qubits and noise models.
-
+There you'll find python files with names of simulation methods, such as `densitymatrix_cpu` and `statevector_gpu`.
+Each of them runs Quantum Volume, QFT, and RealAmplitudes circuits with a specific simulation method and device with and without noise models.
 
 # How to run the benchmarks
 All prerequisites for building the project need to be installed in the system, take a look at the [CONTRIBUTING guide](.github/CONTRIBUTING.md) if you don't have them already installed.
@@ -41,57 +39,26 @@ After the completion of the tests, you will see the results with a format simila
 ```
 · Creating environments
 · Discovering benchmarks
-· Running 3 total benchmarks (1 commit * 1 environment * 3 benchmarks)
-[  0.00%] · For qiskit-aer commit 8b4f4de1 <main>:
-[  0.00%] ·· Benchmarking conda-py3.7
-[ 16.67%] ··· Running (quantum_volume_benchmarks.QuantumVolumeTimeSuite.time_quantum_volume--)..
-[ 50.00%] ··· Running (simple_benchmarks.SimpleU3TimeSuite.time_simple_u3--).
-[ 66.67%] ··· quantum_volume_benchmarks.QuantumVolumeTimeSuite.time_quantum_volume
-[ 66.67%] ··· ================= ========== ===================== ============= =============
-              --                                        Noise Model                         
-              ----------------- ------------------------------------------------------------
-                Quantum Volume   No Noise   Mixed Unitary Noise   Reset Noise   Kraus Noise 
-              ================= ========== ===================== ============= =============
-                Num. qubits: 5   123±4ms          124±10ms          154±20ms      145±20ms  
-               Num. qubits: 10   292±10ms         319±50ms          299±10ms      346±2ms   
-               Num. qubits: 15   3.17±2s          2.38±2s           2.19±2s       9.76±2s   
-              ================= ========== ===================== ============= =============
+·· Uninstalling from conda-py3.8
+·· Installing 71d55588 <main> into conda-py3.8
+· Running 58 total benchmarks (1 commits * 1 environments * 58 benchmarks)
+[  0.00%] · For qiskit-aer commit 71d55588 <main>:
+[  0.00%] ·· Benchmarking conda-py3.8
+[  1.72%] ··· default_simulator.Benchmark.track_qft                           ok
+[  1.72%] ··· ======== =====================
+               qubits                       
+              -------- ---------------------
+                 5      0.01046895980834961 
+                 15     0.07767915725708008 
+                 25      0.7862622737884521 
+              ======== =====================
 
-[ 83.33%] ··· simple_benchmarks.SimpleCxTimeSuite.time_simple_cx
-[ 83.33%] ··· ====================== ========== ===================== ============= =============
-              --                                             Noise Model                         
-              ---------------------- ------------------------------------------------------------
-               Simple cnot circuits   No Noise   Mixed Unitary Noise   Reset Noise   Kraus Noise 
-              ====================== ========== ===================== ============= =============
-                  Num. qubits: 5      47.2±2ms         111±40ms          46.8±1ms     21.1±0.2ms 
-                 Num. qubits: 10      117±60ms         172±60ms          164±30ms     28.6±0.3ms 
-                 Num. qubits: 15      213±30ms         223±80ms          223±90ms      258±5ms   
-              ====================== ========== ===================== ============= =============
-
-[100.00%] ··· simple_benchmarks.SimpleU3TimeSuite.time_simple_u3
-[100.00%] ··· ==================== ============ ===================== ============= =============
-              --                                            Noise Model                          
-              -------------------- --------------------------------------------------------------
-               Simple u3 circuits    No Noise    Mixed Unitary Noise   Reset Noise   Kraus Noise 
-              ==================== ============ ===================== ============= =============
-                 Num. qubits: 5     20.3±0.3ms        21.3±0.5ms        20.7±0.4ms    21.5±0.1ms 
-                Num. qubits: 10     26.6±0.2ms        27.8±0.3ms        27.6±0.5ms    28.4±0.2ms 
-                Num. qubits: 15      244±40ms          312±70ms         295±100ms     179±100ms  
-              ==================== ============ ===================== ============= =============
-
+[  3.45%] ··· default_simulator.Benchmark.track_qv                            ok
+[  3.45%] ··· ======== =====================
+               qubits                       
+              -------- ---------------------
+                 5      0.01030588150024414 
+                 15     0.04601025581359863 
+                 25      2.6632273197174072 
+              ======== =====================
 ```
-
-# Interpreting the data
-
-The output format is pretty self-explanatory, so every row starting with the text: `Num. quits:` represents all the benchmarks run for this number of qubits configuration, more precisely, we run 4 benchmarks for every number of qubits configuration, and each of the benchmarks are run with a different noise model, so for example, this line:
-```
-  Quantum Volume   No Noise   Mixed Unitary Noise   Reset Noise   Kraus Noise
-================= ========== ===================== ============= =============
-  Num. qubits: 15   3.17±2s          2.38±2s           2.19±2s       9.76±2s
-```
-it's telling us that for our Quantum Volume circuit the time it took to complete was:
-- 3.17 seconds with no noise at all
-- 2.38 seconds with Mixed unitary noise
-- 2.19 seconds with Reset noise
-- 9.76 seconds with Kraus noise
-
