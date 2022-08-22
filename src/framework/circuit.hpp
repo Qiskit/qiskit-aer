@@ -177,12 +177,15 @@ Circuit::Circuit(const inputdata_t &circ, const json_t &qobj_config, bool trunca
   // conversion we could call `get_reversed_ops` on the inputdata without first
   // converting. 
   std::vector<Op> converted_ops;
+  int i = 0;
   for(auto the_op: input_ops){
+    i += 1;
     converted_ops.emplace_back(Operations::input_to_op(the_op));
   }
-  ops = std::move(converted_ops);
+  
+  ops = std::move(converted_ops);  
   set_params(truncation);
-
+  
   // Check for specified memory slots
   uint_t memory_slots = 0;
   Parser<json_t>::get_value(memory_slots, "memory_slots", config);
@@ -205,7 +208,7 @@ Circuit::Circuit(const inputdata_t &circ, const json_t &qobj_config, bool trunca
       // is explicitly disabled.
       num_qubits = n_qubits;
     }
-  }
+  }  
 }
 
 //-------------------------------------------------------------------------
@@ -354,6 +357,7 @@ void Circuit::set_params(bool truncation) {
         case OpType::save_probs:
         case OpType::save_probs_ket:
         case OpType::save_amps:
+        case OpType::save_specific_prob:
         case OpType::save_amps_sq:
         case OpType::save_stabilizer:
         case OpType::save_clifford:
@@ -490,6 +494,7 @@ bool Circuit::check_result_ancestor(const Op& op, std::unordered_set<uint_t>& an
     case OpType::save_densmat:
     case OpType::save_probs:
     case OpType::save_probs_ket:
+    case OpType::save_specific_prob:
     case OpType::save_amps:
     case OpType::save_amps_sq:
     case OpType::save_stabilizer:

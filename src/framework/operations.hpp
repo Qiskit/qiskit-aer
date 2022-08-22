@@ -44,7 +44,7 @@ enum class OpType {
   // Save instructions
   save_state, save_expval, save_expval_var, save_statevec, save_statevec_dict,
   save_densmat, save_probs, save_probs_ket, save_amps, save_amps_sq,
-  save_stabilizer, save_clifford, save_unitary, save_mps, save_superop,
+  save_stabilizer, save_clifford, save_unitary, save_mps, save_superop, save_specific_prob,
   // Set instructions
   set_statevec, set_densmat, set_unitary, set_superop,
   set_stabilizer, set_mps,
@@ -61,8 +61,8 @@ static const std::unordered_set<OpType> SAVE_TYPES = {
   OpType::save_statevec, OpType::save_statevec_dict,
   OpType::save_densmat, OpType::save_probs, OpType::save_probs_ket,
   OpType::save_amps, OpType::save_amps_sq, OpType::save_stabilizer,
-  OpType::save_clifford,
-  OpType::save_unitary, OpType::save_mps, OpType::save_superop
+  OpType::save_clifford, OpType::save_unitary, OpType::save_mps, 
+  OpType::save_superop, OpType::save_specific_prob
 };
 
 inline std::ostream& operator<<(std::ostream& stream, const OpType& type) {
@@ -126,6 +126,9 @@ inline std::ostream& operator<<(std::ostream& stream, const OpType& type) {
   case OpType::save_superop:
     stream << "save_superop";
     break;
+  case OpType::save_specific_prob:
+    stream << "save_specific_prob";
+    break;    
   case OpType::set_statevec:
     stream << "set_statevector";
     break;
@@ -579,6 +582,8 @@ template<typename inputdata_t>
 Op input_to_op_save_expval(const inputdata_t& input, bool variance);
 template<typename inputdata_t>
 Op input_to_op_save_amps(const inputdata_t& input, bool squared);
+template<typename inputdata_t>
+Op input_to_op_save_specific_prob(const inputdata_t& input);
 
 // Snapshots
 template<typename inputdata_t>
@@ -681,6 +686,9 @@ Op input_to_op(const inputdata_t& input) {
     return input_to_op_save_amps(input, false);
   if (name == "save_amplitudes_sq")
     return input_to_op_save_amps(input, true);
+  if (name == "save_specific_prob"){
+    return input_to_op_save_specific_prob(input);
+  }
   // Set
   if (name == "set_statevector")
     return input_to_op_set_vector(input, OpType::set_statevec);
@@ -1239,6 +1247,17 @@ Op input_to_op_save_amps(const inputdata_t& input, bool squared) {
   Parser<inputdata_t>::get_value(op.int_params, "params", input);
   return op;
 }
+
+template<typename inputdata_t>
+Op input_to_op_save_specific_prob(const inputdata_t& input) {
+  Op op = input_to_op_save_default(input, OpType::save_specific_prob);
+  const inputdata_t& params = Parser<inputdata_t>::get_value("params", input);
+  op.qubits = Parser<inputdata_t>::template get_list_elem<std::vector<uint_t>>(params, 0);
+  op.int_params = Parser<inputdata_t>::template get_list_elem<std::vector<uint_t>>(params, 1);
+
+  return op;
+}
+
 
 //------------------------------------------------------------------------------
 // Implementation: Snapshot deserialization

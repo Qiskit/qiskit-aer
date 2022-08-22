@@ -79,6 +79,10 @@ BASIS_GATES = {
         'cx', 'cz', 'id', 'x', 'y', 'z', 'h', 's', 'sdg', 'sx', 'sxdg',
         'swap', 'u0', 't', 'tdg', 'u1', 'p', 'ccx', 'ccz', 'delay', 'pauli'
     ]),
+    'clifford_phase_compute': sorted([
+        'cx', 'cz', 'id', 'x', 'y', 'z', 'h', 's', 'sdg',
+        'swap', 't', 'tdg', 'delay', 'p', 'u1', 'rz'
+    ]),
     'unitary': sorted([
         'u1', 'u2', 'u3', 'u', 'p', 'r', 'rx', 'ry', 'rz', 'id', 'x',
         'y', 'z', 'h', 's', 'sdg', 'sx', 'sxdg', 't', 'tdg', 'swap', 'cx',

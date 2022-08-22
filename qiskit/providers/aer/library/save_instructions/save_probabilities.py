@@ -74,6 +74,38 @@ class SaveProbabilitiesDict(SaveAverageData):
                          conditional=conditional)
 
 
+class SaveSpecificProbability(SaveAverageData):
+    """Save a probability for a specific measurement probability."""
+    def __init__(self, num_qubits,
+                 states, qubits,
+                 label="specific-probabilities",
+                 pershot=False,
+                 conditional=False):
+        """Instruction to save specific probabilities.
+
+        Args:
+            states (list): list of ints indicating the outcome to compute the probability for.
+            qubits (list): list of ints indicating which qubits the measurement is on.
+            num_qubits (int): the number of qubits for the snapshot type.
+            label (str): the key for retrieving saved data from results.
+            pershot (bool): if True save a list of probabilities for each shot
+                            of the simulation rather than the average over
+                            all shots [Default: False].
+            conditional (bool): if True save the probabilities data conditional
+                                on the current classical register values
+                                [Default: False].
+        e.g:
+        if states = [0,1,0], qubits = [0,1,2]
+        we compute the probability of the outcome 0 on qubit 0, 1 on qubit 1 and 0 on qubit 2
+        if states = [0,1], qubits = [5,1]
+        we compute the probability of the outcome 0 on qubit 5 and 1 on qubit 0
+        """
+        super().__init__("save_specific_prob", num_qubits, label,
+                         pershot=pershot,
+                         conditional=conditional,
+                         params=[qubits, states])
+
+
 def save_probabilities(self,
                        qubits=None,
                        label="probabilities",
@@ -140,5 +172,38 @@ def save_probabilities_dict(self,
     return self.append(instr, qubits)
 
 
+def save_specific_probability(self, states, qubits, label="specific_probability",
+                              pershot=False,
+                              conditional=False):
+    """Instruction to save specific probabilities.
+
+    Args:
+        states (list): list of ints indicating the outcome to compute the probability for
+        qubits (list): list of ints indicating which qubits the measurement is on
+        label (str): the key for retrieving saved data from results.
+        pershot (bool): if True save a list of probabilities for each shot
+                        of the simulation rather than the average over
+                        all shots [Default: False].
+        conditional (bool): if True save the probabilities data conditional
+                            on the current classical register values
+                            [Default: False].
+    e.g:
+        if states = [0,1,0], qubits = [0,1,2]
+        we compute the probability of 0 on qubit 0, 1 on qubit 1 and 0 on qubit 2
+        if states = [0,1], qubits = [5,1]
+        we compute the probability of 0 on qubit 5 and 1 on qubit 0
+
+    Returns:
+        QuantumCircuit: with attached instruction.
+    """
+    if qubits is None:
+        qubits = default_qubits(self)
+    instr = SaveSpecificProbability(len(qubits), states, qubits, label=label,
+                                    pershot=pershot,
+                                    conditional=conditional)
+    return self.append(instr, qubits)
+
+
 QuantumCircuit.save_probabilities = save_probabilities
 QuantumCircuit.save_probabilities_dict = save_probabilities_dict
+QuantumCircuit.save_specific_probability = save_specific_probability

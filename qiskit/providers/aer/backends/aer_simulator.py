@@ -139,6 +139,8 @@ class AerSimulator(AerBackend):
     +--------------------------+---------------+
     | ``extended_stabilizer``  | No            |
     +--------------------------+---------------+
+    | ``compute``              | No            |
+    +--------------------------+---------------+
     | ``unitary``              | Yes           |
     +--------------------------+---------------+
     | ``superop``              | No            |
@@ -461,6 +463,9 @@ class AerSimulator(AerBackend):
         'extended_stabilizer': sorted([
             'quantum_channel', 'qerror_loc', 'roerror', 'snapshot', 'save_statevector'
         ]),
+        'clifford_phase_compute': sorted([
+            'save_specific_probability'
+        ]),
         'unitary': sorted([
             'snapshot', 'save_state', 'save_unitary', 'set_unitary'
         ]),
@@ -501,7 +506,7 @@ class AerSimulator(AerBackend):
     _SIMULATION_METHODS = [
         'automatic', 'statevector', 'density_matrix',
         'stabilizer', 'matrix_product_state', 'extended_stabilizer',
-        'unitary', 'superop'
+        'unitary', 'superop', 'clifford_phase_compute'
     ]
 
     _AVAILABLE_METHODS = None
