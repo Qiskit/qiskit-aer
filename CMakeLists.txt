@@ -225,7 +225,7 @@ endif()
 
 message(STATUS "BLAS library found: ${BLAS_LIBRARIES}")
 
-if(CMAKE_HOST_SYSTEM_PROCESSOR STREQUAL "x86_64" OR CMAKE_HOST_SYSTEM_PROCESSOR STREQUAL "AMD64")
+if(CMAKE_HOST_SYSTEM_PROCESSOR STREQUAL "x86_64" OR CMAKE_HOST_SYSTEM_PROCESSOR STREQUAL "AMD64" OR CMAKE_HOST_SYSTEM_PROCESSOR STREQUAL "amd64")
     if(APPLE OR UNIX)
         if (NOT CMAKE_OSX_ARCHITECTURES STREQUAL "arm64")
             set(SIMD_FLAGS_LIST "-mfma;-mavx2")
@@ -331,7 +331,7 @@ if(SKBUILD) # Terra Addon build
 	add_subdirectory(src/open_pulse)
 else() # Standalone build
 
-    if(CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64" OR CMAKE_SYSTEM_PROCESSOR STREQUAL "AMD64")
+    if(CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64" OR CMAKE_SYSTEM_PROCESSOR STREQUAL "AMD64" OR CMAKE_HOST_SYSTEM_PROCESSOR STREQUAL "amd64")
       if (NOT CMAKE_OSX_ARCHITECTURES STREQUAL "arm64")
           # We build SIMD filed separately, because they will be reached only if the
           # machine running the code has SIMD support
