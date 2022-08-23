@@ -19,6 +19,7 @@ from __future__ import annotations
 from collections.abc import Iterable, Sequence
 
 from qiskit.circuit import Parameter, QuantumCircuit
+from qiskit.circuit.parametertable import ParameterView
 from qiskit.compiler import transpile
 from qiskit.exceptions import QiskitError
 from qiskit.primitives import BaseSampler, SamplerResult
@@ -52,7 +53,7 @@ class Sampler(BaseSampler):
 
     def __init__(
         self,
-        circuits: QuantumCircuit | Iterable[QuantumCircuit],
+        circuits: QuantumCircuit | Iterable[QuantumCircuit] | None = None,
         parameters: Iterable[Iterable[Parameter]] | None = None,
         backend_options: dict | None = None,
         transpile_options: dict | None = None,
@@ -69,7 +70,8 @@ class Sampler(BaseSampler):
         """
         if isinstance(circuits, QuantumCircuit):
             circuits = (circuits,)
-        circuits = tuple(init_circuit(circuit) for circuit in circuits)
+        if circuits is not None:
+            circuits = tuple(init_circuit(circuit) for circuit in circuits)
 
         super().__init__(
             circuits=circuits,
@@ -127,6 +129,32 @@ class Sampler(BaseSampler):
             metadata.append({"shots": shots, "simulator_metadata": result.results[i].metadata})
 
         return SamplerResult(quasis, metadata)
+
+    # This method will be used after Terra 0.22.
+    def _run(
+        self,
+        circuits: Sequence[QuantumCircuit],
+        parameter_values: Sequence[Sequence[float]],
+        parameters: Sequence[ParameterView],
+        **run_options,
+    ):
+        # pylint: disable=no-name-in-module, import-error, import-outside-toplevel, no-member
+        from qiskit.primitives.primitive_job import PrimitiveJob
+        from typing import List
+
+        circuit_indices: List[int] = []
+        for i, circuit in enumerate(circuits):
+            index = self._circuit_ids.get(id(circuit))
+            if index is not None:
+                circuit_indices.append(index)
+            else:
+                circuit_indices.append(len(self._circuits))
+                self._circuit_ids[id(circuit)] = len(self._circuits)
+                self._circuits.append(circuit)
+                self._parameters.append(parameters[i])
+        job = PrimitiveJob(self._call, circuit_indices, parameter_values, **run_options)
+        job.submit()
+        return job
 
     def close(self):
         self._is_closed = True
