@@ -72,7 +72,7 @@ common_requirements = [
 
 setup_requirements = common_requirements + [
     'scikit-build>=0.11.0',
-    'cmake!=3.17,!=3.17.0',
+    #'cmake!=3.17,!=3.17.0',
     'pybind11>=2.6',
 ]
 
