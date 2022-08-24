@@ -26,14 +26,14 @@ if(NOT DEFINED AER_THRUST_BACKEND AND DEFINED ENV{AER_THRUST_BACKEND})
 endif()
 
 if(AER_THRUST_BACKEND STREQUAL "CUDA")
-	include(nvcc_add_compiler_options)
-	set(CUDA_FOUND TRUE)
-	#include(FindCUDA) # for cuda_select_nvcc_arch_flags, CUDA_FOUND
-	include(FindCUDA/select_compute_arch)
-	enable_language(CUDA)
+  include(nvcc_add_compiler_options)
+  set(CUDA_FOUND TRUE)
+  #include(FindCUDA) # for cuda_select_nvcc_arch_flags, CUDA_FOUND
+  include(FindCUDA/select_compute_arch)
+  enable_language(CUDA)
 else()
-	# idiosyncrasy of CMake that it still creates a reference to this
-	set(CMAKE_CUDA_COMPILE_WHOLE_COMPILATION "")
+  # idiosyncrasy of CMake that it still creates a reference to this
+  set(CMAKE_CUDA_COMPILE_WHOLE_COMPILATION "")
 endif()
 
 
@@ -60,7 +60,7 @@ include(dependency_utils)
 # Get version information
 get_version(${VERSION_NUM})
 configure_file("${PROJECT_SOURCE_DIR}/contrib/standalone/version.hpp.in"
-							 "${PROJECT_SOURCE_DIR}/contrib/standalone/version.hpp")
+               "${PROJECT_SOURCE_DIR}/contrib/standalone/version.hpp")
 
 set(AER_SIMULATOR_CPP_SRC_DIR "${PROJECT_SOURCE_DIR}/src")
 set(AER_SIMULATOR_CPP_EXTERNAL_LIBS
@@ -99,13 +99,13 @@ if(STATIC_LINKING)
 		message(WARNING "Clang on MacOS doesn't support some -static-* flags. Switching to dyn compilation...")
 		unset(STATIC_LINKING)
 	else()
-			# MacOS compilers don't support -static flag either
-			if(NOT APPLE)
-				enable_cxx_compiler_flag_if_supported("-static")
-			endif()
-			# This is enough to build a semi-static executable on Mac
-			enable_cxx_compiler_flag_if_supported("-static-libgcc")
-			enable_cxx_compiler_flag_if_supported("-static-libstdc++")
+	    # MacOS compilers don't support -static flag either
+	    if(NOT APPLE)
+	        enable_cxx_compiler_flag_if_supported("-static")
+	    endif()
+	    # This is enough to build a semi-static executable on Mac
+	    enable_cxx_compiler_flag_if_supported("-static-libgcc")
+	    enable_cxx_compiler_flag_if_supported("-static-libstdc++")
 	endif()
 endif()
 
@@ -132,10 +132,10 @@ else("Windows general compiler flags")
 endif()
 
 if(STATIC_LINKING)
-	SET(CMAKE_FIND_LIBRARY_SUFFIXES .a ${CMAKE_FIND_LIBRARY_SUFFIXES})
-	if(WIN32)
-		SET(CMAKE_FIND_LIBRARY_SUFFIXES .lib ${CMAKE_FIND_LIBRARY_SUFFIXES})
-	endif()
+    SET(CMAKE_FIND_LIBRARY_SUFFIXES .a ${CMAKE_FIND_LIBRARY_SUFFIXES})
+    if(WIN32)
+        SET(CMAKE_FIND_LIBRARY_SUFFIXES .lib ${CMAKE_FIND_LIBRARY_SUFFIXES})
+    endif()
 endif()
 
 #
@@ -148,7 +148,7 @@ setup_dependencies()
 set(AER_LINKER_FLAGS " ")
 set(AER_COMPILER_FLAGS " ")
 if(MSVC)
-	set(AER_COMPILER_FLAGS " /bigobj")
+  set(AER_COMPILER_FLAGS " /bigobj")
 endif ()
 
 if(NOT OPENMP_FOUND) # Could already be setup for macos with conan
@@ -259,7 +259,7 @@ if(AER_THRUST_SUPPORTED)
 		if(CUSTATEVEC_ROOT)
 			set(AER_COMPILER_DEFINITIONS ${AER_COMPILER_DEFINITIONS} AER_CUSTATEVEC)
 			set(AER_COMPILER_FLAGS "${AER_COMPILER_FLAGS} -I${CUSTATEVEC_ROOT}/include")
-			if(CUSTATEVEC_STATIC)
+            if(CUSTATEVEC_STATIC)
 				set(THRUST_DEPENDANT_LIBS "-L${CUSTATEVEC_ROOT}/lib -L${CUSTATEVEC_ROOT}/lib64 -lcustatevec_static -L${CUDA_TOOLKIT_ROOT_DIR}/lib64 -lcublas")
 			else()
 				set(THRUST_DEPENDANT_LIBS "-L${CUSTATEVEC_ROOT}/lib -L${CUSTATEVEC_ROOT}/lib64 -lcustatevec")
@@ -307,7 +307,7 @@ if(AER_MPI)
 	set(AER_SIMULATOR_CPP_EXTERNAL_LIBS ${AER_SIMULATOR_CPP_EXTERNAL_LIBS} ${MPI_CXX_INCLUDE_PATH})
 	set(MPI_DEPENDANT_LIBS ${MPI_CXX_LIBRARIES})
 	if(AER_DISABLE_GDR)
-		set(AER_COMPILER_DEFINITIONS ${AER_COMPILER_DEFINITIONS} AER_DISABLE_GDR)
+	  set(AER_COMPILER_DEFINITIONS ${AER_COMPILER_DEFINITIONS} AER_DISABLE_GDR)
 	endif()
 else()
 	set(MPI_DEPENDANT_LIBS "")
@@ -331,13 +331,13 @@ if(SKBUILD) # Terra Addon build
 	add_subdirectory(src/open_pulse)
 else() # Standalone build
 
-	if(CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64" OR CMAKE_SYSTEM_PROCESSOR STREQUAL "AMD64" OR CMAKE_HOST_SYSTEM_PROCESSOR STREQUAL "amd64")
-		if (NOT CMAKE_OSX_ARCHITECTURES STREQUAL "arm64")
-			# We build SIMD filed separately, because they will be reached only if the
-			# machine running the code has SIMD support
-			set(SIMD_SOURCE_FILE "${PROJECT_SOURCE_DIR}/src/simulators/statevector/qv_avx2.cpp")
-		endif()
-	endif()
+    if(CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64" OR CMAKE_SYSTEM_PROCESSOR STREQUAL "AMD64" OR CMAKE_HOST_SYSTEM_PROCESSOR STREQUAL "amd64")
+      if (NOT CMAKE_OSX_ARCHITECTURES STREQUAL "arm64")
+          # We build SIMD filed separately, because they will be reached only if the
+          # machine running the code has SIMD support
+          set(SIMD_SOURCE_FILE "${PROJECT_SOURCE_DIR}/src/simulators/statevector/qv_avx2.cpp")
+      endif()
+  endif()
 
 	set(AER_SIMULATOR_SOURCES "${PROJECT_SOURCE_DIR}/contrib/standalone/qasm_simulator.cpp")
 	set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
@@ -352,7 +352,7 @@ else() # Standalone build
 		add_executable(qasm_simulator ${AER_SIMULATOR_SOURCES} ${SIMD_SOURCE_FILE})
 		target_link_libraries(qasm_simulator ${AER_LIBRARIES})
 		string(STRIP ${AER_COMPILER_FLAGS} AER_COMPILER_FLAGS_STRIPPED)
-		nvcc_add_compiler_options(${AER_COMPILER_FLAGS_STRIPPED} AER_COMPILER_FLAGS_OUT)
+                nvcc_add_compiler_options(${AER_COMPILER_FLAGS_STRIPPED} AER_COMPILER_FLAGS_OUT)
 
 		set_target_properties(qasm_simulator PROPERTIES
 			LINKER_LANGUAGE CXX
@@ -362,7 +362,7 @@ else() # Standalone build
 			RUNTIME_OUTPUT_DIRECTORY_DEBUG Debug
 			RUNTIME_OUTPUT_DIRECTORY_RELEASE Release)
 	else()
-		string(REPLACE ";" " " SIMD_FLAGS "${SIMD_FLAGS_LIST}")
+  		string(REPLACE ";" " " SIMD_FLAGS "${SIMD_FLAGS_LIST}")
 		set_source_files_properties(${SIMD_SOURCE_FILE} PROPERTIES COMPILE_FLAGS "${SIMD_FLAGS}")
 		add_executable(qasm_simulator ${AER_SIMULATOR_SOURCES} ${SIMD_SOURCE_FILE})
 		target_link_libraries(qasm_simulator PRIVATE ${AER_LIBRARIES})
@@ -392,54 +392,51 @@ else() # Standalone build
 	# This will add the linter as part of the compiling build target
 	#add_linter(qasm_simulator)
 
+
 	set(AER_RUNTIME_SOURCES "${PROJECT_SOURCE_DIR}/contrib/runtime/aer_runtime.cpp")
 	if(CUDA_FOUND AND AER_THRUST_BACKEND STREQUAL "CUDA")
 		set_source_files_properties(${SIMD_SOURCE_FILE} PROPERTIES LANGUAGE CUDA)
 		set_source_files_properties(${AER_RUNTIME_SOURCES} PROPERTIES LANGUAGE CUDA)
 		set_source_files_properties(${AER_RUNTIME_SOURCES} PROPERTIES COMPILE_FLAGS "${CUDA_NVCC_FLAGS}")
 		if(DEFINED SIMD_FLAGS_LIST)
-			nvcc_add_compiler_options_list("${SIMD_FLAGS_LIST}" SIMD_FLAGS)
-			set_source_files_properties(${SIMD_SOURCE_FILE} PROPERTIES COMPILE_FLAGS "${CUDA_NVCC_FLAGS} ${SIMD_FLAGS}")
+				nvcc_add_compiler_options_list("${SIMD_FLAGS_LIST}" SIMD_FLAGS)
+				set_source_files_properties(${SIMD_SOURCE_FILE} PROPERTIES COMPILE_FLAGS "${CUDA_NVCC_FLAGS} ${SIMD_FLAGS}")
 		endif()
 		add_executable(aer ${AER_RUNTIME_SOURCES} ${SIMD_SOURCE_FILE})
 		target_link_libraries(aer ${AER_LIBRARIES})
 		string(STRIP ${AER_COMPILER_FLAGS} AER_COMPILER_FLAGS_STRIPPED)
 		nvcc_add_compiler_options(${AER_COMPILER_FLAGS_STRIPPED} AER_COMPILER_FLAGS_OUT)
-
 		set_target_properties(aer PROPERTIES
-			LINKER_LANGUAGE CXX
-			CXX_STANDARD 14
-			COMPILE_FLAGS ${AER_COMPILER_FLAGS_OUT}
-			LINK_FLAGS ${AER_LINKER_FLAGS}
-			RUNTIME_OUTPUT_DIRECTORY_DEBUG Debug
-			RUNTIME_OUTPUT_DIRECTORY_RELEASE Release)
+				LINKER_LANGUAGE CXX
+				CXX_STANDARD 14
+				COMPILE_FLAGS ${AER_COMPILER_FLAGS_OUT}
+				LINK_FLAGS ${AER_LINKER_FLAGS}
+				RUNTIME_OUTPUT_DIRECTORY_DEBUG Debug
+				RUNTIME_OUTPUT_DIRECTORY_RELEASE Release)
 	else()
-			string(REPLACE ";" " " SIMD_FLAGS "${SIMD_FLAGS_LIST}")
+		string(REPLACE ";" " " SIMD_FLAGS "${SIMD_FLAGS_LIST}")
 		set_source_files_properties(${SIMD_SOURCE_FILE} PROPERTIES COMPILE_FLAGS "${SIMD_FLAGS}")
 		add_library(aer SHARED ${AER_RUNTIME_SOURCES} ${SIMD_SOURCE_FILE})
 		target_link_libraries(aer PRIVATE ${AER_LIBRARIES})
 		set_target_properties(aer PROPERTIES
-			LINKER_LANGUAGE CXX
-			CXX_STANDARD 14
-			COMPILE_FLAGS ${AER_COMPILER_FLAGS}
-			LINK_FLAGS ${AER_LINKER_FLAGS}
-			RUNTIME_OUTPUT_DIRECTORY_DEBUG Debug
-			RUNTIME_OUTPUT_DIRECTORY_RELEASE Release)
+				LINKER_LANGUAGE CXX
+				CXX_STANDARD 14
+				COMPILE_FLAGS ${AER_COMPILER_FLAGS}
+				LINK_FLAGS ${AER_LINKER_FLAGS}
+				RUNTIME_OUTPUT_DIRECTORY_DEBUG Debug
+				RUNTIME_OUTPUT_DIRECTORY_RELEASE Release)
 	endif()
 	target_include_directories(aer
 		PRIVATE ${AER_SIMULATOR_CPP_SRC_DIR}
 		PRIVATE ${AER_SIMULATOR_CPP_EXTERNAL_LIBS})
-	target_compile_definitions(aer
-		PRIVATE ${AER_COMPILER_DEFINITIONS})
+	target_compile_definitions(aer PRIVATE ${AER_COMPILER_DEFINITIONS})
 	if(WIN32 AND NOT AER_BLAS_LIB_PATH)
 		add_custom_command(TARGET aer POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy_if_different
-				${BACKEND_REDIST_DEPS}
-				$<TARGET_FILE_DIR:aer>)
+						${BACKEND_REDIST_DEPS}
+						$<TARGET_FILE_DIR:aer>)
 		install(FILES ${BACKEND_REDIST_DEPS} DESTINATION bin)
 	endif()
-
 	install(TARGETS aer DESTINATION bin)
-
 endif()
 
 # Tests
