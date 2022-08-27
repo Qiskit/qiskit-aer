@@ -43,7 +43,6 @@ jobs:
           set -e
           mkdir out; cd out; cmake .. -DBUILD_TESTS=1
           make
-          make test
         shell: bash
         if: runner.os != 'Windows'
       - name: Run Unit Tests

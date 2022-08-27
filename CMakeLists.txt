@@ -421,13 +421,16 @@ else() # Standalone build
 			build_cpu(aer ${AER_RUNTIME_SOURCE} FALSE)
 		endif()
 		install(TARGETS aer)
-		# run test
-		add_executable(runtime_test "${PROJECT_SOURCE_DIR}/test/runtime/runtime_sample.c")
-		target_include_directories(runtime_test PUBLIC "${PROJECT_SOURCE_DIR}/contrib/runtime/")
-		set_target_properties(runtime_test PROPERTIES RUNTIME_OUTPUT_DIRECTORY_RELEASE Tests)
-		target_link_libraries(runtime_test PRIVATE ${AER_LIBRARIES})
-		target_link_libraries(runtime_test PRIVATE aer)
-		add_test(NAME aer_runtime_test COMMAND Tests/runtime_test)
+
+		# Tests
+		if(BUILD_TESTS AND NOT AER_MPI)
+			add_executable(test_libaer "${PROJECT_SOURCE_DIR}/test/runtime/runtime_sample.c")
+			target_include_directories(test_libaer PUBLIC "${PROJECT_SOURCE_DIR}/contrib/runtime/")
+			set_target_properties(test_libaer PROPERTIES RUNTIME_OUTPUT_DIRECTORY_RELEASE bin)
+			target_link_libraries(test_libaer PRIVATE ${AER_LIBRARIES})
+			target_link_libraries(test_libaer PRIVATE aer)
+			add_test(NAME aer_runtime_test COMMAND bin/test_libaer)
+		endif()
 	endif()
 
 endif()
