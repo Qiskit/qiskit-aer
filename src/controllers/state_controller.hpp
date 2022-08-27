@@ -286,10 +286,18 @@ public:
   // for measurement of N-qubits.
   virtual std::vector<double> probabilities(const reg_t &qubits);
 
-  // Return M sampled outcomes for Z-basis measurement of all qubits
+  // Return M sampled outcomes for Z-basis measurement of specified qubits
   // The input is a length M list of random reals between [0, 1) used for
   // generating samples.
-  virtual std::unordered_map<uint_t, uint_t> sample_measure(uint_t shots);
+  virtual std::unordered_map<uint_t, uint_t> sample_measure(const reg_t &qubits, uint_t shots);
+
+  //-----------------------------------------------------------------------
+  // Expectation Values
+  //-----------------------------------------------------------------------
+
+  // Return the expectation value of an N-qubit Pauli matrix.
+  // The Pauli is input as a length N string of I,X,Y,Z characters.
+  virtual double expval_pauli(const reg_t &qubits, const std::string &pauli);
 
   //-----------------------------------------------------------------------
   // Operation management
@@ -669,7 +677,8 @@ reg_t AerState::initialize_statevector(uint_t num_of_qubits, complex_t* data, bo
   if(!cache_block_pass_.enabled() || !state->multi_chunk_distribution_supported())
     block_qubits = num_of_qubits_;
   state->allocate(num_of_qubits_, block_qubits);
-  state->initialize_qreg(num_of_qubits_, QV::QubitVector<double>(num_of_qubits_, data, copy));
+  auto qv = QV::QubitVector<double>(num_of_qubits_, data, copy);
+  state->initialize_qreg(num_of_qubits_, qv);
   state->initialize_creg(num_of_qubits_, num_of_qubits_);
   state_ = state;
   rng_.set_seed(seed_);
@@ -678,6 +687,7 @@ reg_t AerState::initialize_statevector(uint_t num_of_qubits, complex_t* data, bo
   ret.reserve(num_of_qubits);
   for (auto i = 0; i < num_of_qubits; ++i)
     ret.push_back(i);
+  qv.move_to_vector().move_to_buffer();
   return ret;
 };
 
@@ -702,15 +712,13 @@ AER::Vector<complex_t> AerState::move_to_vector() {
   for (auto i = 0; i < num_of_qubits_; ++i)
     op.qubits.push_back(i);
   op.string_params.push_back("s");
-  op.save_type = Operations::DataSubType::list;
+  op.save_type = Operations::DataSubType::single;
 
-  ExperimentResult *ret = new ExperimentResult();
-  state_->apply_op(op, *ret, rng_);
+  ExperimentResult ret;
+  state_->apply_op(op, ret, rng_, true);
 
-  auto sv = AER::Vector<complex_t>(std::move(((DataMap<ListData, Vector<complex_t>>)ret->data).value()["s"].value()[0]));
+  auto sv = std::move(static_cast<DataMap<SingleData, Vector<complex_t>>>(std::move(ret).data).value()["s"].value());
   clear();
-
-  free(ret);
 
   return std::move(sv);
 };
@@ -1020,18 +1028,14 @@ std::vector<double> AerState::probabilities(const reg_t &qubits) {
   return ((DataMap<ListData, rvector_t>)last_result_.data).value()["s"].value()[0];
 }
 
-std::unordered_map<uint_t, uint_t> AerState::sample_measure(uint_t shots) {
+std::unordered_map<uint_t, uint_t> AerState::sample_measure(const reg_t &qubits, uint_t shots) {
   assert_initialized();
 
   flush_ops();
 
-  reg_t qubits;
-  qubits.reserve(num_of_qubits_);
-  for (uint_t i = 0; i < num_of_qubits_; ++i)
-    qubits.push_back(i);
   std::vector<reg_t> samples = state_->sample_measure(qubits, shots, rng_);
   std::unordered_map<uint_t, uint_t> ret;
-  for(const auto sample: samples) {
+  for(const auto & sample: samples) {
     uint_t sample_u = 0ULL;
     uint_t mask = 1ULL;
     for (const auto b: sample) {
@@ -1045,6 +1049,15 @@ std::unordered_map<uint_t, uint_t> AerState::sample_measure(uint_t shots) {
   }
   return ret;
 }
+
+double AerState::expval_pauli(const reg_t &qubits, const std::string &pauli) {
+  assert_initialized();
+
+  flush_ops();
+
+  return state_->expval_pauli(qubits, pauli);
+}
+
 
 //-----------------------------------------------------------------------
 // Operation management

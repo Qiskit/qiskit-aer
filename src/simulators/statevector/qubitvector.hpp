@@ -799,9 +799,12 @@ AER::Vector<std::complex<data_t>> QubitVector<data_t>::copy_to_vector() const {
 
 template <typename data_t>
 AER::Vector<std::complex<data_t>> QubitVector<data_t>::move_to_vector() {
-  const auto vec = AER::Vector<std::complex<data_t>>::move_from_buffer(data_size_, data_);
+  const auto data = data_;
+  const auto data_size = data_size_;
   data_ = nullptr;
-  return vec;
+  data_size_ = 0;
+  num_qubits_ = 0;
+  return AER::Vector<std::complex<data_t>>::move_from_buffer(data_size, data);
 }
 
 //------------------------------------------------------------------------------

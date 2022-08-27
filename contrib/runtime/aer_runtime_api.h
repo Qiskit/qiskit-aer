@@ -3,7 +3,10 @@
 
 typedef uint_fast64_t uint_t; 
 
-// initialize and return state
+// construct an aer state
+void* aer_state();
+
+// initialize aer state
 void* aer_state_initialize();
 
 // finalize state

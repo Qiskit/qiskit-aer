@@ -4,8 +4,14 @@
 // initialize and return state
 extern "C" {
 
-void* aer_state_initialize() {
+void* aer_state() {
   AER::AerState* handler = new AER::AerState();
+  return handler;
+};
+
+void* aer_state_initialize(void* handler) {
+  AER::AerState* state = reinterpret_cast<AER::AerState*>(handler);
+  state->initialize();
   return handler;
 };
 

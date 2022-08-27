@@ -648,8 +648,9 @@ auto State<statevec_t>::move_to_vector(const int_t iChunkIn)
 #endif
     return state;
   }
-  else
-    return BaseState::qregs_[iChunkIn].move_to_vector();
+  else {
+    return std::move(BaseState::qregs_[iChunkIn].move_to_vector());
+  }
 }
 
 template <class statevec_t>
@@ -1032,11 +1033,12 @@ void State<statevec_t>::apply_save_statevector(const int_t iChunk, const Operati
                       : op.string_params[0];
 
   if (last_op) {
-    result.save_data_pershot(BaseState::chunk_creg(iChunk), key, move_to_vector(iChunk),
-                                 OpType::save_statevec, op.save_type);
+    auto v = move_to_vector(iChunk);
+    result.save_data_pershot(BaseState::chunk_creg(iChunk), key, std::move(v),
+                                  OpType::save_statevec, op.save_type);
   } else {
     result.save_data_pershot(BaseState::chunk_creg(iChunk), key, copy_to_vector(iChunk),
-                                 OpType::save_statevec, op.save_type);
+                                OpType::save_statevec, op.save_type);
   }
 }
 
