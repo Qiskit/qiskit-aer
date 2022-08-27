@@ -392,50 +392,52 @@ else() # Standalone build
 	# This will add the linter as part of the compiling build target
 	#add_linter(qasm_simulator)
 
-	set(AER_RUNTIME_SOURCES "${PROJECT_SOURCE_DIR}/contrib/runtime/aer_runtime.cpp")
-	if(CUDA_FOUND AND AER_THRUST_BACKEND STREQUAL "CUDA")
-		set_source_files_properties(${SIMD_SOURCE_FILE} PROPERTIES LANGUAGE CUDA)
-		set_source_files_properties(${AER_RUNTIME_SOURCES} PROPERTIES LANGUAGE CUDA)
-		set_source_files_properties(${AER_RUNTIME_SOURCES} PROPERTIES COMPILE_FLAGS "${CUDA_NVCC_FLAGS}")
-		if(DEFINED SIMD_FLAGS_LIST)
-			nvcc_add_compiler_options_list("${SIMD_FLAGS_LIST}" SIMD_FLAGS)
-			set_source_files_properties(${SIMD_SOURCE_FILE} PROPERTIES COMPILE_FLAGS "${CUDA_NVCC_FLAGS} ${SIMD_FLAGS}")
-		endif()
-		add_executable(aer ${AER_RUNTIME_SOURCES} ${SIMD_SOURCE_FILE})
-		target_link_libraries(aer ${AER_LIBRARIES})
-		string(STRIP ${AER_COMPILER_FLAGS} AER_COMPILER_FLAGS_STRIPPED)
-		nvcc_add_compiler_options(${AER_COMPILER_FLAGS_STRIPPED} AER_COMPILER_FLAGS_OUT)
+	if(CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64" OR CMAKE_SYSTEM_PROCESSOR STREQUAL "AMD64" OR CMAKE_HOST_SYSTEM_PROCESSOR STREQUAL "amd64")
+		set(AER_RUNTIME_SOURCES "${PROJECT_SOURCE_DIR}/contrib/runtime/aer_runtime.cpp")
+		if(CUDA_FOUND AND AER_THRUST_BACKEND STREQUAL "CUDA")
+			set_source_files_properties(${SIMD_SOURCE_FILE} PROPERTIES LANGUAGE CUDA)
+			set_source_files_properties(${AER_RUNTIME_SOURCES} PROPERTIES LANGUAGE CUDA)
+			set_source_files_properties(${AER_RUNTIME_SOURCES} PROPERTIES COMPILE_FLAGS "${CUDA_NVCC_FLAGS}")
+			if(DEFINED SIMD_FLAGS_LIST)
+				nvcc_add_compiler_options_list("${SIMD_FLAGS_LIST}" SIMD_FLAGS)
+				set_source_files_properties(${SIMD_SOURCE_FILE} PROPERTIES COMPILE_FLAGS "${CUDA_NVCC_FLAGS} ${SIMD_FLAGS}")
+			endif()
+			add_executable(aer ${AER_RUNTIME_SOURCES} ${SIMD_SOURCE_FILE})
+			target_link_libraries(aer ${AER_LIBRARIES})
+			string(STRIP ${AER_COMPILER_FLAGS} AER_COMPILER_FLAGS_STRIPPED)
+			nvcc_add_compiler_options(${AER_COMPILER_FLAGS_STRIPPED} AER_COMPILER_FLAGS_OUT)
 
-		set_target_properties(aer PROPERTIES
-			LINKER_LANGUAGE CXX
-			CXX_STANDARD 14
-			COMPILE_FLAGS ${AER_COMPILER_FLAGS_OUT}
-			LINK_FLAGS ${AER_LINKER_FLAGS}
-			RUNTIME_OUTPUT_DIRECTORY_DEBUG Debug
-			RUNTIME_OUTPUT_DIRECTORY_RELEASE Release)
-	else()
+			set_target_properties(aer PROPERTIES
+				LINKER_LANGUAGE CXX
+				CXX_STANDARD 14
+				COMPILE_FLAGS ${AER_COMPILER_FLAGS_OUT}
+				LINK_FLAGS ${AER_LINKER_FLAGS}
+				RUNTIME_OUTPUT_DIRECTORY_DEBUG Debug
+				RUNTIME_OUTPUT_DIRECTORY_RELEASE Release)
+		else()
 			string(REPLACE ";" " " SIMD_FLAGS "${SIMD_FLAGS_LIST}")
-		set_source_files_properties(${SIMD_SOURCE_FILE} PROPERTIES COMPILE_FLAGS "${SIMD_FLAGS}")
-		add_library(aer SHARED ${AER_RUNTIME_SOURCES} ${SIMD_SOURCE_FILE})
-		target_link_libraries(aer PRIVATE ${AER_LIBRARIES})
-		set_target_properties(aer PROPERTIES
-			LINKER_LANGUAGE CXX
-			CXX_STANDARD 14
-			COMPILE_FLAGS ${AER_COMPILER_FLAGS}
-			LINK_FLAGS ${AER_LINKER_FLAGS}
-			RUNTIME_OUTPUT_DIRECTORY_DEBUG Debug
-			RUNTIME_OUTPUT_DIRECTORY_RELEASE Release)
-	endif()
-	target_include_directories(aer
-		PRIVATE ${AER_SIMULATOR_CPP_SRC_DIR}
-		PRIVATE ${AER_SIMULATOR_CPP_EXTERNAL_LIBS})
-	target_compile_definitions(aer
-		PRIVATE ${AER_COMPILER_DEFINITIONS})
-	if(WIN32 AND NOT AER_BLAS_LIB_PATH)
-		add_custom_command(TARGET aer POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy_if_different
-				${BACKEND_REDIST_DEPS}
-				$<TARGET_FILE_DIR:aer>)
-		install(FILES ${BACKEND_REDIST_DEPS} DESTINATION bin)
+			set_source_files_properties(${SIMD_SOURCE_FILE} PROPERTIES COMPILE_FLAGS "${SIMD_FLAGS}")
+			add_library(aer SHARED ${AER_RUNTIME_SOURCES} ${SIMD_SOURCE_FILE})
+			target_link_libraries(aer PRIVATE ${AER_LIBRARIES})
+			set_target_properties(aer PROPERTIES
+				LINKER_LANGUAGE CXX
+				CXX_STANDARD 14
+				COMPILE_FLAGS ${AER_COMPILER_FLAGS}
+				LINK_FLAGS ${AER_LINKER_FLAGS}
+				RUNTIME_OUTPUT_DIRECTORY_DEBUG Debug
+				RUNTIME_OUTPUT_DIRECTORY_RELEASE Release)
+		endif()
+		target_include_directories(aer
+			PRIVATE ${AER_SIMULATOR_CPP_SRC_DIR}
+			PRIVATE ${AER_SIMULATOR_CPP_EXTERNAL_LIBS})
+		target_compile_definitions(aer
+			PRIVATE ${AER_COMPILER_DEFINITIONS})
+		if(WIN32 AND NOT AER_BLAS_LIB_PATH)
+			add_custom_command(TARGET aer POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy_if_different
+					${BACKEND_REDIST_DEPS}
+					$<TARGET_FILE_DIR:aer>)
+			install(FILES ${BACKEND_REDIST_DEPS} DESTINATION bin)
+		endif()
 	endif()
 
 	install(TARGETS aer DESTINATION bin)
