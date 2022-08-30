@@ -128,7 +128,7 @@ class Sampler(BaseSampler):
         for i in range(len(experiments)):
             if shots is None:
                 probabilities = result.data(i)["probabilities"]
-                quasis.append(QuasiDistribution({k: v for k, v in probabilities.items()}))
+                quasis.append(QuasiDistribution(probabilities))
             else:
                 counts = result.data(i)["counts"]
                 shots = sum(counts.values())
