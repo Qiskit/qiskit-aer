@@ -117,11 +117,12 @@ jobs:
         shell: bash
       - name: Install Aer
         run: |
-          python -m pip install -e .
+          python -m pip install -U .
       - name: Run Tests
         run: |
           set -e
           pip check
+          rm -rf qiskit_aer
           stestr run --slowest
         shell: bash
   tests-json-input:
@@ -201,11 +202,12 @@ jobs:
           set -e
           pip install -U -c constraints.txt -r requirements-dev.txt
       - name: Install Aer
-        run: python -m pip install -e .
+        run: python -m pip install -U .
       - name: Run Tests
         run: |
           set -e
           pip check
+          rm -rf qiskit_aer
           stestr run --slowest
         shell: bash
   tests_windows:
@@ -252,6 +254,6 @@ jobs:
           set -e
           chcp.com 65001
           pip check
-          rm -r qiskit_aer
+          rm -rf qiskit_aer
           stestr run --slowest
         shell: bash
