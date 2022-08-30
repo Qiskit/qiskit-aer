@@ -70,16 +70,16 @@ class TestSampler(QiskitAerTestCase):
             raise ValueError(f"invalid index {indices}")
         return params, target
 
-    def _compare_probs(self, prob, target):
+    def _compare_probs(self, prob, target, places=1):
         if not isinstance(target, list):
             target = [target]
         self.assertEqual(len(prob), len(target))
         for p, targ in zip(prob, target):
             for key, t_val in targ.items():
                 if key in p:
-                    self.assertAlmostEqual(p[key], t_val, places=1)
+                    self.assertAlmostEqual(p[key], t_val, places=places)
                 else:
-                    self.assertAlmostEqual(t_val, 0, places=1)
+                    self.assertAlmostEqual(t_val, 0, places=places)
 
     @data([0], [1], [0, 1])
     def test_sampler(self, indices):
@@ -332,6 +332,13 @@ class TestSampler(QiskitAerTestCase):
         with Sampler(circuits=self._pqc) as sampler:
             result = sampler(circuits=[0], parameter_values=params, shots=1024, seed=15)
             self._compare_probs(result.quasi_dists, target)
+
+    def test_with_shots_none(self):
+        """test with shots None."""
+        params, target = self._generate_params_target([1])
+        with Sampler(circuits=self._pqc) as sampler:
+            result = sampler(circuits=[0], parameter_values=params, shots=None)
+            self._compare_probs(result.quasi_dists, target, places=5)
 
 
 if __name__ == "__main__":
