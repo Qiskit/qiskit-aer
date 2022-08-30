@@ -12,10 +12,10 @@
 
 """
 ===================================================
-Primitives (:mod:`qiskit.providers.aer.primitives`)
+Primitives (:mod:`qiskit_aer.primitives`)
 ===================================================
 
-.. currentmodule:: qiskit.providers.aer.primitives
+.. currentmodule:: qiskit_aer.primitives
 
 This module is Aer implementation of primitives.
 See the docs https://qiskit.org/documentation/apidoc/primitives.html for general descriptions.
