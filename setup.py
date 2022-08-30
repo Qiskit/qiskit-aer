@@ -104,7 +104,7 @@ if is_win_32_bit:
 setup(
     name=PACKAGE_NAME,
     version=VERSION,
-    packages=(setuptools.find_packages(include=['qiskit_aer']) + setuptools.find_packages(include=['qiskit_aer.*'])),
+    packages=(setuptools.find_packages(include=['qiskit_aer']) + setuptools.find_namespace_packages(include=['qiskit_aer.*'])),
     cmake_source_dir='.',
     description="Qiskit Aer - High performance simulators for Qiskit",
     long_description=README,
