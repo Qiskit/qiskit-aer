@@ -116,7 +116,8 @@ jobs:
           sudo apt-get install -y libopenblas-dev
         shell: bash
       - name: Install Aer
-        run: python -m pip install -U .
+        run: |
+          python -m pip install -e .
       - name: Run Tests
         run: |
           set -e
@@ -166,6 +167,7 @@ jobs:
         run: |
           set -e
           pip check
+          rm -rf qiskit_aer
           stestr run --slowest
         shell: bash
   tests_macos:
@@ -199,7 +201,7 @@ jobs:
           set -e
           pip install -U -c constraints.txt -r requirements-dev.txt
       - name: Install Aer
-        run: python -m pip install -U .
+        run: python -m pip install -e .
       - name: Run Tests
         run: |
           set -e
@@ -250,5 +252,6 @@ jobs:
           set -e
           chcp.com 65001
           pip check
+          rm -r qiskit_aer
           stestr run --slowest
         shell: bash
