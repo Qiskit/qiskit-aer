@@ -23,7 +23,7 @@ from qiskit.circuit.parametertable import ParameterView
 from qiskit.compiler import transpile
 from qiskit.exceptions import QiskitError
 from qiskit.primitives import BaseSampler, SamplerResult
-from qiskit.primitives.utils import init_circuit
+from qiskit.primitives.utils import final_measurement_mapping, init_circuit
 from qiskit.result import QuasiDistribution
 
 from .. import AerSimulator
@@ -36,7 +36,7 @@ class Sampler(BaseSampler):
     :Run Options:
 
         - **shots** (None or int) --
-          The number of shots. If None, it calculates the probabilities.
+          The number of shots. If None, it calculates the probabilities exactly.
           Otherwise, it samples from multinomial distributions.
 
         - **seed** (int) --
@@ -94,6 +94,7 @@ class Sampler(BaseSampler):
             raise QiskitError("The primitive has been closed.")
 
         seed = run_options.pop("seed", None)
+        shots = run_options.get("shots")
         if seed is not None:
             run_options.setdefault("seed_simulator", seed)
 
@@ -108,6 +109,8 @@ class Sampler(BaseSampler):
                 )
 
             circuit = self._circuits[i]
+            if shots is None:
+                circuit = self._preprocess_circuit(circuit)
             experiments.append(circuit)
             parameter = {k: [v] for k, v in zip(self._parameters[i], value)}
             parameter_binds.append(parameter)
@@ -123,9 +126,13 @@ class Sampler(BaseSampler):
         metadata = []
         quasis = []
         for i in range(len(experiments)):
-            counts = result.get_counts(i)
-            shots = counts.shots()
-            quasis.append(QuasiDistribution({k: v / shots for k, v in counts.items()}))
+            if shots is None:
+                probabilities = result.data(i)["probabilities"]
+                quasis.append(QuasiDistribution({k: v for k, v in probabilities.items()}))
+            else:
+                counts = result.data(i)["counts"]
+                shots = sum(counts.values())
+                quasis.append(QuasiDistribution({k: v / shots for k, v in counts.items()}))
             metadata.append({"shots": shots, "simulator_metadata": result.results[i].metadata})
 
         return SamplerResult(quasis, metadata)
@@ -139,8 +146,9 @@ class Sampler(BaseSampler):
         **run_options,
     ):
         # pylint: disable=no-name-in-module, import-error, import-outside-toplevel, no-member
-        from qiskit.primitives.primitive_job import PrimitiveJob
         from typing import List
+
+        from qiskit.primitives.primitive_job import PrimitiveJob
 
         circuit_indices: List[int] = []
         for i, circuit in enumerate(circuits):
@@ -158,3 +166,19 @@ class Sampler(BaseSampler):
 
     def close(self):
         self._is_closed = True
+
+    @staticmethod
+    def _preprocess_circuit(circuit: QuantumCircuit):
+        circuit = init_circuit(circuit)
+        q_c_mapping = final_measurement_mapping(circuit)
+        if set(range(circuit.num_clbits)) != set(q_c_mapping.values()):
+            raise QiskitError(
+                "Some classical bits are not used for measurements. "
+                f"The number of classical bits {circuit.num_clbits}, "
+                f"the used classical bits {set(q_c_mapping.values())}."
+            )
+        c_q_mapping = sorted((c, q) for q, c in q_c_mapping.items())
+        qargs = [q for _, q in c_q_mapping]
+        circuit = circuit.remove_final_measurements(inplace=False)
+        circuit.save_probabilities_dict(qargs)
+        return circuit
