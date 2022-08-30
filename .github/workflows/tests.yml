@@ -116,10 +116,11 @@ jobs:
           sudo apt-get install -y libopenblas-dev
         shell: bash
       - name: Install Aer
-        run: python -m pip install -U -e .
+        run: python -m pip install -U .
       - name: Run Tests
         run: |
           set -e
+          mv qiskit_aer qiskit_aer.bak
           pip check
           stestr run --slowest
         shell: bash
@@ -161,10 +162,11 @@ jobs:
         run: |
           set -e
           python setup.py bdist_wheel -- -DTEST_JSON=1
-          pip install -e --find-links=dist qiskit-aer
+          pip install --find-links=dist qiskit-aer
       - name: Run Tests
         run: |
           set -e
+          mv qiskit_aer qiskit_aer.bak
           pip check
           stestr run --slowest
         shell: bash
@@ -197,12 +199,13 @@ jobs:
       - name: Install Deps
         run: |
           set -e
-          pip install -e -U -c constraints.txt -r requirements-dev.txt
+          pip install -U -c constraints.txt -r requirements-dev.txt
       - name: Install Aer
         run: python -m pip install -U .
       - name: Run Tests
         run: |
           set -e
+          mv qiskit_aer qiskit_aer.bak
           pip check
           stestr run --slowest
         shell: bash
@@ -235,7 +238,7 @@ jobs:
       - name: Add msbuild to PATH
         uses: microsoft/setup-msbuild@v1.0.2
       - name: Install Deps
-        run: python -m pip install -e -U -c constraints.txt -r requirements-dev.txt wheel
+        run: python -m pip install -U -c constraints.txt -r requirements-dev.txt wheel
       - name: Install Aer Windows
         run: |
           set -e
@@ -248,6 +251,7 @@ jobs:
           PYTHONIOENCODING: 'utf-8:backslashreplace'
         run: |
           set -e
+          mv qiskit_aer qiskit_aer.bak
           chcp.com 65001
           pip check
           stestr run --slowest
