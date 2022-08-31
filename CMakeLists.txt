@@ -331,66 +331,108 @@ if(SKBUILD) # Terra Addon build
 	add_subdirectory(src/open_pulse)
 else() # Standalone build
 
-    if(CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64" OR CMAKE_SYSTEM_PROCESSOR STREQUAL "AMD64" OR CMAKE_HOST_SYSTEM_PROCESSOR STREQUAL "amd64")
-      if (NOT CMAKE_OSX_ARCHITECTURES STREQUAL "arm64")
-          # We build SIMD filed separately, because they will be reached only if the
-          # machine running the code has SIMD support
-          set(SIMD_SOURCE_FILE "${PROJECT_SOURCE_DIR}/src/simulators/statevector/qv_avx2.cpp")
-      endif()
-  endif()
-
-	set(AER_SIMULATOR_SOURCES "${PROJECT_SOURCE_DIR}/contrib/standalone/qasm_simulator.cpp")
-	set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
-	if(CUDA_FOUND AND AER_THRUST_BACKEND STREQUAL "CUDA")
+	function(build_cuda target src_file is_exec)
+		if(CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64" OR CMAKE_SYSTEM_PROCESSOR STREQUAL "AMD64" OR CMAKE_HOST_SYSTEM_PROCESSOR STREQUAL "amd64")
+			if (NOT CMAKE_OSX_ARCHITECTURES STREQUAL "arm64")
+				# We build SIMD filed separately, because they will be reached only if the
+				# machine running the code has SIMD support
+				set(SIMD_SOURCE_FILE "${PROJECT_SOURCE_DIR}/src/simulators/statevector/qv_avx2.cpp")
+			endif()
+		endif()
 		set_source_files_properties(${SIMD_SOURCE_FILE} PROPERTIES LANGUAGE CUDA)
-		set_source_files_properties(${AER_SIMULATOR_SOURCES} PROPERTIES LANGUAGE CUDA)
-		set_source_files_properties(${AER_SIMULATOR_SOURCES} PROPERTIES COMPILE_FLAGS "${CUDA_NVCC_FLAGS}")
+		set_source_files_properties(${src_file} PROPERTIES LANGUAGE CUDA)
+		set_source_files_properties(${src_file} PROPERTIES COMPILE_FLAGS "${CUDA_NVCC_FLAGS}")
 		if(DEFINED SIMD_FLAGS_LIST)
 			nvcc_add_compiler_options_list("${SIMD_FLAGS_LIST}" SIMD_FLAGS)
 			set_source_files_properties(${SIMD_SOURCE_FILE} PROPERTIES COMPILE_FLAGS "${CUDA_NVCC_FLAGS} ${SIMD_FLAGS}")
 		endif()
-		add_executable(qasm_simulator ${AER_SIMULATOR_SOURCES} ${SIMD_SOURCE_FILE})
-		target_link_libraries(qasm_simulator ${AER_LIBRARIES})
+		if(${is_exec})
+			add_executable(${target} ${src_file} ${SIMD_SOURCE_FILE})
+		else()
+			add_library(${target} ${src_file} ${SIMD_SOURCE_FILE})
+		endif()
+		target_link_libraries(${target} ${AER_LIBRARIES})
 		string(STRIP ${AER_COMPILER_FLAGS} AER_COMPILER_FLAGS_STRIPPED)
-                nvcc_add_compiler_options(${AER_COMPILER_FLAGS_STRIPPED} AER_COMPILER_FLAGS_OUT)
+		nvcc_add_compiler_options(${AER_COMPILER_FLAGS_STRIPPED} AER_COMPILER_FLAGS_OUT)
 
-		set_target_properties(qasm_simulator PROPERTIES
+		set_target_properties(${target} PROPERTIES
 			LINKER_LANGUAGE CXX
 			CXX_STANDARD 14
 			COMPILE_FLAGS ${AER_COMPILER_FLAGS_OUT}
 			LINK_FLAGS ${AER_LINKER_FLAGS}
 			RUNTIME_OUTPUT_DIRECTORY_DEBUG Debug
 			RUNTIME_OUTPUT_DIRECTORY_RELEASE Release)
-	else()
-  		string(REPLACE ";" " " SIMD_FLAGS "${SIMD_FLAGS_LIST}")
+	endfunction()
+
+	function(build_cpu target src_file is_exec)
+		if(CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64" OR CMAKE_SYSTEM_PROCESSOR STREQUAL "AMD64" OR CMAKE_HOST_SYSTEM_PROCESSOR STREQUAL "amd64")
+			if (NOT CMAKE_OSX_ARCHITECTURES STREQUAL "arm64")
+				# We build SIMD filed separately, because they will be reached only if the
+				# machine running the code has SIMD support
+				set(SIMD_SOURCE_FILE "${PROJECT_SOURCE_DIR}/src/simulators/statevector/qv_avx2.cpp")
+			endif()
+		endif()
+		string(REPLACE ";" " " SIMD_FLAGS "${SIMD_FLAGS_LIST}")
 		set_source_files_properties(${SIMD_SOURCE_FILE} PROPERTIES COMPILE_FLAGS "${SIMD_FLAGS}")
-		add_executable(qasm_simulator ${AER_SIMULATOR_SOURCES} ${SIMD_SOURCE_FILE})
-		target_link_libraries(qasm_simulator PRIVATE ${AER_LIBRARIES})
-		set_target_properties(qasm_simulator PROPERTIES
+		if(${is_exec})
+			add_executable(${target} ${src_file} ${SIMD_SOURCE_FILE})
+		else()
+			add_library(${target} SHARED ${src_file} ${SIMD_SOURCE_FILE})
+		endif()
+		target_link_libraries(${target} PRIVATE ${AER_LIBRARIES})
+		set_target_properties(${target} PROPERTIES
 			LINKER_LANGUAGE CXX
 			CXX_STANDARD 14
 			COMPILE_FLAGS ${AER_COMPILER_FLAGS}
 			LINK_FLAGS ${AER_LINKER_FLAGS}
 			RUNTIME_OUTPUT_DIRECTORY_DEBUG Debug
 			RUNTIME_OUTPUT_DIRECTORY_RELEASE Release)
-	endif()
-	target_include_directories(qasm_simulator
-		PRIVATE ${AER_SIMULATOR_CPP_SRC_DIR}
-		PRIVATE ${AER_SIMULATOR_CPP_EXTERNAL_LIBS})
-	target_compile_definitions(qasm_simulator
-		PRIVATE ${AER_COMPILER_DEFINITIONS})
-	if(WIN32 AND NOT AER_BLAS_LIB_PATH)
-		add_custom_command(TARGET qasm_simulator POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy_if_different
-				${BACKEND_REDIST_DEPS}
-				$<TARGET_FILE_DIR:qasm_simulator>)
-		install(FILES ${BACKEND_REDIST_DEPS} DESTINATION bin)
+
+		target_include_directories(${target}
+			PRIVATE ${AER_SIMULATOR_CPP_SRC_DIR}
+			PRIVATE ${AER_SIMULATOR_CPP_EXTERNAL_LIBS})
+		target_compile_definitions(${target}
+			PRIVATE ${AER_COMPILER_DEFINITIONS})
+		if(WIN32 AND NOT AER_BLAS_LIB_PATH)
+			add_custom_command(TARGET ${target} POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy_if_different
+					${BACKEND_REDIST_DEPS}
+					$<TARGET_FILE_DIR:${target}>)
+			install(FILES ${BACKEND_REDIST_DEPS} DESTINATION bin)
+		endif()
+	endfunction()
+
+	# build qasm_simulator
+	set(AER_SIMULATOR_SOURCE "${PROJECT_SOURCE_DIR}/contrib/standalone/qasm_simulator.cpp")
+	set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
+	if(CUDA_FOUND AND AER_THRUST_BACKEND STREQUAL "CUDA")
+		build_cuda(qasm_simulator ${AER_SIMULATOR_SOURCE} TRUE)
+	else()
+		build_cpu(qasm_simulator ${AER_SIMULATOR_SOURCE} TRUE)
 	endif()
 
 	install(TARGETS qasm_simulator DESTINATION bin)
 
-	# Linter
-	# This will add the linter as part of the compiling build target
-	#add_linter(qasm_simulator)
+	# build libaer.so (currently, Linux on x86 is supportted)
+	if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
+		set(AER_RUNTIME_SOURCE "${PROJECT_SOURCE_DIR}/contrib/runtime/aer_runtime.cpp")
+		if(CUDA_FOUND AND AER_THRUST_BACKEND STREQUAL "CUDA")
+			build_cuda(aer ${AER_RUNTIME_SOURCE} FALSE)
+		else()
+			build_cpu(aer ${AER_RUNTIME_SOURCE} FALSE)
+		endif()
+		install(TARGETS aer)
+
+		# Tests
+		if(BUILD_TESTS AND NOT AER_MPI)
+			add_executable(test_libaer "${PROJECT_SOURCE_DIR}/test/runtime/runtime_sample.c")
+			target_include_directories(test_libaer PUBLIC "${PROJECT_SOURCE_DIR}/contrib/runtime/")
+			set_target_properties(test_libaer PROPERTIES RUNTIME_OUTPUT_DIRECTORY_RELEASE bin)
+			target_link_libraries(test_libaer PRIVATE ${AER_LIBRARIES})
+			target_link_libraries(test_libaer PRIVATE aer)
+			add_test(NAME aer_runtime_test COMMAND bin/test_libaer)
+		endif()
+	endif()
+
 endif()
 
 # Tests
