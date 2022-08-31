@@ -15,7 +15,7 @@ AerSimualtor options tests
 
 from ddt import ddt, data
 from qiskit import QuantumCircuit, transpile
-from qiskit.providers.aer.noise import NoiseModel
+from qiskit_aer.noise import NoiseModel
 from test.terra.backends.simulator_test_case import (
     SimulatorTestCase, supported_methods)
 from qiskit.quantum_info.random import random_unitary

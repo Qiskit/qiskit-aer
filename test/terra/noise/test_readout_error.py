@@ -18,8 +18,8 @@ from test.terra.common import QiskitAerTestCase
 
 import numpy as np
 
-from qiskit.providers.aer.noise.noiseerror import NoiseError
-from qiskit.providers.aer.noise.errors.readout_error import ReadoutError
+from qiskit_aer.noise.noiseerror import NoiseError
+from qiskit_aer.noise.errors.readout_error import ReadoutError
 
 
 class TestReadoutError(QiskitAerTestCase):

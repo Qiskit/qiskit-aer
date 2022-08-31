@@ -19,7 +19,7 @@ from ddt import ddt, data
 from qiskit import transpile, assemble
 from qiskit.providers import JobError
 from qiskit.circuit.random import random_circuit
-from qiskit.providers.aer.jobs import split_qobj
+from qiskit_aer.jobs import split_qobj
 from test.terra.reference.ref_save_expval import (
     save_expval_circuits,
     save_expval_circuit_parameterized,

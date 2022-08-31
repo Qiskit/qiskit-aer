@@ -26,7 +26,7 @@ from qiskit.opflow import PauliSumOp
 from qiskit.primitives import EstimatorResult
 from qiskit.quantum_info import Operator, SparsePauliOp
 
-from qiskit.providers.aer.primitives import Estimator
+from qiskit_aer.primitives import Estimator
 
 
 class TestEstimator(QiskitAerTestCase):

@@ -4,8 +4,8 @@ Independent/manual construction and solving of DEs for verification of pulse sim
 
 import numpy as np
 from scipy.linalg import expm
-from qiskit.providers.aer.pulse.de.DE_Methods import ScipyODE
-from qiskit.providers.aer.pulse.de.DE_Options import DE_Options
+from qiskit_aer.pulse.de.DE_Methods import ScipyODE
+from qiskit_aer.pulse.de.DE_Options import DE_Options
 
 I = np.eye(2, dtype=complex)
 X = np.array([[0., 1.], [1., 0.]])

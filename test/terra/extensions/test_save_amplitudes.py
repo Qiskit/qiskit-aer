@@ -14,7 +14,7 @@
 import unittest
 
 from qiskit.extensions.exceptions import ExtensionError
-from qiskit.providers.aer.library import SaveAmplitudes
+from qiskit_aer.library import SaveAmplitudes
 from ..common import QiskitAerTestCase
 
 

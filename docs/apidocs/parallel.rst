@@ -43,7 +43,7 @@ Example: Threadpool execution
 
     import qiskit
     from concurrent.futures import ThreadPoolExecutor
-    from qiskit.providers.aer import AerSimulator
+    from qiskit_aer import AerSimulator
     from math import pi
 
     # Generate circuit
@@ -78,7 +78,7 @@ guard it by an ``if __name__ == "__main__":`` block.
 .. code-block:: python
 
     import qiskit
-    from qiskit.providers.aer import AerSimulator
+    from qiskit_aer import AerSimulator
     from dask.distributed import LocalCluster, Client
     from math import pi
     def q_exec():

@@ -17,16 +17,16 @@ NoiseModel class integration tests
 import unittest
 
 import numpy as np
-from qiskit.providers.aer.backends import AerSimulator
-from qiskit.providers.aer.noise import NoiseModel
-from qiskit.providers.aer.noise.device.models import _excited_population
-from qiskit.providers.aer.noise.errors import QuantumError
-from qiskit.providers.aer.noise.errors.standard_errors import amplitude_damping_error
-from qiskit.providers.aer.noise.errors.standard_errors import kraus_error
-from qiskit.providers.aer.noise.errors.standard_errors import pauli_error
-from qiskit.providers.aer.noise.errors.standard_errors import reset_error
-from qiskit.providers.aer.noise.errors.standard_errors import thermal_relaxation_error
-from qiskit.providers.aer.utils.noise_transformation import transform_noise_model
+from qiskit_aer.backends import AerSimulator
+from qiskit_aer.noise import NoiseModel
+from qiskit_aer.noise.device.models import _excited_population
+from qiskit_aer.noise.errors import QuantumError
+from qiskit_aer.noise.errors.standard_errors import amplitude_damping_error
+from qiskit_aer.noise.errors.standard_errors import kraus_error
+from qiskit_aer.noise.errors.standard_errors import pauli_error
+from qiskit_aer.noise.errors.standard_errors import reset_error
+from qiskit_aer.noise.errors.standard_errors import thermal_relaxation_error
+from qiskit_aer.utils.noise_transformation import transform_noise_model
 
 from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.circuit.library.generalized_gates import PauliGate

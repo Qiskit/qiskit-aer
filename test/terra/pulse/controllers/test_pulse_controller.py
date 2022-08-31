@@ -14,7 +14,7 @@
 
 import unittest
 import numpy as np
-from qiskit.providers.aer.pulse.controllers.pulse_controller import setup_rhs_dict_freqs
+from qiskit_aer.pulse.controllers.pulse_controller import setup_rhs_dict_freqs
 
 from ...common import QiskitAerTestCase
 

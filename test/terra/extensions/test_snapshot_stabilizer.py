@@ -15,7 +15,7 @@ import unittest
 from warnings import filterwarnings
 from qiskit import QuantumCircuit, assemble
 from qiskit.extensions.exceptions import ExtensionError
-from qiskit.providers.aer.extensions.snapshot_stabilizer import SnapshotStabilizer
+from qiskit_aer.extensions.snapshot_stabilizer import SnapshotStabilizer
 
 from ..common import QiskitAerTestCase
 

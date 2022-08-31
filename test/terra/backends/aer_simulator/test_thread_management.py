@@ -20,8 +20,8 @@ from ddt import ddt, data
 
 from qiskit import transpile, QuantumCircuit
 from qiskit.circuit.library import QuantumVolume
-from qiskit.providers.aer.noise import NoiseModel
-from qiskit.providers.aer.noise.errors.standard_errors import pauli_error
+from qiskit_aer.noise import NoiseModel
+from qiskit_aer.noise.errors.standard_errors import pauli_error
 from test.terra.decorators import requires_omp, requires_multiprocessing
 from test.terra.backends.simulator_test_case import SimulatorTestCase
 

@@ -21,7 +21,7 @@ from qiskit import QuantumCircuit, transpile
 from qiskit.circuit.random import random_circuit
 from qiskit.quantum_info import Statevector
 from test.terra.reference import ref_kraus_noise
-from qiskit.providers.aer.jobs import AerJob, AerJobSet
+from qiskit_aer.jobs import AerJob, AerJobSet
 from test.terra.backends.simulator_test_case import (
     SimulatorTestCase, supported_methods)
 

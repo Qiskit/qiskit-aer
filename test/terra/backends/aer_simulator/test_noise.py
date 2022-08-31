@@ -14,7 +14,7 @@ AerSimulator Integration Tests
 """
 
 from ddt import ddt
-from qiskit.providers.aer import noise
+from qiskit_aer import noise
 
 import qiskit.quantum_info as qi
 from qiskit import transpile

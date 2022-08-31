@@ -17,7 +17,7 @@ import numpy
 
 from qiskit import QuantumCircuit, assemble
 from qiskit.extensions.exceptions import ExtensionError
-from qiskit.providers.aer.extensions.snapshot_expectation_value import SnapshotExpectationValue
+from qiskit_aer.extensions.snapshot_expectation_value import SnapshotExpectationValue
 from qiskit.quantum_info.operators import Pauli, Operator
 
 from ..common import QiskitAerTestCase
