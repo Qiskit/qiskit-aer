@@ -25,7 +25,7 @@ from qiskit.exceptions import QiskitError
 from qiskit.primitives import SamplerResult
 
 from qiskit import QuantumCircuit
-from qiskit.providers.aer.primitives import Sampler
+from qiskit_aer.primitives import Sampler
 
 
 @ddt

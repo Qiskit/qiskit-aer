@@ -14,7 +14,7 @@ RelaxationNoisePass class tests
 """
 
 import ddt
-from qiskit.providers.aer.noise import thermal_relaxation_error, RelaxationNoisePass
+from qiskit_aer.noise import thermal_relaxation_error, RelaxationNoisePass
 
 import qiskit.quantum_info as qi
 from qiskit.circuit import QuantumCircuit, Delay

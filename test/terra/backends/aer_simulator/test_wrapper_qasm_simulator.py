@@ -15,7 +15,7 @@ StatevectorSimulator Integration Tests
 
 from ddt import ddt, data
 
-from qiskit.providers.aer import QasmSimulator, AerError
+from qiskit_aer import QasmSimulator, AerError
 from test.terra.backends.simulator_test_case import (
     SimulatorTestCase, supported_methods)
 
