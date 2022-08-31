@@ -20,9 +20,9 @@ import numpy as np
 from qiskit.circuit import QuantumCircuit, Reset, Measure
 from qiskit.circuit.library.standard_gates import *
 from qiskit.extensions import UnitaryGate
-from qiskit.providers.aer.noise import QuantumError
-from qiskit.providers.aer.noise.errors.errorutils import standard_gate_unitary
-from qiskit.providers.aer.noise.noiseerror import NoiseError
+from qiskit_aer.noise import QuantumError
+from qiskit_aer.noise.errors.errorutils import standard_gate_unitary
+from qiskit_aer.noise.noiseerror import NoiseError
 from qiskit.quantum_info.operators import SuperOp, Kraus, Pauli
 from test.terra.common import QiskitAerTestCase
 

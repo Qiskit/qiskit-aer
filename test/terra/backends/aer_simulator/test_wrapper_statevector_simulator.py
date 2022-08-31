@@ -25,7 +25,7 @@ from test.terra.reference import ref_unitary_gate
 from test.terra.reference import ref_diagonal_gate
 
 from qiskit import transpile
-from qiskit.providers.aer import StatevectorSimulator, AerError
+from qiskit_aer import StatevectorSimulator, AerError
 from test.terra.backends.simulator_test_case import (
     SimulatorTestCase, supported_devices)
 

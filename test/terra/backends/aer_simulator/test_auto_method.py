@@ -14,11 +14,11 @@ AerSimulator Integration Tests
 """
 
 from ddt import ddt
-from qiskit.providers.aer.noise import NoiseModel
-from qiskit.providers.aer.noise.errors import QuantumError
-from qiskit.providers.aer.noise.errors import amplitude_damping_error
-from qiskit.providers.aer.noise.errors import mixed_unitary_error
-from qiskit.providers.aer.noise.errors import pauli_error
+from qiskit_aer.noise import NoiseModel
+from qiskit_aer.noise.errors import QuantumError
+from qiskit_aer.noise.errors import amplitude_damping_error
+from qiskit_aer.noise.errors import mixed_unitary_error
+from qiskit_aer.noise.errors import pauli_error
 from test.terra.backends.simulator_test_case import (
     SimulatorTestCase)
 from test.terra.reference import ref_2q_clifford

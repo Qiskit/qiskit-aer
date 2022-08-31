@@ -4,10 +4,10 @@ NoiseModel class integration tests
 
 import unittest
 
-from qiskit.providers.aer.noise import NoiseModel
-from qiskit.providers.aer.noise.errors import depolarizing_error
-from qiskit.providers.aer.noise.noiseerror import NoiseError
-from qiskit.providers.aer.utils import remap_noise_model
+from qiskit_aer.noise import NoiseModel
+from qiskit_aer.noise.errors import depolarizing_error
+from qiskit_aer.noise.noiseerror import NoiseError
+from qiskit_aer.utils import remap_noise_model
 from test.terra.common import QiskitAerTestCase
 
 

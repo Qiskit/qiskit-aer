@@ -9,7 +9,7 @@
 # be linked statically per Apple's indications.
 
 cmake_minimum_required(VERSION 3.8 FATAL_ERROR)
-file(STRINGS "qiskit/providers/aer/VERSION.txt" VERSION_NUM)
+file(STRINGS "qiskit_aer/VERSION.txt" VERSION_NUM)
 
 include(CheckLanguage)
 project(qasm_simulator VERSION ${VERSION_NUM} LANGUAGES CXX C)
@@ -327,7 +327,7 @@ set(AER_LIBRARIES
 set(AER_COMPILER_DEFINITIONS ${AER_COMPILER_DEFINITIONS} ${CONAN_DEFINES})
 if(SKBUILD) # Terra Addon build
 	set(AER_LIBRARIES ${AER_LIBRARIES} AER_DEPENDENCY_PKG::muparserx)
-	add_subdirectory(qiskit/providers/aer/backends/wrappers)
+	add_subdirectory(qiskit_aer/backends/wrappers)
 	add_subdirectory(src/open_pulse)
 else() # Standalone build
 

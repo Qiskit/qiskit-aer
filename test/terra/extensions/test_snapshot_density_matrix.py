@@ -15,7 +15,7 @@ import unittest
 from warnings import filterwarnings
 from qiskit import QuantumCircuit, assemble
 from qiskit.extensions.exceptions import ExtensionError
-from qiskit.providers.aer.extensions.snapshot_density_matrix import SnapshotDensityMatrix
+from qiskit_aer.extensions.snapshot_density_matrix import SnapshotDensityMatrix
 
 from ..common import QiskitAerTestCase
 
