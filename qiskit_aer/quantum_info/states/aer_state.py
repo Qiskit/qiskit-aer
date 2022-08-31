@@ -26,6 +26,8 @@ class AerState:
         self._state = AerStateWrapper()
         self._method = 'statevector'
         self._last_qubit = -1
+        self._initialized = False
+        self._closed = False
 
     def _is_created_state(self):
         return (not self._initialized) and (not self._closed)
@@ -95,7 +97,6 @@ class AerState:
         num_of_qubits = int(np.log2(len(data)))
         if len(data) != np.power(2, num_of_qubits):
             raise AerError('length of init data must be power of two')
-        qubits = [qubit for qubit in range(num_of_qubits)]
 
         initialized = False
         if (isinstance(data, np.ndarray) and
@@ -106,7 +107,7 @@ class AerState:
         if not initialized:
             self._state.reallocate_qubits(num_of_qubits)
             self._state.initialize()
-            self._state.apply_initialize(qubits, data)
+            self._state.apply_initialize(range(num_of_qubits), data)
 
     def close(self):
         """safely release all releated memory."""
@@ -123,7 +124,7 @@ class AerState:
         This method must be called before `initialize()`."""
         self._assert_created_state()
         if num_of_qubits <= 0:
-            raise AerError('invalid number of qubits: {}'.format(num_of_qubits))
+            raise AerError(f'invalid number of qubits: {num_of_qubits}')
         allocated = self._state.allocate_qubits(num_of_qubits)
         self._last_qubit = allocated[len(allocated) - 1]
 
@@ -132,7 +133,7 @@ class AerState:
             for q in qubit:
                 self._assert_in_allocated_qubits(q)
         elif qubit < 0 or qubit > self._last_qubit:
-            raise AerError('invalid qubit: index={}'.format(qubit))
+            raise AerError(f'invalid qubit: index={qubit}')
 
     @property
     def num_qubits(self):
@@ -158,16 +159,17 @@ class AerState:
         self._assert_initialized_state()
         self._assert_in_allocated_qubits(qubits)
         # Convert to numpy array in case not already an array
-        data = np.array(data, dtype=complex)
+        np_array = np.array(data, dtype=complex)
         # Check input is N-qubit matrix
-        input_dim, output_dim = data.shape
+        input_dim = np_array.shape[0]
+        output_dim = np_array.shape[1]
         num_qubits = int(np.log2(input_dim))
         if input_dim != output_dim or 2**num_qubits != input_dim:
             raise AerError("Input matrix is not an N-qubit operator.")
         if len(qubits) != num_qubits:
             raise AerError("Input matrix and qubits are insonsistent.")
         # update state
-        self._state.apply_unitary(qubits, data)
+        self._state.apply_unitary(qubits, np_array)
 
     def apply_multiplexer(self, control_qubits, target_qubits, mats):
         """apply a multiplexer operation."""
@@ -256,7 +258,7 @@ class AerState:
         self._assert_in_allocated_qubits(qubit0)
         self._assert_in_allocated_qubits(qubit1)
         # update state
-        self._state.apply_mcswap(control_qubits + [qubit0, qubit1], theta, phi, lamb)
+        self._state.apply_mcswap(control_qubits + [qubit0, qubit1])
 
     def apply_measure(self, qubits):
         """apply a measure operation."""
@@ -282,7 +284,7 @@ class AerState:
         """return probabilities of `qubits`."""
         self._assert_initialized_state()
         if qubits is None:
-            qubits = [q for q in range(self._last_qubit + 1)]
+            qubits = range(self._last_qubit + 1)
         else:
             self._assert_in_allocated_qubits(qubits)
 
@@ -293,7 +295,7 @@ class AerState:
         """samples all the qubits."""
         self._assert_initialized_state()
         if qubits is None:
-            qubits = [q for q in range(self._last_qubit + 1)]
+            qubits = range(self._last_qubit + 1)
         else:
             self._assert_in_allocated_qubits(qubits)
         return self._state.sample_measure(qubits, shots)
