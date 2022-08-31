@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    Add new class AerState to support access simulator state from python directly.
+    This class is just for internal usages and end users can access it through
+    other classes such as AerStatevector.
