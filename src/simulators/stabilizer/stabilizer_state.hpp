@@ -67,10 +67,10 @@ enum class SnapshotDataType {average, average_var, pershot};
 // Stabilizer Table state class
 //============================================================================
 
-class State : public Base::State<Clifford::Clifford> {
+class State : public QuantumState::State<Clifford::Clifford> {
 
 public:
-  using BaseState = Base::State<Clifford::Clifford>;
+  using BaseState = QuantumState::State<Clifford::Clifford>;
 
   State() : BaseState(StateOpSet) {}
 
@@ -321,7 +321,7 @@ void State::set_config(const json_t &config) {
 void State::apply_op(const Operations::Op &op,
                      ExperimentResult &result,
                      RngEngine &rng, bool final_op) {
-  if (BaseState::creg_.check_conditional(op)) {
+  if (BaseState::creg().check_conditional(op)) {
     switch (op.type) {
       case OpType::barrier:
       case OpType::qerror_loc:
@@ -333,10 +333,10 @@ void State::apply_op(const Operations::Op &op,
         apply_measure(op.qubits, op.memory, op.registers, rng);
         break;
       case OpType::bfunc:
-        BaseState::creg_.apply_bfunc(op);
+        BaseState::creg().apply_bfunc(op);
         break;
       case OpType::roerror:
-        BaseState::creg_.apply_roerror(op, rng);
+        BaseState::creg().apply_roerror(op, rng);
         break;
       case OpType::gate:
         apply_gate(op);
@@ -473,7 +473,7 @@ void State::apply_measure(const reg_t &qubits,
   // Apply measurement and get classical outcome
   reg_t outcome = apply_measure_and_update(qubits, rng);
   // Add measurement outcome to creg
-  BaseState::creg_.store_measure(outcome, cmemory, cregister);
+  BaseState::creg().store_measure(outcome, cmemory, cregister);
 }
 
 
@@ -561,7 +561,7 @@ void State::apply_save_stabilizer(const Operations::Op &op,
       throw std::invalid_argument("Invalid save state instruction for stabilizer");
   }
   json_t clifford = BaseState::qreg_;
-  BaseState::save_data_pershot(result, key, std::move(clifford), op_type, op.save_type);
+  result.save_data_pershot(creg(), key, std::move(clifford), op_type, op.save_type);
 }
 
 void State::apply_save_probs(const Operations::Op &op,
@@ -584,14 +584,14 @@ void State::apply_save_probs(const Operations::Op &op,
     std::map<std::string, double> probs;
     get_probabilities_auxiliary(
         op.qubits, std::string(op.qubits.size(), 'X'), 1, probs);
-    BaseState::save_data_average(result, op.string_params[0],
-                                 std::move(probs), op.type, op.save_type);
+    result.save_data_average(creg(), op.string_params[0],
+                             std::move(probs), op.type, op.save_type);
   } else {
     std::vector<double> probs(1ULL << op.qubits.size(), 0.);
     get_probabilities_auxiliary(
       op.qubits, std::string(op.qubits.size(), 'X'), 1, probs); 
-    BaseState::save_data_average(result, op.string_params[0],
-                                 std::move(probs), op.type, op.save_type);
+    result.save_data_average(creg(), op.string_params[0],
+                             std::move(probs), op.type, op.save_type);
   }
 }
 
@@ -608,8 +608,8 @@ void State::apply_save_amplitudes_sq(const Operations::Op &op,
   for (size_t i = 0; i < op.int_params.size(); i++) {
     amps_sq[i] = get_probability(op.qubits, Utils::int2bin(op.int_params[i], num_qubits));
   }
-  BaseState::save_data_average(result, op.string_params[0],
-                               std::move(amps_sq), op.type, op.save_type);
+  result.save_data_average(creg(), op.string_params[0],
+                           std::move(amps_sq), op.type, op.save_type);
 }
 
 double State::expval_pauli(const reg_t &qubits,
@@ -865,7 +865,7 @@ void State::snapshot_probabilities(const Operations::Op &op,
 
   // Add snapshot to data
   result.legacy_data.add_average_snapshot("probabilities", op.string_params[0],
-                            BaseState::creg_.memory_hex(), probs, variance);
+                            BaseState::creg().memory_hex(), probs, variance);
 }
 
 
@@ -890,11 +890,11 @@ void State::snapshot_pauli_expval(const Operations::Op &op,
   switch (type) {
     case SnapshotDataType::average:
       result.legacy_data.add_average_snapshot("expectation_value", op.string_params[0],
-                            BaseState::creg_.memory_hex(), expval, false);
+                            BaseState::creg().memory_hex(), expval, false);
       break;
     case SnapshotDataType::average_var:
       result.legacy_data.add_average_snapshot("expectation_value", op.string_params[0],
-                            BaseState::creg_.memory_hex(), expval, true);
+                            BaseState::creg().memory_hex(), expval, true);
       break;
     case SnapshotDataType::pershot:
       result.legacy_data.add_pershot_snapshot("expectation_values", op.string_params[0], expval);

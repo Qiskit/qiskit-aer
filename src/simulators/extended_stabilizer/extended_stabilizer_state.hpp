@@ -66,10 +66,10 @@ enum class Snapshots {
   probs
 };
 
-class State: public Base::State<chstate_t>
+class State: public QuantumState::State<chstate_t>
 {
 public:
-  using BaseState = Base::State<chstate_t>;
+  using BaseState = QuantumState::State<chstate_t>;
   
   State() : BaseState(StateOpSet) {}
   virtual ~State() = default;
@@ -437,7 +437,7 @@ void State::apply_ops(InputIterator first, InputIterator last, ExperimentResult 
       for (auto it = it_nonstab_begin; it != last; it++)
       {
         const auto op = *it;
-        if(BaseState::creg_.check_conditional(op)) {
+        if(BaseState::creg().check_conditional(op)) {
           switch (op.type) {
             case Operations::OpType::gate:
               apply_gate(op, rng);
@@ -452,10 +452,10 @@ void State::apply_ops(InputIterator first, InputIterator last, ExperimentResult 
               apply_measure(op.qubits, op.memory, op.registers, rng);
               break;
             case Operations::OpType::roerror:
-              BaseState::creg_.apply_roerror(op, rng);
+              BaseState::creg().apply_roerror(op, rng);
               break;
             case Operations::OpType::bfunc:
-              BaseState::creg_.apply_bfunc(op);
+              BaseState::creg().apply_bfunc(op);
               break;
             case Operations::OpType::snapshot:
               apply_snapshot(op, result, rng);
@@ -575,7 +575,7 @@ void State::apply_stabilizer_circuit(InputIterator first, InputIterator last,
   for (auto it = first; it != last; ++it)
   {
     const Operations::Op op = *it;
-    if(BaseState::creg_.check_conditional(op)) {
+    if(BaseState::creg().check_conditional(op)) {
       switch (op.type)
       {
         case Operations::OpType::gate:
@@ -591,10 +591,10 @@ void State::apply_stabilizer_circuit(InputIterator first, InputIterator last,
           apply_measure(op.qubits, op.memory, op.registers, rng);
           break;
         case Operations::OpType::roerror:
-          BaseState::creg_.apply_roerror(op, rng);
+          BaseState::creg().apply_roerror(op, rng);
           break;
         case Operations::OpType::bfunc:
-          BaseState::creg_.apply_bfunc(op);
+          BaseState::creg().apply_bfunc(op);
           break;
         case Operations::OpType::snapshot:
           apply_snapshot(op, result, rng);
@@ -671,7 +671,7 @@ void State::apply_measure(const reg_t &qubits, const reg_t &cmemory, const reg_t
     }
   }
   // Convert the output string to a reg_t. and store
-  BaseState::creg_.store_measure(outcome, cmemory, cregister);
+  BaseState::creg().store_measure(outcome, cmemory, cregister);
 }
 
 void State::apply_reset(const reg_t &qubits, AER::RngEngine &rng)
@@ -826,8 +826,8 @@ void State::apply_save_statevector(const Operations::Op &op,
   if (BaseState::has_global_phase_) {
     statevec *= BaseState::global_phase_;
   }
-  BaseState::save_data_pershot(
-    result, op.string_params[0],
+  result.save_data_pershot(
+    creg(), op.string_params[0],
     std::move(statevec),
     op.type, op.save_type);
 }
@@ -858,9 +858,9 @@ void State::apply_save_expval(const Operations::Op &op,
     std::vector<double> expval_var(2);
     expval_var[0] = expval;  // mean
     expval_var[1] = sq_expval - expval * expval;  // variance
-    save_data_average(result, op.string_params[0], expval_var, op.type, op.save_type);
+    result.save_data_average(creg(), op.string_params[0], expval_var, op.type, op.save_type);
   } else {
-    save_data_average(result, op.string_params[0], expval, op.type, op.save_type);
+    result.save_data_average(creg(), op.string_params[0], expval, op.type, op.save_type);
   }
 }
 
@@ -1005,7 +1005,7 @@ void State::probabilities_snapshot(const Operations::Op &op, ExperimentResult &r
     }
   }
   result.legacy_data.add_average_snapshot("probabilities", op.string_params[0],
-                            BaseState::creg_.memory_hex(),
+                            BaseState::creg().memory_hex(),
                             Utils::vec2ket(probs, snapshot_chop_threshold_, 16),
                             false);
 }

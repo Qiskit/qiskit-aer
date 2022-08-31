@@ -66,9 +66,9 @@ enum class Snapshots { superop };
 //=========================================================================
 
 template <class data_t = QV::Superoperator<double>>
-class State : public Base::State<data_t> {
+class State : public QuantumState::State<data_t> {
 public:
-  using BaseState = Base::State<data_t>;
+  using BaseState = QuantumState::State<data_t>;
 
   State() : BaseState(StateOpSet) {}
   virtual ~State() = default;
@@ -247,7 +247,7 @@ void State<data_t>::apply_op(const Operations::Op &op,
                              ExperimentResult &result,
                              RngEngine &rng,
                              bool final_op) {
-  if (BaseState::creg_.check_conditional(op)) {
+  if (BaseState::creg().check_conditional(op)) {
     switch (op.type) {
       case Operations::OpType::barrier:
       case Operations::OpType::qerror_loc:
@@ -256,10 +256,10 @@ void State<data_t>::apply_op(const Operations::Op &op,
         apply_gate(op);
         break;
       case Operations::OpType::bfunc:
-          BaseState::creg_.apply_bfunc(op);
+          BaseState::creg().apply_bfunc(op);
         break;
       case Operations::OpType::roerror:
-          BaseState::creg_.apply_roerror(op, rng);
+          BaseState::creg().apply_roerror(op, rng);
         break;
       case Operations::OpType::reset:
         apply_reset(op.qubits);
@@ -558,15 +558,15 @@ void State<statevec_t>::apply_save_state(const Operations::Op &op,
                       ? "superop"
                       : op.string_params[0];
   if (last_op) {
-    BaseState::save_data_pershot(result, key,
-                                 BaseState::qreg_.move_to_matrix(),
-                                 Operations::OpType::save_superop,
-                                 op.save_type);
+    result.save_data_pershot(BaseState::creg(), key,
+                             BaseState::qreg_.move_to_matrix(),
+                             Operations::OpType::save_superop,
+                             op.save_type);
   } else {
-    BaseState::save_data_pershot(result, key,
-                                 BaseState::qreg_.copy_to_matrix(),
-                                 Operations::OpType::save_superop,
-                                 op.save_type);
+    result.save_data_pershot(BaseState::creg(), key,
+                             BaseState::qreg_.copy_to_matrix(),
+                             Operations::OpType::save_superop,
+                             op.save_type);
   }
 }
 

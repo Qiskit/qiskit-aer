@@ -94,9 +94,9 @@ enum class SnapshotDataType {average, average_var, pershot};
 
 using matrixproductstate_t = MPS;
 
-class State : public Base::State<matrixproductstate_t> {
+class State : public QuantumState::State<matrixproductstate_t> {
 public:
-  using BaseState = Base::State<matrixproductstate_t>;
+  using BaseState = QuantumState::State<matrixproductstate_t>;
 
   State() : BaseState(StateOpSet) {}
   State(uint_t num_qubits) : State() {qreg_.initialize((uint_t)num_qubits);}
@@ -528,7 +528,7 @@ void State::output_bond_dimensions(const Operations::Op &op) const {
 void State::apply_op(const Operations::Op &op,
                       ExperimentResult &result,
                       RngEngine &rng, bool final_op) {
-  if (BaseState::creg_.check_conditional(op)) {
+  if (BaseState::creg().check_conditional(op)) {
     switch (op.type) {
       case OpType::barrier:
       case OpType::qerror_loc:
@@ -543,10 +543,10 @@ void State::apply_op(const Operations::Op &op,
         apply_measure(op.qubits, op.memory, op.registers, rng);
         break;
       case OpType::bfunc:
-        BaseState::creg_.apply_bfunc(op);
+        BaseState::creg().apply_bfunc(op);
         break;
       case OpType::roerror:
-        BaseState::creg_.apply_roerror(op, rng);
+        BaseState::creg().apply_roerror(op, rng);
         break;
       case OpType::gate:
         apply_gate(op);
@@ -626,11 +626,11 @@ void State::apply_save_mps(const Operations::Op &op,
                       ? "matrix_product_state"
                       : op.string_params[0];
   if (last_op) {
-    BaseState::save_data_pershot(result, key, qreg_.move_to_mps_container(),
-				                         OpType::save_mps, op.save_type);
+    result.save_data_pershot(creg(), key, qreg_.move_to_mps_container(),
+		                         OpType::save_mps, op.save_type);
   } else {
-    BaseState::save_data_pershot(result, key, qreg_.copy_to_mps_container(),
-                                 OpType::save_mps, op.save_type);
+    result.save_data_pershot(creg(), key, qreg_.copy_to_mps_container(),
+                             OpType::save_mps, op.save_type);
   }
 }
 
@@ -639,12 +639,12 @@ void State::apply_save_probs(const Operations::Op &op,
   rvector_t probs;
   qreg_.get_probabilities_vector(probs, op.qubits);
   if (op.type == OpType::save_probs_ket) {
-    BaseState::save_data_average(result, op.string_params[0],
-                                 Utils::vec2ket(probs, MPS::get_json_chop_threshold(), 16),
-                                 op.type, op.save_type);
+    result.save_data_average(creg(), op.string_params[0],
+                             Utils::vec2ket(probs, MPS::get_json_chop_threshold(), 16),
+                             op.type, op.save_type);
   } else {
-    BaseState::save_data_average(result, op.string_params[0],
-                                 std::move(probs), op.type, op.save_type);
+    result.save_data_average(creg(), op.string_params[0],
+                             std::move(probs), op.type, op.save_type);
   }
 }
 
@@ -659,11 +659,11 @@ void State::apply_save_amplitudes(const Operations::Op &op,
     std::vector<double> amps_sq(op.int_params.size());
     std::transform(amps.data(), amps.data() + amps.size(), amps_sq.begin(),
       [](complex_t val) -> double { return pow(abs(val), 2); });
-    BaseState::save_data_average(result, op.string_params[0],
-                                 std::move(amps_sq), op.type, op.save_type);
+    result.save_data_average(creg(), op.string_params[0],
+                             std::move(amps_sq), op.type, op.save_type);
   } else {
-    BaseState::save_data_pershot(result, op.string_params[0],
-                                 std::move(amps), op.type, op.save_type);
+    result.save_data_pershot(creg(), op.string_params[0],
+                             std::move(amps), op.type, op.save_type);
   }
 }
 
@@ -679,8 +679,8 @@ void State::apply_save_statevector(const Operations::Op &op,
         "Save statevector was not applied to all qubits."
         " Only the full statevector can be saved.");
   }
-  BaseState::save_data_pershot(result, op.string_params[0],
-                               qreg_.full_statevector(), op.type, op.save_type);
+  result.save_data_pershot(creg(), op.string_params[0],
+                           qreg_.full_statevector(), op.type, op.save_type);
 }
 
 
@@ -694,8 +694,8 @@ void State::apply_save_density_matrix(const Operations::Op &op,
     reduced_state = qreg_.density_matrix(op.qubits);
   }
 
-  BaseState::save_data_average(result, op.string_params[0],
-                               std::move(reduced_state), op.type, op.save_type);
+  result.save_data_average(creg(), op.string_params[0],
+                           std::move(reduced_state), op.type, op.save_type);
 }
 
 //=========================================================================
@@ -723,11 +723,11 @@ void State::snapshot_pauli_expval(const Operations::Op &op,
   switch (type) {
     case SnapshotDataType::average:
       result.legacy_data.add_average_snapshot("expectation_value", op.string_params[0],
-                            BaseState::creg_.memory_hex(), expval, false);
+                                              BaseState::creg().memory_hex(), expval, false);
       break;
     case SnapshotDataType::average_var:
       result.legacy_data.add_average_snapshot("expectation_value", op.string_params[0],
-                            BaseState::creg_.memory_hex(), expval, true);
+                                              BaseState::creg().memory_hex(), expval, true);
       break;
     case SnapshotDataType::pershot:
       result.legacy_data.add_pershot_snapshot("expectation_values", op.string_params[0], expval);
@@ -761,11 +761,11 @@ void State::snapshot_matrix_expval(const Operations::Op &op,
   switch (type) {
     case SnapshotDataType::average:
       result.legacy_data.add_average_snapshot("expectation_value", op.string_params[0],
-                            BaseState::creg_.memory_hex(), expval, false);
+                                              BaseState::creg().memory_hex(), expval, false);
       break;
     case SnapshotDataType::average_var:
       result.legacy_data.add_average_snapshot("expectation_value", op.string_params[0],
-                            BaseState::creg_.memory_hex(), expval, true);
+                                              BaseState::creg().memory_hex(), expval, true);
       break;
     case SnapshotDataType::pershot:
       result.legacy_data.add_pershot_snapshot("expectation_values", op.string_params[0], expval);
@@ -776,8 +776,7 @@ void State::snapshot_matrix_expval(const Operations::Op &op,
 void State::snapshot_state(const Operations::Op &op,
 			   ExperimentResult &result,
 			   std::string name) {
-  result.legacy_data.add_pershot_snapshot(
-    "statevector", op.string_params[0], qreg_.full_statevector());
+  result.legacy_data.add_pershot_snapshot("statevector", op.string_params[0], qreg_.full_statevector());
 }
 
 void State::snapshot_probabilities(const Operations::Op &op,
@@ -789,7 +788,7 @@ void State::snapshot_probabilities(const Operations::Op &op,
 
   bool variance = type == SnapshotDataType::average_var;
   result.legacy_data.add_average_snapshot("probabilities", op.string_params[0], 
-  			    BaseState::creg_.memory_hex(), probs, variance);
+  			                                  BaseState::creg().memory_hex(), probs, variance);
 
 }
 
@@ -808,11 +807,11 @@ void State::snapshot_density_matrix(const Operations::Op &op,
   switch (type) {
     case SnapshotDataType::average:
       result.legacy_data.add_average_snapshot("density_matrix", op.string_params[0],
-                            BaseState::creg_.memory_hex(), std::move(reduced_state), false);
+                                              BaseState::creg().memory_hex(), std::move(reduced_state), false);
       break;
     case SnapshotDataType::average_var:
       result.legacy_data.add_average_snapshot("density_matrix", op.string_params[0],
-                            BaseState::creg_.memory_hex(), std::move(reduced_state), true);
+                                              BaseState::creg().memory_hex(), std::move(reduced_state), true);
       break;
     case SnapshotDataType::pershot:
       result.legacy_data.add_pershot_snapshot("density_matrix", op.string_params[0], std::move(reduced_state));
@@ -1006,7 +1005,7 @@ void State::apply_measure(const reg_t &qubits,
   for (int_t i = 0; i < qubits.size(); ++i)
     rands.push_back(rng.rand(0., 1.));
   reg_t outcome = qreg_.apply_measure(qubits, rands);
-  creg_.store_measure(outcome, cmemory, cregister);
+  creg().store_measure(outcome, cmemory, cregister);
 }
 
 rvector_t State::measure_probs(const reg_t &qubits) const {
