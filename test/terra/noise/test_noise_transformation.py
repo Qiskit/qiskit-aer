@@ -16,15 +16,15 @@ NoiseTransformer class tests
 import unittest
 
 import numpy
-from qiskit.providers.aer.noise import NoiseModel
-from qiskit.providers.aer.noise.errors.quantum_error import QuantumError
-from qiskit.providers.aer.noise.errors.standard_errors import amplitude_damping_error
-from qiskit.providers.aer.noise.errors.standard_errors import pauli_error
-from qiskit.providers.aer.noise.errors.standard_errors import reset_error
-from qiskit.providers.aer.noise.noiseerror import NoiseError
-from qiskit.providers.aer.utils import NoiseTransformer
-from qiskit.providers.aer.utils import approximate_noise_model
-from qiskit.providers.aer.utils import approximate_quantum_error
+from qiskit_aer.noise import NoiseModel
+from qiskit_aer.noise.errors.quantum_error import QuantumError
+from qiskit_aer.noise.errors.standard_errors import amplitude_damping_error
+from qiskit_aer.noise.errors.standard_errors import pauli_error
+from qiskit_aer.noise.errors.standard_errors import reset_error
+from qiskit_aer.noise.noiseerror import NoiseError
+from qiskit_aer.utils import NoiseTransformer
+from qiskit_aer.utils import approximate_noise_model
+from qiskit_aer.utils import approximate_quantum_error
 from test.terra.common import QiskitAerTestCase
 
 from qiskit.circuit import Reset

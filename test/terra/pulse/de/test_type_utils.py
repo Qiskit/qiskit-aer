@@ -13,7 +13,7 @@
 """tests for type_utils.py"""
 
 import numpy as np
-from qiskit.providers.aer.pulse.de.type_utils import (convert_state,
+from qiskit_aer.pulse.de.type_utils import (convert_state,
                                                       type_spec_from_instance,
                                                       StateTypeConverter)
 

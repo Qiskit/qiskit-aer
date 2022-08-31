@@ -22,14 +22,14 @@ from test.terra import common
 from qiskit import QuantumCircuit, transpile, schedule
 from qiskit.providers.fake_provider import FakeArmonk, FakeAthens
 
-from qiskit.providers.aer.backends import PulseSimulator
+from qiskit_aer.backends import PulseSimulator
 from qiskit.pulse import (Schedule, Play, ShiftPhase, SetPhase, Delay, Acquire,
                           Waveform, DriveChannel, ControlChannel,
                           AcquireChannel, MemorySlot)
-from qiskit.providers.aer.aererror import AerError
+from qiskit_aer.aererror import AerError
 
-from qiskit.providers.aer.pulse.system_models.pulse_system_model import PulseSystemModel
-from qiskit.providers.aer.pulse.system_models.hamiltonian_model import HamiltonianModel
+from qiskit_aer.pulse.system_models.pulse_system_model import PulseSystemModel
+from qiskit_aer.pulse.system_models.hamiltonian_model import HamiltonianModel
 from qiskit.providers.models.backendconfiguration import UchannelLO
 
 

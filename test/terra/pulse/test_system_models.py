@@ -19,9 +19,9 @@ import numpy as np
 from numpy.linalg import norm
 from test.terra.common import QiskitAerTestCase
 from qiskit.providers.fake_provider import FakeOpenPulse2Q
-from qiskit.providers.aer.pulse.system_models.pulse_system_model import PulseSystemModel
-from qiskit.providers.aer.pulse.system_models.hamiltonian_model import HamiltonianModel
 from qiskit.providers.fake_provider import FakeArmonk
+from qiskit_aer.pulse.system_models.pulse_system_model import PulseSystemModel
+from qiskit_aer.pulse.system_models.hamiltonian_model import HamiltonianModel
 from qiskit.providers.models.backendconfiguration import UchannelLO
 
 

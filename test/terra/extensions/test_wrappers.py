@@ -17,9 +17,9 @@ import pickle
 from multiprocessing import Pool
 
 from qiskit import transpile, QuantumCircuit
-from qiskit.providers.aer.backends import AerSimulator
-from qiskit.providers.aer.backends.controller_wrappers import aer_controller_execute
-from qiskit.providers.aer.backends.backend_utils import LIBRARY_DIR
+from qiskit_aer.backends import AerSimulator
+from qiskit_aer.backends.controller_wrappers import aer_controller_execute
+from qiskit_aer.backends.backend_utils import LIBRARY_DIR
 from test.terra.common import QiskitAerTestCase
 
 

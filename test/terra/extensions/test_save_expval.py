@@ -14,7 +14,7 @@ import unittest
 
 
 from qiskit.extensions.exceptions import ExtensionError
-from qiskit.providers.aer.library import SaveExpectationValue, SaveExpectationValueVariance
+from qiskit_aer.library import SaveExpectationValue, SaveExpectationValueVariance
 from qiskit.quantum_info.operators import Pauli
 
 from ..common import QiskitAerTestCase

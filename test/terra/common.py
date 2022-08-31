@@ -27,7 +27,7 @@ from unittest.util import safe_repr
 import fixtures
 import numpy as np
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit.providers.aer import __path__ as main_path
+from qiskit_aer import __path__ as main_path
 from qiskit.quantum_info import Operator, Statevector
 from qiskit.quantum_info.operators.predicates import matrix_equal
 from qiskit.test.base import FullQiskitTestCase

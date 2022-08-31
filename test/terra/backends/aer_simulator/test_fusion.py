@@ -20,8 +20,8 @@ from ddt import ddt
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.circuit.library import QuantumVolume, QFT, RealAmplitudes
 from qiskit.compiler import transpile
-from qiskit.providers.aer.noise import NoiseModel
-from qiskit.providers.aer.noise.errors import (ReadoutError,
+from qiskit_aer.noise import NoiseModel
+from qiskit_aer.noise.errors import (ReadoutError,
                                                depolarizing_error,
                                                amplitude_damping_error)
 from test.terra.backends.simulator_test_case import (

@@ -13,15 +13,15 @@
 AerSimulator test case class
 """
 
-from qiskit.providers.aer.backends.backend_utils import available_devices
+from qiskit_aer.backends.backend_utils import available_devices
 import ddt
 import itertools as it
-from qiskit.providers.aer import AerSimulator
+from qiskit_aer import AerSimulator
 from test.terra.common import QiskitAerTestCase
 from qiskit.circuit import QuantumCircuit
 from qiskit.compiler import assemble
-from qiskit.providers.aer.backends.backend_utils import cpp_execute
-from qiskit.providers.aer.backends.controller_wrappers import aer_controller_execute
+from qiskit_aer.backends.backend_utils import cpp_execute
+from qiskit_aer.backends.controller_wrappers import aer_controller_execute
 
 
 class SimulatorTestCase(QiskitAerTestCase):
