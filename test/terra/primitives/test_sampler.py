@@ -335,10 +335,17 @@ class TestSampler(QiskitAerTestCase):
 
     def test_with_shots_none(self):
         """test with shots None."""
-        params, target = self._generate_params_target([1])
         with Sampler(circuits=self._pqc) as sampler:
-            result = sampler(circuits=[0], parameter_values=params, shots=None)
-            self._compare_probs(result.quasi_dists, target, places=5)
+            result = sampler(circuits=[0], parameter_values=[self._pqc_params[1]], shots=None)
+            self.assertDictAlmostEqual(
+                result.quasi_dists[0],
+                {
+                    0: 0.01669499556655749,
+                    1: 0.3363966103502914,
+                    2: 0.04992359174946462,
+                    3: 0.596984802333687,
+                },
+            )
 
 
 if __name__ == "__main__":

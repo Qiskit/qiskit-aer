@@ -94,7 +94,6 @@ class Sampler(BaseSampler):
             raise QiskitError("The primitive has been closed.")
 
         seed = run_options.pop("seed", None)
-        shots = run_options.get("shots")
         if seed is not None:
             run_options.setdefault("seed_simulator", seed)
 
@@ -109,7 +108,7 @@ class Sampler(BaseSampler):
                 )
 
             circuit = self._circuits[i]
-            if shots is None:
+            if "shots" in run_options and run_options["shots"] is None:
                 circuit = self._preprocess_circuit(circuit)
             experiments.append(circuit)
             parameter = {k: [v] for k, v in zip(self._parameters[i], value)}
@@ -126,14 +125,15 @@ class Sampler(BaseSampler):
         metadata = []
         quasis = []
         for i in range(len(experiments)):
-            if shots is None:
+            if "shots" in run_options and run_options["shots"] is None:
                 probabilities = result.data(i)["probabilities"]
                 quasis.append(QuasiDistribution(probabilities))
+                metadata.append({"shots": None, "simulator_metadata": result.results[i].metadata})
             else:
                 counts = result.data(i)["counts"]
                 shots = sum(counts.values())
                 quasis.append(QuasiDistribution({k: v / shots for k, v in counts.items()}))
-            metadata.append({"shots": shots, "simulator_metadata": result.results[i].metadata})
+                metadata.append({"shots": shots, "simulator_metadata": result.results[i].metadata})
 
         return SamplerResult(quasis, metadata)
 
