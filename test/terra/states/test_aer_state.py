@@ -21,12 +21,12 @@ import numpy as np
 from qiskit.circuit import QuantumCircuit, Gate
 from qiskit.quantum_info.random import random_unitary
 from qiskit.quantum_info.states.random import random_statevector
-from qiskit.providers.aer import AerSimulator
+from qiskit_aer import AerSimulator
 
 from test.terra import common
-from qiskit.providers.aer.aererror import AerError
-from qiskit.providers.aer.backends.controller_wrappers import AerStateWrapper
-from qiskit.providers.aer.quantum_info.states.aer_state import AerState
+from qiskit_aer.aererror import AerError
+from qiskit_aer.backends.controller_wrappers import AerStateWrapper
+from qiskit_aer.quantum_info.states.aer_state import AerState
 
 class TestAerState(common.QiskitAerTestCase):
     """AerState tests"""
