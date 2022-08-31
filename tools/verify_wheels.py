@@ -15,15 +15,15 @@ from qiskit import QuantumRegister
 from qiskit.quantum_info import Operator, Statevector
 from qiskit.quantum_info.operators.predicates import matrix_equal
 
-from qiskit.providers.aer.pulse.system_models.duffing_model_generators import duffing_system_model
+from qiskit_aer.pulse.system_models.duffing_model_generators import duffing_system_model
 from qiskit.pulse import (Schedule, Play, Acquire, Waveform, DriveChannel, AcquireChannel,
                           MemorySlot)
 
-from qiskit.providers.aer import AerSimulator
-from qiskit.providers.aer import QasmSimulator
-from qiskit.providers.aer import StatevectorSimulator
-from qiskit.providers.aer import UnitarySimulator
-from qiskit.providers.aer import PulseSimulator
+from qiskit_aer import AerSimulator
+from qiskit_aer import QasmSimulator
+from qiskit_aer import StatevectorSimulator
+from qiskit_aer import UnitarySimulator
+from qiskit_aer import PulseSimulator
 
 # Backwards compatibility for Terra <= 0.13
 if not hasattr(QuantumCircuit, 'i'):

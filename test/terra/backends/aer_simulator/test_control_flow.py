@@ -18,12 +18,12 @@ import numpy
 import logging
 from test.terra.backends.simulator_test_case import (
     SimulatorTestCase, supported_methods)
-from qiskit.providers.aer import AerSimulator
+from qiskit_aer import AerSimulator
 from qiskit import QuantumCircuit, transpile
 from qiskit.circuit import Parameter, Qubit, QuantumRegister, ClassicalRegister
 from qiskit.circuit.controlflow import *
-from qiskit.providers.aer.library.default_qubits import default_qubits
-from qiskit.providers.aer.library.control_flow_instructions import AerMark, AerJump
+from qiskit_aer.library.default_qubits import default_qubits
+from qiskit_aer.library.control_flow_instructions import AerMark, AerJump
 
 @ddt
 class TestControlFlow(SimulatorTestCase):

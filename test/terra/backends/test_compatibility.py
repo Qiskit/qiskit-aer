@@ -19,7 +19,7 @@ from test.terra.common import QiskitAerTestCase
 
 import numpy as np
 import qiskit.quantum_info as qi
-import qiskit.providers.aer.backends.compatibility as cqi
+import qiskit_aer.backends.compatibility as cqi
 
 
 class TestResultCompatibility(QiskitAerTestCase):

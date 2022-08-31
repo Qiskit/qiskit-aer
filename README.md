@@ -48,7 +48,7 @@ $ python
 ```python
 import qiskit
 from qiskit import IBMQ
-from qiskit.providers.aer import AerSimulator
+from qiskit_aer import AerSimulator
 
 # Generate 3-qubit GHZ state
 circ = qiskit.QuantumCircuit(3)

@@ -18,7 +18,7 @@ from ddt import ddt
 from test.terra.backends.simulator_test_case import (
     SimulatorTestCase, supported_methods)
 from qiskit import QuantumCircuit, transpile
-from qiskit.providers.aer.library import (
+from qiskit_aer.library import (
     SaveStatevector, SaveDensityMatrix, SaveStabilizer,
     SaveMatrixProductState, SaveUnitary, SaveSuperOp)
 
