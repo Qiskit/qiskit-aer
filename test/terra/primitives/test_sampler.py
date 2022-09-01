@@ -333,6 +333,20 @@ class TestSampler(QiskitAerTestCase):
             result = sampler(circuits=[0], parameter_values=params, shots=1024, seed=15)
             self._compare_probs(result.quasi_dists, target)
 
+    def test_with_shots_none(self):
+        """test with shots None."""
+        with Sampler(circuits=self._pqc) as sampler:
+            result = sampler(circuits=[0], parameter_values=[self._pqc_params[1]], shots=None)
+            self.assertDictAlmostEqual(
+                result.quasi_dists[0],
+                {
+                    0: 0.01669499556655749,
+                    1: 0.3363966103502914,
+                    2: 0.04992359174946462,
+                    3: 0.596984802333687,
+                },
+            )
+
 
 if __name__ == "__main__":
     unittest.main()
