@@ -356,6 +356,14 @@ public:
   {
     return chunk_container_.lock()->measured_cbit(chunk_pos_,qubit);
   }
+  void write_cbit(int qubit, int val)
+  {
+    chunk_container_.lock()->write_cbit(chunk_pos_,qubit,val);
+  }
+  void store_cbits(void)
+  {
+    chunk_container_.lock()->store_cbits();
+  }
 
 
   void set_conditional(int_t bit)

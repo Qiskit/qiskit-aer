@@ -29,6 +29,8 @@ namespace AER {
 class ClassicalRegister {
 
 public:
+  ClassicalRegister(){}
+  ClassicalRegister(const ClassicalRegister& src);
 
   // Return the current value of the memory as little-endian hex-string
   inline std::string memory_hex() const {return Utils::bin2hex(creg_memory_);}
@@ -92,6 +94,12 @@ protected:
 //============================================================================
 // Implementations
 //============================================================================
+ClassicalRegister::ClassicalRegister(const ClassicalRegister& src)
+{
+  creg_memory_ = src.creg_memory_;
+  creg_register_ = src.creg_register_;
+  return_hex_strings_ = src.return_hex_strings_;
+}
 
 void ClassicalRegister::initialize(size_t num_memory, size_t num_register) {
   // Set registers to the all 0 bit state

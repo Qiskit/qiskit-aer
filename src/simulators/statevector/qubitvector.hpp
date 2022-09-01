@@ -67,8 +67,16 @@ public:
   QubitVector();
   explicit QubitVector(size_t num_qubits);
   virtual ~QubitVector();
-  QubitVector(const QubitVector& obj) {};
-  QubitVector &operator=(const QubitVector& obj) {};
+  QubitVector(const QubitVector& obj): num_qubits_(0), data_(nullptr), checkpoint_(0)
+  {
+    set_transformer_method();
+    copy_qv(obj);
+  }
+  QubitVector &operator=(const QubitVector& obj) 
+  {
+    copy_qv(obj);
+    return *this;
+  }
 
   //-----------------------------------------------------------------------
   // Data access
@@ -141,7 +149,12 @@ public:
 
   //setup chunk
   bool chunk_setup(int chunk_bits,int num_qubits,uint_t chunk_index,uint_t num_local_chunks);
-  bool chunk_setup(QubitVector<data_t>& base,const uint_t chunk_index);
+  bool chunk_setup(const QubitVector<data_t>& base,const uint_t chunk_index);
+
+  uint_t chunk_index(void)
+  {
+    return chunk_index_;
+  }
 
   //cache control for chunks on host
   bool fetch_chunk(void) const
@@ -609,6 +622,8 @@ protected:
 
   // Allocates memory for the checkoiunt
   void allocate_checkpoint(size_t data_size);
+
+  void copy_qv(const QubitVector<data_t>& obj);
 };
 
 /*******************************************************************************
@@ -720,6 +735,20 @@ template <typename data_t>
 QubitVector<data_t>::~QubitVector() {
   free_mem();
   free_checkpoint();
+}
+
+template <typename data_t>
+void QubitVector<data_t>::copy_qv(const QubitVector<data_t>& obj)
+{
+  set_num_qubits(obj.num_qubits_);
+
+  initialize_from_data(obj.data_,obj.data_size_);
+
+  omp_threads_ = obj.omp_threads_;
+  omp_threshold_ = obj.omp_threshold_;
+  sample_measure_index_size_ = obj.sample_measure_index_size_;
+  json_chop_threshold_ = obj.json_chop_threshold_;
+  chunk_index_ = obj.chunk_index_;
 }
 
 //------------------------------------------------------------------------------
@@ -961,7 +990,7 @@ bool QubitVector<data_t>::chunk_setup(int chunk_bits,int num_qubits,uint_t chunk
 }
 
 template <typename data_t>
-bool QubitVector<data_t>::chunk_setup(QubitVector<data_t>& base,const uint_t chunk_index)
+bool QubitVector<data_t>::chunk_setup(const QubitVector<data_t>& base,const uint_t chunk_index)
 {
   chunk_index_ = chunk_index;
   return true;

@@ -377,6 +377,9 @@ protected:
   int_t batched_shots_gpu_max_qubits_ = 16;   //multi-shot parallelization is applied if qubits is less than max qubits
   bool enable_batch_multi_shots_ = false;   //multi-shot parallelization can be applied
 
+  bool shot_branching_enable_ = true;
+  bool runtime_noise_sampling_enable_ = false;
+
   //settings for cuStateVec
   bool cuStateVec_enable_ = false;
 };
@@ -466,6 +469,14 @@ void Controller::set_config(const json_t &config) {
   }
   if(JSON::check_key("batched_shots_gpu_max_qubits", config)) {
     JSON::get_value(batched_shots_gpu_max_qubits_, "batched_shots_gpu_max_qubits", config);
+  }
+
+  //shot branching optimization
+  if(JSON::check_key("shot_branching_enable", config)) {
+    JSON::get_value(shot_branching_enable_, "shot_branching_enable", config);
+  }
+  if(JSON::check_key("runtime_noise_sampling_enable", config)) {
+    JSON::get_value(runtime_noise_sampling_enable_, "runtime_noise_sampling_enable", config);
   }
 
   //cuStateVec configs
@@ -654,11 +665,13 @@ void Controller::set_parallelization_circuit(const Circuit &circ,
                                              const Method method)  
 {
   enable_batch_multi_shots_ = false;
+  /*
   if(batched_shots_gpu_ && sim_device_ == Device::GPU && 
      circ.shots > 1 && max_batched_states_ >= num_gpus_ && 
      batched_shots_gpu_max_qubits_ >= circ.num_qubits ){
       enable_batch_multi_shots_ = true;
   }
+  */
 
   if(sim_device_ == Device::GPU && cuStateVec_enable_){
     enable_batch_multi_shots_ = false;    //cuStateVec does not support batch execution of multi-shots
@@ -1175,50 +1188,50 @@ size_t Controller::required_memory_mb(const Circuit &circ,
   case Method::statevector: {
     if (sim_precision_ == Precision::Single) {
       Statevector::State<QV::QubitVector<float>> state;
-      return state.required_memory_mb(circ.num_qubits, circ.ops);
+      return state.required_memory_mb(circ.num_qubits, circ.ops.cbegin(), circ.ops.cend());
     } else {
       Statevector::State<QV::QubitVector<double>> state;
-      return state.required_memory_mb(circ.num_qubits, circ.ops);
+      return state.required_memory_mb(circ.num_qubits, circ.ops.cbegin(), circ.ops.cend());
     }
   }
   case Method::density_matrix: {
     if (sim_precision_ == Precision::Single) {
       DensityMatrix::State<QV::DensityMatrix<float>> state;
-      return state.required_memory_mb(circ.num_qubits, circ.ops);
+      return state.required_memory_mb(circ.num_qubits, circ.ops.cbegin(), circ.ops.cend());
     } else {
       DensityMatrix::State<QV::DensityMatrix<double>> state;
-      return state.required_memory_mb(circ.num_qubits, circ.ops);
+      return state.required_memory_mb(circ.num_qubits, circ.ops.cbegin(), circ.ops.cend());
     }
   }
   case Method::unitary: {
     if (sim_precision_ == Precision::Single) {
       QubitUnitary::State<QV::UnitaryMatrix<float>> state;
-      return state.required_memory_mb(circ.num_qubits, circ.ops);
+      return state.required_memory_mb(circ.num_qubits, circ.ops.cbegin(), circ.ops.cend());
     } else {
       QubitUnitary::State<QV::UnitaryMatrix<double>> state;
-      return state.required_memory_mb(circ.num_qubits, circ.ops);
+      return state.required_memory_mb(circ.num_qubits, circ.ops.cbegin(), circ.ops.cend());
     }
   }
   case Method::superop: {
     if (sim_precision_ == Precision::Single) {
       QubitSuperoperator::State<QV::Superoperator<float>> state;
-      return state.required_memory_mb(circ.num_qubits, circ.ops);
+      return state.required_memory_mb(circ.num_qubits, circ.ops.cbegin(), circ.ops.cend());
     } else {
       QubitSuperoperator::State<QV::Superoperator<double>> state;
-      return state.required_memory_mb(circ.num_qubits, circ.ops);
+      return state.required_memory_mb(circ.num_qubits, circ.ops.cbegin(), circ.ops.cend());
     }
   }
   case Method::stabilizer: {
     Stabilizer::State state;
-    return state.required_memory_mb(circ.num_qubits, circ.ops);
+    return state.required_memory_mb(circ.num_qubits, circ.ops.cbegin(), circ.ops.cend());
   }
   case Method::extended_stabilizer: {
     ExtendedStabilizer::State state;
-    return state.required_memory_mb(circ.num_qubits, circ.ops);
+    return state.required_memory_mb(circ.num_qubits, circ.ops.cbegin(), circ.ops.cend());
   }
   case Method::matrix_product_state: {
     MatrixProductState::State state;
-    return state.required_memory_mb(circ.num_qubits, circ.ops);
+    return state.required_memory_mb(circ.num_qubits, circ.ops.cbegin(), circ.ops.cend());
   }
   default:
     // We shouldn't get here, so throw an exception if we do
@@ -1347,7 +1360,8 @@ void Controller::run_circuit_helper(const Circuit &circ,
       }
       // General circuit noise sampling
       else {
-        if(enable_batch_multi_shots_ && !multi_chunk_required_){
+        State_t t;
+        if(!multi_chunk_required_ && (enable_batch_multi_shots_ || (runtime_noise_sampling_enable_ && shot_branching_enable_ && t.runtime_noise_sampling_supported()))){
           //batched optimization samples noise at runtime
           opt_circ = noise.sample_noise(circ, rng, Noise::NoiseModel::Method::circuit, true);
         }
@@ -1515,6 +1529,7 @@ void Controller::run_circuit_without_sampled_noise(Circuit &circ,
     // Perform standard execution if we cannot apply the
     // measurement sampling optimization
 
+    /*
     if(block_bits == circ.num_qubits && enable_batch_multi_shots_ && state.multi_shot_parallelization_supported()){
       //apply batched multi-shots optimization (currenly only on GPU)
       state.set_max_bached_shots(max_batched_states_);
@@ -1532,7 +1547,34 @@ void Controller::run_circuit_without_sampled_noise(Circuit &circ,
       // Add batched multi-shots optimizaiton metadata
       result.metadata.add(true, "batched_shots_optimization");
     }
-    else{
+    else{*/
+      uint_t num_state = 1;
+      //enable batch execution when circuit does not contain control flow ops
+      if(circ.opset().contains(Operations::OpType::jump) ||circ.opset().contains(Operations::OpType::mark))
+        state.enable_batch_execution(false);
+      else{
+        if(shot_branching_enable_)
+          state.enable_batch_execution(true);
+        else if(enable_batch_multi_shots_ && block_bits == circ.num_qubits && state.multi_shot_parallelization_supported()){
+          state.enable_batch_execution(true);   //enable batched execution for GPU
+          state.set_max_bached_shots(max_batched_states_);
+          num_state =  circ.shots;
+        }
+        else
+          state.enable_batch_execution(false);
+      }
+      state.enable_shot_branching(shot_branching_enable_);
+
+      state.set_distribution(num_process_per_experiment_);
+      state.set_max_matrix_qubits(max_bits);
+      state.allocate(circ.num_qubits, block_bits, num_state);
+      state.set_parallel_shots(parallel_shots_);
+      state.initialize_qreg(circ.num_qubits);
+      state.initialize_creg(circ.num_memory, circ.num_registers);
+
+      state.run_shots(circ.ops.cbegin(), circ.ops.cend(), config, noise, result, circ.seed, circ.shots, false);
+
+      /*
       std::vector<ExperimentResult> par_results(parallel_shots_);
       int_t par_shots = parallel_shots_;
       if(block_bits != circ.num_qubits)
@@ -1573,7 +1615,8 @@ void Controller::run_circuit_without_sampled_noise(Circuit &circ,
         else
           result.metadata.add(par_shots, "gpu_parallel_shots_");
       }
-    }
+      */
+//    }
   }
   state.add_metadata(result);
 }
@@ -1681,7 +1724,8 @@ bool Controller::check_measure_sampling_opt(const Circuit &circ,
       circ.opset().contains(Operations::OpType::kraus) ||
       circ.opset().contains(Operations::OpType::superop) ||
       circ.opset().contains(Operations::OpType::jump) ||
-      circ.opset().contains(Operations::OpType::mark )) {
+      circ.opset().contains(Operations::OpType::mark ) ||
+      circ.opset().contains(Operations::OpType::sample_noise )) {
     return false;
   }
   // Otherwise true
@@ -1923,7 +1967,7 @@ bool Controller::validate_state(const state_t &state, const Circuit &circ,
   // Validate memory requirements
   bool memory_valid = true;
   if (max_memory_mb_ > 0) {
-    size_t required_mb = state.required_memory_mb(circ.num_qubits, circ.ops) / num_process_per_experiment_;                                        
+    size_t required_mb = state.required_memory_mb(circ.num_qubits, circ.ops.cbegin(), circ.ops.cend()) / num_process_per_experiment_;                                        
     size_t mem_size = (sim_device_ == Device::GPU) ? max_memory_mb_ + max_gpu_memory_mb_ : max_memory_mb_;
     memory_valid = (required_mb <= mem_size);
     if (throw_except && !memory_valid) {

@@ -68,9 +68,9 @@ public:
   virtual ~QubitVectorThrust();
 
   //copy constructor for std::vector
-  QubitVectorThrust(const QubitVectorThrust<data_t>& qv)
+  QubitVectorThrust(const QubitVectorThrust<data_t>& obj) : QubitVectorThrust(0)
   {
-    
+    copy_qv(obj);
   }
 
   //-----------------------------------------------------------------------
@@ -148,7 +148,12 @@ public:
 
   //chunk setup
   bool chunk_setup(int chunk_bits,int num_qubits,uint_t chunk_index,uint_t num_local_chunks);
-  bool chunk_setup(QubitVectorThrust<data_t>& base,const uint_t chunk_index);
+  bool chunk_setup(const QubitVectorThrust<data_t>& base,const uint_t chunk_index);
+
+  uint_t chunk_index(void)
+  {
+    return chunk_index_;
+  }
 
   //cache control for chunks on host
   bool fetch_chunk(void) const;
@@ -322,7 +327,7 @@ public:
   virtual bool batched_optimization_supported(void)
   {
 #ifdef AER_THRUST_CUDA
-    if(multi_shots_ && enable_batch_)
+    if(enable_batch_)
       return true;
     else
       return false;
@@ -462,6 +467,7 @@ public:
   int get_sample_measure_index_size() {return sample_measure_index_size_;}
 
 protected:
+  void copy_qv(const QubitVectorThrust<data_t>& obj);
 
   //-----------------------------------------------------------------------
   // Protected data members
@@ -673,6 +679,30 @@ QubitVectorThrust<data_t>::~QubitVectorThrust()
   checkpoint_.clear();
 }
 
+
+template <typename data_t>
+void QubitVectorThrust<data_t>::copy_qv(const QubitVectorThrust<data_t>& obj)
+{
+  omp_threads_ = obj.omp_threads_;
+  omp_threshold_ = obj.omp_threshold_;
+  sample_measure_index_size_ = obj.sample_measure_index_size_;
+  json_chop_threshold_ = obj.json_chop_threshold_;
+  chunk_index_ = obj.chunk_index_;
+  num_threads_per_group_ = obj.num_threads_per_group_;
+  max_matrix_bits_ = obj.max_matrix_bits_;
+
+  if(!chunk_setup(obj, obj.chunk_index_)){
+    throw std::runtime_error("QubitVectorThrust: can not allocate chunk for copy");
+  }
+//  chunk_setup(obj.num_qubits_, obj.num_qubits_, obj.chunk_index_, 1);
+
+  set_num_qubits(obj.num_qubits_);
+
+//  initialize_from_data(obj.data(), obj.data_size_);
+  chunk_.CopyIn(obj.chunk_);
+
+}
+
 //------------------------------------------------------------------------------
 // Element access operators
 //------------------------------------------------------------------------------
@@ -870,17 +900,19 @@ bool QubitVectorThrust<data_t>::chunk_setup(int chunk_bits,int num_qubits,uint_t
 }
 
 template <typename data_t>
-bool QubitVectorThrust<data_t>::chunk_setup(QubitVectorThrust<data_t>& base,const uint_t chunk_index)
+bool QubitVectorThrust<data_t>::chunk_setup(const QubitVectorThrust<data_t>& base,const uint_t chunk_index)
 {
   chunk_manager_ = base.chunk_manager_;
 
   multi_chunk_distribution_ = base.multi_chunk_distribution_;
+  /*
   if(!multi_chunk_distribution_){
     if(chunk_manager_->chunk_bits() == chunk_manager_->num_qubits()){
       multi_shots_ = true;
       base.multi_shots_ = true;
     }
   }
+  */
   cuStateVec_enable_ = base.cuStateVec_enable_;
 
   //set global chunk ID / shot ID
@@ -1167,7 +1199,9 @@ uint_t QubitVectorThrust<data_t>::get_chunk_count(void)
       return 0;   //first chunk execute all in batch
   }
   else{   //multi-shots
-    if(enable_batch_ && chunk_.pos() != 0)
+    if(!enable_batch_)
+      return 1;
+    else if(chunk_.pos() != 0)
       return 0;   //first chunk execute all in batch
   }
   return chunk_.container()->num_chunks();
@@ -1276,29 +1310,30 @@ void QubitVectorThrust<data_t>::initialize_creg(uint_t num_memory,
   if(chunk_manager_){
     num_creg_bits_ = num_register;
     num_cmem_bits_ = num_memory;
-    if(chunk_.pos() == 0){
+    if(chunk_.pos() == 0)
       chunk_.container()->allocate_creg(num_cmem_bits_,num_creg_bits_);
 
-      int_t i;
-      for(i=0;i<num_register;i++){
-        if(register_hex[register_hex.size() - 1 - i] == '0'){
-          store_cregister(i,0);
-        }
-        else{
-          store_cregister(i,1);
-        }
+    //write bits to host buffer, they are copied to device at first execution
+    int_t i;
+    for(i=0;i<num_register;i++){
+      if(register_hex[register_hex.size() - 1 - i] == '0'){
+        chunk_.write_cbit(i,0);
       }
-      for(i=0;i<num_memory;i++){
-        if(memory_hex[memory_hex.size() - 1 - i] == '0'){
-          store_cregister(i+num_creg_bits_,0);
-        }
-        else{
-          store_cregister(i+num_creg_bits_,1);
-        }
+      else{
+        chunk_.write_cbit(i,1);
+      }
+    }
+    for(i=0;i<num_memory;i++){
+      if(memory_hex[memory_hex.size() - 1 - i] == '0'){
+        chunk_.write_cbit(i+num_creg_bits_,0);
+      }
+      else{
+        chunk_.write_cbit(i+num_creg_bits_,1);
       }
     }
   }
 }
+
 //--------------------------------------------------------------------------------------
 //  gate kernel execution
 //--------------------------------------------------------------------------------------
