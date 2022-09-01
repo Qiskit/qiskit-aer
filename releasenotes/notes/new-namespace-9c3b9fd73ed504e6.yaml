@@ -1,0 +1,15 @@
+---
+upgrade:
+  - |
+    The ``qiskit-aer`` Python package has moved to be a self contained
+    namespace, ``qiskit_aer``. Previously, the ``qiskit-aer`` package shared
+    a namespace with ``qiskit-terra``, ``qiskit.providers.aer``, however this
+    was problematic for several reasons (refer to
+    https://github.com/Qiskit/qiskit/issues/559 for more details) and this
+    release moved away from it. For the time being the ``qiskit.providers.aer``
+    import will continue to work and imports and usage of it will be redirected
+    to ``qiskit_aer`` automatically. The imports from the legacy
+    ``qiskit.provider.aer`` namespace will emit a ``DeprecationWarning`` in the
+    future. To avoid any potential issues starting with this release
+    updating all imports from ``qiskit.providers.aer`` to ``qiskit_aer`` and
+    from ``qiskit.Aer`` to ``qiskit_aer.Aer`` is recommended.
