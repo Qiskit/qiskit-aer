@@ -164,6 +164,9 @@ class AerStatevector(Statevector):
         else:
             aer_state.initialize()
 
+        if isinstance(inst, QuantumCircuit) and inst.global_phase != 0:
+            aer_state.apply_global_phase(inst.global_phase)
+
         AerStatevector._evolve_circuit(aer_state, circuit, range(num_qubits))
 
         return aer_state.move_to_ndarray(), aer_state
