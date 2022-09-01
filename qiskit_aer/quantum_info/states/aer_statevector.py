@@ -17,12 +17,12 @@ import copy
 import numpy as np
 
 from qiskit.circuit import QuantumCircuit, Instruction
-from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.states import Statevector
 from qiskit.quantum_info.operators.operator import Operator
 
 from qiskit_aer import AerSimulator
 from .aer_state import AerState
+from ...backends.aerbackend import AerError
 
 
 class AerStatevector(Statevector):
@@ -41,7 +41,7 @@ class AerStatevector(Statevector):
             configs (kwargs): configurations of ```AerState`. All the keys are handeld as string
 
         Raises:
-            QiskitError: if input data is not valid.
+            AerError: if input data is not valid.
 
         """
         if '_aer_state' in configs:
@@ -64,7 +64,7 @@ class AerStatevector(Statevector):
                 dims = data._op_shape._dims_l
             data = data._data
         else:
-            raise QiskitError(f'Input data is not supported: type={data.__class__}, data={data}')
+            raise AerError(f'Input data is not supported: type={data.__class__}, data={data}')
 
         super().__init__(data, dims=dims)
         self._aer_state = aer_state
@@ -78,6 +78,7 @@ class AerStatevector(Statevector):
 
     @property
     def metadata(self):
+        """Return result metadata of an operation that executed lastly."""
         if self._last_result() is None:
             raise AerError('AerState was not used and metdata does not exist.')
         return self._last_result()['metadata']
@@ -89,9 +90,9 @@ class AerStatevector(Statevector):
         return AerStatevector(data, _aer_state=aer_state, **self._configs)
 
     def __eq__(self, other):
-        eq_QuantumState = isinstance(other, Statevector) and self.dims() == other.dims()
-        eq_Statevector = np.allclose(self._data, other._data, rtol=self.rtol, atol=self.atol)
-        return eq_QuantumState and eq_Statevector
+        eq_quantumqtate = isinstance(other, Statevector) and self.dims() == other.dims()
+        eq_statevector = np.allclose(self._data, other._data, rtol=self.rtol, atol=self.atol)
+        return eq_quantumqtate and eq_statevector
 
     def evolve(self, other, qargs=None):
         """Evolve a quantum state by the operator.
@@ -105,7 +106,7 @@ class AerStatevector(Statevector):
             Statevector: the output quantum state.
 
         Raises:
-            QiskitError: if the operator dimension does not match the
+            AerError: if the operator dimension does not match the
                          specified Statevector subsystem dimensions.
         """
         if qargs is None:
@@ -123,7 +124,7 @@ class AerStatevector(Statevector):
 
         # check dimension
         if self.dims(qargs) != other.input_dims():
-            raise QiskitError(
+            raise AerError(
                 "Operator input dimensions are not equal to statevector subsystem dimensions."
             )
         return Statevector._evolve_operator(ret, other, qargs=qargs)
@@ -133,9 +134,9 @@ class AerStatevector(Statevector):
         aer_state = AerState()
 
         options = AerSimulator._default_options()
-        for config_key in configs:
+        for config_key, config_value in configs.items():
             if options.get(config_key):
-                aer_state.configure(config_key, configs[config_key])
+                aer_state.configure(config_key, config_value)
 
         num_qubits = int(np.log2(len(init_data)))
 
@@ -148,8 +149,8 @@ class AerStatevector(Statevector):
     def _from_instruction(cls, inst, init_data, **configs):
         aer_state = AerState()
 
-        for config_key in configs:
-            aer_state.configure(config_key, configs[config_key])
+        for config_key, config_value in configs.items():
+            aer_state.configure(config_key, config_value)
 
         if isinstance(inst, QuantumCircuit):
             circuit = inst
@@ -167,24 +168,25 @@ class AerStatevector(Statevector):
         if isinstance(inst, QuantumCircuit) and inst.global_phase != 0:
             aer_state.apply_global_phase(inst.global_phase)
 
-        AerStatevector._evolve_circuit(aer_state, circuit, range(num_qubits))
+        AerStatevector._aer_evolve_circuit(aer_state, circuit, range(num_qubits))
 
         return aer_state.move_to_ndarray(), aer_state
 
     @classmethod
-    def _evolve_circuit(cls, aer_state, circuit, qubits):
+    def _aer_evolve_circuit(cls, aer_state, circuit, qubits):
         """Apply circuit into aer_state"""
         for inst, qargs, _ in circuit.data:
-            AerStatevector._evolve_instruction(aer_state, inst,
-                                               [qubits[circuit.find_bit(qarg).index]
-                                                for qarg in qargs])
+            AerStatevector._aer_evolve_instruction(aer_state, inst,
+                                                   [qubits[circuit.find_bit(qarg).index]
+                                                    for qarg in qargs])
 
     @classmethod
-    def _evolve_instruction(cls, aer_state, inst, qubits):
+    def _aer_evolve_instruction(cls, aer_state, inst, qubits):
         """Apply instruction into aer_state"""
         params = inst.params
         if inst.name == 'u':
-            aer_state.apply_mcu(qubits[0:len(qubits) - 1], qubits[len(qubits) - 1], params[0], params[1], params[2])
+            aer_state.apply_mcu(qubits[0:len(qubits) - 1], qubits[len(qubits) - 1],
+                                params[0], params[1], params[2])
         elif inst.name in ['x', 'cx', 'ccx']:
             aer_state.apply_mcx(qubits[0:len(qubits) - 1], qubits[len(qubits) - 1])
         elif inst.name in ['y', 'cy']:
@@ -199,4 +201,4 @@ class AerStatevector(Statevector):
             definition = inst.definition
             if definition is inst:
                 raise AerError('cannot decompose ' + inst.name)
-            AerStatevector._evolve_circuit(aer_state, definition, qubits)
+            AerStatevector._aer_evolve_circuit(aer_state, definition, qubits)
