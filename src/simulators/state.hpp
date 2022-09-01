@@ -134,6 +134,9 @@ public:
   // Apply circuits and ops
   //-----------------------------------------------------------------------
 
+  // Apply the global phase
+  virtual void apply_global_phase() {};
+
   // Apply a single operation
   // The `final_op` flag indicates no more instructions will be applied
   // to the state after this sequence, so the state can be modified at the

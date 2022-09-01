@@ -154,6 +154,11 @@ class AerState:
         """return a result of a operation fluhsed in the last."""
         return self._state.last_result()
 
+    def apply_global_phase(self, phase):
+        """apply global phase"""
+        self._assert_initialized_state()
+        self._state.apply_global_phase(phase)
+
     def apply_unitary(self, qubits, data):
         """apply a unitary gate."""
         self._assert_initialized_state()

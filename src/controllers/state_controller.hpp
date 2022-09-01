@@ -180,6 +180,9 @@ public:
   // Apply an initialization op
   void apply_initialize(const reg_t &qubits, cvector_t &&mat);
 
+  // Apply global phase
+  void apply_global_phase(double phase);
+
   //-----------------------------------------------------------------------
   // Apply Matrices
   //-----------------------------------------------------------------------
@@ -446,7 +449,7 @@ void AerState::configure(const std::string& _key, const std::string& _value) {
     configs_[_key] = std::stod(value);
   } else {
     std::stringstream msg;
-    msg << "not supportted configuration" << key << "=" << value << std::endl;
+    msg << "not supportted configuration: " << key << "=" << value << std::endl;
     throw std::runtime_error(msg.str());
   }
 
@@ -738,6 +741,11 @@ void AerState::apply_initialize(const reg_t &qubits, cvector_t && vec) {
   state_->apply_op(op, last_result_, rng_);
 };
 
+void AerState::apply_global_phase(double phase) {
+  assert_initialized();
+  state_->set_global_phase(phase);
+  state_->apply_global_phase();
+};
 
 //-----------------------------------------------------------------------
 // Apply Matrices
