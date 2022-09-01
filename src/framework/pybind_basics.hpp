@@ -179,7 +179,9 @@ py::array_t<T, py::array::f_style> to_numpy(matrix<T> &&src) {
 template <typename T>
 py::array_t<T> to_numpy(AER::Vector<T> &&src) {
   AER::Vector<T>* src_ptr = new AER::Vector<T>(std::move(src));
-  auto capsule = py::capsule(src_ptr, [](void* p) { delete reinterpret_cast<AER::Vector<T>*>(p); });
+  auto capsule = py::capsule(src_ptr, [](void* p) { 
+    delete reinterpret_cast<AER::Vector<T>*>(p);
+    });
   return py::array_t<T>(
     src_ptr->size(),  // shape of array
     src_ptr->data(),  // c-style contiguous strides for vector
