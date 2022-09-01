@@ -321,7 +321,6 @@ private:
   void initialize_experiment_result();
   void finalize_experiment_result(bool success, double time_taken);
 
-private:
   bool initialized_ = false;
   uint_t num_of_qubits_ = 0;
   RngEngine rng_;
