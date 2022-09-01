@@ -16,8 +16,12 @@ Statevector quantum state class.
 import copy
 import numpy as np
 
-from qiskit.quantum_info.states import Statevector
 from qiskit.circuit import QuantumCircuit, Instruction
+from qiskit.exceptions import QiskitError
+from qiskit.quantum_info.states import Statevector
+from qiskit.quantum_info.operators.operator import Operator
+
+from qiskit_aer import AerSimulator
 from .aer_state import AerState
 
 
@@ -42,62 +46,52 @@ class AerStatevector(Statevector):
         """
         if '_aer_state' in configs:
             self._aer_state = configs.pop('_aer_state')
+
+        if 'dims' in configs:
+            dims = configs.pop('dims')
+        else:
+            dims = None
+
         if isinstance(data, (QuantumCircuit, Instruction)):
             data, aer_state = AerStatevector._from_instruction(data, None, **configs)
-            self._aer_state = aer_state
+        elif isinstance(data, list):
+            data, aer_state = AerStatevector._from_ndarray(np.array(data, dtype=complex), **configs)
         elif isinstance(data, np.ndarray):
             data, aer_state = AerStatevector._from_ndarray(data, **configs)
-            self._aer_state = aer_state
+        elif isinstance(data, AerStatevector):
+            aer_state = data._aer_state
+            if dims is None:
+                dims = data._op_shape._dims_l
+            data = data._data
         else:
-            self._aer_state = None
-        super().__init__(data)
+            raise QiskitError(f'Input data is not supported: type={data.__class__}, data={data}')
+
+        super().__init__(data, dims=dims)
+        self._aer_state = aer_state
         self._result = None
         self._configs = configs
 
-    def _aer(self):
-        return self._aer_state is not None
-
-    def _assert_aer_mode(self):
-        if not self._aer():
-            raise AerError('AerState was not used.')
-
     def _last_result(self):
-        self._assert_aer_mode()
         if self._result is None:
             self._result = self._aer_state.last_result()
         return self._result
 
-    def _metadata(self):
-        self._assert_aer_mode()
+    @property
+    def metadata(self):
         if self._last_result() is None:
             raise AerError('AerState was not used and metdata does not exist.')
         return self._last_result()['metadata']
 
-    @property
-    def method(self):
-        return self._metadata()['method']
-
-    @property
-    def device(self):
-        return self._metadata()['device']
-
-    @property
-    def fusion_config(self):
-        return self._metadata()['fusion']
-
-    @property
-    def parallel_state_update(self):
-        return self._metadata()['parallel_state_update']
-
     def __deepcopy__(self, _memo=None):
-        if self._aer():
-            data, aer_state = AerStatevector._from_instruction(
-                QuantumCircuit(self._aer_state.num_qubits),
-                self._data, **self._configs)
-            return AerStatevector(data, _aer_state=aer_state, **self._configs)
-        else:
-            data = copy.deepcopy(self._data)
-            return AerStatevector(data, **self._configs)
+        data, aer_state = AerStatevector._from_instruction(
+            QuantumCircuit(self._aer_state.num_qubits),
+            self._data, **self._configs)
+        return AerStatevector(data, _aer_state=aer_state, **self._configs)
+
+    def __eq__(self, other):
+        eq_QuantumState = isinstance(other, Statevector) and self.dims() == other.dims()
+        eq_Statevector = np.allclose(self._data, other._data, rtol=self.rtol, atol=self.atol)
+        return eq_QuantumState and eq_Statevector
 
     def evolve(self, other, qargs=None):
         """Evolve a quantum state by the operator.
@@ -138,8 +132,10 @@ class AerStatevector(Statevector):
     def _from_ndarray(cls, init_data, **configs):
         aer_state = AerState()
 
+        options = AerSimulator._default_options()
         for config_key in configs:
-            aer_state.configure(config_key, configs[config_key])
+            if options.get(config_key):
+                aer_state.configure(config_key, configs[config_key])
 
         num_qubits = int(np.log2(len(init_data)))
 
@@ -185,13 +181,13 @@ class AerStatevector(Statevector):
         """Apply instruction into aer_state"""
         params = inst.params
         if inst.name == 'u':
-            aer_state.apply_mcu(qubits, params[0], params[1], params[2])
+            aer_state.apply_mcu(qubits[0:len(qubits) - 1], qubits[len(qubits) - 1], params[0], params[1], params[2])
         elif inst.name in ['x', 'cx', 'ccx']:
-            aer_state.apply_mcx(qubits)
+            aer_state.apply_mcx(qubits[0:len(qubits) - 1], qubits[len(qubits) - 1])
         elif inst.name in ['y', 'cy']:
-            aer_state.apply_mcy(qubits)
+            aer_state.apply_mcy(qubits[0:len(qubits) - 1], qubits[len(qubits) - 1])
         elif inst.name in ['z', 'cz']:
-            aer_state.apply_mcz(qubits)
+            aer_state.apply_mcz(qubits[0:len(qubits) - 1], qubits[len(qubits) - 1])
         elif inst.name == 'unitary':
             aer_state.apply_unitary(qubits, inst.params[0])
         elif inst.name == 'diagonal':
