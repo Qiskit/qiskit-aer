@@ -100,6 +100,7 @@ PYBIND11_MODULE(controller_wrappers, m) {
 
 
     aer_state.def("apply_initialize",  &AER::AerState::apply_initialize);
+    aer_state.def("apply_global_phase",  &AER::AerState::apply_global_phase);
     aer_state.def("apply_unitary", [aer_state](AER::AerState &state,
                                                    const reg_t &qubits,
                                                    const py::array_t<std::complex<double>> &values) {

@@ -428,7 +428,7 @@ protected:
   auto apply_to_matrix(bool copy = false);
 
   // Apply the global phase
-  virtual void apply_global_phase(){}
+  virtual void apply_global_phase() override {}
 
   //check if the operator should be applied to each chunk
   virtual bool is_applied_to_each_chunk(const Operations::Op &op);

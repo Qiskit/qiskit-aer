@@ -409,5 +409,35 @@ class TestAerState(common.QiskitAerTestCase):
             expected_val = expected[key_str] if key_str in expected else 0
             self.assertAlmostEqual(actual[key], expected_val)
 
+    def test_global_phase(self):
+        """Test global phase"""
+        unitary_1 = random_unitary(2, seed=1111)
+        unitary_2 = random_unitary(4, seed=2222)
+        unitary_3 = random_unitary(8, seed=3333)
+
+        circuit = QuantumCircuit(5, global_phase=np.pi/4)
+        circuit.unitary(unitary_1, [0])
+        circuit.unitary(unitary_2, [1, 2])
+        circuit.unitary(unitary_3, [3, 4, 0])
+        circuit.save_statevector()
+
+        aer_simulator = AerSimulator(method='statevector')
+        result = aer_simulator.run(circuit).result()
+        expected = result.get_statevector(0)
+
+        state = AerState()
+        state.allocate_qubits(5)
+        state.initialize()
+
+        state.apply_global_phase(np.pi/4)
+
+        state.apply_unitary([0], unitary_1)
+        state.apply_unitary([1, 2], unitary_2)
+        state.apply_unitary([3, 4, 0], unitary_3)
+        actual = state.move_to_ndarray()
+
+        for i, amp in enumerate(actual):
+            self.assertAlmostEqual(expected[i], amp)
+
 if __name__ == '__main__':
     unittest.main()
