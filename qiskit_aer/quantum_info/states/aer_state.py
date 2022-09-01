@@ -137,9 +137,7 @@ class AerState:
 
     @property
     def num_qubits(self):
-        """return a number of allocate qubits.
-        This method must be called after `initialize()`."""
-        self._assert_initialized_state()
+        """return a number of allocate qubits."""
         return self._last_qubit + 1
 
     def flush(self):

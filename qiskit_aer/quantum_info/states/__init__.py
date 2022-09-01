@@ -15,3 +15,4 @@
 State (:mod:`qiskit_aer.quantum_info.states`)
 =============================================
 """
+from .aer_statevector import AerStatevector
