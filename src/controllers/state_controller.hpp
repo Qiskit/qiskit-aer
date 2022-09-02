@@ -449,7 +449,7 @@ void AerState::configure(const std::string& _key, const std::string& _value) {
     configs_[_key] = std::stod(value);
   } else {
     std::stringstream msg;
-    msg << "not supportted configuration: " << key << "=" << value << std::endl;
+    msg << "not supported configuration: " << key << "=" << value << std::endl;
     throw std::runtime_error(msg.str());
   }
 
