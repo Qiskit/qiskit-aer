@@ -449,7 +449,7 @@ void AerState::configure(const std::string& _key, const std::string& _value) {
     configs_[_key] = std::stod(value);
   } else {
     std::stringstream msg;
-    msg << "not supportted configuration: " << key << "=" << value << std::endl;
+    msg << "not supported configuration: " << key << "=" << value << std::endl;
     throw std::runtime_error(msg.str());
   }
 
@@ -680,7 +680,7 @@ reg_t AerState::initialize_statevector(uint_t num_of_qubits, complex_t* data, bo
     block_qubits = num_of_qubits_;
   state->allocate(num_of_qubits_, block_qubits);
   auto qv = QV::QubitVector<double>(num_of_qubits_, data, copy);
-  state->initialize_qreg(num_of_qubits_, qv);
+  state->initialize_statevector(num_of_qubits_, std::move(qv));
   state->initialize_creg(num_of_qubits_, num_of_qubits_);
   state_ = state;
   rng_.set_seed(seed_);
@@ -689,7 +689,6 @@ reg_t AerState::initialize_statevector(uint_t num_of_qubits, complex_t* data, bo
   ret.reserve(num_of_qubits);
   for (auto i = 0; i < num_of_qubits; ++i)
     ret.push_back(i);
-  qv.move_to_vector().move_to_buffer();
   return ret;
 };
 

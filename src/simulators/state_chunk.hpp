@@ -131,9 +131,6 @@ public:
   // Typically this is the n-qubit all |0> state
   virtual void initialize_qreg(uint_t num_qubits) = 0;
 
-  // Initializes the StateChunk to a specific state.
-  virtual void initialize_qreg(uint_t num_qubits, const state_t &state) = 0;
-
   // Return an estimate of the required memory for implementing the
   // specified sequence of operations on a `num_qubit` sized StateChunk.
   virtual size_t required_memory_mb(uint_t num_qubits,

@@ -47,6 +47,16 @@ class TestAerState(common.QiskitAerTestCase):
         sv = state.move_to_ndarray()
         state.close()
 
+    def test_move_from_aer_state_repeated(self):
+        """Test move of aer state to python repeatedly"""
+        for _ in range(100):
+            state = AerState()
+            state.allocate_qubits(4)
+            state.initialize()
+            sv = state.move_to_ndarray()
+            state.close()
+            # confirm no duplicated free
+
     def test_error_reuse_aer_state(self):
         """Test reuse AerState after move of aer state to python"""
         state = AerState()
@@ -82,6 +92,47 @@ class TestAerState(common.QiskitAerTestCase):
             self.assertEqual(sv2[idx], complex(0., 0.))
         self.assertEqual(sv2[len(sv2) - 1], complex(1., 0.))
 
+    def test_map_statevector(self):
+        """Test initialization of AerState with statevector"""
+        state1 = AerState()
+        state1.allocate_qubits(4)
+        state1.initialize()
+        sv1 = state1.move_to_ndarray()
+        sv1[0] = complex(0., 0.)
+        sv1[len(sv1) - 1] = complex(1., 0.)
+        state1.close()
+
+        for idx in range(len(sv1) - 1):
+            self.assertEqual(sv1[idx], complex(0., 0.))
+        self.assertEqual(sv1[len(sv1) - 1], complex(1., 0.))
+
+        state2 = AerState()
+        state2.initialize(sv1, copy=False)
+        sv2 = state2.move_to_ndarray()
+        state2.close()
+
+        self.assertEqual(id(sv1), id(sv2))
+
+    def test_map_statevector_repeated(self):
+        """Test initialization of AerState with statevector"""
+        state1 = AerState()
+        state1.allocate_qubits(4)
+        state1.initialize()
+        sv1 = state1.move_to_ndarray()
+        sv1[0] = complex(0., 0.)
+        sv1[len(sv1) - 1] = complex(1., 0.)
+        state1.close()
+
+        for _ in range(100):
+            state2 = AerState()
+            state2.initialize(sv1, copy=False)
+            sv2 = state2.move_to_ndarray()
+            state2.close()
+
+            for idx in range(len(sv2) - 2):
+                self.assertEqual(sv2[idx], complex(0., 0.))
+            self.assertEqual(sv2[len(sv2) - 1], complex(1., 0.))
+
     def test_initialize_with_normal_ndarray(self):
         """Test initialization of AerState with normal ndarray"""
         sv1 = np.zeros((2 ** 4), dtype=np.complex128)
@@ -94,6 +145,19 @@ class TestAerState(common.QiskitAerTestCase):
         self.assertTrue(id(sv1) != id(sv2))
         self.assertEqual(len(sv1), len(sv2))
         self.assertEqual(sv1[len(sv1) - 1], sv2[len(sv2) - 1])
+
+        state1.close()
+
+    def test_initialize_with_normal_ndarray_with_map(self):
+        """Test initialization of AerState with normal ndarray"""
+        sv1 = np.zeros((2 ** 4), dtype=np.complex128)
+        sv1[len(sv1) - 1] = 1.
+
+        state1 = AerState()
+        state1.initialize(sv1, copy=False)
+
+        sv2 = state1.move_to_ndarray()
+        self.assertTrue(id(sv1) == id(sv2))
 
         state1.close()
 
@@ -323,9 +387,8 @@ class TestAerState(common.QiskitAerTestCase):
         result = aer_simulator.run(circuit).result()
         expected = result.get_statevector(0)
 
-        state = AerState()
+        state = AerState(seed_simulator=seed)
         state.allocate_qubits(5)
-        state.configure('seed_simulator', seed)
         state.initialize(init_state.data)
 
         state.apply_reset([0])
@@ -349,9 +412,8 @@ class TestAerState(common.QiskitAerTestCase):
         result = aer_simulator.run(circuit).result()
         expected = result.get_statevector(0)
 
-        state = AerState()
+        state = AerState(seed_simulator=seed)
         state.allocate_qubits(5)
-        state.configure('seed_simulator', seed)
         state.initialize(init_state.data)
 
         state.apply_measure([0])
@@ -398,8 +460,7 @@ class TestAerState(common.QiskitAerTestCase):
         result = aer_simulator.run(circuit, seed_simulator=11111).result()
         expected = result.get_counts(0)
 
-        state = AerState()
-        state.configure('seed_simulator', 11111)
+        state = AerState(seed_simulator=11111)
         state.allocate_qubits(5)
         state.initialize(init_state.data)
         actual = state.sample_measure()

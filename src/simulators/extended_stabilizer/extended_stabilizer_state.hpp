@@ -93,8 +93,6 @@ public:
 
   void initialize_qreg(uint_t num_qubits) override;
 
-  void initialize_qreg(uint_t num_qubits, const chstate_t &state) override;
-
   size_t required_memory_mb(uint_t num_qubits,
                                     const std::vector<Operations::Op> &ops)
                                     const override;
@@ -268,16 +266,6 @@ const stringmap_t<Snapshots> State::snapshotset_({
 void State::initialize_qreg(uint_t num_qubits)
 {
   BaseState::qreg_.initialize(num_qubits);
-  BaseState::qreg_.initialize_omp(BaseState::threads_, omp_threshold_rank_);
-}
-
-void State::initialize_qreg(uint_t num_qubits, const chstate_t &state)
-{
-  if(BaseState::qreg_.get_n_qubits() != num_qubits)
-  {
-    throw std::invalid_argument("CH::State::initialize: initial state does not match qubit number.");
-  }
-  BaseState::qreg_ = state;
   BaseState::qreg_.initialize_omp(BaseState::threads_, omp_threshold_rank_);
 }
 

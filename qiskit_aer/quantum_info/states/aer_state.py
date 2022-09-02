@@ -12,120 +12,174 @@
 """
 State class that handles internal C++ state safely
 """
+from enum import Enum
 import numpy as np
 from qiskit.providers.aer.backends.controller_wrappers import AerStateWrapper
 from ...backends.aerbackend import AerError
 
 
+class _STATE(Enum):
+    INITIALIZING = 1
+    ALLOCATED = 2
+    MAPPED = 3
+    MOVED = 4
+    CLOSED = 5
+
+
 class AerState:
     """Internal class to access state of Aer."""
 
-    def __init__(self):
+    _data_in_use = {}
+
+    @staticmethod
+    def _in_use(data):
+        AerState._data_in_use[id(data)] = data
+
+    @staticmethod
+    def _not_in_use(data):
+        del AerState._data_in_use[id(data)]
+
+    @staticmethod
+    def _is_in_use(data):
+        return id(data) in AerState._data_in_use
+
+    def __init__(self, **kwargs):
         """State that handles cpp quantum state safely"""
-        self._shift_to_created_state()
-        self._state = AerStateWrapper()
+        self._state = _STATE.INITIALIZING
+        self._native_state = AerStateWrapper()
         self._method = 'statevector'
+        self._init_data = None
+        self._moved_data = None
         self._last_qubit = -1
-        self._initialized = False
-        self._closed = False
 
-    def _is_created_state(self):
-        return (not self._initialized) and (not self._closed)
+        for key, value in kwargs.items():
+            self.configure(key, value)
 
-    def _is_initialized_state(self):
-        return self._initialized and (not self._closed)
-
-    def _is_closed_state(self):
-        return self._initialized and self._closed
-
-    def _shift_to_created_state(self):
-        self._initialized = False
-        self._closed = False
-
-    def _assert_created_state(self):
-        if self._is_initialized_state():
+    def _assert_initializing(self):
+        if self._state != _STATE.INITIALIZING:
             raise AerError('AerState was already initialized.')
-        if self._is_closed_state():
-            raise AerError('AerState has already been closed.')
 
-    def _shift_to_initialized_state(self):
-        if not self._is_created_state():
-            raise AerError('unexpected state transition')
-        self._initialized = True
-        self._closed = False
-
-    def _assert_initialized_state(self):
-        if not self._is_initialized_state():
+    def _assert_allocated_or_mapped_or_moved(self):
+        if self._state == _STATE.INITIALIZING:
             raise AerError('AerState has not been initialized yet.')
-        if self._is_closed_state():
+        if self._state == _STATE.CLOSED:
             raise AerError('AerState has already been closed.')
 
-    def _shift_to_closed_state(self):
-        if self._is_closed_state():
-            return
-        if (not self._is_initialized_state()) and (not self._is_created_state()):
-            raise AerError('unexpected state transition')
-        self._initialized = True
-        self._closed = True
+    def _assert_allocated_or_mapped(self):
+        if self._state == _STATE.INITIALIZING:
+            raise AerError('AerState has not been initialized yet.')
+        if self._state == _STATE.MOVED:
+            raise AerError('AerState has already been moved.')
+        if self._state == _STATE.CLOSED:
+            raise AerError('AerState has already been closed.')
+
+    def _assert_mapped_or_moved(self):
+        if self._state == _STATE.INITIALIZING:
+            raise AerError('AerState has not been initialized yet.')
+        if self._state == _STATE.ALLOCATED:
+            raise AerError('AerState has not been moved yet.')
+        if self._state == _STATE.CLOSED:
+            raise AerError('AerState has already been closed.')
+
+    def _allocated(self):
+        if self._state != _STATE.INITIALIZING:
+            raise AerError('unexpected state transition: {self._state}->{_STATE.ALLOCATED}')
+        self._state = _STATE.ALLOCATED
+
+    def _mapped(self):
+        if self._state != _STATE.INITIALIZING:
+            raise AerError('unexpected state transition: {self._state}->{_STATE.MAPPED}')
+        self._state = _STATE.MAPPED
+
+    def _moved(self):
+        if self._state != _STATE.ALLOCATED:
+            raise AerError('unexpected state transition: {self._state}->{_STATE.MOVED}')
+        self._state = _STATE.MOVED
+
+    def _closed(self):
+        if self._state not in (_STATE.MOVED, _STATE.MAPPED):
+            raise AerError('unexpected state transition: {self._state}->{_STATE.CLOSED}')
 
     def configure(self, key, value):
-        """configure AerState with options of `AerSimulator`.
-        This method must be called before `initialize()`."""
-        self._assert_created_state()
+        """configure AerState with options of `AerSimulator`."""
+        self._assert_initializing()
 
         if not isinstance(key, str):
             raise AerError('AerState is configured with a str key')
         if not isinstance(value, str):
             value = str(value)
-        self._state.configure(key, value)
+        self._native_state.configure(key, value)
 
-    def initialize(self, data=None):
-        """initialize state.
-        Once this method is called, `configure()` and `allocate_qubits()` can not be called."""
-        self._assert_created_state()
+    def initialize(self, data=None, copy=True):
+        """initialize state."""
+        self._assert_initializing()
 
         if data is None:
-            self._state.initialize()
+            self._native_state.initialize()
+            self._allocated()
         elif isinstance(data, np.ndarray):
-            self._initialize_with_ndarray(data)
+            self._initialize_with_ndarray(data, copy)
         else:
             raise AerError('unsupported init data.')
 
-        self._shift_to_initialized_state()
+    def _initialize_with_ndarray(self, data, copy):
+        if AerState._is_in_use(data) and not copy:
+            raise AerError('another AerState owns this data')
 
-    def _initialize_with_ndarray(self, data):
         num_of_qubits = int(np.log2(len(data)))
         if len(data) != np.power(2, num_of_qubits):
             raise AerError('length of init data must be power of two')
 
-        initialized = False
         if (isinstance(data, np.ndarray) and
            self._method == 'statevector' and
-           self._state.initialize_statevector(num_of_qubits, data, True)):
-            initialized = True
-
-        if not initialized:
-            self._state.reallocate_qubits(num_of_qubits)
-            self._state.initialize()
-            self._state.apply_initialize(range(num_of_qubits), data)
+           self._native_state.initialize_statevector(num_of_qubits, data, copy)):
+            if not copy:
+                self._init_data = data
+                AerState._in_use(data)
+                self._mapped()
+            else:
+                self._allocated()
+        else:
+            self._native_state.reallocate_qubits(num_of_qubits)
+            self._native_state.initialize()
+            self._native_state.apply_initialize(range(num_of_qubits), data)
+            self._allocated()
 
     def close(self):
-        """safely release all releated memory."""
-        self._shift_to_closed_state()
+        """Safely release all releated memory."""
+        self._assert_allocated_or_mapped_or_moved()
+        if self._state == _STATE.ALLOCATED:
+            self.move_to_ndarray()
+
+        self._assert_mapped_or_moved()
+        if self._state == _STATE.MAPPED:
+            # intentional memory leak
+            self._native_state.move_to_buffer()
+            AerState._not_in_use(self._init_data)
+
+        self._native_state.clear()
+        self._closed()
 
     def move_to_ndarray(self):
-        """move control to native memory from C++ to python."""
-        ret = self._state.move_to_ndarray()
-        self.close()
+        """move memory to ndarray if it is allocated, otherwise return mapped ndarray."""
+        self._assert_allocated_or_mapped_or_moved()
+
+        if self._state == _STATE.MAPPED:
+            ret = self._init_data
+        elif self._state == _STATE.MOVED:
+            ret = self._moved_data
+        else:
+            self._moved_data = self._native_state.move_to_ndarray()
+            ret = self._moved_data
+            self._moved()
         return ret
 
     def allocate_qubits(self, num_of_qubits):
-        """allocate qubits.
-        This method must be called before `initialize()`."""
-        self._assert_created_state()
+        """allocate qubits."""
+        self._assert_initializing()
         if num_of_qubits <= 0:
             raise AerError(f'invalid number of qubits: {num_of_qubits}')
-        allocated = self._state.allocate_qubits(num_of_qubits)
+        allocated = self._native_state.allocate_qubits(num_of_qubits)
         self._last_qubit = allocated[len(allocated) - 1]
 
     def _assert_in_allocated_qubits(self, qubit):
@@ -144,13 +198,19 @@ class AerState:
         """apply all buffered operations.
         Some gate operations are not evaluated immediately.
         This method guarantees that all called operations are evaluated.
-        This method must be called after `initialize()`."""
-        self._assert_initialized_state()
-        return self._state.flush()
+        """
+        self._assert_allocated_or_mapped()
+        return self._native_state.flush()
 
     def last_result(self):
         """return a result of a operation fluhsed in the last."""
-        return self._state.last_result()
+        self._assert_allocated_or_mapped_or_moved()
+        return self._native_state.last_result()
+
+    def apply_global_phase(self, phase):
+        """apply global phase."""
+        self._assert_allocated_or_mapped_or_moved()
+        self._native_state.apply_global_phase(phase)
 
     def apply_global_phase(self, phase):
         """apply global phase"""
@@ -159,24 +219,24 @@ class AerState:
 
     def apply_unitary(self, qubits, data):
         """apply a unitary gate."""
-        self._assert_initialized_state()
+        self._assert_allocated_or_mapped()
         self._assert_in_allocated_qubits(qubits)
         # Convert to numpy array in case not already an array
-        np_array = np.array(data, dtype=complex)
+        data = np.array(data, dtype=complex)
         # Check input is N-qubit matrix
-        input_dim = np_array.shape[0]
-        output_dim = np_array.shape[1]
+        input_dim = data.shape[0]
+        output_dim = data.shape[1]
         num_qubits = int(np.log2(input_dim))
         if input_dim != output_dim or 2**num_qubits != input_dim:
             raise AerError("Input matrix is not an N-qubit operator.")
         if len(qubits) != num_qubits:
             raise AerError("Input matrix and qubits are insonsistent.")
         # update state
-        self._state.apply_unitary(qubits, np_array)
+        self._native_state.apply_unitary(qubits, data)
 
     def apply_multiplexer(self, control_qubits, target_qubits, mats):
         """apply a multiplexer operation."""
-        self._assert_initialized_state()
+        self._assert_allocated_or_mapped()
         self._assert_in_allocated_qubits(control_qubits)
         self._assert_in_allocated_qubits(target_qubits)
         if not isinstance(mats, list):
@@ -196,11 +256,11 @@ class AerState:
         if len(target_qubits) != num_target_qubits:
             raise AerError("Input matrix and qubits are insonsistent.")
         # update state
-        self._state.apply_multiplexer(control_qubits, target_qubits, mats)
+        self._native_state.apply_multiplexer(control_qubits, target_qubits, mats)
 
     def apply_diagonal(self, qubits, diag):
         """apply a diagonal matrix operation."""
-        self._assert_initialized_state()
+        self._assert_allocated_or_mapped()
         self._assert_in_allocated_qubits(qubits)
         # Convert to numpy array in case not already an array
         diag = np.array(diag, dtype=complex)
@@ -212,93 +272,93 @@ class AerState:
         if len(qubits) != num_qubits:
             raise AerError("Input vector and qubits are insonsistent.")
         # update state
-        self._state.apply_diagonal(qubits, diag)
+        self._native_state.apply_diagonal(qubits, diag)
 
     def apply_mcx(self, control_qubits, target_qubit):
         """apply a mcx operation."""
-        self._assert_initialized_state()
+        self._assert_allocated_or_mapped()
         self._assert_in_allocated_qubits(control_qubits)
         self._assert_in_allocated_qubits(target_qubit)
         # update state
-        self._state.apply_mcx(control_qubits + [target_qubit])
+        self._native_state.apply_mcx(control_qubits + [target_qubit])
 
     def apply_mcy(self, control_qubits, target_qubit):
         """apply a mcy operation."""
-        self._assert_initialized_state()
+        self._assert_allocated_or_mapped()
         self._assert_in_allocated_qubits(control_qubits)
         self._assert_in_allocated_qubits(target_qubit)
         # update state
-        self._state.apply_mcy(control_qubits + [target_qubit])
+        self._native_state.apply_mcy(control_qubits + [target_qubit])
 
     def apply_mcz(self, control_qubits, target_qubit):
         """apply a mcz operation."""
-        self._assert_initialized_state()
+        self._assert_allocated_or_mapped()
         self._assert_in_allocated_qubits(control_qubits)
         self._assert_in_allocated_qubits(target_qubit)
         # update state
-        self._state.apply_mcz(control_qubits + [target_qubit])
+        self._native_state.apply_mcz(control_qubits + [target_qubit])
 
     def apply_mcphase(self, control_qubits, target_qubit, phase):
         """apply a mcphase operation."""
-        self._assert_initialized_state()
+        self._assert_allocated_or_mapped()
         self._assert_in_allocated_qubits(control_qubits)
         self._assert_in_allocated_qubits(target_qubit)
         # update state
-        self._state.apply_mcphase(control_qubits + [target_qubit], phase)
+        self._native_state.apply_mcphase(control_qubits + [target_qubit], phase)
 
     def apply_mcu(self, control_qubits, target_qubit, theta, phi, lamb):
         """apply a mcu operation."""
-        self._assert_initialized_state()
+        self._assert_allocated_or_mapped()
         self._assert_in_allocated_qubits(control_qubits)
         self._assert_in_allocated_qubits(target_qubit)
         # update state
-        self._state.apply_mcu(control_qubits + [target_qubit], theta, phi, lamb)
+        self._native_state.apply_mcu(control_qubits + [target_qubit], theta, phi, lamb)
 
     def apply_mcswap(self, control_qubits, qubit0, qubit1):
         """apply a mcswap operation."""
-        self._assert_initialized_state()
+        self._assert_allocated_or_mapped()
         self._assert_in_allocated_qubits(control_qubits)
         self._assert_in_allocated_qubits(qubit0)
         self._assert_in_allocated_qubits(qubit1)
         # update state
-        self._state.apply_mcswap(control_qubits + [qubit0, qubit1])
+        self._native_state.apply_mcswap(control_qubits + [qubit0, qubit1])
 
     def apply_measure(self, qubits):
         """apply a measure operation."""
-        self._assert_initialized_state()
+        self._assert_allocated_or_mapped()
         self._assert_in_allocated_qubits(qubits)
         # measure and update state
-        return self._state.apply_measure(qubits)
+        return self._native_state.apply_measure(qubits)
 
     def apply_reset(self, qubits):
         """apply a reset operation."""
-        self._assert_initialized_state()
+        self._assert_allocated_or_mapped()
         self._assert_in_allocated_qubits(qubits)
         # update state
-        return self._state.apply_reset(qubits)
+        return self._native_state.apply_reset(qubits)
 
     def probability(self, outcome):
         """return a probability of `outcome`."""
-        self._assert_initialized_state()
+        self._assert_allocated_or_mapped()
         # retrieve probability
-        return self._state.probability(outcome)
+        return self._native_state.probability(outcome)
 
     def probabilities(self, qubits=None):
         """return probabilities of `qubits`."""
-        self._assert_initialized_state()
+        self._assert_allocated_or_mapped()
         if qubits is None:
             qubits = range(self._last_qubit + 1)
         else:
             self._assert_in_allocated_qubits(qubits)
 
         # retrieve probability
-        return self._state.probabilities(qubits)
+        return self._native_state.probabilities(qubits)
 
     def sample_measure(self, qubits=None, shots=1024):
         """samples all the qubits."""
-        self._assert_initialized_state()
+        self._assert_allocated_or_mapped()
         if qubits is None:
             qubits = range(self._last_qubit + 1)
         else:
             self._assert_in_allocated_qubits(qubits)
-        return self._state.sample_measure(qubits, shots)
+        return self._native_state.sample_measure(qubits, shots)
