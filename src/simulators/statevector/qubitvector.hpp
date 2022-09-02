@@ -69,7 +69,7 @@ public:
   virtual ~QubitVector();
   QubitVector(size_t num_qubits, std::complex<data_t>* data, bool copy=false);
   QubitVector(const QubitVector& obj) {};
-  QubitVector &operator=(const QubitVector& obj) {};
+  QubitVector &operator=(const QubitVector& obj) { return QubitVector(num_qubits_, data_, true); };
 
   //-----------------------------------------------------------------------
   // Data access
