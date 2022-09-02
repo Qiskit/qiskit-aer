@@ -153,7 +153,8 @@ class AerState:
 
         self._assert_mapped_or_moved()
         if self._state == _STATE.MAPPED:
-            self._native_state.move_to_buffer() ## intentional memory leak
+            # intentional memory leak
+            self._native_state.move_to_buffer()
             AerState._not_in_use(self._init_data)
 
         self._native_state.clear()
