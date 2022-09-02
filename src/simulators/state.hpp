@@ -384,9 +384,6 @@ public:
   auto &qreg() { return qreg_; }
   const auto &qreg() const { return qreg_; }
 
-  // Initializes the State to a specific state.
-  virtual void initialize_qreg(uint_t num_qubits, const state_t &state) = 0;
-
   //-----------------------------------------------------------------------
   // Standard snapshots
   //-----------------------------------------------------------------------

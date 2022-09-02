@@ -113,7 +113,7 @@ class TestAerState(common.QiskitAerTestCase):
 
         self.assertEqual(id(sv1), id(sv2))
 
-    def test_map_statevector(self):
+    def test_map_statevector_repeated(self):
         """Test initialization of AerState with statevector"""
         state1 = AerState()
         state1.allocate_qubits(4)
@@ -387,9 +387,8 @@ class TestAerState(common.QiskitAerTestCase):
         result = aer_simulator.run(circuit).result()
         expected = result.get_statevector(0)
 
-        state = AerState()
+        state = AerState(seed_simulator=seed)
         state.allocate_qubits(5)
-        state.configure('seed_simulator', seed)
         state.initialize(init_state.data)
 
         state.apply_reset([0])
@@ -413,9 +412,8 @@ class TestAerState(common.QiskitAerTestCase):
         result = aer_simulator.run(circuit).result()
         expected = result.get_statevector(0)
 
-        state = AerState()
+        state = AerState(seed_simulator=seed)
         state.allocate_qubits(5)
-        state.configure('seed_simulator', seed)
         state.initialize(init_state.data)
 
         state.apply_measure([0])
@@ -462,8 +460,7 @@ class TestAerState(common.QiskitAerTestCase):
         result = aer_simulator.run(circuit, seed_simulator=11111).result()
         expected = result.get_counts(0)
 
-        state = AerState()
-        state.configure('seed_simulator', 11111)
+        state = AerState(seed_simulator=11111)
         state.allocate_qubits(5)
         state.initialize(init_state.data)
         actual = state.sample_measure()

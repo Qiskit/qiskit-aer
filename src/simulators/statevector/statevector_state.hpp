@@ -125,8 +125,8 @@ public:
   virtual void initialize_qreg(uint_t num_qubits) override;
 
   // Initializes to a specific n-qubit state
-  virtual void initialize_qreg(uint_t num_qubits,
-                               const statevec_t &state) override;
+  virtual void initialize_statevector(uint_t num_qubits,
+                                      statevec_t &&state);
 
   // Returns the required memory for storing an n-qubit state in megabytes.
   // For this state the memory is independent of the number of ops
@@ -147,9 +147,6 @@ public:
   //-----------------------------------------------------------------------
   // Additional methods
   //-----------------------------------------------------------------------
-
-  // Initializes to a specific n-qubit state given as a complex std::vector
-  virtual void initialize_qreg(uint_t num_qubits, const cvector_t &state);
 
   // Initialize OpenMP settings for the underlying QubitVector class
   void initialize_omp();
@@ -495,61 +492,45 @@ void State<statevec_t>::initialize_qreg(uint_t num_qubits)
 }
 
 template <class statevec_t>
-void State<statevec_t>::initialize_qreg(uint_t num_qubits,
-                                        const statevec_t &state) 
+void State<statevec_t>::initialize_statevector(uint_t num_qubits,
+                                               statevec_t &&state) 
 {
   if (state.num_qubits() != num_qubits) {
     throw std::invalid_argument("QubitVector::State::initialize: initial state does not match qubit number");
   }
-  if(BaseState::qregs_.size() == 0)
-    BaseState::allocate(num_qubits,num_qubits,1);
-  initialize_omp();
 
-  int_t iChunk;
-  for(iChunk=0;iChunk<BaseState::qregs_.size();iChunk++){
-    BaseState::qregs_[iChunk].set_num_qubits(BaseState::chunk_bits_);
-  }
+  if (BaseState::qregs_.size() == 1) {
+    BaseState::qregs_[0] = std::move(state);
+  } else {
+    if(BaseState::qregs_.size() == 0)
+      BaseState::allocate(num_qubits,num_qubits,1);
+    initialize_omp();
 
-  if(BaseState::multi_chunk_distribution_){
-    uint_t local_offset = BaseState::global_chunk_index_ << BaseState::chunk_bits_;
-    if(BaseState::chunk_omp_parallel_ && BaseState::num_groups_ > 0){
+    int_t iChunk;
+    for(iChunk=0;iChunk<BaseState::qregs_.size();iChunk++){
+      BaseState::qregs_[iChunk].set_num_qubits(BaseState::chunk_bits_);
+    }
+
+    if(BaseState::multi_chunk_distribution_){
+      uint_t local_offset = BaseState::global_chunk_index_ << BaseState::chunk_bits_;
+      if(BaseState::chunk_omp_parallel_ && BaseState::num_groups_ > 0){
 #pragma omp parallel for private(iChunk)
-      for(int_t ig=0;ig<BaseState::num_groups_;ig++){
-        for(iChunk = BaseState::top_chunk_of_group_[ig];iChunk < BaseState::top_chunk_of_group_[ig + 1];iChunk++)
+        for(int_t ig=0;ig<BaseState::num_groups_;ig++){
+          for(iChunk = BaseState::top_chunk_of_group_[ig];iChunk < BaseState::top_chunk_of_group_[ig + 1];iChunk++)
+            BaseState::qregs_[iChunk].initialize_from_data(state.data() + local_offset + (iChunk << BaseState::chunk_bits_), 1ull << BaseState::chunk_bits_);
+        }
+      }
+      else{
+        for(iChunk=0;iChunk<BaseState::qregs_.size();iChunk++)
           BaseState::qregs_[iChunk].initialize_from_data(state.data() + local_offset + (iChunk << BaseState::chunk_bits_), 1ull << BaseState::chunk_bits_);
       }
     }
     else{
-      for(iChunk=0;iChunk<BaseState::qregs_.size();iChunk++)
-        BaseState::qregs_[iChunk].initialize_from_data(state.data() + local_offset + (iChunk << BaseState::chunk_bits_), 1ull << BaseState::chunk_bits_);
+      for(iChunk=0;iChunk<BaseState::qregs_.size();iChunk++){
+        BaseState::qregs_[iChunk].initialize_from_data(state.data(), 1ull << BaseState::chunk_bits_);
+      }
     }
   }
-  else{
-    for(iChunk=0;iChunk<BaseState::qregs_.size();iChunk++){
-      BaseState::qregs_[iChunk].initialize_from_data(state.data(), 1ull << BaseState::chunk_bits_);
-    }
-  }
-  apply_global_phase();
-}
-
-template <class statevec_t>
-void State<statevec_t>::initialize_qreg(uint_t num_qubits,
-                                        const cvector_t &state) 
-{
-  if (state.size() != 1ULL << num_qubits) {
-    throw std::invalid_argument("QubitVector::State::initialize: initial state does not match qubit number");
-  }
-  if(BaseState::qregs_.size() == 0)
-    BaseState::allocate(num_qubits,num_qubits,1);
-
-  initialize_omp();
-
-  int_t iChunk;
-  for(iChunk=0;iChunk<BaseState::qregs_.size();iChunk++){
-    BaseState::qregs_[iChunk].set_num_qubits(BaseState::chunk_bits_);
-  }
-
-  initialize_from_vector(iChunk, state);
 
   apply_global_phase();
 }

@@ -90,10 +90,6 @@ public:
   // Initializes an n-qubit unitary to the identity matrix
   virtual void initialize_qreg(uint_t num_qubits) override;
 
-  // Initializes to a specific n-qubit unitary superop
-  virtual void initialize_qreg(uint_t num_qubits,
-                               const data_t &unitary) override;
-
   // Returns the required memory for storing an n-qubit state in megabytes.
   // For this state the memory is indepdentent of the number of ops
   // and is approximately 16 * 1 << 4 * num_qubits bytes
@@ -111,9 +107,6 @@ public:
   //-----------------------------------------------------------------------
   // Additional methods
   //-----------------------------------------------------------------------
-
-  // Initializes to a specific n-qubit unitary given as a complex matrix
-  virtual void initialize_qreg(uint_t num_qubits, const cmatrix_t &unitary);
 
   // Initialize OpenMP settings for the underlying QubitVector class
   void initialize_omp();
@@ -321,33 +314,6 @@ template <class data_t> void State<data_t>::initialize_qreg(uint_t num_qubits) {
   initialize_omp();
   BaseState::qreg_.set_num_qubits(num_qubits);
   BaseState::qreg_.initialize();
-}
-
-template <class data_t>
-void State<data_t>::initialize_qreg(uint_t num_qubits, const data_t &supermat) {
-  // Check dimension of state
-  if (supermat.num_qubits() != num_qubits) {
-    throw std::invalid_argument("QubitSuperoperator::State::initialize: "
-                                "initial state does not match qubit number");
-  }
-  initialize_omp();
-  BaseState::qreg_.set_num_qubits(num_qubits);
-  const size_t sz = 1ULL << BaseState::qreg_.size();
-  BaseState::qreg_.initialize_from_data(supermat.data(), sz);
-}
-
-template <class data_t>
-void State<data_t>::initialize_qreg(uint_t num_qubits, const cmatrix_t &mat) {
-  // Check dimension of unitary
-  const auto sz_uni = 1ULL << (2 * num_qubits);
-  const auto sz_super = 1ULL << (4 * num_qubits);
-  if (mat.size() != sz_uni && mat.size() != sz_super) {
-    throw std::invalid_argument("QubitSuperoperator::State::initialize: "
-                                "initial state does not match qubit number");
-  }
-  initialize_omp();
-  BaseState::qreg_.set_num_qubits(num_qubits);
-  BaseState::qreg_.initialize_from_matrix(mat);
 }
 
 template <class data_t> void State<data_t>::initialize_omp() {
