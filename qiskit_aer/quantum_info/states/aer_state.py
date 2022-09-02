@@ -210,11 +210,6 @@ class AerState:
         return self._native_state.last_result()
 
     def apply_global_phase(self, phase):
-        """apply global phase."""
-        self._assert_allocated_or_mapped_or_moved()
-        self._native_state.apply_global_phase(phase)
-
-    def apply_global_phase(self, phase):
         """apply global phase"""
         self._assert_allocated_or_mapped()
         self._native_state.apply_global_phase(phase)
