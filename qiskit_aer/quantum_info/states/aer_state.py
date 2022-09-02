@@ -43,7 +43,7 @@ class AerState:
     def _is_in_use(data):
         return id(data) in AerState._data_in_use
 
-    def __init__(self):
+    def __init__(self, **kwargs):
         """State that handles cpp quantum state safely"""
         self._state = _STATE.INITIALIZING
         self._native_state = AerStateWrapper()
@@ -51,6 +51,9 @@ class AerState:
         self._init_data = None
         self._moved_data = None
         self._last_qubit = -1
+
+        for key, value in kwargs.items():
+            self.configure(key, value)
 
     def _assert_initializing(self):
         if self._state != _STATE.INITIALIZING:
