@@ -85,6 +85,7 @@ public:
     obj.checkpoint_ = nullptr;
     return *this;
   };
+  QubitVector& operator= (const QubitVector&) = delete;
 
   //-----------------------------------------------------------------------
   // Data access
@@ -947,6 +948,7 @@ void QubitVector<data_t>::checkpoint() {
   #pragma omp parallel for if (num_qubits_ > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
   for (int_t k = 0; k < END; ++k)
     checkpoint_[k] = data_[k];
+
 }
 
 template <typename data_t>

@@ -145,6 +145,8 @@ class AerState:
             self._native_state.apply_initialize(range(num_of_qubits), data)
             self._allocated()
 
+        self._last_qubit = num_of_qubits - 1
+
     def close(self):
         """Safely release all releated memory."""
         self._assert_allocated_or_mapped_or_moved()

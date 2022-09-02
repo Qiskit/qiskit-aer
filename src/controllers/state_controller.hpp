@@ -676,12 +676,15 @@ reg_t AerState::initialize_statevector(uint_t num_of_qubits, complex_t* data, bo
   state->set_config(configs_);
   state->set_distribution(num_process_per_experiment_);
   state->set_max_matrix_qubits(max_gate_qubits_);
+  
   if(!cache_block_pass_.enabled() || !state->multi_chunk_distribution_supported())
     block_qubits = num_of_qubits_;
+  
   state->allocate(num_of_qubits_, block_qubits);
   auto qv = QV::QubitVector<double>(num_of_qubits_, data, copy);
-  state->initialize_statevector(num_of_qubits_, std::move(qv));
+  state->initialize_qreg(num_of_qubits_);
   state->initialize_creg(num_of_qubits_, num_of_qubits_);
+  state->initialize_statevector(num_of_qubits_, std::move(qv));
   state_ = state;
   rng_.set_seed(seed_);
   initialized_ = true;
