@@ -216,8 +216,8 @@ class AerState:
 
     def apply_global_phase(self, phase):
         """apply global phase"""
-        self._assert_initialized_state()
-        self._state.apply_global_phase(phase)
+        self._assert_allocated_or_mapped()
+        self._native_state.apply_global_phase(phase)
 
     def apply_unitary(self, qubits, data):
         """apply a unitary gate."""
