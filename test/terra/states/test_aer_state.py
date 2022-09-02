@@ -85,6 +85,7 @@ class TestAerState(common.QiskitAerTestCase):
 
         state2 = AerState()
         state2.initialize(sv1)
+        state2.flush()
         sv2 = state2.move_to_ndarray()
         state2.close()
 
@@ -94,24 +95,21 @@ class TestAerState(common.QiskitAerTestCase):
 
     def test_map_statevector(self):
         """Test initialization of AerState with statevector"""
-        state1 = AerState()
+        init_state = random_statevector(2**5, seed=111)
+        state1 = AerState(seed_simulator=2222)
         state1.allocate_qubits(4)
-        state1.initialize()
+        state1.initialize(init_state.data, copy=True)
+        sample1 = state1.sample_measure()
         sv1 = state1.move_to_ndarray()
-        sv1[0] = complex(0., 0.)
-        sv1[len(sv1) - 1] = complex(1., 0.)
-        state1.close()
 
-        for idx in range(len(sv1) - 1):
-            self.assertEqual(sv1[idx], complex(0., 0.))
-        self.assertEqual(sv1[len(sv1) - 1], complex(1., 0.))
-
-        state2 = AerState()
+        state2 = AerState(seed_simulator=2222)
         state2.initialize(sv1, copy=False)
+        sample2 = state2.sample_measure()
         sv2 = state2.move_to_ndarray()
         state2.close()
 
         self.assertEqual(id(sv1), id(sv2))
+        self.assertEqual(sample1, sample2)
 
     def test_map_statevector_repeated(self):
         """Test initialization of AerState with statevector"""
