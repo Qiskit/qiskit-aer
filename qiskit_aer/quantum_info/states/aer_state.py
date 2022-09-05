@@ -156,7 +156,7 @@ class AerState:
 
     def __del__(self):
         """"destructor. Call close() if not called."""
-        if self._state in (_STATE.ALLOCATED, _STATE.MAPPED, _STATE.MOVED):
+        if self._state in (_STATE.ALLOCATED, _STATE.MOVED):
             self.close()
 
     def close(self):
@@ -363,14 +363,23 @@ class AerState:
         # retrieve probability
         return self._native_state.probabilities(qubits)
 
-    def sample_measure(self, qubits=None, shots=1024):
+    def sample_counts(self, qubits=None, shots=1024):
         """samples all the qubits."""
         self._assert_allocated_or_mapped()
         if qubits is None:
             qubits = range(self._last_qubit + 1)
         else:
             self._assert_in_allocated_qubits(qubits)
-        return self._native_state.sample_measure(qubits, shots)
+        return self._native_state.sample_counts(qubits, shots)
+
+    def sample_memory(self, qubits=None, shots=1024):
+        """samples all the qubits."""
+        self._assert_allocated_or_mapped()
+        if qubits is None:
+            qubits = range(self._last_qubit + 1)
+        else:
+            self._assert_in_allocated_qubits(qubits)
+        return self._native_state.sample_memory(qubits, shots)
 
     def expectation_value_pauli(self, pauli, qubits=None):
         """return expectation value"""

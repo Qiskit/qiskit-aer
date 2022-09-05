@@ -38,15 +38,15 @@ class AerStatevector(Statevector):
                 (``Operator`` is not supportted in the current implementation).  If the data is
                 a circuit or instruction, the statevector is constructed by assuming that all
                 qubits are initialized to the zero state.
-            configs (kwargs): configurations of ```AerState`. All the keys are handeld as string
+            configs (kwargs): configurations of ``AerState``. All the keys are handeld as string
 
         Raises:
             AerError: if input data is not valid.
 
-        """
-        if '_aer_state' in configs:
-            self._aer_state = configs.pop('_aer_state')
+        Additional Information:
+            The ``dims`` kwarg is used to ``Statevector`` constructor.
 
+        """
         if 'dims' in configs:
             dims = configs.pop('dims')
         else:
@@ -145,9 +145,42 @@ class AerStatevector(Statevector):
         else:
             qubits = np.array(qargs)
         pauli_str = str(pauli)
+        self._aer_state.close()
         self._aer_state = AerState(**self._aer_state.configuration())
         self._aer_state.initialize(self._data, copy=False)
-        return self._aer_state.expectation_value_pauli(pauli_str, qubits)
+        ret = self._aer_state.expectation_value_pauli(pauli_str, qubits)
+        self._data = self._aer_state.move_to_ndarray()
+        return ret
+
+    def sample_memory(self, shots, qargs=None):
+        """Sample a list of qubit measurement outcomes in the computational basis.
+
+        Args:
+            shots (int): number of samples to generate.
+            qargs (None or list): subsystems to sample measurements for,
+                                if None sample measurement of all
+                                subsystems (Default: None).
+
+        Returns:
+            np.array: list of sampled counts if the order sampled.
+
+        Additional Information:
+
+            This function *samples* measurement outcomes using the measure
+            :meth:`probabilities` for the current state and `qargs`. It does
+            not actually implement the measurement so the current state is
+            not modified.
+        """
+        if qargs is None:
+            qubits = np.arange(self._aer_state.num_qubits)
+        else:
+            qubits = np.array(qargs)
+        self._aer_state.close()
+        self._aer_state = AerState(**self._aer_state.configuration())
+        self._aer_state.initialize(self._data, copy=False)
+        samples = self._aer_state.sample_memory(qubits, shots)
+        self._data = self._aer_state.move_to_ndarray()
+        return samples
 
     @classmethod
     def _from_ndarray(cls, init_data, **configs):
@@ -157,6 +190,9 @@ class AerStatevector(Statevector):
         for config_key, config_value in configs.items():
             if options.get(config_key):
                 aer_state.configure(config_key, config_value)
+
+        if len(init_data) == 0:
+            raise AerError('initial data must be larger than 0')
 
         num_qubits = int(np.log2(len(init_data)))
 
@@ -222,3 +258,40 @@ class AerStatevector(Statevector):
             if definition is inst:
                 raise AerError('cannot decompose ' + inst.name)
             AerStatevector._aer_evolve_circuit(aer_state, definition, qubits)
+
+    @classmethod
+    def from_label(cls, label):
+        """Return a tensor product of Pauli X,Y,Z eigenstates.
+
+        .. list-table:: Single-qubit state labels
+           :header-rows: 1
+
+           * - Label
+             - Statevector
+           * - ``"0"``
+             - :math:`[1, 0]`
+           * - ``"1"``
+             - :math:`[0, 1]`
+           * - ``"+"``
+             - :math:`[1 / \\sqrt{2},  1 / \\sqrt{2}]`
+           * - ``"-"``
+             - :math:`[1 / \\sqrt{2},  -1 / \\sqrt{2}]`
+           * - ``"r"``
+             - :math:`[1 / \\sqrt{2},  i / \\sqrt{2}]`
+           * - ``"l"``
+             - :math:`[1 / \\sqrt{2},  -i / \\sqrt{2}]`
+
+        Args:
+            label (string): a eigenstate string ket label (see table for
+                            allowed values).
+
+        Returns:
+            AerStatevector: The N-qubit basis state density matrix.
+
+        Raises:
+            QiskitError: if the label contains invalid characters, or the
+                         length of the label is larger than an explicitly
+                         specified num_qubits.
+        """
+        sv = Statevector.from_label(label)
+        return AerStatevector(sv._data)
