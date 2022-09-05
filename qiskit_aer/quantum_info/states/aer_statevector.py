@@ -18,6 +18,7 @@ import numpy as np
 
 from qiskit.circuit import QuantumCircuit, Instruction
 from qiskit.quantum_info.states import Statevector
+from qiskit.quantum_info.operators.symplectic import Pauli, SparsePauliOp
 from qiskit.quantum_info.operators.operator import Operator
 
 from qiskit_aer import AerSimulator
@@ -128,6 +129,52 @@ class AerStatevector(Statevector):
                 "Operator input dimensions are not equal to statevector subsystem dimensions."
             )
         return Statevector._evolve_operator(ret, other, qargs=qargs)
+
+    def _expectation_value_paulis(self, pauli_op, qargs=None):
+        """Compute the expectation value of a Pauli with Aer implementation.
+
+        Args:
+            pauli_op (SparsePauliOp): list of pairs of coefficient and pauli string.
+            qargs (None or list): subsystems to apply operator on.
+
+        Returns:
+            complex: the expectation value.
+        """
+        n_pauli = pauli_op.num_qubits
+        if qargs is None:
+            qubits = np.arange(n_pauli)
+        else:
+            qubits = np.array(qargs)
+        self._aer_state.close()
+        self._aer_state = AerState(**self._aer_state.configuration())
+        self._aer_state.initialize(self._data, copy=False)
+
+        pauli_strings = []
+        for z, x in zip(pauli_op.paulis.z, pauli_op.paulis.x):
+            pauli_strings.append(str(Pauli((z, x))))
+
+        exp_vals = self._aer_state.expectation_value_pauli(pauli_strings, qubits)
+
+        exp_val = 0.0
+        for val, coeff in zip(exp_vals, pauli_op.coeffs):
+            exp_val += val * coeff
+
+        self._data = self._aer_state.move_to_ndarray()
+        return exp_val
+
+    def expectation_value(self, oper, qargs=None):
+        """Compute the expectation value of an operator.
+
+        Args:
+            oper (Operator): an operator to evaluate expval of.
+            qargs (None or list): subsystems to apply operator on.
+
+        Returns:
+            complex: the expectation value.
+        """
+        if isinstance(oper, SparsePauliOp):
+            return self._expectation_value_paulis(oper, qargs)
+        return super().expectation_value(oper, qargs)
 
     def sample_memory(self, shots, qargs=None):
         """Sample a list of qubit measurement outcomes in the computational basis.

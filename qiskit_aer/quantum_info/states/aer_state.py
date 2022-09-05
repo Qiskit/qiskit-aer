@@ -381,11 +381,11 @@ class AerState:
             self._assert_in_allocated_qubits(qubits)
         return self._native_state.sample_memory(qubits, shots)
 
-    def expectation_value_pauli(self, pauli, qubits=None):
+    def expectation_value_pauli(self, paulis, qubits=None):
         """return expectation value"""
         self._assert_allocated_or_mapped()
         if qubits is None:
             qubits = range(self._last_qubit + 1)
         else:
             self._assert_in_allocated_qubits(qubits)
-        return self._native_state.expval_pauli(qubits, pauli)
+        return self._native_state.expval_pauli(qubits, paulis)

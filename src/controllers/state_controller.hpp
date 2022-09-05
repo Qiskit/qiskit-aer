@@ -307,7 +307,7 @@ public:
 
   // Return the expectation value of an N-qubit Pauli matrix.
   // The Pauli is input as a length N string of I,X,Y,Z characters.
-  virtual double expval_pauli(const reg_t &qubits, const std::string &pauli);
+  virtual std::vector<double> expval_pauli(const reg_t &qubits, const std::vector<std::string> &paulis);
 
   //-----------------------------------------------------------------------
   // Operation management
@@ -1080,12 +1080,17 @@ std::unordered_map<uint_t, uint_t> AerState::sample_counts(const reg_t &qubits, 
   return ret;
 }
 
-double AerState::expval_pauli(const reg_t &qubits, const std::string &pauli) {
+std::vector<double> AerState::expval_pauli(const reg_t &qubits, const std::vector<std::string> &paulis) {
   assert_initialized();
 
   flush_ops();
 
-  return state_->expval_pauli(qubits, pauli);
+  std::vector<double> ret;
+  ret.reserve(paulis.size());
+  for (auto& pauli: paulis) {
+    ret.push_back(state_->expval_pauli(qubits, pauli));
+  }
+  return ret;
 }
 
 
