@@ -18,7 +18,6 @@ import numpy as np
 
 from qiskit.circuit import QuantumCircuit, Instruction
 from qiskit.quantum_info.states import Statevector
-from qiskit.quantum_info.operators.symplectic import Pauli, SparsePauliOp
 from qiskit.quantum_info.operators.operator import Operator
 
 from qiskit_aer import AerSimulator
@@ -271,5 +270,4 @@ class AerStatevector(Statevector):
                          length of the label is larger than an explicitly
                          specified num_qubits.
         """
-        sv = Statevector.from_label(label)
-        return AerStatevector(sv._data)
+        return AerStatevector(Statevector.from_label(label)._data)
