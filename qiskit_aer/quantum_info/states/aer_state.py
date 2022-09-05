@@ -47,13 +47,15 @@ class AerState:
         """State that handles cpp quantum state safely"""
         self._state = _STATE.INITIALIZING
         self._native_state = AerStateWrapper()
-        self._method = 'statevector'
         self._init_data = None
         self._moved_data = None
         self._last_qubit = -1
+        self._configs = {}
 
         for key, value in kwargs.items():
             self.configure(key, value)
+        if 'method' not in kwargs:
+            self.configure('method', 'statevector')
 
     def _assert_initializing(self):
         if self._state != _STATE.INITIALIZING:
@@ -108,7 +110,12 @@ class AerState:
             raise AerError('AerState is configured with a str key')
         if not isinstance(value, str):
             value = str(value)
+        self._configs[key] = value
         self._native_state.configure(key, value)
+
+    def configuration(self):
+        """return configuration"""
+        return self._configs
 
     def initialize(self, data=None, copy=True):
         """initialize state."""
@@ -131,7 +138,7 @@ class AerState:
             raise AerError('length of init data must be power of two')
 
         if (isinstance(data, np.ndarray) and
-           self._method == 'statevector' and
+           self._configs['method'] == 'statevector' and
            self._native_state.initialize_statevector(num_of_qubits, data, copy)):
             if not copy:
                 self._init_data = data
@@ -146,6 +153,11 @@ class AerState:
             self._allocated()
 
         self._last_qubit = num_of_qubits - 1
+
+    def __del__(self):
+        """"destructor. Call close() if not called."""
+        if self._state in (_STATE.ALLOCATED, _STATE.MAPPED, _STATE.MOVED):
+            self.close()
 
     def close(self):
         """Safely release all releated memory."""
@@ -185,7 +197,7 @@ class AerState:
         self._last_qubit = allocated[len(allocated) - 1]
 
     def _assert_in_allocated_qubits(self, qubit):
-        if isinstance(qubit, list):
+        if hasattr(qubit, '__iter__'):
             for q in qubit:
                 self._assert_in_allocated_qubits(q)
         elif qubit < 0 or qubit > self._last_qubit:
@@ -359,3 +371,12 @@ class AerState:
         else:
             self._assert_in_allocated_qubits(qubits)
         return self._native_state.sample_measure(qubits, shots)
+
+    def expectation_value_pauli(self, pauli, qubits=None):
+        """return expectation value"""
+        self._assert_allocated_or_mapped()
+        if qubits is None:
+            qubits = range(self._last_qubit + 1)
+        else:
+            self._assert_in_allocated_qubits(qubits)
+        return self._native_state.expval_pauli(qubits, pauli)
