@@ -129,29 +129,6 @@ class AerStatevector(Statevector):
             )
         return Statevector._evolve_operator(ret, other, qargs=qargs)
 
-    def _expectation_value_pauli(self, pauli, qargs=None):
-        """Compute the expectation value of a Pauli with Aer implementation.
-
-        Args:
-            pauli (Pauli): a Pauli operator to evaluate expval of.
-            qargs (None or list): subsystems to apply operator on.
-
-        Returns:
-            complex: the expectation value.
-        """
-        n_pauli = len(pauli)
-        if qargs is None:
-            qubits = np.arange(n_pauli)
-        else:
-            qubits = np.array(qargs)
-        pauli_str = str(pauli)
-        self._aer_state.close()
-        self._aer_state = AerState(**self._aer_state.configuration())
-        self._aer_state.initialize(self._data, copy=False)
-        ret = self._aer_state.expectation_value_pauli(pauli_str, qubits)
-        self._data = self._aer_state.move_to_ndarray()
-        return ret
-
     def sample_memory(self, shots, qargs=None):
         """Sample a list of qubit measurement outcomes in the computational basis.
 
