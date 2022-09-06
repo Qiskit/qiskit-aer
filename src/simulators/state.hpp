@@ -134,6 +134,9 @@ public:
   // Apply circuits and ops
   //-----------------------------------------------------------------------
 
+  // Apply the global phase
+  virtual void apply_global_phase() {};
+
   // Apply a single operation
   // The `final_op` flag indicates no more instructions will be applied
   // to the state after this sequence, so the state can be modified at the
@@ -380,9 +383,6 @@ public:
   // Return the state qreg object
   auto &qreg() { return qreg_; }
   const auto &qreg() const { return qreg_; }
-
-  // Initializes the State to a specific state.
-  virtual void initialize_qreg(uint_t num_qubits, const state_t &state) = 0;
 
   //-----------------------------------------------------------------------
   // Standard snapshots

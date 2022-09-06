@@ -93,10 +93,6 @@ public:
   // Initializes an n-qubit state to the all |0> state
   virtual void initialize_qreg(uint_t num_qubits) override;
 
-  // Initializes to a specific n-qubit state
-  virtual void initialize_qreg(uint_t num_qubits,
-                               const Clifford::Clifford &state) override;
-
   // TODO: currently returns 0
   // Returns the required memory for storing an n-qubit state in megabytes.
   virtual size_t required_memory_mb(uint_t num_qubits,
@@ -275,15 +271,6 @@ const stringmap_t<Snapshots> State::snapshotset_({
 
 void State::initialize_qreg(uint_t num_qubits) {
   BaseState::qreg_ = Clifford::Clifford(num_qubits);
-}
-
-void State::initialize_qreg(uint_t num_qubits,
-                            const Clifford::Clifford &state) {
-  // Check dimension of state
-  if (state.num_qubits() != num_qubits) {
-    throw std::invalid_argument("Stabilizer::State::initialize: initial state does not match qubit number");
-  }
-  BaseState::qreg_ = state;
 }
 
 //-------------------------------------------------------------------------

@@ -89,10 +89,6 @@ public:
   // Initializes an n-qubit unitary to the identity matrix
   virtual void initialize_qreg(uint_t num_qubits) override;
 
-  // Initializes to a specific n-qubit unitary matrix
-  virtual void initialize_qreg(uint_t num_qubits,
-                               const unitary_matrix_t &unitary) override;
-
   // Returns the required memory for storing an n-qubit state in megabytes.
   // For this state the memory is indepdentent of the number of ops
   // and is approximately 16 * 1 << 2 * num_qubits bytes
@@ -430,72 +426,6 @@ void State<unitary_matrix_t>::initialize_qreg(uint_t num_qubits)
     for(iChunk=0;iChunk<BaseState::qregs_.size();iChunk++){
       BaseState::qregs_[iChunk].initialize();
     }
-  }
-  apply_global_phase();
-}
-
-template <class unitary_matrix_t>
-void State<unitary_matrix_t>::initialize_qreg(uint_t num_qubits,
-                                              const unitary_matrix_t &unitary) 
-{
-  // Check dimension of state
-  if (unitary.num_qubits() != num_qubits) {
-    throw std::invalid_argument(
-        "Unitary::State::initialize: initial state does not match qubit "
-        "number");
-  }
-  if(BaseState::qregs_.size() == 0)
-    BaseState::allocate(num_qubits,num_qubits,1);
-  initialize_omp();
-
-  int_t iChunk;
-  for(iChunk=0;iChunk<BaseState::qregs_.size();iChunk++)
-    BaseState::qregs_[iChunk].set_num_qubits(BaseState::chunk_bits_);
-
-  if(BaseState::multi_chunk_distribution_){
-    auto input = unitary.copy_to_matrix();
-    uint_t mask = (1ull << (BaseState::chunk_bits_)) - 1;
-
-    if(BaseState::chunk_omp_parallel_ && BaseState::num_groups_ > 0){
-#pragma omp parallel for private(iChunk) 
-      for(int_t ig=0;ig<BaseState::num_groups_;ig++){
-        for(iChunk = BaseState::top_chunk_of_group_[ig];iChunk < BaseState::top_chunk_of_group_[ig + 1];iChunk++){
-          uint_t irow_chunk = ((iChunk + BaseState::global_chunk_index_) >> ((BaseState::num_qubits_ - BaseState::chunk_bits_)));
-          uint_t icol_chunk = ((iChunk + BaseState::global_chunk_index_) & ((1ull << ((BaseState::num_qubits_ - BaseState::chunk_bits_)))-1));
-
-          //copy part of state for this chunk
-          uint_t i,row,col;
-          cvector_t tmp(1ull << BaseState::chunk_bits_);
-          for(i=0;i<(1ull << BaseState::chunk_bits_);i++){
-            uint_t icol = i >> (BaseState::chunk_bits_);
-            uint_t irow = i & mask;
-            uint_t idx = ((icol+(irow_chunk << BaseState::chunk_bits_)) << (BaseState::num_qubits_)) + (icol_chunk << BaseState::chunk_bits_) + irow;
-            tmp[i] = input[idx];
-          }
-          BaseState::qregs_[iChunk].initialize_from_vector(tmp);
-        }
-      }
-    }
-    else{
-      for(iChunk=0;iChunk<BaseState::qregs_.size();iChunk++){
-        uint_t irow_chunk = ((iChunk + BaseState::global_chunk_index_) >> ((BaseState::num_qubits_ - BaseState::chunk_bits_)));
-        uint_t icol_chunk = ((iChunk + BaseState::global_chunk_index_) & ((1ull << ((BaseState::num_qubits_ - BaseState::chunk_bits_)))-1));
-
-        //copy part of state for this chunk
-        uint_t i,row,col;
-        cvector_t tmp(1ull << BaseState::chunk_bits_);
-        for(i=0;i<(1ull << BaseState::chunk_bits_);i++){
-          uint_t icol = i >> (BaseState::chunk_bits_);
-          uint_t irow = i & mask;
-          uint_t idx = ((icol+(irow_chunk << BaseState::chunk_bits_)) << (BaseState::num_qubits_)) + (icol_chunk << BaseState::chunk_bits_) + irow;
-          tmp[i] = input[idx];
-        }
-        BaseState::qregs_[iChunk].initialize_from_vector(tmp);
-      }
-    }
-  }
-  else{
-    BaseState::qregs_[iChunk].initialize_from_data(unitary.data(), 1ULL << 2 * num_qubits);
   }
   apply_global_phase();
 }
