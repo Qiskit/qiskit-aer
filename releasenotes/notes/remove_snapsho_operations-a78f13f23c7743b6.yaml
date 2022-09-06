@@ -1,0 +1,10 @@
+---
+upgrade:
+  - |
+    Removed snapshot instructions (such as ``SnapshotStatevector``) which were deprecated since 0.9.0.
+    Applications that use these instructions need to be modified to use corresponding save
+    instructions (such as :class:`.SaveStatevector`).
+  - |
+    Removed the ``qiskit_aer.extensions`` module completely.  With the removal of
+    the snapshot instructions, this module has become empty and no longer serves
+    a purpose.
