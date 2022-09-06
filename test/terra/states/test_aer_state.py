@@ -10,8 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 """
-Integration Tests for Parameterized Qobj execution, testing qasm_simulator,
-statevector_simulator, and expectation value snapshots.
+Integration Tests for AerState
 """
 
 import unittest
@@ -31,10 +30,6 @@ from qiskit_aer.quantum_info.states.aer_state import AerState
 class TestAerState(common.QiskitAerTestCase):
     """AerState tests"""
 
-    def test_load_library(self):
-        """Test load library."""
-        state_wrapper = AerStateWrapper()
-
     def test_generate_aer_state(self):
         """Test generation of AerState"""
         state = AerState()
@@ -46,16 +41,7 @@ class TestAerState(common.QiskitAerTestCase):
         state.initialize()
         sv = state.move_to_ndarray()
         state.close()
-
-    def test_move_from_aer_state_repeated(self):
-        """Test move of aer state to python repeatedly"""
-        for _ in range(100):
-            state = AerState()
-            state.allocate_qubits(4)
-            state.initialize()
-            sv = state.move_to_ndarray()
-            state.close()
-            # confirm no duplicated free
+        self.assertEqual(len(sv), 2**4)
 
     def test_error_reuse_aer_state(self):
         """Test reuse AerState after move of aer state to python"""
@@ -108,7 +94,7 @@ class TestAerState(common.QiskitAerTestCase):
         sv2 = state2.move_to_ndarray()
         state2.close()
 
-        self.assertEqual(id(sv1), id(sv2))
+        self.assertIs(sv1, sv2)
         self.assertEqual(sample1, sample2)
 
     def test_map_statevector_repeated(self):
@@ -140,7 +126,7 @@ class TestAerState(common.QiskitAerTestCase):
         state1.initialize(sv1)
 
         sv2 = state1.move_to_ndarray()
-        self.assertTrue(id(sv1) != id(sv2))
+        self.assertIsNot(sv1, sv2)
         self.assertEqual(len(sv1), len(sv2))
         self.assertEqual(sv1[len(sv1) - 1], sv2[len(sv2) - 1])
 
@@ -155,7 +141,7 @@ class TestAerState(common.QiskitAerTestCase):
         state1.initialize(sv1, copy=False)
 
         sv2 = state1.move_to_ndarray()
-        self.assertTrue(id(sv1) == id(sv2))
+        self.assertIs(sv1, sv2)
 
         state1.close()
 
@@ -433,7 +419,7 @@ class TestAerState(common.QiskitAerTestCase):
         for idx in range(0, 2**5):
             self.assertAlmostEqual(state.probability(idx), expected[idx])
 
-    def _test_probabilities(self):
+    def test_probabilities(self):
         """Test probabilities() of outcome"""
         init_state = random_statevector(2**5, seed=111)
 
