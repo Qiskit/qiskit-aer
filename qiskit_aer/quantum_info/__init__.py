@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 
 """
-=============================================
-State (:mod:`qiskit_aer.quantum_info`)
-=============================================
+=================================================
+Aer Quantum Info (:mod:`qiskit_aer.quantum_info`)
+=================================================
 """
