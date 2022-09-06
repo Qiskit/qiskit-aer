@@ -126,11 +126,6 @@ public:
   // Initializes an n-qubit state to the all |0> state
   virtual void initialize_qreg(uint_t num_qubits) override;
 
-  // Initializes to a specific n-qubit state given as a complex std::vector
-  void initialize_qreg(uint_t num_qubits, const cvector_t &statevector);
-
-  virtual void initialize_qreg(uint_t num_qubits, const matrixproductstate_t &state) override;
-
   // Returns the required memory for storing an n-qubit state in megabytes.
   // For this state the memory is indepdentent of the number of ops
   // and is approximately 16 * 1 << num_qubits bytes
@@ -400,24 +395,6 @@ const stringmap_t<Snapshots> State::snapshotset_({
 
 void State::initialize_qreg(uint_t num_qubits=0) {
   qreg_.initialize(num_qubits);
-}
-
-void State::initialize_qreg(uint_t num_qubits, const cvector_t &statevector) {
-  if (qreg_.num_qubits() != num_qubits)
-    throw std::invalid_argument("MatrixProductState::State::initialize_qreg: initial state does not match qubit number");
-  reg_t qubits(num_qubits);
-  std::iota(qubits.begin(), qubits.end(), 0);
-  qreg_.initialize_from_statevector_internal(qubits, statevector);
-}
-
-void State::initialize_qreg(uint_t num_qubits, const matrixproductstate_t &state) {
-  // Check dimension of state
-  if (qreg_.num_qubits() != num_qubits) {
-    throw std::invalid_argument("MatrixProductState::State::initialize_qreg: initial state does not match qubit number");
-  }
-#ifdef DEBUG
-  std::cout << "initialize with state not supported yet";
-#endif
 }
 
 void State::initialize_omp() {
