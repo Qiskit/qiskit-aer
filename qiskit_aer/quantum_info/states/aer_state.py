@@ -167,7 +167,8 @@ class AerState:
 
         self._assert_mapped_or_moved()
         if self._state == _STATE.MAPPED:
-            # intentional memory leak
+            # native memory will be freed when self._init_data is collected.
+            # this call of move_to_buffer() is to avoid free in C++
             self._native_state.move_to_buffer()
             AerState._not_in_use(self._init_data)
 
