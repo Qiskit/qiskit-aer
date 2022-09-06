@@ -431,20 +431,20 @@ class AerSimulator(AerBackend):
     _CUSTOM_INSTR = {
         'statevector': sorted([
             'quantum_channel', 'qerror_loc', 'roerror', 'kraus',
-            'snapshot', 'save_expval', 'save_expval_var',
+            'save_expval', 'save_expval_var',
             'save_probabilities', 'save_probabilities_dict',
             'save_amplitudes', 'save_amplitudes_sq',
             'save_density_matrix', 'save_state', 'save_statevector',
             'save_statevector_dict', 'set_statevector',
         ]),
         'density_matrix': sorted([
-            'quantum_channel', 'qerror_loc', 'roerror', 'kraus', 'superop', 'snapshot',
+            'quantum_channel', 'qerror_loc', 'roerror', 'kraus', 'superop',
             'save_state', 'save_expval', 'save_expval_var',
             'save_probabilities', 'save_probabilities_dict',
             'save_density_matrix', 'save_amplitudes_sq', 'set_density_matrix'
         ]),
         'matrix_product_state': sorted([
-            'quantum_channel', 'qerror_loc', 'roerror', 'snapshot', 'kraus',
+            'quantum_channel', 'qerror_loc', 'roerror', 'kraus',
             'save_expval', 'save_expval_var',
             'save_probabilities', 'save_probabilities_dict',
             'save_state', 'save_matrix_product_state', 'save_statevector',
@@ -452,17 +452,17 @@ class AerSimulator(AerBackend):
             'set_matrix_product_state',
         ]),
         'stabilizer': sorted([
-            'quantum_channel', 'qerror_loc', 'roerror', 'snapshot',
+            'quantum_channel', 'qerror_loc', 'roerror',
             'save_expval', 'save_expval_var',
             'save_probabilities', 'save_probabilities_dict',
             'save_amplitudes_sq', 'save_state', 'save_clifford',
             'save_stabilizer', 'set_stabilizer'
         ]),
         'extended_stabilizer': sorted([
-            'quantum_channel', 'qerror_loc', 'roerror', 'snapshot', 'save_statevector'
+            'quantum_channel', 'qerror_loc', 'roerror', 'save_statevector'
         ]),
         'unitary': sorted([
-            'snapshot', 'save_state', 'save_unitary', 'set_unitary'
+            'save_state', 'save_unitary', 'set_unitary'
         ]),
         'superop': sorted([
             'quantum_channel', 'qerror_loc', 'kraus', 'superop', 'save_state',
