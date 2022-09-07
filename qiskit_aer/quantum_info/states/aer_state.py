@@ -54,6 +54,7 @@ class AerState:
 
         for key, value in kwargs.items():
             self.configure(key, value)
+
         if 'method' not in kwargs:
             self.configure('method', 'statevector')
 
