@@ -14,4 +14,17 @@
 =================================================
 Aer Quantum Info (:mod:`qiskit_aer.quantum_info`)
 =================================================
+
+.. currentmodule:: qiskit_aer.quantum_info
+
+States
+======
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   AerStatevector
+
 """
+
+from .states import AerStatevector

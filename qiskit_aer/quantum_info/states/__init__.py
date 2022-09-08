@@ -10,9 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""
-=============================================
-State (:mod:`qiskit_aer.quantum_info.states`)
-=============================================
-"""
+"""Aer Quantum States."""
+
 from .aer_statevector import AerStatevector
