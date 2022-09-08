@@ -45,12 +45,6 @@ logger = logging.getLogger(__name__)
 class TestAerStatevector(common.QiskitAerTestCase):
     """AerState tests"""
 
-    def test_generate_aer_statevector(self):
-        """Test generation of Aer's StateVector"""
-        
-        circ = QuantumCircuit(5)
-        state = AerStatevector(circ)
-
     def test_qv(self):
         """Test generation of Aer's StateVector with QV """
         circ = QuantumVolume(5, seed=1111)
@@ -65,12 +59,12 @@ class TestAerStatevector(common.QiskitAerTestCase):
         circ = QuantumVolume(5, seed=1111)
         state1 = AerStatevector(circ)
 
-        self.assertEqual('statevector', state1.metadata['method'])
-        self.assertEqual('CPU', state1.metadata['device'])
+        self.assertEqual('statevector', state1.metadata()['method'])
+        self.assertEqual('CPU', state1.metadata()['device'])
 
         state2 = AerStatevector(circ, method='matrix_product_state')
-        self.assertEqual('matrix_product_state', state2.metadata['method'])
-        self.assertEqual('CPU', state2.metadata['device'])
+        self.assertEqual('matrix_product_state', state2.metadata()['method'])
+        self.assertEqual('CPU', state2.metadata()['device'])
 
         for pa1, pa2 in zip(state1, state2):
             self.assertAlmostEqual(pa1, pa2)
