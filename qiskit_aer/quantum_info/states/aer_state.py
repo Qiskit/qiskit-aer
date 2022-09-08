@@ -116,7 +116,7 @@ class AerState:
 
     def configuration(self):
         """return configuration"""
-        return self._configs
+        return self._configs.copy()
 
     def initialize(self, data=None, copy=True):
         """initialize state."""
@@ -128,7 +128,7 @@ class AerState:
         elif isinstance(data, np.ndarray):
             self._initialize_with_ndarray(data, copy)
         else:
-            raise AerError('unsupported init data.')
+            raise AerError(f'unsupported init data: {data.__class__}')
 
     def _initialize_with_ndarray(self, data, copy):
         if AerState._is_in_use(data) and not copy:
@@ -154,11 +154,6 @@ class AerState:
             self._allocated()
 
         self._last_qubit = num_of_qubits - 1
-
-    def __del__(self):
-        """"destructor. Call close() if not called."""
-        if self._state in (_STATE.ALLOCATED, _STATE.MOVED):
-            self.close()
 
     def close(self):
         """Safely release all releated memory."""
