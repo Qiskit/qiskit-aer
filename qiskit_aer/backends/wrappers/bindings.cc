@@ -150,6 +150,5 @@ PYBIND11_MODULE(controller_wrappers, m) {
     }, py::arg("qubits") = reg_t());
     aer_state.def("sample_memory",  &AER::AerState::sample_memory);
     aer_state.def("sample_counts",  &AER::AerState::sample_counts);
-    aer_state.def("expval_pauli",  &AER::AerState::expval_pauli);
 
 }

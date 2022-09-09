@@ -302,14 +302,6 @@ public:
   virtual std::unordered_map<uint_t, uint_t> sample_counts(const reg_t &qubits, uint_t shots);
 
   //-----------------------------------------------------------------------
-  // Expectation Values
-  //-----------------------------------------------------------------------
-
-  // Return the expectation value of an N-qubit Pauli matrix.
-  // The Pauli is input as a length N string of I,X,Y,Z characters.
-  virtual std::vector<double> expval_pauli(const reg_t &qubits, const std::vector<std::string> &paulis);
-
-  //-----------------------------------------------------------------------
   // Operation management
   //-----------------------------------------------------------------------
   // Buffer Operations::Op
@@ -1079,20 +1071,6 @@ std::unordered_map<uint_t, uint_t> AerState::sample_counts(const reg_t &qubits, 
   }
   return ret;
 }
-
-std::vector<double> AerState::expval_pauli(const reg_t &qubits, const std::vector<std::string> &paulis) {
-  assert_initialized();
-
-  flush_ops();
-
-  std::vector<double> ret;
-  ret.reserve(paulis.size());
-  for (auto& pauli: paulis) {
-    ret.push_back(state_->expval_pauli(qubits, pauli));
-  }
-  return ret;
-}
-
 
 //-----------------------------------------------------------------------
 // Operation management
