@@ -18,7 +18,6 @@ import numpy as np
 
 from qiskit.circuit import QuantumCircuit, Instruction
 from qiskit.quantum_info.states import Statevector
-from qiskit.quantum_info.operators.operator import Operator
 
 from qiskit_aer import AerSimulator
 from .aer_state import AerState
@@ -42,6 +41,8 @@ class AerStatevector(Statevector):
                 (``Operator`` is not supportted in the current implementation).  If the data is
                 a circuit or instruction, the statevector is constructed by assuming that all
                 qubits are initialized to the zero state.
+            dims (int or tuple or list): Optional. The subsystem dimension of
+                                         the state (See additional information).
             configs (kwargs): configurations of :class:`AerSimulator`. `method` configuration must
                 be `statevector` or `matrix_product_state`.
 
@@ -144,8 +145,8 @@ class AerStatevector(Statevector):
         return aer_state.move_to_ndarray(), aer_state
 
     @classmethod
-    def from_instruction(cls, inst):
-        return AerStatevector(inst)
+    def from_instruction(cls, instruction):
+        return AerStatevector(instruction)
 
     @staticmethod
     def _from_instruction(inst, init_data, configs):
