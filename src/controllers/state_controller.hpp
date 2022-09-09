@@ -873,7 +873,7 @@ void AerState::apply_mcu(const reg_t &qubits, const double theta, const double p
   op.type = Operations::OpType::gate;
   op.name = "mcu";
   op.qubits = qubits;
-  op.params = {theta, phi, lambda};
+  op.params = {theta, phi, lambda, 0.0};
 
   buffer_op(std::move(op));
 }

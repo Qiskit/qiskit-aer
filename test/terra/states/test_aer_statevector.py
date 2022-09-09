@@ -66,8 +66,7 @@ class TestAerStatevector(common.QiskitAerTestCase):
         self.assertEqual('matrix_product_state', state2.metadata()['method'])
         self.assertEqual('CPU', state2.metadata()['device'])
 
-        for pa1, pa2 in zip(state1, state2):
-            self.assertAlmostEqual(pa1, pa2)
+        self.assertEqual(state1, state2)
 
     def test_evolve(self):
         """Test method and device properties"""
@@ -79,12 +78,35 @@ class TestAerStatevector(common.QiskitAerTestCase):
         state2 = AerStatevector(circ2)
         state3 = AerStatevector(circ3)
 
-        for pa1, pa2 in zip(state1.evolve(circ1), state2):
-            self.assertAlmostEqual(pa1, pa2)
+        self.assertEqual(state1.evolve(circ1), state2)
+        self.assertEqual(state1.evolve(circ1).evolve(circ1), state3)
 
-        for pa1, pa2 in zip(state1.evolve(circ1).evolve(circ1), state3):
-            self.assertAlmostEqual(pa1, pa2)
+    def test_decompose(self):
+        """Test basic gates can be decomposed correctly"""
+        circ = QuantumCircuit(3)
+        circ.h(0)
+        circ.x(1)
+        circ.ry(np.pi / 2, 2)
+        state1 = AerStatevector(circ)
 
+    def test_ry(self):
+        # Test tensor product of 1-qubit gates
+        circuit = QuantumCircuit(3)
+        circuit.h(0)
+        circuit.x(1)
+        circuit.ry(np.pi / 2, 2)
+        psi = AerStatevector.from_instruction(circuit)
+        target = AerStatevector.from_label("000").evolve(Operator(circuit))
+        self.assertEqual(target, psi)
+
+    def test_h(self):
+        # Test tensor product of 1-qubit gates
+        circuit = QuantumCircuit(3)
+        circuit.h(0)
+        circuit.h(1)
+        target = AerStatevector.from_label("000").evolve(Operator(circuit))
+        psi = AerStatevector.from_instruction(circuit)
+        self.assertEqual(psi, target)
 
     def test_deepcopy(self):
         """Test deep copy"""
