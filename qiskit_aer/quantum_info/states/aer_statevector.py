@@ -95,20 +95,13 @@ class AerStatevector(Statevector):
         return self._last_result()['metadata']
 
     def __copy__(self):
-        ret = AerStatevector(self._data.copy(), **self._configs)
-        ret._op_shape = self._op_shape
-        ret._rng_generator = self._rng_generator
-        return ret
+        return copy.deepcopy(self)
 
     def __deepcopy__(self, _memo=None):
         ret = AerStatevector(self._data.copy(), **self._configs)
         ret._op_shape = copy.deepcopy(self._op_shape)
         ret._rng_generator = copy.deepcopy(self._rng_generator)
         return ret
-
-    def __eq__(self, other):
-        return (isinstance(other, AerStatevector) and self.dims() == other.dims() and
-                np.allclose(self._data, other._data, rtol=self.rtol, atol=self.atol))
 
     def conjugate(self):
         return AerStatevector(np.conj(self._data), dims=self.dims())
