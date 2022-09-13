@@ -22,7 +22,6 @@ from itertools import accumulate
 
 import numpy as np
 from qiskit.circuit import Parameter, QuantumCircuit
-from qiskit.circuit.parametertable import ParameterView
 from qiskit.compiler import transpile
 from qiskit.exceptions import QiskitError
 from qiskit.opflow import PauliSumOp
@@ -61,8 +60,8 @@ class Estimator(BaseEstimator):
 
     def __init__(
         self,
-        circuits: QuantumCircuit | Iterable[QuantumCircuit] | None = None,
-        observables: BaseOperator | PauliSumOp | Iterable[BaseOperator | PauliSumOp] | None = None,
+        circuits: QuantumCircuit | Iterable[QuantumCircuit],
+        observables: BaseOperator | PauliSumOp | Iterable[BaseOperator | PauliSumOp],
         parameters: Iterable[Iterable[Parameter]] | None = None,
         backend_options: dict | None = None,
         transpile_options: dict | None = None,
@@ -85,15 +84,13 @@ class Estimator(BaseEstimator):
         """
         if isinstance(circuits, QuantumCircuit):
             circuits = (circuits,)
-        if circuits is not None:
-            circuits = tuple(init_circuit(circuit) for circuit in circuits)
+        circuits = tuple(init_circuit(circuit) for circuit in circuits)
 
         if isinstance(observables, (PauliSumOp, BaseOperator)):
             observables = (observables,)
-        if observables is not None:
-            observables = tuple(
-                init_observable(observable).simplify(atol=0) for observable in observables
-            )
+        observables = tuple(
+            init_observable(observable).simplify(atol=0) for observable in observables
+        )
 
         super().__init__(
             circuits=circuits,
@@ -136,43 +133,6 @@ class Estimator(BaseEstimator):
             )
         else:
             return self._compute(circuits, observables, parameter_values, run_options)
-
-    # This method will be used after Terra 0.22.
-    def _run(
-        self,
-        circuits: Sequence[QuantumCircuit],
-        observables: Sequence[BaseOperator | PauliSumOp],
-        parameter_values: Sequence[Sequence[float]],
-        parameters: Sequence[ParameterView],
-        **run_options,
-    ) -> PrimitiveJob:
-        # pylint: disable=no-name-in-module, import-error, import-outside-toplevel, no-member
-        from qiskit.primitives.primitive_job import PrimitiveJob
-
-        circuit_indices: list = []
-        for i, circuit in enumerate(circuits):
-            index = self._circuit_ids.get(id(circuit))
-            if index is not None:
-                circuit_indices.append(index)
-            else:
-                circuit_indices.append(len(self._circuits))
-                self._circuit_ids[id(circuit)] = len(self._circuits)
-                self._circuits.append(circuit)
-                self._parameters.append(parameters[i])
-        observable_indices: list = []
-        for observable in observables:
-            index = self._observable_ids.get(id(observable))
-            if index is not None:
-                observable_indices.append(index)
-            else:
-                observable_indices.append(len(self._observables))
-                self._observable_ids[id(observable)] = len(self._observables)
-                self._observables.append(init_observable(observable))
-        job = PrimitiveJob(
-            self._call, circuit_indices, observable_indices, parameter_values, **run_options
-        )
-        job.submit()
-        return job
 
     def close(self):
         self._is_closed = True
