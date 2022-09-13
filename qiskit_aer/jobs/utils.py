@@ -126,13 +126,13 @@ def _check_custom_instruction(experiments, optypes=None):
     if optypes is not None:
         # Optypes store class names as strings
         return any(
-            {"SaveData", "Snapshot"}.intersection(optype)
+            {"SaveData"}.intersection(optype)
             for optype in optypes
         )
 
     # Otherwise iterate over instruction names
     return any(
-        "save_" in inst.name or "snapshot" in inst.name
+        "save_" in inst.name
         for exp in experiments for inst in exp.instructions
     )
 
@@ -175,7 +175,7 @@ def split_qobj(qobj, max_size=None, max_shot_size=None, qobj_id=None):
         if _check_custom_instruction(qobj.experiments, optypes):
             raise JobError(
                 "`max_shot_size` option cannot be used with circuits"
-                " containing save or snapshot instructions.")
+                " containing save instructions.")
 
     _seed = getattr(qobj.config, "seed_simulator", 0)
     if hasattr(qobj.config, "noise_model"):

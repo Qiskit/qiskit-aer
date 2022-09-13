@@ -455,6 +455,7 @@ protected:
   size_t num_qubits_;
   size_t data_size_;
   std::complex<data_t>* data_;
+  bool unmanaged_data_;
   std::complex<data_t>* checkpoint_;
 
   uint_t chunk_index_;      //global chunk index
@@ -724,18 +725,21 @@ void QubitVector<data_t>::check_checkpoint() const {
 
 template <typename data_t>
 QubitVector<data_t>::QubitVector(size_t num_qubits, std::complex<data_t>* data, bool copy)
-  : num_qubits_(num_qubits), data_size_(BITS[num_qubits]), data_(data), checkpoint_(0) {
+  : num_qubits_(num_qubits), data_size_(BITS[num_qubits]), data_(data), unmanaged_data_(true), checkpoint_(0) {
     set_transformer_method();
+    if (!data)
+      unmanaged_data_ = false;
     if (copy) {
       checkpoint();
       data_ = checkpoint_;
       checkpoint_ = 0;
+      unmanaged_data_ = false;
     }
 }
 
 template <typename data_t>
 QubitVector<data_t>::QubitVector(size_t num_qubits)
-  : num_qubits_(0), data_(nullptr), checkpoint_(0) {
+  : num_qubits_(0), data_(nullptr), unmanaged_data_(false), checkpoint_(0) {
     set_num_qubits(num_qubits);
     set_transformer_method();
 }
@@ -756,11 +760,16 @@ void QubitVector<data_t>::copy_qv(const QubitVector<data_t>& obj)
 
   initialize_from_data(obj.data_,obj.data_size_);
 
+  unmanaged_data_ = obj.unmanaged_data_;
+  checkpoint_ = obj.checkpoint_;
+  chunk_index_ = obj.chunk_index_;
+  recv_buffer_ = obj.recv_buffer_;
   omp_threads_ = obj.omp_threads_;
   omp_threshold_ = obj.omp_threshold_;
   sample_measure_index_size_ = obj.sample_measure_index_size_;
   json_chop_threshold_ = obj.json_chop_threshold_;
-  chunk_index_ = obj.chunk_index_;
+  obj.data_ = nullptr;
+  obj.checkpoint_ = nullptr;
 }
 
 //------------------------------------------------------------------------------
@@ -772,7 +781,7 @@ std::complex<data_t> &QubitVector<data_t>::operator[](uint_t element) {
   // Error checking
   #ifdef DEBUG
   if (element > data_size_) {
-    std::string error = "QubitVector: vector index " + std::to_string(element) +
+    std::string error = "QubitVector(" << std::hex << this << "): vector index " + std::to_string(element) +
                         " > " + std::to_string(data_size_);
     throw std::runtime_error(error);
   }
@@ -895,7 +904,9 @@ void QubitVector<data_t>::set_num_qubits(size_t num_qubits) {
 template <typename data_t>
 void QubitVector<data_t>::free_mem(){
   if (data_) {
-    free(data_);
+    if (!unmanaged_data_)
+      free(data_);
+    unmanaged_data_ = false;
     data_ = nullptr;
   }
 }
@@ -955,6 +966,7 @@ void QubitVector<data_t>::checkpoint() {
   #pragma omp parallel for if (num_qubits_ > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
   for (int_t k = 0; k < END; ++k)
     checkpoint_[k] = data_[k];
+
 }
 
 template <typename data_t>

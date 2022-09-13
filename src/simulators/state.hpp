@@ -163,6 +163,9 @@ public:
   // Apply circuits and ops
   //-----------------------------------------------------------------------
 
+  // Apply the global phase
+  virtual void apply_global_phase() {};
+
   // Apply a single operation
   // The `final_op` flag indicates no more instructions will be applied
   // to the state after this sequence, so the state can be modified at the
@@ -1136,7 +1139,6 @@ void State<state_t>::initialize_creg_state(RegistersBase& state, uint_t num_memo
   state.creg().initialize(num_memory, num_register);
 }
 
-
 template <class state_t>
 void State<state_t>::initialize_creg_state(RegistersBase& state, 
                                      uint_t num_memory,
@@ -1146,7 +1148,6 @@ void State<state_t>::initialize_creg_state(RegistersBase& state,
 {
   num_creg_memory_ = num_memory;
   num_creg_registers_ = num_register;
-
   state.creg().initialize(num_memory, num_register, memory_hex, register_hex);
 }
 

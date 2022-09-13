@@ -598,6 +598,31 @@ void State<statevec_t>::initialize_qreg_from_data(uint_t num_qubits,
   apply_global_phase(BaseState::state_);
 }
 
+
+template <class statevec_t>
+void State<statevec_t>::initialize_qreg_from_data(uint_t num_qubits,
+                                        const cvector_t &vector) 
+{
+  if (vector.size() != 1ULL << num_qubits) {
+    throw std::invalid_argument("QubitVector::State::initialize: initial state does not match qubit number");
+  }
+
+  QuantumState::Registers<statevec_t>& state = BaseState::state_;
+
+  if(BaseState::state_.qregs().size() == 0)
+    BaseState::allocate(num_qubits,BaseState::chunk_bits_,1);
+
+  initialize_omp(BaseState::state_);
+
+  int_t iChunk;
+  for(iChunk=0;iChunk<BaseState::state_.qregs().size();iChunk++){
+    BaseState::state_.qregs()[iChunk].set_num_qubits(BaseState::chunk_bits_);
+  }
+
+  initialize_from_vector(BaseState::state_, vector);
+  apply_global_phase(BaseState::state_);
+}
+
 template <class statevec_t> void State<statevec_t>::initialize_omp(QuantumState::Registers<statevec_t>& state) 
 {
   uint_t i;
