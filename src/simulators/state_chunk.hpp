@@ -33,7 +33,7 @@
 
 namespace AER {
 
-namespace Base {
+namespace QuantumState {
 
 #define STATE_APPLY_TO_ALL_CHUNKS     0
 
@@ -50,6 +50,7 @@ public:
   using BaseState = State<state_t>;
   using DataSubType = Operations::DataSubType;
   using OpType = Operations::OpType;
+  using OpItr = std::vector<Operations::Op>::const_iterator;
 
   //-----------------------------------------------------------------------
   // Constructors
@@ -88,16 +89,6 @@ public:
   //-----------------------------------------------------------------------
   // Data accessors
   //-----------------------------------------------------------------------
-
-  /*
-  // Return the state qreg object
-  auto &qreg(int_t idx=0) { return qregs_[idx]; }
-  const auto &qreg(int_t idx=0) const { return qregs_[idx]; }
-
-  // Return the state creg object
-  auto &creg(uint_t idx=0) { return cregs_[idx]; }
-  const auto &creg(uint_t idx=0) const { return cregs_[idx]; }
-  */
 
   //=======================================================================
   // Subclass Override Methods
@@ -141,29 +132,6 @@ public:
   // Load any settings for the StateChunk class from a config JSON
   void set_config(const json_t &config) override final;
 
-  //-----------------------------------------------------------------------
-  // Optional: Add information to metadata 
-  //-----------------------------------------------------------------------
-
-  // Every state can add information to the metadata structure
-  virtual void add_metadata(ExperimentResult &result) const {
-  }
-
-  //-----------------------------------------------------------------------
-  // Optional: measurement sampling
-  //
-  // This method is only required for a StateChunk subclass to be compatible with
-  // the measurement sampling optimization of a general the QasmController
-  //-----------------------------------------------------------------------
-
-  // Sample n-measurement outcomes without applying the measure operation
-  // to the system state. Even though this method is not marked as const
-  // at the end of sample the system should be left in the same state
-  // as before sampling
-  virtual std::vector<reg_t> sample_measure(const reg_t &qubits,
-                                            uint_t shots,
-                                            RngEngine &rng);
-
   //=======================================================================
   // Standard non-virtual methods
   //
@@ -186,17 +154,7 @@ public:
                  OpItr last,
                  ExperimentResult &result,
                  RngEngine &rng,
-                 bool final_ops = false);
-
-  //apply ops to multiple shots
-  //this function should be separately defined since apply_ops is called in quantum_error
-  template <typename InputIterator>
-  void apply_ops_multi_shots(InputIterator first,
-                 InputIterator last,
-                 const Noise::NoiseModel &noise,
-                 ExperimentResult &result,
-                 uint_t rng_seed,
-                 bool final_ops = false);
+                 bool final_ops = false) override;
 
   //apply_op for specific chunk
   virtual void apply_op_chunk(uint_t iChunk, RegistersBase& state, 
@@ -229,22 +187,16 @@ public:
     max_batched_shots_ = shots;
   }
 
-
   //Does this state support multi-chunk distribution?
   bool multi_chunk_distribution_supported(void) override
   {return true;}
   //Does this state support multi-shot parallelization?
-  virtual bool multi_shot_parallelization_supported(void){return true;}
+  virtual bool multi_shot_parallelization_supported(void)
+  {
+    return true;
+  }
 
 protected:
-
-  /*
-  // The array of the quantum state data structure
-  std::vector<state_t> qregs_;
-
-  // The array of classical register data
-  std::vector<ClassicalRegister> cregs_;
-  */
 
   //extra parameters for parallel simulations
   uint_t num_global_chunks_;    //number of total chunks 
@@ -308,23 +260,31 @@ protected:
                  RngEngine &rng);
 
 
+  //apply ops to multiple shots
+  //this function should be separately defined since apply_ops is called in quantum_error
+  bool run_shots_with_batched_execution(OpItr first,
+                 OpItr last,
+                 const Noise::NoiseModel &noise,
+                 ExperimentResult &result,
+                 const uint_t rng_seed,
+                 const uint_t num_shots) override;
+
   //apply ops for multi-shots to one group
-  template <typename InputIterator>
-  void apply_ops_multi_shots_for_group(int_t i_group, 
-                               InputIterator first, InputIterator last,
+  void apply_ops_multi_shots_for_group(Registers<state_t>& state, int_t i_group, 
+                               OpItr first, OpItr last,
                                const Noise::NoiseModel &noise,
                                ExperimentResult &result,
-                               uint_t rng_seed,
+                               const uint_t rng_seed,
                                bool final_ops);
 
   //apply op to multiple shots , return flase if op is not supported to execute in a batch
-  virtual bool apply_batched_op(const int_t iChunk, const Operations::Op &op,
+  virtual bool apply_batched_op(const int_t iChunk, RegistersBase& state, const Operations::Op &op,
                                 ExperimentResult &result,
                                 std::vector<RngEngine> &rng,
                                 bool final_op = false){return false;}
 
   //apply sampled noise to multiple-shots (this is used for ops contains non-Pauli operators)
-  void apply_batched_noise_ops(const int_t i_group, const std::vector<std::vector<Operations::Op>> &ops, 
+  void apply_batched_noise_ops(Registers<state_t>& state,const int_t i_group, const std::vector<std::vector<Operations::Op>> &ops, 
                                ExperimentResult &result,
                                std::vector<RngEngine> &rng);
 
@@ -355,8 +315,8 @@ protected:
   virtual void apply_chunk_x(RegistersBase& state, const uint_t qubit);
 
   //send/receive chunk in receive buffer
-  void send_chunk(uint_t local_chunk_index, uint_t global_chunk_index);
-  void recv_chunk(uint_t local_chunk_index, uint_t global_chunk_index);
+  void send_chunk(Registers<state_t>& state, uint_t local_chunk_index, uint_t global_chunk_index);
+  void recv_chunk(Registers<state_t>& state, uint_t local_chunk_index, uint_t global_chunk_index);
 
   template <class data_t>
   void send_data(data_t* pSend, uint_t size, uint_t myid,uint_t pairid);
@@ -371,9 +331,6 @@ protected:
 
   //gather values on each process
   void gather_value(rvector_t& val) const;
-
-  //gather cregs 
-  void gather_creg_memory(void);
 
   //barrier all processes
   void sync_process(void) const;
@@ -393,7 +350,7 @@ protected:
   auto apply_to_matrix(Registers<state_t>& state, bool copy = false);
 
   // Apply the global phase
-  virtual void apply_global_phase(){}
+  virtual void apply_global_phase(RegistersBase& state){}
 
   //check if the operator should be applied to each chunk
   virtual bool is_applied_to_each_chunk(const Operations::Op &op);
@@ -474,12 +431,7 @@ bool StateChunk<state_t>::allocate(uint_t num_qubits,uint_t block_bits,uint_t nu
       multi_shots_parallelization_ = true;
     else
       multi_shots_parallelization_ = false;
-    //num_global_chunks_ = num_parallel_shots;
-
-    //allocate initial states here
-//    BaseState::allocate(num_qubits,num_qubits,num_parallel_shots);
-    num_global_chunks_ = 1;   //each state has only one chunk
-    multi_shots_parallelization_ = false;   //this is old flag
+    num_global_chunks_ = num_parallel_shots;
   }
 
   chunk_index_begin_.resize(BaseState::distributed_procs_);
@@ -497,7 +449,7 @@ bool StateChunk<state_t>::allocate(uint_t num_qubits,uint_t block_bits,uint_t nu
   chunk_omp_parallel_ = false;
   if(BaseState::sim_device_name_ == "GPU"){
 #ifdef _OPENMP
-    if(omp_get_num_threads() == 1)
+    if(omp_get_num_threads() == 1 && multi_chunk_distribution_)
       chunk_omp_parallel_ = true;
 #endif
 
@@ -695,6 +647,7 @@ void StateChunk<state_t>::apply_ops_chunks(Registers<state_t>& state,
 
   nOp = std::distance(first, last);
   iOp = 0;
+
   while(iOp < nOp){
     const Operations::Op op_iOp = *(first + iOp);
 
@@ -866,6 +819,8 @@ Operations::Op StateChunk<state_t>::remake_gate_in_chunk_qubits(const Operations
   else if(qubits_in.size() == 1){
     if(op.name[0] == 'c')
       new_op.name = op.name.substr(1);
+    else if(op.name == "mcphase")
+      new_op.name = "p";
     else
       new_op.name = op.name.substr(2);  //remove "mc"
   }
@@ -899,18 +854,32 @@ bool StateChunk<state_t>::check_conditional(Registers<state_t>& state, const Ope
 }
 
 template <class state_t>
-template <typename InputIterator>
-void StateChunk<state_t>::apply_ops_multi_shots(RegistersBase& state_in,
-                               InputIterator first, InputIterator last,
+bool StateChunk<state_t>::run_shots_with_batched_execution(
+                               OpItr first, OpItr last,
                                const Noise::NoiseModel &noise,
                                ExperimentResult &result,
-                               uint_t rng_seed,
-                               bool final_ops) 
+                               const uint_t rng_seed,
+                               const uint_t num_shots)
 {
-  Registers<state_t>& state = dynamic_cast<Registers<state_t>&>(state_in);
+  if(!multi_shots_parallelization_ || BaseState::sim_device_name_ != "GPU" || multi_chunk_distribution_){
+    return false;
+  }
 
+  Registers<state_t> state;
   int_t i;
   int_t i_begin,n_shots;
+
+  std::vector<ClassicalRegister> cregs(num_local_chunks_);
+
+  if(num_shots != num_global_chunks_)
+    allocate(BaseState::num_qubits_, BaseState::num_qubits_, num_shots);
+
+  allocate_state(state, std::min(max_batched_shots_, num_local_chunks_));
+
+  state.creg().initialize(BaseState::num_creg_memory_, BaseState::num_creg_registers_);
+  for(int_t i=0;i<cregs.size();i++){
+    cregs[i].initialize(BaseState::num_creg_memory_, BaseState::num_creg_registers_);
+  }
 
   i_begin = 0;
   while(i_begin<num_local_chunks_){
@@ -924,7 +893,7 @@ void StateChunk<state_t>::apply_ops_multi_shots(RegistersBase& state_in,
       allocate_qregs(state, n_shots);
     }
     //initialization (equivalent to initialize_qreg + initialize_creg)
-    auto init_group = [this](int_t ig){
+    auto init_group = [this, &state](int_t ig){
       for(uint_t j=top_chunk_of_group_[ig];j<top_chunk_of_group_[ig+1];j++){
         //enabling batch shots optimization
         state.qreg(j).enable_batch(true);
@@ -939,35 +908,33 @@ void StateChunk<state_t>::apply_ops_multi_shots(RegistersBase& state_in,
     };
     Utils::apply_omp_parallel_for((num_groups_ > 1 && chunk_omp_parallel_),0,num_groups_,init_group);
 
-    apply_global_phase(state); //this is parallelized in StateChunk sub-classes
+    this->apply_global_phase(state); //this is parallelized in StateChunk sub-classes
 
     //apply ops to multiple-shots
     if(num_groups_ > 1 && chunk_omp_parallel_){
       std::vector<ExperimentResult> par_results(num_groups_);
 #pragma omp parallel for num_threads(num_groups_)
       for(i=0;i<num_groups_;i++)
-        apply_ops_multi_shots_for_group(state, i, first, last, noise, par_results[i], rng_seed, final_ops);
+        apply_ops_multi_shots_for_group(state, i, first, last, noise, par_results[i], rng_seed, true);
 
       for (auto &res : par_results)
         result.combine(std::move(res));
     }
     else{
       for(i=0;i<num_groups_;i++)
-        apply_ops_multi_shots_for_group(state, i, first, last, noise, result, rng_seed, final_ops);
+        apply_ops_multi_shots_for_group(state, i, first, last, noise, result, rng_seed, true);
     }
 
-    //TO DO: collect cregs and save to result here
-    /*
     //collect measured bits and copy memory
     for(i=0;i<n_shots;i++){
-      qregs_[i].read_measured_data(cregs_[global_chunk_index_ + i_begin + i]);
+      state.qreg(i).read_measured_data(cregs[i_begin + i]);
     }
-    */
-
     i_begin += n_shots;
   }
 
-  gather_creg_memory();
+  BaseState::gather_creg_memory(cregs, num_local_chunks_);
+
+  result.save_count_data(cregs, BaseState::save_creg_memory_);
 
 #ifdef AER_THRUST_CUDA
   if(BaseState::sim_device_name_ == "GPU"){
@@ -982,16 +949,18 @@ void StateChunk<state_t>::apply_ops_multi_shots(RegistersBase& state_in,
   }
 #endif
 
+  result.metadata.add(true, "batched_shots_optimization");
+
+  return true;
 }
 
 template <class state_t>
-template <typename InputIterator>
 void StateChunk<state_t>::apply_ops_multi_shots_for_group(Registers<state_t>& state,
                                int_t i_group,
-                               InputIterator first, InputIterator last,
+                               OpItr first, OpItr last,
                                const Noise::NoiseModel &noise,
                                ExperimentResult &result,
-                               uint_t rng_seed,
+                               const uint_t rng_seed,
                                bool final_ops)
 {
   uint_t istate = top_chunk_of_group_[i_group];
@@ -1006,7 +975,7 @@ void StateChunk<state_t>::apply_ops_multi_shots_for_group(Registers<state_t>& st
     rng[j-top_chunk_of_group_[i_group]].set_seed(rng_seed + global_chunk_index_ + local_shot_index_ + j);
 
   for (auto op = first; op != last; ++op) {
-    if(op->type == Operations::OpType::qerror_loc){
+    if(op->type == Operations::OpType::sample_noise){
       //sample error here
       uint_t count = num_chunks_in_group_[i_group];
       std::vector<std::vector<Operations::Op>> noise_ops(count);
@@ -1044,7 +1013,6 @@ void StateChunk<state_t>::apply_ops_multi_shots_for_group(Registers<state_t>& st
           }
         }
       }
-
       if(count_ops == 0){
         continue;   //do nothing
       }
@@ -1057,13 +1025,15 @@ void StateChunk<state_t>::apply_ops_multi_shots_for_group(Registers<state_t>& st
       }
     }
     else{
-      if(!apply_batched_op(state, istate, *op, result, rng, final_ops && (op + 1 == last))){
+      if(!apply_batched_op(istate, state, *op, result, rng, final_ops && (op + 1 == last))){
         //call apply_op for each state
-        for(uint_t j=top_chunk_of_group_[i_group];j<top_chunk_of_group_[i_group+1];j++){
-          qregs_[j].enable_batch(false);
-          apply_op(state, j, *op, result, rng[j-top_chunk_of_group_[i_group]], final_ops && (op + 1 == last) );
-          qregs_[j].enable_batch(true);
-        }
+        for(uint_t j=top_chunk_of_group_[i_group];j<top_chunk_of_group_[i_group+1];j++)
+          state.qreg(j).enable_batch(false);
+
+        this->apply_op(state, *op, result, rng[0], final_ops && (op + 1 == last) );
+
+        for(uint_t j=top_chunk_of_group_[i_group];j<top_chunk_of_group_[i_group+1];j++)
+          state.qreg(j).enable_batch(true);
       }
     }
   }
@@ -1134,13 +1104,13 @@ void StateChunk<state_t>::apply_batched_noise_ops(Registers<state_t>& state, con
       cop.conditional = true;
       cop.conditional_reg = sys_reg;
 
-      if(!apply_batched_op(istate, cop, result,rng, false)){
+      if(!apply_batched_op(istate, state, cop, result,rng, false)){
         //call apply_op for each state
-        for(uint_t j=top_chunk_of_group_[i_group];j<top_chunk_of_group_[i_group+1];j++){
+        for(uint_t j=top_chunk_of_group_[i_group];j<top_chunk_of_group_[i_group+1];j++)
           state.qreg(j).enable_batch(false);
-          apply_op_chunk(j, state, cop, result ,rng[j-top_chunk_of_group_[i_group]],false);
+        this->apply_op(state, cop, result ,rng[0],false);
+        for(uint_t j=top_chunk_of_group_[i_group];j<top_chunk_of_group_[i_group+1];j++)
           state.qreg(j).enable_batch(true);
-        }
       }
     }
     mask[i] = 0;
@@ -1148,16 +1118,6 @@ void StateChunk<state_t>::apply_batched_noise_ops(Registers<state_t>& state, con
   }
 
 }
-
-template <class state_t>
-std::vector<reg_t> StateChunk<state_t>::sample_measure(const reg_t &qubits,
-                                                  uint_t shots,
-                                                  RngEngine &rng) {
-  (ignore_argument)qubits;
-  (ignore_argument)shots;
-  return std::vector<reg_t>();
-}
-
 
 //-------------------------------------------------------------------------
 // functions for multi-chunk distribution
@@ -1865,7 +1825,7 @@ void StateChunk<state_t>::apply_chunk_x(RegistersBase& state_in, const uint_t qu
 }
 
 template <class state_t>
-void StateChunk<state_t>::send_chunk(uint_t local_chunk_index, uint_t global_pair_index)
+void StateChunk<state_t>::send_chunk(Registers<state_t>& state, uint_t local_chunk_index, uint_t global_pair_index)
 {
 #ifdef AER_MPI
   MPI_Request reqSend;
@@ -1875,17 +1835,17 @@ void StateChunk<state_t>::send_chunk(uint_t local_chunk_index, uint_t global_pai
 
   iProc = get_process_by_chunk(global_pair_index);
 
-  auto pSend = qregs_[local_chunk_index].send_buffer(sizeSend);
+  auto pSend = state.qreg(local_chunk_index).send_buffer(sizeSend);
   MPI_Isend(pSend,sizeSend,MPI_BYTE,iProc,local_chunk_index + global_chunk_index_,BaseState::distributed_comm_,&reqSend);
 
   MPI_Wait(&reqSend,&st);
 
-  qregs_[local_chunk_index].release_send_buffer();
+  state.qreg(local_chunk_index).release_send_buffer();
 #endif
 }
 
 template <class state_t>
-void StateChunk<state_t>::recv_chunk(uint_t local_chunk_index, uint_t global_pair_index)
+void StateChunk<state_t>::recv_chunk(Registers<state_t>& state, uint_t local_chunk_index, uint_t global_pair_index)
 {
 #ifdef AER_MPI
   MPI_Request reqRecv;
@@ -1895,7 +1855,7 @@ void StateChunk<state_t>::recv_chunk(uint_t local_chunk_index, uint_t global_pai
 
   iProc = get_process_by_chunk(global_pair_index);
 
-  auto pRecv = qregs_[local_chunk_index].recv_buffer(sizeRecv);
+  auto pRecv = state.qreg(local_chunk_index).recv_buffer(sizeRecv);
   MPI_Irecv(pRecv,sizeRecv,MPI_BYTE,iProc,global_pair_index,BaseState::distributed_comm_,&reqRecv);
 
   MPI_Wait(&reqRecv,&st);
@@ -2020,37 +1980,29 @@ void StateChunk<state_t>::gather_state(std::vector<std::complex<data_t>>& state)
   if(BaseState::distributed_procs_ > 1){
     uint_t size,local_size,global_size,offset;
     int i;
-    MPI_Status st;
-    MPI_Request reqSend,reqRecv;
+    std::vector<int> recv_counts(BaseState::distributed_procs_);
+    std::vector<int> recv_offset(BaseState::distributed_procs_);
 
-    local_size = state.size();
-    MPI_Allreduce(&local_size,&global_size,1,MPI_UINT64_T,MPI_SUM,BaseState::distributed_comm_);
-
+    global_size = 0;
+    for(i=0;i<BaseState::distributed_procs_;i++){
+      recv_offset[i] = (int)(chunk_index_begin_[i] << (chunk_bits_*qubit_scale()))*2;
+      recv_counts[i] = (int)((chunk_index_end_[i] - chunk_index_begin_[i]) << (chunk_bits_*qubit_scale()));
+      global_size += recv_counts[i];
+      recv_counts[i] *= 2;
+    }
     if((global_size >> 21) > Utils::get_system_memory_mb()){
       throw std::runtime_error(std::string("There is not enough memory to gather state"));
     }
+    std::vector<std::complex<data_t>> local_state = state;
+    state.resize(global_size);
 
-    if(BaseState::distributed_rank_ == 0){
-      if((global_size >> 21) > Utils::get_system_memory_mb()){
-        throw std::runtime_error(std::string("There is not enough memory to gather state"));
-      }
-
-      state.resize(global_size);
-
-      offset = 0;
-      for(i=1;i<BaseState::distributed_procs_;i++){
-        MPI_Irecv(&size,1,MPI_UINT64_T,i,i*2,BaseState::distributed_comm_,&reqRecv);
-        MPI_Wait(&reqRecv,&st);
-        MPI_Irecv(&state[offset],size*sizeof(std::complex<data_t>),MPI_BYTE,i,i*2+1,BaseState::distributed_comm_,&reqRecv);
-        MPI_Wait(&reqRecv,&st);
-        offset += size;
-      }
+    if(sizeof(std::complex<data_t>) == 16){
+      MPI_Allgatherv(local_state.data(),recv_counts[BaseState::distributed_rank_],MPI_DOUBLE_PRECISION,
+                     state.data(),&recv_counts[0],&recv_offset[0],MPI_DOUBLE_PRECISION,BaseState::distributed_comm_);
     }
     else{
-      MPI_Isend(&local_size,1,MPI_UINT64_T,0,i*2,BaseState::distributed_comm_,&reqSend);
-      MPI_Wait(&reqSend,&st);
-      MPI_Isend(&state[0],local_size*sizeof(std::complex<data_t>),MPI_BYTE,0,i*2+1,BaseState::distributed_comm_,&reqSend);
-      MPI_Wait(&reqSend,&st);
+      MPI_Allgatherv(local_state.data(),recv_counts[BaseState::distributed_rank_],MPI_FLOAT,
+                     state.data(),&recv_counts[0],&recv_offset[0],MPI_FLOAT,BaseState::distributed_comm_);
     }
   }
 #endif
@@ -2064,92 +2016,30 @@ void StateChunk<state_t>::gather_state(AER::Vector<std::complex<data_t>>& state)
   if(BaseState::distributed_procs_ > 1){
     uint_t size,local_size,global_size,offset;
     int i;
-    MPI_Status st;
-    MPI_Request reqSend,reqRecv;
 
-    local_size = state.size();
-    MPI_Allreduce(&local_size,&global_size,1,MPI_UINT64_T,MPI_SUM,BaseState::distributed_comm_);
+    std::vector<int> recv_counts(BaseState::distributed_procs_);
+    std::vector<int> recv_offset(BaseState::distributed_procs_);
 
+    global_size = 0;
+    for(i=0;i<BaseState::distributed_procs_;i++){
+      recv_offset[i] = (int)(chunk_index_begin_[i] << (chunk_bits_*qubit_scale()))*2;
+      recv_counts[i] = (int)((chunk_index_end_[i] - chunk_index_begin_[i]) << (chunk_bits_*qubit_scale()));
+      global_size += recv_counts[i];
+      recv_counts[i] *= 2;
+    }
     if((global_size >> 21) > Utils::get_system_memory_mb()){
       throw std::runtime_error(std::string("There is not enough memory to gather state"));
     }
+    AER::Vector<std::complex<data_t>> local_state = state;
+    state.resize(global_size);
 
-    if(BaseState::distributed_rank_ == 0){
-      if((global_size >> 21) > Utils::get_system_memory_mb()){
-        throw std::runtime_error(std::string("There is not enough memory to gather state"));
-      }
-
-      state.resize(global_size);
-
-      offset = 0;
-      for(i=1;i<BaseState::distributed_procs_;i++){
-        MPI_Irecv(&size,1,MPI_UINT64_T,i,i*2,BaseState::distributed_comm_,&reqRecv);
-        MPI_Wait(&reqRecv,&st);
-        MPI_Irecv(state.data() + offset,size*sizeof(std::complex<data_t>),MPI_BYTE,i,i*2+1,BaseState::distributed_comm_,&reqRecv);
-        MPI_Wait(&reqRecv,&st);
-        offset += size;
-      }
+    if(sizeof(std::complex<data_t>) == 16){
+      MPI_Allgatherv(local_state.data(),recv_counts[BaseState::distributed_rank_],MPI_DOUBLE_PRECISION,
+                     state.data(),&recv_counts[0],&recv_offset[0],MPI_DOUBLE_PRECISION,BaseState::distributed_comm_);
     }
     else{
-      MPI_Isend(&local_size,1,MPI_UINT64_T,0,i*2,BaseState::distributed_comm_,&reqSend);
-      MPI_Wait(&reqSend,&st);
-      MPI_Isend(state.data(),local_size*sizeof(std::complex<data_t>),MPI_BYTE,0,i*2+1,BaseState::distributed_comm_,&reqSend);
-      MPI_Wait(&reqSend,&st);
-    }
-  }
-#endif
-}
-
-template <class state_t>
-void StateChunk<state_t>::gather_creg_memory(void)
-{
-#ifdef AER_MPI
-  int_t i,j;
-  uint_t n64,i64,ibit;
-
-  if(BaseState::distributed_procs_ == 1)
-    return;
-  if(cregs_[0].memory_size() == 0)
-    return;
-
-  //number of 64-bit integers per memory
-  n64 = (cregs_[0].memory_size() + 63) >> 6;
-
-  reg_t bin_memory(n64*num_local_chunks_,0);
-  //compress memory string to binary
-#pragma omp parallel for private(i,j,i64,ibit)
-  for(i=0;i<num_local_chunks_;i++){
-    for(j=0;j<cregs_[0].memory_size();j++){
-      i64 = j >> 6;
-      ibit = j & 63;
-      if(cregs_[global_chunk_index_ + i].creg_memory()[j] == '1'){
-        bin_memory[i*n64 + i64] |= (1ull << ibit);
-      }
-    }
-  }
-
-  reg_t recv(n64*num_global_chunks_);
-  std::vector<int> recv_counts(BaseState::distributed_procs_);
-  std::vector<int> recv_offset(BaseState::distributed_procs_);
-
-  for(i=0;i<BaseState::distributed_procs_;i++){
-    recv_offset[i] = num_global_chunks_ * i / BaseState::distributed_procs_;
-    recv_counts[i] = (num_global_chunks_ * (i+1) / BaseState::distributed_procs_) - recv_offset[i];
-  }
-
-  MPI_Allgatherv(&bin_memory[0],n64*num_local_chunks_,MPI_UINT64_T,
-                 &recv[0],&recv_counts[0],&recv_offset[0],MPI_UINT64_T,BaseState::distributed_comm_);
-
-  //store gathered memory
-#pragma omp parallel for private(i,j,i64,ibit)
-  for(i=0;i<num_global_chunks_;i++){
-    for(j=0;j<cregs_[0].memory_size();j++){
-      i64 = j >> 6;
-      ibit = j & 63;
-      if(((recv[i*n64 + i64] >> ibit) & 1) == 1)
-        cregs_[i].creg_memory()[j] = '1';
-      else
-        cregs_[i].creg_memory()[j] = '0';
+      MPI_Allgatherv(local_state.data(),recv_counts[BaseState::distributed_rank_],MPI_FLOAT,
+                     state.data(),&recv_counts[0],&recv_offset[0],MPI_FLOAT,BaseState::distributed_comm_);
     }
   }
 #endif

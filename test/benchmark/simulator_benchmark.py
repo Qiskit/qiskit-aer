@@ -16,8 +16,8 @@ import sys
 import numpy as np
 from time import time
 from qiskit.compiler import transpile, assemble
-from qiskit.providers.aer import AerSimulator, UnitarySimulator
-from qiskit.providers.aer.noise import NoiseModel, amplitude_damping_error, depolarizing_error
+from qiskit_aer import AerSimulator, UnitarySimulator
+from qiskit_aer.noise import NoiseModel, amplitude_damping_error, depolarizing_error
 
 from benchmark.circuit_library_circuits import CircuitLibraryCircuits
 
@@ -151,7 +151,7 @@ class SimulatorBenchmarkSuite(CircuitLibraryCircuits):
         
         def add_expval(base, num_terms):
             circuit = base.copy()
-            from qiskit.providers.aer.extensions import snapshot_expectation_value
+            from qiskit_aer.extensions import snapshot_expectation_value
             from numpy.random import default_rng
             rng = default_rng(1)
             paulis = [''.join(s) for s in 

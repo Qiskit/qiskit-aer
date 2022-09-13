@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Fixes for MPI chunk distribution. Including fix for global indexing
+    for Thrust implementations, fix for cache blocking of non-gate operations.
+    Also savestatevector returns same statevector to all processes
+    (only 1st process received statevector previously.)
+

@@ -46,8 +46,16 @@ public:
 
   DensityMatrix() : DensityMatrix(0) {};
   explicit DensityMatrix(size_t num_qubits);
-  DensityMatrix(const DensityMatrix& obj) {};
-  DensityMatrix &operator=(const DensityMatrix& obj) {};
+  DensityMatrix(const DensityMatrix& obj) : BaseMatrix(obj)
+  {
+    apply_unitary_threshold_ = obj.apply_unitary_threshold_;
+  }
+  DensityMatrix &operator=(const DensityMatrix& obj)
+  {
+    BaseMatrix::copy_qv(obj);
+    apply_unitary_threshold_ = obj.apply_unitary_threshold_;
+    return *this;
+  }
 
   //-----------------------------------------------------------------------
   // Utility functions

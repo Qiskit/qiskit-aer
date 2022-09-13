@@ -19,7 +19,7 @@
 #include "framework/creg.hpp"
 
 namespace AER {
-namespace Base {
+namespace QuantumState {
 
 using OpItr = std::vector<Operations::Op>::const_iterator;
 
@@ -259,7 +259,7 @@ void Registers<state_t>::branch_shots(reg_t& shots, int_t nbranch)
 }
 
 //-------------------------------------------------------------------------
-} // end namespace Base
+} // end namespace QuantumState
 //-------------------------------------------------------------------------
 } // end namespace AER
 //-------------------------------------------------------------------------

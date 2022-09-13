@@ -754,16 +754,23 @@ reg_t DeviceChunkContainer<data_t>::sample_measure(uint_t iChunk,const std::vect
   else
     thrust::inclusive_scan(thrust::cuda::par.on(stream(iChunk)),iter.begin(),iter.end(),iter.begin(),thrust::plus<thrust::complex<data_t>>());
 
+  uint_t i,nshots,size;
   uint_t iBuf = 0;
-  if(multi_shots_)
+  if(multi_shots_){
     iBuf = iChunk;
+    size = matrix_buffer_size_*2;
+    if(size > params_buffer_size_)
+      size = params_buffer_size_;
+  }
+  else{
+    size = matrix_.size()*2;
+    if(size > params_.size())
+    size = params_.size();
+  }
 
   double* pRnd = (double*)matrix_pointer(iBuf);
   uint_t* pSmp = param_pointer(iBuf);
   thrust::device_ptr<double> rnd_dev_ptr = thrust::device_pointer_cast(pRnd);
-  uint_t i,nshots,size = matrix_.size()*2;
-  if(size > params_.size())
-    size = params_.size();
 
   for(i=0;i<SHOTS;i+=size){
     nshots = size;

@@ -47,6 +47,13 @@ public:
   DensityMatrixThrust() : DensityMatrixThrust(0) {};
   explicit DensityMatrixThrust(size_t num_qubits);
 
+  DensityMatrixThrust(const DensityMatrixThrust& obj) : BaseMatrix(obj) {}
+  DensityMatrixThrust &operator=(const DensityMatrixThrust& obj)
+  {
+    BaseMatrix::copy_qv(obj);
+    return *this;
+  }
+
   //-----------------------------------------------------------------------
   // Utility functions
   //-----------------------------------------------------------------------

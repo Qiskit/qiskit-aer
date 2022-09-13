@@ -17,7 +17,7 @@ from test.terra.utils.utils import list2dict
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.circuit import Instruction
-from qiskit.providers.aer.noise import NoiseModel
+from qiskit_aer.noise import NoiseModel
 
 
 # ==========================================================================

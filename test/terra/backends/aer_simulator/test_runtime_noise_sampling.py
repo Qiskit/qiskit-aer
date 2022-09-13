@@ -14,7 +14,7 @@ AerSimulator Integration Tests
 """
 
 from ddt import ddt
-from qiskit.providers.aer import noise
+from qiskit_aer import noise
 
 import qiskit.quantum_info as qi
 from qiskit import transpile
@@ -40,6 +40,7 @@ class TestRuntimeNoiseSampling(SimulatorTestCase):
         """Test simulation with Pauli gate error noise model."""
         backend = self.backend(method=method, device=device)
         backend.set_options(runtime_noise_sampling_enable=True)
+        backend.set_options(batched_shots_gpu=False)
         shots = 1000
         circuits = ref_pauli_noise.pauli_gate_error_circuits()
         with self.assertWarns(DeprecationWarning):
@@ -59,6 +60,7 @@ class TestRuntimeNoiseSampling(SimulatorTestCase):
         """Test simulation with Pauli reset error noise model."""
         backend = self.backend(method=method, device=device)
         backend.set_options(runtime_noise_sampling_enable=True)
+        backend.set_options(batched_shots_gpu=False)
         shots = 1000
         circuits = ref_pauli_noise.pauli_reset_error_circuits()
         with self.assertWarns(DeprecationWarning):
@@ -78,6 +80,7 @@ class TestRuntimeNoiseSampling(SimulatorTestCase):
         """Test simulation with Pauli measure error noise model."""
         backend = self.backend(method=method, device=device)
         backend.set_options(runtime_noise_sampling_enable=True)
+        backend.set_options(batched_shots_gpu=False)
         shots = 1000
         circuits = ref_pauli_noise.pauli_measure_error_circuits()
         with self.assertWarns(DeprecationWarning):
@@ -97,6 +100,7 @@ class TestRuntimeNoiseSampling(SimulatorTestCase):
         """Test simulation with reset gate error noise model."""
         backend = self.backend(method=method, device=device)
         backend.set_options(runtime_noise_sampling_enable=True)
+        backend.set_options(batched_shots_gpu=False)
         shots = 1000
         circuits = ref_reset_noise.reset_gate_error_circuits()
         noise_models = ref_reset_noise.reset_gate_error_noise_models()
@@ -115,6 +119,7 @@ class TestRuntimeNoiseSampling(SimulatorTestCase):
         """Test simulation with mixed Clifford quantum errors in circuit."""
         backend = self.backend(method=method, device=device)
         backend.set_options(runtime_noise_sampling_enable=True)
+        backend.set_options(batched_shots_gpu=False)
         shots = 1000
         error1 = noise.QuantumError([
             ([(IGate(), [0])], 0.8),

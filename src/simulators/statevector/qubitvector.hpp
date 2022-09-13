@@ -78,6 +78,8 @@ public:
     return *this;
   }
 
+  QubitVector(size_t num_qubits, std::complex<data_t>* data, bool copy=false);
+
   //-----------------------------------------------------------------------
   // Data access
   //-----------------------------------------------------------------------
@@ -334,8 +336,7 @@ public:
   virtual void apply_batched_reset(const reg_t& qubits,std::vector<RngEngine>& rng){}
 
   //copy classical register stored on qreg 
-  template <typename storage_t>
-  void read_measured_data(storage_t& creg){}
+  void read_measured_data(ClassicalRegister& creg){}
 
   virtual int_t set_batched_system_conditional(int_t src_reg, reg_t& mask){return -1;}
 
@@ -722,11 +723,22 @@ void QubitVector<data_t>::check_checkpoint() const {
 //------------------------------------------------------------------------------
 
 template <typename data_t>
+QubitVector<data_t>::QubitVector(size_t num_qubits, std::complex<data_t>* data, bool copy)
+  : num_qubits_(num_qubits), data_size_(BITS[num_qubits]), data_(data), checkpoint_(0) {
+    set_transformer_method();
+    if (copy) {
+      checkpoint();
+      data_ = checkpoint_;
+      checkpoint_ = 0;
+    }
+}
+
+template <typename data_t>
 QubitVector<data_t>::QubitVector(size_t num_qubits)
   : num_qubits_(0), data_(nullptr), checkpoint_(0) {
     set_num_qubits(num_qubits);
     set_transformer_method();
-  }
+}
 
 template <typename data_t>
 QubitVector<data_t>::QubitVector() : QubitVector(0) {}
@@ -816,9 +828,12 @@ AER::Vector<std::complex<data_t>> QubitVector<data_t>::copy_to_vector() const {
 
 template <typename data_t>
 AER::Vector<std::complex<data_t>> QubitVector<data_t>::move_to_vector() {
-  const auto vec = AER::Vector<std::complex<data_t>>::move_from_buffer(data_size_, data_);
+  const auto data = data_;
+  const auto data_size = data_size_;
   data_ = nullptr;
-  return vec;
+  data_size_ = 0;
+  num_qubits_ = 0;
+  return AER::Vector<std::complex<data_t>>::move_from_buffer(data_size, data);
 }
 
 //------------------------------------------------------------------------------
@@ -941,7 +956,6 @@ void QubitVector<data_t>::checkpoint() {
   for (int_t k = 0; k < END; ++k)
     checkpoint_[k] = data_[k];
 }
-
 
 template <typename data_t>
 void QubitVector<data_t>::revert(bool keep) {

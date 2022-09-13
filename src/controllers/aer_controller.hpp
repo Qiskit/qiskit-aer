@@ -229,10 +229,6 @@ protected:
   bool check_measure_sampling_opt(const Circuit &circ,
                                   const Method method) const;
 
-  // Save count data
-  void save_count_data(ExperimentResult &result,
-                       const ClassicalRegister &creg) const;
-
   //-------------------------------------------------------------------------
   // State validation
   //-------------------------------------------------------------------------
@@ -665,13 +661,12 @@ void Controller::set_parallelization_circuit(const Circuit &circ,
                                              const Method method)  
 {
   enable_batch_multi_shots_ = false;
-  /*
   if(batched_shots_gpu_ && sim_device_ == Device::GPU && 
      circ.shots > 1 && max_batched_states_ >= num_gpus_ && 
      batched_shots_gpu_max_qubits_ >= circ.num_qubits ){
       enable_batch_multi_shots_ = true;
+      shot_branching_enable_ = false; //disable shot branch mode
   }
-  */
 
   if(sim_device_ == Device::GPU && cuStateVec_enable_){
     enable_batch_multi_shots_ = false;    //cuStateVec does not support batch execution of multi-shots
@@ -991,6 +986,19 @@ Result Controller::execute(std::vector<Circuit> &circuits,
     }
 #endif
 
+#ifdef AER_MPI
+    //average random seed to set the same seed to each process (when seed_simulator is not set)
+    if(num_processes_ > 1){
+      reg_t seeds(circuits.size());
+      reg_t avg_seeds(circuits.size());
+      for(int_t i=0;i<circuits.size();i++)
+        seeds[i] = circuits[i].seed;
+      MPI_Allreduce(seeds.data(), avg_seeds.data(), circuits.size(), MPI_UINT64_T, MPI_SUM, MPI_COMM_WORLD);
+      for(int_t i=0;i<circuits.size();i++)
+        circuits[i].seed = avg_seeds[i]/num_processes_;
+    }
+#endif
+
     const int NUM_RESULTS = result.results.size();
     //following looks very similar but we have to separate them to avoid omp nested loops that causes performance degradation
     //(DO NOT use if statement in #pragma omp)
@@ -1040,17 +1048,6 @@ Result Controller::execute(std::vector<Circuit> &circuits,
     result.message = e.what();
   }
   return result;
-}
-
-void Controller::save_count_data(ExperimentResult &result,
-                                 const ClassicalRegister &creg) const {
-  if (creg.memory_size() > 0) {
-    std::string memory_hex = creg.memory_hex();
-    result.data.add_accum(static_cast<uint_t>(1ULL), "counts", memory_hex);
-    if (save_creg_memory_) {
-      result.data.add_list(std::move(memory_hex), "memory");
-    }
-  }
 }
 
 //-------------------------------------------------------------------------
@@ -1410,7 +1407,7 @@ void Controller::run_single_shot(const Circuit &circ, State_t &state,
   state.initialize_qreg(circ.num_qubits);
   state.initialize_creg(circ.num_memory, circ.num_registers);
   state.apply_ops(circ.ops.cbegin(), circ.ops.cend(), result, rng, true);
-  save_count_data(result, state.creg());
+  result.save_count_data(state.creg(), save_creg_memory_);
 }
 
 template <class State_t>
@@ -1419,7 +1416,8 @@ void Controller::run_with_sampling(const Circuit &circ,
                                    ExperimentResult &result,
                                    RngEngine &rng,
                                    const uint_t block_bits,
-                                   const uint_t shots) const {
+                                   const uint_t shots) const 
+{
   auto& ops = circ.ops;
   auto first_meas = circ.first_measure_pos; // Position of first measurement op
   bool final_ops = (first_meas == ops.size());
@@ -1434,7 +1432,8 @@ void Controller::run_with_sampling(const Circuit &circ,
   state.apply_ops(ops.cbegin(), ops.cbegin() + first_meas, result, rng, final_ops);
 
   // Get measurement operations and set of measured qubits
-  measure_sampler(circ.ops.begin() + first_meas, circ.ops.end(), shots, state, result, rng);
+  state.measure_sampler(circ.ops.begin() + first_meas, circ.ops.end(), shots, result, rng);
+//  measure_sampler(circ.ops.begin() + first_meas, circ.ops.end(), shots, state, result, rng);
 }
 
 template <class State_t>
@@ -1529,94 +1528,31 @@ void Controller::run_circuit_without_sampled_noise(Circuit &circ,
     // Perform standard execution if we cannot apply the
     // measurement sampling optimization
 
-    /*
-    if(block_bits == circ.num_qubits && enable_batch_multi_shots_ && state.multi_shot_parallelization_supported()){
-      //apply batched multi-shots optimization (currenly only on GPU)
-      state.set_max_bached_shots(max_batched_states_);
-      state.set_distribution(num_processes_);
-      state.set_max_matrix_qubits(max_bits);
-      state.allocate(circ.num_qubits, circ.num_qubits, circ.shots);    //allocate multiple-shots
-
-      //qreg is initialized inside state class
-      state.initialize_creg(circ.num_memory, circ.num_registers);
-
-      state.apply_ops_multi_shots(circ.ops.cbegin(), circ.ops.cend(), noise, result, circ.seed, true);
-
-      state.save_count_data(result,save_creg_memory_);
-
-      // Add batched multi-shots optimizaiton metadata
-      result.metadata.add(true, "batched_shots_optimization");
-    }
-    else{*/
-      uint_t num_state = 1;
-      //enable batch execution when circuit does not contain control flow ops
-      if(circ.opset().contains(Operations::OpType::jump) ||circ.opset().contains(Operations::OpType::mark))
+    uint_t num_state = 1;
+    //enable batch execution when circuit does not contain control flow ops
+    if(circ.opset().contains(Operations::OpType::jump) ||circ.opset().contains(Operations::OpType::mark))
+      state.enable_batch_execution(false);
+    else{
+      if(shot_branching_enable_)
+        state.enable_batch_execution(true);
+      else if(!multi_chunk_required_ && enable_batch_multi_shots_ && state.multi_shot_parallelization_supported()){
+        state.enable_batch_execution(true);   //enable batched execution for GPU
+        state.set_max_bached_shots(max_batched_states_);
+        num_state =  circ.shots;
+      }
+      else
         state.enable_batch_execution(false);
-      else{
-        if(shot_branching_enable_)
-          state.enable_batch_execution(true);
-        else if(enable_batch_multi_shots_ && block_bits == circ.num_qubits && state.multi_shot_parallelization_supported()){
-          state.enable_batch_execution(true);   //enable batched execution for GPU
-          state.set_max_bached_shots(max_batched_states_);
-          num_state =  circ.shots;
-        }
-        else
-          state.enable_batch_execution(false);
-      }
-      state.enable_shot_branching(shot_branching_enable_);
+    }
+    state.enable_shot_branching(shot_branching_enable_);
 
-      state.set_distribution(num_process_per_experiment_);
-      state.set_max_matrix_qubits(max_bits);
-      state.allocate(circ.num_qubits, block_bits, num_state);
-      state.set_parallel_shots(parallel_shots_);
-      state.initialize_qreg(circ.num_qubits);
-      state.initialize_creg(circ.num_memory, circ.num_registers);
+    state.set_distribution(num_process_per_experiment_);
+    state.set_max_matrix_qubits(max_bits);
+    state.allocate(circ.num_qubits, block_bits, num_state);
+    state.set_parallel_shots(parallel_shots_);
+    state.initialize_qreg(circ.num_qubits);
+    state.initialize_creg(circ.num_memory, circ.num_registers);
 
-      state.run_shots(circ.ops.cbegin(), circ.ops.cend(), config, noise, result, circ.seed, circ.shots, false);
-
-      /*
-      std::vector<ExperimentResult> par_results(parallel_shots_);
-      int_t par_shots = parallel_shots_;
-      if(block_bits != circ.num_qubits)
-        par_shots = 1;
-
-      auto run_circuit_without_sampled_noise_lambda = [this,&par_results,circ,noise,config,method,block_bits,max_bits,par_shots](int_t i){
-        uint_t i_shot,shot_end;
-        i_shot = circ.shots*i/par_shots;
-        shot_end = circ.shots*(i+1)/par_shots;
-
-        State_t par_state;
-        // Set state config
-        par_state.set_config(config);
-        par_state.set_parallelization(parallel_state_update_);
-        par_state.set_global_phase(circ.global_phase_angle);
-
-        par_state.set_distribution(num_process_per_experiment_);
-        par_state.set_max_matrix_qubits(max_bits );
-
-        // allocate qubit register
-        par_state.allocate(circ.num_qubits, block_bits);
-
-        for(;i_shot<shot_end;i_shot++){
-          RngEngine rng;
-          rng.set_seed(circ.seed + i_shot);
-          run_single_shot(circ, par_state, par_results[i], rng);
-        }
-        par_state.add_metadata(par_results[i]);
-      };
-      Utils::apply_omp_parallel_for((par_shots > 1),0,par_shots,run_circuit_without_sampled_noise_lambda);
-
-      for (auto &res : par_results) {
-        result.combine(std::move(res));
-      }
-      if (sim_device_name_ == "GPU"){
-        if(par_shots >= num_gpus_)
-          result.metadata.add(num_gpus_, "gpu_parallel_shots_");
-        else
-          result.metadata.add(par_shots, "gpu_parallel_shots_");
-      }
-      */
-//    }
+    state.run_shots(circ.ops.cbegin(), circ.ops.cend(), config, noise, result, circ.seed, circ.shots);
   }
   state.add_metadata(result);
 }
@@ -1740,7 +1676,7 @@ void Controller::measure_sampler(
   // Check if meas_circ is empty, and if so return initial creg
   if (first_meas == last_meas) {
     while (shots-- > 0) {
-      save_count_data(result, state.creg());
+      result.save_count_data(state.creg(), save_creg_memory_);
     }
     return;
   }
@@ -1822,7 +1758,7 @@ void Controller::measure_sampler(
     }
 
     // Save count data
-    save_count_data(result, creg);
+      result.save_count_data(creg, save_creg_memory_);
 
     // pop off processed sample
     all_samples.pop_back();

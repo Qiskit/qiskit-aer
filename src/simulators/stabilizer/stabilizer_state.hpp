@@ -67,11 +67,10 @@ enum class SnapshotDataType {average, average_var, pershot};
 // Stabilizer Table state class
 //============================================================================
 
-
-class State : public Base::State<Clifford::Clifford> {
+class State : public QuantumState::State<Clifford::Clifford> {
 
 public:
-  using BaseState = Base::State<Clifford::Clifford>;
+  using BaseState = QuantumState::State<Clifford::Clifford>;
 
   State() : BaseState(StateOpSet) {}
 
@@ -86,7 +85,7 @@ public:
 
   // Apply an operation
   // If the op is not in allowed_ops an exeption will be raised.
-  void apply_op(Base::RegistersBase& state,
+  void apply_op(QuantumState::RegistersBase& state,
                         const Operations::Op &op,
                         ExperimentResult &result,
                         RngEngine &rng,
@@ -95,25 +94,25 @@ public:
   // TODO: currently returns 0
   // Returns the required memory for storing an n-qubit state in megabytes.
   virtual size_t required_memory_mb(uint_t num_qubits,
-                                    Base::OpItr first, Base::OpItr last)
+                                    QuantumState::OpItr first, QuantumState::OpItr last)
                                     const override;
 
   // Sample n-measurement outcomes without applying the measure operation
   // to the system state
-  virtual std::vector<reg_t> sample_measure(const reg_t& qubits,
+  virtual std::vector<reg_t> sample_measure_state(QuantumState::RegistersBase& state_in, const reg_t& qubits,
                                             uint_t shots,
                                             RngEngine &rng) override;
 
 protected:
   // Initializes an n-qubit state to the all |0> state
-  void initialize_state(Base::RegistersBase& state_in, uint_t num_qubits) override;
+  void initialize_state(QuantumState::RegistersBase& state_in, uint_t num_qubits) override;
 
   // Initializes to a specific n-qubit state
-  void initialize_state(Base::RegistersBase& state_in, uint_t num_qubits,
+  void initialize_state(QuantumState::RegistersBase& state_in, uint_t num_qubits,
                                const Clifford::Clifford &state) override;
 
   // Load any settings for the State class from a config JSON
-  void set_state_config(Base::RegistersBase& state_in, const json_t &config) override;
+  void set_state_config(QuantumState::RegistersBase& state_in, const json_t &config) override;
 
   //-----------------------------------------------------------------------
   // Apply instructions
@@ -121,17 +120,17 @@ protected:
 
   // Applies a sypported Gate operation to the state class.
   // If the input is not in allowed_gates an exeption will be raised.
-  void apply_gate(Base::Registers<Clifford::Clifford>& state,const Operations::Op &op);
+  void apply_gate(QuantumState::Registers<Clifford::Clifford>& state,const Operations::Op &op);
 
   // Applies a sypported Gate operation to the state class.
   // If the input is not in allowed_gates an exeption will be raised.
-  void apply_pauli(Base::Registers<Clifford::Clifford>& state,const reg_t &qubits, const std::string& pauli);
+  void apply_pauli(QuantumState::Registers<Clifford::Clifford>& state,const reg_t &qubits, const std::string& pauli);
 
   // Measure qubits and return a list of outcomes [q0, q1, ...]
   // If a state subclass supports this function then "measure"
   // should be contained in the set returned by the 'allowed_ops'
   // method.
-  virtual void apply_measure(Base::Registers<Clifford::Clifford>& state,
+  virtual void apply_measure(QuantumState::Registers<Clifford::Clifford>& state,
                              const reg_t &qubits,
                              const reg_t &cmemory,
                              const reg_t &cregister,
@@ -140,45 +139,45 @@ protected:
   // Reset the specified qubits to the |0> state by simulating
   // a measurement, applying a conditional x-gate if the outcome is 1, and
   // then discarding the outcome.
-  void apply_reset(Base::Registers<Clifford::Clifford>& state,const reg_t &qubits, RngEngine &rng);
+  void apply_reset(QuantumState::Registers<Clifford::Clifford>& state,const reg_t &qubits, RngEngine &rng);
 
   // Apply a supported snapshot instruction
   // If the input is not in allowed_snapshots an exeption will be raised.
-  virtual void apply_snapshot(Base::Registers<Clifford::Clifford>& state,const Operations::Op &op, ExperimentResult &result);
+  virtual void apply_snapshot(QuantumState::Registers<Clifford::Clifford>& state,const Operations::Op &op, ExperimentResult &result);
 
   // Set the state of the simulator to a given Clifford
-  void apply_set_stabilizer(Base::Registers<Clifford::Clifford>& state,const Clifford::Clifford &clifford);
+  void apply_set_stabilizer(QuantumState::Registers<Clifford::Clifford>& state,const Clifford::Clifford &clifford);
 
   //-----------------------------------------------------------------------
   // Save data instructions
   //-----------------------------------------------------------------------
 
   // Save Clifford state of simulator
-  void apply_save_stabilizer(Base::Registers<Clifford::Clifford>& state,const Operations::Op &op, ExperimentResult &result);
+  void apply_save_stabilizer(QuantumState::Registers<Clifford::Clifford>& state,const Operations::Op &op, ExperimentResult &result);
 
   // Save probabilities
-  void apply_save_probs(Base::Registers<Clifford::Clifford>& state,const Operations::Op &op, ExperimentResult &result);
+  void apply_save_probs(QuantumState::Registers<Clifford::Clifford>& state,const Operations::Op &op, ExperimentResult &result);
 
   // Helper function for saving amplitudes squared
-  void apply_save_amplitudes_sq(Base::Registers<Clifford::Clifford>& state,
+  void apply_save_amplitudes_sq(QuantumState::Registers<Clifford::Clifford>& state,
                                 const Operations::Op &op,
                                 ExperimentResult &result);
 
   // Helper function for computing expectation value
-  virtual double expval_pauli(Base::RegistersBase& state,
+  virtual double expval_pauli(QuantumState::RegistersBase& state,
                               const reg_t &qubits,
                               const std::string& pauli) override;
 
   // Return the probability of an outcome bitstring.
-  double get_probability(Base::Registers<Clifford::Clifford>& state,const reg_t &qubits, const std::string &outcome);
+  double get_probability(QuantumState::Registers<Clifford::Clifford>& state,const reg_t &qubits, const std::string &outcome);
 
   template <typename T>
-  void get_probabilities_auxiliary(Base::Registers<Clifford::Clifford>& state,const reg_t& qubits,
+  void get_probabilities_auxiliary(QuantumState::Registers<Clifford::Clifford>& state,const reg_t& qubits,
 					std::string outcome,
 					double outcome_prob,
 					T& probs);
 
-  void get_probability_helper(Base::Registers<Clifford::Clifford>& state,const reg_t& qubits,
+  void get_probability_helper(QuantumState::Registers<Clifford::Clifford>& state,const reg_t& qubits,
 	                            const std::string &outcome,
                               std::string &outcome_carry,
                               double &prob_carry);
@@ -188,7 +187,7 @@ protected:
   //-----------------------------------------------------------------------
 
   // Implement a measurement on all specified qubits and return the outcome
-  reg_t apply_measure_and_update(Base::Registers<Clifford::Clifford>& state,const reg_t &qubits, RngEngine &rng);
+  reg_t apply_measure_and_update(QuantumState::Registers<Clifford::Clifford>& state,const reg_t &qubits, RngEngine &rng);
 
   //-----------------------------------------------------------------------
   // Special snapshot types
@@ -200,15 +199,15 @@ protected:
 
   // Snapshot the stabilizer state of the simulator.
   // This returns a list of stabilizer generators
-  void snapshot_stabilizer(Base::Registers<Clifford::Clifford>& state,const Operations::Op &op, ExperimentResult &result);
+  void snapshot_stabilizer(QuantumState::Registers<Clifford::Clifford>& state,const Operations::Op &op, ExperimentResult &result);
                             
   // Snapshot current qubit probabilities for a measurement (average)
-  void snapshot_probabilities(Base::Registers<Clifford::Clifford>& state,const Operations::Op &op,
+  void snapshot_probabilities(QuantumState::Registers<Clifford::Clifford>& state,const Operations::Op &op,
                               ExperimentResult &result,
                               bool variance);
 
   // Snapshot the expectation value of a Pauli operator
-  void snapshot_pauli_expval(Base::Registers<Clifford::Clifford>& state,const Operations::Op &op,
+  void snapshot_pauli_expval(QuantumState::Registers<Clifford::Clifford>& state,const Operations::Op &op,
                              ExperimentResult &result,
                              SnapshotDataType type);
 
@@ -277,22 +276,22 @@ const stringmap_t<Snapshots> State::snapshotset_({
 // Initialization
 //-------------------------------------------------------------------------
 
-void State::initialize_state(Base::RegistersBase& state_in, uint_t num_qubits) 
+void State::initialize_state(QuantumState::RegistersBase& state_in, uint_t num_qubits) 
 {
-  Base::Registers<Clifford::Clifford>& state = dynamic_cast<Base::Registers<Clifford::Clifford>&>(state_in);
+  QuantumState::Registers<Clifford::Clifford>& state = dynamic_cast<QuantumState::Registers<Clifford::Clifford>&>(state_in);
   if(state.qregs().size() == 0)
     state.allocate(1);
   state.qreg() = Clifford::Clifford(num_qubits);
 }
 
-void State::initialize_state(Base::RegistersBase& state_in, uint_t num_qubits,
+void State::initialize_state(QuantumState::RegistersBase& state_in, uint_t num_qubits,
                             const Clifford::Clifford &clifford) 
 {
   // Check dimension of state
   if (clifford.num_qubits() != num_qubits) {
     throw std::invalid_argument("Stabilizer::State::initialize: initial state does not match qubit number");
   }
-  Base::Registers<Clifford::Clifford>& state = dynamic_cast<Base::Registers<Clifford::Clifford>&>(state_in);
+  QuantumState::Registers<Clifford::Clifford>& state = dynamic_cast<QuantumState::Registers<Clifford::Clifford>&>(state_in);
   if(state.qregs().size() == 0)
     state.allocate(1);
   state.qreg() = clifford;
@@ -303,7 +302,7 @@ void State::initialize_state(Base::RegistersBase& state_in, uint_t num_qubits,
 //-------------------------------------------------------------------------
 
 size_t State::required_memory_mb(uint_t num_qubits,
-                                 Base::OpItr first, Base::OpItr last)
+                                 QuantumState::OpItr first, QuantumState::OpItr last)
                                  const  {
   (void)first; // avoid unused variable compiler warning
   (void)last;
@@ -318,7 +317,7 @@ size_t State::required_memory_mb(uint_t num_qubits,
   return mem;
 }
 
-void State::set_state_config(Base::RegistersBase& state_in, const json_t &config) 
+void State::set_state_config(QuantumState::RegistersBase& state_in, const json_t &config) 
 {
   if(omp_get_num_threads() > 1){
 #pragma omp critical
@@ -345,12 +344,12 @@ void State::set_state_config(Base::RegistersBase& state_in, const json_t &config
 // Implementation: apply operations
 //=========================================================================
 
-void State::apply_op(Base::RegistersBase& state_in,
+void State::apply_op(QuantumState::RegistersBase& state_in,
                      const Operations::Op &op,
                      ExperimentResult &result,
                      RngEngine &rng, bool final_op) 
 {
-  Base::Registers<Clifford::Clifford>& state = dynamic_cast<Base::Registers<Clifford::Clifford>&>(state_in);
+  QuantumState::Registers<Clifford::Clifford>& state = dynamic_cast<QuantumState::Registers<Clifford::Clifford>&>(state_in);
 
   if (state.creg().check_conditional(op)) {
     switch (op.type) {
@@ -401,7 +400,7 @@ void State::apply_op(Base::RegistersBase& state_in,
   }
 }
 
-void State::apply_gate(Base::Registers<Clifford::Clifford>& state, const Operations::Op &op) {
+void State::apply_gate(QuantumState::Registers<Clifford::Clifford>& state, const Operations::Op &op) {
   // Check Op is supported by State
   auto it = gateset_.find(op.name);
   if (it == gateset_.end())
@@ -470,7 +469,7 @@ void State::apply_gate(Base::Registers<Clifford::Clifford>& state, const Operati
   }
 }
 
-void State::apply_pauli(Base::Registers<Clifford::Clifford>& state,const reg_t &qubits, const std::string& pauli) {
+void State::apply_pauli(QuantumState::Registers<Clifford::Clifford>& state,const reg_t &qubits, const std::string& pauli) {
   const auto size = qubits.size();
   for (size_t i = 0; i < qubits.size(); ++i) {
     const auto qubit = qubits[size - 1 - i];
@@ -497,7 +496,7 @@ void State::apply_pauli(Base::Registers<Clifford::Clifford>& state,const reg_t &
 //=========================================================================
 
 
-void State::apply_measure(Base::Registers<Clifford::Clifford>& state,
+void State::apply_measure(QuantumState::Registers<Clifford::Clifford>& state,
                           const reg_t &qubits,
                           const reg_t &cmemory,
                           const reg_t &cregister,
@@ -510,7 +509,7 @@ void State::apply_measure(Base::Registers<Clifford::Clifford>& state,
 }
 
 
-void State::apply_reset(Base::Registers<Clifford::Clifford>& state,const reg_t &qubits, RngEngine &rng) 
+void State::apply_reset(QuantumState::Registers<Clifford::Clifford>& state,const reg_t &qubits, RngEngine &rng) 
 {
   // Apply measurement and get classical outcome
   reg_t outcome = apply_measure_and_update(state, qubits, rng);
@@ -524,7 +523,7 @@ void State::apply_reset(Base::Registers<Clifford::Clifford>& state,const reg_t &
 }
 
 
-reg_t State::apply_measure_and_update(Base::Registers<Clifford::Clifford>& state,
+reg_t State::apply_measure_and_update(QuantumState::Registers<Clifford::Clifford>& state,
                                       const reg_t &qubits,
                                       RngEngine &rng) 
 {
@@ -543,22 +542,24 @@ reg_t State::apply_measure_and_update(Base::Registers<Clifford::Clifford>& state
   return outcome;
 }
 
-std::vector<reg_t> State::sample_measure(const reg_t &qubits,
+std::vector<reg_t> State::sample_measure_state(QuantumState::RegistersBase& state_in, const reg_t &qubits,
                                          uint_t shots,
                                          RngEngine &rng) 
 {
+  QuantumState::Registers<Clifford::Clifford>& state = dynamic_cast<QuantumState::Registers<Clifford::Clifford>&>(state_in);
+
   // TODO: see if we can improve efficiency by directly sampling from Clifford table
-  auto qreg_cache = BaseState::state_.qreg();
+  auto qreg_cache = state.qreg();
   std::vector<reg_t> samples;
   samples.reserve(shots);
   while (shots-- > 0) { // loop over shots
-    samples.push_back(apply_measure_and_update(BaseState::state_, qubits, rng));
-    BaseState::state_.qreg() = qreg_cache; // restore pre-measurement data from cache
+    samples.push_back(apply_measure_and_update(state, qubits, rng));
+    state.qreg() = qreg_cache; // restore pre-measurement data from cache
   }
   return samples;
 }
 
-void State::apply_set_stabilizer(Base::Registers<Clifford::Clifford>& state,const Clifford::Clifford &clifford) 
+void State::apply_set_stabilizer(QuantumState::Registers<Clifford::Clifford>& state,const Clifford::Clifford &clifford) 
 {
   if (clifford.num_qubits() != state.qreg().num_qubits()) {
     throw std::invalid_argument(
@@ -574,7 +575,7 @@ void State::apply_set_stabilizer(Base::Registers<Clifford::Clifford>& state,cons
 // Implementation: Save data
 //=========================================================================
 
-void State::apply_save_stabilizer(Base::Registers<Clifford::Clifford>& state,const Operations::Op &op,
+void State::apply_save_stabilizer(QuantumState::Registers<Clifford::Clifford>& state,const Operations::Op &op,
                                 ExperimentResult &result) 
 {
   std::string key = op.string_params[0];
@@ -599,10 +600,10 @@ void State::apply_save_stabilizer(Base::Registers<Clifford::Clifford>& state,con
       throw std::invalid_argument("Invalid save state instruction for stabilizer");
   }
   json_t clifford = state.qreg();
-  BaseState::save_data_pershot(state, result, key, std::move(clifford), op_type, op.save_type);
+  result.save_data_pershot(state.creg(), key, std::move(clifford), op_type, op.save_type);
 }
 
-void State::apply_save_probs(Base::Registers<Clifford::Clifford>& state,const Operations::Op &op,
+void State::apply_save_probs(QuantumState::Registers<Clifford::Clifford>& state,const Operations::Op &op,
                              ExperimentResult &result) 
 {
   // Check number of qubits being measured is less than 64.
@@ -623,18 +624,18 @@ void State::apply_save_probs(Base::Registers<Clifford::Clifford>& state,const Op
     std::map<std::string, double> probs;
     get_probabilities_auxiliary(state,
         op.qubits, std::string(op.qubits.size(), 'X'), 1, probs);
-    BaseState::save_data_average(state, result, op.string_params[0],
-                                 std::move(probs), op.type, op.save_type);
+    result.save_data_average(state.creg(), op.string_params[0],
+                             std::move(probs), op.type, op.save_type);
   } else {
     std::vector<double> probs(1ULL << op.qubits.size(), 0.);
     get_probabilities_auxiliary(state,
       op.qubits, std::string(op.qubits.size(), 'X'), 1, probs); 
-    BaseState::save_data_average(state, result, op.string_params[0],
-                                 std::move(probs), op.type, op.save_type);
+    result.save_data_average(state.creg(), op.string_params[0],
+                             std::move(probs), op.type, op.save_type);
   }
 }
 
-void State::apply_save_amplitudes_sq(Base::Registers<Clifford::Clifford>& state,const Operations::Op &op,
+void State::apply_save_amplitudes_sq(QuantumState::Registers<Clifford::Clifford>& state,const Operations::Op &op,
                                      ExperimentResult &result) 
 {
   if (op.int_params.empty()) {
@@ -648,14 +649,14 @@ void State::apply_save_amplitudes_sq(Base::Registers<Clifford::Clifford>& state,
   for (size_t i = 0; i < op.int_params.size(); i++) {
     amps_sq[i] = get_probability(state, op.qubits, Utils::int2bin(op.int_params[i], num_qubits));
   }
-  BaseState::save_data_average(state, result, op.string_params[0],
-                               std::move(amps_sq), op.type, op.save_type);
+  result.save_data_average(state.creg(), op.string_params[0],
+                           std::move(amps_sq), op.type, op.save_type);
 }
 
-double State::expval_pauli(Base::RegistersBase& state_in,const reg_t &qubits,
+double State::expval_pauli(QuantumState::RegistersBase& state_in,const reg_t &qubits,
                            const std::string& pauli) 
 {
-  Base::Registers<Clifford::Clifford>& state = dynamic_cast<Base::Registers<Clifford::Clifford>&>(state_in);
+  QuantumState::Registers<Clifford::Clifford>& state = dynamic_cast<QuantumState::Registers<Clifford::Clifford>&>(state_in);
 
   // Construct Pauli on N-qubits
   const auto num_qubits = state.qreg().num_qubits();
@@ -739,7 +740,7 @@ static void set_value_helper(std::vector<double>& probs,
 }
 
 template <typename T>
-void State::get_probabilities_auxiliary(Base::Registers<Clifford::Clifford>& state,
+void State::get_probabilities_auxiliary(QuantumState::Registers<Clifford::Clifford>& state,
                                         const reg_t &qubits,
                                         std::string outcome,
                                         double outcome_prob,
@@ -784,7 +785,7 @@ void State::get_probabilities_auxiliary(Base::Registers<Clifford::Clifford>& sta
   }
 }
 
-double State::get_probability(Base::Registers<Clifford::Clifford>& state,const reg_t &qubits, const std::string &outcome) 
+double State::get_probability(QuantumState::Registers<Clifford::Clifford>& state,const reg_t &qubits, const std::string &outcome) 
 {
   std::string outcome_carry = std::string(qubits.size(), 'X');
   double prob = 1.0;
@@ -792,7 +793,7 @@ double State::get_probability(Base::Registers<Clifford::Clifford>& state,const r
   return prob;
 }
 
-void State::get_probability_helper(Base::Registers<Clifford::Clifford>& state,
+void State::get_probability_helper(QuantumState::Registers<Clifford::Clifford>& state,
                                    const reg_t &qubits,
                                    const std::string &outcome,
                                    std::string &outcome_carry,
@@ -836,7 +837,7 @@ void State::get_probability_helper(Base::Registers<Clifford::Clifford>& state,
 // Implementation: Snapshots
 //=========================================================================
 
-void State::apply_snapshot(Base::Registers<Clifford::Clifford>& state, const Operations::Op &op,
+void State::apply_snapshot(QuantumState::Registers<Clifford::Clifford>& state, const Operations::Op &op,
                            ExperimentResult &result) 
 {
 // Look for snapshot type in snapshotset
@@ -877,7 +878,7 @@ void State::apply_snapshot(Base::Registers<Clifford::Clifford>& state, const Ope
 }
 
 
-void State::snapshot_stabilizer(Base::Registers<Clifford::Clifford>& state,const Operations::Op &op, ExperimentResult &result) 
+void State::snapshot_stabilizer(QuantumState::Registers<Clifford::Clifford>& state,const Operations::Op &op, ExperimentResult &result) 
 {
   // We don't want to snapshot the full Clifford table, only the
   // stabilizer part. First Convert simulator clifford table to JSON
@@ -889,7 +890,7 @@ void State::snapshot_stabilizer(Base::Registers<Clifford::Clifford>& state,const
 }
 
 
-void State::snapshot_probabilities(Base::Registers<Clifford::Clifford>& state, const Operations::Op &op,
+void State::snapshot_probabilities(QuantumState::Registers<Clifford::Clifford>& state, const Operations::Op &op,
                                    ExperimentResult &result,
                                    bool variance) 
 {
@@ -918,7 +919,7 @@ void State::snapshot_probabilities(Base::Registers<Clifford::Clifford>& state, c
 }
 
 
-void State::snapshot_pauli_expval(Base::Registers<Clifford::Clifford>& state, const Operations::Op &op,
+void State::snapshot_pauli_expval(QuantumState::Registers<Clifford::Clifford>& state, const Operations::Op &op,
                                   ExperimentResult &result, SnapshotDataType type) 
 {
   // Check empty edge case

@@ -65,9 +65,9 @@ enum class Gates {
 //=========================================================================
 
 template <class unitary_matrix_t = QV::UnitaryMatrix<double>>
-class State : public virtual Base::StateChunk<unitary_matrix_t> {
+class State : public virtual QuantumState::StateChunk<unitary_matrix_t> {
 public:
-  using BaseState = Base::StateChunk<unitary_matrix_t>;
+  using BaseState = QuantumState::StateChunk<unitary_matrix_t>;
 
   State() : BaseState(StateOpSet) {}
   virtual ~State() = default;
@@ -81,12 +81,12 @@ public:
 
   // Apply an operation
   // If the op is not in allowed_ops an exeption will be raised.
-  void apply_op(Base::RegistersBase& state, const Operations::Op &op,
+  void apply_op(QuantumState::RegistersBase& state, const Operations::Op &op,
                         ExperimentResult &result,
                         RngEngine &rng,
                         bool final_op = false) override;
   //apply_op for specific chunk
-  void apply_op_chunk(uint_t iChunk, Base::RegistersBase& state,
+  void apply_op_chunk(uint_t iChunk, QuantumState::RegistersBase& state,
                         const Operations::Op &op,
                         ExperimentResult &result,
                         RngEngine& rng,
@@ -97,7 +97,7 @@ public:
   // and is approximately 16 * 1 << 2 * num_qubits bytes
   virtual size_t
   required_memory_mb(uint_t num_qubits,
-                     Base::OpItr first, Base::OpItr last) const override;
+                     QuantumState::OpItr first, QuantumState::OpItr last) const override;
 
   //-----------------------------------------------------------------------
   // Additional methods
@@ -107,28 +107,28 @@ public:
   void initialize_qreg_from_data(uint_t num_qubits, const cmatrix_t &unitary);
 
   // Initialize OpenMP settings for the underlying QubitVector class
-  void initialize_omp(Base::Registers<unitary_matrix_t>& state);
+  void initialize_omp(QuantumState::Registers<unitary_matrix_t>& state);
 
-  auto move_to_matrix(Base::Registers<unitary_matrix_t>& state);
-  auto copy_to_matrix(Base::Registers<unitary_matrix_t>& state);
+  auto move_to_matrix(QuantumState::Registers<unitary_matrix_t>& state);
+  auto copy_to_matrix(QuantumState::Registers<unitary_matrix_t>& state);
 protected:
   // Initializes an n-qubit unitary to the identity matrix
-  void initialize_state(Base::RegistersBase& state_in, uint_t num_qubits) override;
+  void initialize_state(QuantumState::RegistersBase& state_in, uint_t num_qubits) override;
 
   // Initializes to a specific n-qubit unitary matrix
-  void initialize_state(Base::RegistersBase& state_in, uint_t num_qubits,
+  void initialize_state(QuantumState::RegistersBase& state_in, uint_t num_qubits,
                                const unitary_matrix_t &unitary) override;
 
   // Load the threshold for applying OpenMP parallelization
   // if the controller/engine allows threads for it
   // Config: {"omp_qubit_threshold": 7}
-  void set_state_config(Base::RegistersBase& state_in, const json_t &config) override;
+  void set_state_config(QuantumState::RegistersBase& state_in, const json_t &config) override;
 
   //-----------------------------------------------------------------------
   // Apply Instructions
   //-----------------------------------------------------------------------
   //apply op to multiple shots , return flase if op is not supported to execute in a batch
-  bool apply_batched_op(const int_t iChunk, const Operations::Op &op,
+  bool apply_batched_op(const int_t iChunk, QuantumState::RegistersBase& state_in, const Operations::Op &op,
                                 ExperimentResult &result,
                                 std::vector<RngEngine> &rng,
                                 bool final_op = false) override;
@@ -140,7 +140,7 @@ protected:
 
   // Apply a supported snapshot instruction
   // If the input is not in allowed_snapshots an exeption will be raised.
-  virtual void apply_snapshot(Base::Registers<unitary_matrix_t>& state, const Operations::Op &op, ExperimentResult &result);
+  virtual void apply_snapshot(QuantumState::Registers<unitary_matrix_t>& state, const Operations::Op &op, ExperimentResult &result);
 
   // Apply a matrix to given qubits (identity on all other qubits)
   void apply_matrix(unitary_matrix_t& qreg, const reg_t &qubits, const cmatrix_t &mat);
@@ -152,7 +152,7 @@ protected:
   void apply_diagonal_matrix(unitary_matrix_t& qreg, const reg_t &qubits, const cvector_t &diag);
 
   //swap between chunks
-  virtual void apply_chunk_swap(Base::RegistersBase& state,const reg_t &qubits) override;
+  virtual void apply_chunk_swap(QuantumState::RegistersBase& state,const reg_t &qubits) override;
 
   //-----------------------------------------------------------------------
   // 1-Qubit Gates
@@ -178,12 +178,12 @@ protected:
   //-----------------------------------------------------------------------
 
   // Save the unitary matrix for the simulator
-  void apply_save_unitary(Base::Registers<unitary_matrix_t>& state, const Operations::Op &op,
+  void apply_save_unitary(QuantumState::Registers<unitary_matrix_t>& state, const Operations::Op &op,
                           ExperimentResult &result,
                           bool last_op);
 
   // Helper function for computing expectation value
-  virtual double expval_pauli(Base::RegistersBase& state, const reg_t &qubits,
+  virtual double expval_pauli(QuantumState::RegistersBase& state, const reg_t &qubits,
                               const std::string& pauli) override;
 
   //-----------------------------------------------------------------------
@@ -191,7 +191,7 @@ protected:
   //-----------------------------------------------------------------------
 
   // Apply the global phase
-  void apply_global_phase(Base::Registers<unitary_matrix_t>& state);
+  void apply_global_phase(QuantumState::RegistersBase& state) override;
 
   // OpenMP qubit threshold
   int omp_qubit_threshold_ = 6;
@@ -288,11 +288,11 @@ const stringmap_t<Gates> State<unitary_matrix_t>::gateset_({
 //============================================================================
 
 template <class unitary_matrix_t>
-void State<unitary_matrix_t>::apply_op(Base::RegistersBase& state_in, 
+void State<unitary_matrix_t>::apply_op(QuantumState::RegistersBase& state_in, 
     const Operations::Op &op, ExperimentResult &result,
     RngEngine &rng, bool final_op)
 {
-  Base::Registers<unitary_matrix_t>& state = dynamic_cast<Base::Registers<unitary_matrix_t>&>(state_in);
+  QuantumState::Registers<unitary_matrix_t>& state = dynamic_cast<QuantumState::Registers<unitary_matrix_t>&>(state_in);
 
   if(state.creg().check_conditional(op)) {
     switch (op.type) {
@@ -335,11 +335,11 @@ void State<unitary_matrix_t>::apply_op(Base::RegistersBase& state_in,
 }
 
 template <class unitary_matrix_t>
-void State<unitary_matrix_t>::apply_op_chunk(uint_t iChunk, Base::RegistersBase& state_in,
+void State<unitary_matrix_t>::apply_op_chunk(uint_t iChunk, QuantumState::RegistersBase& state_in,
     const Operations::Op &op, ExperimentResult &result,
     RngEngine &rng, bool final_op)
 {
-  Base::Registers<unitary_matrix_t>& state = dynamic_cast<Base::Registers<unitary_matrix_t>&>(state_in);
+  QuantumState::Registers<unitary_matrix_t>& state = dynamic_cast<QuantumState::Registers<unitary_matrix_t>&>(state_in);
 
   if(state.creg().check_conditional(op)) {
     switch (op.type) {
@@ -368,15 +368,16 @@ void State<unitary_matrix_t>::apply_op_chunk(uint_t iChunk, Base::RegistersBase&
   }
 }
 
-template <class densmat_t>
-bool State<densmat_t>::apply_batched_op(const int_t iChunk, const Operations::Op &op,
+template <class unitary_matrix_t>
+bool State<unitary_matrix_t>::apply_batched_op(const int_t iChunk, QuantumState::RegistersBase& state_in, const Operations::Op &op,
                                   ExperimentResult &result,
                                   std::vector<RngEngine> &rng,
                                   bool final_ops) 
 {
-  /*
+  QuantumState::Registers<unitary_matrix_t>& state = dynamic_cast<QuantumState::Registers<unitary_matrix_t>&>(state_in);
+
   if(op.conditional)
-    BaseState::qregs_[iChunk].set_conditional(op.conditional_reg);
+    state.qreg(iChunk).set_conditional(op.conditional_reg);
 
   switch (op.type) {
     case Operations::OpType::barrier:
@@ -384,32 +385,32 @@ bool State<densmat_t>::apply_batched_op(const int_t iChunk, const Operations::Op
     case Operations::OpType::qerror_loc:
       break;
     case Operations::OpType::bfunc:
-      BaseState::qregs_[iChunk].apply_bfunc(op);
+      state.qreg(iChunk).apply_bfunc(op);
       break;
     case Operations::OpType::roerror:
-      BaseState::qregs_[iChunk].apply_roerror(op, rng);
+      state.qreg(iChunk).apply_roerror(op, rng);
       break;
     case Operations::OpType::gate:
-      apply_gate(iChunk, op);
+      apply_gate(state.qreg(iChunk), op);
       break;
     case Operations::OpType::matrix:
-      apply_matrix(iChunk, op.qubits, op.mats[0]);
+      apply_matrix(state.qreg(iChunk), op.qubits, op.mats[0]);
       break;
     case Operations::OpType::diagonal_matrix:
-      BaseState::qregs_[iChunk].apply_diagonal_matrix(op.qubits, op.params);
+      state.qreg(iChunk).apply_diagonal_matrix(op.qubits, op.params);
       break;
     default:
       //other operations should be called to indivisual chunks by apply_op
       return false;
   }
-  */
+
   return true;
 }
 
 
 template <class unitary_matrix_t>
 size_t State<unitary_matrix_t>::required_memory_mb(
-    uint_t num_qubits, Base::OpItr first, Base::OpItr last) const {
+    uint_t num_qubits, QuantumState::OpItr first, QuantumState::OpItr last) const {
   // An n-qubit unitary as 2^2n complex doubles
   // where each complex double is 16 bytes
   (void)first; // avoid unused variable compiler warning
@@ -420,7 +421,7 @@ size_t State<unitary_matrix_t>::required_memory_mb(
 }
 
 template <class unitary_matrix_t>
-void State<unitary_matrix_t>::set_state_config(Base::RegistersBase& state_in, const json_t &config) 
+void State<unitary_matrix_t>::set_state_config(QuantumState::RegistersBase& state_in, const json_t &config) 
 {
 
   if(omp_get_num_threads() > 1){
@@ -441,15 +442,15 @@ void State<unitary_matrix_t>::set_state_config(Base::RegistersBase& state_in, co
     JSON::get_value(json_chop_threshold_, "zero_threshold", config);
   }
 
-  Base::Registers<unitary_matrix_t>& state = dynamic_cast<Base::Registers<unitary_matrix_t>&>(state_in);
+  QuantumState::Registers<unitary_matrix_t>& state = dynamic_cast<QuantumState::Registers<unitary_matrix_t>&>(state_in);
   for(int_t i=0;i<state.qregs().size();i++)
     state.qregs()[i].set_json_chop_threshold(json_chop_threshold_);
 }
 
 template <class unitary_matrix_t>
-void State<unitary_matrix_t>::initialize_state(Base::RegistersBase& state_in, uint_t num_qubits) 
+void State<unitary_matrix_t>::initialize_state(QuantumState::RegistersBase& state_in, uint_t num_qubits) 
 {
-  Base::Registers<unitary_matrix_t>& state = *(dynamic_cast<Base::Registers<unitary_matrix_t>*>(&state_in));
+  QuantumState::Registers<unitary_matrix_t>& state = *(dynamic_cast<QuantumState::Registers<unitary_matrix_t>*>(&state_in));
 
   if(state.qregs().size() == 0)
     BaseState::allocate(num_qubits,BaseState::chunk_bits_,1);
@@ -497,7 +498,7 @@ void State<unitary_matrix_t>::initialize_state(Base::RegistersBase& state_in, ui
 }
 
 template <class unitary_matrix_t>
-void State<unitary_matrix_t>::initialize_state(Base::RegistersBase& state_in, uint_t num_qubits,
+void State<unitary_matrix_t>::initialize_state(QuantumState::RegistersBase& state_in, uint_t num_qubits,
                                               const unitary_matrix_t &unitary) 
 {
   // Check dimension of state
@@ -506,7 +507,7 @@ void State<unitary_matrix_t>::initialize_state(Base::RegistersBase& state_in, ui
         "Unitary::State::initialize: initial state does not match qubit "
         "number");
   }
-  Base::Registers<unitary_matrix_t>& state = *(dynamic_cast<Base::Registers<unitary_matrix_t>*>(&state_in));
+  QuantumState::Registers<unitary_matrix_t>& state = *(dynamic_cast<QuantumState::Registers<unitary_matrix_t>*>(&state_in));
 
   if(state.qregs().size() == 0)
     BaseState::allocate(num_qubits,BaseState::chunk_bits_,1);
@@ -574,7 +575,7 @@ void State<unitary_matrix_t>::initialize_qreg_from_data(uint_t num_qubits,
         "Unitary::State::initialize: initial state does not match qubit "
         "number");
   }
-  Base::Registers<unitary_matrix_t>& state = BaseState::state_;
+  QuantumState::Registers<unitary_matrix_t>& state = BaseState::state_;
   if(state.qregs().size() == 0)
     BaseState::allocate(num_qubits,BaseState::chunk_bits_,1);
   initialize_omp(state);
@@ -635,7 +636,7 @@ void State<unitary_matrix_t>::initialize_qreg_from_data(uint_t num_qubits,
 }
 
 template <class unitary_matrix_t>
-void State<unitary_matrix_t>::initialize_omp(Base::Registers<unitary_matrix_t>& state) 
+void State<unitary_matrix_t>::initialize_omp(QuantumState::Registers<unitary_matrix_t>& state) 
 {
   uint_t i;
   for(i=0;i<state.qregs().size();i++){
@@ -646,7 +647,7 @@ void State<unitary_matrix_t>::initialize_omp(Base::Registers<unitary_matrix_t>& 
 }
 
 template <class unitary_matrix_t>
-auto State<unitary_matrix_t>::move_to_matrix(Base::Registers<unitary_matrix_t>& state)
+auto State<unitary_matrix_t>::move_to_matrix(QuantumState::Registers<unitary_matrix_t>& state)
 {
   if(!BaseState::multi_chunk_distribution_)
     return state.qreg().move_to_matrix();
@@ -654,7 +655,7 @@ auto State<unitary_matrix_t>::move_to_matrix(Base::Registers<unitary_matrix_t>& 
 }
 
 template <class unitary_matrix_t>
-auto State<unitary_matrix_t>::copy_to_matrix(Base::Registers<unitary_matrix_t>& state)
+auto State<unitary_matrix_t>::copy_to_matrix(QuantumState::Registers<unitary_matrix_t>& state)
 {
   if(!BaseState::multi_chunk_distribution_)
     return state.qreg().copy_to_matrix();
@@ -856,7 +857,7 @@ void State<unitary_matrix_t>::apply_gate_mcu(unitary_matrix_t& qreg, const reg_t
 }
 
 template <class unitary_matrix_t>
-void State<unitary_matrix_t>::apply_snapshot(Base::Registers<unitary_matrix_t>& state, const Operations::Op &op,
+void State<unitary_matrix_t>::apply_snapshot(QuantumState::Registers<unitary_matrix_t>& state, const Operations::Op &op,
                                              ExperimentResult &result) 
 {
   // Look for snapshot type in snapshotset
@@ -871,8 +872,10 @@ void State<unitary_matrix_t>::apply_snapshot(Base::Registers<unitary_matrix_t>& 
 }
 
 template <class unitary_matrix_t>
-void State<unitary_matrix_t>::apply_global_phase(Base::Registers<unitary_matrix_t>& state) 
+void State<unitary_matrix_t>::apply_global_phase(QuantumState::RegistersBase& state_in) 
 {
+  QuantumState::Registers<unitary_matrix_t>& state = dynamic_cast<QuantumState::Registers<unitary_matrix_t>&>(state_in);
+
   if (BaseState::has_global_phase_) {
     if(BaseState::chunk_omp_parallel_ && BaseState::num_groups_ > 0){
 #pragma omp parallel for 
@@ -889,7 +892,7 @@ void State<unitary_matrix_t>::apply_global_phase(Base::Registers<unitary_matrix_
 }
 
 template <class unitary_matrix_t>
-void State<unitary_matrix_t>::apply_save_unitary(Base::Registers<unitary_matrix_t>& state, const Operations::Op &op,
+void State<unitary_matrix_t>::apply_save_unitary(QuantumState::Registers<unitary_matrix_t>& state, const Operations::Op &op,
                                                  ExperimentResult &result,
                                                  bool last_op) 
 {
@@ -901,18 +904,18 @@ void State<unitary_matrix_t>::apply_save_unitary(Base::Registers<unitary_matrix_
   std::string key = (op.string_params[0] == "_method_") ? "unitary" : op.string_params[0];
 
   if (last_op) {
-    BaseState::save_data_pershot(state, result, key, move_to_matrix(state),
+    result.save_data_pershot(state.creg(), key, move_to_matrix(state),
                                  Operations::OpType::save_unitary,
                                  op.save_type);
   } else {
-    BaseState::save_data_pershot(state, result, key, copy_to_matrix(state),
+    result.save_data_pershot(state.creg(), key, copy_to_matrix(state),
                                  Operations::OpType::save_unitary,
                                  op.save_type);
   }
 }
 
 template <class unitary_matrix_t>
-double  State<unitary_matrix_t>::expval_pauli(Base::RegistersBase& state, const reg_t &qubits,
+double  State<unitary_matrix_t>::expval_pauli(QuantumState::RegistersBase& state, const reg_t &qubits,
                                               const std::string& pauli) 
 {
   throw std::runtime_error("Unitary simulator does not support Pauli expectation values.");
@@ -920,7 +923,7 @@ double  State<unitary_matrix_t>::expval_pauli(Base::RegistersBase& state, const 
 
 //swap between chunks
 template <class unitary_matrix_t>
-void State<unitary_matrix_t>::apply_chunk_swap(Base::RegistersBase& state,const reg_t &qubits)
+void State<unitary_matrix_t>::apply_chunk_swap(QuantumState::RegistersBase& state,const reg_t &qubits)
 {
   uint_t q0,q1;
   q0 = qubits[0];

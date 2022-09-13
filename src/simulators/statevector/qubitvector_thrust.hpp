@@ -2452,6 +2452,7 @@ void QubitVectorThrust<data_t>::apply_batched_reset(const reg_t& qubits,std::vec
     //can be applied to all states
     store_cregister(system_reg,1);
   }
+
   chunk_.set_conditional(system_reg);
   chunk_.keep_conditional(true);
 

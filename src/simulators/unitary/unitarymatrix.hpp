@@ -44,8 +44,21 @@ public:
 
   UnitaryMatrix() : UnitaryMatrix(0) {};
   explicit UnitaryMatrix(size_t num_qubits);
-  UnitaryMatrix(const UnitaryMatrix& obj){}
-  UnitaryMatrix &operator=(const UnitaryMatrix& obj){}
+  UnitaryMatrix(const UnitaryMatrix& obj)
+  {
+    BaseVector::copy_qv(obj);
+    num_qubits_ = obj.num_qubits_;
+    rows_ = obj.rows_;
+    identity_threshold_ = obj.identity_threshold_;
+  }
+  UnitaryMatrix &operator=(const UnitaryMatrix& obj)
+  {
+    BaseVector::copy_qv(obj);
+    num_qubits_ = obj.num_qubits_;
+    rows_ = obj.rows_;
+    identity_threshold_ = obj.identity_threshold_;
+    return *this;
+  }
 
   //-----------------------------------------------------------------------
   // Utility functions
