@@ -14,4 +14,5 @@ Qiskit Aer API Reference
     aer_primitives
     aer_pulse
     aer_utils
+    aer_quantum_info
     parallel

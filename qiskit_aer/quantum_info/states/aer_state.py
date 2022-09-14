@@ -47,13 +47,16 @@ class AerState:
         """State that handles cpp quantum state safely"""
         self._state = _STATE.INITIALIZING
         self._native_state = AerStateWrapper()
-        self._method = 'statevector'
         self._init_data = None
         self._moved_data = None
         self._last_qubit = -1
+        self._configs = {}
 
         for key, value in kwargs.items():
             self.configure(key, value)
+
+        if 'method' not in kwargs:
+            self.configure('method', 'statevector')
 
     def _assert_initializing(self):
         if self._state != _STATE.INITIALIZING:
@@ -108,7 +111,12 @@ class AerState:
             raise AerError('AerState is configured with a str key')
         if not isinstance(value, str):
             value = str(value)
+        self._configs[key] = value
         self._native_state.configure(key, value)
+
+    def configuration(self):
+        """return configuration"""
+        return self._configs.copy()
 
     def initialize(self, data=None, copy=True):
         """initialize state."""
@@ -120,7 +128,7 @@ class AerState:
         elif isinstance(data, np.ndarray):
             self._initialize_with_ndarray(data, copy)
         else:
-            raise AerError('unsupported init data.')
+            raise AerError(f'unsupported init data: {data.__class__}')
 
     def _initialize_with_ndarray(self, data, copy):
         if AerState._is_in_use(data) and not copy:
@@ -131,7 +139,7 @@ class AerState:
             raise AerError('length of init data must be power of two')
 
         if (isinstance(data, np.ndarray) and
-           self._method == 'statevector' and
+           self._configs['method'] == 'statevector' and
            self._native_state.initialize_statevector(num_of_qubits, data, copy)):
             if not copy:
                 self._init_data = data
@@ -186,7 +194,7 @@ class AerState:
         self._last_qubit = allocated[len(allocated) - 1]
 
     def _assert_in_allocated_qubits(self, qubit):
-        if isinstance(qubit, list):
+        if hasattr(qubit, '__iter__'):
             for q in qubit:
                 self._assert_in_allocated_qubits(q)
         elif qubit < 0 or qubit > self._last_qubit:
@@ -195,7 +203,6 @@ class AerState:
     @property
     def num_qubits(self):
         """return a number of allocate qubits."""
-        self._assert_initializing()
         return self._last_qubit + 1
 
     def flush(self):
@@ -212,8 +219,8 @@ class AerState:
         return self._native_state.last_result()
 
     def apply_global_phase(self, phase):
-        """apply global phase."""
-        self._assert_allocated_or_mapped_or_moved()
+        """apply global phase"""
+        self._assert_allocated_or_mapped()
         self._native_state.apply_global_phase(phase)
 
     def apply_unitary(self, qubits, data):
@@ -353,11 +360,20 @@ class AerState:
         # retrieve probability
         return self._native_state.probabilities(qubits)
 
-    def sample_measure(self, qubits=None, shots=1024):
+    def sample_counts(self, qubits=None, shots=1024):
         """samples all the qubits."""
         self._assert_allocated_or_mapped()
         if qubits is None:
             qubits = range(self._last_qubit + 1)
         else:
             self._assert_in_allocated_qubits(qubits)
-        return self._native_state.sample_measure(qubits, shots)
+        return self._native_state.sample_counts(qubits, shots)
+
+    def sample_memory(self, qubits=None, shots=1024):
+        """samples all the qubits."""
+        self._assert_allocated_or_mapped()
+        if qubits is None:
+            qubits = range(self._last_qubit + 1)
+        else:
+            self._assert_in_allocated_qubits(qubits)
+        return self._native_state.sample_memory(qubits, shots)
