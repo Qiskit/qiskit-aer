@@ -117,7 +117,7 @@ public:
 
   // Sample n-measurement outcomes without applying the measure operation
   // to the system state
-  virtual std::vector<reg_t> sample_measure_state(QuantumState::RegistersBase& state, const reg_t &qubits, uint_t shots,
+  virtual std::vector<reg_t> sample_measure(QuantumState::RegistersBase& state, const reg_t &qubits, uint_t shots,
                                             RngEngine &rng) override;
 
   //-----------------------------------------------------------------------
@@ -143,11 +143,10 @@ protected:
   void initialize_from_vector(QuantumState::Registers<densmat_t>& state, const list_t &vec);
 
   // Initializes an n-qubit state to the all |0> state
-  void initialize_state(QuantumState::RegistersBase& state_in, uint_t num_qubits) override;
+  void initialize_qreg_state(QuantumState::RegistersBase& state_in, const uint_t num_qubits) override;
 
   // Initializes to a specific n-qubit state
-  void initialize_state(QuantumState::RegistersBase& state_in, uint_t num_qubits,
-                               const densmat_t &mat) override;
+  void initialize_qreg_state(QuantumState::RegistersBase& state_in, const densmat_t &mat) override;
 
   // Load the threshold for applying OpenMP parallelization
   // if the controller/engine allows threads for it
@@ -408,7 +407,7 @@ const stringmap_t<Snapshots> State<densmat_t>::snapshotset_(
 // Initialization
 //-------------------------------------------------------------------------
 template <class densmat_t>
-void State<densmat_t>::initialize_state(QuantumState::RegistersBase& state_in, uint_t num_qubits) 
+void State<densmat_t>::initialize_qreg_state(QuantumState::RegistersBase& state_in, const uint_t num_qubits) 
 {
   QuantumState::Registers<densmat_t>& state = dynamic_cast<QuantumState::Registers<densmat_t>&>(state_in);
 
@@ -453,17 +452,16 @@ void State<densmat_t>::initialize_state(QuantumState::RegistersBase& state_in, u
 }
 
 template <class densmat_t>
-void State<densmat_t>::initialize_state(QuantumState::RegistersBase& state_in, uint_t num_qubits,
-                                       const densmat_t &mat) 
+void State<densmat_t>::initialize_qreg_state(QuantumState::RegistersBase& state_in, const densmat_t &mat) 
 {
   // Check dimension of state
-  if (mat.num_qubits() != num_qubits) {
+  if (mat.num_qubits() != BaseState::num_qubits_){
     throw std::invalid_argument("DensityMatrix::State::initialize: initial "
                                 "state does not match qubit number");
   }
   QuantumState::Registers<densmat_t>& state = dynamic_cast<QuantumState::Registers<densmat_t>&>(state_in);
   if(state.qregs().size() == 0)
-    BaseState::allocate(num_qubits,BaseState::chunk_bits_,1);
+    BaseState::allocate(BaseState::num_qubits_,BaseState::chunk_bits_,1);
   initialize_omp(state);
 
   int_t iChunk;
@@ -512,7 +510,7 @@ void State<densmat_t>::initialize_state(QuantumState::RegistersBase& state_in, u
   }
   else{
     for(iChunk=0;iChunk<state.qregs().size();iChunk++){
-      state.qregs()[iChunk].initialize_from_data(mat.data(), 1ULL << 2 * num_qubits);
+      state.qregs()[iChunk].initialize_from_data(mat.data(), 1ULL << 2 * BaseState::num_qubits_);
     }
   }
 }
@@ -2072,7 +2070,7 @@ void State<densmat_t>::measure_reset_update_shot_branching(
 
 
 template <class densmat_t>
-std::vector<reg_t> State<densmat_t>::sample_measure_state(QuantumState::RegistersBase& state_in, const reg_t &qubits,
+std::vector<reg_t> State<densmat_t>::sample_measure(QuantumState::RegistersBase& state_in, const reg_t &qubits,
                                                     uint_t shots,
                                                     RngEngine &rng) 
 {

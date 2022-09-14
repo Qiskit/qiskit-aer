@@ -96,14 +96,14 @@ public:
                                     QuantumState::OpItr first, QuantumState::OpItr last)
                                     const override;
 
-  std::vector<reg_t> sample_measure_state(QuantumState::RegistersBase& state_in, const reg_t& qubits,
+  std::vector<reg_t> sample_measure(QuantumState::RegistersBase& state_in, const reg_t& qubits,
                                     uint_t shots,
                                     RngEngine &rng) override;
 
 protected:
-  void initialize_state(QuantumState::RegistersBase& state_in, uint_t num_qubits) override;
+  void initialize_qreg_state(QuantumState::RegistersBase& state_in, const uint_t num_qubits) override;
 
-  void initialize_state(QuantumState::RegistersBase& state_in, uint_t num_qubits, const chstate_t &state) override;
+  void initialize_qreg_state(QuantumState::RegistersBase& state_in, const chstate_t &state) override;
 
   void set_state_config(QuantumState::RegistersBase& state_in, const json_t &config) override;
 
@@ -271,7 +271,7 @@ const stringmap_t<Snapshots> State::snapshotset_({
 // Implementation: Initialisation and Config
 //-------------------------------------------------------------------------
 
-void State::initialize_state(QuantumState::RegistersBase& state_in, uint_t num_qubits)
+void State::initialize_qreg_state(QuantumState::RegistersBase& state_in, const uint_t num_qubits)
 {
   QuantumState::Registers<chstate_t>& state = dynamic_cast<QuantumState::Registers<chstate_t>&>(state_in);
   if(state.qregs().size() == 0)
@@ -280,13 +280,13 @@ void State::initialize_state(QuantumState::RegistersBase& state_in, uint_t num_q
   state.qreg().initialize_omp(BaseState::threads_, omp_threshold_rank_);
 }
 
-void State::initialize_state(QuantumState::RegistersBase& state_in, uint_t num_qubits, const chstate_t &chstate)
+void State::initialize_qreg_state(QuantumState::RegistersBase& state_in, const chstate_t &chstate)
 {
   QuantumState::Registers<chstate_t>& state = dynamic_cast<QuantumState::Registers<chstate_t>&>(state_in);
   if(state.qregs().size() == 0)
     state.allocate(1);
 
-  if(state.qreg().get_n_qubits() != num_qubits)
+  if(state.qreg().get_n_qubits() != BaseState::num_qubits_)
   {
     throw std::invalid_argument("CH::State::initialize: initial state does not match qubit number.");
   }
@@ -545,7 +545,7 @@ void State::apply_ops_state(QuantumState::Registers<chstate_t>& state, InputIter
   }
 }
 
-std::vector<reg_t> State::sample_measure_state(QuantumState::RegistersBase& state_in, const reg_t& qubits,
+std::vector<reg_t> State::sample_measure(QuantumState::RegistersBase& state_in, const reg_t& qubits,
                            uint_t shots,
                            RngEngine &rng)
 {

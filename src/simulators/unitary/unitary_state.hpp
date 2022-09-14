@@ -112,11 +112,10 @@ public:
   auto copy_to_matrix(QuantumState::Registers<unitary_matrix_t>& state);
 protected:
   // Initializes an n-qubit unitary to the identity matrix
-  void initialize_state(QuantumState::RegistersBase& state_in, uint_t num_qubits) override;
+  void initialize_qreg_state(QuantumState::RegistersBase& state_in, const uint_t num_qubits) override;
 
   // Initializes to a specific n-qubit unitary matrix
-  void initialize_state(QuantumState::RegistersBase& state_in, uint_t num_qubits,
-                               const unitary_matrix_t &unitary) override;
+  void initialize_qreg_state(QuantumState::RegistersBase& state_in, const unitary_matrix_t &unitary) override;
 
   // Load the threshold for applying OpenMP parallelization
   // if the controller/engine allows threads for it
@@ -447,7 +446,7 @@ void State<unitary_matrix_t>::set_state_config(QuantumState::RegistersBase& stat
 }
 
 template <class unitary_matrix_t>
-void State<unitary_matrix_t>::initialize_state(QuantumState::RegistersBase& state_in, uint_t num_qubits) 
+void State<unitary_matrix_t>::initialize_qreg_state(QuantumState::RegistersBase& state_in, const uint_t num_qubits) 
 {
   QuantumState::Registers<unitary_matrix_t>& state = *(dynamic_cast<QuantumState::Registers<unitary_matrix_t>*>(&state_in));
 
@@ -497,11 +496,10 @@ void State<unitary_matrix_t>::initialize_state(QuantumState::RegistersBase& stat
 }
 
 template <class unitary_matrix_t>
-void State<unitary_matrix_t>::initialize_state(QuantumState::RegistersBase& state_in, uint_t num_qubits,
-                                              const unitary_matrix_t &unitary) 
+void State<unitary_matrix_t>::initialize_qreg_state(QuantumState::RegistersBase& state_in, const unitary_matrix_t &unitary) 
 {
   // Check dimension of state
-  if (unitary.num_qubits() != num_qubits) {
+  if (unitary.num_qubits() != BaseState::num_qubits_) {
     throw std::invalid_argument(
         "Unitary::State::initialize: initial state does not match qubit "
         "number");
@@ -509,7 +507,7 @@ void State<unitary_matrix_t>::initialize_state(QuantumState::RegistersBase& stat
   QuantumState::Registers<unitary_matrix_t>& state = *(dynamic_cast<QuantumState::Registers<unitary_matrix_t>*>(&state_in));
 
   if(state.qregs().size() == 0)
-    BaseState::allocate(num_qubits,BaseState::chunk_bits_,1);
+    BaseState::allocate(BaseState::num_qubits_,BaseState::chunk_bits_,1);
   initialize_omp(state);
 
   int_t iChunk;
@@ -559,7 +557,7 @@ void State<unitary_matrix_t>::initialize_state(QuantumState::RegistersBase& stat
     }
   }
   else{
-    state.qregs()[iChunk].initialize_from_data(unitary.data(), 1ULL << 2 * num_qubits);
+    state.qregs()[iChunk].initialize_from_data(unitary.data(), 1ULL << 2 * BaseState::num_qubits_);
   }
   apply_global_phase(state);
 }

@@ -99,17 +99,16 @@ public:
 
   // Sample n-measurement outcomes without applying the measure operation
   // to the system state
-  virtual std::vector<reg_t> sample_measure_state(QuantumState::RegistersBase& state_in, const reg_t& qubits,
+  virtual std::vector<reg_t> sample_measure(QuantumState::RegistersBase& state_in, const reg_t& qubits,
                                             uint_t shots,
                                             RngEngine &rng) override;
 
 protected:
   // Initializes an n-qubit state to the all |0> state
-  void initialize_state(QuantumState::RegistersBase& state_in, uint_t num_qubits) override;
+  void initialize_qreg_state(QuantumState::RegistersBase& state_in, const uint_t num_qubits) override;
 
   // Initializes to a specific n-qubit state
-  void initialize_state(QuantumState::RegistersBase& state_in, uint_t num_qubits,
-                               const Clifford::Clifford &state) override;
+  void initialize_qreg_state(QuantumState::RegistersBase& state_in, const Clifford::Clifford &state) override;
 
   // Load any settings for the State class from a config JSON
   void set_state_config(QuantumState::RegistersBase& state_in, const json_t &config) override;
@@ -276,7 +275,7 @@ const stringmap_t<Snapshots> State::snapshotset_({
 // Initialization
 //-------------------------------------------------------------------------
 
-void State::initialize_state(QuantumState::RegistersBase& state_in, uint_t num_qubits) 
+void State::initialize_qreg_state(QuantumState::RegistersBase& state_in, const uint_t num_qubits) 
 {
   QuantumState::Registers<Clifford::Clifford>& state = dynamic_cast<QuantumState::Registers<Clifford::Clifford>&>(state_in);
   if(state.qregs().size() == 0)
@@ -284,11 +283,10 @@ void State::initialize_state(QuantumState::RegistersBase& state_in, uint_t num_q
   state.qreg() = Clifford::Clifford(num_qubits);
 }
 
-void State::initialize_state(QuantumState::RegistersBase& state_in, uint_t num_qubits,
-                            const Clifford::Clifford &clifford) 
+void State::initialize_qreg_state(QuantumState::RegistersBase& state_in, const Clifford::Clifford &clifford) 
 {
   // Check dimension of state
-  if (clifford.num_qubits() != num_qubits) {
+  if (clifford.num_qubits() != BaseState::num_qubits_) {
     throw std::invalid_argument("Stabilizer::State::initialize: initial state does not match qubit number");
   }
   QuantumState::Registers<Clifford::Clifford>& state = dynamic_cast<QuantumState::Registers<Clifford::Clifford>&>(state_in);
@@ -542,7 +540,7 @@ reg_t State::apply_measure_and_update(QuantumState::Registers<Clifford::Clifford
   return outcome;
 }
 
-std::vector<reg_t> State::sample_measure_state(QuantumState::RegistersBase& state_in, const reg_t &qubits,
+std::vector<reg_t> State::sample_measure(QuantumState::RegistersBase& state_in, const reg_t &qubits,
                                          uint_t shots,
                                          RngEngine &rng) 
 {

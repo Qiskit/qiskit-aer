@@ -108,12 +108,6 @@ public:
   // Return a string name for the StateChunk type
   virtual std::string name() const = 0;
 
-  // Return an estimate of the required memory for implementing the
-  // specified sequence of operations on a `num_qubit` sized StateChunk.
-  virtual size_t required_memory_mb(uint_t num_qubits,
-                                    OpItr first, OpItr last)
-                                    const = 0;
-
   //memory allocation (previously called before inisitalize_qreg)
   virtual bool allocate(uint_t num_qubits,uint_t block_bits,uint_t num_parallel_shots = 1);
 
@@ -244,7 +238,7 @@ protected:
                  RngEngine &rng,
                  bool final_ops = false);
 
-  void apply_ops_state(RegistersBase& state,
+  void apply_ops(RegistersBase& state,
                  OpItr first,
                  OpItr last,
                  const Noise::NoiseModel &noise,
@@ -566,7 +560,7 @@ void StateChunk<state_t>::apply_ops(OpItr first, OpItr last,
 }
 
 template <class state_t>
-void StateChunk<state_t>::apply_ops_state(RegistersBase& state_in,
+void StateChunk<state_t>::apply_ops(RegistersBase& state_in,
                OpItr first,
                OpItr last,
                const Noise::NoiseModel &noise,

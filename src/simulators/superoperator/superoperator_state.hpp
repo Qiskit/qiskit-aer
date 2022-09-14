@@ -117,11 +117,10 @@ public:
   }
 protected:
   // Initializes an n-qubit unitary to the identity matrix
-  void initialize_state(QuantumState::RegistersBase& state_in, uint_t num_qubits) override;
+  void initialize_qreg_state(QuantumState::RegistersBase& state_in, const uint_t num_qubits) override;
 
   // Initializes to a specific n-qubit unitary superop
-  void initialize_state(QuantumState::RegistersBase& state_in, uint_t num_qubits,
-                               const data_t &unitary) override;
+  void initialize_qreg_state(QuantumState::RegistersBase& state_in, const data_t &unitary) override;
 
   // Load the threshold for applying OpenMP parallelization
   // if the controller/engine allows threads for it
@@ -348,7 +347,7 @@ template <class data_t> void State<data_t>::set_state_config(QuantumState::Regis
   state.qreg().set_json_chop_threshold(thresh);
 }
 
-template <class data_t> void State<data_t>::initialize_state(QuantumState::RegistersBase& state_in, uint_t num_qubits) 
+template <class data_t> void State<data_t>::initialize_qreg_state(QuantumState::RegistersBase& state_in, const uint_t num_qubits) 
 {
   QuantumState::Registers<data_t>& state = dynamic_cast<QuantumState::Registers<data_t>&>(state_in);
   if(state.qregs().size() == 0)
@@ -359,10 +358,10 @@ template <class data_t> void State<data_t>::initialize_state(QuantumState::Regis
 }
 
 template <class data_t>
-void State<data_t>::initialize_state(QuantumState::RegistersBase& state_in, uint_t num_qubits, const data_t &supermat) 
+void State<data_t>::initialize_qreg_state(QuantumState::RegistersBase& state_in, const data_t &supermat) 
 {
   // Check dimension of state
-  if (supermat.num_qubits() != num_qubits) {
+  if (supermat.num_qubits() != BaseState::num_qubits_) {
     throw std::invalid_argument("QubitSuperoperator::State::initialize: "
                                 "initial state does not match qubit number");
   }
@@ -371,7 +370,7 @@ void State<data_t>::initialize_state(QuantumState::RegistersBase& state_in, uint
     state.allocate(1);
 
   initialize_omp(state);
-  state.qreg().set_num_qubits(num_qubits);
+  state.qreg().set_num_qubits(BaseState::num_qubits_);
   const size_t sz = 1ULL << state.qreg().size();
   state.qreg().initialize_from_data(supermat.data(), sz);
 }

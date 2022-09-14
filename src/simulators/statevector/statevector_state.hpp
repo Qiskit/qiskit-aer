@@ -139,7 +139,7 @@ public:
 
   // Sample n-measurement outcomes without applying the measure operation
   // to the system state
-  virtual std::vector<reg_t> sample_measure_state(QuantumState::RegistersBase& state, const reg_t &qubits, uint_t shots,
+  virtual std::vector<reg_t> sample_measure(QuantumState::RegistersBase& state, const reg_t &qubits, uint_t shots,
                                             RngEngine &rng) override;
 
   //-----------------------------------------------------------------------
@@ -170,11 +170,10 @@ protected:
   void initialize_creg_state(QuantumState::RegistersBase& state, const ClassicalRegister& creg) override;
 
   // Initializes an n-qubit state to the all |0> state
-  void initialize_state(QuantumState::RegistersBase& state, uint_t num_qubits) override;
+  void initialize_qreg_state(QuantumState::RegistersBase& state, const uint_t num_qubits) override;
 
   // Initializes to a specific n-qubit state
-  void initialize_state(QuantumState::RegistersBase& state, uint_t num_qubits,
-                               const statevec_t &vector) override;
+  void initialize_qreg_state(QuantumState::RegistersBase& state, const statevec_t &vector) override;
 
   // Load the threshold for applying OpenMP parallelization
   // if the controller/engine allows threads for it
@@ -486,7 +485,7 @@ const stringmap_t<Snapshots> State<statevec_t>::snapshotset_(
 //-------------------------------------------------------------------------
 
 template <class statevec_t>
-void State<statevec_t>::initialize_state(QuantumState::RegistersBase& state_in, uint_t num_qubits) 
+void State<statevec_t>::initialize_qreg_state(QuantumState::RegistersBase& state_in, const uint_t num_qubits) 
 {
   QuantumState::Registers<statevec_t>& state = dynamic_cast<QuantumState::Registers<statevec_t>&>(state_in);
 
@@ -534,17 +533,16 @@ void State<statevec_t>::initialize_state(QuantumState::RegistersBase& state_in, 
 }
 
 template <class statevec_t>
-void State<statevec_t>::initialize_state(QuantumState::RegistersBase& state_in, uint_t num_qubits,
-                                        const statevec_t &vector) 
+void State<statevec_t>::initialize_qreg_state(QuantumState::RegistersBase& state_in, const statevec_t &vector) 
 {
-  if (vector.num_qubits() != num_qubits) {
+  if (vector.num_qubits() != BaseState::num_qubits_) {
     throw std::invalid_argument("QubitVector::State::initialize: initial state does not match qubit number");
   }
 
   QuantumState::Registers<statevec_t>& state = dynamic_cast<QuantumState::Registers<statevec_t>&>(state_in);
 
   if(state.qregs().size() == 0)
-    BaseState::allocate(num_qubits,BaseState::chunk_bits_,1);
+    BaseState::allocate(BaseState::num_qubits_,BaseState::chunk_bits_,1);
   initialize_omp(state);
 
   int_t iChunk;
@@ -573,31 +571,6 @@ void State<statevec_t>::initialize_state(QuantumState::RegistersBase& state_in, 
   }
   apply_global_phase(state);
 }
-
-template <class statevec_t>
-void State<statevec_t>::initialize_qreg_from_data(uint_t num_qubits,
-                                        const cvector_t &vector) 
-{
-  if (vector.size() != 1ULL << num_qubits) {
-    throw std::invalid_argument("QubitVector::State::initialize: initial state does not match qubit number");
-  }
-
-  QuantumState::Registers<statevec_t>& state = BaseState::state_;
-
-  if(BaseState::state_.qregs().size() == 0)
-    BaseState::allocate(num_qubits,BaseState::chunk_bits_,1);
-
-  initialize_omp(BaseState::state_);
-
-  int_t iChunk;
-  for(iChunk=0;iChunk<BaseState::state_.qregs().size();iChunk++){
-    BaseState::state_.qregs()[iChunk].set_num_qubits(BaseState::chunk_bits_);
-  }
-
-  initialize_from_vector(BaseState::state_, vector);
-  apply_global_phase(BaseState::state_);
-}
-
 
 template <class statevec_t>
 void State<statevec_t>::initialize_qreg_from_data(uint_t num_qubits,
@@ -2388,7 +2361,7 @@ void State<statevec_t>::measure_reset_update_shot_branching(
 }
 
 template <class statevec_t>
-std::vector<reg_t> State<statevec_t>::sample_measure_state(QuantumState::RegistersBase& state_in, const reg_t &qubits,
+std::vector<reg_t> State<statevec_t>::sample_measure(QuantumState::RegistersBase& state_in, const reg_t &qubits,
                                                      uint_t shots,
                                                      RngEngine &rng) 
 {

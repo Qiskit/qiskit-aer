@@ -35,8 +35,7 @@ using OpItr = std::vector<Operations::Op>::const_iterator;
 // State interface base class for Qiskit-Aer
 //=========================================================================
 
-template <class state_t>
-class State {
+class Base {
 public:
   using ignore_argument = void;
   using DataSubType = Operations::DataSubType;
@@ -64,7 +63,277 @@ public:
   // For snapshot ops allowed snapshots are specified by a set of string names,
   // For example this could include {"probabilities", "pauli_observable"}
 
-  State(const Operations::OpSet &opset) : opset_(opset) 
+  Base(const Operations::OpSet &opset) : opset_(opset) 
+  {
+  }
+
+  virtual ~Base() = default;
+
+  //-----------------------------------------------------------------------
+  // Data accessors
+  //-----------------------------------------------------------------------
+
+  // Return the state creg object
+  virtual ClassicalRegister& creg(void) = 0;
+  virtual const ClassicalRegister& creg(void) const = 0;
+
+  // Return the state opset object
+  Operations::OpSet &opset() { return opset_; }
+  const Operations::OpSet &opset() const { return opset_; }
+
+  //=======================================================================
+  // Subclass Override Methods
+  //
+  // The following methods should be implemented by any State subclasses.
+  // Abstract methods are required, while some methods are optional for
+  // State classes that support measurement to be compatible with a general
+  // QasmController.
+  //=======================================================================
+
+  //-----------------------------------------------------------------------
+  // Abstract methods
+  //
+  // The implementation of these methods must be defined in all subclasses
+  //-----------------------------------------------------------------------
+  
+  // Return a string name for the State type
+  virtual std::string name() const = 0;
+
+  // Return an estimate of the required memory for implementing the
+  // specified sequence of operations on a `num_qubit` sized State.
+  virtual size_t required_memory_mb(uint_t num_qubits,
+                                    OpItr first, OpItr last)
+                                    const = 0;
+
+  //memory allocation (previously called before inisitalize_qreg)
+  virtual bool allocate(uint_t num_qubits,uint_t block_bits,uint_t num_parallel_shots = 1){return true;}
+
+  // Return the expectation value of a N-qubit Pauli operator
+  // If the simulator does not support Pauli expectation value this should
+  // raise an exception.
+  virtual double expval_pauli(const reg_t &qubits,
+                              const std::string& pauli) = 0;
+
+  // Initializes the State to the default state.
+  // Typically this is the n-qubit all |0> state
+  virtual void initialize_qreg(const uint_t num_qubits) = 0;
+
+  //-----------------------------------------------------------------------
+  // ClassicalRegister methods
+  //-----------------------------------------------------------------------
+
+  // Initialize classical memory and register to default value (all-0)
+  virtual void initialize_creg(uint_t num_memory, uint_t num_register) = 0;
+
+  // Initialize classical memory and register to specific values
+  virtual void initialize_creg(uint_t num_memory,
+                               uint_t num_register,
+                               const std::string &memory_hex,
+                               const std::string &register_hex) = 0;
+
+  //-----------------------------------------------------------------------
+  // Apply circuits and ops
+  //-----------------------------------------------------------------------
+
+  // Apply the global phase
+  virtual void apply_global_phase() {};
+
+  // Apply a single operation
+  // The `final_op` flag indicates no more instructions will be applied
+  // to the state after this sequence, so the state can be modified at the
+  // end of the instructions.
+  virtual void apply_op(const Operations::Op &op,
+                        ExperimentResult &result,
+                        RngEngine& rng,
+                        bool final_op = false) = 0;
+
+  // Apply a sequence of operations to the current state of the State class.
+  // It is up to the State subclass to decide how this sequence should be
+  // executed (ie in sequence, or some other execution strategy.)
+  // If this sequence contains operations not in the supported opset
+  // an exeption will be thrown.
+  // The `final_ops` flag indicates no more instructions will be applied
+  // to the state after this sequence, so the state can be modified at the
+  // end of the instructions.
+  virtual void apply_ops(OpItr first, OpItr last,
+                         ExperimentResult &result, RngEngine &rng, bool final_ops = false) = 0;
+
+  //-----------------------------------------------------------------------
+  // Optional: Load config settings
+  //-----------------------------------------------------------------------
+
+  // Load any settings for the State class from a config JSON
+  virtual void set_config(const json_t &config);
+
+  //-----------------------------------------------------------------------
+  // Optional: Add information to metadata 
+  //-----------------------------------------------------------------------
+
+  // Every state can add information to the metadata structure
+  virtual void add_metadata(ExperimentResult &result) const {
+  }
+
+  //-----------------------------------------------------------------------
+  // Optional: measurement sampling
+  //
+  // This method is only required for a State subclass to be compatible with
+  // the measurement sampling optimization of a general the QasmController
+  //-----------------------------------------------------------------------
+
+  // Sample n-measurement outcomes without applying the measure operation
+  // to the system state. Even though this method is not marked as const
+  // at the end of sample the system should be left in the same state
+  // as before sampling
+  virtual std::vector<reg_t> sample_measure(const reg_t &qubits,
+                                            uint_t shots,
+                                            RngEngine &rng) = 0;
+
+  //-----------------------------------------------------------------------
+  // Config Settings
+  //-----------------------------------------------------------------------
+
+  // Sets the number of threads available to the State implementation
+  // If negative there is no restriction on the backend
+  virtual inline void set_parallelization(int n) {threads_ = n;}
+
+  // Set a complex global phase value exp(1j * theta) for the state
+  void set_global_phase(double theta);
+
+  // Set a complex global phase value exp(1j * theta) for the state
+  void add_global_phase(double theta);
+
+  //set number of processes to be distributed
+  virtual void set_distribution(uint_t nprocs) = 0;
+
+  //set maximum number of qubits for matrix multiplication
+  virtual void set_max_matrix_qubits(int_t bits)
+  {
+    max_matrix_qubits_ = bits;
+  }
+
+  virtual void set_parallel_shots(int shots)
+  {
+    parallel_shots_ = shots;
+  }
+
+  void enable_shot_branching(bool flg)
+  {
+    enable_shot_branching_ = flg;
+  }
+  void enable_batch_execution(bool flg)
+  {
+    enable_batch_execution_ = flg;
+  }
+
+  //set max number of shots to execute in a batch (used in StateChunk class)
+  virtual void set_max_bached_shots(uint_t shots){}
+
+  //Does this state support multi-chunk distribution?
+  virtual bool multi_chunk_distribution_supported(void){return false;}
+
+  //Does this state support multi-shot parallelization?
+  virtual bool multi_shot_parallelization_supported(void){return false;}
+
+  //Does this state support runtime noise sampling?
+  virtual bool runtime_noise_sampling_supported(void){return false;}
+
+  //-----------------------------------------------------------------------
+  // Common instructions
+  //-----------------------------------------------------------------------
+ 
+  // Apply a save expectation value instruction
+  void apply_save_expval(const Operations::Op &op, ExperimentResult &result);
+
+protected:
+  // Opset of instructions supported by the state
+  Operations::OpSet opset_;
+
+  // Maximum threads which may be used by the backend for OpenMP multithreading
+  // Default value is single-threaded unless overridden
+  int threads_ = 1;
+
+  // Save counts as memory list
+  bool save_creg_memory_ = false;
+
+  // Set a global phase exp(1j * theta) for the state
+  bool has_global_phase_ = false;
+  complex_t global_phase_ = 1;
+
+  int_t max_matrix_qubits_ = 0;
+
+  //OMP parallel shots 
+  int parallel_shots_ = 1;
+
+  //shot branching
+  bool enable_shot_branching_ = false;
+  bool enable_batch_execution_ = false;  //apply the same op to multiple states, if enable_shot_branching_ is false this flag is used for batched execution on GPU
+
+  std::string sim_device_name_ = "CPU";
+};
+
+void Base::set_config(const json_t &config) 
+{
+  JSON::get_value(sim_device_name_, "device", config);
+
+  // Load config for memory (creg list data)
+  JSON::get_value(save_creg_memory_, "memory", config);
+}
+
+void Base::set_global_phase(double theta) 
+{
+  if (Linalg::almost_equal(theta, 0.0)) {
+    has_global_phase_ = false;
+    global_phase_ = 1;
+  }
+  else {
+    has_global_phase_ = true;
+    global_phase_ = std::exp(complex_t(0.0, theta));
+  }
+}
+
+void Base::add_global_phase(double theta) 
+{
+  if (Linalg::almost_equal(theta, 0.0)) 
+    return;
+  
+  has_global_phase_ = true;
+  global_phase_ *= std::exp(complex_t(0.0, theta));
+}
+
+//=========================================================================
+// State interface base class for Qiskit-Aer
+//=========================================================================
+
+template <class state_t>
+class State : public Base {
+public:
+  using ignore_argument = void;
+  using DataSubType = Operations::DataSubType;
+  using OpType = Operations::OpType;
+
+  //-----------------------------------------------------------------------
+  // Constructors
+  //-----------------------------------------------------------------------
+
+  // The constructor arguments are used to initialize the OpSet
+  // for the State class for checking supported simulator Operations
+  //
+  // Standard OpTypes that can be included here are:
+  // - `OpType::gate` if gates are supported
+  // - `OpType::measure` if measure is supported
+  // - `OpType::reset` if reset is supported
+  // - `OpType::snapshot` if any snapshots are supported
+  // - `OpType::barrier` if barrier is supported
+  // - `OpType::matrix` if arbitrary unitary matrices are supported
+  // - `OpType::kraus` if general Kraus noise channels are supported
+  //
+  // For gate ops allowed gates are specified by a set of string names,
+  // for example this could include {"u1", "u2", "u3", "U", "cx", "CX"}
+  //
+  // For snapshot ops allowed snapshots are specified by a set of string names,
+  // For example this could include {"probabilities", "pauli_observable"}
+
+  State(const Operations::OpSet &opset) : Base(opset) 
   {
     myrank_ = 0;
     nprocs_ = 1;
@@ -96,12 +365,8 @@ public:
   const auto &qreg() const { return state_.qreg(); }
 
   // Return the state creg object
-  auto &creg() { return state_.creg(); }
-  const auto &creg() const { return state_.creg(); }
-
-  // Return the state opset object
-  Operations::OpSet &opset() { return opset_; }
-  const Operations::OpSet &opset() const { return opset_; }
+  ClassicalRegister& creg() override final { return state_.creg(); }
+  const ClassicalRegister& creg() const override final { return state_.creg(); }
 
   //=======================================================================
   // Subclass Override Methods
@@ -117,23 +382,13 @@ public:
   //
   // The implementation of these methods must be defined in all subclasses
   //-----------------------------------------------------------------------
-  
-  // Return a string name for the State type
-  virtual std::string name() const = 0;
 
   // Initializes the State to the default state.
   // Typically this is the n-qubit all |0> state
-  void initialize_qreg(uint_t num_qubits);
+  void initialize_qreg(const uint_t num_qubits) override;
 
   // Initializes the State to a specific state.
-  void initialize_qreg(uint_t num_qubits, const state_t &state);
-
-  // Return an estimate of the required memory for implementing the
-  // specified sequence of operations on a `num_qubit` sized State.
-  virtual size_t required_memory_mb(uint_t num_qubits,
-                                    OpItr first,
-                                    OpItr last)
-                                    const = 0;
+  virtual void initialize_qreg(const state_t &state);
 
   //memory allocation (previously called before inisitalize_qreg)
   virtual bool allocate(uint_t num_qubits,uint_t block_bits,uint_t num_initial_states = 1);
@@ -143,6 +398,12 @@ public:
   // Return the expectation value of a N-qubit Pauli operator
   // If the simulator does not support Pauli expectation value this should
   // raise an exception.
+  double expval_pauli(const reg_t &qubits,
+                              const std::string& pauli) override final
+  {
+    return expval_pauli(state_, qubits, pauli);
+  }
+
   virtual double expval_pauli(RegistersBase& state, const reg_t &qubits,
                               const std::string& pauli) = 0;
 
@@ -163,13 +424,19 @@ public:
   // Apply circuits and ops
   //-----------------------------------------------------------------------
 
-  // Apply the global phase
-  virtual void apply_global_phase() {};
-
   // Apply a single operation
   // The `final_op` flag indicates no more instructions will be applied
   // to the state after this sequence, so the state can be modified at the
   // end of the instructions.
+  void apply_op(
+                        const Operations::Op &op,
+                        ExperimentResult &result,
+                        RngEngine& rng,
+                        bool final_op = false) override final
+  {
+    apply_op(state_, op, result, rng, final_op);
+  }
+
   virtual void apply_op(RegistersBase& state,
                         const Operations::Op &op,
                         ExperimentResult &result,
@@ -184,11 +451,11 @@ public:
   // The `final_ops` flag indicates no more instructions will be applied
   // to the state after this sequence, so the state can be modified at the
   // end of the instructions.
-  virtual void apply_ops(OpItr first,
+  void apply_ops(OpItr first,
                  OpItr last,
                  ExperimentResult &result,
                  RngEngine &rng,
-                 bool final_ops = false);
+                 bool final_ops = false) override;
 
   //run multiple shots
   void run_shots(OpItr first,
@@ -200,19 +467,15 @@ public:
                  const uint_t num_shots);
 
   //-----------------------------------------------------------------------
-  // Optional: Load config settings
+  // Config Settings
   //-----------------------------------------------------------------------
 
   // Load any settings for the State class from a config JSON
-  virtual void set_config(const json_t &config);
+  void set_config(const json_t &config) override;
 
-  //-----------------------------------------------------------------------
-  // Optional: Add information to metadata 
-  //-----------------------------------------------------------------------
+  //set number of processes to be distributed
+  void set_distribution(uint_t nprocs) override final;
 
-  // Every state can add information to the metadata structure
-  virtual void add_metadata(ExperimentResult &result) const {
-  }
 
   //-----------------------------------------------------------------------
   // Common instructions
@@ -234,11 +497,11 @@ public:
   // as before sampling
   std::vector<reg_t> sample_measure(const reg_t &qubits,
                                             uint_t shots,
-                                            RngEngine &rng)
+                                            RngEngine &rng) override final
   {
-    return sample_measure_state(state_, qubits, shots, rng);
+    return sample_measure(state_, qubits, shots, rng);
   }
-  virtual std::vector<reg_t> sample_measure_state(RegistersBase& state, const reg_t &qubits,
+  virtual std::vector<reg_t> sample_measure(RegistersBase& state, const reg_t &qubits,
                                             uint_t shots,
                                             RngEngine &rng);
 
@@ -246,59 +509,11 @@ public:
                        ExperimentResult &result, RngEngine& rng)
   {
     std::vector<ClassicalRegister> cregs(1);  //this is not used for this call
-    measure_sampler_state(state_, first_meas, last_meas, num_shots, result, rng, true, cregs.begin());
+    measure_sampler(state_, first_meas, last_meas, num_shots, result, rng, true, cregs.begin());
   }
 
-  void measure_sampler_state(Registers<state_t>& state, OpItr first_meas, OpItr last_meas, uint_t num_shots, 
+  void measure_sampler(Registers<state_t>& state, OpItr first_meas, OpItr last_meas, uint_t num_shots, 
                        ExperimentResult &result, RngEngine& rng, bool save_results, std::vector<ClassicalRegister>::iterator creg_save);
-
-  //-----------------------------------------------------------------------
-  // Config Settings
-  //-----------------------------------------------------------------------
-
-  // Sets the number of threads available to the State implementation
-  // If negative there is no restriction on the backend
-  virtual inline void set_parallelization(int n) {threads_ = n;}
-
-  virtual void set_parallel_shots(int shots)
-  {
-    parallel_shots_ = shots;
-  }
-
-  // Set a complex global phase value exp(1j * theta) for the state
-  void set_global_phase(double theta);
-
-  // Set a complex global phase value exp(1j * theta) for the state
-  void add_global_phase(double theta);
-
-  //set number of processes to be distributed
-  virtual void set_distribution(uint_t nprocs);
-
-  //set maximum number of qubits for matrix multiplication
-  virtual void set_max_matrix_qubits(int_t bits)
-  {
-    max_matrix_qubits_ = bits;
-  }
-
-  //set max number of shots to execute in a batch (used in StateChunk class)
-  virtual void set_max_bached_shots(uint_t shots){}
-
-  //Does this state support multi-chunk distribution?
-  virtual bool multi_chunk_distribution_supported(void){return false;}
-
-  //Does this state support multi-shot parallelization?
-  virtual bool multi_shot_parallelization_supported(void){return false;}
-  //Does this state support runtime noise sampling?
-  virtual bool runtime_noise_sampling_supported(void){return false;}
-
-  void enable_shot_branching(bool flg)
-  {
-    enable_shot_branching_ = flg;
-  }
-  void enable_batch_execution(bool flg)
-  {
-    enable_batch_execution_ = flg;
-  }
 
   //-----------------------------------------------------------------------
   // Standard snapshots
@@ -311,21 +526,18 @@ public:
   // Snapshot the classical register bits state (single-shot)
   void snapshot_creg_register(Registers<state_t>& state, const Operations::Op &op, ExperimentResult &result,
                               std::string name = "register") const;
-
   // Snapshot the current statevector (single-shot)
   // if type_label is the empty string the operation type will be used for the type
   virtual void snapshot_state(Registers<state_t>& state, const Operations::Op &op, ExperimentResult &result,
                       std::string name = "") const;
 
 protected:
-
-
   // Initializes the State to the default state.
   // Typically this is the n-qubit all |0> state
-  virtual void initialize_state(RegistersBase& state, uint_t num_qubits){}
+  virtual void initialize_qreg_state(RegistersBase& state, const uint_t num_qubits) = 0;
 
   // Initializes the State to a specific state.
-  virtual void initialize_state(RegistersBase& state, uint_t num_qubits, const state_t &src_state){}
+  virtual void initialize_qreg_state(RegistersBase& state, const state_t &src_state) = 0;
 
   // Initialize classical memory and register to default value (all-0)
   virtual void initialize_creg_state(RegistersBase& state, uint_t num_memory, uint_t num_register);
@@ -342,7 +554,7 @@ protected:
   // Load any settings for the State class from a config JSON
   virtual void set_state_config(RegistersBase& state, const json_t &config){}
 
-  virtual void apply_ops_state(RegistersBase& state,
+  virtual void apply_ops(RegistersBase& state,
                  OpItr first,
                  OpItr last,
                  const Noise::NoiseModel &noise,
@@ -372,30 +584,8 @@ protected:
   //runtime noise sampling for shot branching
   void apply_runtime_noise_sampling(RegistersBase& state, const Operations::Op &op, const Noise::NoiseModel &noise);
 
-
   // The quantum state and Classical register data structure for single shot execution
   Registers<state_t> state_;
-
-  // Opset of instructions supported by the state
-  Operations::OpSet opset_;
-
-  // Maximum threads which may be used by the backend for OpenMP multithreading
-  // Default value is single-threaded unless overridden
-  int threads_ = 1;
-
-  // Set a global phase exp(1j * theta) for the state
-  bool has_global_phase_ = false;
-  complex_t global_phase_ = 1;
-
-  int_t max_matrix_qubits_ = 0;
-
-  std::string sim_device_name_ = "CPU";
-
-  // Save counts as memory list
-  bool save_creg_memory_ = false;
-
-  //OMP parallel shots 
-  int parallel_shots_ = 1;
 
   //max allocatable shots
   uint_t num_max_shots_ = 1;
@@ -421,10 +611,6 @@ protected:
   //creg initialization
   uint_t num_creg_memory_;
   uint_t num_creg_registers_;
-
-  //shot branching
-  bool enable_shot_branching_ = false;
-  bool enable_batch_execution_ = false;  //apply the same op to multiple states, if enable_shot_branching_ is false this flag is used for batched execution on GPU
 
   bool runtime_noise_sampled_ = false;  //true when runtime noise sampling is done
 
@@ -457,10 +643,7 @@ State<state_t>::~State(void)
 template <class state_t>
 void State<state_t>::set_config(const json_t &config) 
 {
-  JSON::get_value(sim_device_name_, "device", config);
-
-  // Load config for memory (creg list data)
-  JSON::get_value(save_creg_memory_, "memory", config);
+  Base::set_config(config);
 
   set_state_config(state_, config);
 }
@@ -563,15 +746,15 @@ bool State<state_t>::allocate(uint_t num_qubits,uint_t block_bits,uint_t num_ini
 }
 
 template <class state_t>
-void State<state_t>::initialize_qreg(uint_t num_qubits)
+void State<state_t>::initialize_qreg(const uint_t num_qubits)
 {
-  initialize_state(state_, num_qubits);
+  initialize_qreg_state(state_, num_qubits);
 }
 
 template <class state_t>
-void State<state_t>::initialize_qreg(uint_t num_qubits, const state_t &state)
+void State<state_t>::initialize_qreg(const state_t &state)
 {
-  initialize_state(state_, num_qubits, state);
+  initialize_qreg_state(state_, state);
 }
 
 template <class state_t>
@@ -619,7 +802,7 @@ void State<state_t>::apply_ops(OpItr first, OpItr last,
 }
 
 template <class state_t>
-std::vector<reg_t> State<state_t>::sample_measure_state(RegistersBase& state, const reg_t &qubits,
+std::vector<reg_t> State<state_t>::sample_measure(RegistersBase& state, const reg_t &qubits,
                                              uint_t shots,
                                              RngEngine &rng) {
   (ignore_argument)qubits;
@@ -628,7 +811,7 @@ std::vector<reg_t> State<state_t>::sample_measure_state(RegistersBase& state, co
 }
 
 template <class state_t>
-void State<state_t>::apply_ops_state(RegistersBase& state_in,
+void State<state_t>::apply_ops(RegistersBase& state_in,
                                OpItr first, OpItr last,
                                const Noise::NoiseModel &noise,
                                ExperimentResult &result,
@@ -676,7 +859,7 @@ void State<state_t>::apply_ops_state(RegistersBase& state_in,
       }
       default: {
         apply_op(state, *it, result, rng, final_ops && (it + 1 == last));
-        if(enable_shot_branching_ && state.num_branch() > 0){
+        if(Base::enable_shot_branching_ && state.num_branch() > 0){
           state.next_iter() = it + 1;
           return;
         }
@@ -697,17 +880,17 @@ void State<state_t>::run_shots(OpItr first,
 {
   num_max_shots_ = get_max_allocatable_shots(num_qubits_, first, last);
 
-  enable_shot_branching_ &= shot_branching_supported();
-  if(enable_shot_branching_ && num_max_shots_ > 1){
+  Base::enable_shot_branching_ &= shot_branching_supported();
+  if(Base::enable_shot_branching_ && num_max_shots_ > 1){
     return run_shots_with_branching(first, last, config, noise, result, rng_seed, num_shots);
   }
-  else if(enable_batch_execution_ && multi_shot_parallelization_supported()){
+  else if(Base::enable_batch_execution_ && multi_shot_parallelization_supported()){
     if(run_shots_with_batched_execution(first, last, noise, result, rng_seed, num_shots))
       return;
   }
 
-  bool batch_shots_tmp = enable_batch_execution_; //save this option and disable for single shot execution
-  enable_batch_execution_ = false;
+  bool batch_shots_tmp = Base::enable_batch_execution_; //save this option and disable for single shot execution
+  Base::enable_batch_execution_ = false;
 
   uint_t shot_index = num_shots*distributed_rank_/distributed_procs_;
   uint_t num_local_shots = (num_shots*(distributed_rank_+1)/distributed_procs_) - shot_index;
@@ -716,7 +899,7 @@ void State<state_t>::run_shots(OpItr first,
     cregs.resize(num_local_shots);
   }
 
-  int_t par_shots = parallel_shots_;
+  int_t par_shots = Base::parallel_shots_;
   if(par_shots > num_max_shots_)
     par_shots = num_max_shots_;
 
@@ -742,10 +925,10 @@ void State<state_t>::run_shots(OpItr first,
       RngEngine rng;
       rng.set_seed(rng_seed + shot_index + i_shot);
 
-      initialize_state(states[i], num_qubits_);
+      initialize_qreg_state(states[i], num_qubits_);
       initialize_creg_state(states[i], num_creg_memory_, num_creg_registers_);
 
-      apply_ops_state(states[i], first,last,noise, par_results[i], rng, true);
+      apply_ops(states[i], first,last,noise, par_results[i], rng, true);
 
       if(num_shots != num_local_shots){
         //store cregs into array if shots are distributed on MPI processes
@@ -756,7 +939,7 @@ void State<state_t>::run_shots(OpItr first,
         if(states[i].creg().memory_size() > 0) {
           std::string memory_hex = states[i].creg().memory_hex();
           par_results[i].data.add_accum(static_cast<uint_t>(1ULL), "counts", memory_hex);
-          if (save_creg_memory_) {
+          if (Base::save_creg_memory_) {
             par_results[i].data.add_list(std::move(memory_hex), "memory");
           }
         }
@@ -779,7 +962,7 @@ void State<state_t>::run_shots(OpItr first,
         if(cregs[i_shot].memory_size() > 0) {
           std::string memory_hex = cregs[i_shot].memory_hex();
           par_results[i].data.add_accum(static_cast<uint_t>(1ULL), "counts", memory_hex);
-          if (save_creg_memory_) {
+          if (Base::save_creg_memory_) {
             par_results[i].data.add_list(std::move(memory_hex), "memory");
           }
         }
@@ -793,7 +976,7 @@ void State<state_t>::run_shots(OpItr first,
   }
   add_metadata(result);
 
-  enable_batch_execution_ = batch_shots_tmp;
+  Base::enable_batch_execution_ = batch_shots_tmp;
 
   result.metadata.add(false, "shot_branching_enabled");
   result.metadata.add(false, "runtime_noise_sampling_enabled");
@@ -845,7 +1028,7 @@ void State<state_t>::run_shots_with_branching(OpItr first,
 
   uint_t num_shots_saved = 0;
 
-  std::vector<ExperimentResult> par_results(parallel_shots_);
+  std::vector<ExperimentResult> par_results(Base::parallel_shots_);
 
   while(reserved_shots.size() > 0){
     std::vector<std::shared_ptr<Registers<state_t>>> states;
@@ -856,7 +1039,7 @@ void State<state_t>::run_shots_with_branching(OpItr first,
     reserved_shots.clear();
 
     set_state_config(*initial_state, config);
-    initialize_state(*initial_state, num_qubits_);
+    initialize_qreg_state(*initial_state, num_qubits_);
     initialize_creg_state(*initial_state, num_creg_memory_, num_creg_registers_);
 
     states.push_back(initial_state);
@@ -865,7 +1048,7 @@ void State<state_t>::run_shots_with_branching(OpItr first,
     auto apply_ops_func = [this, &states, &rng, &noise, &par_results, measure_seq](int_t i)
     {
       int_t ires = omp_get_thread_num() % par_results.size();
-      apply_ops_state(*states[i], states[i]->next_iter(),measure_seq ,noise,par_results[ires], rng, true);
+      apply_ops(*states[i], states[i]->next_iter(),measure_seq ,noise,par_results[ires], rng, true);
 
       if(states[i]->num_branch() > 0)  //check if there are new branches
         return 1;
@@ -878,7 +1061,7 @@ void State<state_t>::run_shots_with_branching(OpItr first,
       uint_t nbranch = 0;
 
       //apply ops until a branch operation comes (reset, measure, kraus, initialize, noises)
-      nbranch = Utils::apply_omp_parallel_for_reduction_int((parallel_shots_ > 1 && states.size() > 1), 0, states.size(), apply_ops_func, parallel_shots_);
+      nbranch = Utils::apply_omp_parallel_for_reduction_int((Base::parallel_shots_ > 1 && states.size() > 1), 0, states.size(), apply_ops_func, Base::parallel_shots_);
 
       while(nbranch > 0){
         uint_t num_states_prev = states.size();
@@ -945,7 +1128,7 @@ void State<state_t>::run_shots_with_branching(OpItr first,
           states[i]->clear_additional_ops();
           return ret;
         };
-        nbranch = Utils::apply_omp_parallel_for_reduction_int((parallel_shots_ > 1), 0, states.size(), apply_additional_ops_func, parallel_shots_);
+        nbranch = Utils::apply_omp_parallel_for_reduction_int((Base::parallel_shots_ > 1), 0, states.size(), apply_additional_ops_func, Base::parallel_shots_);
       }
 
       nactive = 0;
@@ -968,16 +1151,16 @@ void State<state_t>::run_shots_with_branching(OpItr first,
         cregs[creg_pos[i] + j] = states[i]->creg();
       }
     };
-    Utils::apply_omp_parallel_for((parallel_shots_ > 1), 0, states.size(), save_creg_func, parallel_shots_);
+    Utils::apply_omp_parallel_for((Base::parallel_shots_ > 1), 0, states.size(), save_creg_func, Base::parallel_shots_);
 
     //apply sampling measure for each branch
     if(can_sample){
       auto sampling_measure_func = [this, &states, &cregs, &creg_pos, &par_results, &rng, measure_seq, last](int_t i)
       {
         int_t ires = omp_get_thread_num() % par_results.size();
-        measure_sampler_state(*states[i], measure_seq, last, states[i]->num_shots(), par_results[ires], rng, false, cregs.begin() + creg_pos[i]);
+        measure_sampler(*states[i], measure_seq, last, states[i]->num_shots(), par_results[ires], rng, false, cregs.begin() + creg_pos[i]);
       };
-      Utils::apply_omp_parallel_for((parallel_shots_ > 1), 0, states.size(), sampling_measure_func, parallel_shots_);
+      Utils::apply_omp_parallel_for((Base::parallel_shots_ > 1), 0, states.size(), sampling_measure_func, Base::parallel_shots_);
     }
 
     //clear
@@ -993,20 +1176,20 @@ void State<state_t>::run_shots_with_branching(OpItr first,
   //save cregs to result
   auto save_cregs = [this,&par_results, &cregs, num_shots](int_t i){
     uint_t i_shot,shot_end;
-    i_shot = num_shots*i/parallel_shots_;
-    shot_end = num_shots*(i+1)/parallel_shots_;
+    i_shot = num_shots*i/Base::parallel_shots_;
+    shot_end = num_shots*(i+1)/Base::parallel_shots_;
 
     for(;i_shot<shot_end;i_shot++){
       if(cregs[i_shot].memory_size() > 0) {
         std::string memory_hex = cregs[i_shot].memory_hex();
         par_results[i].data.add_accum(static_cast<uint_t>(1ULL), "counts", memory_hex);
-        if (save_creg_memory_) {
+        if (Base::save_creg_memory_) {
           par_results[i].data.add_list(std::move(memory_hex), "memory");
         }
       }
     }
   };
-  Utils::apply_omp_parallel_for((parallel_shots_ > 1),0,parallel_shots_,save_cregs);
+  Utils::apply_omp_parallel_for((Base::parallel_shots_ > 1),0,Base::parallel_shots_,save_cregs);
 
   for (auto &res : par_results) {
     result.combine(std::move(res));
@@ -1167,28 +1350,6 @@ void State<state_t>::snapshot_state(Registers<state_t>& state, const Operations:
   result.legacy_data.add_pershot_snapshot(name, op.string_params[0], state.qreg());
 }
 
-template <class state_t>
-void State<state_t>::set_global_phase(double theta) 
-{
-  if (Linalg::almost_equal(theta, 0.0)) {
-    has_global_phase_ = false;
-    global_phase_ = 1;
-  }
-  else {
-    has_global_phase_ = true;
-    global_phase_ = std::exp(complex_t(0.0, theta));
-  }
-}
-
-template <class state_t>
-void State<state_t>::add_global_phase(double theta) 
-{
-  if (Linalg::almost_equal(theta, 0.0)) 
-    return;
-  
-  has_global_phase_ = true;
-  global_phase_ *= std::exp(complex_t(0.0, theta));
-}
 
 template <class state_t>
 void State<state_t>::snapshot_creg_memory(Registers<state_t>& state,const Operations::Op &op,
@@ -1318,7 +1479,7 @@ void State<state_t>::gather_creg_memory(std::vector<ClassicalRegister>& cregs, u
 }
 
 template <class state_t>
-void State<state_t>::measure_sampler_state(Registers<state_t>& state, OpItr first_meas, OpItr last_meas, uint_t num_shots, 
+void State<state_t>::measure_sampler(Registers<state_t>& state, OpItr first_meas, OpItr last_meas, uint_t num_shots, 
                        ExperimentResult &result, RngEngine& rng, bool save_results, std::vector<ClassicalRegister>::iterator creg_save)
 {
     using myclock_t = std::chrono::high_resolution_clock;
@@ -1327,7 +1488,7 @@ void State<state_t>::measure_sampler_state(Registers<state_t>& state, OpItr firs
   if (first_meas == last_meas) {
     if(save_results){
       while (num_shots-- > 0) {
-        result.save_count_data(state.creg(), save_creg_memory_);
+        result.save_count_data(state.creg(), Base::save_creg_memory_);
       }
     }
     return;
@@ -1355,7 +1516,7 @@ void State<state_t>::measure_sampler_state(Registers<state_t>& state, OpItr firs
 
   // Generate the samples
   auto timer_start = myclock_t::now();
-  auto all_samples = sample_measure_state(state, meas_qubits, num_shots, rng);
+  auto all_samples = sample_measure(state, meas_qubits, num_shots, rng);
   auto time_taken =
       std::chrono::duration<double>(myclock_t::now() - timer_start).count();
   result.metadata.add(time_taken, "sample_measure_time");
@@ -1405,7 +1566,7 @@ void State<state_t>::measure_sampler_state(Registers<state_t>& state, OpItr firs
       }
 
       // Save count data
-        result.save_count_data(creg, save_creg_memory_);
+        result.save_count_data(creg, Base::save_creg_memory_);
 
       // pop off processed sample
       all_samples.pop_back();

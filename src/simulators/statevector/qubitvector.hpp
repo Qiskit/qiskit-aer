@@ -761,15 +761,11 @@ void QubitVector<data_t>::copy_qv(const QubitVector<data_t>& obj)
   initialize_from_data(obj.data_,obj.data_size_);
 
   unmanaged_data_ = obj.unmanaged_data_;
-  checkpoint_ = obj.checkpoint_;
   chunk_index_ = obj.chunk_index_;
-  recv_buffer_ = obj.recv_buffer_;
   omp_threads_ = obj.omp_threads_;
   omp_threshold_ = obj.omp_threshold_;
   sample_measure_index_size_ = obj.sample_measure_index_size_;
   json_chop_threshold_ = obj.json_chop_threshold_;
-  obj.data_ = nullptr;
-  obj.checkpoint_ = nullptr;
 }
 
 //------------------------------------------------------------------------------

@@ -145,7 +145,7 @@ public:
 
   // Sample n-measurement outcomes without applying the measure operation
   // to the system state
-  virtual std::vector<reg_t> sample_measure_state(QuantumState::RegistersBase& state_in, const reg_t& qubits,
+  virtual std::vector<reg_t> sample_measure(QuantumState::RegistersBase& state_in, const reg_t& qubits,
                                             uint_t shots,
                                             RngEngine &rng) override;
 
@@ -166,9 +166,9 @@ std::vector<reg_t> sample_measure_all(QuantumState::Registers<matrixproductstate
 
 protected:
   // Initializes an n-qubit state to the all |0> state
-  void initialize_state(QuantumState::RegistersBase& state_in, uint_t num_qubits) override;
+  void initialize_qreg_state(QuantumState::RegistersBase& state_in, const uint_t num_qubits) override;
 
-  void initialize_state(QuantumState::RegistersBase& state_in, uint_t num_qubits, const matrixproductstate_t &state) override;
+  void initialize_qreg_state(QuantumState::RegistersBase& state_in, const matrixproductstate_t &state) override;
 
   // Load the threshold for applying OpenMP parallelization
   // if the controller/engine allows threads for it
@@ -402,7 +402,7 @@ const stringmap_t<Snapshots> State::snapshotset_({
 // Initialization
 //-------------------------------------------------------------------------
 
-void State::initialize_state(QuantumState::RegistersBase& state_in, uint_t num_qubits=0) 
+void State::initialize_qreg_state(QuantumState::RegistersBase& state_in, const uint_t num_qubits)
 {
   QuantumState::Registers<matrixproductstate_t>& state = dynamic_cast<QuantumState::Registers<matrixproductstate_t>&>(state_in);
   if(state.qregs().size() == 0)
@@ -423,7 +423,7 @@ void State::initialize_qreg_from_data(uint_t num_qubits, const cvector_t &statev
   state.qreg().initialize_from_statevector_internal(qubits, statevector);
 }
 
-void State::initialize_state(QuantumState::RegistersBase& state_in, uint_t num_qubits, const matrixproductstate_t &mpstate) 
+void State::initialize_qreg_state(QuantumState::RegistersBase& state_in, const matrixproductstate_t &mpstate) 
 {
   throw std::invalid_argument("MatrixProductState::State::initialize_qreg: initialize with state not supported yet");
 }
@@ -1047,7 +1047,7 @@ rvector_t State::measure_probs(QuantumState::Registers<matrixproductstate_t>& st
   return probvector;
 }
 
-std::vector<reg_t> State::sample_measure_state(QuantumState::RegistersBase& state_in, const reg_t& qubits,
+std::vector<reg_t> State::sample_measure(QuantumState::RegistersBase& state_in, const reg_t& qubits,
 					 uint_t shots,
                                          RngEngine &rng)
 {
