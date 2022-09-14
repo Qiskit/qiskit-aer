@@ -1,0 +1,13 @@
+---
+upgrade:
+  - |
+    Set default ``fusion_max_qubit`` and ``fusion_threshold`` depending on the configured
+    ``method`` for :class:`~AerSimulator`. Previously, the default values of
+    ``fusion_max_qubit`` and ``fusion_threshold`` were ``5`` and ``14`` respectively for
+    all simulation methods. However, their optimal values depend on running methods. If you
+    depended on the previous defaults you can explicitly set ``fusion_max_qubit=5`` or
+    ``fusion_threshold=14`` to retain the previous default behavior. For example::
+
+        from qiskit_aer import AerSimulator
+
+        sim = AerSimulator(method='mps', fusion_max_qubit=5, fusion_threshold=14)
