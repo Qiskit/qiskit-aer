@@ -585,7 +585,7 @@ class AerSimulator(AerBackend):
             batched_shots_gpu=True,
             batched_shots_gpu_max_qubits=16,
             num_threads_per_device=1,
-            #multi-shot branching
+            # multi-shot branching
             shot_branching_enable=True,
             runtime_noise_sampling_enable=False,
             # statevector options
