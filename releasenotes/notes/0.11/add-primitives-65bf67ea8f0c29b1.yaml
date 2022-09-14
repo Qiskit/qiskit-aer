@@ -6,5 +6,5 @@ features:
     Thes implementations of the :class:`~qiskit.primitives.BaseSampler` and
     :class:`~qiskit.primitives.BaseEstimator` interfaces leverage qiskit aer to
     efficiently perform the computation of the primitive operations. You can
-    refer to the :mod:`qiskit.primtives` docs for a more detailed description
+    refer to the :mod:`qiskit.primitives` docs for a more detailed description
     of the primitives API.
