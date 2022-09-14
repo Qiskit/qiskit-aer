@@ -1,0 +1,9 @@
+---
+prelude: |
+    The Qiskit Aer 0.11.0 release highlights are:
+
+    * The migration to a new self-contained Python namespace ``qiskit_aer``
+    * The introduction of the :class:`~.AerStatevector` class
+    * The introduction of Aer implementations of :mod:`~qiskit.primitives`,
+      :class:`~qiskit_aer.primitives.Sampler` and :class:`~qiskit_aer.primitives.Estimator`
+    * Introduction of support for running with `cuQuantum <https://developer.nvidia.com/cuquantum-sdk>`__
