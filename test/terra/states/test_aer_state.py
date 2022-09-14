@@ -85,12 +85,12 @@ class TestAerState(common.QiskitAerTestCase):
         state1 = AerState(seed_simulator=2222)
         state1.allocate_qubits(4)
         state1.initialize(init_state.data, copy=True)
-        sample1 = state1.sample_measure()
+        sample1 = state1.sample_counts()
         sv1 = state1.move_to_ndarray()
 
         state2 = AerState(seed_simulator=2222)
         state2.initialize(sv1, copy=False)
-        sample2 = state2.sample_measure()
+        sample2 = state2.sample_counts()
         sv2 = state2.move_to_ndarray()
         state2.close()
 
@@ -447,7 +447,7 @@ class TestAerState(common.QiskitAerTestCase):
         state = AerState(seed_simulator=11111)
         state.allocate_qubits(5)
         state.initialize(init_state.data)
-        actual = state.sample_measure()
+        actual = state.sample_counts()
 
         for key, value in actual.items():
             key_str = f"{key:05b}"
