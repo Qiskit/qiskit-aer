@@ -68,6 +68,7 @@ from .aererror import AerError
 from .backends import *
 from . import library
 from . import pulse
+from . import quantum_info
 from . import noise
 from . import utils
 from .version import __version__
