@@ -1,6 +1,0 @@
----
-features:
-  - |
-    Add Aer runtime shared library that allows external programs can use
-    Aer simulation methods. This is an experimental fature and its API
-    may be changed without the deprecation period.

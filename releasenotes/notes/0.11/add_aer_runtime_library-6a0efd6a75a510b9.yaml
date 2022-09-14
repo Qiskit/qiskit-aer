@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    Added a shared library to Qiskit Aer that allows external programs to use
+    Aer's simulation methods. This is an experimental feature and its API
+    may be changed without the deprecation period.
