@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixes an issue when while_loop is the tail of QuantumCircuit. while_loop
+    is translated to jump and mark instructions. However, if a while_loop is
+    at the end of a circuit, its mark instruction is truncated wrongly. This
+    fix corrects the truncation algorithm to always remain mark instructions.
