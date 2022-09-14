@@ -514,3 +514,17 @@ class TestControlFlow(SimulatorTestCase):
         counts = result.get_counts()
         self.assertEqual(len(counts), 1)
         self.assertIn('011', counts)
+
+    @data('statevector', 'density_matrix', 'matrix_product_state')
+    def test_while_loop_last(self, method):
+        backend = self.backend(method=method)
+    
+        circ = QuantumCircuit(1, 1)
+        circ.h(0)
+        circ.measure(0, 0)
+        with circ.while_loop((circ.clbits[0], True)):
+            circ.h(0)
+            circ.measure(0, 0)
+    
+        result = backend.run(circ, method=method).result()
+        self.assertSuccess(result)
