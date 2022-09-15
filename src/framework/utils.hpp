@@ -1309,7 +1309,11 @@ size_t get_free_memory_mb()
 {
   size_t total_physical_memory = 0;
 #if defined(__linux__) || defined(__APPLE__)
+#if defined _SC_PHYS_PAGES
   size_t pages = (size_t)sysconf(_SC_AVPHYS_PAGES);
+#else
+  size_t pages = (size_t)sysconf(_SC_PHYS_PAGES);
+#endif
   size_t page_size = (size_t)sysconf(_SC_PAGE_SIZE);
   total_physical_memory = pages * page_size;
 #elif defined(_WIN64) || defined(_WIN32)

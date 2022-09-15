@@ -67,6 +67,12 @@ public:
   // Initializes the current vector so that all qubits are in the |0> state.
   void initialize();
 
+  //initialize from existing state (copy)
+  void initialize(const DensityMatrix<data_t>& obj)
+  {
+    BaseMatrix::copy_qv(obj);
+  }
+
   // Initializes the vector to a custom initial state.
   // The vector can be either a statevector or a vectorized density matrix
   // If the length of the data vector does not match either case for the

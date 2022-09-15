@@ -67,18 +67,28 @@ public:
   QubitVector();
   explicit QubitVector(size_t num_qubits);
   virtual ~QubitVector();
+  QubitVector(size_t num_qubits, std::complex<data_t>* data, bool copy=false);
   QubitVector(const QubitVector& obj): num_qubits_(0), data_(nullptr), checkpoint_(0)
   {
-    set_transformer_method();
-    copy_qv(obj);
   }
-  QubitVector &operator=(const QubitVector& obj) 
-  {
-    copy_qv(obj);
+  QubitVector &operator=(QubitVector&& obj) {
+    num_qubits_ = obj.num_qubits_;
+    data_size_ = obj.data_size_;
+    data_ = obj.data_;
+    unmanaged_data_ = obj.unmanaged_data_;
+    checkpoint_ = obj.checkpoint_;
+    chunk_index_ = obj.chunk_index_;
+    recv_buffer_ = obj.recv_buffer_;
+    omp_threads_ = obj.omp_threads_;
+    omp_threshold_ = obj.omp_threshold_;
+    sample_measure_index_size_ = obj.sample_measure_index_size_;
+    json_chop_threshold_ = obj.json_chop_threshold_;
+    obj.data_ = nullptr;
+    obj.checkpoint_ = nullptr;
     return *this;
-  }
+  };
+  QubitVector& operator= (const QubitVector&) = delete;
 
-  QubitVector(size_t num_qubits, std::complex<data_t>* data, bool copy=false);
 
   //-----------------------------------------------------------------------
   // Data access
@@ -204,6 +214,12 @@ public:
 
   // Initializes the current vector so that all qubits are in the |0> state.
   void initialize();
+
+  //initialize from existing state (copy)
+  void initialize(const QubitVector<data_t>& obj)
+  {
+    copy_qv(obj);
+  }
 
   // Initializes the vector to a custom initial state.
   // If the length of the data vector does not match the number of qubits
@@ -760,7 +776,6 @@ void QubitVector<data_t>::copy_qv(const QubitVector<data_t>& obj)
 
   initialize_from_data(obj.data_,obj.data_size_);
 
-  unmanaged_data_ = obj.unmanaged_data_;
   chunk_index_ = obj.chunk_index_;
   omp_threads_ = obj.omp_threads_;
   omp_threshold_ = obj.omp_threshold_;

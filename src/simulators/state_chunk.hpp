@@ -358,6 +358,11 @@ protected:
   //separate inside and outside qubits for (multi) control gates
   void get_inout_ctrl_qubits(const Operations::Op &op, reg_t& qubits_out, reg_t& qubits_in);
 
+  std::vector<Operations::Op> sample_noise(const Noise::NoiseModel &noise, const Operations::Op &op, RngEngine &rng) override
+  {
+    return noise.sample_noise_loc(op, rng);
+  }
+
   //remake gate operation by qubits inside chunk
   Operations::Op remake_gate_in_chunk_qubits(const Operations::Op &op, reg_t& qubits_in);
 };

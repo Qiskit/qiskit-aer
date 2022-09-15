@@ -209,26 +209,22 @@ public:
 template <class state_t>
 Registers<state_t>::Registers(const Registers<state_t>& src)
 {
-  qregs_ = src.qregs_;
-  this->creg_ = src.creg_;
-  this->qubit_map_ = src.qubit_map_;
-  next_iter_ = src.next_iter_;
-  flow_marks_ = src.flow_marks_;
+  copy(src);
 }
 template <class state_t>
 Registers<state_t>& Registers<state_t>::operator=(const Registers<state_t>& src)
 {
-  qregs_ = src.qregs_;
-  this->creg_ = src.creg_;
-  this->qubit_map_ = src.qubit_map_;
-  next_iter_ = src.next_iter_;
-  flow_marks_ = src.flow_marks_;
+  copy(src);
+  return *this;
 }
 
 template <class state_t>
 void Registers<state_t>::copy(const Registers<state_t>& src)
 {
-  qregs_ = src.qregs_;
+  qregs_.resize(src.qregs_.size());
+  for(int_t i=0;i<qregs_.size();i++)
+    qregs_[i].initialize(src.qregs_[i]);  //make copy of qregs from src
+
   this->creg_ = src.creg_;
   this->qubit_map_ = src.qubit_map_;
   next_iter_ = src.next_iter_;

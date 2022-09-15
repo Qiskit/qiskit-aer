@@ -2095,6 +2095,7 @@ std::vector<reg_t> State<densmat_t>::sample_measure(QuantumState::RegistersBase&
     }
 
     allbit_samples = state.qregs()[0].sample_measure(rnds);
+
     state.qregs()[0].enable_batch(tmp);
   }
   else{

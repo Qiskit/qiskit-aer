@@ -37,6 +37,9 @@ public:
   Clifford() = default;
   explicit Clifford(const uint64_t nqubit);
 
+  //initialize from existing state (copy)
+  void initialize(const Clifford& obj){}
+
   //-----------------------------------------------------------------------
   // Utility functions
   //-----------------------------------------------------------------------

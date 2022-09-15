@@ -581,6 +581,12 @@ protected:
     return false;   //return true if this method is supported
   }
 
+  //sample noise function, this is used to avoid compile error for Superoperator::State referred from noise/quantum_error.h
+  virtual std::vector<Operations::Op> sample_noise(const Noise::NoiseModel &noise, const Operations::Op &op, RngEngine &rng)
+  {
+    return std::vector<Operations::Op>();
+  }
+
   //runtime noise sampling for shot branching
   void apply_runtime_noise_sampling(RegistersBase& state, const Operations::Op &op, const Noise::NoiseModel &noise);
 
@@ -1034,7 +1040,7 @@ void State<state_t>::run_shots_with_branching(OpItr first,
     std::vector<std::shared_ptr<Registers<state_t>>> states;
     std::shared_ptr<Registers<state_t>> initial_state = std::make_shared<Registers<state_t>>();
 
-    allocate_state(*initial_state, std::min(reserved_shots.size(),num_max_shots_) );
+    allocate_state(*initial_state, std::min((uint_t)reserved_shots.size(),num_max_shots_) );
     initial_state->set_shots(reserved_shots);
     reserved_shots.clear();
 
@@ -1209,7 +1215,7 @@ void State<state_t>::apply_runtime_noise_sampling(RegistersBase& state_in, const
   std::vector<std::vector<Operations::Op>> noises;
 
   for(int_t i=0;i<nshots;i++){
-    std::vector<Operations::Op> noise_ops = noise.sample_noise_loc(op, state.rng_shots(i));
+    std::vector<Operations::Op> noise_ops = sample_noise(noise, op, state.rng_shots(i));
 
     //search same noise ops 
     int_t pos = -1;

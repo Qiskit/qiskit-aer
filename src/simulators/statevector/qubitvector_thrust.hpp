@@ -197,6 +197,12 @@ public:
   // Initializes the current vector so that all qubits are in the |0> state.
   void initialize();
 
+  //initialize from existing state (copy)
+  void initialize(const QubitVectorThrust<data_t>& obj)
+  {
+    copy_qv(obj);
+  }
+
   // Initializes the vector to a custom initial state.
   // If the length of the data vector does not match the number of qubits
   // an exception is raised.
