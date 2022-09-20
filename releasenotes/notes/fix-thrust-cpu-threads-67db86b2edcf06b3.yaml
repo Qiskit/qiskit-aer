@@ -1,6 +1,0 @@
----
-fixes:
-  - |
-    device=Thrust was very slow for small number of qubits because OpenMP
-    threading was always applied. This fix applies OpenMP threads as same
-    as device=CPU by using statevector_parallel_threshold.

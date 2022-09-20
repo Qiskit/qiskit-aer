@@ -292,15 +292,14 @@ public:
   // Return M sampled outcomes for Z-basis measurement of specified qubits
   // The input is a length M list of random reals between [0, 1) used for
   // generating samples.
-  virtual std::unordered_map<uint_t, uint_t> sample_measure(const reg_t &qubits, uint_t shots);
+  // The returned value is unordered sampled outcomes
+  virtual std::vector<std::string> sample_memory(const reg_t &qubits, uint_t shots);
 
-  //-----------------------------------------------------------------------
-  // Expectation Values
-  //-----------------------------------------------------------------------
-
-  // Return the expectation value of an N-qubit Pauli matrix.
-  // The Pauli is input as a length N string of I,X,Y,Z characters.
-  virtual double expval_pauli(const reg_t &qubits, const std::string &pauli);
+  // Return M sampled outcomes for Z-basis measurement of specified qubits
+  // The input is a length M list of random reals between [0, 1) used for
+  // generating samples.
+  // The returned value is a map from outcome to its number of samples.
+  virtual std::unordered_map<uint_t, uint_t> sample_counts(const reg_t &qubits, uint_t shots);
 
   //-----------------------------------------------------------------------
   // Operation management
@@ -866,7 +865,7 @@ void AerState::apply_mcu(const reg_t &qubits, const double theta, const double p
   op.type = Operations::OpType::gate;
   op.name = "mcu";
   op.qubits = qubits;
-  op.params = {theta, phi, lambda};
+  op.params = {theta, phi, lambda, 0.0};
 
   buffer_op(std::move(op));
 }
@@ -1037,7 +1036,21 @@ std::vector<double> AerState::probabilities(const reg_t &qubits) {
   return ((DataMap<ListData, rvector_t>)last_result_.data).value()["s"].value()[0];
 }
 
-std::unordered_map<uint_t, uint_t> AerState::sample_measure(const reg_t &qubits, uint_t shots) {
+std::vector<std::string> AerState::sample_memory(const reg_t &qubits, uint_t shots) {
+  assert_initialized();
+
+  flush_ops();
+
+  std::vector<std::string> ret;
+  ret.reserve(shots);
+  std::vector<reg_t> samples = state_->sample_measure(qubits, shots, rng_);
+  for (auto& sample : samples) {
+    ret.push_back(Utils::int2string(Utils::reg2int(sample, 2), 2, qubits.size()));
+  }
+  return ret;
+}
+
+std::unordered_map<uint_t, uint_t> AerState::sample_counts(const reg_t &qubits, uint_t shots) {
   assert_initialized();
 
   flush_ops();
@@ -1058,15 +1071,6 @@ std::unordered_map<uint_t, uint_t> AerState::sample_measure(const reg_t &qubits,
   }
   return ret;
 }
-
-double AerState::expval_pauli(const reg_t &qubits, const std::string &pauli) {
-  assert_initialized();
-
-  flush_ops();
-
-  return state_->expval_pauli(qubits, pauli);
-}
-
 
 //-----------------------------------------------------------------------
 // Operation management
