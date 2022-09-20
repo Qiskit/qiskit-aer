@@ -115,7 +115,7 @@ public:
   static std::string name() {return "statevector";}
 
   // Set the size of the vector in terms of qubit number
-  void set_num_qubits(size_t num_qubits);
+  virtual void set_num_qubits(size_t num_qubits);
 
   // Returns the number of qubits for the current vector
   virtual uint_t num_qubits() const {return num_qubits_;}
@@ -772,7 +772,10 @@ QubitVector<data_t>::~QubitVector() {
 template <typename data_t>
 void QubitVector<data_t>::copy_qv(const QubitVector<data_t>& obj)
 {
-  set_num_qubits(obj.num_qubits_);
+  data_ = nullptr;
+  checkpoint_ = nullptr;
+  set_num_qubits(obj.num_qubits());
+  set_transformer_method();
 
   initialize_from_data(obj.data_,obj.data_size_);
 

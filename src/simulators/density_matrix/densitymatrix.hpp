@@ -52,7 +52,6 @@ public:
   }
   DensityMatrix &operator=(const DensityMatrix& obj)
   {
-    BaseMatrix::copy_qv(obj);
     apply_unitary_threshold_ = obj.apply_unitary_threshold_;
     return *this;
   }
@@ -70,7 +69,7 @@ public:
   //initialize from existing state (copy)
   void initialize(const DensityMatrix<data_t>& obj)
   {
-    BaseMatrix::copy_qv(obj);
+    BaseMatrix::initialize(obj);
   }
 
   // Initializes the vector to a custom initial state.

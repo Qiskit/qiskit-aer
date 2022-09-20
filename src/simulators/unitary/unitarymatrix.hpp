@@ -46,17 +46,9 @@ public:
   explicit UnitaryMatrix(size_t num_qubits);
   UnitaryMatrix(const UnitaryMatrix& obj)
   {
-    BaseVector::copy_qv(obj);
-    num_qubits_ = obj.num_qubits_;
-    rows_ = obj.rows_;
-    identity_threshold_ = obj.identity_threshold_;
   }
   UnitaryMatrix &operator=(const UnitaryMatrix& obj)
   {
-    BaseVector::copy_qv(obj);
-    num_qubits_ = obj.num_qubits_;
-    rows_ = obj.rows_;
-    identity_threshold_ = obj.identity_threshold_;
     return *this;
   }
 
@@ -65,7 +57,7 @@ public:
   //-----------------------------------------------------------------------
 
   // Set the size of the vector in terms of qubit number
-  void set_num_qubits(size_t num_qubits);
+  void set_num_qubits(size_t num_qubits) override;
 
   // Return the number of rows in the matrix
   size_t num_rows() const {return rows_;}
@@ -91,7 +83,7 @@ public:
   //initialize from existing state (copy)
   void initialize(const UnitaryMatrix<data_t>& obj)
   {
-    BaseVector::copy_qv(obj);
+    BaseVector::initialize(obj);
     num_qubits_ = obj.num_qubits_;
     rows_ = obj.rows_;
     identity_threshold_ = obj.identity_threshold_;

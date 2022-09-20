@@ -664,7 +664,11 @@ template <typename data_t>
 void DeviceChunkContainer<data_t>::CopyIn(thrust::complex<data_t>* src,uint_t iChunk, uint_t size)
 {
   uint_t this_size = 1ull << this->chunk_bits_;
-  if(this_size < size) throw std::runtime_error("CopyIn chunk size is less than provided size");
+  if(this_size < size){
+    std::stringstream str;
+    str << "DeviceChunkContainer::CopyIn chunk size " << this_size << " is less than " << size;
+    throw std::runtime_error(str.str());
+  }
 
   synchronize(iChunk);
   thrust::copy_n(src,size,data_.begin() + (iChunk << this->chunk_bits_));
@@ -674,8 +678,11 @@ template <typename data_t>
 void DeviceChunkContainer<data_t>::CopyOut(thrust::complex<data_t>* dest,uint_t iChunk, uint_t size)
 {
   uint_t this_size = 1ull << this->chunk_bits_;
-  if(this_size < size) throw std::runtime_error("CopyOut chunk size is less than provided size");
-
+  if(this_size < size){
+    std::stringstream str;
+    str << "DeviceChunkContainer::CopyOut chunk size " << this_size << " is less than " << size;
+    throw std::runtime_error(str.str());
+  }
   synchronize(iChunk);
   thrust::copy_n(data_.begin() + (iChunk << this->chunk_bits_),size,dest);
 }

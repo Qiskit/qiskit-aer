@@ -2029,7 +2029,7 @@ void State<densmat_t>::measure_reset_update_shot_branching(
       if(final_state >= 0 && final_state != i) {
         Operations::Op op;
         op.type = OpType::gate;
-        op.name = "mcx";
+        op.name = "x";
         op.qubits = qubits;
         state.add_op_after_branch(i, op);
       }
@@ -2082,6 +2082,7 @@ std::vector<reg_t> State<densmat_t>::sample_measure(QuantumState::RegistersBase&
 
   if(!BaseState::multi_chunk_distribution_){
     bool tmp = state.qregs()[0].enable_batch(false);
+
     if(state.num_shots() > 1){
       double norm = std::real( state.qregs()[0].trace() );
 
@@ -2093,7 +2094,6 @@ std::vector<reg_t> State<densmat_t>::sample_measure(QuantumState::RegistersBase&
       for (int_t i = 0; i < shots; ++i)
         rnds[i] = rng.rand(0, 1);
     }
-
     allbit_samples = state.qregs()[0].sample_measure(rnds);
 
     state.qregs()[0].enable_batch(tmp);

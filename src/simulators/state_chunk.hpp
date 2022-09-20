@@ -616,7 +616,6 @@ void StateChunk<state_t>::apply_ops(RegistersBase& state_in,
         return;
       }
       default: {
-//        std::cout << it->type << " : " << *it << std::endl;
         this->apply_op(state, *it, result, rng, final_ops && (it + 1 == last) );
         if(BaseState::enable_shot_branching_ && state.num_branch() > 0){
           //break loop to branch states

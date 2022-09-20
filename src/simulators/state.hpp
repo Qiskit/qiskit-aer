@@ -1161,12 +1161,18 @@ void State<state_t>::run_shots_with_branching(OpItr first,
 
     //apply sampling measure for each branch
     if(can_sample){
+      for(int_t i=0;i<states.size();i++){
+        measure_sampler(*states[i], measure_seq, last, states[i]->num_shots(), result, rng, false, cregs.begin() + creg_pos[i]);
+      }
+
+      /*
       auto sampling_measure_func = [this, &states, &cregs, &creg_pos, &par_results, &rng, measure_seq, last](int_t i)
       {
         int_t ires = omp_get_thread_num() % par_results.size();
         measure_sampler(*states[i], measure_seq, last, states[i]->num_shots(), par_results[ires], rng, false, cregs.begin() + creg_pos[i]);
       };
       Utils::apply_omp_parallel_for((Base::parallel_shots_ > 1), 0, states.size(), sampling_measure_func, Base::parallel_shots_);
+      */
     }
 
     //clear

@@ -47,17 +47,9 @@ public:
   explicit UnitaryMatrixThrust(size_t num_qubits);
   UnitaryMatrixThrust(const UnitaryMatrixThrust& obj)
   {
-    BaseVector::copy_qv(obj);
-    num_qubits_ = obj.num_qubits_;
-    rows_ = obj.rows_;
-    identity_threshold_ = obj.identity_threshold_;
   }
   UnitaryMatrixThrust &operator=(const UnitaryMatrixThrust& obj)
   {
-    BaseVector::copy_qv(obj);
-    num_qubits_ = obj.num_qubits_;
-    rows_ = obj.rows_;
-    identity_threshold_ = obj.identity_threshold_;
     return *this;
   }
 
@@ -101,7 +93,7 @@ public:
   //initialize from existing state (copy)
   void initialize(const UnitaryMatrixThrust<data_t>& obj)
   {
-    BaseVector::copy_qv(obj);
+    BaseVector::initialize(obj);
     num_qubits_ = obj.num_qubits_;
     rows_ = obj.rows_;
     identity_threshold_ = obj.identity_threshold_;

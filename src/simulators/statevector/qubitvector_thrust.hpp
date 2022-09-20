@@ -700,11 +700,8 @@ void QubitVectorThrust<data_t>::copy_qv(const QubitVectorThrust<data_t>& obj)
   if(!chunk_setup(obj, obj.chunk_index_)){
     throw std::runtime_error("QubitVectorThrust: can not allocate chunk for copy");
   }
-//  chunk_setup(obj.num_qubits_, obj.num_qubits_, obj.chunk_index_, 1);
+  set_num_qubits(obj.num_qubits());
 
-  set_num_qubits(obj.num_qubits_);
-
-//  initialize_from_data(obj.data(), obj.data_size_);
   chunk_.CopyIn(obj.chunk_);
 
 }
