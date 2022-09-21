@@ -297,84 +297,41 @@ void State::initialize_qreg_state(QuantumState::RegistersBase& state_in, const c
 
 void State::set_state_config(QuantumState::RegistersBase& state_in, const json_t &config)
 {
-  if(omp_get_num_threads() > 1){
-#pragma omp critical
-    {
-      // Set the error upper bound in the stabilizer rank approximation
-      JSON::get_value(approximation_error_, "extended_stabilizer_approximation_error", config);
-      // Set the number of samples used in the norm estimation routine
-      JSON::get_value(norm_estimation_samples_, "extended_stabilizer_norm_estimation_default_samples", config);
-      // Set the desired number of repetitions of the norm estimation step. If not explicitly set, we
-      // compute a default basd on the approximation error
-      norm_estimation_repetitions_ = std::llrint(std::log2(1. / approximation_error_));
-      JSON::get_value(norm_estimation_repetitions_, "extended_stabilizer_norm_estimation_repetitions", config);
-      // Set the number of steps used in the metropolis sampler before we
-      // consider the distribution as approximating the output
-      JSON::get_value(metropolis_mixing_steps_, "extended_stabilizer_metropolis_mixing_time", config);
-      //Set the threshold of the decomposition before we use omp
-      JSON::get_value(omp_threshold_rank_, "extended_stabilizer_parallel_threshold", config);
-      //Set the truncation threshold for the probabilities snapshot.
-      JSON::get_value(snapshot_chop_threshold_, "zero_threshold", config);
-      //Set the number of samples for the probabilities snapshot
-      JSON::get_value(probabilities_snapshot_samples_, "extended_stabilizer_probabilities_snapshot_samples", config);
-      //Set the measurement strategy
-      std::string sampling_method_str = "resampled_metropolis";
-      JSON::get_value(sampling_method_str, "extended_stabilizer_sampling_method", config);
-      if (sampling_method_str == "metropolis") {
-        sampling_method_ = SamplingMethod::metropolis;
-      }
-      else if (sampling_method_str == "resampled_metropolis")
-      {
-        sampling_method_ = SamplingMethod::resampled_metropolis;
-      }
-      else if (sampling_method_str == "norm_estimation") {
-        sampling_method_ = SamplingMethod::norm_estimation;
-      }
-      else {
-        throw std::runtime_error(
-          std::string("Unrecognised sampling method ") + sampling_method_str +
-          std::string("for the extended stabilizer simulator.")
-        );
-      }
-    }
+  // Set the error upper bound in the stabilizer rank approximation
+  JSON::get_value(approximation_error_, "extended_stabilizer_approximation_error", config);
+  // Set the number of samples used in the norm estimation routine
+  JSON::get_value(norm_estimation_samples_, "extended_stabilizer_norm_estimation_default_samples", config);
+  // Set the desired number of repetitions of the norm estimation step. If not explicitly set, we
+  // compute a default basd on the approximation error
+  norm_estimation_repetitions_ = std::llrint(std::log2(1. / approximation_error_));
+  JSON::get_value(norm_estimation_repetitions_, "extended_stabilizer_norm_estimation_repetitions", config);
+  // Set the number of steps used in the metropolis sampler before we
+  // consider the distribution as approximating the output
+  JSON::get_value(metropolis_mixing_steps_, "extended_stabilizer_metropolis_mixing_time", config);
+  //Set the threshold of the decomposition before we use omp
+  JSON::get_value(omp_threshold_rank_, "extended_stabilizer_parallel_threshold", config);
+  //Set the truncation threshold for the probabilities snapshot.
+  JSON::get_value(snapshot_chop_threshold_, "zero_threshold", config);
+  //Set the number of samples for the probabilities snapshot
+  JSON::get_value(probabilities_snapshot_samples_, "extended_stabilizer_probabilities_snapshot_samples", config);
+  //Set the measurement strategy
+  std::string sampling_method_str = "resampled_metropolis";
+  JSON::get_value(sampling_method_str, "extended_stabilizer_sampling_method", config);
+  if (sampling_method_str == "metropolis") {
+    sampling_method_ = SamplingMethod::metropolis;
   }
-  else{
-      // Set the error upper bound in the stabilizer rank approximation
-      JSON::get_value(approximation_error_, "extended_stabilizer_approximation_error", config);
-      // Set the number of samples used in the norm estimation routine
-      JSON::get_value(norm_estimation_samples_, "extended_stabilizer_norm_estimation_default_samples", config);
-      // Set the desired number of repetitions of the norm estimation step. If not explicitly set, we
-      // compute a default basd on the approximation error
-      norm_estimation_repetitions_ = std::llrint(std::log2(1. / approximation_error_));
-      JSON::get_value(norm_estimation_repetitions_, "extended_stabilizer_norm_estimation_repetitions", config);
-      // Set the number of steps used in the metropolis sampler before we
-      // consider the distribution as approximating the output
-      JSON::get_value(metropolis_mixing_steps_, "extended_stabilizer_metropolis_mixing_time", config);
-      //Set the threshold of the decomposition before we use omp
-      JSON::get_value(omp_threshold_rank_, "extended_stabilizer_parallel_threshold", config);
-      //Set the truncation threshold for the probabilities snapshot.
-      JSON::get_value(snapshot_chop_threshold_, "zero_threshold", config);
-      //Set the number of samples for the probabilities snapshot
-      JSON::get_value(probabilities_snapshot_samples_, "extended_stabilizer_probabilities_snapshot_samples", config);
-      //Set the measurement strategy
-      std::string sampling_method_str = "resampled_metropolis";
-      JSON::get_value(sampling_method_str, "extended_stabilizer_sampling_method", config);
-      if (sampling_method_str == "metropolis") {
-        sampling_method_ = SamplingMethod::metropolis;
-      }
-      else if (sampling_method_str == "resampled_metropolis")
-      {
-        sampling_method_ = SamplingMethod::resampled_metropolis;
-      }
-      else if (sampling_method_str == "norm_estimation") {
-        sampling_method_ = SamplingMethod::norm_estimation;
-      }
-      else {
-        throw std::runtime_error(
-          std::string("Unrecognised sampling method ") + sampling_method_str +
-          std::string("for the extended stabilizer simulator.")
-        );
-      }
+  else if (sampling_method_str == "resampled_metropolis")
+  {
+    sampling_method_ = SamplingMethod::resampled_metropolis;
+  }
+  else if (sampling_method_str == "norm_estimation") {
+    sampling_method_ = SamplingMethod::norm_estimation;
+  }
+  else {
+    throw std::runtime_error(
+      std::string("Unrecognised sampling method ") + sampling_method_str +
+      std::string("for the extended stabilizer simulator.")
+    );
   }
 }
 
