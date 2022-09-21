@@ -421,24 +421,11 @@ size_t State<unitary_matrix_t>::required_memory_mb(
 template <class unitary_matrix_t>
 void State<unitary_matrix_t>::set_state_config(QuantumState::RegistersBase& state_in, const json_t &config) 
 {
+ // Set OMP threshold for state update functions
+  JSON::get_value(omp_qubit_threshold_, "unitary_parallel_threshold", config);
 
-  if(omp_get_num_threads() > 1){
-#pragma omp critical
-    {
-     // Set OMP threshold for state update functions
-      JSON::get_value(omp_qubit_threshold_, "unitary_parallel_threshold", config);
-
-      // Set threshold for truncating snapshots
-      JSON::get_value(json_chop_threshold_, "zero_threshold", config);
-    }
-  }
-  else{
-   // Set OMP threshold for state update functions
-    JSON::get_value(omp_qubit_threshold_, "unitary_parallel_threshold", config);
-
-    // Set threshold for truncating snapshots
-    JSON::get_value(json_chop_threshold_, "zero_threshold", config);
-  }
+  // Set threshold for truncating snapshots
+  JSON::get_value(json_chop_threshold_, "zero_threshold", config);
 
   QuantumState::Registers<unitary_matrix_t>& state = dynamic_cast<QuantumState::Registers<unitary_matrix_t>&>(state_in);
   for(int_t i=0;i<state.qregs().size();i++)

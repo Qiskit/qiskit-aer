@@ -317,25 +317,12 @@ size_t State::required_memory_mb(uint_t num_qubits,
 
 void State::set_state_config(QuantumState::RegistersBase& state_in, const json_t &config) 
 {
-  if(omp_get_num_threads() > 1){
-#pragma omp critical
-    {
-      // Set threshold for truncating snapshots
-      JSON::get_value(json_chop_threshold_, "zero_threshold", config);
+  // Set threshold for truncating snapshots
+  JSON::get_value(json_chop_threshold_, "zero_threshold", config);
 
-      // Load max snapshot qubit size and set hard limit of 64 qubits.
-      JSON::get_value(max_qubits_snapshot_probs_, "stabilizer_max_snapshot_probabilities", config);
-      max_qubits_snapshot_probs_ = std::max<uint_t>(max_qubits_snapshot_probs_, 64);
-    }
-  }
-  else{
-      // Set threshold for truncating snapshots
-      JSON::get_value(json_chop_threshold_, "zero_threshold", config);
-
-      // Load max snapshot qubit size and set hard limit of 64 qubits.
-      JSON::get_value(max_qubits_snapshot_probs_, "stabilizer_max_snapshot_probabilities", config);
-      max_qubits_snapshot_probs_ = std::max<uint_t>(max_qubits_snapshot_probs_, 64);
-  }
+  // Load max snapshot qubit size and set hard limit of 64 qubits.
+  JSON::get_value(max_qubits_snapshot_probs_, "stabilizer_max_snapshot_probabilities", config);
+  max_qubits_snapshot_probs_ = std::max<uint_t>(max_qubits_snapshot_probs_, 64);
 }
 
 //=========================================================================

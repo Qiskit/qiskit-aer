@@ -688,21 +688,10 @@ void State<statevec_t>::set_state_config(QuantumState::RegistersBase& state_in, 
   double thresh;
 
   // Set OMP threshold for state update functions
-  if(omp_get_num_threads() > 1){
-#pragma omp critical
-    {
-      // Set threshold for truncating snapshots
-      JSON::get_value(json_chop_threshold_, "zero_threshold", config);
-      JSON::get_value(omp_qubit_threshold_, "statevector_parallel_threshold", config);
-      thresh = json_chop_threshold_;
-    }
-  }
-  else{
-    // Set threshold for truncating snapshots
-    JSON::get_value(json_chop_threshold_, "zero_threshold", config);
-    JSON::get_value(omp_qubit_threshold_, "statevector_parallel_threshold", config);
-    thresh = json_chop_threshold_;
-  }
+  // Set threshold for truncating snapshots
+  JSON::get_value(json_chop_threshold_, "zero_threshold", config);
+  JSON::get_value(omp_qubit_threshold_, "statevector_parallel_threshold", config);
+  thresh = json_chop_threshold_;
 
   // Set the sample measure indexing size
   int index_size;

@@ -1053,12 +1053,16 @@ void State<state_t>::run_shots_with_branching(OpItr first,
     //functor for ops execution
     auto apply_ops_func = [this, &states, &rng, &noise, &par_results, measure_seq](int_t i)
     {
-      int_t ires = omp_get_thread_num() % par_results.size();
-      apply_ops(*states[i], states[i]->next_iter(),measure_seq ,noise,par_results[ires], rng, true);
+      uint_t istate,state_end;
+      istate = states.size()*i/Base::parallel_shots_;
+      state_end = states.size()*(i+1)/Base::parallel_shots_;
+      uint_t nbranch = 0;
 
-      if(states[i]->num_branch() > 0)  //check if there are new branches
-        return 1;
-      return 0;
+      for(;istate<state_end;istate++){
+        apply_ops(*states[istate], states[istate]->next_iter(),measure_seq ,noise,par_results[i], rng, true);
+        nbranch += states[istate]->num_branch();
+      }
+      return nbranch;
     };
 
     initial_state->next_iter() = first;
@@ -1067,7 +1071,7 @@ void State<state_t>::run_shots_with_branching(OpItr first,
       uint_t nbranch = 0;
 
       //apply ops until a branch operation comes (reset, measure, kraus, initialize, noises)
-      nbranch = Utils::apply_omp_parallel_for_reduction_int((Base::parallel_shots_ > 1 && states.size() > 1), 0, states.size(), apply_ops_func, Base::parallel_shots_);
+      nbranch = Utils::apply_omp_parallel_for_reduction_int((Base::parallel_shots_ > 1 && states.size() > 1), 0, Base::parallel_shots_, apply_ops_func, Base::parallel_shots_);
 
       while(nbranch > 0){
         uint_t num_states_prev = states.size();
@@ -1115,26 +1119,31 @@ void State<state_t>::run_shots_with_branching(OpItr first,
         //then execute ops applied after branching (reset, Kraus, noises, etc.)
         auto apply_additional_ops_func = [this, &states, &rng, &noise, &par_results](int_t i)
         {
-          int_t ires = omp_get_thread_num() % par_results.size();
-          int ret = 0;
-          states[i]->clear_branch();
-          for(int_t j=0;j<states[i]->additional_ops().size();j++){
-            apply_op(*states[i], states[i]->additional_ops()[j], par_results[ires], rng, false );
+          uint_t istate,state_end;
+          istate = states.size()*i/Base::parallel_shots_;
+          state_end = states.size()*(i+1)/Base::parallel_shots_;
+          uint_t nbranch = 0;
 
-            if(states[i]->num_branch() > 0){  //check if there are new branches
-              //if there are additional ops remaining, queue them on new branches
-              for(int_t k=j+1;k<states[i]->additional_ops().size();k++){
-                for(int_t l=0;l<states[i]->num_branch();l++)
-                  states[i]->add_op_after_branch(l,states[i]->additional_ops()[k]);
+          for(;istate<state_end;istate++){
+            states[istate]->clear_branch();
+            for(int_t j=0;j<states[istate]->additional_ops().size();j++){
+              apply_op(*states[istate], states[istate]->additional_ops()[j], par_results[i], rng, false );
+
+              if(states[istate]->num_branch() > 0){  //check if there are new branches
+                //if there are additional ops remaining, queue them on new branches
+                for(int_t k=j+1;k<states[istate]->additional_ops().size();k++){
+                  for(int_t l=0;l<states[istate]->num_branch();l++)
+                    states[istate]->add_op_after_branch(l,states[istate]->additional_ops()[k]);
+                }
+                nbranch += states[istate]->num_branch();
+                break;
               }
-              ret = 1;
-              break;
             }
+            states[istate]->clear_additional_ops();
           }
-          states[i]->clear_additional_ops();
-          return ret;
+          return nbranch;
         };
-        nbranch = Utils::apply_omp_parallel_for_reduction_int((Base::parallel_shots_ > 1), 0, states.size(), apply_additional_ops_func, Base::parallel_shots_);
+        nbranch = Utils::apply_omp_parallel_for_reduction_int((Base::parallel_shots_ > 1 && states.size() > 1), 0, Base::parallel_shots_, apply_additional_ops_func, Base::parallel_shots_);
       }
 
       nactive = 0;
@@ -1157,22 +1166,20 @@ void State<state_t>::run_shots_with_branching(OpItr first,
         cregs[creg_pos[i] + j] = states[i]->creg();
       }
     };
-    Utils::apply_omp_parallel_for((Base::parallel_shots_ > 1), 0, states.size(), save_creg_func, Base::parallel_shots_);
+    Utils::apply_omp_parallel_for((Base::parallel_shots_ > 1 && states.size() > 1), 0, states.size(), save_creg_func, Base::parallel_shots_);
 
     //apply sampling measure for each branch
     if(can_sample){
-      for(int_t i=0;i<states.size();i++){
-        measure_sampler(*states[i], measure_seq, last, states[i]->num_shots(), result, rng, false, cregs.begin() + creg_pos[i]);
-      }
-
-      /*
       auto sampling_measure_func = [this, &states, &cregs, &creg_pos, &par_results, &rng, measure_seq, last](int_t i)
       {
-        int_t ires = omp_get_thread_num() % par_results.size();
-        measure_sampler(*states[i], measure_seq, last, states[i]->num_shots(), par_results[ires], rng, false, cregs.begin() + creg_pos[i]);
+        uint_t istate,state_end;
+        istate = states.size()*i/Base::parallel_shots_;
+        state_end = states.size()*(i+1)/Base::parallel_shots_;
+
+        for(;istate<state_end;istate++)
+          measure_sampler(*states[istate], measure_seq, last, states[istate]->num_shots(), par_results[i], rng, false, cregs.begin() + creg_pos[istate]);
       };
-      Utils::apply_omp_parallel_for((Base::parallel_shots_ > 1), 0, states.size(), sampling_measure_func, Base::parallel_shots_);
-      */
+      Utils::apply_omp_parallel_for((Base::parallel_shots_ > 1 && states.size() > 1), 0, Base::parallel_shots_, sampling_measure_func, Base::parallel_shots_);
     }
 
     //clear
@@ -1201,7 +1208,7 @@ void State<state_t>::run_shots_with_branching(OpItr first,
       }
     }
   };
-  Utils::apply_omp_parallel_for((Base::parallel_shots_ > 1),0,Base::parallel_shots_,save_cregs);
+  Utils::apply_omp_parallel_for((Base::parallel_shots_ > 1),0,Base::parallel_shots_,save_cregs, Base::parallel_shots_);
 
   for (auto &res : par_results) {
     result.combine(std::move(res));

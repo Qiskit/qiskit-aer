@@ -760,27 +760,13 @@ void State<densmat_t>::set_state_config(QuantumState::RegistersBase& state_in, c
 {
   double thresh;
 
-  if(omp_get_num_threads() > 1){
-#pragma omp critical
-    {
-      // Set threshold for truncating snapshots
-      JSON::get_value(json_chop_threshold_, "chop_threshold", config);
+  // Set threshold for truncating snapshots
+  JSON::get_value(json_chop_threshold_, "chop_threshold", config);
 
-      // Set OMP threshold for state update functions
-      JSON::get_value(omp_qubit_threshold_, "statevector_parallel_threshold",
-                  config);
-      thresh = json_chop_threshold_;
-    }
-  }
-  else{
-    // Set threshold for truncating snapshots
-    JSON::get_value(json_chop_threshold_, "chop_threshold", config);
-
-    // Set OMP threshold for state update functions
-    JSON::get_value(omp_qubit_threshold_, "statevector_parallel_threshold",
-                config);
-      thresh = json_chop_threshold_;
-  }
+  // Set OMP threshold for state update functions
+  JSON::get_value(omp_qubit_threshold_, "statevector_parallel_threshold",
+              config);
+  thresh = json_chop_threshold_;
 
   QuantumState::Registers<densmat_t>& state = dynamic_cast<QuantumState::Registers<densmat_t>&>(state_in);
   uint_t i;

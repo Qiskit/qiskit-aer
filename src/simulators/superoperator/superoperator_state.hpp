@@ -319,27 +319,13 @@ size_t State<data_t>::required_memory_mb(
 template <class data_t> void State<data_t>::set_state_config(QuantumState::RegistersBase& state_in, const json_t &config) 
 {
   double thresh;
-  if(omp_get_num_threads() > 1){
-#pragma omp critical
-    {
-      // Set OMP threshold for state update functions
-      JSON::get_value(omp_qubit_threshold_, "superoperator_parallel_threshold",
-                      config);
+  // Set OMP threshold for state update functions
+  JSON::get_value(omp_qubit_threshold_, "superoperator_parallel_threshold",
+                  config);
 
-      // Set threshold for truncating snapshots
-      JSON::get_value(json_chop_threshold_, "zero_threshold", config);
-      thresh = json_chop_threshold_;
-    }
-  }
-  else{
-    // Set OMP threshold for state update functions
-    JSON::get_value(omp_qubit_threshold_, "superoperator_parallel_threshold",
-                    config);
-
-    // Set threshold for truncating snapshots
-    JSON::get_value(json_chop_threshold_, "zero_threshold", config);
-    thresh = json_chop_threshold_;
-  }
+  // Set threshold for truncating snapshots
+  JSON::get_value(json_chop_threshold_, "zero_threshold", config);
+  thresh = json_chop_threshold_;
 
   QuantumState::Registers<data_t>& state = dynamic_cast<QuantumState::Registers<data_t>&>(state_in);
   if(state.qregs().size() == 0)
