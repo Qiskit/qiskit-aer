@@ -189,6 +189,12 @@ public:
 
   void add_op_after_branch(const uint_t ibranch, Operations::Op& op)
   {
+    if(ibranch >= branches_.size()){
+      branches_.resize(ibranch + 1);
+      //copy all shots
+      branches_[ibranch].shots_ = shots_;
+      branches_[ibranch].creg_ = creg_;
+    }
     branches_[ibranch].additional_ops_.push_back(op);
   }
   void copy_ops_after_branch(const uint_t ibranch, std::vector<Operations::Op>& ops)

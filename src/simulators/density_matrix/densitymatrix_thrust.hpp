@@ -1380,7 +1380,7 @@ reg_t DensityMatrixThrust<data_t>::sample_measure(const std::vector<double> &rnd
     if(BaseVector::enable_batch_){
       if(BaseVector::chunk_.pos() != 0)
         return reg_t();   //first chunk execute all in batch
-      count = BaseVector::chunk_.container()->num_chunks();
+      count = BaseVector::chunk_.container()->num_chunk_mapped();
     }
   }
 
@@ -1464,11 +1464,11 @@ void DensityMatrixThrust<data_t>::apply_batched_measure(const reg_t& qubits,std:
       return;   //first chunk execute all in batch
     }
   }
-  count = BaseVector::chunk_.container()->num_chunks();
+  count = BaseVector::chunk_.container()->num_chunk_mapped();
 
   //total probability
   BaseVector::apply_function_sum(nullptr,Chunk::trace_func<data_t>(BaseMatrix::rows_),true);
-  BaseVector::apply_function(set_probability_buffer_for_reset_func<data_t>(BaseVector::chunk_.probability_buffer(),BaseVector::chunk_.container()->num_chunks(),
+  BaseVector::apply_function(set_probability_buffer_for_reset_func<data_t>(BaseVector::chunk_.probability_buffer(),BaseVector::chunk_.container()->num_chunk_mapped(),
                                                                            BaseVector::chunk_.reduce_buffer(),BaseVector::chunk_.reduce_buffer_size()) );
 
   reg_t params(qubits.size() + cmemory.size() + cregs.size());
@@ -1499,18 +1499,18 @@ void DensityMatrixThrust<data_t>::apply_batched_measure(const reg_t& qubits,std:
     BaseVector::chunk_.set_conditional(system_reg);
     BaseVector::apply_function_sum(nullptr,density_probability_func<data_t>(qubits,i,num_qubits()),true);
 
-    BaseVector::apply_function(check_measure_probability_func<data_t>(qubits.size(),BaseVector::chunk_.probability_buffer(),BaseVector::chunk_.container()->num_chunks(),
+    BaseVector::apply_function(check_measure_probability_func<data_t>(qubits.size(),BaseVector::chunk_.probability_buffer(),BaseVector::chunk_.container()->num_chunk_mapped(),
                                                                         BaseVector::chunk_.reduce_buffer(),BaseVector::chunk_.reduce_buffer_size(),
                                                                         i,cmemory.size(),cregs.size()) );
 
     BaseVector::chunk_.set_conditional(system_reg+1);
-    BaseVector::apply_function(density_reset_after_measure_func<data_t>(qubits.size(),num_qubits(),BaseVector::chunk_.probability_buffer(),BaseVector::chunk_.container()->num_chunks(),i ));
+    BaseVector::apply_function(density_reset_after_measure_func<data_t>(qubits.size(),num_qubits(),BaseVector::chunk_.probability_buffer(),BaseVector::chunk_.container()->num_chunk_mapped(),i ));
     BaseVector::store_cregister(system_reg+1,0);
   }
   //for last case
   BaseVector::chunk_.keep_conditional(false);
   BaseVector::chunk_.set_conditional(system_reg);
-  BaseVector::apply_function(density_reset_after_measure_func<data_t>(qubits.size(),num_qubits(),BaseVector::chunk_.probability_buffer(),BaseVector::chunk_.container()->num_chunks(),DIM-1 ));
+  BaseVector::apply_function(density_reset_after_measure_func<data_t>(qubits.size(),num_qubits(),BaseVector::chunk_.probability_buffer(),BaseVector::chunk_.container()->num_chunk_mapped(),DIM-1 ));
 
   BaseVector::chunk_.container()->request_creg_update();
 }

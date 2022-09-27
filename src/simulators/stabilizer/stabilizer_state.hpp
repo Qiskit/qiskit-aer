@@ -188,6 +188,12 @@ protected:
   // Implement a measurement on all specified qubits and return the outcome
   reg_t apply_measure_and_update(QuantumState::Registers<Clifford::Clifford>& state,const reg_t &qubits, RngEngine &rng);
 
+  void apply_measure_and_update_shot_branching(QuantumState::Registers<Clifford::Clifford>& state,
+                                               const reg_t &qubits,
+                                               const reg_t &cmemory,
+                                               const reg_t &cregister,
+                                               bool reset_only);
+
   //-----------------------------------------------------------------------
   // Special snapshot types
   //
@@ -227,6 +233,10 @@ protected:
   // Table of allowed snapshot types to enum class members
   const static stringmap_t<Snapshots> snapshotset_;
 
+  bool shot_branching_supported(void) override
+  {
+    return true;
+  }
 };
 
 
@@ -342,9 +352,32 @@ void State::apply_op(QuantumState::RegistersBase& state_in,
       case OpType::qerror_loc:
         break;
       case OpType::reset:
+        if(BaseState::enable_shot_branching_){  //shot branching
+          if(op.name == "update"){    //for the second call of measure
+            uint_t r = op.int_params[0];   //use saved prob
+            if(state.qreg().measure_and_update(op.qubits[0], r)){
+              //add X to additional list
+              Operations::Op xop;
+              xop.type = OpType::gate;
+              xop.name = "x";
+              xop.qubits.push_back(op.qubits[0]);
+              state.add_op_after_branch(0, xop);
+            }
+            break;
+          }
+        }
         apply_reset(state, op.qubits, rng);
         break;
       case OpType::measure:
+        if(BaseState::enable_shot_branching_){  //shot branching
+          if(op.name == "update"){    //for the second call of measure
+            reg_t outcome(1);
+            uint_t r = op.int_params[0];   //use saved prob
+            outcome[0] = state.qreg().measure_and_update(op.qubits[0], r);
+            state.creg().store_measure(outcome, op.memory, op.registers);
+            break;
+          }
+        }
         apply_measure(state, op.qubits, op.memory, op.registers, rng);
         break;
       case OpType::bfunc:
@@ -487,22 +520,34 @@ void State::apply_measure(QuantumState::Registers<Clifford::Clifford>& state,
                           const reg_t &cregister,
                           RngEngine &rng) 
 {
-  // Apply measurement and get classical outcome
-  reg_t outcome = apply_measure_and_update(state, qubits, rng);
-  // Add measurement outcome to creg
-  state.creg().store_measure(outcome, cmemory, cregister);
+  if(BaseState::enable_shot_branching_){  //shot branching
+    apply_measure_and_update_shot_branching(state,qubits,cmemory,cregister,false);
+  }
+  else{
+    // Apply measurement and get classical outcome
+    reg_t outcome = apply_measure_and_update(state, qubits, rng);
+    // Add measurement outcome to creg
+    state.creg().store_measure(outcome, cmemory, cregister);
+  }
 }
 
 
 void State::apply_reset(QuantumState::Registers<Clifford::Clifford>& state,const reg_t &qubits, RngEngine &rng) 
 {
-  // Apply measurement and get classical outcome
-  reg_t outcome = apply_measure_and_update(state, qubits, rng);
-  // Use the outcome to apply X gate to any qubits left in the
-  // |1> state after measure, then discard outcome.
-  for (size_t j=0; j < qubits.size(); j++) {
-    if (outcome[j] == 1) {
-      state.qreg().append_x(qubits[j]);
+  if(BaseState::enable_shot_branching_){  //shot branching
+    reg_t cmem;
+    reg_t creg;
+    apply_measure_and_update_shot_branching(state,qubits,cmem,creg,true);
+  }
+  else{
+    // Apply measurement and get classical outcome
+    reg_t outcome = apply_measure_and_update(state, qubits, rng);
+    // Use the outcome to apply X gate to any qubits left in the
+    // |1> state after measure, then discard outcome.
+    for (size_t j=0; j < qubits.size(); j++) {
+      if (outcome[j] == 1) {
+        state.qreg().append_x(qubits[j]);
+      }
     }
   }
 }
@@ -527,6 +572,64 @@ reg_t State::apply_measure_and_update(QuantumState::Registers<Clifford::Clifford
   return outcome;
 }
 
+void State::apply_measure_and_update_shot_branching(QuantumState::Registers<Clifford::Clifford>& state,
+                                               const reg_t &qubits,
+                                               const reg_t &cmemory,
+                                               const reg_t &cregister,
+                                               bool reset_only)
+{
+  const rvector_t dist = {0.5, 0.5};
+  uint_t nshots = state.num_shots();
+  reg_t shot_branch(nshots);
+
+  //only first qubit is measured/reset 
+  for(int_t i=0;i<nshots;i++)
+    shot_branch[i] = state.rng_shots(i).rand_int(dist);
+  //branch shots
+  state.branch_shots(shot_branch, 2);
+
+  //states are updated in additional op call
+  for(uint_t i=0;i<2;i++){
+    Operations::Op op;
+    if(reset_only){
+      op.type = OpType::reset;
+    }
+    else{
+      op.type = OpType::measure;
+      if(cmemory.size() > 0)
+        op.memory.push_back(cmemory[0]);
+      if(cregister.size() > 0)
+        op.registers.push_back(cregister[0]);
+    }
+    op.name = "update";   //name for second call
+    op.qubits.push_back(qubits[0]);
+    op.int_params.push_back(i);
+    state.add_op_after_branch(i, op);
+  }
+
+  //add measure/reset for remaining qubits
+  if(qubits.size() > 1){
+    for(uint_t i=0;i<2;i++){
+      Operations::Op op;
+      if(reset_only){
+        op.type = OpType::reset;
+        op.name = "reset";
+      }
+      else{
+        op.type = OpType::measure;
+        op.name = "measure";
+        if(cmemory.size() > 1)
+          op.memory.insert(op.memory.begin(),cmemory.begin()+1,cmemory.end());
+        if(cregister.size() > 1)
+          op.registers.insert(op.registers.begin(),cregister.begin()+1,cregister.end());
+      }
+      op.qubits.insert(op.qubits.begin(),qubits.begin()+1,qubits.end());
+      state.add_op_after_branch(i, op);
+    }
+  }
+}
+
+
 std::vector<reg_t> State::sample_measure(QuantumState::RegistersBase& state_in, const reg_t &qubits,
                                          uint_t shots,
                                          RngEngine &rng) 
@@ -537,8 +640,11 @@ std::vector<reg_t> State::sample_measure(QuantumState::RegistersBase& state_in, 
   auto qreg_cache = state.qreg();
   std::vector<reg_t> samples;
   samples.reserve(shots);
-  while (shots-- > 0) { // loop over shots
-    samples.push_back(apply_measure_and_update(state, qubits, rng));
+  for(int_t i=0;i<shots;i++) { // loop over shots
+    if(BaseState::enable_shot_branching_ && state.num_shots() == shots)  //shot branching
+      samples.push_back(apply_measure_and_update(state, qubits, state.rng_shots(i)));
+    else
+      samples.push_back(apply_measure_and_update(state, qubits, rng));
     state.qreg() = qreg_cache; // restore pre-measurement data from cache
   }
   return samples;

@@ -38,7 +38,7 @@ public:
   explicit Clifford(const uint64_t nqubit);
 
   //initialize from existing state (copy)
-  void initialize(const Clifford& obj){}
+  void initialize(const Clifford& obj);
 
   //-----------------------------------------------------------------------
   // Utility functions
@@ -213,6 +213,16 @@ Clifford::Clifford(uint64_t nq) : num_qubits_(nq) {
   }
   // Add phases
   phases_.resize(2 * nq);
+}
+
+void Clifford::initialize(const Clifford& obj)
+{
+  table_ = obj.table_;
+  phases_ = obj.phases_;
+  num_qubits_ = obj.num_qubits_;
+  omp_threads_ = obj.omp_threads_;
+  omp_threshold_ = obj.omp_threshold_;
+  json_chop_threshold_ = obj.json_chop_threshold_;
 }
 
 //------------------------------------------------------------------------------
