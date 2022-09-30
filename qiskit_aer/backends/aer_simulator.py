@@ -264,6 +264,7 @@ class AerSimulator(AerBackend):
       shots to parallel processes of MPI (Default: True).
       If multiple GPUs are used for batched exectuion number of GPUs is
       reported to ``batched_shots_optimization_parallel_gpus`` metadata.
+      ``cuStateVec_enable`` is not supported for this option.
 
     * ``batched_shots_gpu_max_qubits`` (int): This option sets the maximum
       number of qubits for enabling the ``batched_shots_gpu`` option. If the
@@ -279,6 +280,11 @@ class AerSimulator(AerBackend):
       optimized multi-shots simulation starting from single state and
       state will be branched when some operations with randomness
       (i.e. measure, reset, noises, etc.) is applied (Default: True).
+      This option can decrease runs of shots if there will be less branches
+      than number of shots.
+      This option is available for ``"statevector"``, ``"density_matrix"``
+      and ``"stabilizer"``.
+      For GPU, ``cuStateVec_enable`` is not supported for this option.
 
     * ``runtime_noise_sampling_enable`` (bool): This option enables/disables
       runtime noise sampling. This option is only enabled when
@@ -586,7 +592,7 @@ class AerSimulator(AerBackend):
             blocking_enable=False,
             chunk_swap_buffer_qubits=None,
             # multi-shots optimization options (GPU only)
-            batched_shots_gpu=True,
+            batched_shots_gpu=False,
             batched_shots_gpu_max_qubits=16,
             num_threads_per_device=1,
             # multi-shot branching

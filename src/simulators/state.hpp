@@ -277,6 +277,13 @@ void Base::set_config(const json_t &config)
 
   // Load config for memory (creg list data)
   JSON::get_value(save_creg_memory_, "memory", config);
+
+#ifdef AER_CUSTATEVEC
+  //cuStateVec configs
+  if(JSON::check_key("cuStateVec_enable", config)) {
+    JSON::get_value(cuStateVec_enable_, "cuStateVec_enable", config);
+  }
+#endif
 }
 
 void Base::set_global_phase(double theta) 
@@ -620,6 +627,9 @@ protected:
 
   bool runtime_noise_sampled_ = false;  //true when runtime noise sampling is done
 
+  //cuStateVec settings
+  bool cuStateVec_enable_ = false;
+
   virtual bool shot_branching_supported(void)
   {
     return false;   //return true if simulation method supports
@@ -650,6 +660,13 @@ template <class state_t>
 void State<state_t>::set_config(const json_t &config) 
 {
   Base::set_config(config);
+
+#ifdef AER_CUSTATEVEC
+  //cuStateVec configs
+  if(JSON::check_key("cuStateVec_enable", config)) {
+    JSON::get_value(cuStateVec_enable_, "cuStateVec_enable", config);
+  }
+#endif
 
   set_state_config(state_, config);
 }
@@ -1035,6 +1052,9 @@ void State<state_t>::run_shots_with_branching(OpItr first,
   uint_t num_shots_saved = 0;
 
   std::vector<ExperimentResult> par_results(Base::parallel_shots_);
+
+  //cuStateVec is not supported
+  cuStateVec_enable_ = false;
 
   while(reserved_shots.size() > 0){
     std::vector<std::shared_ptr<Registers<state_t>>> states;

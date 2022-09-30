@@ -224,8 +224,6 @@ protected:
   reg_t num_chunks_in_group_;
   int num_threads_per_group_;   //number of outer threads per group
 
-  //cuStateVec settings
-  bool cuStateVec_enable_ = false;
 
   //-----------------------------------------------------------------------
   // Apply circuits and ops
@@ -391,12 +389,6 @@ void StateChunk<state_t>::set_config(const json_t &config)
     JSON::get_value(chunk_swap_buffer_qubits_, "chunk_swap_buffer_qubits", config);
   }
 
-#ifdef AER_CUSTATEVEC
-  //cuStateVec configs
-  if(JSON::check_key("cuStateVec_enable", config)) {
-    JSON::get_value(cuStateVec_enable_, "cuStateVec_enable", config);
-  }
-#endif
 }
 
 
@@ -453,12 +445,12 @@ bool StateChunk<state_t>::allocate(uint_t num_qubits,uint_t block_bits,uint_t nu
 #endif
 
     //set cuStateVec_enable_ 
-    if(cuStateVec_enable_){
+    if(BaseState::cuStateVec_enable_){
       if(multi_shots_parallelization_)
-        cuStateVec_enable_ = false;   //multi-shots parallelization is not supported for cuStateVec
+        BaseState::cuStateVec_enable_ = false;   //multi-shots parallelization is not supported for cuStateVec
     }
 
-    if(!cuStateVec_enable_)
+    if(!BaseState::cuStateVec_enable_)
       global_chunk_indexing_ = true;    //cuStateVec does not handle global chunk index for diagonal matrix
   }
   else if(BaseState::sim_device_name_ == "Thrust"){
@@ -506,7 +498,7 @@ bool StateChunk<state_t>::allocate_qregs(Registers<state_t>& state, uint_t num_c
   bool ret = true;
   state.qreg(0).set_max_matrix_bits(BaseState::max_matrix_qubits_);
   state.qreg(0).set_num_threads_per_group(num_threads_per_group_);
-  state.qreg(0).cuStateVec_enable(cuStateVec_enable_);
+  state.qreg(0).cuStateVec_enable(BaseState::cuStateVec_enable_);
   //reserve num_chunk chunks memory space for multi-shot (num_chunks == num_local_chunks_ for single shot)
   ret &= state.qreg(0).chunk_setup(chunk_bits_*qubit_scale(), BaseState::num_qubits_*qubit_scale(), chunk_id, num_chunks);
   for(i=1;i<num_local_chunks_;i++){
@@ -560,7 +552,7 @@ void StateChunk<state_t>::apply_ops(OpItr first, OpItr last,
   BaseState::state_.qreg().synchronize();
 
 #ifdef AER_CUSTATEVEC
-  result.metadata.add(cuStateVec_enable_, "cuStateVec_enable");
+  result.metadata.add(BaseState::cuStateVec_enable_, "cuStateVec_enable");
 #endif
 }
 
@@ -628,7 +620,7 @@ void StateChunk<state_t>::apply_ops(RegistersBase& state_in,
   state.next_iter() = last;
 
 #ifdef AER_CUSTATEVEC
-  result.metadata.add(cuStateVec_enable_, "cuStateVec_enable");
+  result.metadata.add(BaseState::cuStateVec_enable_, "cuStateVec_enable");
 #endif
 }
 
@@ -751,7 +743,7 @@ void StateChunk<state_t>::apply_ops_chunks(Registers<state_t>& state,
 #endif
 
 #ifdef AER_CUSTATEVEC
-    result.metadata.add(cuStateVec_enable_, "cuStateVec_enable");
+    result.metadata.add(BaseState::cuStateVec_enable_, "cuStateVec_enable");
 #endif
   }
 

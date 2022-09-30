@@ -369,7 +369,7 @@ protected:
   bool multi_chunk_required_ = false;
 
   //config setting for multi-shot parallelization
-  bool batched_shots_gpu_ = true;
+  bool batched_shots_gpu_ = false;
   int_t batched_shots_gpu_max_qubits_ = 16;   //multi-shot parallelization is applied if qubits is less than max qubits
   bool enable_batch_multi_shots_ = false;   //multi-shot parallelization can be applied
 

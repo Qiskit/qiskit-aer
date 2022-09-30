@@ -37,6 +37,9 @@ class SimulatorTestCase(QiskitAerTestCase):
             if 'device' == key and 'cuStateVec' in val:
                 sim_options['device'] = 'GPU'
                 sim_options['cuStateVec_enable'] = True
+            elif 'device' == key and 'batch' in val:
+                sim_options['device'] = 'GPU'
+                sim_options['batched_shots_gpu'] = True
             else:
                 sim_options[key] = val
         return self.BACKEND(**sim_options)
@@ -88,6 +91,8 @@ def _method_device(methods):
             #and this is converted to "device='GPU'" and option "cuStateVec_enalbe = True" is added
             if cuStateVec:
                 data_args.append((method, 'GPU_cuStateVec'))
+            #add batched optimization test for GPU
+            data_args.append((method, 'GPU_batch'))
         else:
             data_args.append((method, 'CPU'))
     return data_args
