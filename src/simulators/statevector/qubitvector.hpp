@@ -68,7 +68,9 @@ public:
   explicit QubitVector(size_t num_qubits);
   virtual ~QubitVector();
   QubitVector(size_t num_qubits, std::complex<data_t>* data, bool copy=false);
-  QubitVector(const QubitVector& obj) {};
+  QubitVector(const QubitVector& obj): num_qubits_(0), data_(nullptr), checkpoint_(0)
+  {
+  }
   QubitVector &operator=(QubitVector&& obj) {
     num_qubits_ = obj.num_qubits_;
     data_size_ = obj.data_size_;
@@ -86,6 +88,7 @@ public:
     return *this;
   };
   QubitVector& operator= (const QubitVector&) = delete;
+
 
   //-----------------------------------------------------------------------
   // Data access
@@ -112,7 +115,7 @@ public:
   static std::string name() {return "statevector";}
 
   // Set the size of the vector in terms of qubit number
-  void set_num_qubits(size_t num_qubits);
+  virtual void set_num_qubits(size_t num_qubits);
 
   // Returns the number of qubits for the current vector
   virtual uint_t num_qubits() const {return num_qubits_;}
@@ -158,7 +161,12 @@ public:
 
   //setup chunk
   bool chunk_setup(int chunk_bits,int num_qubits,uint_t chunk_index,uint_t num_local_chunks);
-  bool chunk_setup(QubitVector<data_t>& base,const uint_t chunk_index);
+  bool chunk_setup(const QubitVector<data_t>& base,const uint_t chunk_index);
+
+  uint_t chunk_index(void)
+  {
+    return chunk_index_;
+  }
 
   //cache control for chunks on host
   bool fetch_chunk(void) const
@@ -206,6 +214,12 @@ public:
 
   // Initializes the current vector so that all qubits are in the |0> state.
   void initialize();
+
+  //initialize from existing state (copy)
+  void initialize(const QubitVector<data_t>& obj)
+  {
+    copy_qv(obj);
+  }
 
   // Initializes the vector to a custom initial state.
   // If the length of the data vector does not match the number of qubits
@@ -338,8 +352,7 @@ public:
   virtual void apply_batched_reset(const reg_t& qubits,std::vector<RngEngine>& rng){}
 
   //copy classical register stored on qreg 
-  template <typename storage_t>
-  void read_measured_data(storage_t& creg){}
+  void read_measured_data(ClassicalRegister& creg){}
 
   virtual int_t set_batched_system_conditional(int_t src_reg, reg_t& mask){return -1;}
 
@@ -627,6 +640,8 @@ protected:
 
   // Allocates memory for the checkoiunt
   void allocate_checkpoint(size_t data_size);
+
+  void copy_qv(const QubitVector<data_t>& obj);
 };
 
 /*******************************************************************************
@@ -752,6 +767,23 @@ template <typename data_t>
 QubitVector<data_t>::~QubitVector() {
   free_mem();
   free_checkpoint();
+}
+
+template <typename data_t>
+void QubitVector<data_t>::copy_qv(const QubitVector<data_t>& obj)
+{
+  data_ = nullptr;
+  checkpoint_ = nullptr;
+  set_num_qubits(obj.num_qubits());
+  set_transformer_method();
+
+  initialize_from_data(obj.data_,obj.data_size_);
+
+  chunk_index_ = obj.chunk_index_;
+  omp_threads_ = obj.omp_threads_;
+  omp_threshold_ = obj.omp_threshold_;
+  sample_measure_index_size_ = obj.sample_measure_index_size_;
+  json_chop_threshold_ = obj.json_chop_threshold_;
 }
 
 //------------------------------------------------------------------------------
@@ -998,7 +1030,7 @@ bool QubitVector<data_t>::chunk_setup(int chunk_bits,int num_qubits,uint_t chunk
 }
 
 template <typename data_t>
-bool QubitVector<data_t>::chunk_setup(QubitVector<data_t>& base,const uint_t chunk_index)
+bool QubitVector<data_t>::chunk_setup(const QubitVector<data_t>& base,const uint_t chunk_index)
 {
   chunk_index_ = chunk_index;
   return true;

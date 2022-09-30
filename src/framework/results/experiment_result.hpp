@@ -91,12 +91,12 @@ public:
   template <class T>
   void save_data_pershot(const ClassicalRegister& creg,
                          const std::string &key, const T& datum, OpType type,
-                         DataSubType subtype = DataSubType::list);
+                         DataSubType subtype = DataSubType::list, int_t nshots = 1);
 
   template <class T>
   void save_data_pershot(const ClassicalRegister& creg,
                          const std::string &key, T&& datum, OpType type,
-                         DataSubType subtype = DataSubType::list);
+                         DataSubType subtype = DataSubType::list, int_t nshots = 1);
 
 
  };
@@ -225,19 +225,24 @@ template <class T>
 void ExperimentResult::save_data_pershot(const ClassicalRegister& creg,
                                        const std::string &key,
                                        const T& datum, OpType type,
-                                       DataSubType subtype) {
+                                       DataSubType subtype, int_t nshots) 
+{
   switch (subtype) {
   case DataSubType::single:
-    data.add_single(datum, key);
+    for(int_t i=0;i<nshots;i++)
+      data.add_single(datum, key);
     break;
   case DataSubType::c_single:
-    data.add_single(datum, key, creg.memory_hex());
+    for(int_t i=0;i<nshots;i++)
+      data.add_single(datum, key, creg.memory_hex());
     break;
   case DataSubType::list:
-    data.add_list(datum, key);
+    for(int_t i=0;i<nshots;i++)
+      data.add_list(datum, key);
     break;
   case DataSubType::c_list:
-    data.add_list(datum, key, creg.memory_hex());
+    for(int_t i=0;i<nshots;i++)
+      data.add_list(datum, key, creg.memory_hex());
     break;
   default:
     throw std::runtime_error("Invalid pershot data subtype for data key: " + key);
@@ -250,18 +255,27 @@ template <class T>
 void ExperimentResult::save_data_pershot(const ClassicalRegister& creg, 
                                          const std::string &key,
                                          T&& datum, OpType type,
-                                         DataSubType subtype) {
+                                         DataSubType subtype, int_t nshots)
+{
   switch (subtype) {
     case DataSubType::single:
+      for(int_t i=0;i<nshots-1;i++)
+        data.add_single(datum, key);
       data.add_single(std::move(datum), key);
       break;
     case DataSubType::c_single:
+      for(int_t i=0;i<nshots-1;i++)
+        data.add_single(datum, key, creg.memory_hex());
       data.add_single(std::move(datum), key, creg.memory_hex());
       break;
     case DataSubType::list:
+      for(int_t i=0;i<nshots-1;i++)
+        data.add_list(datum, key);
       data.add_list(std::move(datum), key);
       break;
     case DataSubType::c_list:
+      for(int_t i=0;i<nshots-1;i++)
+        data.add_list(datum, key, creg.memory_hex());
       data.add_list(std::move(datum), key, creg.memory_hex());
       break;
     default:
