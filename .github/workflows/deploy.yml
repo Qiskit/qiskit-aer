@@ -137,7 +137,9 @@ jobs:
       - name: Build wheels
         env:
           CIBW_BEFORE_ALL: "yum install -y yum-utils wget && wget -q https://developer.download.nvidia.com/compute/cuda/10.1/Prod/local_installers/cuda-repo-rhel6-10-1-local-10.1.243-418.87.00-1.0-1.x86_64.rpm && rpm -i cuda-repo-rhel6-10-1-local-10.1.243-418.87.00-1.0-1.x86_64.rpm && yum clean all && yum -y install cuda-10-1 openblas-devel"
+          CIBW_MANYLINUX_X86_64_IMAGE: quay.io/pypa/manylinux2010_x86_64:latest
           CIBW_SKIP: "*-manylinux_i686 cp310* pp* cp36* *musllinux*"
+          CIBW_TEST_SKIP: "cp*"
           CIBW_ENVIRONMENT: QISKIT_AER_PACKAGE_NAME=qiskit-aer-gpu AER_THRUST_BACKEND=CUDA CUDACXX=/usr/local/cuda/bin/nvcc
         run: |
           python -m cibuildwheel --output-dir wheelhouse
