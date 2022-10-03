@@ -261,7 +261,7 @@ class AerSimulator(AerBackend):
       intermediate measurements and can greatly accelerate simulation time
       on GPUs. If there are multiple GPUs on the system, shots are distributed
       automatically across available GPUs. Also this option distributes multiple
-      shots to parallel processes of MPI (Default: True).
+      shots to parallel processes of MPI (Default: False).
       If multiple GPUs are used for batched exectuion number of GPUs is
       reported to ``batched_shots_optimization_parallel_gpus`` metadata.
       ``cuStateVec_enable`` is not supported for this option.

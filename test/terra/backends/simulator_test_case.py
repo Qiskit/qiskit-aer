@@ -86,13 +86,14 @@ def _method_device(methods):
         if method in gpu_methods:
             for device in available_devices:
                 data_args.append((method, device))
+                if device == 'GPU':
+                    #add batched optimization test for GPU
+                    data_args.append((method, 'GPU_batch'))
             #add test cases for cuStateVec if available using special device = 'GPU_cuStateVec'
             #'GPU_cuStateVec' is used only inside tests not available in Aer
             #and this is converted to "device='GPU'" and option "cuStateVec_enalbe = True" is added
             if cuStateVec:
                 data_args.append((method, 'GPU_cuStateVec'))
-            #add batched optimization test for GPU
-            data_args.append((method, 'GPU_batch'))
         else:
             data_args.append((method, 'CPU'))
     return data_args
