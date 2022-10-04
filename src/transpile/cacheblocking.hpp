@@ -667,7 +667,7 @@ uint_t CacheBlocking::add_ops(std::vector<Operations::Op>& ops,std::vector<Opera
         else if(ops[i].type != Operations::OpType::measure && ops[i].type != Operations::OpType::reset && 
                 ops[i].type != Operations::OpType::save_amps && ops[i].type != Operations::OpType::save_amps_sq &&
                 ops[i].type != Operations::OpType::save_densmat && ops[i].type != Operations::OpType::bfunc){
-          if(!(ops[i].type == Operations::OpType::snapshot && ops[i].name == "density_matrix")){
+          if(ops[i].name != "density_matrix"){
             restore_qubits = true;
           }
         }
