@@ -30,7 +30,6 @@ if(AER_THRUST_BACKEND STREQUAL "CUDA")
   set(CUDA_FOUND TRUE)
   #include(FindCUDA) # for cuda_select_nvcc_arch_flags, CUDA_FOUND
   include(FindCUDA/select_compute_arch)
-  enable_language(CUDA)
 else()
   # idiosyncrasy of CMake that it still creates a reference to this
   set(CMAKE_CUDA_COMPILE_WHOLE_COMPILATION "")
@@ -252,6 +251,12 @@ if(AER_THRUST_SUPPORTED)
 		cuda_select_nvcc_arch_flags(AER_CUDA_ARCH_FLAGS ${AER_CUDA_ARCH})
 
 		string(REPLACE ";" " "  AER_CUDA_ARCH_FLAGS_EXPAND "${AER_CUDA_ARCH_FLAGS}")
+
+		string(REGEX MATCHALL "sm_[0-9][0-9]" CUDA_SM "${AER_CUDA_ARCH_FLAGS}")
+		string(REPLACE "sm_" ""  AER_CUDA_ARCHITECTURES "${CUDA_SM}")
+		set(CMAKE_CUDA_ARCHITECTURES "${AER_CUDA_ARCHITECTURES}")
+		message(STATUS "CMAKE_CUDA_ARCHITECTURES = ${CMAKE_CUDA_ARCHITECTURES}")
+
 		set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} ${AER_CUDA_ARCH_FLAGS_EXPAND} -DAER_THRUST_CUDA -I${AER_SIMULATOR_CPP_SRC_DIR} -isystem ${AER_SIMULATOR_CPP_SRC_DIR}/third-party/headers -use_fast_math --expt-extended-lambda")
 
 		set(AER_COMPILER_DEFINITIONS ${AER_COMPILER_DEFINITIONS} THRUST_DEVICE_SYSTEM=THRUST_DEVICE_SYSTEM_CUDA)
@@ -362,6 +367,7 @@ else() # Standalone build
 			LINK_FLAGS ${AER_LINKER_FLAGS}
 			RUNTIME_OUTPUT_DIRECTORY_DEBUG Debug
 			RUNTIME_OUTPUT_DIRECTORY_RELEASE Release)
+		enable_language(CUDA)
 	endfunction()
 
 	function(build_cpu target src_file is_exec)
