@@ -111,11 +111,12 @@ class AerStatevector(Statevector):
             qubits = np.arange(self._aer_state.num_qubits)
         else:
             qubits = np.array(qargs)
-        self._aer_state.close()
-        self._aer_state = AerState(**self._aer_state.configuration())
-        self._aer_state.initialize(self._data, copy=False)
-        samples = self._aer_state.sample_memory(qubits, shots)
-        self._data = self._aer_state.move_to_ndarray()
+
+        aer_state = AerState(**self._aer_state.configuration())
+        aer_state.initialize(self._data, copy=False)
+        samples = aer_state.sample_memory(qubits, shots)
+        aer_state.close()
+
         return samples
 
     @staticmethod
