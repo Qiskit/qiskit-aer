@@ -56,6 +56,7 @@ class Sampler(BaseSampler):
         parameters: Iterable[Iterable[Parameter]] | None = None,
         backend_options: dict | None = None,
         transpile_options: dict | None = None,
+        run_options: dict | None = None,
         skip_transpilation: bool = False,
     ):
         """
@@ -65,6 +66,7 @@ class Sampler(BaseSampler):
                 Defaults to ``[circ.parameters for circ in circuits]``.
             backend_options: Options passed to AerSimulator.
             transpile_options: Options passed to transpile.
+            run_options: Options passed to run.
             skip_transpilation: if True, transpilation is skipped.
         """
         if isinstance(circuits, QuantumCircuit):
@@ -75,6 +77,7 @@ class Sampler(BaseSampler):
         super().__init__(
             circuits=circuits,
             parameters=parameters,
+            options=run_options,
         )
         self._is_closed = False
         self._backend = AerSimulator()
@@ -131,7 +134,9 @@ class Sampler(BaseSampler):
             else:
                 counts = result.data(i)["counts"]
                 shots = sum(counts.values())
-                quasis.append(QuasiDistribution({k: v / shots for k, v in counts.items()}))
+                quasis.append(
+                    QuasiDistribution({k: v / shots for k, v in counts.items()}), shots=shtos
+                )
                 metadata.append({"shots": shots, "simulator_metadata": result.results[i].metadata})
 
         return SamplerResult(quasis, metadata)
