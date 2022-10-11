@@ -97,27 +97,33 @@ class Sampler(BaseSampler):
         if seed is not None:
             run_options.setdefault("seed_simulator", seed)
 
-        # Key for cache
-        key = tuple(circuits)
+        # Transpile circuits if not in cache
+        no_cache_circuits = []
+        for circuit_index in set(circuits):
+            if circuit_index not in self._cache:
+                no_cache_circuits.append(circuit_index)
+        if no_cache_circuits:
+            transpiled_circuits = (self._circuits[i] for i in no_cache_circuits)
+            if "shots" in run_options and run_options["shots"] is None:
+                transpiled_circuits = (
+                    self._preprocess_circuit(circ) for circ in transpiled_circuits
+                )
+            if not self._skip_transpilation:
+                transpiled_circuits = transpile(
+                    list(transpiled_circuits),
+                    self._backend,
+                    **self._transpile_options,
+                )
+        for i, circuit in zip(no_cache_circuits, transpiled_circuits):
+            self._cache[i] = circuit
 
         # Prepare circuits and parameter_binds
         experiments = []
         parameter_binds = []
-        if key in self._cache:  # Use cached circuits
-            experiments = self._cache[key]
-            for i, value in zip(circuits, parameter_values):
-                self._validate_parameter_length(value, i)
-                parameter_binds.append({k: [v] for k, v in zip(self._parameters[i], value)})
-        else:
-            for i, value in zip(circuits, parameter_values):
-                self._validate_parameter_length(value, i)
-                parameter_binds.append({k: [v] for k, v in zip(self._parameters[i], value)})
-                circuit = self._circuits[i]
-                if "shots" in run_options and run_options["shots"] is None:
-                    circuit = self._preprocess_circuit(circuit)
-                experiments.append(circuit)
-            if not self._skip_transpilation:
-                experiments = transpile(experiments, self._backend, **self._transpile_options)
+        for i, value in zip(circuits, parameter_values):
+            self._validate_parameter_length(value, i)
+            parameter_binds.append({k: [v] for k, v in zip(self._parameters[i], value)})
+            experiments.append(self._cache[i])
 
         result = self._backend.run(
             experiments, parameter_binds=parameter_binds, **run_options
