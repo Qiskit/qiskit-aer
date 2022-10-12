@@ -39,6 +39,8 @@ from .backend_utils import format_save_type, circuit_optypes
 # Logger
 logger = logging.getLogger(__name__)
 
+one = ParameterExpression({}, 1)
+
 
 class AerBackend(Backend, ABC):
     """Qiskit Aer Backend class."""
@@ -386,12 +388,24 @@ class AerBackend(Backend, ABC):
                 parameterizations = self._convert_binds(circuits, parameter_binds)
                 qobj = None
                 for circuit in circuits:
-                    assemble_bind = {param: 1 for param in circuit.parameters}
+                    # Replace parameters to one
+                    original_parameters = circuit._parameters
+                    circuit._parameters = []
+                    original_params = []
+                    for instruction in circuit._data:
+                        params = instruction.operation.params
+                        original_params.append(params.copy())
+                        for i, p in enumerate(params):
+                            if isinstance(p, ParameterExpression):
+                                params[i] = one
                     qobj_tmp = assemble(
                         [circuit],
                         backend=self,
-                        parameter_binds=[assemble_bind],
                         parameterizations=parameterizations)
+                    # Revert parameters
+                    circuit._parameters = original_parameters
+                    for instruction, params in zip(circuit._data, original_params):
+                        instruction.operation.params = params
                     if qobj:
                         qobj.experiments.append(qobj_tmp.experiments[0])
                     else:
