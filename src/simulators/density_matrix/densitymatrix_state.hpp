@@ -121,6 +121,14 @@ public:
   virtual std::vector<reg_t> sample_measure(const reg_t &qubits, uint_t shots,
                                             RngEngine &rng) override;
 
+
+  //-----------------------------------------------------------------------
+  // Additional methods
+  //-----------------------------------------------------------------------
+
+  // Initializes to a specific n-qubit state
+  virtual void initialize_qreg(uint_t num_qubits, densmat_t &&state);
+
   // Initialize OpenMP settings for the underlying DensityMatrix class
   void initialize_omp();
 
@@ -413,6 +421,22 @@ void State<densmat_t>::initialize_qreg(uint_t num_qubits)
     for(int_t i=0;i<BaseState::qregs_.size();i++){
       BaseState::qregs_[i].initialize();
     }
+  }
+}
+
+template <class statevec_t>
+void State<statevec_t>::initialize_qreg(uint_t num_qubits, statevec_t &&state) 
+{
+  if (state.num_qubits() != num_qubits) {
+    state.move_to_vector().move_to_buffer();
+    throw std::invalid_argument("DensityMatrix::State::initialize_qreg: initial state does not match qubit number");
+  }
+
+  if (BaseState::qregs_.size() == 1) {
+    BaseState::qregs_[0] = std::move(state);
+  } else {
+    state.move_to_vector().move_to_buffer();
+    throw std::invalid_argument("DensityMatrix::State::initialize_qreg: multi-chunk is not supportted.");
   }
 }
 

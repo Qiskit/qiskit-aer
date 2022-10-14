@@ -199,7 +199,7 @@ public:
   // Move semantic initialization
   void initialize_from_vector(std::vector<std::complex<data_t>> &&vec);
   void initialize_from_vector(AER::Vector<std::complex<data_t>> &&vec);
-  void move_from_vector(AER::Vector<std::complex<data_t>> &&vec);
+  virtual void move_from_vector(AER::Vector<std::complex<data_t>> &&vec);
 
   // Initializes the vector to a custom initial state.
   // If num_states does not match the number of qubits an exception is raised.

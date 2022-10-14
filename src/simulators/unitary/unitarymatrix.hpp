@@ -83,6 +83,8 @@ public:
   // Move semantics
   void initialize_from_matrix(matrix<std::complex<data_t>> &&mat);
 
+  virtual void move_from_vector(AER::Vector<std::complex<data_t>> &&vec) override;
+
   //-----------------------------------------------------------------------
   // Identity checking
   //-----------------------------------------------------------------------
@@ -250,6 +252,18 @@ void UnitaryMatrix<data_t>::initialize_from_matrix(matrix<std::complex<data_t>> 
   }
   BaseVector::free_mem();
   BaseVector::data_ = mat.move_to_buffer();
+}
+
+template <class data_t>
+void UnitaryMatrix<data_t>::move_from_vector(AER::Vector<std::complex<data_t>> &&vec) {
+  num_qubits_ = std::log2(vec.size()) / 2;
+  if ((1ULL << (num_qubits_ * 2)) != vec.size()) {
+    std::string error = "UnitaryMatrix::move_from_vector input vector is incorrect length (" +
+                        std::to_string((1ULL << (num_qubits_ * 2))) + "!=" +
+                        std::to_string(vec.size()) + ")";
+    throw std::runtime_error(error);
+  }
+  BaseVector::move_from_vector(std::move(vec));
 }
 
 template <class data_t>
