@@ -20,6 +20,13 @@ rhs*_op.pyx
 build/*
 *libomp.dylib
 
+# Ignore LSP config / files
+compile_commands.json
+.cache/clangd
+.ccls
+.ccls-root
+.ccls-cache/
+
 # Ignore macOS DS_Store
 .DS_Store
 # Ignore other IDE Files
