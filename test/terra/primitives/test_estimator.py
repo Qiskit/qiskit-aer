@@ -17,6 +17,7 @@ Estimator class tests
 
 import unittest
 from test.terra.common import QiskitAerTestCase
+from test.terra.decorators import deprecated
 
 import numpy as np
 from qiskit.circuit import QuantumCircuit
@@ -46,8 +47,9 @@ class TestEstimator(QiskitAerTestCase):
         )
         self.expvals = -1.014918456829035, -1.2922526095793785
 
+    @deprecated
     def test_estimator(self):
-        """test for a simple use case"""
+        """(Deprecated) test for a simple use case"""
         lst = [("XX", 1), ("YY", 2), ("ZZ", 3)]
         with self.subTest("PauliSumOp"):
             observable = PauliSumOp.from_list(lst)
@@ -65,8 +67,9 @@ class TestEstimator(QiskitAerTestCase):
             self.assertIsInstance(result, EstimatorResult)
             np.testing.assert_allclose(result.values, [1.728515625])
 
+    @deprecated
     def test_estimator_param_reverse(self):
-        """test for the reverse parameter"""
+        """(Deprecated) test for the reverse parameter"""
         observable = PauliSumOp.from_list([("XX", 1), ("YY", 2), ("ZZ", 3)])
         ansatz = RealAmplitudes(num_qubits=2, reps=2)
         with Estimator([ansatz], [observable], [ansatz.parameters[::-1]]) as est:
@@ -74,8 +77,9 @@ class TestEstimator(QiskitAerTestCase):
         self.assertIsInstance(result, EstimatorResult)
         np.testing.assert_allclose(result.values, [1.728515625])
 
+    @deprecated
     def test_init_observable_from_operator(self):
-        """test for evaluate without parameters"""
+        """(Deprecated) test for evaluate without parameters"""
         circuit = self.ansatz.bind_parameters([0, 1, 1, 2, 3, 5])
         matrix = Operator(
             [
@@ -90,15 +94,17 @@ class TestEstimator(QiskitAerTestCase):
         self.assertIsInstance(result, EstimatorResult)
         np.testing.assert_allclose(result.values, [-1.284607781171875])
 
+    @deprecated
     def test_evaluate(self):
-        """test for evaluate"""
+        """(Deprecated) test for evaluate"""
         with Estimator([self.ansatz], [self.observable]) as est:
             result = est([0], [0], parameter_values=[[0, 1, 1, 2, 3, 5]], seed=15)
         self.assertIsInstance(result, EstimatorResult)
         np.testing.assert_allclose(result.values, [-1.2895828299114598])
 
+    @deprecated
     def test_evaluate_multi_params(self):
-        """test for evaluate with multiple parameters"""
+        """(Deprecated) test for evaluate with multiple parameters"""
         with Estimator([self.ansatz], [self.observable]) as est:
             result = est(
                 [0] * 2,
@@ -109,16 +115,18 @@ class TestEstimator(QiskitAerTestCase):
         self.assertIsInstance(result, EstimatorResult)
         np.testing.assert_allclose(result.values, [-1.2895828299114598, -1.3237023178807785])
 
+    @deprecated
     def test_evaluate_no_params(self):
-        """test for evaluate without parameters"""
+        """(Deprecated) test for evaluate without parameters"""
         circuit = self.ansatz.bind_parameters([0, 1, 1, 2, 3, 5])
         with Estimator([circuit], [self.observable]) as est:
             result = est([0], [0], seed=15)
         self.assertIsInstance(result, EstimatorResult)
         np.testing.assert_allclose(result.values, [-1.2895828299114598])
 
+    @deprecated
     def test_run_with_multiple_observables_and_none_parameters(self):
-        """test for evaluate without parameters"""
+        """(Deprecated) test for evaluate without parameters"""
         circuit = QuantumCircuit(3)
         circuit.h(0)
         circuit.cx(0, 1)
@@ -128,8 +136,9 @@ class TestEstimator(QiskitAerTestCase):
         self.assertIsInstance(result, EstimatorResult)
         np.testing.assert_allclose(result.values, [0.00390625, 1.0])
 
+    @deprecated
     def test_estimator_example(self):
-        """test for Estimator example"""
+        """(Deprecated) test for Estimator example"""
         psi1 = RealAmplitudes(num_qubits=2, reps=2)
         psi2 = RealAmplitudes(num_qubits=2, reps=3)
 
@@ -189,8 +198,9 @@ class TestEstimator(QiskitAerTestCase):
                 np.testing.assert_allclose(result.values, [0.232421875])
                 self.assertEqual(len(result.metadata), 1)
 
+    @deprecated
     def test_1qubit(self):
-        """Test for 1-qubit cases"""
+        """(Deprecated) Test for 1-qubit cases"""
         qc = QuantumCircuit(1)
         qc2 = QuantumCircuit(1)
         qc2.x(0)
@@ -219,8 +229,9 @@ class TestEstimator(QiskitAerTestCase):
                 self.assertIsInstance(result, EstimatorResult)
                 np.testing.assert_allclose(result.values, [-1])
 
+    @deprecated
     def test_2qubits(self):
-        """Test for 2-qubit cases (to check endian)"""
+        """(Deprecated) Test for 2-qubit cases (to check endian)"""
         qc = QuantumCircuit(2)
         qc2 = QuantumCircuit(2)
         qc2.x(0)
@@ -260,6 +271,7 @@ class TestEstimator(QiskitAerTestCase):
                 self.assertIsInstance(result, EstimatorResult)
                 np.testing.assert_allclose(result.values, [-1])
 
+    @deprecated
     def test_errors(self):
         """Test for errors"""
         qc = QuantumCircuit(1)
@@ -282,8 +294,9 @@ class TestEstimator(QiskitAerTestCase):
             with self.assertRaises(QiskitError):
                 est([0], [0, 1], [[1]])
 
+    @deprecated
     def test_empty_parameter(self):
-        """Test for empty parameter"""
+        """(Deprecated) Test for empty parameter"""
         n = 2
         qc = QuantumCircuit(n)
         op = SparsePauliOp.from_list([("I" * n, 1)])
@@ -298,8 +311,9 @@ class TestEstimator(QiskitAerTestCase):
                 np.testing.assert_allclose(result.values, [1, 1])
                 self.assertEqual(len(result.metadata), 2)
 
+    @deprecated
     def test_numpy_params(self):
-        """Test for numpy array as parameter values"""
+        """(Deprecated) Test for numpy array as parameter values"""
         qc = RealAmplitudes(num_qubits=2, reps=2)
         op = SparsePauliOp.from_list([("IZ", 1), ("XI", 2), ("ZY", -1)])
         k = 5
@@ -319,8 +333,9 @@ class TestEstimator(QiskitAerTestCase):
                 self.assertEqual(len(result.metadata), k)
                 np.testing.assert_allclose(result.values, target.values)
 
+    @deprecated
     def test_passing_objects(self):
-        """Test passsing object for Estimator."""
+        """(Deprecated) Test passsing object for Estimator."""
 
         with self.subTest("Valid test"):
             with Estimator([self.ansatz], [self.observable]) as estimator:
@@ -353,15 +368,17 @@ class TestEstimator(QiskitAerTestCase):
                         parameter_values=[list(range(6)), [0, 1, 1, 2, 3, 5]],
                     )
 
+    @deprecated
     def test_with_shots_option_with_approximation(self):
-        """test with shots option."""
+        """(Deprecated) test with shots option."""
         with Estimator([self.ansatz], [self.observable], approximation=True) as est:
             result = est([0], [0], parameter_values=[[0, 1, 1, 2, 3, 5]], shots=1024, seed=15)
         self.assertIsInstance(result, EstimatorResult)
         np.testing.assert_allclose(result.values, [-1.3088991960117797])
 
+    @deprecated
     def test_with_shots_option_without_approximation(self):
-        """test with shots option."""
+        """(Deprecated) test with shots option."""
         with Estimator([self.ansatz], [self.observable], approximation=False) as est:
             result = est([0], [0], parameter_values=[[0, 1, 1, 2, 3, 5]], shots=1024, seed=15)
         self.assertIsInstance(result, EstimatorResult)

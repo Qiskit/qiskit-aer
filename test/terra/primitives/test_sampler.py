@@ -16,15 +16,16 @@ Sampler class tests
 
 import unittest
 from test.terra.common import QiskitAerTestCase
+from test.terra.decorators import deprecated
 
 import numpy as np
 from ddt import data, ddt
+from qiskit import QuantumCircuit
 from qiskit.circuit import Parameter
 from qiskit.circuit.library import RealAmplitudes
 from qiskit.exceptions import QiskitError
 from qiskit.primitives import SamplerResult
 
-from qiskit import QuantumCircuit
 from qiskit_aer.primitives import Sampler
 
 
@@ -81,9 +82,10 @@ class TestSampler(QiskitAerTestCase):
                 else:
                     self.assertAlmostEqual(t_val, 0, places=1)
 
+    @deprecated
     @data([0], [1], [0, 1])
     def test_sampler(self, indices):
-        """test for sampler"""
+        """(Deprecated) test for sampler"""
         circuits, target = self._generate_circuits_target(indices)
         with Sampler(circuits=circuits) as sampler:
             result = sampler(
@@ -91,25 +93,28 @@ class TestSampler(QiskitAerTestCase):
             )
             self._compare_probs(result.quasi_dists, target)
 
+    @deprecated
     @data([0], [1], [0, 1])
     def test_sampler_pqc(self, indices):
-        """test for sampler with a parametrized circuit"""
+        """(Deprecated) test for sampler with a parametrized circuit"""
         params, target = self._generate_params_target(indices)
         with Sampler(circuits=self._pqc) as sampler:
             result = sampler([0] * len(params), params, seed=15)
             self._compare_probs(result.quasi_dists, target)
 
+    @deprecated
     @data([0, 0], [0, 1], [1, 1])
     def test_evaluate_two_pqcs(self, indices):
-        """test for sampler with two parametrized circuits"""
+        """(Deprecated) test for sampler with two parametrized circuits"""
         circs = [self._pqc, self._pqc]
         params, target = self._generate_params_target(indices)
         with Sampler(circuits=circs) as sampler:
             result = sampler(indices, parameter_values=params, seed=15)
             self._compare_probs(result.quasi_dists, target)
 
+    @deprecated
     def test_sampler_example(self):
-        """test for Sampler example"""
+        """(Deprecated) test for Sampler example"""
 
         bell = QuantumCircuit(2)
         bell.h(0)
@@ -170,8 +175,9 @@ class TestSampler(QiskitAerTestCase):
             result.quasi_dists[2], {0: 0.1787109375, 1: 0.7060546875, 2: 0.08984375, 3: 0.025390625}
         )
 
+    @deprecated
     def test_sampler_param_order(self):
-        """test for sampler with different parameter orders"""
+        """(Deprecated) test for sampler with different parameter orders"""
         x = Parameter("x")
         y = Parameter("y")
 
@@ -200,8 +206,9 @@ class TestSampler(QiskitAerTestCase):
             # qc({x: 0, y: pi/2})
             self.assertDictAlmostEqual(result.quasi_dists[3], {4: 0.4814453125, 6: 0.5185546875})
 
+    @deprecated
     def test_sampler_reverse_meas_order(self):
-        """test for sampler with reverse measurement order"""
+        """(Deprecated) test for sampler with reverse measurement order"""
         x = Parameter("x")
         y = Parameter("y")
 
@@ -232,8 +239,9 @@ class TestSampler(QiskitAerTestCase):
             # qc({x: 0, y: pi/2})
             self.assertDictAlmostEqual(result.quasi_dists[3], {1: 0.4814453125, 3: 0.5185546875})
 
+    @deprecated
     def test_1qubit(self):
-        """test for 1-qubit cases"""
+        """(Deprecated) test for 1-qubit cases"""
         qc = QuantumCircuit(1)
         qc.measure_all()
         qc2 = QuantumCircuit(1)
@@ -247,8 +255,9 @@ class TestSampler(QiskitAerTestCase):
             self.assertDictAlmostEqual(result.quasi_dists[0], {0: 1})
             self.assertDictAlmostEqual(result.quasi_dists[1], {1: 1})
 
+    @deprecated
     def test_2qubit(self):
-        """test for 2-qubit cases"""
+        """(Deprecated) test for 2-qubit cases"""
         qc0 = QuantumCircuit(2)
         qc0.measure_all()
         qc1 = QuantumCircuit(2)
@@ -273,8 +282,9 @@ class TestSampler(QiskitAerTestCase):
             self.assertDictAlmostEqual(result.quasi_dists[2], {2: 1})
             self.assertDictAlmostEqual(result.quasi_dists[3], {3: 1})
 
+    @deprecated
     def test_errors(self):
-        """Test for errors"""
+        """(Deprecated) Test for errors"""
         qc1 = QuantumCircuit(1)
         qc1.measure_all()
         qc2 = RealAmplitudes(num_qubits=1, reps=1)
@@ -288,8 +298,9 @@ class TestSampler(QiskitAerTestCase):
             with self.assertRaises(QiskitError):
                 sampler([1], [[1e2]])
 
+    @deprecated
     def test_empty_parameter(self):
-        """Test for empty parameter"""
+        """(Deprecated) Test for empty parameter"""
         n = 5
         qc = QuantumCircuit(n, n - 1)
         qc.measure(range(n - 1), range(n - 1))
@@ -310,8 +321,9 @@ class TestSampler(QiskitAerTestCase):
                     self.assertDictEqual(quasi_dist, {0: 1.0})
                 self.assertEqual(len(result.metadata), 2)
 
+    @deprecated
     def test_passing_objects(self):
-        """Test passing objects for Sampler."""
+        """(Deprecated) Test passing objects for Sampler."""
 
         params, target = self._generate_params_target([0])
 
@@ -326,15 +338,17 @@ class TestSampler(QiskitAerTestCase):
                 with self.assertRaises(QiskitError):
                     sampler(circuits=[circuit], parameter_values=params)
 
+    @deprecated
     def test_with_shots_option(self):
-        """test with shots option."""
+        """(Deprecated) test with shots option."""
         params, target = self._generate_params_target([1])
         with Sampler(circuits=self._pqc) as sampler:
             result = sampler(circuits=[0], parameter_values=params, shots=1024, seed=15)
             self._compare_probs(result.quasi_dists, target)
 
+    @deprecated
     def test_with_shots_none(self):
-        """test with shots None."""
+        """(Deprecated) test with shots None."""
         with Sampler(circuits=self._pqc) as sampler:
             result = sampler(circuits=[0], parameter_values=[self._pqc_params[1]], shots=None)
             self.assertDictAlmostEqual(
