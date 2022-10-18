@@ -18,7 +18,7 @@ import logging
 from typing import Optional
 from warnings import warn, catch_warnings, filterwarnings
 
-from numpy import ndarray
+import numpy as np
 
 from qiskit.circuit import Instruction, Delay
 from qiskit.providers import QubitProperties
@@ -49,7 +49,7 @@ class AerJSONEncoder(json.JSONEncoder):
 
     # pylint: disable=method-hidden,arguments-differ
     def default(self, obj):
-        if isinstance(obj, ndarray):
+        if isinstance(obj, np.ndarray):
             return obj.tolist()
         if isinstance(obj, complex):
             return [obj.real, obj.imag]
@@ -798,7 +798,6 @@ class NoiseModel:
         # pylint: disable=import-outside-toplevel
         from qiskit.circuit import QuantumCircuit
         from qiskit.extensions import UnitaryGate
-        from qiskit_aer.noise.errors.errorutils import standard_gate_unitary
 
         def inst_dic_list_to_circuit(dic_list):
             num_qubits = max([max(dic['qubits']) for dic in dic_list]) + 1
@@ -828,7 +827,7 @@ class NoiseModel:
                             module="qiskit_aer.noise.errors.errorutils"
                         )
                         circ.append(UnitaryGate(label=dic['name'],
-                                                data=standard_gate_unitary(dic['name'])),
+                                                data=_standard_gate_unitary(dic['name'])),
                                     qargs=dic['qubits'])
             return circ
 
@@ -984,3 +983,55 @@ class NoiseModel:
         if len(passes) > 0:
             return PassManager(passes)
         return None
+
+
+def _standard_gate_unitary(name):
+    # To be removed with from_dict
+    unitary_matrices = {
+        ("id", "I"):
+            np.eye(2, dtype=complex),
+        ("x", "X"):
+            np.array([[0, 1], [1, 0]], dtype=complex),
+        ("y", "Y"):
+            np.array([[0, -1j], [1j, 0]], dtype=complex),
+        ("z", "Z"):
+            np.array([[1, 0], [0, -1]], dtype=complex),
+        ("h", "H"):
+            np.array([[1, 1], [1, -1]], dtype=complex) / np.sqrt(2),
+        ("s", "S"):
+            np.array([[1, 0], [0, 1j]], dtype=complex),
+        ("sdg", "Sdg"):
+            np.array([[1, 0], [0, -1j]], dtype=complex),
+        ("t", "T"):
+            np.array([[1, 0], [0, np.exp(1j * np.pi / 4)]], dtype=complex),
+        ("tdg", "Tdg"):
+            np.array([[1, 0], [0, np.exp(-1j * np.pi / 4)]], dtype=complex),
+        ("cx", "CX", "cx_01"):
+            np.array([[1, 0, 0, 0], [0, 0, 0, 1], [0, 0, 1, 0], [0, 1, 0, 0]], dtype=complex),
+        ("cx_10",):
+            np.array([[1, 0, 0, 0], [0, 0, 0, 1], [0, 0, 1, 0], [0, 1, 0, 0]], dtype=complex),
+        ("cz", "CZ"):
+            np.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, -1]], dtype=complex),
+        ("swap", "SWAP"):
+            np.array([[1, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0], [0, 0, 0, 1]], dtype=complex),
+        ("ccx", "CCX", "ccx_012", "ccx_102"):
+            np.array([[1, 0, 0, 0, 0, 0, 0, 0], [0, 1, 0, 0, 0, 0, 0, 0],
+                      [0, 0, 1, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 1],
+                      [0, 0, 0, 0, 1, 0, 0, 0], [0, 0, 0, 0, 0, 1, 0, 0],
+                      [0, 0, 0, 0, 0, 0, 1, 0], [0, 0, 0, 1, 0, 0, 0, 0]],
+                     dtype=complex),
+        ("ccx_021", "ccx_201"):
+            np.array([[1, 0, 0, 0, 0, 0, 0, 0], [0, 1, 0, 0, 0, 0, 0, 0],
+                      [0, 0, 1, 0, 0, 0, 0, 0], [0, 0, 0, 1, 0, 0, 0, 0],
+                      [0, 0, 0, 0, 1, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 1],
+                      [0, 0, 0, 0, 0, 0, 1, 0], [0, 0, 0, 0, 0, 1, 0, 0]],
+                     dtype=complex),
+        ("ccx_120", "ccx_210"):
+            np.array([[1, 0, 0, 0, 0, 0, 0, 0], [0, 1, 0, 0, 0, 0, 0, 0],
+                      [0, 0, 1, 0, 0, 0, 0, 0], [0, 0, 0, 1, 0, 0, 0, 0],
+                      [0, 0, 0, 0, 1, 0, 0, 0], [0, 0, 0, 0, 0, 1, 0, 0],
+                      [0, 0, 0, 0, 0, 0, 0, 1], [0, 0, 0, 0, 0, 0, 1, 0]],
+                     dtype=complex)
+    }
+
+    return next((value for key, value in unitary_matrices.items() if name in key), None)
