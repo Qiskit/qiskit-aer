@@ -291,11 +291,11 @@ class TestSampler(QiskitAerTestCase):
         qc2.measure_all()
 
         with Sampler([qc1, qc2], [qc1.parameters, qc2.parameters]) as sampler:
-            with self.assertRaises(QiskitError):
+            with self.assertRaises(ValueError):
                 sampler([0], [[1e2]])
-            with self.assertRaises(QiskitError):
+            with self.assertRaises(ValueError):
                 sampler([1], [[]])
-            with self.assertRaises(QiskitError):
+            with self.assertRaises(ValueError):
                 sampler([1], [[1e2]])
 
     @deprecated
