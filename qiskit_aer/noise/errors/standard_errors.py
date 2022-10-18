@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2018, 2019, 2021.
+# (C) Copyright IBM 2018--2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -14,30 +14,27 @@ Standard quantum computing error channels for Qiskit Aer.
 """
 
 import itertools as it
-import warnings
 
 import numpy as np
-from qiskit.circuit import QuantumCircuit, Reset
-from qiskit.circuit.library.standard_gates import IGate, XGate, YGate, ZGate
+
+from qiskit.circuit import Reset
+from qiskit.circuit.library.standard_gates import IGate, XGate, ZGate
 from qiskit.exceptions import QiskitError
 from qiskit.extensions import UnitaryGate
-from qiskit.quantum_info.operators import Operator, Pauli
+from qiskit.quantum_info.operators import Pauli
 from qiskit.quantum_info.operators.channel import Choi, Kraus
 from qiskit.quantum_info.operators.predicates import is_identity_matrix
 from qiskit.quantum_info.operators.predicates import is_unitary_matrix
-
-from .errorutils import _make_unitary_instruction
 from .quantum_error import QuantumError
 from ..noiseerror import NoiseError
 
 
-def kraus_error(noise_ops, standard_gates=None, canonical_kraus=False):
+def kraus_error(noise_ops, canonical_kraus=False):
     """
     Return a Kraus quantum error channel.
 
     Args:
         noise_ops (list[matrix]): Kraus matrices.
-        standard_gates (bool): DEPRECATED, Check if input matrices are standard gates.
         canonical_kraus (bool): Convert input Kraus matrices into the
                                 canonical Kraus representation (default: False)
 
@@ -52,12 +49,6 @@ def kraus_error(noise_ops, standard_gates=None, canonical_kraus=False):
     if not noise_ops:
         raise NoiseError("Kraus error noise_ops must not be empty.")
 
-    if standard_gates is not None:
-        warnings.warn(
-            '"standard_gates" option has been deprecated as of qiskit-aer 0.10.0'
-            ' and will be removed no earlier than 3 months from that release date.',
-            DeprecationWarning, stacklevel=2)
-
     kraus = Kraus(noise_ops)
     if canonical_kraus:
         # Convert to Choi and back to get canonical Kraus
@@ -65,7 +56,7 @@ def kraus_error(noise_ops, standard_gates=None, canonical_kraus=False):
     return QuantumError(kraus)
 
 
-def mixed_unitary_error(noise_ops, standard_gates=None):
+def mixed_unitary_error(noise_ops):
     """
     Return a mixed unitary quantum error channel.
 
@@ -75,7 +66,6 @@ def mixed_unitary_error(noise_ops, standard_gates=None):
 
     Args:
         noise_ops (list[pair[matrix, double]]): unitary error matrices.
-        standard_gates (bool): DEPRECATED, Check if input matrices are standard gates.
 
     Returns:
         QuantumError: The quantum error object.
@@ -83,13 +73,6 @@ def mixed_unitary_error(noise_ops, standard_gates=None):
     Raises:
         NoiseError: if error parameters are invalid.
     """
-    if standard_gates is not None:
-        warnings.warn(
-            '"standard_gates" option has been deprecated as of qiskit-aer 0.10.0'
-            ' and will be removed no earlier than 3 months from that release date.'
-            ' Use directly init e.g. QuantumError([(IGate(), prob1), (ZGate(), prob2)]) instead.',
-            DeprecationWarning, stacklevel=2)
-
     # Error checking
     if not isinstance(noise_ops, (list, tuple, zip)):
         raise NoiseError("Input noise ops is not a list.")
@@ -115,19 +98,11 @@ def mixed_unitary_error(noise_ops, standard_gates=None):
         if is_identity_matrix(unitary):
             prob_identity += prob
         else:
-            if standard_gates:  # TODO: to be removed after deprecation period
-                qubits = list(range(num_qubits))
-                instr = _make_unitary_instruction(
-                    unitary, qubits, standard_gates=standard_gates)
-            else:
-                instr = UnitaryGate(unitary)
+            instr = UnitaryGate(unitary)
             instructions.append(instr)
             instructions_probs.append(prob)
     if prob_identity > 0:
-        if standard_gates:  # TODO: to be removed after deprecation period
-            instructions.append([{"name": "id", "qubits": [0]}])
-        else:
-            instructions.append(IGate())
+        instructions.append(IGate())
         instructions_probs.append(prob_identity)
     return QuantumError(zip(instructions, instructions_probs))
 
@@ -145,7 +120,7 @@ def coherent_unitary_error(unitary):
     return mixed_unitary_error([(unitary, 1)])
 
 
-def pauli_error(noise_ops, standard_gates=None):
+def pauli_error(noise_ops):
     """
     Return a mixed Pauli quantum error channel.
 
@@ -156,10 +131,6 @@ def pauli_error(noise_ops, standard_gates=None):
 
     Args:
         noise_ops (list[pair[Pauli, double]]): Pauli error terms.
-        standard_gates (bool): DEPRECATED, if True return the operators as standard qobj
-                               Pauli gate instructions. If false return as
-                               unitary matrix qobj instructions.
-                               (Default: None)
 
     Returns:
         QuantumError: The quantum error object.
@@ -193,20 +164,10 @@ def pauli_error(noise_ops, standard_gates=None):
         if num_qubits != pauli.num_qubits:
             raise NoiseError("Pauli's are not all of the same length.")
 
-    if standard_gates is not None:
-        warnings.warn(
-            '"standard_gates" option has been deprecated as of qiskit-aer 0.10.0'
-            ' and will be removed no earlier than 3 months from that release date.',
-            DeprecationWarning, stacklevel=2)
-        if num_qubits > 1:
-            paulis = [pauli.to_instruction().definition for pauli in paulis]
-        if not standard_gates:
-            paulis = [Operator(pauli).to_instruction() for pauli in paulis]
-
     return QuantumError(zip(paulis, probs))
 
 
-def depolarizing_error(param, num_qubits, standard_gates=None):
+def depolarizing_error(param, num_qubits):
     r"""
     Return a depolarizing quantum error channel.
 
@@ -231,9 +192,6 @@ def depolarizing_error(param, num_qubits, standard_gates=None):
     Args:
         param (double): depolarizing error parameter.
         num_qubits (int): the number of qubits for the error channel.
-        standard_gates (bool): DEPRECATED, if True return the operators as
-                               Pauli gates. If false return as unitary gates.
-                               (Default: None)
 
     Returns:
         QuantumError: The quantum error object.
@@ -255,21 +213,6 @@ def depolarizing_error(param, num_qubits, standard_gates=None):
     prob_iden = 1 - param / max_param
     prob_pauli = param / num_terms
     probs = [prob_iden] + (num_terms - 1) * [prob_pauli]
-
-    if standard_gates is not None:
-        warnings.warn(
-            '"standard_gates" option has been deprecated as of qiskit-aer 0.10.0'
-            ' and will be removed no earlier than 3 months from that release date.',
-            DeprecationWarning, stacklevel=2)
-        circs = []
-        for pauli_list in it.product([IGate(), XGate(), YGate(), ZGate()], repeat=num_qubits):
-            qc = QuantumCircuit(num_qubits)
-            for q, pauli in enumerate(pauli_list):
-                if not standard_gates:
-                    pauli = UnitaryGate(pauli.to_matrix())
-                qc.append(pauli, qargs=[q])
-            circs.append(qc)
-        return QuantumError(zip(circs, probs))
 
     # Generate pauli strings. The order doesn't matter as long
     # as the all identity string is first.
