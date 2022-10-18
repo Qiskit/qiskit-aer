@@ -83,18 +83,18 @@ def requires_multiprocessing(test_item):
     return unittest.skipIf(skip, reason)(test_item)
 
 
-def deprecated(function):
+def deprecated(method):
     """Decorator that is for deprecated methods.
 
     Args:
-        function (callable): a deprecated function or method.
+        method (callable): a deprecated method.
 
     Returns:
-        callable: the decorated function.
+        callable: the decorated method.
     """
 
-    def _deprecated_function(*args, **kwargs):
-        with assert_warns(DeprecationWarning):
-            function(*args, **kwargs)
+    def _deprecated_method(self, *args, **kwargs):
+        with self.assertWarns(DeprecationWarning):
+            method(*args, **kwargs)
 
-    return _deprecated_function
+    return _deprecated_method
