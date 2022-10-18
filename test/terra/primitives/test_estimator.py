@@ -36,7 +36,7 @@ class TestEstimator(QiskitAerTestCase):
     def setUp(self):
         super().setUp()
         self.ansatz = RealAmplitudes(num_qubits=2, reps=2)
-        self.observable = PauliSumOp.from_list(
+        self.observable = SparsePauliOp.from_list(
             [
                 ("II", -1.052373245772859),
                 ("IZ", 0.39793742484318045),
@@ -281,17 +281,17 @@ class TestEstimator(QiskitAerTestCase):
         op2 = SparsePauliOp.from_list([("II", 1)])
 
         with Estimator([qc, qc2], [op, op2], [[]] * 2) as est:
-            with self.assertRaises(QiskitError):
+            with self.assertRaises(ValueError):
                 est([0], [1], [[]])
-            with self.assertRaises(QiskitError):
+            with self.assertRaises(ValueError):
                 est([1], [0], [[]])
-            with self.assertRaises(QiskitError):
+            with self.assertRaises(ValueError):
                 est([0], [0], [[1e4]])
-            with self.assertRaises(QiskitError):
+            with self.assertRaises(ValueError):
                 est([1], [1], [[1, 2]])
-            with self.assertRaises(QiskitError):
+            with self.assertRaises(ValueError):
                 est([0, 1], [1], [[1]])
-            with self.assertRaises(QiskitError):
+            with self.assertRaises(ValueError):
                 est([0], [0, 1], [[1]])
 
     @deprecated

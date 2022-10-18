@@ -82,8 +82,8 @@ class TestSampler(QiskitAerTestCase):
                 else:
                     self.assertAlmostEqual(t_val, 0, places=1)
 
-    @deprecated
     @data([0], [1], [0, 1])
+    @deprecated
     def test_sampler(self, indices):
         """(Deprecated) test for sampler"""
         circuits, target = self._generate_circuits_target(indices)
@@ -93,8 +93,8 @@ class TestSampler(QiskitAerTestCase):
             )
             self._compare_probs(result.quasi_dists, target)
 
-    @deprecated
     @data([0], [1], [0, 1])
+    @deprecated
     def test_sampler_pqc(self, indices):
         """(Deprecated) test for sampler with a parametrized circuit"""
         params, target = self._generate_params_target(indices)
@@ -102,8 +102,8 @@ class TestSampler(QiskitAerTestCase):
             result = sampler([0] * len(params), params, seed=15)
             self._compare_probs(result.quasi_dists, target)
 
-    @deprecated
     @data([0, 0], [0, 1], [1, 1])
+    @deprecated
     def test_evaluate_two_pqcs(self, indices):
         """(Deprecated) test for sampler with two parametrized circuits"""
         circs = [self._pqc, self._pqc]
@@ -335,7 +335,7 @@ class TestSampler(QiskitAerTestCase):
         with self.subTest("Invalid circuit test"):
             circuit = QuantumCircuit(2)
             with Sampler(circuits=self._pqc) as sampler:
-                with self.assertRaises(QiskitError):
+                with self.assertRaises(ValueError):
                     sampler(circuits=[circuit], parameter_values=params)
 
     @deprecated
