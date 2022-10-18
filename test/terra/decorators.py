@@ -95,6 +95,6 @@ def deprecated(method):
 
     def _deprecated_method(self, *args, **kwargs):
         with self.assertWarns(DeprecationWarning):
-            method(*args, **kwargs)
+            method(self, *args, **kwargs)
 
     return _deprecated_method
