@@ -384,6 +384,211 @@ class TestEstimator(QiskitAerTestCase):
         self.assertIsInstance(result, EstimatorResult)
         np.testing.assert_allclose(result.values, [-1.2895828299114598])
 
+    def test_estimator(self):
+        """test for a simple use case"""
+        lst = [("XX", 1), ("YY", 2), ("ZZ", 3)]
+        with self.subTest("PauliSumOp"):
+            observable = PauliSumOp.from_list(lst)
+            ansatz = RealAmplitudes(num_qubits=2, reps=2)
+            est = Estimator()
+            result = est.run(
+                ansatz, observable, parameter_values=[[0, 1, 1, 2, 3, 5]], seed=15
+            ).result()
+            self.assertIsInstance(result, EstimatorResult)
+            np.testing.assert_allclose(result.values, [1.728515625])
+
+        with self.subTest("SparsePauliOp"):
+            observable = SparsePauliOp.from_list(lst)
+            ansatz = RealAmplitudes(num_qubits=2, reps=2)
+            est = Estimator()
+            result = est.run(
+                ansatz, observable, parameter_values=[[0, 1, 1, 2, 3, 5]], seed=15
+            ).result()
+            self.assertIsInstance(result, EstimatorResult)
+            np.testing.assert_allclose(result.values, [1.728515625])
+
+    def test_init_observable_from_operator(self):
+        """test for evaluate without parameters"""
+        circuit = self.ansatz.bind_parameters([0, 1, 1, 2, 3, 5])
+        matrix = Operator(
+            [
+                [-1.06365335, 0.0, 0.0, 0.1809312],
+                [0.0, -1.83696799, 0.1809312, 0.0],
+                [0.0, 0.1809312, -0.24521829, 0.0],
+                [0.1809312, 0.0, 0.0, -1.06365335],
+            ]
+        )
+        est = Estimator()
+        result = est.run([circuit], [matrix], seed=15).result()
+        self.assertIsInstance(result, EstimatorResult)
+        np.testing.assert_allclose(result.values, [-1.284607781171875])
+
+    def test_evaluate(self):
+        """test for evaluate"""
+        est = Estimator()
+        result = est.run(
+            self.ansatz, self.observable, parameter_values=[[0, 1, 1, 2, 3, 5]], seed=15
+        ).result()
+        self.assertIsInstance(result, EstimatorResult)
+        np.testing.assert_allclose(result.values, [-1.2895828299114598])
+
+    def test_evaluate_multi_params(self):
+        """test for evaluate with multiple parameters"""
+        est = Estimator()
+        result = est.run(
+            [self.ansatz] * 2,
+            [self.observable] * 2,
+            parameter_values=[[0, 1, 1, 2, 3, 5], [1, 1, 2, 3, 5, 8]],
+            seed=15,
+        ).result()
+        self.assertIsInstance(result, EstimatorResult)
+        np.testing.assert_allclose(result.values, [-1.2895828299114598, -1.3237023178807785])
+
+    def test_evaluate_no_params(self):
+        """test for evaluate without parameters"""
+        circuit = self.ansatz.bind_parameters([0, 1, 1, 2, 3, 5])
+        est = Estimator()
+        result = est.run(circuit, self.observable, seed=15).result()
+        self.assertIsInstance(result, EstimatorResult)
+        np.testing.assert_allclose(result.values, [-1.2895828299114598])
+
+    def test_run_with_multiple_observables_and_none_parameters(self):
+        """test for evaluate without parameters"""
+        circuit = QuantumCircuit(3)
+        circuit.h(0)
+        circuit.cx(0, 1)
+        circuit.cx(1, 2)
+        est = Estimator()
+        result = est.run([circuit] * 2, ["ZZZ", "III"], seed=15).result()
+        self.assertIsInstance(result, EstimatorResult)
+        np.testing.assert_allclose(result.values, [0.00390625, 1.0])
+
+    def test_1qubit(self):
+        """Test for 1-qubit cases"""
+        qc0 = QuantumCircuit(1)
+        qc1 = QuantumCircuit(1)
+        qc1.x(0)
+
+        op0 = SparsePauliOp.from_list([("I", 1)])
+        op1 = SparsePauliOp.from_list([("Z", 1)])
+
+        est = Estimator()
+        with self.subTest("test circuit 0, observable 0"):
+            result = est.run(qc0, op0).result()
+            self.assertIsInstance(result, EstimatorResult)
+            np.testing.assert_allclose(result.values, [1])
+
+        with self.subTest("test circuit 0, observable 1"):
+            result = est.run(qc0, op1).result()
+            self.assertIsInstance(result, EstimatorResult)
+            np.testing.assert_allclose(result.values, [1])
+
+        with self.subTest("test circuit 1, observable 0"):
+            result = est.run(qc1, op0).result()
+            self.assertIsInstance(result, EstimatorResult)
+            np.testing.assert_allclose(result.values, [1])
+
+        with self.subTest("test circuit 1, observable 1"):
+            result = est.run(qc1, op1).result()
+            self.assertIsInstance(result, EstimatorResult)
+            np.testing.assert_allclose(result.values, [-1])
+
+    def test_2qubits(self):
+        """Test for 2-qubit cases (to check endian)"""
+        qc0 = QuantumCircuit(2)
+        qc1 = QuantumCircuit(2)
+        qc1.x(0)
+
+        op0 = SparsePauliOp.from_list([("II", 1)])
+        op1 = SparsePauliOp.from_list([("ZI", 1)])
+        op2 = SparsePauliOp.from_list([("IZ", 1)])
+
+        est = Estimator()
+        with self.subTest("test circuit 0, observable 0"):
+            result = est.run(qc0, op0).result()
+            self.assertIsInstance(result, EstimatorResult)
+            np.testing.assert_allclose(result.values, [1])
+
+        with self.subTest("test circuit 1, observable 0"):
+            result = est.run(qc1, op0).result()
+            self.assertIsInstance(result, EstimatorResult)
+            np.testing.assert_allclose(result.values, [1])
+
+        with self.subTest("test circuit 0, observable 1"):
+            result = est.run(qc0, op1).result()
+            self.assertIsInstance(result, EstimatorResult)
+            np.testing.assert_allclose(result.values, [1])
+
+        with self.subTest("test circuit 1, observable 1"):
+            result = est.run(qc1, op1).result()
+            self.assertIsInstance(result, EstimatorResult)
+            np.testing.assert_allclose(result.values, [1])
+
+        with self.subTest("test circuit 0, observable 2"):
+            result = est.run(qc0, op2).result()
+            self.assertIsInstance(result, EstimatorResult)
+            np.testing.assert_allclose(result.values, [1])
+
+        with self.subTest("test circuit 1, observable 2"):
+            result = est(qc1, op2)
+            self.assertIsInstance(result, EstimatorResult)
+            np.testing.assert_allclose(result.values, [-1])
+
+    def test_empty_parameter(self):
+        """Test for empty parameter"""
+        n = 2
+        qc = QuantumCircuit(n)
+        op = SparsePauliOp.from_list([("I" * n, 1)])
+        estimator = Estimator()
+        with self.subTest("one circuit"):
+            result = estimator.run(qc, op, shots=1000).result()
+            np.testing.assert_allclose(result.values, [1])
+            self.assertEqual(len(result.metadata), 1)
+
+        with self.subTest("two circuits"):
+            result = estimator.run([qc] * 2, [op] * 2, shots=1000).result()
+            np.testing.assert_allclose(result.values, [1, 1])
+            self.assertEqual(len(result.metadata), 2)
+
+    def test_numpy_params(self):
+        """Test for numpy array as parameter values"""
+        qc = RealAmplitudes(num_qubits=2, reps=2)
+        op = SparsePauliOp.from_list([("IZ", 1), ("XI", 2), ("ZY", -1)])
+        k = 5
+        params_array = np.random.rand(k, qc.num_parameters)
+        params_list = params_array.tolist()
+        params_list_array = list(params_array)
+        estimator = Estimator()
+        target = estimator.run([qc] * k, [op] * k, params_list, seed=15).result()
+
+        with self.subTest("ndarrary"):
+            result = estimator.run([qc] * k, [op] * k, params_array, seed=15).result()
+            self.assertEqual(len(result.metadata), k)
+            np.testing.assert_allclose(result.values, target.values)
+
+        with self.subTest("list of ndarray"):
+            result = estimator.run([qc] * k, [op] * k, params_list_array, seed=15).result()
+            self.assertEqual(len(result.metadata), k)
+            np.testing.assert_allclose(result.values, target.values)
+
+    def test_with_shots_option_with_approximation(self):
+        """test with shots option."""
+        est = Estimator(approximation=True)
+        result = est.run(
+            self.ansatz, self.observable, parameter_values=[[0, 1, 1, 2, 3, 5]], shots=1024, seed=15
+        ).result()
+        self.assertIsInstance(result, EstimatorResult)
+        np.testing.assert_allclose(result.values, [-1.3088991960117797])
+
+    def test_with_shots_option_without_approximation(self):
+        """test with shots option."""
+        est = Estimator(approximation=False)
+        result = est.run(
+            self.ansatz, self.observable, parameter_values=[[0, 1, 1, 2, 3, 5]], shots=1024, seed=15
+        ).result()
+        self.assertIsInstance(result, EstimatorResult)
+        np.testing.assert_allclose(result.values, [-1.2895828299114598])
+
 
 if __name__ == "__main__":
     unittest.main()
