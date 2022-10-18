@@ -16,7 +16,7 @@ Simplified noise models for devices backends.
 """
 
 import logging
-from warnings import warn, catch_warnings, filterwarnings
+from warnings import warn
 
 from numpy import inf, exp, allclose
 
@@ -84,7 +84,6 @@ def basic_device_gate_errors(properties,
                              gate_lengths=None,
                              gate_length_units='ns',
                              temperature=0,
-                             standard_gates=None,
                              warnings=None,
                              target=None):
     """
@@ -108,15 +107,12 @@ def basic_device_gate_errors(properties,
                                  Can be 'ns', 'ms', 'us', or 's' (Default: 'ns').
         temperature (double): qubit temperature in milli-Kelvin (mK)
                               (Default: 0).
-        standard_gates (bool): DEPRECATED, If true return errors as standard
-                               qobj gates. If false return as unitary
-                               qobj instructions (Default: None).
-        warnings (bool): PLAN TO BE DEPRECATED, Display warnings (Default: None).
+        warnings (bool): DEPRECATED, Display warnings (Default: None).
         target (Target): device backend target (Default: None). When this is supplied,
                          several options are disabled:
                          `properties`, `gate_lengths` and `gate_length_units` are not used
                          during the construction of gate errors.
-                         Default values are always used for `standard_gates` and `warnings`.
+                         Default values are always used for `warnings`.
 
     Returns:
         list: A list of tuples ``(label, qubits, QuantumError)``, for gates
@@ -126,23 +122,18 @@ def basic_device_gate_errors(properties,
     Raises:
         NoiseError: If invalid arguments are supplied.
     """
-    if standard_gates is not None:
-        warn(
-            '"standard_gates" option has been deprecated as of qiskit-aer 0.10.0'
-            ' and will be removed no earlier than 3 months from that release date.',
-            DeprecationWarning, stacklevel=2)
-
     if warnings is not None:
         warn(
-            '"warnings" argument will be deprecated as part of the qiskit-aer 0.12.0 and '
-            'subsequently removed',
-            PendingDeprecationWarning, stacklevel=2)
+            '"warnings" argument has been deprecated as of qiskit-aer 0.12.0 '
+            'and will be removed no earlier than 3 months from that release date. '
+            'Use the warnings filter in Python standard library instead.',
+            DeprecationWarning, stacklevel=2)
     else:
         warnings = True
 
     if target is not None:
-        if not standard_gates or not warnings:
-            warn("When `target` is supplied, `standard_gates` and `warnings` are ignored,"
+        if not warnings:
+            warn("When `target` is supplied, `warnings` are ignored,"
                  " and they are always set to true.", UserWarning)
 
         if gate_lengths:
@@ -201,14 +192,8 @@ def basic_device_gate_errors(properties,
 
         # Get depolarizing error channel
         if gate_error:
-            with catch_warnings():
-                filterwarnings(
-                    "ignore",
-                    category=DeprecationWarning,
-                    module="qiskit_aer.noise.errors.errorutils"
-                )
-                depol_error = _device_depolarizing_error(
-                    qubits, error_param, relax_error, standard_gates, warnings=warnings)
+            depol_error = _device_depolarizing_error(
+                qubits, error_param, relax_error, warnings=warnings)
 
         # Combine errors
         combined_error = _combine_depol_and_relax_error(depol_error, relax_error)
@@ -272,7 +257,6 @@ def _basic_device_target_gate_errors(target,
 def _device_depolarizing_error(qubits,
                                error_param,
                                relax_error=None,
-                               standard_gates=True,
                                warnings=True):
     """Construct a depolarizing_error for device"""
 
@@ -325,8 +309,7 @@ def _device_depolarizing_error(qubits,
                     ' than maximum allowed value (%f > %f). Truncating to'
                     ' maximum value.', depol_param, max_param)
             depol_param = min(depol_param, max_param)
-        return depolarizing_error(
-            depol_param, num_qubits, standard_gates=standard_gates)
+        return depolarizing_error(depol_param, num_qubits)
     return None
 
 

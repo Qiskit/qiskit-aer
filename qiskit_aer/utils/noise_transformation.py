@@ -80,11 +80,6 @@ def transform_noise_model(noise_model: NoiseModel, func: Callable) -> NoiseModel
         for qubits, error in noise_dic.items():
             new_noise._local_quantum_errors[inst_name][qubits] = func(error)
 
-    for inst_name, outer_dic in new_noise._nonlocal_quantum_errors.items():
-        for qubits, inner_dic in outer_dic.items():
-            for noise_qubits, error in inner_dic.items():
-                new_noise._nonlocal_quantum_errors[inst_name][qubits][noise_qubits] = func(error)
-
     return new_noise
 
 

@@ -148,13 +148,6 @@ class TestNoiseModel(QiskitAerTestCase):
         target = sorted([0, 1])
         self.assertEqual(model.noise_qubits, target)
 
-        # Check adding a non-local error adds to noise qubits
-        model = NoiseModel()
-        with self.assertWarns(DeprecationWarning):
-            model.add_nonlocal_quantum_error(pauli_error([['XX', 1]]), ['label'], [0], [1, 2], False)
-        target = sorted([0, 1, 2])
-        self.assertEqual(model.noise_qubits, target)
-
         # Check adding a default error isn't added to noise qubits
         model = NoiseModel()
         model.add_all_qubit_readout_error([[0.9, 0.1], [0, 1]], False)
@@ -176,16 +169,12 @@ class TestNoiseModel(QiskitAerTestCase):
         model1 = NoiseModel()
         model1.add_all_qubit_quantum_error(error1, ['u3'], False)
         model1.add_quantum_error(error1, ['u3'], [2], False)
-        with self.assertWarns(DeprecationWarning):
-            model1.add_nonlocal_quantum_error(error1, ['cx'], [0, 1], [3], False)
         model1.add_all_qubit_readout_error(roerror, False)
         model1.add_readout_error(roerror, [0], False)
 
         model2 = NoiseModel()
         model2.add_all_qubit_quantum_error(error2, ['u3'], False)
         model2.add_quantum_error(error2, ['u3'], [2], False)
-        with self.assertWarns(DeprecationWarning):
-            model2.add_nonlocal_quantum_error(error2, ['cx'], [0, 1], [3], False)
         model2.add_all_qubit_readout_error(roerror, False)
         model2.add_readout_error(roerror, [0], False)
         self.assertEqual(model1, model2)
