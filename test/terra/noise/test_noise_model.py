@@ -367,10 +367,10 @@ class TestNoiseModel(QiskitAerTestCase):
 
         noise_model = NoiseModel()
         with self.assertWarns(DeprecationWarning):
-            noise_model.add_quantum_error(QuantumError(noise_ops_1q, 1), 'h', [0])
-            noise_model.add_quantum_error(QuantumError(noise_ops_1q, 1), 'h', [1])
-            noise_model.add_quantum_error(QuantumError(noise_ops_2q, 2), 'cx', [0, 1])
-            noise_model.add_quantum_error(QuantumError(noise_ops_2q, 2), 'cx', [1, 0])
+            noise_model.add_quantum_error(QuantumError(noise_ops_1q), 'h', [0])
+            noise_model.add_quantum_error(QuantumError(noise_ops_1q), 'h', [1])
+            noise_model.add_quantum_error(QuantumError(noise_ops_2q), 'cx', [0, 1])
+            noise_model.add_quantum_error(QuantumError(noise_ops_2q), 'cx', [1, 0])
             deserialized = NoiseModel.from_dict(noise_model.to_dict())
             self.assertEqual(noise_model, deserialized)
 

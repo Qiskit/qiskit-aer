@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2018, 2019, 2021.
+# (C) Copyright IBM 2018--2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -15,7 +15,6 @@ Quantum error class for Qiskit Aer noise model
 import copy
 import numbers
 import uuid
-import warnings
 from typing import Iterable
 
 import numpy as np
@@ -25,16 +24,12 @@ from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.library.generalized_gates import PauliGate
 from qiskit.circuit.library.standard_gates import IGate
 from qiskit.exceptions import QiskitError
-from qiskit.extensions import UnitaryGate
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.quantum_info.operators.channel import Kraus, SuperOp
 from qiskit.quantum_info.operators.channel.quantum_channel import QuantumChannel
 from qiskit.quantum_info.operators.mixins import TolerancesMixin
 from qiskit.quantum_info.operators.predicates import is_identity_matrix
 from qiskit.quantum_info.operators.symplectic import Clifford
-from .errorutils import _standard_gates_instructions
-from .errorutils import kraus2instructions
-from .errorutils import standard_gate_unitary
 from ..noiseerror import NoiseError
 
 
@@ -50,10 +45,7 @@ class QuantumError(BaseOperator, TolerancesMixin):
     """
 
     def __init__(self,
-                 noise_ops,
-                 number_of_qubits=None,
-                 standard_gates=None,
-                 atol=None):
+                 noise_ops):
         """
         Create a quantum error for a noise model.
 
@@ -96,12 +88,6 @@ class QuantumError(BaseOperator, TolerancesMixin):
                 ``QuantumCircuit``, ``(Instruction, qargs)`` and a list of ``(Instruction, qargs)``.
                 Note that ``qargs`` should be a list of integers and can be omitted
                 (default qubits are used in that case). See also examples above.
-            number_of_qubits (int): [DEPRECATED] specify the number of qubits for the
-                                    error. If None this will be determined
-                                    automatically (default None).
-            standard_gates (bool): [DEPRECATED] Check if input matrices are standard gates.
-            atol (double): [DEPRECATED] Threshold for testing if probabilities are
-                           equal to 0 or 1 (Default: ``QuantumError.atol``).
         Raises:
             NoiseError: If input noise_ops is invalid, e.g. it's not a CPTP map.
         """
@@ -114,38 +100,6 @@ class QuantumError(BaseOperator, TolerancesMixin):
             self._probs = noise_ops.probabilities
             super().__init__(num_qubits=noise_ops.num_qubits)
             return
-
-        if atol is not None:
-            warnings.warn(
-                '"atol" option in the constructor of QuantumError has been deprecated'
-                ' as of qiskit-aer 0.10.0 and will be removed no earlier than 3 months'
-                ' from that release date. Use QuantumError.atol = value instead.',
-                DeprecationWarning, stacklevel=2)
-        else:
-            atol = QuantumError.atol
-
-        # Convert list of arrarys to kraus instruction (for old API support) TODO: to be removed
-        if isinstance(noise_ops, (list, tuple)) and \
-                len(noise_ops) > 0 and isinstance(noise_ops[0], np.ndarray):
-            warnings.warn(
-                'Constructing QuantumError with list of arrays representing a Kraus channel'
-                ' has been deprecated as of qiskit-aer 0.10.0 and will be removed no earlier than'
-                ' 3 months from that release date. Use QuantumError(Kraus(mats)) instead.',
-                DeprecationWarning, stacklevel=2)
-            if standard_gates:
-                with warnings.catch_warnings():
-                    warnings.filterwarnings("ignore",
-                                            category=DeprecationWarning,
-                                            module="qiskit_aer.noise.errors.errorutils")
-                    noise_ops = kraus2instructions(
-                        noise_ops, standard_gates, atol=atol)
-            else:
-                try:
-                    noise_ops = Kraus(noise_ops)
-                    noise_ops = [((noise_ops.to_instruction(),
-                                   list(range(noise_ops.num_qubits))), 1.0)]
-                except QiskitError as err:
-                    raise NoiseError("Fail to convert Kraus to Instruction") from err
 
         # Single circuit case
         if not isinstance(noise_ops, Iterable) or \
@@ -163,7 +117,7 @@ class QuantumError(BaseOperator, TolerancesMixin):
             _, p = pair  # pylint: disable=invalid-name
             if not isinstance(p, numbers.Real):
                 raise NoiseError(f"Invalid type of probability: {p}")
-            if p < -1 * atol:
+            if p < -1 * QuantumError.atol:
                 raise NoiseError(f"Negative probability is invalid: {p}")
 
         # Remove zero probability circuits
@@ -176,19 +130,9 @@ class QuantumError(BaseOperator, TolerancesMixin):
 
         ops, probs = zip(*noise_ops)  # unzip
 
-        if standard_gates is not None:
-            warnings.warn(
-                '"standard_gates" option in the constructor of QuantumError has been deprecated'
-                ' as of qiskit-aer 0.10.0 in favor of externalizing such an unrolling functionality'
-                ' and will be removed no earlier than 3 months from that release date.',
-                DeprecationWarning, stacklevel=2)
-            if standard_gates:
-                if isinstance(ops[0], list):
-                    ops = [_standard_gates_instructions(op) for op in ops]
-
         # Initialize internal variables with error checking
         total_probs = sum(probs)
-        if not np.isclose(total_probs - 1, 0, atol=atol):
+        if not np.isclose(total_probs - 1, 0, atol=QuantumError.atol):
             raise NoiseError(f"Probabilities are not normalized: {total_probs} != 1")
         # Rescale probabilities if their sum is ok to avoid accumulation of rounding errors
         self._probs = list(np.array(probs) / total_probs)
@@ -197,14 +141,6 @@ class QuantumError(BaseOperator, TolerancesMixin):
         circs = [self._to_circuit(op) for op in ops]
 
         num_qubits = max(qc.num_qubits for qc in circs)
-        if number_of_qubits is not None:
-            num_qubits = number_of_qubits
-            warnings.warn(
-                '"number_of_qubits" in the constructor of QuantumError has been deprecated'
-                ' as of qiskit-aer 0.10.0 in favor of determining it automatically'
-                ' and will be removed no earlier than 3 months from that release date.'
-                ' Specify number of qubits in the quantum circuit passed to the init if necessary.',
-                DeprecationWarning, stacklevel=2)
         self._circs = [self._enlarge_qreg(qc, num_qubits) for qc in circs]
 
         # Check validity of circuits
@@ -269,44 +205,6 @@ class QuantumError(BaseOperator, TolerancesMixin):
                             f" not appendable to circuit."
                         ) from err
                 return circ
-            # Support for old-style json-like input TODO: to be removed
-            elif all(isinstance(aop, dict) for aop in op):
-                warnings.warn(
-                    'Constructing QuantumError with list of dict representing a mixed channel'
-                    ' has been deprecated as of qiskit-aer 0.10.0 and will be removed'
-                    ' no earlier than 3 months from that release date.',
-                    DeprecationWarning, stacklevel=3)
-                # Convert json-like to non-kraus Instruction
-                num_qubits = max([max(dic['qubits']) for dic in op]) + 1
-                circ = QuantumCircuit(num_qubits)
-                for dic in op:
-                    if dic['name'] == 'reset':
-                        # pylint: disable=import-outside-toplevel
-                        from qiskit.circuit import Reset
-                        circ.append(Reset(), qargs=dic['qubits'])
-                    elif dic['name'] == 'kraus':
-                        circ.append(Instruction(name='kraus',
-                                                num_qubits=len(dic['qubits']),
-                                                num_clbits=0,
-                                                params=dic['params']),
-                                    qargs=dic['qubits'])
-                    elif dic['name'] == 'unitary':
-                        circ.append(UnitaryGate(data=dic['params'][0]),
-                                    qargs=dic['qubits'])
-                    elif dic['name'] == 'pauli':
-                        circ.append(PauliGate(dic['params'][0]),
-                                    qargs=dic['qubits'])
-                    else:
-                        with warnings.catch_warnings():
-                            warnings.filterwarnings(
-                                "ignore",
-                                category=DeprecationWarning,
-                                module="qiskit_aer.noise.errors.errorutils"
-                            )
-                            circ.append(UnitaryGate(label=dic['name'],
-                                                    data=standard_gate_unitary(dic['name'])),
-                                        qargs=dic['qubits'])
-                return circ
             else:
                 raise NoiseError(f"Invalid type of op list: {op}")
 
@@ -343,39 +241,10 @@ class QuantumError(BaseOperator, TolerancesMixin):
         # The constructor of subclasses from raw data should be a copy
         return copy.deepcopy(self)
 
-    @classmethod
-    def set_atol(cls, value):
-        """Set the class default absolute tolerance parameter for float comparisons."""
-        warnings.warn(
-            'QuantumError.set_atol(value) has been deprecated as of qiskit-aer 0.10.0'
-            ' and will be removed no earlier than 3 months from that release date.'
-            ' Use QuantumError.atol = value instead.',
-            DeprecationWarning, stacklevel=2)
-        QuantumError.atol = value
-
-    @classmethod
-    def set_rtol(cls, value):
-        """Set the class default relative tolerance parameter for float comparisons."""
-        warnings.warn(
-            'QuantumError.set_rtol(value) has been deprecated as of qiskit-aer 0.10.0'
-            ' and will be removed no earlier than 3 months from that release date.'
-            ' Use QuantumError.rtol = value instead.',
-            DeprecationWarning, stacklevel=2)
-        QuantumError.rtol = value
-
     @property
     def size(self):
         """Return the number of error circuit."""
         return len(self.circuits)
-
-    @property
-    def number_of_qubits(self):
-        """Return the number of qubits for the error."""
-        warnings.warn(
-            "The `number_of_qubits` property has been deprecated as of"
-            " qiskit-aer 0.10.0. Use the `num_qubits` property instead.",
-            DeprecationWarning)
-        return self.num_qubits
 
     @property
     def circuits(self):

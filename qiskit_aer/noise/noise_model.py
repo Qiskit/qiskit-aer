@@ -794,6 +794,44 @@ class NoiseModel:
         warn('from_dict has been deprecated as of qiskit-aer 0.10.0'
              ' and will be removed no earlier than 3 months from that release date.',
              DeprecationWarning, stacklevel=2)
+
+        # pylint: disable=import-outside-toplevel
+        from qiskit.circuit import QuantumCircuit
+        from qiskit.extensions import UnitaryGate
+        from qiskit_aer.noise.errors.errorutils import standard_gate_unitary
+
+        def inst_dic_list_to_circuit(dic_list):
+            num_qubits = max([max(dic['qubits']) for dic in dic_list]) + 1
+            circ = QuantumCircuit(num_qubits)
+            for dic in dic_list:
+                if dic['name'] == 'reset':
+                    from qiskit.circuit import Reset
+                    circ.append(Reset(), qargs=dic['qubits'])
+                elif dic['name'] == 'kraus':
+                    circ.append(Instruction(name='kraus',
+                                            num_qubits=len(dic['qubits']),
+                                            num_clbits=0,
+                                            params=dic['params']),
+                                qargs=dic['qubits'])
+                elif dic['name'] == 'unitary':
+                    circ.append(UnitaryGate(data=dic['params'][0]),
+                                qargs=dic['qubits'])
+                elif dic['name'] == 'pauli':
+                    from qiskit.circuit.library.generalized_gates import PauliGate
+                    circ.append(PauliGate(dic['params'][0]),
+                                qargs=dic['qubits'])
+                else:
+                    with catch_warnings():
+                        filterwarnings(
+                            "ignore",
+                            category=DeprecationWarning,
+                            module="qiskit_aer.noise.errors.errorutils"
+                        )
+                        circ.append(UnitaryGate(label=dic['name'],
+                                                data=standard_gate_unitary(dic['name'])),
+                                    qargs=dic['qubits'])
+            return circ
+
         # Return noise model
         noise_model = NoiseModel()
 
@@ -805,16 +843,12 @@ class NoiseModel:
 
             # Add QuantumError
             if error_type == 'qerror':
-                noise_ops = tuple(
-                    zip(error['instructions'], error['probabilities']))
+                circuits = [inst_dic_list_to_circuit(dics) for dics in error['instructions']]
+                noise_ops = tuple(zip(circuits, error['probabilities']))
+                qerror = QuantumError(noise_ops)
+                qerror._id = error.get('id', None) or qerror.id
                 instruction_names = error['operations']
                 all_gate_qubits = error.get('gate_qubits', None)
-                with catch_warnings():
-                    filterwarnings("ignore",
-                                   category=DeprecationWarning,
-                                   module="qiskit_aer.noise")
-                    qerror = QuantumError(noise_ops)
-                qerror._id = error.get('id', None) or qerror.id
                 if all_gate_qubits is not None:
                     for gate_qubits in all_gate_qubits:
                         # Add local quantum error
