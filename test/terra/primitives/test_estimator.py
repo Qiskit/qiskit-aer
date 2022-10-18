@@ -351,7 +351,7 @@ class TestEstimator(QiskitAerTestCase):
         with self.subTest("Invalid circuit test"):
             circuit = QuantumCircuit(2)
             with Estimator([self.ansatz], [self.observable]) as estimator:
-                with self.assertRaises(QiskitError):
+                with self.assertRaises(ValueError):
                     estimator(
                         circuits=[self.ansatz, circuit],
                         observables=[self.observable, self.observable],
@@ -361,7 +361,7 @@ class TestEstimator(QiskitAerTestCase):
         with self.subTest("Invalid observable test"):
             observable = SparsePauliOp(["ZX"])
             with Estimator([self.ansatz], [self.observable]) as estimator:
-                with self.assertRaises(QiskitError):
+                with self.assertRaises(ValueError):
                     estimator(
                         circuits=[self.ansatz, self.ansatz],
                         observables=[observable, self.observable],
