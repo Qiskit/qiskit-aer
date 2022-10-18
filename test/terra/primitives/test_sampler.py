@@ -391,9 +391,7 @@ class TestSampler(QiskitAerTestCase):
         qc.measure(2, 2)
 
         sampler = Sampler(backend_options={"seed_simulator": 15})
-        result = sampler.run(
-            [0, 1, 0, 1], [[0, 0], [0, 0], [np.pi / 2, 0], [0, np.pi / 2]]
-        ).result()
+        result = sampler.run([qc] * 4, [[0, 0], [0, 0], [np.pi / 2, 0], [0, np.pi / 2]]).result()
         self.assertIsInstance(result, SamplerResult)
         self.assertEqual(len(result.quasi_dists), 4)
 
@@ -487,7 +485,7 @@ class TestSampler(QiskitAerTestCase):
         qc.measure(range(n - 1), range(n - 1))
         sampler = Sampler()
         with self.subTest("one circuit"):
-            result = sampler([qc], shots=1000)
+            result = sampler.run([qc], shots=1000).result()
             self.assertEqual(len(result.quasi_dists), 1)
             for q_d in result.quasi_dists:
                 quasi_dist = {k: v for k, v in q_d.items() if v != 0.0}
@@ -495,7 +493,7 @@ class TestSampler(QiskitAerTestCase):
             self.assertEqual(len(result.metadata), 1)
 
         with self.subTest("two circuits"):
-            result = sampler([qc] * 2, shots=1000)
+            result = sampler.run([qc] * 2, shots=1000).result()
             self.assertEqual(len(result.quasi_dists), 2)
             for q_d in result.quasi_dists:
                 quasi_dist = {k: v for k, v in q_d.items() if v != 0.0}
@@ -506,7 +504,7 @@ class TestSampler(QiskitAerTestCase):
         """test with shots option."""
         params, target = self._generate_params_target([1])
         sampler = Sampler()
-        result = sampler(
+        result = sampler.run(
             circuits=[self._pqc], parameter_values=params, shots=1024, seed=15
         ).result()
         self._compare_probs(result.quasi_dists, target)

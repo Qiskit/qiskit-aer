@@ -459,7 +459,9 @@ class TestEstimator(QiskitAerTestCase):
         circuit.cx(0, 1)
         circuit.cx(1, 2)
         est = Estimator()
-        result = est.run([circuit] * 2, ["ZZZ", "III"], seed=15).result()
+        result = est.run(
+            [circuit] * 2, [SparsePauliOp("ZZZ"), SparsePauliOp("III")], seed=15
+        ).result()
         self.assertIsInstance(result, EstimatorResult)
         np.testing.assert_allclose(result.values, [0.00390625, 1.0])
 
@@ -530,7 +532,7 @@ class TestEstimator(QiskitAerTestCase):
             np.testing.assert_allclose(result.values, [1])
 
         with self.subTest("test circuit 1, observable 2"):
-            result = est(qc1, op2)
+            result = est.run(qc1, op2).result()
             self.assertIsInstance(result, EstimatorResult)
             np.testing.assert_allclose(result.values, [-1])
 
