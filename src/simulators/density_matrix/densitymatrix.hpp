@@ -47,7 +47,8 @@ public:
   DensityMatrix() : DensityMatrix(0) {};
   explicit DensityMatrix(size_t num_qubits);
   DensityMatrix(const DensityMatrix& obj) {};
-  DensityMatrix &operator=(const DensityMatrix& obj) {};
+  DensityMatrix &operator=(const DensityMatrix& obj) = delete;
+  DensityMatrix &operator=(DensityMatrix&& obj);
 
   //-----------------------------------------------------------------------
   // Utility functions
@@ -167,6 +168,14 @@ protected:
 template <typename data_t>
 DensityMatrix<data_t>::DensityMatrix(size_t num_qubits)
   : UnitaryMatrix<data_t>(num_qubits) {}
+
+template <typename data_t>
+DensityMatrix<data_t>& DensityMatrix<data_t>::operator=(DensityMatrix<data_t>&& obj) {
+  apply_unitary_threshold_ = obj.apply_unitary_threshold_;
+  BaseMatrix::operator= (std::move(obj));
+  return *this;
+};
+
 
 //------------------------------------------------------------------------------
 // Utility

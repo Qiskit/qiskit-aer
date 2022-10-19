@@ -750,7 +750,7 @@ std::complex<data_t> &QubitVector<data_t>::operator[](uint_t element) {
   // Error checking
   #ifdef DEBUG
   if (element > data_size_) {
-    std::string error = "QubitVector(" << std::hex << this << "): vector index " + std::to_string(element) +
+    std::string error = "QubitVector vector index " + std::to_string(element) +
                         " > " + std::to_string(data_size_);
     throw std::runtime_error(error);
   }

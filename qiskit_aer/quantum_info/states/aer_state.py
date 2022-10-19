@@ -141,13 +141,12 @@ class AerState:
             raise AerError('length of init data must be power of two')
 
         init = False
-        if (isinstance(data, np.ndarray)):
-            if self._configs['method'] == 'statevector':
-                init = self._native_state.initialize_statevector(num_of_qubits, data, copy)
-            elif self._configs['method'] == 'density_matrix':
-                if data.shape != (len(data), len(data)):
-                    raise AerError('shape of init data must be a pair of power of two')
-                init = self._native_state.initialize_densitymatrix(num_of_qubits, data, copy)
+        if self._configs['method'] == 'statevector':
+            init = self._native_state.initialize_statevector(num_of_qubits, data, copy)
+        elif self._configs['method'] == 'density_matrix':
+            if data.shape != (len(data), len(data)):
+                raise AerError('shape of init data must be a pair of power of two')
+            init = self._native_state.initialize_densitymatrix(num_of_qubits, data, copy)
 
         if init:
             if not copy:
@@ -168,7 +167,7 @@ class AerState:
         """Safely release all releated memory."""
         self._assert_allocated_or_mapped_or_moved()
         if self._state == _STATE.ALLOCATED:
-            self.move_to_vector()
+            self._native_state.move_to_vector()
 
         self._assert_mapped_or_moved()
         if self._state == _STATE.MAPPED:

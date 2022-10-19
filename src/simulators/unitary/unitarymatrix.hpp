@@ -45,7 +45,8 @@ public:
   UnitaryMatrix() : UnitaryMatrix(0) {};
   explicit UnitaryMatrix(size_t num_qubits);
   UnitaryMatrix(const UnitaryMatrix& obj){}
-  UnitaryMatrix &operator=(const UnitaryMatrix& obj){}
+  UnitaryMatrix &operator=(const UnitaryMatrix& obj) = delete;
+  UnitaryMatrix &operator=(UnitaryMatrix&& obj);
 
   //-----------------------------------------------------------------------
   // Utility functions
@@ -187,6 +188,15 @@ UnitaryMatrix<data_t>::UnitaryMatrix(size_t num_qubits) {
   set_num_qubits(num_qubits);
 }
 
+template <typename data_t>
+UnitaryMatrix<data_t>& UnitaryMatrix<data_t>::operator=(UnitaryMatrix<data_t>&& obj) {
+  num_qubits_ = obj.num_qubits_;
+  rows_ = obj.rows_;
+  identity_threshold_ = obj.identity_threshold_;
+  BaseVector::operator = (std::move(obj));
+  return *this;
+};
+
 //------------------------------------------------------------------------------
 // Convert data vector to matrix
 //------------------------------------------------------------------------------
@@ -263,6 +273,7 @@ void UnitaryMatrix<data_t>::move_from_vector(AER::Vector<std::complex<data_t>> &
                         std::to_string(vec.size()) + ")";
     throw std::runtime_error(error);
   }
+  rows_ = 1ULL << num_qubits_;
   BaseVector::move_from_vector(std::move(vec));
 }
 

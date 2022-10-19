@@ -87,8 +87,7 @@ class TestAerState(common.QiskitAerTestCase):
         state1.initialize()
 
         dm1 = state1.move_to_ndarray()
-        # self.assertEqual((16, 16), dm1.shape)
-        dm1 = dm1.reshape(16, 16)
+        self.assertEqual((16, 16), dm1.shape)
 
         for row in range(dm1.shape[0]):
             for col in range(dm1.shape[1]):
@@ -116,7 +115,6 @@ class TestAerState(common.QiskitAerTestCase):
                 else:
                     self.assertEqual(dm2[row][col], complex(0., 0.))
 
-
     def test_map_statevector(self):
         """Test initialization of AerState with statevector"""
         init_state = random_statevector(2**5, seed=111)
@@ -133,6 +131,23 @@ class TestAerState(common.QiskitAerTestCase):
         state2.close()
 
         self.assertIs(sv1, sv2)
+        self.assertEqual(sample1, sample2)
+
+    def test_map_densitymatrix(self):
+        """Test initialization of AerState with densitymatrix"""
+        init_state = random_statevector(4**4, seed=111).data.reshape(16, 16)
+        state1 = AerState(method='density_matrix', seed_simulator=2222)
+        state1.initialize(init_state, copy=True)
+        sample1 = state1.sample_counts()
+        dm1 = state1.move_to_ndarray()
+
+        state2 = AerState(method='density_matrix', seed_simulator=2222)
+        state2.initialize(dm1, copy=False)
+        sample2 = state2.sample_counts()
+        dm2 = state2.move_to_ndarray()
+        state2.close()
+
+        self.assertIs(dm1, dm2)
         self.assertEqual(sample1, sample2)
 
     def test_map_statevector_repeated(self):
@@ -154,6 +169,30 @@ class TestAerState(common.QiskitAerTestCase):
             for idx in range(len(sv2) - 2):
                 self.assertEqual(sv2[idx], complex(0., 0.))
             self.assertEqual(sv2[len(sv2) - 1], complex(1., 0.))
+
+    def test_map_densitymatrix_repeated(self):
+        """Test initialization of AerState with densitymatrix"""
+        state1 = AerState(method='density_matrix')
+        state1.allocate_qubits(4)
+        state1.initialize()
+
+        dm1 = state1.move_to_ndarray()
+        dm1[0][0] = complex(0., 0.)
+        dm1[len(dm1) - 1][len(dm1) - 1] = complex(1., 0.)
+        state1.close()
+
+        for _ in range(100):
+            state2 = AerState(method='density_matrix')
+            state2.initialize(dm1, copy=False)
+            dm2 = state2.move_to_ndarray()
+            state2.close()
+
+            for row in range(dm2.shape[0]):
+                for col in range(dm2.shape[1]):
+                    if row == len(dm2) - 1 and col == len(dm2) - 1:
+                        self.assertEqual(dm2[row][col], complex(1., 0.))
+                    else:
+                        self.assertEqual(dm2[row][col], complex(0., 0.))
 
     def test_initialize_with_normal_ndarray(self):
         """Test initialization of AerState with normal ndarray"""

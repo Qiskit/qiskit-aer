@@ -716,7 +716,7 @@ reg_t AerState::initialize_densitymatrix(uint_t num_of_qubits, complex_t* data, 
   assert_not_initialized();
 
   num_of_qubits_ = num_of_qubits;
-  uint_t data_size = (1ULL << num_of_qubits_ * 2);
+  uint_t data_size = (1ULL << (num_of_qubits_ * 2ULL));
 
   initialize_state_controller();
 
