@@ -118,8 +118,8 @@ class Sampler(BaseSampler):
                     self._backend,
                     **self._transpile_options,
                 )
-        for i, circuit in zip(no_cache_circuits, transpiled_circuits):
-            self._cache[i] = circuit
+            for i, circuit in zip(no_cache_circuits, transpiled_circuits):
+                self._cache[i] = circuit
 
         # Prepare circuits and parameter_binds
         experiments = []
