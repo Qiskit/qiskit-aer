@@ -12,15 +12,16 @@
 """
 LocalNoisePass class tests
 """
-
-from qiskit_aer.noise import ReadoutError, LocalNoisePass
+from ddt import ddt, data
+from test.terra.common import QiskitAerTestCase
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.library.standard_gates import SXGate, HGate, CXGate
 from qiskit.transpiler import TranspilerError
-from test.terra.common import QiskitAerTestCase
+from qiskit_aer.noise import ReadoutError, LocalNoisePass
 
 
+@ddt
 class TestLocalNoisePass(QiskitAerTestCase):
     """Testing LocalNoisePass class"""
 
@@ -114,3 +115,33 @@ class TestLocalNoisePass(QiskitAerTestCase):
         expected.x(1)
 
         self.assertEqual(expected, noise_qc)
+
+    @data("append", "prepend")
+    def test_empty_noise_never_change_original_circuit(self, method):
+        # method="replace" may change original circuit
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.measure_all()
+
+        def func(op, qubits):
+            return QuantumCircuit(len(qubits))
+
+        noise_pass = LocalNoisePass(func=func, method=method)
+        actual = noise_pass(qc)
+
+        self.assertEqual(qc, actual)
+
+    @data("append", "prepend", "replace")
+    def test_raise_if_noise_generator_returns_circuit_with_clbits(self, method):
+        qc = QuantumCircuit(1)
+        qc.h(0)
+
+        def func(op, qubits):
+            circ = QuantumCircuit(len(qubits))
+            circ.measure_all()
+            return circ
+
+        noise_pass = LocalNoisePass(func=func, method=method)
+        with self.assertRaises(TranspilerError):
+            noise_pass(qc)
