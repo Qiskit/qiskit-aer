@@ -13,5 +13,3 @@ sphinx-automodapi
 jupyter-sphinx
 reno>=3.4.0
 ddt>=1.2.0,!=1.4.0
-# Temporary terra version fix (will be removed in #1598)
-qiskit-terra==0.21.2
