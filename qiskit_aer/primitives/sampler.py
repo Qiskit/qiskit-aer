@@ -86,7 +86,7 @@ class Sampler(BaseSampler):
         self._transpile_options = {} if transpile_options is None else transpile_options
         self._skip_transpilation = skip_transpilation
 
-        self._cache = {}
+        self._transpiled_circuits = {}
 
     def _call(
         self,
@@ -101,33 +101,15 @@ class Sampler(BaseSampler):
         if seed is not None:
             run_options.setdefault("seed_simulator", seed)
 
-        # Transpile circuits if not in cache
-        no_cache_circuits = []
-        for circuit_index in set(circuits):
-            if circuit_index not in self._cache:
-                no_cache_circuits.append(circuit_index)
-        if no_cache_circuits:
-            transpiled_circuits = (self._circuits[i] for i in no_cache_circuits)
-            if "shots" in run_options and run_options["shots"] is None:
-                transpiled_circuits = (
-                    self._preprocess_circuit(circ) for circ in transpiled_circuits
-                )
-            if not self._skip_transpilation:
-                transpiled_circuits = transpile(
-                    list(transpiled_circuits),
-                    self._backend,
-                    **self._transpile_options,
-                )
-            for i, circuit in zip(no_cache_circuits, transpiled_circuits):
-                self._cache[i] = circuit
+        shots_is_none = "shots" in run_options and run_options["shots"] is None
+        self._transpile(circuits, shots_is_none)
 
-        # Prepare circuits and parameter_binds
         experiments = []
         parameter_binds = []
         for i, value in zip(circuits, parameter_values):
             self._validate_parameter_length(value, i)
             parameter_binds.append({k: [v] for k, v in zip(self._parameters[i], value)})
-            experiments.append(self._cache[i])
+            experiments.append(self._transpiled_circuits[(i, shots_is_none)])
 
         result = self._backend.run(
             experiments, parameter_binds=parameter_binds, **run_options
@@ -199,6 +181,27 @@ class Sampler(BaseSampler):
         circuit = circuit.remove_final_measurements(inplace=False)
         circuit.save_probabilities_dict(qargs)
         return circuit
+
+    def _transpile(self, circuit_indices: Sequence[int], shots_is_none: bool):
+        to_handle = [
+            circuit_index
+            for circuit_index in set(circuits)
+            if (circuit_index, shots_is_none) not in self._transpiled_circuits
+        ]
+        if to_handle:
+            transpiled_circuits = (self._circuits[i] for i in to_handle)
+            if shots_is_none:
+                transpiled_circuits = (
+                    self._preprocess_circuit(circ) for circ in transpiled_circuits
+                )
+            if not self._skip_transpilation:
+                transpiled_circuits = transpile(
+                    list(transpiled_circuits),
+                    self._backend,
+                    **self._transpile_options,
+                )
+            for i, circuit in zip(to_handle, transpiled_circuits):
+                self._transpiled_circuits[(i, shots_is_none)] = circuit
 
     def _validate_parameter_length(self, parameter, circuit_index):
         if len(parameter) != len(self._parameters[circuit_index]):
