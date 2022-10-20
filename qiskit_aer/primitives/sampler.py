@@ -101,15 +101,19 @@ class Sampler(BaseSampler):
         if seed is not None:
             run_options.setdefault("seed_simulator", seed)
 
-        shots_is_none = "shots" in run_options and run_options["shots"] is None
-        self._transpile(circuits, shots_is_none)
+        is_shots_none = "shots" in run_options and run_options["shots"] is None
+        self._transpile(circuits, is_shots_none)
 
         experiments = []
         parameter_binds = []
         for i, value in zip(circuits, parameter_values):
-            self._validate_parameter_length(value, i)
+            if len(value) != len(self._parameters[i]):
+                raise QiskitError(
+                    f"The number of values ({len(value)}) does not match "
+                    f"the number of parameters ({len(self._parameters[i])})."
+                )
             parameter_binds.append({k: [v] for k, v in zip(self._parameters[i], value)})
-            experiments.append(self._transpiled_circuits[(i, shots_is_none)])
+            experiments.append(self._transpiled_circuits[(i, is_shots_none)])
 
         result = self._backend.run(
             experiments, parameter_binds=parameter_binds, **run_options
@@ -119,7 +123,7 @@ class Sampler(BaseSampler):
         metadata = []
         quasis = []
         for i in range(len(experiments)):
-            if shots_is_none:
+            if is_shots_none:
                 probabilities = result.data(i)["probabilities"]
                 quasis.append(QuasiDistribution(probabilities))
                 metadata.append({"shots": None, "simulator_metadata": result.results[i].metadata})
@@ -182,13 +186,13 @@ class Sampler(BaseSampler):
         circuit.save_probabilities_dict(qargs)
         return circuit
 
-    def _transpile(self, circuit_indices: Sequence[int], shots_is_none: bool):
+    def _transpile(self, circuit_indices: Sequence[int], is_shots_none: bool):
         to_handle = [
-            i for i in set(circuit_indices) if (i, shots_is_none) not in self._transpiled_circuits
+            i for i in set(circuit_indices) if (i, is_shots_none) not in self._transpiled_circuits
         ]
         if to_handle:
             circuits = (self._circuits[i] for i in to_handle)
-            if shots_is_none:
+            if is_shots_none:
                 circuits = (self._preprocess_circuit(circ) for circ in circuits)
             if not self._skip_transpilation:
                 circuits = transpile(
@@ -197,11 +201,4 @@ class Sampler(BaseSampler):
                     **self._transpile_options,
                 )
             for i, circuit in zip(to_handle, circuits):
-                self._transpiled_circuits[(i, shots_is_none)] = circuit
-
-    def _validate_parameter_length(self, parameter, circuit_index):
-        if len(parameter) != len(self._parameters[circuit_index]):
-            raise QiskitError(
-                f"The number of values ({len(parameter)}) does not match "
-                f"the number of parameters ({len(self._parameters[circuit_index])})."
-            )
+                self._transpiled_circuits[(i, is_shots_none)] = circuit
