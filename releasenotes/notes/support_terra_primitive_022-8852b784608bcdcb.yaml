@@ -1,4 +1,4 @@
 ---
-features:
+fixes:
   - |
     Support Primitive of Terra 0.22. Sampler and Estimator have _run() method.
