@@ -525,21 +525,6 @@ class TestSampler(QiskitAerTestCase):
             },
         )
 
-    def test_multiple_exp(self):
-        """TODO"""
-        circuits, target1 = self._generate_circuits_target([0, 1])
-        params, target2 = self._generate_params_target([0, 1])
-        sampler = Sampler()
-        result = sampler.run(
-            circuits=[self._pqc, circuits[0], self._pqc, circuits[1]],
-            parameter_values=[params[0], [], params[1], []],
-            seed=15,
-        ).result()
-        self.assertDictAlmostEqual(result.quasi_dists[0], target2[0], places=1)
-        self.assertDictAlmostEqual(result.quasi_dists[1], target1[0], places=1)
-        self.assertDictAlmostEqual(result.quasi_dists[2], target2[1], places=1)
-        self.assertDictAlmostEqual(result.quasi_dists[3], target1[1], places=1)
-
 
 if __name__ == "__main__":
     unittest.main()
