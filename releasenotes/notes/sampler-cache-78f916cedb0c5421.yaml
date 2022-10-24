@@ -1,4 +1,5 @@
 ---
-upgrade:
+fixes:
   - |
-    Improved the performance of :class:`.Sampler` introducing cache of transpiled circuits.
+    Fixed the performance overhead of the Sampler class when running with identical circuits on multiple executions.
+    This was accomplished by skipping/caching the transpilation of these identical circuits on subsequent executions.
