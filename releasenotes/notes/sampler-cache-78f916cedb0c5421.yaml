@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fixed the performance overhead of the Sampler class when running with identical circuits on multiple executions.
+    This was accomplished by skipping/caching the transpilation of these identical circuits on subsequent executions.

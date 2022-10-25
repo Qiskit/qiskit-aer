@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    Fixed a potential build error when trying to use CMake 3.18 or newer and
+    building qiskit-aer with GPU support enabled. Since CMake 3.18 or later
+    when building with CUDA the ``CMAKE_CUDA_ARCHITECTURES`` was required to
+    be set with the architecture value for the target GPU. This has been
+    corrected so that setting ``AER_CUDA_ARCH`` will be used if this was
+    not set.

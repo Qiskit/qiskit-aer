@@ -14,12 +14,12 @@
 
 """Decorator for using with Qiskit Aer unit tests."""
 
-import unittest
 import multiprocessing
+import unittest
 
 from qiskit import QuantumCircuit, execute
-from qiskit_aer import AerProvider, AerSimulator
 
+from qiskit_aer import AerProvider, AerSimulator
 
 # Backwards compatibility for Terra <= 0.13
 if not hasattr(QuantumCircuit, 'i'):
@@ -81,3 +81,20 @@ def requires_multiprocessing(test_item):
     skip = multiprocessing.cpu_count() <= 1
     reason = 'Multicore CPU not available, skipping test'
     return unittest.skipIf(skip, reason)(test_item)
+
+
+def deprecated(method):
+    """Decorator that is for deprecated methods.
+
+    Args:
+        method (callable): a deprecated method.
+
+    Returns:
+        callable: the decorated method.
+    """
+
+    def _deprecated_method(self, *args, **kwargs):
+        with self.assertWarns(DeprecationWarning):
+            method(self, *args, **kwargs)
+
+    return _deprecated_method

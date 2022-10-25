@@ -7,7 +7,7 @@ features:
     .. code-block:: python
 
         import qiskit
-        from qiskit.providers.aer import AerSimulator
+        from qiskit_aer import AerSimulator
 
         qc = qiskit.QuantumCircuit(4)
         qc.initialize('+-rl')
