@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    This is fix of AerState running with cache blocking.
+    Cache blocking transpiler recovers swapped qubits map to the original map
+    when using AerState.
