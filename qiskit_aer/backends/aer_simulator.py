@@ -509,7 +509,7 @@ class AerSimulator(AerBackend):
             'save_state', 'save_expval', 'save_expval_var',
             'save_probabilities', 'save_probabilities_dict',
             'save_density_matrix', 'save_amplitudes', 'save_amplitudes_sq',
-            'save_statevector','save_statevector_dict',
+            'save_statevector', 'save_statevector_dict',
             'set_statevector', 'set_density_matrix'
         ])
     }
@@ -523,7 +523,7 @@ class AerSimulator(AerBackend):
                     _CUSTOM_INSTR['matrix_product_state']).union(
                         _CUSTOM_INSTR['unitary']).union(
                             _CUSTOM_INSTR['superop']).union(
-	                            _CUSTOM_INSTR['tensor_network']))
+                                _CUSTOM_INSTR['tensor_network']))
 
     _DEFAULT_CONFIGURATION = {
         'backend_name': 'aer_simulator',
@@ -649,7 +649,7 @@ class AerSimulator(AerBackend):
             # tensor network options
             tensor_network_num_sampling_qubits=10,
             use_cuTensorNet_autotuning=False
-            )
+        )
 
     def __repr__(self):
         """String representation of an AerSimulator."""
