@@ -35,7 +35,8 @@ class AerStatevector(Statevector):
     def __init__(self, data, dims=None, **configs):
         """
         Args:
-            data (np.array or list or Statevector or QuantumCircuit or qiskit.circuit.Instruction):
+            data (np.array or list or AerStatevector or QuantumCircuit or
+                  qiskit.circuit.Instruction):
                 Data from which the statevector can be constructed. This can be either a complex
                 vector, another statevector or a ``QuantumCircuit`` or ``Instruction``
                 (``Operator`` is not supportted in the current implementation).  If the data is
