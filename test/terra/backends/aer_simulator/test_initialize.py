@@ -20,7 +20,7 @@ import numpy as np
 from test.terra.backends.simulator_test_case import (
     SimulatorTestCase, supported_methods)
 
-SUPPORTED_METHODS = ['automatic', 'statevector', 'matrix_product_state']
+SUPPORTED_METHODS = ['automatic', 'statevector', 'matrix_product_state', 'tensor_network']
 
 
 @ddt

@@ -683,7 +683,7 @@ reg_t AerState::initialize_statevector(uint_t num_of_qubits, complex_t* data, bo
   auto qv = QV::QubitVector<double>(num_of_qubits_, data, copy);
   state->initialize_qreg(num_of_qubits_);
   state->initialize_creg(num_of_qubits_, num_of_qubits_);
-  state->initialize_statevector(num_of_qubits_, std::move(qv));
+  state->initialize_qreg(std::move(qv));
   state_ = state;
   rng_.set_seed(seed_);
   initialized_ = true;

@@ -36,6 +36,18 @@ public:
 
   BinaryVector() : m_length(0), m_data(0){};
 
+  BinaryVector(const BinaryVector& vec)
+  {
+    m_length = vec.m_length;
+    m_data = vec.m_data;
+  }
+  BinaryVector& operator=(const BinaryVector& vec)
+  {
+    m_length = vec.m_length;
+    m_data = vec.m_data;
+    return *this;
+  }
+
   explicit BinaryVector(uint64_t length)
       : m_length(length), m_data((length - 1) / BLOCK_SIZE + 1, ZERO_){};
 

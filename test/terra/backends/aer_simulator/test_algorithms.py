@@ -56,7 +56,7 @@ class TestAlgorithms(SimulatorTestCase):
 
     @supported_methods(
         ['automatic', 'statevector', 'density_matrix',
-         'matrix_product_state', 'extended_stabilizer'])
+         'matrix_product_state', 'extended_stabilizer', 'tensor_network'])
     def test_grovers(self, method, device):
         """Test grovers circuits execute."""
         
@@ -71,7 +71,7 @@ class TestAlgorithms(SimulatorTestCase):
 
     @supported_methods(
         ['automatic', 'statevector', 'density_matrix',
-         'matrix_product_state', 'extended_stabilizer'])
+         'matrix_product_state', 'extended_stabilizer', 'tensor_network'])
     def test_teleport(self, method, device):
         """Test teleport circuits."""
         self._test_teleport(method=method, device=device)

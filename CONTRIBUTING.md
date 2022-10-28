@@ -645,15 +645,18 @@ Few notes on GPU builds:
 
 Qiskit Aer now supports cuQuantum optimized Quantum computing APIs from NVIDIA®.
 cuStateVec APIs can be exploited to accelerate statevector, density_matrix and unitary methods.
-Supported version of cuQuantum is 0.40 or higher and required version of CUDA toolkit is 11.2 or higher.
+cuTensorNet APIs can be exploited to tensor_network merthod.
+This implementation requires CUDA toolkit version 11.2 or higher and Volta or Ampare architecture GPUs.
 
-To build Qiskit Aer with cuStateVec support, please set the path to cuQuantum root directory to CUSTATEVEC_ROOT as following.
+To build Qiskit Aer with cuQuantum support, please set the path to cuQuantum root directory to CUQUANTUM_ROOT
+and directory to cuTensor to CUTENSOR_ROOT then set AER_ENABLE_CUQUANTUM=true.
+as following.
 
 For example,
 
-    qiskit-aer$ python ./setup.py bdist_wheel -- -DAER_THRUST_BACKEND=CUDA -DCUSTATEVEC_ROOT=path_to_cuQuantum
+    qiskit-aer$ python ./setup.py bdist_wheel -- -DAER_THRUST_BACKEND=CUDA -DCUQUANTUM_ROOT=path_to_cuQuantum -DCUTENSOR_ROOT=path_to_cuTENSOR -DAER_ENABLE_CUQUANTUM=true --
 
-if you want to link cuQuantum library statically, set `CUSTATEVEC_STATIC` to setup.py. 
+if you want to link cuQuantum library statically, set `CUQUANTUM_STATIC` to setup.py. 
 Otherwise you also have to set environmental variable LD_LIBRARY_PATH to indicate path to the cuQuantum libraries.
 
 To run with cuStateVec, set `device='GPU'` to AerSimulator option and set `cuStateVec_enable=True` to option in execute method.

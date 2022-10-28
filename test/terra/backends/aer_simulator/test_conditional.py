@@ -27,7 +27,7 @@ class TestConditionalGates(SimulatorTestCase):
 
     SUPPORTED_METHODS = [
         'automatic', 'stabilizer', 'statevector', 'density_matrix',
-        'matrix_product_state', 'extended_stabilizer'
+        'matrix_product_state', 'extended_stabilizer', 'tensor_network'
     ]
 
     # ---------------------------------------------------------------------
@@ -50,6 +50,7 @@ class TestConditionalGates(SimulatorTestCase):
         """Test conditional gate operations on 2-bit conditional register."""
         shots = 100
         backend = self.backend(method=method, device=device)
+        backend.set_options(max_parallel_experiments=0)
         circuits = ref_conditionals.conditional_circuits_2bit(
             final_measure=True, conditional_type='gate')
         targets = ref_conditionals.conditional_counts_2bit(shots)
@@ -64,6 +65,7 @@ class TestConditionalGates(SimulatorTestCase):
         # [value of conditional register, list of condtional values]
         cases = ref_conditionals.conditional_cases_64bit()
         backend = self.backend(method=method, device=device)
+        backend.set_options(max_parallel_experiments=0)
         circuits = ref_conditionals.conditional_circuits_nbit(64, cases,
                 final_measure=True, conditional_type='gate')
         # not using hex counts because number of leading zeros in results
@@ -81,6 +83,7 @@ class TestConditionalGates(SimulatorTestCase):
         shots = 100
         cases = ref_conditionals.conditional_cases_132bit()
         backend = self.backend(method=method, device=device)
+        backend.set_options(max_parallel_experiments=0)
         circuits = ref_conditionals.conditional_circuits_nbit(132, cases, final_measure=True,
                 conditional_type='gate')
         targets = ref_conditionals.condtional_counts_nbit(132, cases, shots,
@@ -95,7 +98,7 @@ class TestConditionalUnitary(SimulatorTestCase):
     """AerSimulator conditional unitary tests."""
 
     SUPPORTED_METHODS = [
-        'automatic', 'statevector', 'density_matrix', 'matrix_product_state', 
+        'automatic', 'statevector', 'density_matrix', 'matrix_product_state', 'tensor_network'
     ]
 
     # ---------------------------------------------------------------------
@@ -118,6 +121,7 @@ class TestConditionalUnitary(SimulatorTestCase):
         """Test conditional unitary operations on 2-bit conditional register."""
         shots = 100
         backend = self.backend(method=method, device=device)
+        backend.set_options(max_parallel_experiments=0)
         circuits = ref_conditionals.conditional_circuits_2bit(
             final_measure=True, conditional_type='unitary')
         targets = ref_conditionals.conditional_counts_2bit(shots)
@@ -131,6 +135,7 @@ class TestConditionalUnitary(SimulatorTestCase):
         shots = 100
         cases = ref_conditionals.conditional_cases_64bit()
         backend = self.backend(method=method, device=device)
+        backend.set_options(max_parallel_experiments=0)
         circuits = ref_conditionals.conditional_circuits_nbit(64, cases,
                 final_measure=True, conditional_type='unitary')
         targets = ref_conditionals.condtional_counts_nbit(64, cases, shots,
@@ -146,6 +151,7 @@ class TestConditionalUnitary(SimulatorTestCase):
         shots = 100
         cases = ref_conditionals.conditional_cases_132bit()
         backend = self.backend(method=method, device=device)
+        backend.set_options(max_parallel_experiments=0)
         circuits = ref_conditionals.conditional_circuits_nbit(132, cases, final_measure=True,
                 conditional_type='unitary')
         targets = ref_conditionals.condtional_counts_nbit(132, cases, shots,
@@ -160,7 +166,7 @@ class TestConditionalKraus(SimulatorTestCase):
     """AerSimulator conditional kraus tests."""
 
     SUPPORTED_METHODS = [
-        'automatic', 'statevector', 'density_matrix', 'matrix_product_state',
+        'automatic', 'statevector', 'density_matrix', 'matrix_product_state', 'tensor_network'
     ]
 
     # ---------------------------------------------------------------------
@@ -183,6 +189,7 @@ class TestConditionalKraus(SimulatorTestCase):
         """Test conditional kraus operations on 2-bit conditional register."""
         shots = 100
         backend = self.backend(method=method, device=device)
+        backend.set_options(max_parallel_experiments=0)
         circuits = ref_conditionals.conditional_circuits_2bit(
             final_measure=True, conditional_type='kraus')
         targets = ref_conditionals.conditional_counts_2bit(shots)
@@ -196,6 +203,7 @@ class TestConditionalKraus(SimulatorTestCase):
         shots = 100
         cases = ref_conditionals.conditional_cases_64bit()
         backend = self.backend(method=method, device=device)
+        backend.set_options(max_parallel_experiments=0)
         circuits = ref_conditionals.conditional_circuits_nbit(64, cases,
                 final_measure=True, conditional_type='kraus')
         targets = ref_conditionals.condtional_counts_nbit(64, cases, shots,
@@ -211,6 +219,7 @@ class TestConditionalKraus(SimulatorTestCase):
         shots = 100
         cases = ref_conditionals.conditional_cases_132bit()
         backend = self.backend(method=method, device=device)
+        backend.set_options(max_parallel_experiments=0)
         circuits = ref_conditionals.conditional_circuits_nbit(132, cases, final_measure=True,
                 conditional_type='kraus')
         targets = ref_conditionals.condtional_counts_nbit(132, cases, shots,
@@ -224,7 +233,7 @@ class TestConditionalKraus(SimulatorTestCase):
 class TestConditionalSuperOp(SimulatorTestCase):
     """AerSimulator conditional superop tests."""
 
-    SUPPORTED_METHODS = ['automatic', 'density_matrix']
+    SUPPORTED_METHODS = ['automatic', 'density_matrix', 'tensor_network']
 
     # ---------------------------------------------------------------------
     # Test conditional
@@ -246,6 +255,7 @@ class TestConditionalSuperOp(SimulatorTestCase):
         """Test conditional superop operations on 2-bit conditional register."""
         shots = 100
         backend = self.backend(method=method, device=device)
+        backend.set_options(max_parallel_experiments=0)
         circuits = ref_conditionals.conditional_circuits_2bit(
             final_measure=True, conditional_type='superop')
         targets = ref_conditionals.conditional_counts_2bit(shots)
@@ -259,6 +269,7 @@ class TestConditionalSuperOp(SimulatorTestCase):
         shots = 100
         cases = ref_conditionals.conditional_cases_64bit()
         backend = self.backend(method=method, device=device)
+        backend.set_options(max_parallel_experiments=0)
         circuits = ref_conditionals.conditional_circuits_nbit(64, cases,
                 final_measure=True, conditional_type='superop')
         targets = ref_conditionals.condtional_counts_nbit(64, cases, shots,
@@ -274,6 +285,7 @@ class TestConditionalSuperOp(SimulatorTestCase):
         shots = 100
         cases = ref_conditionals.conditional_cases_132bit()
         backend = self.backend(method=method, device=device)
+        backend.set_options(max_parallel_experiments=0)
         circuits = ref_conditionals.conditional_circuits_nbit(132, cases, final_measure=True,
                 conditional_type='superop')
         targets = ref_conditionals.condtional_counts_nbit(132, cases, shots,

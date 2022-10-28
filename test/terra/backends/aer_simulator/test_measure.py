@@ -27,7 +27,7 @@ from test.terra.backends.simulator_test_case import (
 
 SUPPORTED_METHODS = [
     'automatic', 'stabilizer', 'statevector', 'density_matrix',
-    'matrix_product_state', 'extended_stabilizer'
+    'matrix_product_state', 'extended_stabilizer', 'tensor_network'
 ]
 
 
@@ -139,7 +139,7 @@ class TestMeasure(SimulatorTestCase):
         targets = ref_measure.measure_counts_deterministic(shots)
         result = backend.run(circuits, shots=shots).result()
         self.assertSuccess(result)
-        sampling = (method == "density_matrix")
+        sampling = (method == "density_matrix" or method == "tensor_network")
         self.compare_result_metadata(result, circuits, "measure_sampling", sampling)
 
     # ---------------------------------------------------------------------

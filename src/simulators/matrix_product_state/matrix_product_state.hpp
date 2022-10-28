@@ -43,6 +43,8 @@
 namespace AER {
 namespace MatrixProductState {
 
+using matrixproductstate_t = MPS;
+
 static uint_t instruction_number = 0;
 
 using OpType = Operations::OpType;
@@ -92,14 +94,13 @@ enum class SnapshotDataType {average, average_var, pershot};
 // Matrix Product State subclass
 //=========================================================================
 
-using matrixproductstate_t = MPS;
 
-class State : public QuantumState::State<matrixproductstate_t> {
+class State : public QuantumState::State< matrixproductstate_t> {
 public:
-  using BaseState = QuantumState::State<matrixproductstate_t>;
+  using BaseState = QuantumState::State< matrixproductstate_t>;
 
   State() : BaseState(StateOpSet) {}
-  State(uint_t num_qubits) : State() {qreg_.initialize((uint_t)num_qubits);}
+  State(uint_t num_qubits) : State() {BaseState::state_.qreg().initialize((uint_t)num_qubits);}
   virtual ~State() = default;
 
 
@@ -112,31 +113,30 @@ public:
 	  return "matrix_product_state";
   }
 
+  /*    //this is not used?
   bool empty() const {
     return qreg_.empty();
   }
+  */
 
   // Apply an operation
   // If the op is not in allowed_ops an exeption will be raised.
-  virtual void apply_op(const Operations::Op &op,
+  void apply_op(QuantumState::RegistersBase& state,
+                        const Operations::Op &op,
                         ExperimentResult &result,
                         RngEngine &rng,
                         bool final_op = false) override;
 
-  // Initializes an n-qubit state to the all |0> state
-  virtual void initialize_qreg(uint_t num_qubits) override;
+
+  // Initializes to a specific n-qubit state given as a complex std::vector
+  void initialize_qreg_from_data(uint_t num_qubits, const cvector_t &statevector);
 
   // Returns the required memory for storing an n-qubit state in megabytes.
   // For this state the memory is indepdentent of the number of ops
   // and is approximately 16 * 1 << num_qubits bytes
   virtual size_t required_memory_mb(uint_t num_qubits,
-                                  const std::vector<Operations::Op> &ops)
+                                  QuantumState::OpItr first, QuantumState::OpItr last)
                                   const override;
-
-  // Load the threshold for applying OpenMP parallelization
-  // if the controller/engine allows threads for it
-  // We currently set the threshold to 1 in qasm_controller.hpp, i.e., no parallelization
-  virtual void set_config(const json_t &config) override;
 
   virtual void add_metadata(ExperimentResult &result) const override;
 
@@ -145,7 +145,7 @@ public:
 
   // Sample n-measurement outcomes without applying the measure operation
   // to the system state
-  virtual std::vector<reg_t> sample_measure(const reg_t& qubits,
+  virtual std::vector<reg_t> sample_measure(QuantumState::RegistersBase& state_in, const reg_t& qubits,
                                             uint_t shots,
                                             RngEngine &rng) override;
 
@@ -153,18 +153,27 @@ public:
   // applying a measurement on the temporary MPS. This is done for every shot,
   // so is not efficient for a large number of shots
   std::vector<reg_t> 
-  sample_measure_using_apply_measure(const reg_t &qubits,
+  sample_measure_using_apply_measure(QuantumState::Registers<matrixproductstate_t>& state, const reg_t &qubits,
 				     uint_t shots,
 				     RngEngine &rng);
-std::vector<reg_t> sample_measure_all(uint_t shots, 
+std::vector<reg_t> sample_measure_all(QuantumState::Registers<matrixproductstate_t>& state, uint_t shots, 
 				      RngEngine &rng);
   //-----------------------------------------------------------------------
   // Additional methods
   //-----------------------------------------------------------------------
 
-  void initialize_omp();
+  void initialize_omp(QuantumState::Registers<matrixproductstate_t>& state);
 
 protected:
+  // Initializes an n-qubit state to the all |0> state
+  void initialize_qreg_state(QuantumState::RegistersBase& state_in, const uint_t num_qubits) override;
+
+  void initialize_qreg_state(QuantumState::RegistersBase& state_in, const matrixproductstate_t &state) override;
+
+  // Load the threshold for applying OpenMP parallelization
+  // if the controller/engine allows threads for it
+  // We currently set the threshold to 1 in qasm_controller.hpp, i.e., no parallelization
+  void set_state_config(QuantumState::RegistersBase& state_in, const json_t &config) override;
 
   //-----------------------------------------------------------------------
   // Apply instructions
@@ -172,20 +181,20 @@ protected:
 
   // Applies a sypported Gate operation to the state class.
   // If the input is not in allowed_gates an exeption will be raised.
-  void apply_gate(const Operations::Op &op);
+  void apply_gate(QuantumState::Registers<matrixproductstate_t>& state,const Operations::Op &op);
 
   // Initialize the specified qubits to a given state |psi>
   // by creating the MPS state with the new state |psi>.
   // |psi> is given in params
   // Currently only supports intialization of all qubits
-  void apply_initialize(const reg_t &qubits,
+  void apply_initialize(QuantumState::Registers<matrixproductstate_t>& state, const reg_t &qubits,
 			const cvector_t &params,
 			RngEngine &rng);
 
   // Measure qubits and return a list of outcomes [q0, q1, ...]
   // If a state subclass supports this function, then "measure"
   // should be contained in the set defined by 'allowed_ops'
-  virtual void apply_measure(const reg_t &qubits,
+  virtual void apply_measure(QuantumState::Registers<matrixproductstate_t>& state, const reg_t &qubits,
                              const reg_t &cmemory,
                              const reg_t &cregister,
                              RngEngine &rng);
@@ -193,54 +202,54 @@ protected:
   // Reset the specified qubits to the |0> state by simulating
   // a measurement, applying a conditional x-gate if the outcome is 1, and
   // then discarding the outcome.
-  void apply_reset(const reg_t &qubits, RngEngine &rng);
+  void apply_reset(QuantumState::Registers<matrixproductstate_t>& state, const reg_t &qubits, RngEngine &rng);
 
   // Apply a supported snapshot instruction
   // If the input is not in allowed_snapshots an exception will be raised.
-  virtual void apply_snapshot(const Operations::Op &op, ExperimentResult &result);
+  virtual void apply_snapshot(QuantumState::Registers<matrixproductstate_t>& state, const Operations::Op &op, ExperimentResult &result);
 
   // Apply a matrix to given qubits (identity on all other qubits)
   // We assume matrix to be 2x2
-  void apply_matrix(const reg_t &qubits, const cmatrix_t & mat);
+  void apply_matrix(QuantumState::Registers<matrixproductstate_t>& state, const reg_t &qubits, const cmatrix_t & mat);
 
   // Apply a vectorized matrix to given qubits (identity on all other qubits)
-  void apply_matrix(const reg_t &qubits, const cvector_t & vmat);
+  void apply_matrix(QuantumState::Registers<matrixproductstate_t>& state, const reg_t &qubits, const cvector_t & vmat);
 
   // Apply a Kraus error operation
-  void apply_kraus(const reg_t &qubits,
+  void apply_kraus(QuantumState::Registers<matrixproductstate_t>& state, const reg_t &qubits,
                    const std::vector<cmatrix_t> &kmats,
                    RngEngine &rng);
 
   // Apply multi-qubit Pauli
-  void apply_pauli(const reg_t &qubits, const std::string& pauli);
+  void apply_pauli(QuantumState::Registers<matrixproductstate_t>& state, const reg_t &qubits, const std::string& pauli);
 
   //-----------------------------------------------------------------------
   // Save data instructions
   //-----------------------------------------------------------------------
 
   // Save the current state of the simulator
-  void apply_save_mps(const Operations::Op &op,
+  void apply_save_mps(QuantumState::Registers<matrixproductstate_t>& state, const Operations::Op &op,
                       ExperimentResult &result,
                       bool last_op);
                             
   // Compute and save the statevector for the current simulator state
-  void apply_save_statevector(const Operations::Op &op,
+  void apply_save_statevector(QuantumState::Registers<matrixproductstate_t>& state, const Operations::Op &op,
                               ExperimentResult &result);
 
   // Save the current density matrix or reduced density matrix
-  void apply_save_density_matrix(const Operations::Op &op,
+  void apply_save_density_matrix(QuantumState::Registers<matrixproductstate_t>& state, const Operations::Op &op,
                                  ExperimentResult &result);
 
   // Helper function for computing expectation value
-  void apply_save_probs(const Operations::Op &op,
+  void apply_save_probs(QuantumState::Registers<matrixproductstate_t>& state, const Operations::Op &op,
                         ExperimentResult &result);
 
   // Helper function for saving amplitudes and amplitudes squared
-  void apply_save_amplitudes(const Operations::Op &op,
+  void apply_save_amplitudes(QuantumState::Registers<matrixproductstate_t>& state, const Operations::Op &op,
                              ExperimentResult &result);
 
   // Helper function for computing expectation value
-  virtual double expval_pauli(const reg_t &qubits,
+  virtual double expval_pauli(QuantumState::RegistersBase& state, const reg_t &qubits,
                               const std::string& pauli) override;
 
   //-----------------------------------------------------------------------
@@ -250,7 +259,7 @@ protected:
   // Return vector of measure probabilities for specified qubits
   // If a state subclass supports this function, then "measure"
   // must be contained in the set defined by 'allowed_ops'
-  rvector_t measure_probs(const reg_t &qubits) const;
+  rvector_t measure_probs(QuantumState::Registers<matrixproductstate_t>& state, const reg_t &qubits) const;
 
   // Sample the measurement outcome for qubits
   // return a pair (m, p) of the outcome m, and its corresponding
@@ -261,7 +270,7 @@ protected:
   // 2 -> |q1 = 1, q0 = 0> state
   // 3 -> |q1 = 1, q0 = 1> state
   std::pair<uint_t, double>
-  sample_measure_with_prob(const reg_t &qubits, RngEngine &rng);
+  sample_measure_with_prob(QuantumState::Registers<matrixproductstate_t>& state, const reg_t &qubits, RngEngine &rng);
 
   //-----------------------------------------------------------------------
   // Special snapshot types
@@ -272,26 +281,26 @@ protected:
   //-----------------------------------------------------------------------
 
   // Snapshot current qubit probabilities for a measurement (average)
-  void snapshot_probabilities(const Operations::Op &op,
+  void snapshot_probabilities(QuantumState::Registers<matrixproductstate_t>& state, const Operations::Op &op,
                               ExperimentResult &result,
                               SnapshotDataType type);
 
- void snapshot_density_matrix(const Operations::Op &op,
+ void snapshot_density_matrix(QuantumState::Registers<matrixproductstate_t>& state,const Operations::Op &op,
 			     ExperimentResult &result,
 	     		     SnapshotDataType type);
 
   // Snapshot the expectation value of a Pauli operator
-  void snapshot_pauli_expval(const Operations::Op &op,
+  void snapshot_pauli_expval(QuantumState::Registers<matrixproductstate_t>& state,const Operations::Op &op,
                              ExperimentResult &result,
                              SnapshotDataType type);
 
   // Snapshot the expectation value of a matrix operator
-  void snapshot_matrix_expval(const Operations::Op &op,
+  void snapshot_matrix_expval(QuantumState::Registers<matrixproductstate_t>& state,const Operations::Op &op,
                               ExperimentResult &result,
                               SnapshotDataType type);
 
   // Snapshot the state vector
-  void snapshot_state(const Operations::Op &op,
+  void snapshot_state(QuantumState::Registers<matrixproductstate_t>& state,const Operations::Op &op,
 		      ExperimentResult &result,
 		      std::string name = "");
 
@@ -300,11 +309,11 @@ protected:
   //-----------------------------------------------------------------------
 
   // Apply a waltz gate specified by parameters u3(theta, phi, lambda)
-  void apply_gate_u3(const uint_t qubit, const double theta, const double phi,
+  void apply_gate_u3(QuantumState::Registers<matrixproductstate_t>& state,const uint_t qubit, const double theta, const double phi,
                      const double lambda);
 
   // Optimize phase gate with diagonal [1, phase]
-  void apply_gate_phase(const uint_t qubit, const complex_t phase);
+  void apply_gate_phase(QuantumState::Registers<matrixproductstate_t>& state,const uint_t qubit, const complex_t phase);
 
   //-----------------------------------------------------------------------
   // Config Settings
@@ -393,18 +402,40 @@ const stringmap_t<Snapshots> State::snapshotset_({
 // Initialization
 //-------------------------------------------------------------------------
 
-void State::initialize_qreg(uint_t num_qubits=0) {
-  qreg_.initialize(num_qubits);
+void State::initialize_qreg_state(QuantumState::RegistersBase& state_in, const uint_t num_qubits)
+{
+  QuantumState::Registers<matrixproductstate_t>& state = dynamic_cast<QuantumState::Registers<matrixproductstate_t>&>(state_in);
+  if(state.qregs().size() == 0)
+    state.allocate(1);
+  state.qreg().initialize(num_qubits);
 }
 
-void State::initialize_omp() {
+void State::initialize_qreg_from_data(uint_t num_qubits, const cvector_t &statevector) 
+{
+  QuantumState::Registers<matrixproductstate_t>& state = BaseState::state_;
+  if(state.qregs().size() == 0)
+    state.allocate(1);
+
+  if (state.qreg().num_qubits() != num_qubits)
+    throw std::invalid_argument("MatrixProductState::State::initialize_qreg: initial state does not match qubit number");
+  reg_t qubits(num_qubits);
+  std::iota(qubits.begin(), qubits.end(), 0);
+  state.qreg().initialize_from_statevector_internal(qubits, statevector);
+}
+
+void State::initialize_qreg_state(QuantumState::RegistersBase& state_in, const matrixproductstate_t &mpstate) 
+{
+  throw std::invalid_argument("MatrixProductState::State::initialize_qreg: initialize with state not supported yet");
+}
+
+void State::initialize_omp(QuantumState::Registers<matrixproductstate_t>& state) {
   if (BaseState::threads_ > 0)
-    qreg_.set_omp_threads(BaseState::threads_); // set allowed OMP threads in MPS
+    state.qreg().set_omp_threads(BaseState::threads_); // set allowed OMP threads in MPS
 }
 
 
 size_t State::required_memory_mb(uint_t num_qubits,
-			      const std::vector<Operations::Op> &ops) const {
+			      QuantumState::OpItr first, QuantumState::OpItr last) const {
     // for each qubit we have a tensor structure.
     // Initially, each tensor contains 2 matrices with a single complex double
     // Depending on the number of 2-qubit gates,
@@ -415,7 +446,8 @@ size_t State::required_memory_mb(uint_t num_qubits,
     return mem_mb;
 }
 
-void State::set_config(const json_t &config) {
+void State::set_state_config(QuantumState::RegistersBase& state_in, const json_t &config) 
+{
   // Set threshold for truncating Schmidt coefficients
   double threshold;
   if (JSON::get_value(threshold, "matrix_product_state_truncation_threshold", config))
@@ -493,7 +525,7 @@ void State::output_bond_dimensions(const Operations::Op &op) const {
   for (uint_t index=1; index<op.qubits.size(); index++) {
     MPS::print_to_log(",", op.qubits[index]);
   }
-  qreg_.print_bond_dimensions();
+  BaseState::state_.qreg().print_bond_dimensions();
   instruction_number++;
 }
 
@@ -502,74 +534,77 @@ void State::output_bond_dimensions(const Operations::Op &op) const {
 // Implementation: apply operations
 //=========================================================================
 
-void State::apply_op(const Operations::Op &op,
+void State::apply_op(QuantumState::RegistersBase& state_in, const Operations::Op &op,
                       ExperimentResult &result,
-                      RngEngine &rng, bool final_op) {
-  if (BaseState::creg().check_conditional(op)) {
+                      RngEngine &rng, bool final_op) 
+{
+  QuantumState::Registers<matrixproductstate_t>& state = dynamic_cast<QuantumState::Registers<matrixproductstate_t>&>(state_in);
+
+  if (state.creg().check_conditional(op)) {
     switch (op.type) {
       case OpType::barrier:
       case OpType::qerror_loc:
         break;
       case OpType::reset:
-        apply_reset(op.qubits, rng);
+        apply_reset(state, op.qubits, rng);
         break;
       case OpType::initialize:
-        apply_initialize(op.qubits, op.params, rng);
+        apply_initialize(state, op.qubits, op.params, rng);
         break;
       case OpType::measure:
-        apply_measure(op.qubits, op.memory, op.registers, rng);
+        apply_measure(state, op.qubits, op.memory, op.registers, rng);
         break;
       case OpType::bfunc:
-        BaseState::creg().apply_bfunc(op);
+        state.creg().apply_bfunc(op);
         break;
       case OpType::roerror:
-        BaseState::creg().apply_roerror(op, rng);
+        state.creg().apply_roerror(op, rng);
         break;
       case OpType::gate:
-        apply_gate(op);
+        apply_gate(state, op);
         break;
       case OpType::snapshot:
-        apply_snapshot(op, result);
+        apply_snapshot(state, op, result);
         break;
       case OpType::matrix:
-        apply_matrix(op.qubits, op.mats[0]);
+        apply_matrix(state, op.qubits, op.mats[0]);
         break;
       case OpType::diagonal_matrix:
-        BaseState::qreg_.apply_diagonal_matrix(op.qubits, op.params);
+        state.qreg().apply_diagonal_matrix(op.qubits, op.params);
         break;
       case OpType::kraus:
-        apply_kraus(op.qubits, op.mats, rng);
+        apply_kraus(state, op.qubits, op.mats, rng);
         break;
       case OpType::set_statevec: {
-          reg_t all_qubits(qreg_.num_qubits());
+          reg_t all_qubits(state.qreg().num_qubits());
           std::iota(all_qubits.begin(), all_qubits.end(), 0);
-          qreg_.apply_initialize(all_qubits, op.params, rng);
+          state.qreg().apply_initialize(all_qubits, op.params, rng);
           break;
         }
       case OpType::set_mps:
-        qreg_.initialize_from_mps(op.mps);
+        state.qreg().initialize_from_mps(op.mps);
         break;
       case OpType::save_expval:
       case OpType::save_expval_var:
-        BaseState::apply_save_expval(op, result);
+        apply_save_expval(state, op, result);
         break;
       case OpType::save_densmat:
-        apply_save_density_matrix(op, result);
+        apply_save_density_matrix(state, op, result);
         break;
       case OpType::save_statevec:
-        apply_save_statevector(op, result);
+        apply_save_statevector(state, op, result);
         break;
       case OpType::save_state:
       case OpType::save_mps:
-        apply_save_mps(op, result, final_op);
+        apply_save_mps(state, op, result, final_op);
         break;
       case OpType::save_probs:
       case OpType::save_probs_ket:
-        apply_save_probs(op, result);
+        apply_save_probs(state, op, result);
         break;
       case OpType::save_amps:
       case OpType::save_amps_sq:
-        apply_save_amplitudes(op, result);
+        apply_save_amplitudes(state, op, result);
         break;
       default:
         throw std::invalid_argument("MatrixProductState::State::invalid instruction \'" +
@@ -591,10 +626,11 @@ void State::apply_op(const Operations::Op &op,
 // Implementation: Save data
 //=========================================================================
 
-void State::apply_save_mps(const Operations::Op &op,
+void State::apply_save_mps(QuantumState::Registers<matrixproductstate_t>& state, const Operations::Op &op,
                            ExperimentResult &result,
-                           bool last_op) {
-  if (op.qubits.size() != qreg_.num_qubits()) {
+                           bool last_op) 
+{
+  if (op.qubits.size() != state.qreg().num_qubits()) {
     throw std::invalid_argument(
         "Save MPS was not applied to all qubits."
         " Only the full matrix product state can be saved.");
@@ -603,75 +639,81 @@ void State::apply_save_mps(const Operations::Op &op,
                       ? "matrix_product_state"
                       : op.string_params[0];
   if (last_op) {
-    result.save_data_pershot(creg(), key, qreg_.move_to_mps_container(),
+    result.save_data_pershot(state.creg(), key, state.qreg().move_to_mps_container(),
 		                         OpType::save_mps, op.save_type);
   } else {
-    result.save_data_pershot(creg(), key, qreg_.copy_to_mps_container(),
+    result.save_data_pershot(state.creg(), key, state.qreg().copy_to_mps_container(),
                              OpType::save_mps, op.save_type);
   }
 }
 
-void State::apply_save_probs(const Operations::Op &op,
-                             ExperimentResult &result) {
+void State::apply_save_probs(QuantumState::Registers<matrixproductstate_t>& state, const Operations::Op &op,
+                             ExperimentResult &result) 
+{
   rvector_t probs;
-  qreg_.get_probabilities_vector(probs, op.qubits);
+  state.qreg().get_probabilities_vector(probs, op.qubits);
   if (op.type == OpType::save_probs_ket) {
-    result.save_data_average(creg(), op.string_params[0],
+    result.save_data_average(state.creg(), op.string_params[0],
                              Utils::vec2ket(probs, MPS::get_json_chop_threshold(), 16),
                              op.type, op.save_type);
   } else {
-    result.save_data_average(creg(), op.string_params[0],
+    result.save_data_average(state.creg(), op.string_params[0],
                              std::move(probs), op.type, op.save_type);
   }
 }
 
-void State::apply_save_amplitudes(const Operations::Op &op,
-                             ExperimentResult &result) {
+void State::apply_save_amplitudes(QuantumState::Registers<matrixproductstate_t>& state,const Operations::Op &op,
+                             ExperimentResult &result) 
+{
   if (op.int_params.empty()) {
     throw std::invalid_argument("Invalid save amplitudes instructions (empty params).");
   }
-  Vector<complex_t> amps = qreg_.get_amplitude_vector(op.int_params);
+  Vector<complex_t> amps = state.qreg().get_amplitude_vector(op.int_params);
   if (op.type == OpType::save_amps_sq) {
     // Square amplitudes
     std::vector<double> amps_sq(op.int_params.size());
     std::transform(amps.data(), amps.data() + amps.size(), amps_sq.begin(),
       [](complex_t val) -> double { return pow(abs(val), 2); });
-    result.save_data_average(creg(), op.string_params[0],
+    result.save_data_average(state.creg(), op.string_params[0],
                              std::move(amps_sq), op.type, op.save_type);
   } else {
-    result.save_data_pershot(creg(), op.string_params[0],
+    result.save_data_pershot(state.creg(), op.string_params[0],
                              std::move(amps), op.type, op.save_type);
   }
 }
 
-double State::expval_pauli(const reg_t &qubits,
-                           const std::string& pauli) {
-  return BaseState::qreg_.expectation_value_pauli(qubits, pauli).real();
+double State::expval_pauli(QuantumState::RegistersBase& state_in, const reg_t &qubits,
+                           const std::string& pauli) 
+{
+  QuantumState::Registers<matrixproductstate_t>& state = dynamic_cast<QuantumState::Registers<matrixproductstate_t>&>(state_in);
+  return state.qreg().expectation_value_pauli(qubits, pauli).real();
 }
 
-void State::apply_save_statevector(const Operations::Op &op,
-                                   ExperimentResult &result) {
-  if (op.qubits.size() != BaseState::qreg_.num_qubits()) {
+void State::apply_save_statevector(QuantumState::Registers<matrixproductstate_t>& state, const Operations::Op &op,
+                                   ExperimentResult &result) 
+{
+  if (op.qubits.size() != state.qreg().num_qubits()) {
     throw std::invalid_argument(
         "Save statevector was not applied to all qubits."
         " Only the full statevector can be saved.");
   }
-  result.save_data_pershot(creg(), op.string_params[0],
-                           qreg_.full_statevector(), op.type, op.save_type);
+  result.save_data_pershot(state.creg(), op.string_params[0],
+                               state.qreg().full_statevector(), op.type, op.save_type);
 }
 
 
-void State::apply_save_density_matrix(const Operations::Op &op,
-                                      ExperimentResult &result) {
+void State::apply_save_density_matrix(QuantumState::Registers<matrixproductstate_t>& state, const Operations::Op &op,
+                                      ExperimentResult &result) 
+{
   cmatrix_t reduced_state;
   if (op.qubits.empty()) {
     reduced_state = cmatrix_t(1, 1);
-    reduced_state[0] = qreg_.norm();
+    reduced_state[0] = state.qreg().norm();
   } else {
-    reduced_state = qreg_.density_matrix(op.qubits);
+    reduced_state = state.qreg().density_matrix(op.qubits);
   }
 
-  result.save_data_average(creg(), op.string_params[0],
+  result.save_data_average(state.creg(), op.string_params[0],
                            std::move(reduced_state), op.type, op.save_type);
 }
 
@@ -679,9 +721,10 @@ void State::apply_save_density_matrix(const Operations::Op &op,
 // Implementation: Snapshots
 //=========================================================================
 
-void State::snapshot_pauli_expval(const Operations::Op &op,
+void State::snapshot_pauli_expval(QuantumState::Registers<matrixproductstate_t>& state, const Operations::Op &op,
 				  ExperimentResult &result,
-				  SnapshotDataType type){
+				  SnapshotDataType type)
+{
   if (op.params_expval_pauli.empty()) {
     throw std::invalid_argument("Invalid expval snapshot (Pauli components are empty).");
   }
@@ -692,7 +735,7 @@ void State::snapshot_pauli_expval(const Operations::Op &op,
   for (const auto &param : op.params_expval_pauli) {
     complex_t coeff = param.first;
     std::string pauli_matrices = param.second;
-    expval += coeff * expval_pauli(op.qubits, pauli_matrices);
+    expval += coeff * expval_pauli(state, op.qubits, pauli_matrices);
   }
 
   // add to snapshot
@@ -700,11 +743,11 @@ void State::snapshot_pauli_expval(const Operations::Op &op,
   switch (type) {
     case SnapshotDataType::average:
       result.legacy_data.add_average_snapshot("expectation_value", op.string_params[0],
-                                              BaseState::creg().memory_hex(), expval, false);
+                            state.creg().memory_hex(), expval, false);
       break;
     case SnapshotDataType::average_var:
       result.legacy_data.add_average_snapshot("expectation_value", op.string_params[0],
-                                              BaseState::creg().memory_hex(), expval, true);
+                            state.creg().memory_hex(), expval, true);
       break;
     case SnapshotDataType::pershot:
       result.legacy_data.add_pershot_snapshot("expectation_values", op.string_params[0], expval);
@@ -712,9 +755,10 @@ void State::snapshot_pauli_expval(const Operations::Op &op,
   }
 }
 
-void State::snapshot_matrix_expval(const Operations::Op &op,
+void State::snapshot_matrix_expval(QuantumState::Registers<matrixproductstate_t>& state, const Operations::Op &op,
 				   ExperimentResult &result,
-				   SnapshotDataType type){
+				   SnapshotDataType type)
+{
   if (op.params_expval_matrix.empty()) {
     throw std::invalid_argument("Invalid matrix snapshot (components are empty).");
   }
@@ -729,7 +773,7 @@ void State::snapshot_matrix_expval(const Operations::Op &op,
         sub_qubits.push_back(op.qubits[pos]);
       }
       const cmatrix_t &mat = pair.second;
-      one_expval = qreg_.expectation_value(sub_qubits, mat);
+      one_expval = state.qreg().expectation_value(sub_qubits, mat);
       expval += coeff * one_expval;
     }
   }
@@ -738,11 +782,11 @@ void State::snapshot_matrix_expval(const Operations::Op &op,
   switch (type) {
     case SnapshotDataType::average:
       result.legacy_data.add_average_snapshot("expectation_value", op.string_params[0],
-                                              BaseState::creg().memory_hex(), expval, false);
+                            state.creg().memory_hex(), expval, false);
       break;
     case SnapshotDataType::average_var:
       result.legacy_data.add_average_snapshot("expectation_value", op.string_params[0],
-                                              BaseState::creg().memory_hex(), expval, true);
+                            state.creg().memory_hex(), expval, true);
       break;
     case SnapshotDataType::pershot:
       result.legacy_data.add_pershot_snapshot("expectation_values", op.string_params[0], expval);
@@ -750,45 +794,49 @@ void State::snapshot_matrix_expval(const Operations::Op &op,
   }
 }
 
-void State::snapshot_state(const Operations::Op &op,
+void State::snapshot_state(QuantumState::Registers<matrixproductstate_t>& state, const Operations::Op &op,
 			   ExperimentResult &result,
-			   std::string name) {
-  result.legacy_data.add_pershot_snapshot("statevector", op.string_params[0], qreg_.full_statevector());
+			   std::string name) 
+{
+  result.legacy_data.add_pershot_snapshot(
+    "statevector", op.string_params[0], state.qreg().full_statevector());
 }
 
-void State::snapshot_probabilities(const Operations::Op &op,
+void State::snapshot_probabilities(QuantumState::Registers<matrixproductstate_t>& state, const Operations::Op &op,
 				   ExperimentResult &result,
-				   SnapshotDataType type) {
+				   SnapshotDataType type) 
+{
   rvector_t prob_vector;
-  qreg_.get_probabilities_vector(prob_vector, op.qubits);
+  state.qreg().get_probabilities_vector(prob_vector, op.qubits);
   auto probs = Utils::vec2ket(prob_vector, MPS::get_json_chop_threshold(), 16);
 
   bool variance = type == SnapshotDataType::average_var;
   result.legacy_data.add_average_snapshot("probabilities", op.string_params[0], 
-  			                                  BaseState::creg().memory_hex(), probs, variance);
+                state.creg().memory_hex(), probs, variance);
 
 }
 
-void State::snapshot_density_matrix(const Operations::Op &op,
+void State::snapshot_density_matrix(QuantumState::Registers<matrixproductstate_t>& state, const Operations::Op &op,
 			     ExperimentResult &result,
-			     SnapshotDataType type) {
+			     SnapshotDataType type) 
+{
   cmatrix_t reduced_state;
   if (op.qubits.empty()) {
     reduced_state = cmatrix_t(1, 1);
-    reduced_state[0] = qreg_.norm();
+    reduced_state[0] = state.qreg().norm();
   } else {
-    reduced_state = qreg_.density_matrix(op.qubits);
+    reduced_state = state.qreg().density_matrix(op.qubits);
   }
 
   // Add density matrix to result data
   switch (type) {
     case SnapshotDataType::average:
       result.legacy_data.add_average_snapshot("density_matrix", op.string_params[0],
-                                              BaseState::creg().memory_hex(), std::move(reduced_state), false);
+                            state.creg().memory_hex(), std::move(reduced_state), false);
       break;
     case SnapshotDataType::average_var:
       result.legacy_data.add_average_snapshot("density_matrix", op.string_params[0],
-                                              BaseState::creg().memory_hex(), std::move(reduced_state), true);
+                            state.creg().memory_hex(), std::move(reduced_state), true);
       break;
     case SnapshotDataType::pershot:
       result.legacy_data.add_pershot_snapshot("density_matrix", op.string_params[0], std::move(reduced_state));
@@ -796,7 +844,8 @@ void State::snapshot_density_matrix(const Operations::Op &op,
   }
 }
 
-void State::apply_gate(const Operations::Op &op) {
+void State::apply_gate(QuantumState::Registers<matrixproductstate_t>& state, const Operations::Op &op) 
+{
   // Look for gate name in gateset
   auto it = gateset_.find(op.name);
   if (it == gateset_.end())
@@ -804,114 +853,114 @@ void State::apply_gate(const Operations::Op &op) {
       "MatrixProductState::State::invalid gate instruction \'" + op.name + "\'.");
   switch (it -> second) {
     case Gates::ccx:
-      qreg_.apply_ccx(op.qubits);
+      state.qreg().apply_ccx(op.qubits);
       break;
     case Gates::cswap:
-      qreg_.apply_cswap(op.qubits);
+      state.qreg().apply_cswap(op.qubits);
       break;
     case Gates::u3:
-      qreg_.apply_u3(op.qubits[0],
+      state.qreg().apply_u3(op.qubits[0],
                     std::real(op.params[0]),
                     std::real(op.params[1]),
                     std::real(op.params[2]));
       break;
     case Gates::u2:
-      qreg_.apply_u2(op.qubits[0],
+      state.qreg().apply_u2(op.qubits[0],
                     std::real(op.params[0]),
                     std::real(op.params[1]));
       break;
     case Gates::u1:
-      qreg_.apply_u1(op.qubits[0],
+      state.qreg().apply_u1(op.qubits[0],
 		     std::real(op.params[0]));
       break;
     case Gates::cx:
-      qreg_.apply_cnot(op.qubits[0], op.qubits[1]);
+      state.qreg().apply_cnot(op.qubits[0], op.qubits[1]);
       break;
     case Gates::id:
     {
         break;
     }
     case Gates::x:
-      qreg_.apply_x(op.qubits[0]);
+      state.qreg().apply_x(op.qubits[0]);
       break;
     case Gates::y:
-      qreg_.apply_y(op.qubits[0]);
+      state.qreg().apply_y(op.qubits[0]);
       break;
     case Gates::z:
-      qreg_.apply_z(op.qubits[0]);
+      state.qreg().apply_z(op.qubits[0]);
       break;
     case Gates::h:
-      qreg_.apply_h(op.qubits[0]);
+      state.qreg().apply_h(op.qubits[0]);
       break;
     case Gates::s:
-      qreg_.apply_s(op.qubits[0]);
+      state.qreg().apply_s(op.qubits[0]);
       break;
     case Gates::sdg:
-      qreg_.apply_sdg(op.qubits[0]);
+      state.qreg().apply_sdg(op.qubits[0]);
       break;
     case Gates::sx:
-      qreg_.apply_sx(op.qubits[0]);
+      state.qreg().apply_sx(op.qubits[0]);
       break;
     case Gates::sxdg:
-      qreg_.apply_sxdg(op.qubits[0]);
+      state.qreg().apply_sxdg(op.qubits[0]);
       break;
     case Gates::t:
-      qreg_.apply_t(op.qubits[0]);
+      state.qreg().apply_t(op.qubits[0]);
       break;
     case Gates::tdg:
-      qreg_.apply_tdg(op.qubits[0]);
+      state.qreg().apply_tdg(op.qubits[0]);
       break;
     case Gates::r:
-      qreg_.apply_r(op.qubits[0], 
+      state.qreg().apply_r(op.qubits[0], 
 		    std::real(op.params[0]),
 		    std::real(op.params[1]));
       break;
     case Gates::rx:
-      qreg_.apply_rx(op.qubits[0], 
+      state.qreg().apply_rx(op.qubits[0], 
 		     std::real(op.params[0]));
       break;
     case Gates::ry:
-      qreg_.apply_ry(op.qubits[0], 
+      state.qreg().apply_ry(op.qubits[0], 
 		     std::real(op.params[0]));
       break;
     case Gates::rz:
-      qreg_.apply_rz(op.qubits[0], 
+      state.qreg().apply_rz(op.qubits[0], 
 		     std::real(op.params[0]));
       break;
     case Gates::swap:
-      qreg_.apply_swap(op.qubits[0], op.qubits[1], true);
+      state.qreg().apply_swap(op.qubits[0], op.qubits[1], true);
       break;
     case Gates::cy:
-      qreg_.apply_cy(op.qubits[0], op.qubits[1]);
+      state.qreg().apply_cy(op.qubits[0], op.qubits[1]);
       break;
     case Gates::cz:
-      qreg_.apply_cz(op.qubits[0], op.qubits[1]);
+      state.qreg().apply_cz(op.qubits[0], op.qubits[1]);
       break;
     case Gates::csx:
-      qreg_.apply_csx(op.qubits[0], op.qubits[1]);
+      state.qreg().apply_csx(op.qubits[0], op.qubits[1]);
       break;
     case Gates::cu1:
-      qreg_.apply_cu1(op.qubits[0], op.qubits[1],
+      state.qreg().apply_cu1(op.qubits[0], op.qubits[1],
     		      std::real(op.params[0]));
       break;
     case Gates::rxx:
-      qreg_.apply_rxx(op.qubits[0], op.qubits[1],
+      state.qreg().apply_rxx(op.qubits[0], op.qubits[1],
     		      std::real(op.params[0]));
       break;
     case Gates::ryy:
-      qreg_.apply_ryy(op.qubits[0], op.qubits[1],
+      state.qreg().apply_ryy(op.qubits[0], op.qubits[1],
     		      std::real(op.params[0]));
       break;
     case Gates::rzz:
-      qreg_.apply_rzz(op.qubits[0], op.qubits[1],
+      state.qreg().apply_rzz(op.qubits[0], op.qubits[1],
     		      std::real(op.params[0]));
       break;
     case Gates::rzx:
-      qreg_.apply_rzx(op.qubits[0], op.qubits[1],
+      state.qreg().apply_rzx(op.qubits[0], op.qubits[1],
     		      std::real(op.params[0]));
       break;
     case Gates::pauli:
-      apply_pauli(op.qubits, op.string_params[0]);
+      apply_pauli(state, op.qubits, op.string_params[0]);
       break;
     default:
       // We shouldn't reach here unless there is a bug in gateset
@@ -920,7 +969,8 @@ void State::apply_gate(const Operations::Op &op) {
   }
 }
 
-void State::apply_pauli(const reg_t &qubits, const std::string& pauli) {
+void State::apply_pauli(QuantumState::Registers<matrixproductstate_t>& state, const reg_t &qubits, const std::string& pauli) 
+{
   const auto size = qubits.size();
   for (size_t i = 0; i < qubits.size(); ++i) {
     const auto qubit = qubits[size - 1 - i];
@@ -928,13 +978,13 @@ void State::apply_pauli(const reg_t &qubits, const std::string& pauli) {
       case 'I':
         break;
       case 'X':
-        BaseState::qreg_.apply_x(qubit);
+        state.qreg().apply_x(qubit);
         break;
       case 'Y':
-        BaseState::qreg_.apply_y(qubit);
+        state.qreg().apply_y(qubit);
         break;
       case 'Z':
-        BaseState::qreg_.apply_z(qubit);
+        state.qreg().apply_z(qubit);
         break;
       default:
         throw std::invalid_argument("invalid Pauli \'" + std::to_string(pauli[i]) + "\'.");
@@ -942,24 +992,27 @@ void State::apply_pauli(const reg_t &qubits, const std::string& pauli) {
   }
 }
 
-void State::apply_matrix(const reg_t &qubits, const cmatrix_t &mat) {
+void State::apply_matrix(QuantumState::Registers<matrixproductstate_t>& state,const reg_t &qubits, const cmatrix_t &mat) 
+{
   if (!qubits.empty() && mat.size() > 0)
-    qreg_.apply_matrix(qubits, mat);
+    state.qreg().apply_matrix(qubits, mat);
 }
 
-void State::apply_matrix(const reg_t &qubits, const cvector_t &vmat) {
+void State::apply_matrix(QuantumState::Registers<matrixproductstate_t>& state, const reg_t &qubits, const cvector_t &vmat) 
+{
   // Check if diagonal matrix
   if (vmat.size() == 1ULL << qubits.size()) {
-    qreg_.apply_diagonal_matrix(qubits, vmat);
+    state.qreg().apply_diagonal_matrix(qubits, vmat);
   } else {
-    qreg_.apply_matrix(qubits, vmat);
+    state.qreg().apply_matrix(qubits, vmat);
   }
 }
 
-void State::apply_kraus(const reg_t &qubits,
+void State::apply_kraus(QuantumState::Registers<matrixproductstate_t>& state, const reg_t &qubits,
                    const std::vector<cmatrix_t> &kmats,
-                   RngEngine &rng) {
-  qreg_.apply_kraus(qubits, kmats, rng);
+                   RngEngine &rng) 
+{
+  state.qreg().apply_kraus(qubits, kmats, rng);
 }
 
 
@@ -967,54 +1020,61 @@ void State::apply_kraus(const reg_t &qubits,
 // Implementation: Reset and Measurement Sampling
 //=========================================================================
 
-void State::apply_initialize(const reg_t &qubits,
+void State::apply_initialize(QuantumState::Registers<matrixproductstate_t>& state, const reg_t &qubits,
 			     const cvector_t &params,
-			     RngEngine &rng) {
-  qreg_.apply_initialize(qubits, params, rng);
+			     RngEngine &rng) 
+{
+  state.qreg().apply_initialize(qubits, params, rng);
 }
 
-void State::apply_measure(const reg_t &qubits,
+void State::apply_measure(QuantumState::Registers<matrixproductstate_t>& state, const reg_t &qubits,
                           const reg_t &cmemory,
                           const reg_t &cregister,
-                          RngEngine &rng) {
+                          RngEngine &rng) 
+{
   rvector_t rands;
   rands.reserve(qubits.size());
   for (int_t i = 0; i < qubits.size(); ++i)
     rands.push_back(rng.rand(0., 1.));
-  reg_t outcome = qreg_.apply_measure(qubits, rands);
-  creg().store_measure(outcome, cmemory, cregister);
+  reg_t outcome = state.qreg().apply_measure(qubits, rands);
+  state.creg().store_measure(outcome, cmemory, cregister);
 }
 
-rvector_t State::measure_probs(const reg_t &qubits) const {
+rvector_t State::measure_probs(QuantumState::Registers<matrixproductstate_t>& state, const reg_t &qubits) const 
+{
   rvector_t probvector;
-  qreg_.get_probabilities_vector(probvector, qubits);
+  state.qreg().get_probabilities_vector(probvector, qubits);
   return probvector;
 }
 
-std::vector<reg_t> State::sample_measure(const reg_t& qubits,
+std::vector<reg_t> State::sample_measure(QuantumState::RegistersBase& state_in, const reg_t& qubits,
 					 uint_t shots,
-                                         RngEngine &rng) {
+                                         RngEngine &rng)
+{
   // There are two alternative algorithms for sample measure
   // We choose the one that is optimal relative to the total number 
   // of qubits,and the number of shots.
   // The parameters used below are based on experimentation.
   // The user can override this by setting the parameter "mps_sample_measure_algorithm"
+  QuantumState::Registers<matrixproductstate_t>& state = dynamic_cast<QuantumState::Registers<matrixproductstate_t>&>(state_in);
+
   if (MPS::get_sample_measure_alg() == Sample_measure_alg::PROB && 
-      qubits.size() == qreg_.num_qubits()){
-    return sample_measure_all(shots, rng);
+      qubits.size() == state.qreg().num_qubits()){
+    return sample_measure_all(state, shots, rng);
   }
-  return sample_measure_using_apply_measure(qubits, shots, rng);
+  return sample_measure_using_apply_measure(state, qubits, shots, rng);
 }
 	     
 std::vector<reg_t> State::
-  sample_measure_using_apply_measure(const reg_t &qubits, 
+  sample_measure_using_apply_measure(QuantumState::Registers<matrixproductstate_t>& state, const reg_t &qubits, 
 				     uint_t shots, 
-				     RngEngine &rng) {
+				     RngEngine &rng) 
+{
   std::vector<reg_t> all_samples;
   all_samples.resize(shots);
   // input is always sorted in qasm_controller, therefore, we must return the qubits 
   // to their original location (sorted)
-  qreg_.move_all_qubits_to_sorted_ordering();
+  state.qreg().move_all_qubits_to_sorted_ordering();
   reg_t sorted_qubits = qubits;
   std::sort(sorted_qubits.begin(), sorted_qubits.end());
 
@@ -1033,7 +1093,7 @@ std::vector<reg_t> State::
     MPS temp;
     #pragma omp for
     for (int_t i=0; i<static_cast<int_t>(shots);  i++) {
-      temp.initialize(qreg_);
+      temp.initialize(state.qreg());
       auto single_result = temp.apply_measure_internal(sorted_qubits, rnds_list[i]);
       all_samples[i] = single_result;
     }
@@ -1042,19 +1102,21 @@ std::vector<reg_t> State::
   return all_samples;
 }
 
-std::vector<reg_t> State::sample_measure_all(uint_t shots, 
-					     RngEngine &rng) {
+std::vector<reg_t> State::sample_measure_all(QuantumState::Registers<matrixproductstate_t>& state, uint_t shots, 
+					     RngEngine &rng) 
+{
   std::vector<reg_t> all_samples;
   all_samples.resize(shots);
 
   for (uint_t i=0; i<shots;  i++) {
-    auto single_result = qreg_.sample_measure(shots, rng);
+    auto single_result = state.qreg().sample_measure(shots, rng);
     all_samples[i] = single_result;
   }
   return all_samples;
 }
 
-void State::apply_snapshot(const Operations::Op &op, ExperimentResult &result) {
+void State::apply_snapshot(QuantumState::Registers<matrixproductstate_t>& state, const Operations::Op &op, ExperimentResult &result) 
+{
   // Look for snapshot type in snapshotset
   auto it = snapshotset_.find(op.name);
   if (it == snapshotset_.end())
@@ -1062,47 +1124,47 @@ void State::apply_snapshot(const Operations::Op &op, ExperimentResult &result) {
                                 op.name + "\'.");
   switch (it -> second) {
   case Snapshots::statevector: {
-      snapshot_state(op, result, "statevector");
+      snapshot_state(state, op, result, "statevector");
       break;
   }
   case Snapshots::cmemory:
-    BaseState::snapshot_creg_memory(op, result);
+    BaseState::snapshot_creg_memory(state, op, result);
     break;
   case Snapshots::cregister:
-    BaseState::snapshot_creg_register(op, result);
+    BaseState::snapshot_creg_register(state, op, result);
     break;
   case Snapshots::probs: {
       // get probs as hexadecimal
-      snapshot_probabilities(op, result, SnapshotDataType::average);
+      snapshot_probabilities(state, op, result, SnapshotDataType::average);
       break;
   }
   case Snapshots::densmat: {
-      snapshot_density_matrix(op, result, SnapshotDataType::average);
+      snapshot_density_matrix(state, op, result, SnapshotDataType::average);
   } break;
   case Snapshots::expval_pauli: {
-    snapshot_pauli_expval(op, result, SnapshotDataType::average);
+    snapshot_pauli_expval(state, op, result, SnapshotDataType::average);
   } break;
   case Snapshots::expval_matrix: {
-    snapshot_matrix_expval(op, result, SnapshotDataType::average);
+    snapshot_matrix_expval(state, op, result, SnapshotDataType::average);
   }  break;
   case Snapshots::probs_var: {
     // get probs as hexadecimal
-    snapshot_probabilities(op, result, SnapshotDataType::average_var);
+    snapshot_probabilities(state, op, result, SnapshotDataType::average_var);
   } break;
   case Snapshots::densmat_var: {
-      snapshot_density_matrix(op, result, SnapshotDataType::average_var);
+      snapshot_density_matrix(state, op, result, SnapshotDataType::average_var);
   } break;
   case Snapshots::expval_pauli_var: {
-    snapshot_pauli_expval(op, result, SnapshotDataType::average_var);
+    snapshot_pauli_expval(state, op, result, SnapshotDataType::average_var);
   } break;
   case Snapshots::expval_matrix_var: {
-    snapshot_matrix_expval(op, result, SnapshotDataType::average_var);
+    snapshot_matrix_expval(state, op, result, SnapshotDataType::average_var);
   }  break;
   case Snapshots::expval_pauli_shot: {
-    snapshot_pauli_expval(op, result, SnapshotDataType::pershot);
+    snapshot_pauli_expval(state, op, result, SnapshotDataType::pershot);
   } break;
   case Snapshots::expval_matrix_shot: {
-    snapshot_matrix_expval(op, result, SnapshotDataType::pershot);
+    snapshot_matrix_expval(state, op, result, SnapshotDataType::pershot);
   }  break;
   default:
     // We shouldn't get here unless there is a bug in the snapshotset
@@ -1111,15 +1173,17 @@ void State::apply_snapshot(const Operations::Op &op, ExperimentResult &result) {
   }
 }
 
-void State::apply_reset(const reg_t &qubits,
-                        RngEngine &rng) {
-  qreg_.reset(qubits, rng);
+void State::apply_reset(QuantumState::Registers<matrixproductstate_t>& state, const reg_t &qubits,
+                        RngEngine &rng) 
+{
+  state.qreg().reset(qubits, rng);
 }
 
 std::pair<uint_t, double>
-State::sample_measure_with_prob(const reg_t &qubits,
-                                RngEngine &rng) {
-  rvector_t probs = measure_probs(qubits);
+State::sample_measure_with_prob(QuantumState::Registers<matrixproductstate_t>& state, const reg_t &qubits,
+                                RngEngine &rng) 
+{
+  rvector_t probs = measure_probs(state, qubits);
 
   // Randomly pick outcome and return pair
   uint_t outcome = rng.rand_int(probs);

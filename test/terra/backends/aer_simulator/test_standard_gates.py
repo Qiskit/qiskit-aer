@@ -153,7 +153,7 @@ class TestGates(SimulatorTestCase):
 
     @supported_methods(
         ["automatic", "stabilizer", "statevector", "density_matrix", "matrix_product_state",
-         "unitary", "superop"],
+         "unitary", "superop", "tensor_network"],
         CLIFFORD_GATES_DICT)
     def test_clifford_gate(self, method, device, gate):
         """Test Clifford standard gates."""
@@ -169,7 +169,7 @@ class TestGates(SimulatorTestCase):
 
     @supported_methods(
         ["automatic", "statevector", "density_matrix", "matrix_product_state",
-         "unitary", "superop"],
+         "unitary", "superop", "tensor_network"],
         NONCLIFFORD_GATES_DICT)
     def test_nonclifford_gate(self, method, device, gate):
         """Test non-Clifford standard gates."""
@@ -183,7 +183,7 @@ class TestGates(SimulatorTestCase):
         self._test_gate(gate, NONCLIFFORD_GATES_DICT, method=method, device=device,
                         blocking_qubits=2, max_parallel_threads=1)
 
-    @supported_methods(["automatic", "statevector", "unitary"], MC_GATES_DICT)
+    @supported_methods(["automatic", "statevector", "unitary", "tensor_network"], MC_GATES_DICT)
     def test_multictrl_gate(self, method, device, gate):
         """Test multi-controlled standard gates."""
         self._test_gate(gate, MC_GATES_DICT, method=method, device=device)

@@ -68,9 +68,9 @@ public:
   virtual ~QubitVectorThrust();
 
   //copy constructor for std::vector
-  QubitVectorThrust(const QubitVectorThrust<data_t>& qv)
+  QubitVectorThrust(const QubitVectorThrust<data_t>& obj) : QubitVectorThrust(0)
   {
-    
+    copy_qv(obj);
   }
 
   //-----------------------------------------------------------------------
@@ -148,7 +148,12 @@ public:
 
   //chunk setup
   bool chunk_setup(int chunk_bits,int num_qubits,uint_t chunk_index,uint_t num_local_chunks);
-  bool chunk_setup(QubitVectorThrust<data_t>& base,const uint_t chunk_index);
+  bool chunk_setup(const QubitVectorThrust<data_t>& base,const uint_t chunk_index);
+
+  uint_t chunk_index(void)
+  {
+    return chunk_index_;
+  }
 
   //cache control for chunks on host
   bool fetch_chunk(void) const;
@@ -191,6 +196,12 @@ public:
 
   // Initializes the current vector so that all qubits are in the |0> state.
   void initialize();
+
+  //initialize from existing state (copy)
+  void initialize(const QubitVectorThrust<data_t>& obj)
+  {
+    copy_qv(obj);
+  }
 
   // Initializes the vector to a custom initial state.
   // If the length of the data vector does not match the number of qubits
@@ -322,7 +333,7 @@ public:
   virtual bool batched_optimization_supported(void)
   {
 #ifdef AER_THRUST_CUDA
-    if(multi_shots_ && enable_batch_)
+    if(enable_batch_)
       return true;
     else
       return false;
@@ -462,6 +473,7 @@ public:
   int get_sample_measure_index_size() {return sample_measure_index_size_;}
 
 protected:
+  void copy_qv(const QubitVectorThrust<data_t>& obj);
 
   //-----------------------------------------------------------------------
   // Protected data members
@@ -479,7 +491,6 @@ protected:
 
   uint_t chunk_index_;
   bool multi_chunk_distribution_;
-  bool multi_shots_;
   mutable bool enable_batch_;
   bool cuStateVec_enable_ = false;
 
@@ -639,7 +650,6 @@ QubitVectorThrust<data_t>::QubitVectorThrust(size_t num_qubits) : num_qubits_(0)
 {
   chunk_index_ = 0;
   multi_chunk_distribution_ = false;
-  multi_shots_ = false;
   enable_batch_ = false;
 
   max_matrix_bits_ = 0;
@@ -671,6 +681,27 @@ QubitVectorThrust<data_t>::~QubitVectorThrust()
     chunk_manager_.reset();
   }
   checkpoint_.clear();
+}
+
+
+template <typename data_t>
+void QubitVectorThrust<data_t>::copy_qv(const QubitVectorThrust<data_t>& obj)
+{
+  omp_threads_ = obj.omp_threads_;
+  omp_threshold_ = obj.omp_threshold_;
+  sample_measure_index_size_ = obj.sample_measure_index_size_;
+  json_chop_threshold_ = obj.json_chop_threshold_;
+  chunk_index_ = obj.chunk_index_;
+  num_threads_per_group_ = obj.num_threads_per_group_;
+  max_matrix_bits_ = obj.max_matrix_bits_;
+
+  if(!chunk_setup(obj, obj.chunk_index_)){
+    throw std::runtime_error("QubitVectorThrust: can not allocate chunk for copy");
+  }
+  set_num_qubits(obj.num_qubits());
+
+  chunk_.CopyIn(obj.chunk_);
+
 }
 
 //------------------------------------------------------------------------------
@@ -870,17 +901,11 @@ bool QubitVectorThrust<data_t>::chunk_setup(int chunk_bits,int num_qubits,uint_t
 }
 
 template <typename data_t>
-bool QubitVectorThrust<data_t>::chunk_setup(QubitVectorThrust<data_t>& base,const uint_t chunk_index)
+bool QubitVectorThrust<data_t>::chunk_setup(const QubitVectorThrust<data_t>& base,const uint_t chunk_index)
 {
   chunk_manager_ = base.chunk_manager_;
 
   multi_chunk_distribution_ = base.multi_chunk_distribution_;
-  if(!multi_chunk_distribution_){
-    if(chunk_manager_->chunk_bits() == chunk_manager_->num_qubits()){
-      multi_shots_ = true;
-      base.multi_shots_ = true;
-    }
-  }
   cuStateVec_enable_ = base.cuStateVec_enable_;
 
   //set global chunk ID / shot ID
@@ -1167,10 +1192,12 @@ uint_t QubitVectorThrust<data_t>::get_chunk_count(void)
       return 0;   //first chunk execute all in batch
   }
   else{   //multi-shots
-    if(enable_batch_ && chunk_.pos() != 0)
+    if(!enable_batch_)
+      return 1;
+    else if(chunk_.pos() != 0)
       return 0;   //first chunk execute all in batch
   }
-  return chunk_.container()->num_chunks();
+  return chunk_.container()->num_chunk_mapped();
 }
 
 //------------------------------------------------------------------------------
@@ -1276,29 +1303,30 @@ void QubitVectorThrust<data_t>::initialize_creg(uint_t num_memory,
   if(chunk_manager_){
     num_creg_bits_ = num_register;
     num_cmem_bits_ = num_memory;
-    if(chunk_.pos() == 0){
+    if(chunk_.pos() == 0)
       chunk_.container()->allocate_creg(num_cmem_bits_,num_creg_bits_);
 
-      int_t i;
-      for(i=0;i<num_register;i++){
-        if(register_hex[register_hex.size() - 1 - i] == '0'){
-          store_cregister(i,0);
-        }
-        else{
-          store_cregister(i,1);
-        }
+    //write bits to host buffer, they are copied to device at first execution
+    int_t i;
+    for(i=0;i<num_register;i++){
+      if(register_hex[register_hex.size() - 1 - i] == '0'){
+        chunk_.write_cbit(i,0);
       }
-      for(i=0;i<num_memory;i++){
-        if(memory_hex[memory_hex.size() - 1 - i] == '0'){
-          store_cregister(i+num_creg_bits_,0);
-        }
-        else{
-          store_cregister(i+num_creg_bits_,1);
-        }
+      else{
+        chunk_.write_cbit(i,1);
+      }
+    }
+    for(i=0;i<num_memory;i++){
+      if(memory_hex[memory_hex.size() - 1 - i] == '0'){
+        chunk_.write_cbit(i+num_creg_bits_,0);
+      }
+      else{
+        chunk_.write_cbit(i+num_creg_bits_,1);
       }
     }
   }
 }
+
 //--------------------------------------------------------------------------------------
 //  gate kernel execution
 //--------------------------------------------------------------------------------------
@@ -1311,7 +1339,7 @@ void QubitVectorThrust<data_t>::apply_function(Function func, uint_t count) cons
   if(chunk_count == 0){
     if(!cuStateVec_enable_ && func.batch_enable() && ((multi_chunk_distribution_ && chunk_.device() >= 0) || enable_batch_)){
       if(chunk_.pos() == 0)        //only first chunk on device calculates all the chunks
-        chunk_count = chunk_.container()->num_chunks();
+        chunk_count = chunk_.container()->num_chunk_mapped();
       else
         return;
     }
@@ -1338,7 +1366,7 @@ void QubitVectorThrust<data_t>::apply_function(Function func, const std::vector<
   if(chunk_count == 0){
     if(!cuStateVec_enable_ && func.batch_enable() && ((multi_chunk_distribution_ && chunk_.device() >= 0) || enable_batch_)){
       if(chunk_.pos() == 0)        //only first chunk on device calculates all the chunks
-        chunk_count = chunk_.container()->num_chunks();
+        chunk_count = chunk_.container()->num_chunk_mapped();
       else
         return;
     }
@@ -1371,7 +1399,7 @@ void QubitVectorThrust<data_t>::apply_function_sum(double* pSum,Function func,bo
         *pSum = 0.0;
       return;
     }
-    count = chunk_.container()->num_chunks();
+    count = chunk_.container()->num_chunk_mapped();
   }
 #endif
 
@@ -1400,7 +1428,7 @@ void QubitVectorThrust<data_t>::apply_function_sum2(double* pSum,Function func,b
       }
       return;
     }
-    count = chunk_.container()->num_chunks();
+    count = chunk_.container()->num_chunk_mapped();
   }
 #endif
 
@@ -1597,7 +1625,7 @@ void QubitVectorThrust<data_t>::apply_multi_swaps(const reg_t &qubits)
   if(count == 0)
     return;
 
-  chunk_.apply_multi_swaps(qubits,chunk_.container()->num_chunks());
+  chunk_.apply_multi_swaps(qubits,chunk_.container()->num_chunk_mapped());
 }
 
 template <typename data_t>
@@ -1913,7 +1941,7 @@ double QubitVectorThrust<data_t>::norm() const
   if(enable_batch_ && ((multi_chunk_distribution_ && chunk_.device() >= 0) || !multi_chunk_distribution_)){
     if(chunk_.pos() != 0)
       return 0.0;   //first chunk execute all in batch
-    count = chunk_.container()->num_chunks();
+    count = chunk_.container()->num_chunk_mapped();
   }
 #endif
 
@@ -2262,7 +2290,7 @@ void QubitVectorThrust<data_t>::apply_batched_measure(const reg_t& qubits,std::v
       return;   //first chunk execute all in batch
     }
   }
-  count = chunk_.container()->num_chunks();
+  count = chunk_.container()->num_chunk_mapped();
 
   //set system register[0] to 1 used for conditional register
   uint_t system_reg = num_creg_bits_ + num_cmem_bits_;
@@ -2284,7 +2312,7 @@ void QubitVectorThrust<data_t>::apply_batched_measure(const reg_t& qubits,std::v
 
   //total probability
   apply_function_sum(nullptr,Chunk::norm_func<data_t>(),true);
-  apply_function(set_probability_buffer_for_reset_func<data_t>(chunk_.probability_buffer(),chunk_.container()->num_chunks(),
+  apply_function(set_probability_buffer_for_reset_func<data_t>(chunk_.probability_buffer(),chunk_.container()->num_chunk_mapped(),
                                                                chunk_.reduce_buffer(),chunk_.reduce_buffer_size()) );
 
   reg_t params(qubits.size() + cmemory.size() + cregs.size());
@@ -2311,18 +2339,18 @@ void QubitVectorThrust<data_t>::apply_batched_measure(const reg_t& qubits,std::v
     chunk_.set_conditional(system_reg);
     apply_function_sum(nullptr,Chunk::probability_func<data_t>(qubits,i),true);
 
-    apply_function(check_measure_probability_func<data_t>(qubits.size(),chunk_.probability_buffer(),chunk_.container()->num_chunks(),
+    apply_function(check_measure_probability_func<data_t>(qubits.size(),chunk_.probability_buffer(),chunk_.container()->num_chunk_mapped(),
                                                                         chunk_.reduce_buffer(),chunk_.reduce_buffer_size(),
                                                                         i,cmemory.size(),cregs.size()) );
 
     chunk_.set_conditional(system_reg+1);
-    apply_function(reset_after_measure_func<data_t>(qubits.size(),chunk_.probability_buffer(),chunk_.container()->num_chunks(),i ));
+    apply_function(reset_after_measure_func<data_t>(qubits.size(),chunk_.probability_buffer(),chunk_.container()->num_chunk_mapped(),i ));
     store_cregister(system_reg+1,0);
   }
   //for last case
   chunk_.keep_conditional(false);
   chunk_.set_conditional(system_reg);
-  apply_function(reset_after_measure_func<data_t>(qubits.size(),chunk_.probability_buffer(),chunk_.container()->num_chunks(),DIM-1 ));
+  apply_function(reset_after_measure_func<data_t>(qubits.size(),chunk_.probability_buffer(),chunk_.container()->num_chunk_mapped(),DIM-1 ));
 
   chunk_.container()->request_creg_update();
 }
@@ -2400,7 +2428,7 @@ void QubitVectorThrust<data_t>::apply_batched_reset(const reg_t& qubits,std::vec
       return;   //first chunk execute all in batch
     }
   }
-  count = chunk_.container()->num_chunks();
+  count = chunk_.container()->num_chunk_mapped();
 
   //set system register[0] to 1 used for conditional register
   uint_t system_reg = num_creg_bits_ + num_cmem_bits_;
@@ -2417,12 +2445,13 @@ void QubitVectorThrust<data_t>::apply_batched_reset(const reg_t& qubits,std::vec
     //can be applied to all states
     store_cregister(system_reg,1);
   }
+
   chunk_.set_conditional(system_reg);
   chunk_.keep_conditional(true);
 
   //total probability
   apply_function_sum(nullptr,Chunk::norm_func<data_t>(),true);
-  apply_function(set_probability_buffer_for_reset_func<data_t>(chunk_.probability_buffer(),chunk_.container()->num_chunks(),
+  apply_function(set_probability_buffer_for_reset_func<data_t>(chunk_.probability_buffer(),chunk_.container()->num_chunk_mapped(),
                                                                chunk_.reduce_buffer(),chunk_.reduce_buffer_size()) );
 
   //probability
@@ -2437,17 +2466,17 @@ void QubitVectorThrust<data_t>::apply_batched_reset(const reg_t& qubits,std::vec
     chunk_.set_conditional(system_reg);
     apply_function_sum(nullptr,Chunk::probability_func<data_t>(qubits,i),true);
 
-    apply_function(check_measure_probability_func<data_t>(qubits.size(),chunk_.probability_buffer(),chunk_.container()->num_chunks(),
+    apply_function(check_measure_probability_func<data_t>(qubits.size(),chunk_.probability_buffer(),chunk_.container()->num_chunk_mapped(),
                                                                         chunk_.reduce_buffer(),chunk_.reduce_buffer_size(),
                                                                         i,0,0) );
 
     chunk_.set_conditional(system_reg+1);
-    apply_function(reset_func<data_t>(qubits.size(),chunk_.probability_buffer(),chunk_.container()->num_chunks(),i ) );
+    apply_function(reset_func<data_t>(qubits.size(),chunk_.probability_buffer(),chunk_.container()->num_chunk_mapped(),i ) );
     store_cregister(system_reg+1,0);
   }
   chunk_.keep_conditional(false);
   chunk_.set_conditional(system_reg);
-  apply_function(reset_func<data_t>(qubits.size(),chunk_.probability_buffer(),chunk_.container()->num_chunks(),DIM-1 ) );
+  apply_function(reset_func<data_t>(qubits.size(),chunk_.probability_buffer(),chunk_.container()->num_chunk_mapped(),DIM-1 ) );
 }
 
 
@@ -2662,7 +2691,7 @@ reg_t QubitVectorThrust<data_t>::sample_measure(const std::vector<double> &rnds)
   if((multi_chunk_distribution_ && chunk_.device() >= 0) || enable_batch_){
     if(chunk_.pos() != 0)
       return reg_t();   //first chunk execute all in batch
-    count = chunk_.container()->num_chunks();
+    count = chunk_.container()->num_chunk_mapped();
   }
 #endif
 
@@ -3133,7 +3162,7 @@ void QubitVectorThrust<data_t>::apply_batched_kraus(const reg_t &qubits,
   uint_t i,count;
   double ret;
 
-  count = chunk_.container()->num_chunks();
+  count = chunk_.container()->num_chunk_mapped();
 
   //set system register[0] to 1 used for conditional register
   uint_t system_reg = num_creg_bits_ + num_cmem_bits_;
@@ -3154,7 +3183,7 @@ void QubitVectorThrust<data_t>::apply_batched_kraus(const reg_t &qubits,
   chunk_.keep_conditional(true);
 
   //total probability
-  apply_function(set_probability_buffer_for_reset_func<data_t>(chunk_.probability_buffer(),chunk_.container()->num_chunks(),
+  apply_function(set_probability_buffer_for_reset_func<data_t>(chunk_.probability_buffer(),chunk_.container()->num_chunk_mapped(),
                                                                nullptr,0) );
 
   std::vector<double> r(count);
@@ -3170,12 +3199,12 @@ void QubitVectorThrust<data_t>::apply_batched_kraus(const reg_t &qubits,
       chunk_.set_conditional(system_reg);
       apply_function_sum(nullptr,Chunk::NormMatrixMult2x2<data_t>(vmat,qubits[0]),true);
 
-      apply_function(check_kraus_probability_func<data_t>(chunk_.probability_buffer(),chunk_.container()->num_chunks(),
+      apply_function(check_kraus_probability_func<data_t>(chunk_.probability_buffer(),chunk_.container()->num_chunk_mapped(),
                                                           chunk_.reduce_buffer(),chunk_.reduce_buffer_size() ) );
 
       //multiply only when system reg[1] is 1
       chunk_.set_conditional(system_reg+1);
-      apply_function(MatrixMult2x2_conditional<data_t>(vmat,qubits[0],chunk_.probability_buffer(),chunk_.container()->num_chunks()) );
+      apply_function(MatrixMult2x2_conditional<data_t>(vmat,qubits[0],chunk_.probability_buffer(),chunk_.container()->num_chunk_mapped()) );
       store_cregister(system_reg+1,0);
     }
   }
@@ -3192,12 +3221,12 @@ void QubitVectorThrust<data_t>::apply_batched_kraus(const reg_t &qubits,
       chunk_.StoreMatrix(Utils::vectorize_matrix(kmats[i]));
       apply_function_sum(nullptr,Chunk::NormMatrixMultNxN<data_t>(N),true);
 
-      apply_function(check_kraus_probability_func<data_t>(chunk_.probability_buffer(),chunk_.container()->num_chunks(),
+      apply_function(check_kraus_probability_func<data_t>(chunk_.probability_buffer(),chunk_.container()->num_chunk_mapped(),
                                                           chunk_.reduce_buffer(),chunk_.reduce_buffer_size() ) );
 
       //multiply only when system reg[1] is 1
       chunk_.set_conditional(system_reg+1);
-      apply_function(MatrixMultNxN_conditional<data_t>(N,chunk_.probability_buffer(),chunk_.container()->num_chunks()) );
+      apply_function(MatrixMultNxN_conditional<data_t>(N,chunk_.probability_buffer(),chunk_.container()->num_chunk_mapped()) );
       store_cregister(system_reg+1,0);
     }
   }
@@ -3423,8 +3452,8 @@ void QubitVectorThrust<data_t>::apply_roerror(const Operations::Op &op, std::vec
   }
   params.push_back(offset);
 
-  std::vector<double> r(chunk_.container()->num_chunks());
-  for(i=0;i<chunk_.container()->num_chunks();i++){
+  std::vector<double> r(chunk_.container()->num_chunk_mapped());
+  for(i=0;i<chunk_.container()->num_chunk_mapped();i++){
     r[i] = rng[i].rand(0., 1.);
   }
   chunk_.container()->copy_to_probability_buffer(r,0);

@@ -92,6 +92,15 @@ BASIS_GATES = {
         'y', 'z', 'h', 's', 'sdg', 'sx', 'sxdg', 't', 'tdg', 'swap', 'cx',
         'cy', 'cz', 'cp', 'cu1', 'rxx', 'ryy',
         'rzz', 'rzx', 'ccx', 'unitary', 'diagonal', 'delay', 'pauli'
+    ]),
+    'tensor_network': sorted([
+        'u1', 'u2', 'u3', 'u', 'p', 'r', 'rx', 'ry', 'rz', 'id', 'x',
+        'y', 'z', 'h', 's', 'sdg', 'sx', 'sxdg', 't', 'tdg', 'swap', 'cx',
+        'cy', 'cz', 'csx', 'cp', 'cu', 'cu1', 'cu2', 'cu3', 'rxx', 'ryy',
+        'rzz', 'rzx', 'ccx', 'cswap', 'mcx', 'mcy', 'mcz', 'mcsx',
+        'mcp', 'mcphase', 'mcu', 'mcu1', 'mcu2', 'mcu3', 'mcrx', 'mcry', 'mcrz',
+        'mcr', 'mcswap', 'unitary', 'diagonal', 'multiplexer',
+        'initialize', 'delay', 'pauli', 'mcx_gray'
     ])
 }
 
@@ -103,7 +112,8 @@ BASIS_GATES[None] = BASIS_GATES['automatic'] = sorted(
             BASIS_GATES['density_matrix']).union(
                 BASIS_GATES['matrix_product_state']).union(
                     BASIS_GATES['unitary']).union(
-                        BASIS_GATES['superop']))
+                        BASIS_GATES['superop']).union(
+                            BASIS_GATES['tensor_network']))
 
 
 def cpp_execute(controller, qobj):
