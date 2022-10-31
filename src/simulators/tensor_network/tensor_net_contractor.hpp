@@ -70,12 +70,21 @@ public:
   void update_additional_tensors(const std::vector<std::shared_ptr<Tensor<data_t>>>& tensors) override {}
 
   void setup_contraction(bool use_autotune = false) override {}
-  uint_t num_slices(void) override {}
+  uint_t num_slices(void) override 
+  {
+    return 1;
+  }
 
   void contract(std::vector<std::complex<data_t>>& out) override {}
-  double contract_and_trace(uint_t num_qubits) override {}
+  double contract_and_trace(uint_t num_qubits) override 
+  {
+    return 1.0;
+  }
 
-  double contract_and_sample_measure(reg_t& samples, std::vector<double> &rnds, uint_t num_qubits) override {}
+  double contract_and_sample_measure(reg_t& samples, std::vector<double> &rnds, uint_t num_qubits) override 
+  {
+    return 1.0;
+  }
 
   void allocate_sampling_buffers(uint_t size = AER_TENSOR_NET_MAX_SAMPLING) override {}
   void deallocate_sampling_buffers(void) override {}
