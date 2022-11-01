@@ -517,7 +517,7 @@ void Controller::set_config(const json_t &config) {
       if(cuStateVec_enable_){
         //Aer is not built for cuStateVec
         throw std::runtime_error(
-            "Simulation device \"GPU\" does not supported cuStateVec on this system");
+            "Simulation device \"GPU\" does not support cuStateVec on this system");
       }
 #endif
       int nDev;
