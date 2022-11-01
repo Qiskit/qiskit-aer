@@ -17,7 +17,6 @@
 
 #include "framework/results/data/pybind_data.hpp"
 #include "framework/results/data/pybind_metadata.hpp"
-#include "framework/results/legacy/pybind_data.hpp"
 #include "framework/results/result.hpp"
 
 //------------------------------------------------------------------------------
@@ -47,12 +46,6 @@ py::object AerToPy::to_python(AER::ExperimentResult &&result) {
   pyexperiment["seed_simulator"] = result.seed;
 
   pyexperiment["data"] =  AerToPy::to_python(std::move(result.data));
-  // Add legacy snapshot data
-  py::dict legacy_snapshots = AerToPy::from_snapshot(std::move(result.legacy_data));
-  if (!legacy_snapshots.empty()) {
-    pyexperiment["data"]["snapshots"] = std::move(legacy_snapshots);
-  }
-
   pyexperiment["metadata"] = AerToPy::to_python(std::move(result.metadata));
 
   pyexperiment["success"] = (result.status == AER::ExperimentResult::Status::completed);

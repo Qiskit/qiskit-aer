@@ -63,7 +63,6 @@ public:
   // - `OpType::gate` if gates are supported
   // - `OpType::measure` if measure is supported
   // - `OpType::reset` if reset is supported
-  // - `OpType::snapshot` if any snapshots are supported
   // - `OpType::barrier` if barrier is supported
   // - `OpType::matrix` if arbitrary unitary matrices are supported
   // - `OpType::kraus` if general Kraus noise channels are supported
@@ -71,8 +70,6 @@ public:
   // For gate ops allowed gates are specified by a set of string names,
   // for example this could include {"u1", "u2", "u3", "U", "cx", "CX"}
   //
-  // For snapshot ops allowed snapshots are specified by a set of string names,
-  // For example this could include {"probabilities", "pauli_observable"}
 
   StateChunk(const Operations::OpSet &opset) : BaseState(opset)
   {
@@ -235,24 +232,6 @@ public:
  
   // Apply a save expectation value instruction
   void apply_save_expval(const int_t iChunk, const Operations::Op &op, ExperimentResult &result);
-
-  //-----------------------------------------------------------------------
-  // Standard snapshots
-  //-----------------------------------------------------------------------
-
-  // Snapshot the current statevector (single-shot)
-  // if type_label is the empty string the operation type will be used for the type
-  virtual void snapshot_state(const int_t iChunk, const Operations::Op &op, ExperimentResult &result,
-                      std::string name = "") const;
-
-  // Snapshot the classical memory bits state (single-shot)
-  void snapshot_creg_memory(const int_t iChunk, const Operations::Op &op, ExperimentResult &result,
-                            std::string name = "memory") const;
-
-  // Snapshot the classical register bits state (single-shot)
-  void snapshot_creg_register(const int_t iChunk, const Operations::Op &op, ExperimentResult &result,
-                              std::string name = "register") const;
-
 
   //-----------------------------------------------------------------------
   // Config Settings
@@ -1166,40 +1145,6 @@ void StateChunk<state_t>::initialize_creg(uint_t num_memory,
     BaseState::cregs_[i].initialize(num_memory, num_register, memory_hex, register_hex);
   }
 }
-
-template <class state_t>
-void StateChunk<state_t>::snapshot_state(const int_t iChunk, const Operations::Op &op,
-                                    ExperimentResult &result,
-                                    std::string name) const 
-{
-  name = (name.empty()) ? op.name : name;
-  result.legacy_data.add_pershot_snapshot(name, op.string_params[0], qregs_[iChunk]);
-}
-
-
-template <class state_t>
-void StateChunk<state_t>::snapshot_creg_memory(const int_t iChunk, const Operations::Op &op,
-                                          ExperimentResult &result,
-                                          std::string name) const 
-{
-  int_t ishot = get_global_shot_index(iChunk);
-  result.legacy_data.add_pershot_snapshot(name,
-                               op.string_params[0],
-                               BaseState::cregs_[ishot].memory_hex());
-}
-
-
-template <class state_t>
-void StateChunk<state_t>::snapshot_creg_register(const int_t iChunk, const Operations::Op &op,
-                                            ExperimentResult &result,
-                                            std::string name) const 
-{
-  int_t ishot = get_global_shot_index(iChunk);
-  result.legacy_data.add_pershot_snapshot(name,
-                               op.string_params[0],
-                               BaseState::cregs_[ishot].register_hex());
-}
-
 
 template <class state_t>
 void StateChunk<state_t>::apply_save_expval(const int_t iChunk, const Operations::Op &op,
