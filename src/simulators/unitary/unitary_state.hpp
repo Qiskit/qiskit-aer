@@ -38,7 +38,7 @@ const Operations::OpSet StateOpSet(
      Operations::OpType::bfunc, Operations::OpType::roerror,
      Operations::OpType::qerror_loc,
      Operations::OpType::matrix, Operations::OpType::diagonal_matrix,
-     Operations::OpType::snapshot, Operations::OpType::save_unitary,
+    Operations::OpType::save_unitary,
      Operations::OpType::save_state, Operations::OpType::set_unitary,
      Operations::OpType::jump, Operations::OpType::mark
     },
@@ -49,9 +49,7 @@ const Operations::OpSet StateOpSet(
      "r",      "rx",      "ry",  "rz",   "rxx",  "ryy",  "rzz",  "rzx",
      "ccx",    "cswap",   "mcx", "mcy",  "mcz",  "mcu1", "mcu2", "mcu3",
      "mcswap", "mcphase", "mcr", "mcrx", "mcry", "mcry", "sx",   "sxdg", "csx",
-     "mcsx",   "csxdg", "mcsxdg", "delay", "pauli", "cu",   "mcu", "mcp"},
-    // Snapshots
-    {"unitary"});
+     "mcsx",   "csxdg", "mcsxdg", "delay", "pauli", "cu",   "mcu", "mcp"});
 
 // Allowed gates enum class
 enum class Gates {
@@ -127,10 +125,6 @@ protected:
   // This should support all and only the operations defined in
   // allowed_operations.
   void apply_gate(const int_t iChunk, const Operations::Op &op);
-
-  // Apply a supported snapshot instruction
-  // If the input is not in allowed_snapshots an exeption will be raised.
-  virtual void apply_snapshot(const int_t iChunk, const Operations::Op &op, ExperimentResult &result);
 
   // Apply a matrix to given qubits (identity on all other qubits)
   void apply_matrix(const int_t iChunk, const reg_t &qubits, const cmatrix_t &mat);
@@ -302,9 +296,6 @@ void State<unitary_matrix_t>::apply_op(const int_t iChunk,
       case Operations::OpType::save_state:
       case Operations::OpType::save_unitary:
         apply_save_unitary(iChunk, op, result, final_op);
-        break;
-      case Operations::OpType::snapshot:
-        apply_snapshot(iChunk, op, result);
         break;
       case Operations::OpType::matrix:
         apply_matrix(iChunk, op.qubits, op.mats[0]);
@@ -718,21 +709,6 @@ void State<unitary_matrix_t>::apply_gate_mcu(const int_t iChunk, const reg_t &qu
 {
   const auto u4 = Linalg::Matrix::u4(theta, phi, lambda, gamma);
   BaseState::qregs_[iChunk].apply_mcu(qubits, Utils::vectorize_matrix(u4));
-}
-
-template <class unitary_matrix_t>
-void State<unitary_matrix_t>::apply_snapshot(const int_t iChunk, const Operations::Op &op,
-                                             ExperimentResult &result) 
-{
-  // Look for snapshot type in snapshotset
-  if (op.name == "unitary" || op.name == "state") {
-    result.legacy_data.add_pershot_snapshot("unitary", op.string_params[0],
-                              copy_to_matrix(iChunk));
-    BaseState::snapshot_state(iChunk, op, result);
-  } else {
-    throw std::invalid_argument(
-        "Unitary::State::invalid snapshot instruction \'" + op.name + "\'.");
-  }
 }
 
 template <class unitary_matrix_t>

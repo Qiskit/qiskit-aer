@@ -1082,7 +1082,6 @@ void AerState::buffer_op(const Operations::Op&& op) {
 
 void AerState::initialize_experiment_result() {
   last_result_ = ExperimentResult();
-  last_result_.legacy_data.set_config(configs_);
   last_result_.set_config(configs_);
   last_result_.metadata.add(method_names_.at(method_), "method");
   if (method_ == Method::statevector || method_ == Method::density_matrix || method_ == Method::unitary)

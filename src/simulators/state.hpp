@@ -49,16 +49,12 @@ public:
   // - `OpType::gate` if gates are supported
   // - `OpType::measure` if measure is supported
   // - `OpType::reset` if reset is supported
-  // - `OpType::snapshot` if any snapshots are supported
   // - `OpType::barrier` if barrier is supported
   // - `OpType::matrix` if arbitrary unitary matrices are supported
   // - `OpType::kraus` if general Kraus noise channels are supported
   //
   // For gate ops allowed gates are specified by a set of string names,
   // for example this could include {"u1", "u2", "u3", "U", "cx", "CX"}
-  //
-  // For snapshot ops allowed snapshots are specified by a set of string names,
-  // For example this could include {"probabilities", "pauli_observable"}
 
   Base(const Operations::OpSet &opset) : opset_(opset) {
     cregs_.resize(1);
@@ -237,18 +233,6 @@ public:
   // Apply a save expectation value instruction
   void apply_save_expval(const Operations::Op &op, ExperimentResult &result);
 
-  //-----------------------------------------------------------------------
-  // Standard snapshots
-  //-----------------------------------------------------------------------
-
-  // Snapshot the classical memory bits state (single-shot)
-  void snapshot_creg_memory(const Operations::Op &op, ExperimentResult &result,
-                            std::string name = "memory") const;
-
-  // Snapshot the classical register bits state (single-shot)
-  void snapshot_creg_register(const Operations::Op &op, ExperimentResult &result,
-                              std::string name = "register") const;
-
 protected:
 
   // Classical register data
@@ -356,23 +340,18 @@ public:
   // - `OpType::gate` if gates are supported
   // - `OpType::measure` if measure is supported
   // - `OpType::reset` if reset is supported
-  // - `OpType::snapshot` if any snapshots are supported
   // - `OpType::barrier` if barrier is supported
   // - `OpType::matrix` if arbitrary unitary matrices are supported
   // - `OpType::kraus` if general Kraus noise channels are supported
   //
   // For gate ops allowed gates are specified by a set of string names,
   // for example this could include {"u1", "u2", "u3", "U", "cx", "CX"}
-  //
-  // For snapshot ops allowed snapshots are specified by a set of string names,
-  // For example this could include {"probabilities", "pauli_observable"}
 
   State(const Operations::OpSet &opset) : Base(opset) {}
 
   State(const Operations::OpSet::optypeset_t &optypes,
-        const stringset_t &gates,
-        const stringset_t &snapshots)
-    : State(Operations::OpSet(optypes, gates, snapshots)) {};
+        const stringset_t &gates)
+    : State(Operations::OpSet(optypes, gates)) {};
 
   virtual ~State() {};
 
@@ -384,28 +363,10 @@ public:
   auto &qreg() { return qreg_; }
   const auto &qreg() const { return qreg_; }
 
-  //-----------------------------------------------------------------------
-  // Standard snapshots
-  //-----------------------------------------------------------------------
-
-  // Snapshot the current statevector (single-shot)
-  // if type_label is the empty string the operation type will be used for the type
-  virtual void snapshot_state(const Operations::Op &op, ExperimentResult &result,
-                      std::string name = "") const;
-
 protected:
   // The quantum state data structure
   state_t qreg_;
 };
-
-
-template <class state_t>
-void State<state_t>::snapshot_state(const Operations::Op &op,
-                                    ExperimentResult &result,
-                                    std::string name) const {
-  name = (name.empty()) ? op.name : name;
-  result.legacy_data.add_pershot_snapshot(name, op.string_params[0], qreg());
-}
 
 void Base::set_global_phase(double theta) {
   if (Linalg::almost_equal(theta, 0.0)) {
@@ -425,24 +386,6 @@ void Base::add_global_phase(double theta) {
   has_global_phase_ = true;
   global_phase_ *= std::exp(complex_t(0.0, theta));
 }
-
-void Base::snapshot_creg_memory(const Operations::Op &op,
-                                          ExperimentResult &result,
-                                          std::string name) const {
-  result.legacy_data.add_pershot_snapshot(name,
-                               op.string_params[0],
-                               creg().memory_hex());
-}
-
-
-void Base::snapshot_creg_register(const Operations::Op &op,
-                                            ExperimentResult &result,
-                                            std::string name) const {
-  result.legacy_data.add_pershot_snapshot(name,
-                               op.string_params[0],
-                               creg().register_hex());
-}
-
 
 void Base::apply_save_expval(const Operations::Op &op,
                                        ExperimentResult &result){
