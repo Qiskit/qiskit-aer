@@ -509,7 +509,7 @@ template <class statevec_t>
 void State<statevec_t>::set_config(const json_t &config) {
   BaseState::set_config(config);
 
-  // Set threshold for truncating snapshots
+  // Set threshold for truncating states to be saved
   JSON::get_value(json_chop_threshold_, "zero_threshold", config);
   for(int_t i=0;i<BaseState::qregs_.size();i++){
     BaseState::qregs_[i].set_json_chop_threshold(json_chop_threshold_);

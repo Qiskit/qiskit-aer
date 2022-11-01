@@ -235,7 +235,7 @@ struct Op {
   std::vector<reg_t> regs;        //  list of qubits for matrixes
   std::vector<complex_t> params;  // real or complex params for gates
   std::vector<uint_t> int_params;  // integer parameters 
-  std::vector<std::string> string_params; // used for snapshot label, and boolean functions
+  std::vector<std::string> string_params; // used for label, control-flow, and boolean functions
 
   // Conditional Operations
   bool conditional = false; // is gate conditional gate
