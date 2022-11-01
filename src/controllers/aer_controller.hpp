@@ -1284,9 +1284,6 @@ void Controller::run_circuit_helper(const Circuit &circ,
   // Start individual circuit timer
   auto timer_start = myclock_t::now(); // state circuit timer
 
-  // Initialize circuit json return
-  result.legacy_data.set_config(config);
-
   // Execute in try block so we can catch errors and return the error message
   // for individual circuit failures.
   try {

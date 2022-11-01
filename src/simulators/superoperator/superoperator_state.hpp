@@ -34,7 +34,7 @@ namespace QubitSuperoperator {
 const Operations::OpSet StateOpSet(
     // Op types
     {Operations::OpType::gate, Operations::OpType::reset,
-     Operations::OpType::snapshot, Operations::OpType::barrier,
+     Operations::OpType::barrier,
      Operations::OpType::qerror_loc,
      Operations::OpType::bfunc, Operations::OpType::roerror,
      Operations::OpType::matrix, Operations::OpType::diagonal_matrix,
@@ -48,18 +48,13 @@ const Operations::OpSet StateOpSet(
     {"U",    "CX",  "u1", "u2",  "u3", "u",   "cx",   "cy",  "cz",
      "swap", "id",  "x",  "y",   "z",  "h",   "s",    "sdg", "t",
      "tdg",  "ccx", "r",  "rx",  "ry", "rz",  "rxx",  "ryy", "rzz",
-     "rzx",  "p",   "cp", "cu1", "sx", "sxdg", "x90", "delay", "pauli"},
-    // Snapshots
-    {"superop"});
+     "rzx",  "p",   "cp", "cu1", "sx", "sxdg", "x90", "delay", "pauli"});
 
 // Allowed gates enum class
 enum class Gates {
   u2, u1, u3, id, x, y, z, h, s, sdg, sx, sxdg, t, tdg, r, rx, ry, rz,
   cx, cy, cz, cp, swap, rxx, ryy, rzz, rzx, ccx, pauli
 };
-
-// Allowed snapshots enum class
-enum class Snapshots { superop };
 
 //=========================================================================
 // QubitUnitary State subclass
@@ -124,10 +119,6 @@ protected:
   // This should support all and only the operations defined in
   // allowed_operations.
   void apply_gate(const Operations::Op &op);
-
-  // Apply a supported snapshot instruction
-  // If the input is not in allowed_snapshots an exeption will be raised.
-  virtual void apply_snapshot(const Operations::Op &op, ExperimentResult &result);
 
   // Apply a matrix to given qubits (identity on all other qubits)
   void apply_matrix(const reg_t &qubits, const cmatrix_t &mat);
@@ -273,9 +264,6 @@ void State<data_t>::apply_op(const Operations::Op &op,
       case Operations::OpType::set_unitary:
       case Operations::OpType::set_superop:
         BaseState::qreg_.initialize_from_matrix(op.mats[0]);
-        break;
-      case Operations::OpType::snapshot:
-        apply_snapshot(op, result);
         break;
       case Operations::OpType::save_state:
       case Operations::OpType::save_superop:
@@ -485,19 +473,6 @@ void State<statevec_t>::apply_gate_u3(const uint_t qubit, double theta,
                                       double phi, double lambda) {
   const auto u3 = Linalg::VMatrix::u3(theta, phi, lambda);
   BaseState::qreg_.apply_unitary_matrix(reg_t({qubit}), u3);
-}
-
-template <class data_t>
-void State<data_t>::apply_snapshot(const Operations::Op &op,
-                                   ExperimentResult &result) {
-  // Look for snapshot type in snapshotset
-  if (op.name == "superopertor" || op.name == "state") {
-    BaseState::snapshot_state(op, result, "superop");
-  } else {
-    throw std::invalid_argument(
-        "QubitSuperoperator::State::invalid snapshot instruction \'" + op.name +
-        "\'.");
-  }
 }
 
 template <class statevec_t>
