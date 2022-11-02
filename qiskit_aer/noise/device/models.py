@@ -141,7 +141,7 @@ def basic_device_gate_errors(properties,
         warnings = True
 
     if target is not None:
-        if not standard_gates or not warnings:
+        if standard_gates is not None or not warnings:
             warn("When `target` is supplied, `standard_gates` and `warnings` are ignored,"
                  " and they are always set to true.", UserWarning)
 
