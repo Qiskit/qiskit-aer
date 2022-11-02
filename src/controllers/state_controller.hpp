@@ -673,7 +673,9 @@ void AerState::initialize() {
 
   state_->initialize_qreg(num_of_qubits_);
   state_->initialize_creg(num_of_qubits_, num_of_qubits_);
+  rng_.set_seed(seed_);
 
+  clear_ops();
   initialized_ = true;
 };
 
