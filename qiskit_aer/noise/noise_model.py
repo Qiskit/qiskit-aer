@@ -227,10 +227,14 @@ class NoiseModel:
 
         * Single qubit :class:`ReadoutError` on all measurements.
 
-        The Error error parameters are tuned for each individual qubit based on
+        The error (noise) parameters are tuned for each individual qubit based on
         the :math:`T_1`, :math:`T_2`, frequency and readout error parameters for
         each qubit, and the gate error and gate time parameters for each gate
         obtained from the device backend properties.
+
+        Note that if un-physical parameters are supplied, they are internally truncated to
+        the theoretical bound values. For example, if :math:`T_2 > 2 T_1`, :math:`T_2`
+        parameter will be truncated to :math:`2 T_1`.
 
         **Additional Information**
 
