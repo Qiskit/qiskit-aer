@@ -69,9 +69,9 @@ public:
     sample_measure_ = enabled;
   }
 
-  void set_save_state(bool enabled)
+  void set_restore_qubit_map(bool enabled)
   {
-    save_state_ = enabled;
+    restore_qubit_map_ = enabled;
   }
 
   //setting blocking parameters automatically
@@ -89,7 +89,7 @@ protected:
   mutable reg_t qubitSwapped_;
   mutable bool blocking_enabled_;
   mutable bool sample_measure_ = false;
-  mutable bool save_state_ = false;
+  mutable bool restore_qubit_map_ = false;
   int memory_blocking_bits_ = 0;
   bool density_matrix_ = false;
   int num_processes_ = 1;
@@ -414,7 +414,7 @@ bool CacheBlocking::block_circuit(Circuit& circ,bool doSwap) const
     return false;
   }
 
-  if(doSwap && save_state_)
+  if(doSwap && restore_qubit_map_)
     restore_qubits_order(out);
 
   circ.ops = out;
