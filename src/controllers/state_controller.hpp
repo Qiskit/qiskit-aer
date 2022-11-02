@@ -1167,6 +1167,7 @@ void AerState::transpile_ops() {
 
   //cache blocking
   if(cache_block_pass_.enabled() && state_->multi_chunk_distribution_supported()){
+    cache_block_pass_.set_restore_qubit_map(true);    //restore swapped qubits because buffer_ does not include output qubits
     cache_block_pass_.optimize_circuit(buffer_, noise_model_, state_->opset(), last_result_);
   }
 }
