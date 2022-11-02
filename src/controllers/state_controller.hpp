@@ -1204,7 +1204,6 @@ void AerState::buffer_op(const Operations::Op&& op) {
 
 void AerState::initialize_experiment_result() {
   last_result_ = ExperimentResult();
-  last_result_.legacy_data.set_config(configs_);
   last_result_.set_config(configs_);
   last_result_.metadata.add(method_names_.at(method_), "method");
   if (method_ == Method::statevector || method_ == Method::density_matrix || method_ == Method::unitary)
@@ -1289,6 +1288,7 @@ void AerState::transpile_ops() {
 
   //cache blocking
   if(cache_block_pass_.enabled() && state_->multi_chunk_distribution_supported()){
+    cache_block_pass_.set_restore_qubit_map(true);    //restore swapped qubits because buffer_ does not include output qubits
     cache_block_pass_.optimize_circuit(buffer_, noise_model_, state_->opset(), last_result_);
   }
 }

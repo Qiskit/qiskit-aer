@@ -37,7 +37,7 @@ enum class RegComparison {Equal, NotEqual, Less, LessEqual, Greater, GreaterEqua
 
 // Enum class for operation types
 enum class OpType {
-  gate, measure, reset, bfunc, barrier, qerror_loc, snapshot,
+  gate, measure, reset, bfunc, barrier, qerror_loc,
   matrix, diagonal_matrix, multiplexer, initialize, sim_op, nop,
   // Noise instructions
   kraus, superop, roerror, noise_switch,
@@ -144,9 +144,6 @@ inline std::ostream& operator<<(std::ostream& stream, const OpType& type) {
   case OpType::set_mps:
     stream << "set_matrix_product_state";
     break;
-  case OpType::snapshot:
-    stream << "snapshot";
-    break;
   case OpType::matrix:
     stream << "unitary";
     break;
@@ -238,7 +235,7 @@ struct Op {
   std::vector<reg_t> regs;        //  list of qubits for matrixes
   std::vector<complex_t> params;  // real or complex params for gates
   std::vector<uint_t> int_params;  // integer parameters 
-  std::vector<std::string> string_params; // used for snapshot label, and boolean functions
+  std::vector<std::string> string_params; // used for label, control-flow, and boolean functions
 
   // Conditional Operations
   bool conditional = false; // is gate conditional gate
@@ -262,15 +259,8 @@ struct Op {
   Clifford::Clifford clifford;
   mps_container_t mps;
 
-  // Legacy Snapshots
+  // Save
   DataSubType save_type = DataSubType::single;
-  using pauli_component_t = std::pair<complex_t, std::string>; // Pair (coeff, label_string)
-  using matrix_component_t = std::pair<complex_t, std::vector<std::pair<reg_t, cmatrix_t>>>; // vector of Pair(qubits, matrix), combined with coefficient
-  std::vector<pauli_component_t> params_expval_pauli;
-  std::vector<matrix_component_t> params_expval_matrix; // note that diagonal matrices are stored as
-                                                        // 1 x M row-matrices
-                                                        // Projector vectors are stored as
-                                                        // M x 1 column-matrices
 };
 
 inline std::ostream& operator<<(std::ostream& s, const Op& op) {
@@ -580,16 +570,6 @@ Op input_to_op_save_expval(const inputdata_t& input, bool variance);
 template<typename inputdata_t>
 Op input_to_op_save_amps(const inputdata_t& input, bool squared);
 
-// Snapshots
-template<typename inputdata_t>
-Op input_to_op_snapshot(const inputdata_t& input);
-template<typename inputdata_t>
-Op input_to_op_snapshot_default(const inputdata_t& input);
-template<typename inputdata_t>
-Op input_to_op_snapshot_matrix(const inputdata_t& input);
-template<typename inputdata_t>
-Op input_to_op_snapshot_pauli(const inputdata_t& input);
-
 // Control-Flow
 template<typename inputdata_t>
 Op input_to_op_jump(const inputdata_t& input);
@@ -695,9 +675,6 @@ Op input_to_op(const inputdata_t& input) {
   if (name == "set_matrix_product_state")
     return input_to_op_set_mps(input, OpType::set_mps);
 
-  // Snapshot
-  if (name == "snapshot")
-    return input_to_op_snapshot(input);
   // Bit functions
   if (name == "bfunc")
     return input_to_op_bfunc(input);
@@ -1237,140 +1214,6 @@ Op input_to_op_save_amps(const inputdata_t& input, bool squared) {
                            : OpType::save_amps;
   Op op = input_to_op_save_default(input, op_type);
   Parser<inputdata_t>::get_value(op.int_params, "params", input);
-  return op;
-}
-
-//------------------------------------------------------------------------------
-// Implementation: Snapshot deserialization
-//------------------------------------------------------------------------------
-template<typename inputdata_t>
-Op input_to_op_snapshot(const inputdata_t& input) {
-  std::string snapshot_type;
-  Parser<inputdata_t>::get_value(snapshot_type, "snapshot_type", input); // LEGACY: to remove in 0.3
-  Parser<inputdata_t>::get_value(snapshot_type, "type", input);
-  if (snapshot_type.find("expectation_value_pauli") != std::string::npos)
-    return input_to_op_snapshot_pauli(input);
-  if (snapshot_type.find("expectation_value_matrix") != std::string::npos)
-    return input_to_op_snapshot_matrix(input);
-  // Default snapshot: has "type", "label", "qubits"
-  auto op = input_to_op_snapshot_default(input);
-  // Conditional
-  add_conditional(Allowed::No, op, input);
-  return op;
-}
-
-template<typename inputdata_t>
-Op input_to_op_snapshot_default(const inputdata_t& input) {
-  Op op;
-  op.type = OpType::snapshot;
-  Parser<inputdata_t>::get_value(op.name, "type", input); // LEGACY: to remove in 0.3
-  Parser<inputdata_t>::get_value(op.name, "snapshot_type", input);
-  // If missing use "default" for label
-  op.string_params.emplace_back("default");
-  Parser<inputdata_t>::get_value(op.string_params[0], "label", input);
-  // Add optional qubits field
-  Parser<inputdata_t>::get_value(op.qubits, "qubits", input);
-  // If qubits is not empty, check for duplicates
-  check_duplicate_qubits(op);
-  return op;
-}
-
-template<typename inputdata_t>
-Op input_to_op_snapshot_pauli(const inputdata_t& input) {
-  Op op = input_to_op_snapshot_default(input);
-
-  const auto threshold = 1e-15; // drop small components
-  // Get components
-  if (Parser<inputdata_t>::check_key("params", input) && Parser<inputdata_t>::is_array("params", input)) {
-    for (const auto &comp_ : Parser<inputdata_t>::get_value("params", input)) {
-      // Check component is length-2 array
-      const auto& comp = Parser<inputdata_t>::get_as_list(comp_);
-      if (comp.size() != 2)
-        throw std::invalid_argument("Invalid Pauli expval params (param component " + 
-                                    Parser<inputdata_t>::dump(comp) + " invalid).");
-      // Get complex coefficient
-      complex_t coeff = Parser<inputdata_t>::template get_list_elem<complex_t>(comp, 0);
-      // If coefficient is above threshold, get the Pauli operator string
-      // This string may contain I, X, Y, Z
-      // qubits are stored as a list where position is qubit number:
-      // eq op.qubits = [a, b, c], a is qubit-0, b is qubit-1, c is qubit-2
-      // Pauli string labels are stored in little-endian ordering:
-      // eg label = "CBA", A is the Pauli for qubit-0, B for qubit-1, C for qubit-2
-      if (std::abs(coeff) > threshold) {
-        std::string pauli = Parser<inputdata_t>::template get_list_elem<std::string>(comp, 1);
-        if (pauli.size() != op.qubits.size()) {
-          throw std::invalid_argument(std::string("Invalid Pauli expectation value snapshot ") +
-                                      "(Pauli label does not match qubit number.).");
-        }
-        // make tuple and add to components
-        op.params_expval_pauli.emplace_back(coeff, pauli);
-      } // end if > threshold
-    } // end component loop
-  } else {
-    throw std::invalid_argument("Invalid Pauli expectation value value snapshot \"params\".");
-  }
-  // Check edge case of all coefficients being empty
-  // In this case the operator had all coefficients zero, or sufficiently close
-  // to zero that they were all truncated.
-  if (op.params_expval_pauli.empty()) {
-    // Add a single identity op with zero coefficient
-    std::string pauli(op.qubits.size(), 'I');
-    complex_t coeff(0);
-    op.params_expval_pauli.emplace_back(coeff, pauli);
-  }
-
-  return op;
-}
-
-template<typename inputdata_t>
-Op input_to_op_snapshot_matrix(const inputdata_t& input) {
-  // Load default snapshot parameters
-  Op op = input_to_op_snapshot_default(input);
-
-  const auto threshold = 1e-10; // drop small components
-  // Get matrix operator components
-  // TODO: fix repeated throw string
-  if (Parser<inputdata_t>::check_key("params", input) && Parser<inputdata_t>::is_array("params", input)) {
-    for (const auto &comp_ : Parser<inputdata_t>::get_value("params", input)) {
-      const auto& comp = Parser<inputdata_t>::get_as_list(comp_);
-      // Check component is length-2 array
-      if (comp.size() != 2) {
-        throw std::invalid_argument("Invalid matrix expval snapshot (param component " +
-                                        Parser<inputdata_t>::dump(comp) + " invalid).");
-      }
-      // Get complex coefficient
-      complex_t coeff = Parser<inputdata_t>::template get_list_elem<complex_t>(comp, 0);
-      std::vector<std::pair<reg_t, cmatrix_t>> mats;
-      if (std::abs(coeff) > threshold) {
-        const inputdata_t& comp_list = comp[1];
-        if (!Parser<inputdata_t>::is_array(comp_list)) {
-          throw std::invalid_argument("Invalid matrix expval snapshot (param component " +
-                                          Parser<inputdata_t>::dump(comp) + " invalid).");
-        }
-        for (const auto &subcomp_ : comp_list) {
-          const auto& subcomp = Parser<inputdata_t>::get_as_list(subcomp_);
-          if (subcomp.size() != 2) {
-            throw std::invalid_argument("Invalid matrix expval snapshot (param component " +
-                                            Parser<inputdata_t>::dump(comp) + " invalid).");
-          }
-          reg_t comp_qubits = Parser<inputdata_t>::template get_list_elem<reg_t>(subcomp, 0);
-          cmatrix_t comp_matrix = Parser<inputdata_t>::template get_list_elem<cmatrix_t>(subcomp, 1);
-          // Check qubits are ok
-          // TODO: check that qubits are in range from 0 to Num of Qubits - 1 for instr
-          std::unordered_set<uint_t> unique = {comp_qubits.begin(), comp_qubits.end()};
-          if (unique.size() != comp_qubits.size()) {
-            throw std::invalid_argument("Invalid matrix expval snapshot (param component " +
-                                            Parser<inputdata_t>::dump(comp) + " invalid).");
-          }
-          mats.emplace_back(comp_qubits, comp_matrix);
-        }
-        op.params_expval_matrix.emplace_back(coeff, mats);
-      }
-    } // end component loop
-  } else {
-    throw std::invalid_argument(std::string("Invalid matrix expectation value snapshot ") +
-                                "(\"params\" field missing).");
-  }
   return op;
 }
 

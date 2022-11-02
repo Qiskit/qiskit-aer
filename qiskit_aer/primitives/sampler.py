@@ -86,6 +86,8 @@ class Sampler(BaseSampler):
         self._transpile_options = {} if transpile_options is None else transpile_options
         self._skip_transpilation = skip_transpilation
 
+        self._transpiled_circuits = {}
+
     def _call(
         self,
         circuits: Sequence[int],
@@ -99,7 +101,9 @@ class Sampler(BaseSampler):
         if seed is not None:
             run_options.setdefault("seed_simulator", seed)
 
-        # Prepare circuits and parameter_binds
+        is_shots_none = "shots" in run_options and run_options["shots"] is None
+        self._transpile(circuits, is_shots_none)
+
         experiments = []
         parameter_binds = []
         for i, value in zip(circuits, parameter_values):
@@ -108,17 +112,9 @@ class Sampler(BaseSampler):
                     f"The number of values ({len(value)}) does not match "
                     f"the number of parameters ({len(self._parameters[i])})."
                 )
+            parameter_binds.append({k: [v] for k, v in zip(self._parameters[i], value)})
+            experiments.append(self._transpiled_circuits[(i, is_shots_none)])
 
-            circuit = self._circuits[i]
-            if "shots" in run_options and run_options["shots"] is None:
-                circuit = self._preprocess_circuit(circuit)
-            experiments.append(circuit)
-            parameter = {k: [v] for k, v in zip(self._parameters[i], value)}
-            parameter_binds.append(parameter)
-
-        # Transpile and Run
-        if not self._skip_transpilation:
-            experiments = transpile(experiments, self._backend, **self._transpile_options)
         result = self._backend.run(
             experiments, parameter_binds=parameter_binds, **run_options
         ).result()
@@ -127,7 +123,7 @@ class Sampler(BaseSampler):
         metadata = []
         quasis = []
         for i in range(len(experiments)):
-            if "shots" in run_options and run_options["shots"] is None:
+            if is_shots_none:
                 probabilities = result.data(i)["probabilities"]
                 quasis.append(QuasiDistribution(probabilities))
                 metadata.append({"shots": None, "simulator_metadata": result.results[i].metadata})
@@ -189,3 +185,20 @@ class Sampler(BaseSampler):
         circuit = circuit.remove_final_measurements(inplace=False)
         circuit.save_probabilities_dict(qargs)
         return circuit
+
+    def _transpile(self, circuit_indices: Sequence[int], is_shots_none: bool):
+        to_handle = [
+            i for i in set(circuit_indices) if (i, is_shots_none) not in self._transpiled_circuits
+        ]
+        if to_handle:
+            circuits = (self._circuits[i] for i in to_handle)
+            if is_shots_none:
+                circuits = (self._preprocess_circuit(circ) for circ in circuits)
+            if not self._skip_transpilation:
+                circuits = transpile(
+                    list(circuits),
+                    self._backend,
+                    **self._transpile_options,
+                )
+            for i, circuit in zip(to_handle, circuits):
+                self._transpiled_circuits[(i, is_shots_none)] = circuit
