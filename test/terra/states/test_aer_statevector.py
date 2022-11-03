@@ -68,6 +68,40 @@ class TestAerStatevector(common.QiskitAerTestCase):
 
         self.assertEqual(state1, state2)
 
+    def test_GHZ(self):
+        """Test each method can process ghz"""
+        ghz = QuantumCircuit(4)
+        ghz.h(0)
+        ghz.cx(0, 1)
+        ghz.cx(1, 2)
+        ghz.cx(2, 3)
+
+        for method in ["statevector", "matrix_product_state"]:
+            sv = AerStatevector(ghz, method=method)
+            counts = sv.sample_counts(shots=1024)
+            self.assertEqual(2, len(counts))
+            self.assertTrue('0000' in counts)
+            self.assertTrue('1111' in counts)
+
+    def test_QFT(self):
+        """Test each method can process qft"""
+        qft = QuantumCircuit(4)
+        qft.h(range(4))
+        qft.compose(QFT(4), inplace=True)
+
+        for method in ["statevector", "matrix_product_state"]:
+            sv = AerStatevector(qft, method=method)
+            counts = sv.sample_counts(shots=1024)
+            self.assertEqual(1, len(counts))
+            self.assertTrue('0000' in counts)
+
+    def test_single_qubit_QV(self):
+        """Test single qubit QuantumVolume"""
+        state = AerStatevector(QuantumVolume(1))
+        counts = state.sample_counts(shots=1024)
+        self.assertEqual(1, len(counts))
+        self.assertTrue('0' in counts)
+
     def test_evolve(self):
         """Test method and device properties"""
         circ1 = QuantumVolume(5, seed=1111)

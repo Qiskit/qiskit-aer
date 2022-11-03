@@ -200,17 +200,35 @@ public:
   // Apply Specialized Gates
   //-----------------------------------------------------------------------
 
+  // Apply an optimized X gate
+  virtual void apply_x(const uint_t qubit);
+
+  // Apply an optimized CX gate
+  virtual void apply_cx(const reg_t &qubits);
+
   // Apply a general N-qubit multi-controlled X-gate
   // If N=1 this implements an optimized X gate
   // If N=2 this implements an optimized CX gate
   // If N=3 this implements an optimized Toffoli gate
   virtual void apply_mcx(const reg_t &qubits);
 
+  // Apply an optimized Y gate
+  virtual void apply_y(const uint_t qubit);
+
+  // Apply an optimized CY gate
+  virtual void apply_cy(const reg_t &qubits);
+
   // Apply a general multi-controlled Y-gate
   // If N=1 this implements an optimized Y gate
   // If N=2 this implements an optimized CY gate
   // If N=3 this implements an optimized CCY gate
   virtual void apply_mcy(const reg_t &qubits);
+
+  // Apply an optimized Z gate
+  virtual void apply_z(const uint_t qubit);
+
+  // Apply an optimized CZ gate
+  virtual void apply_cz(const reg_t &qubits);
 
   // Apply a general multi-controlled Z-gate
   // If N=1 this implements an optimized Z gate
@@ -224,6 +242,15 @@ public:
   // If N=2 this implements an optimized CPhase gate
   // If N=3 this implements an optimized CCPhase gate
   virtual void apply_mcphase(const reg_t &qubits, const std::complex<double> phase);
+
+  // Apply an optimized H gate
+  virtual void apply_h(const uint_t qubit);
+
+  // Apply an optimized single-qubit U gate
+  virtual void apply_u(const uint_t qubit, const double theta, const double phi, const double lambda);
+
+  // Apply an optimized CU gate
+  virtual void apply_cu(const reg_t &qubits, const double theta, const double phi, const double lambda);
 
   // Apply a general multi-controlled single-qubit unitary gate
   // If N=1 this implements an optimized single-qubit U gate
@@ -813,6 +840,28 @@ void AerState::apply_multiplexer(const reg_t &control_qubits, const reg_t &targe
 // Apply Specialized Gates
 //-----------------------------------------------------------------------
 
+void AerState::apply_x(const uint_t qubit) {
+  assert_initialized();
+
+  Operations::Op op;
+  op.type = Operations::OpType::gate;
+  op.name = "x";
+  op.qubits = {qubit};
+
+  buffer_op(std::move(op));
+}
+
+void AerState::apply_cx(const reg_t &qubits) {
+  assert_initialized();
+
+  Operations::Op op;
+  op.type = Operations::OpType::gate;
+  op.name = "cx";
+  op.qubits = qubits;
+
+  buffer_op(std::move(op));
+}
+
 void AerState::apply_mcx(const reg_t &qubits) {
   assert_initialized();
 
@@ -824,12 +873,56 @@ void AerState::apply_mcx(const reg_t &qubits) {
   buffer_op(std::move(op));
 }
 
+void AerState::apply_y(const uint_t qubit) {
+  assert_initialized();
+
+  Operations::Op op;
+  op.type = Operations::OpType::gate;
+  op.name = "y";
+  op.qubits = {qubit};
+
+  buffer_op(std::move(op));
+}
+
+void AerState::apply_cy(const reg_t &qubits) {
+  assert_initialized();
+
+  Operations::Op op;
+  op.type = Operations::OpType::gate;
+  op.name = "cy";
+  op.qubits = qubits;
+
+  buffer_op(std::move(op));
+}
+
 void AerState::apply_mcy(const reg_t &qubits) {
   assert_initialized();
 
   Operations::Op op;
   op.type = Operations::OpType::gate;
   op.name = "mcy";
+  op.qubits = qubits;
+
+  buffer_op(std::move(op));
+}
+
+void AerState::apply_z(const uint_t qubit) {
+  assert_initialized();
+
+  Operations::Op op;
+  op.type = Operations::OpType::gate;
+  op.name = "z";
+  op.qubits = {qubit};
+
+  buffer_op(std::move(op));
+}
+
+void AerState::apply_cz(const reg_t &qubits) {
+  assert_initialized();
+
+  Operations::Op op;
+  op.type = Operations::OpType::gate;
+  op.name = "cz";
   op.qubits = qubits;
 
   buffer_op(std::move(op));
@@ -854,6 +947,42 @@ void AerState::apply_mcphase(const reg_t &qubits, const std::complex<double> pha
   op.name = "mcp";
   op.qubits = qubits;
   op.params.push_back(phase);
+
+  buffer_op(std::move(op));
+}
+
+void AerState::apply_h(const uint_t qubit) {
+  assert_initialized();
+
+  Operations::Op op;
+  op.type = Operations::OpType::gate;
+  op.name = "h";
+  op.qubits = {qubit};
+  op.params = {};
+
+  buffer_op(std::move(op));
+}
+
+void AerState::apply_u(const uint_t qubit, const double theta, const double phi, const double lambda) {
+  assert_initialized();
+
+  Operations::Op op;
+  op.type = Operations::OpType::gate;
+  op.name = "u";
+  op.qubits = {qubit};
+  op.params = {theta, phi, lambda, 0.0};
+
+  buffer_op(std::move(op));
+}
+
+void AerState::apply_cu(const reg_t &qubits, const double theta, const double phi, const double lambda) {
+  assert_initialized();
+
+  Operations::Op op;
+  op.type = Operations::OpType::gate;
+  op.name = "cu";
+  op.qubits = qubits;
+  op.params = {theta, phi, lambda, 0.0};
 
   buffer_op(std::move(op));
 }
