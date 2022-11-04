@@ -38,7 +38,7 @@ const Operations::OpSet StateOpSet(
     // Op types
     {OpType::gate, OpType::measure,
      OpType::reset, OpType::initialize,
-     OpType::snapshot, OpType::barrier,
+     OpType::barrier,
      OpType::bfunc, OpType::roerror,
      OpType::matrix, OpType::diagonal_matrix,
      OpType::multiplexer, OpType::kraus, 
@@ -58,14 +58,7 @@ const Operations::OpSet StateOpSet(
      "r",      "rx",      "ry",  "rz",   "rxx",  "ryy",  "rzz",  "rzx",
      "ccx",    "cswap",   "mcx", "mcy",  "mcz",  "mcu1", "mcu2", "mcu3",
      "mcswap", "mcphase", "mcr", "mcrx", "mcry", "mcry", "sx",   "sxdg",
-     "csx", "mcsx", "csxdg", "mcsxdg",  "delay", "pauli", "mcx_gray", "cu", "mcu", "mcp"},
-    // Snapshots
-    {"statevector", "memory", "register", "probabilities",
-     "probabilities_with_variance", "expectation_value_pauli", "density_matrix",
-     "density_matrix_with_variance", "expectation_value_pauli_with_variance",
-     "expectation_value_matrix_single_shot", "expectation_value_matrix",
-     "expectation_value_matrix_with_variance",
-     "expectation_value_pauli_single_shot"});
+     "csx", "mcsx", "csxdg", "mcsxdg",  "delay", "pauli", "mcx_gray", "cu", "mcu", "mcp"});
 
 // Allowed gates enum class
 enum class Gates {

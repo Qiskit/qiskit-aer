@@ -30,6 +30,7 @@ DISABLE_WARNING_PUSH
 #include <nlohmann/json.hpp>
 DISABLE_WARNING_POP
 #include "framework/matrix.hpp"
+#include "framework/linalg/vector.hpp"
 
 namespace nl = nlohmann;
 using json_t = nlohmann::json;
@@ -120,6 +121,15 @@ void to_json(json_t &js, const std::vector<std::complex<RealType>> &vec);
  */
 template <typename RealType>
 void from_json(const json_t &js, std::vector<std::complex<RealType>> &vec);
+
+/**
+ * Convert a custom complex vector to a json list
+ * v -> [ [real(v[0]), imag(v[0])], ...]
+ * @param js a json_t object to contain converted type.
+ * @param vec a complex vector to convert.
+ */
+template <typename RealType>
+void to_json(json_t &js, const AER::Vector<std::complex<RealType>> &vec);
 
 /**
  * Convert a map with integer keys to a json. This converts the integer keys
@@ -247,6 +257,16 @@ void std::from_json(const json_t &js, std::vector<std::complex<RealType>> &vec) 
     throw std::invalid_argument(
         std::string("JSON: invalid complex vector."));
   }
+}
+
+template <typename RealType>
+void std::to_json(json_t &js, const AER::Vector<std::complex<RealType>> &vec) {
+  std::vector<std::vector<RealType>> out;
+  for (int64_t i = 0; i < vec.size(); ++i) {
+    auto& z = vec[i];
+    out.push_back(std::vector<RealType>{real(z), imag(z)});
+  }
+  js = out;
 }
 
 // Int-key maps

@@ -106,7 +106,7 @@ const Operations::OpSet FusionMethod::noise_opset_(
   {Operations::OpType::kraus,
    Operations::OpType::superop,
    Operations::OpType::reset},
-  {}, {}
+  {}
 );
 
 class UnitaryFusion : public FusionMethod {

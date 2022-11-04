@@ -38,7 +38,7 @@ using OpType = Operations::OpType;
 const Operations::OpSet StateOpSet(
     // Op types
     {OpType::gate, OpType::measure,
-     OpType::reset, OpType::snapshot,
+     OpType::reset,
      OpType::barrier, OpType::bfunc, OpType::qerror_loc,
      OpType::roerror, OpType::matrix,
      OpType::diagonal_matrix, OpType::kraus,
@@ -53,27 +53,12 @@ const Operations::OpSet StateOpSet(
     {"U",    "CX",  "u1", "u2",  "u3", "u",   "cx",   "cy",  "cz",
      "swap", "id",  "x",  "y",   "z",  "h",   "s",    "sdg", "t",
      "tdg",  "ccx", "r",  "rx",  "ry", "rz",  "rxx",  "ryy", "rzz",
-     "rzx",  "p",   "cp", "cu1", "sx", "sxdg", "x90", "delay", "pauli"},
-    // Snapshots
-    {"density_matrix", "memory", "register", "probabilities",
-     "probabilities_with_variance", "expectation_value_pauli",
-     "expectation_value_pauli_with_variance"});
+     "rzx",  "p",   "cp", "cu1", "sx", "sxdg", "x90", "delay", "pauli"});
 
 // Allowed gates enum class
 enum class Gates {
   u1, u2, u3, r, rx,ry, rz, id, x, y, z, h, s, sdg, sx, sxdg, t, tdg,
   cx, cy, cz, swap, rxx, ryy, rzz, rzx, ccx, cp, pauli
-};
-
-// Allowed snapshots enum class
-enum class Snapshots {
-  cmemory, cregister,
-  densitymatrix,
-  probs, probs_var,
-  expval_pauli, expval_pauli_var
-  /* TODO: The following expectation value snapshots still need to be
-     implemented */
-  //,expval_matrix, expval_matrix_var
 };
 
 //=========================================================================
@@ -178,12 +163,6 @@ protected:
   // Reset the specified qubits to the |0> state by tracing out qubits
   void apply_reset(densmat_t& qreg, const reg_t &qubits);
 
-  // Apply a supported snapshot instruction
-  // If the input is not in allowed_snapshots an exeption will be raised.
-  virtual void apply_snapshot(QuantumState::Registers<densmat_t>& state, const Operations::Op &op,
-                              ExperimentResult &result,
-                              bool last_op = false);
-
   // Apply a matrix to given qubits (identity on all other qubits)
   void apply_matrix(densmat_t& qreg, const reg_t &qubits, const cmatrix_t &mat);
 
@@ -266,31 +245,6 @@ protected:
                              const rvector_t& meas_probs);
 
   //-----------------------------------------------------------------------
-  // Special snapshot types
-  //
-  // IMPORTANT: These methods are not marked const to allow modifying state
-  // during snapshot, but after the snapshot is applied the simulator
-  // should be left in the pre-snapshot state.
-  //-----------------------------------------------------------------------
-
-  // Snapshot reduced density matrix
-  void snapshot_density_matrix(QuantumState::Registers<densmat_t>& state, const Operations::Op &op,
-                               ExperimentResult &result,
-                               bool last_op = false);
-                          
-  // Snapshot current qubit probabilities for a measurement (average)
-  void snapshot_probabilities(QuantumState::Registers<densmat_t>& state, const Operations::Op &op, ExperimentResult &result,
-                              bool variance);
-
-  // Snapshot the expectation value of a Pauli operator
-  void snapshot_pauli_expval(QuantumState::Registers<densmat_t>& state, const Operations::Op &op, ExperimentResult &result,
-                             bool variance);
-
-  // Snapshot the expectation value of a matrix operator
-  void snapshot_matrix_expval(QuantumState::Registers<densmat_t>& state, const Operations::Op &op, ExperimentResult &result,
-                              bool variance);
-
-  //-----------------------------------------------------------------------
   // Single-qubit gate helpers
   //-----------------------------------------------------------------------
 
@@ -312,9 +266,6 @@ protected:
 
   // Table of allowed gate names to gate enum class members
   const static stringmap_t<Gates> gateset_;
-
-  // Table of allowed snapshot types to enum class members
-  const static stringmap_t<Snapshots> snapshotset_;
 
   //scale for density matrix = 2
   //this function is used in the base class to scale chunk qubits for multi-chunk distribution
@@ -388,16 +339,6 @@ const stringmap_t<Gates> State<densmat_t>::gateset_({
     // Pauli gate
     {"pauli", Gates::pauli} // Multi-qubit Pauli gate
 });
-
-template <class densmat_t>
-const stringmap_t<Snapshots> State<densmat_t>::snapshotset_(
-    {{"density_matrix", Snapshots::densitymatrix},
-     {"probabilities", Snapshots::probs},
-     {"probabilities_with_variance", Snapshots::probs_var},
-     {"memory", Snapshots::cmemory},
-     {"register", Snapshots::cregister},
-     {"expectation_value_pauli", Snapshots::expval_pauli},
-     {"expectation_value_pauli_with_variance", Snapshots::expval_pauli_var}});
 
 //=========================================================================
 // Implementation: Base class method overrides
@@ -821,9 +762,6 @@ void State<densmat_t>::apply_op(QuantumState::RegistersBase& state_in, const Ope
     case OpType::gate:
       for(int_t i=0;i<state.qregs().size();i++)
         apply_gate(state.qreg(i), op);
-      break;
-    case OpType::snapshot:
-      apply_snapshot(state, op, result, final_ops);
       break;
     case OpType::matrix:
       for(int_t i=0;i<state.qregs().size();i++)
@@ -1303,111 +1241,6 @@ cmatrix_t State<densmat_t>::reduced_density_matrix_helper(QuantumState::Register
   }
 
   return reduced_state;
-}
-
-//=========================================================================
-// Implementation: Snapshots
-//=========================================================================
-
-template <class densmat_t>
-void State<densmat_t>::apply_snapshot(QuantumState::Registers<densmat_t>& state, const Operations::Op &op,
-                                      ExperimentResult &result,
-                                      bool last_op) {
-
-  // Look for snapshot type in snapshotset
-  auto it = snapshotset_.find(op.name);
-  if (it == snapshotset_.end())
-    throw std::invalid_argument(
-        "DensityMatrixState::invalid snapshot instruction \'" + op.name +
-        "\'.");
-  switch (it->second) {
-    case Snapshots::densitymatrix:
-      snapshot_density_matrix(state, op, result, last_op);
-      break;
-    case Snapshots::cmemory:
-      BaseState::snapshot_creg_memory(state, op, result);
-      break;
-    case Snapshots::cregister:
-      BaseState::snapshot_creg_register(state, op, result);
-      break;
-    case Snapshots::probs:
-      // get probs as hexadecimal
-      snapshot_probabilities(state, op, result, false);
-      break;
-    case Snapshots::probs_var:
-      // get probs as hexadecimal
-      snapshot_probabilities(state, op, result, true);
-      break;
-    case Snapshots::expval_pauli: {
-      snapshot_pauli_expval(state, op, result, false);
-    } break;
-    case Snapshots::expval_pauli_var: {
-      snapshot_pauli_expval(state, op, result, true);
-    } break;
-    /* TODO
-    case Snapshots::expval_matrix: {
-      snapshot_matrix_expval(op, result, false);
-    }  break;
-    case Snapshots::expval_matrix_var: {
-      snapshot_matrix_expval(op, result, true);
-    }  break;
-    */
-    default:
-      // We shouldn't get here unless there is a bug in the snapshotset
-      throw std::invalid_argument(
-        "DensityMatrix::State::invalid snapshot instruction \'" + op.name +
-        "\'.");
-  }
-}
-
-template <class densmat_t>
-void State<densmat_t>::snapshot_probabilities(QuantumState::Registers<densmat_t>& state, const Operations::Op &op,
-                                              ExperimentResult &result,
-                                              bool variance) 
-{
-  // get probs as hexadecimal
-  auto probs = Utils::vec2ket(measure_probs(state, op.qubits),
-                              json_chop_threshold_, 16);
-  result.legacy_data.add_average_snapshot("probabilities",
-                            op.string_params[0],
-                            state.creg().memory_hex(),
-                            std::move(probs),
-                            variance);
-}
-
-template <class densmat_t>
-void State<densmat_t>::snapshot_pauli_expval(QuantumState::Registers<densmat_t>& state, const Operations::Op &op,
-                                             ExperimentResult &result,
-                                             bool variance) 
-{
-  // Check empty edge case
-  if (op.params_expval_pauli.empty()) {
-    throw std::invalid_argument(
-        "Invalid expval snapshot (Pauli components are empty).");
-  }
-  // Accumulate expval components
-  complex_t expval(0., 0.);
-  for (const auto &param : op.params_expval_pauli) {
-    const auto &coeff = param.first;
-    const auto &pauli = param.second;
-    expval += coeff * expval_pauli(state, op.qubits, pauli);
-  }
-
-  // Add to snapshot
-  Utils::chop_inplace(expval, json_chop_threshold_);
-  result.legacy_data.add_average_snapshot("expectation_value", op.string_params[0],
-                                          state.creg().memory_hex(), expval, variance);
-}
-
-template <class densmat_t>
-void State<densmat_t>::snapshot_density_matrix(QuantumState::Registers<densmat_t>& state, const Operations::Op &op,
-                                               ExperimentResult &result,
-                                               bool last_op) 
-{
-  result.legacy_data.add_average_snapshot("density_matrix", op.string_params[0],
-                                          state.creg().memory_hex(),
-                                          reduced_density_matrix(state, op.qubits, last_op),
-                                          false);
 }
 
 //=========================================================================

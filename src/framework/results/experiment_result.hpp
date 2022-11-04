@@ -15,7 +15,6 @@
 #ifndef _aer_framework_results_experiment_result_hpp_
 #define _aer_framework_results_experiment_result_hpp_
 
-#include "framework/results/legacy/snapshot_data.hpp"
 #include "framework/results/data/data.hpp"
 #include "framework/results/data/metadata.hpp"
 #include "framework/creg.hpp"
@@ -38,7 +37,6 @@ public:
 
   // Experiment data
   Data data;
-  SnapshotData legacy_data; // Legacy snapshot data
   uint_t shots;
   uint_t seed;
   double time_taken;
@@ -106,24 +104,18 @@ public:
 //------------------------------------------------------------------------------
 
 ExperimentResult& ExperimentResult::combine(ExperimentResult &&other) {
-  legacy_data.combine(std::move(other.legacy_data));
   data.combine(std::move(other.data));
   metadata.combine(std::move(other.metadata));
   return *this;
 }
 
 void ExperimentResult::set_config(const json_t &config) {
-  legacy_data.set_config(config);
 }
 
 json_t ExperimentResult::to_json() {
   // Initialize output as additional data JSON
   json_t result;
   result["data"] = data.to_json();
-  json_t legacy_snapshots = legacy_data.to_json();
-  if (!legacy_snapshots.empty()) {
-    result["data"]["snapshots"] = std::move(legacy_snapshots);
-  }
   result["shots"] = shots;
   result["seed_simulator"] = seed;
   result["success"] = (status == Status::completed);
