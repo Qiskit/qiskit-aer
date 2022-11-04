@@ -35,7 +35,7 @@ class AerStatevector(Statevector):
     def __init__(self, data, dims=None, **configs):
         """
         Args:
-            data (np.array or list or AerStatevector or QuantumCircuit or
+            data (np.array or list or Statevector or AerStatevector or QuantumCircuit or
                   qiskit.circuit.Instruction):
                 Data from which the statevector can be constructed. This can be either a complex
                 vector, another statevector or a ``QuantumCircuit`` or ``Instruction``
@@ -69,6 +69,9 @@ class AerStatevector(Statevector):
                                                                configs)
             elif isinstance(data, np.ndarray):
                 data, aer_state = AerStatevector._from_ndarray(data, configs)
+            elif isinstance(data, Statevector):
+                data, aer_state = AerStatevector._from_ndarray(np.array(data.data, dtype=complex),
+                                                               configs)
             elif isinstance(data, AerStatevector):
                 aer_state = data._aer_state
                 if dims is None:
