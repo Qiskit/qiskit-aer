@@ -329,9 +329,6 @@ Circuit NoiseModel::sample_noise_circuit(const Circuit &circ,
         case Operations::OpType::barrier:
           noisy_circ.ops.push_back(op);
           break;
-        case Operations::OpType::snapshot:
-          noisy_circ.ops.push_back(op);
-          break;
         case Operations::OpType::kraus:
           noisy_circ.ops.push_back(op);
           break;

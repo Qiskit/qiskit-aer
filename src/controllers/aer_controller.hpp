@@ -528,7 +528,7 @@ void Controller::set_config(const json_t &config) {
       if(cuStateVec_enable_){
         //Aer is not built for cuStateVec
         throw std::runtime_error(
-            "Simulation device \"GPU\" does not supported cuStateVec on this system");
+            "Simulation device \"GPU\" does not support cuStateVec on this system");
       }
 #endif
       int nDev;
@@ -1295,9 +1295,6 @@ void Controller::run_circuit_helper(const Circuit &circ,
 {
   // Start individual circuit timer
   auto timer_start = myclock_t::now(); // state circuit timer
-
-  // Initialize circuit json return
-  result.legacy_data.set_config(config);
 
   // Execute in try block so we can catch errors and return the error message
   // for individual circuit failures.

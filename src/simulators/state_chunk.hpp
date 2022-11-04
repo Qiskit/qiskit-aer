@@ -63,7 +63,6 @@ public:
   // - `OpType::gate` if gates are supported
   // - `OpType::measure` if measure is supported
   // - `OpType::reset` if reset is supported
-  // - `OpType::snapshot` if any snapshots are supported
   // - `OpType::barrier` if barrier is supported
   // - `OpType::matrix` if arbitrary unitary matrices are supported
   // - `OpType::kraus` if general Kraus noise channels are supported
@@ -71,8 +70,6 @@ public:
   // For gate ops allowed gates are specified by a set of string names,
   // for example this could include {"u1", "u2", "u3", "U", "cx", "CX"}
   //
-  // For snapshot ops allowed snapshots are specified by a set of string names,
-  // For example this could include {"probabilities", "pauli_observable"}
 
   StateChunk(const Operations::OpSet &opset) : BaseState(opset)
   {
@@ -170,7 +167,6 @@ public:
   // Common instructions
   //-----------------------------------------------------------------------
  
-
   //-----------------------------------------------------------------------
   // Config Settings
   //-----------------------------------------------------------------------
@@ -1106,7 +1102,6 @@ void StateChunk<state_t>::apply_batched_noise_ops(Registers<state_t>& state, con
     mask[i] = 0;
     finished[i] = true;
   }
-
 }
 
 //-------------------------------------------------------------------------

@@ -38,7 +38,7 @@ const Operations::OpSet StateOpSet(
      Operations::OpType::bfunc, Operations::OpType::roerror,
      Operations::OpType::qerror_loc,
      Operations::OpType::matrix, Operations::OpType::diagonal_matrix,
-     Operations::OpType::snapshot, Operations::OpType::save_unitary,
+    Operations::OpType::save_unitary,
      Operations::OpType::save_state, Operations::OpType::set_unitary,
      Operations::OpType::jump, Operations::OpType::mark
     },
@@ -49,9 +49,7 @@ const Operations::OpSet StateOpSet(
      "r",      "rx",      "ry",  "rz",   "rxx",  "ryy",  "rzz",  "rzx",
      "ccx",    "cswap",   "mcx", "mcy",  "mcz",  "mcu1", "mcu2", "mcu3",
      "mcswap", "mcphase", "mcr", "mcrx", "mcry", "mcry", "sx",   "sxdg", "csx",
-     "mcsx",   "csxdg", "mcsxdg", "delay", "pauli", "cu",   "mcu", "mcp"},
-    // Snapshots
-    {"unitary"});
+     "mcsx",   "csxdg", "mcsxdg", "delay", "pauli", "cu",   "mcu", "mcp"});
 
 // Allowed gates enum class
 enum class Gates {
@@ -135,10 +133,6 @@ protected:
   // This should support all and only the operations defined in
   // allowed_operations.
   void apply_gate(unitary_matrix_t& qreg, const Operations::Op &op);
-
-  // Apply a supported snapshot instruction
-  // If the input is not in allowed_snapshots an exeption will be raised.
-  virtual void apply_snapshot(QuantumState::Registers<unitary_matrix_t>& state, const Operations::Op &op, ExperimentResult &result);
 
   // Apply a matrix to given qubits (identity on all other qubits)
   void apply_matrix(unitary_matrix_t& qreg, const reg_t &qubits, const cmatrix_t &mat);
@@ -313,9 +307,6 @@ void State<unitary_matrix_t>::apply_op(QuantumState::RegistersBase& state_in,
       case Operations::OpType::save_state:
       case Operations::OpType::save_unitary:
         apply_save_unitary(state, op, result, final_op);
-        break;
-      case Operations::OpType::snapshot:
-        apply_snapshot(state, op, result);
         break;
       case Operations::OpType::matrix:
         for(int_t i=0;i<state.qregs().size();i++)
@@ -841,19 +832,6 @@ void State<unitary_matrix_t>::apply_gate_mcu(unitary_matrix_t& qreg, const reg_t
 }
 
 template <class unitary_matrix_t>
-void State<unitary_matrix_t>::apply_snapshot(QuantumState::Registers<unitary_matrix_t>& state, const Operations::Op &op,
-                                             ExperimentResult &result) 
-{
-  // Look for snapshot type in snapshotset
-  if (op.name == "unitary" || op.name == "state") {
-    result.legacy_data.add_pershot_snapshot("unitary", op.string_params[0],
-                              copy_to_matrix(state));
-    BaseState::snapshot_state(state, op, result);
-  } else {
-    throw std::invalid_argument(
-        "Unitary::State::invalid snapshot instruction \'" + op.name + "\'.");
-  }
-}
 
 template <class unitary_matrix_t>
 void State<unitary_matrix_t>::apply_global_phase(QuantumState::RegistersBase& state_in) 

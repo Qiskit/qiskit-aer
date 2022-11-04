@@ -52,16 +52,12 @@ public:
   // - `OpType::gate` if gates are supported
   // - `OpType::measure` if measure is supported
   // - `OpType::reset` if reset is supported
-  // - `OpType::snapshot` if any snapshots are supported
   // - `OpType::barrier` if barrier is supported
   // - `OpType::matrix` if arbitrary unitary matrices are supported
   // - `OpType::kraus` if general Kraus noise channels are supported
   //
   // For gate ops allowed gates are specified by a set of string names,
   // for example this could include {"u1", "u2", "u3", "U", "cx", "CX"}
-  //
-  // For snapshot ops allowed snapshots are specified by a set of string names,
-  // For example this could include {"probabilities", "pauli_observable"}
 
   Base(const Operations::OpSet &opset) : opset_(opset) 
   {
@@ -329,16 +325,12 @@ public:
   // - `OpType::gate` if gates are supported
   // - `OpType::measure` if measure is supported
   // - `OpType::reset` if reset is supported
-  // - `OpType::snapshot` if any snapshots are supported
   // - `OpType::barrier` if barrier is supported
   // - `OpType::matrix` if arbitrary unitary matrices are supported
   // - `OpType::kraus` if general Kraus noise channels are supported
   //
   // For gate ops allowed gates are specified by a set of string names,
   // for example this could include {"u1", "u2", "u3", "U", "cx", "CX"}
-  //
-  // For snapshot ops allowed snapshots are specified by a set of string names,
-  // For example this could include {"probabilities", "pauli_observable"}
 
   State(const Operations::OpSet &opset) : Base(opset) 
   {
@@ -355,11 +347,8 @@ public:
   }
 
   State(const Operations::OpSet::optypeset_t &optypes,
-        const stringset_t &gates,
-        const stringset_t &snapshots)
-    : State(Operations::OpSet(optypes, gates, snapshots))
-  {
-  }
+        const stringset_t &gates)
+    : State(Operations::OpSet(optypes, gates)) {};
 
   virtual ~State();
 
@@ -521,22 +510,6 @@ public:
 
   void measure_sampler(Registers<state_t>& state, OpItr first_meas, OpItr last_meas, uint_t num_shots, 
                        ExperimentResult &result, RngEngine& rng, bool save_results, std::vector<ClassicalRegister>::iterator creg_save);
-
-  //-----------------------------------------------------------------------
-  // Standard snapshots
-  //-----------------------------------------------------------------------
-
-  // Snapshot the classical memory bits state (single-shot)
-  void snapshot_creg_memory(Registers<state_t>& state, const Operations::Op &op, ExperimentResult &result,
-                            std::string name = "memory") const;
-
-  // Snapshot the classical register bits state (single-shot)
-  void snapshot_creg_register(Registers<state_t>& state, const Operations::Op &op, ExperimentResult &result,
-                              std::string name = "register") const;
-  // Snapshot the current statevector (single-shot)
-  // if type_label is the empty string the operation type will be used for the type
-  virtual void snapshot_state(Registers<state_t>& state, const Operations::Op &op, ExperimentResult &result,
-                      std::string name = "") const;
 
 protected:
   // Initializes the State to the default state.

@@ -34,7 +34,7 @@ namespace QubitSuperoperator {
 const Operations::OpSet StateOpSet(
     // Op types
     {Operations::OpType::gate, Operations::OpType::reset,
-     Operations::OpType::snapshot, Operations::OpType::barrier,
+     Operations::OpType::barrier,
      Operations::OpType::qerror_loc,
      Operations::OpType::bfunc, Operations::OpType::roerror,
      Operations::OpType::matrix, Operations::OpType::diagonal_matrix,
@@ -48,18 +48,13 @@ const Operations::OpSet StateOpSet(
     {"U",    "CX",  "u1", "u2",  "u3", "u",   "cx",   "cy",  "cz",
      "swap", "id",  "x",  "y",   "z",  "h",   "s",    "sdg", "t",
      "tdg",  "ccx", "r",  "rx",  "ry", "rz",  "rxx",  "ryy", "rzz",
-     "rzx",  "p",   "cp", "cu1", "sx", "sxdg", "x90", "delay", "pauli"},
-    // Snapshots
-    {"superop"});
+     "rzx",  "p",   "cp", "cu1", "sx", "sxdg", "x90", "delay", "pauli"});
 
 // Allowed gates enum class
 enum class Gates {
   u2, u1, u3, id, x, y, z, h, s, sdg, sx, sxdg, t, tdg, r, rx, ry, rz,
   cx, cy, cz, cp, swap, rxx, ryy, rzz, rzx, ccx, pauli
 };
-
-// Allowed snapshots enum class
-enum class Snapshots { superop };
 
 //=========================================================================
 // QubitUnitary State subclass
@@ -136,10 +131,13 @@ protected:
   // allowed_operations.
   void apply_gate(QuantumState::Registers<data_t>& state,const Operations::Op &op);
 
+<<<<<<< HEAD
   // Apply a supported snapshot instruction
   // If the input is not in allowed_snapshots an exeption will be raised.
   virtual void apply_snapshot(QuantumState::Registers<data_t>& state,const Operations::Op &op, ExperimentResult &result);
 
+=======
+>>>>>>> upstream/main
   // Apply a matrix to given qubits (identity on all other qubits)
   void apply_matrix(QuantumState::Registers<data_t>& state,const reg_t &qubits, const cmatrix_t &mat);
 
@@ -289,9 +287,12 @@ void State<data_t>::apply_op(QuantumState::RegistersBase& state_in,
       case Operations::OpType::set_superop:
         state.qreg().initialize_from_matrix(op.mats[0]);
         break;
+<<<<<<< HEAD
       case Operations::OpType::snapshot:
         apply_snapshot(state, op, result);
         break;
+=======
+>>>>>>> upstream/main
       case Operations::OpType::save_state:
       case Operations::OpType::save_superop:
         apply_save_state(state, op, result, final_op);
@@ -558,6 +559,7 @@ void State<data_t>::apply_gate_u3(QuantumState::Registers<data_t>& state, const 
   state.qreg().apply_unitary_matrix(reg_t({qubit}), u3);
 }
 
+<<<<<<< HEAD
 template <class data_t>
 void State<data_t>::apply_snapshot(QuantumState::Registers<data_t>& state, const Operations::Op &op,
                                    ExperimentResult &result) 
@@ -576,6 +578,11 @@ template <class data_t>
 void State<data_t>::apply_pauli(QuantumState::Registers<data_t>& state, const reg_t &qubits,
                                     const std::string &pauli) 
 {
+=======
+template <class statevec_t>
+void State<statevec_t>::apply_pauli(const reg_t &qubits,
+                                    const std::string &pauli) {
+>>>>>>> upstream/main
   // Pauli as a superoperator is (-1)^num_y P\otimes P
   complex_t coeff = (std::count(pauli.begin(), pauli.end(), 'Y') % 2) ? -1 : 1;
   state.qreg().apply_pauli(

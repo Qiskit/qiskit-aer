@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    This is a fix of AerState running with cache blocking. AerState wrongly configured
+    transpiler of Aer for cache blocking, and then its algorithm to swap qubits
+    worked wrongly. This fix corrects AerState to use this transpiler. More specifically,
+    After the transpilation, a swapped qubit map is recoverd to the original map
+    when using AerState. This fix is necessary for AerStatevector to use multiple-GPUs.

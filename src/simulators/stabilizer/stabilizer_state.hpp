@@ -32,7 +32,7 @@ using OpType = Operations::OpType;
 const Operations::OpSet StateOpSet(
   // Op types
   {OpType::gate, OpType::measure,
-    OpType::reset, OpType::snapshot,
+    OpType::reset,
     OpType::barrier, OpType::bfunc, OpType::qerror_loc,
     OpType::roerror, OpType::save_expval,
     OpType::save_expval_var, OpType::save_probs,
@@ -43,25 +43,9 @@ const Operations::OpSet StateOpSet(
   },
   // Gates
   {"CX", "cx", "cy", "cz", "swap", "id", "x", "y", "z", "h", "s", "sdg",
-   "sx", "sxdg", "delay", "pauli"},
-  // Snapshots
-  {"stabilizer", "memory", "register", "probabilities",
-    "probabilities_with_variance", "expectation_value_pauli",
-    "expectation_value_pauli_with_variance",
-    "expectation_value_pauli_single_shot"}
-);
+   "sx", "sxdg", "delay", "pauli"});
 
 enum class Gates {id, x, y, z, h, s, sdg, sx, sxdg, cx, cy, cz, swap, pauli};
-
-// Allowed snapshots enum class
-enum class Snapshots {
-  stabilizer, cmemory, cregister,
-    probs, probs_var,
-    expval_pauli, expval_pauli_var, expval_pauli_shot
-};
-
-// Enum class for different types of expectation values
-enum class SnapshotDataType {average, average_var, pershot};
 
 //============================================================================
 // Stabilizer Table state class
@@ -140,10 +124,6 @@ protected:
   // then discarding the outcome.
   void apply_reset(QuantumState::Registers<Clifford::Clifford>& state,const reg_t &qubits, RngEngine &rng);
 
-  // Apply a supported snapshot instruction
-  // If the input is not in allowed_snapshots an exeption will be raised.
-  virtual void apply_snapshot(QuantumState::Registers<Clifford::Clifford>& state,const Operations::Op &op, ExperimentResult &result);
-
   // Set the state of the simulator to a given Clifford
   void apply_set_stabilizer(QuantumState::Registers<Clifford::Clifford>& state,const Clifford::Clifford &clifford);
 
@@ -195,28 +175,6 @@ protected:
                                                bool reset_only);
 
   //-----------------------------------------------------------------------
-  // Special snapshot types
-  //
-  // IMPORTANT: These methods are not marked const to allow modifying state
-  // during snapshot, but after the snapshot is applied the simulator
-  // should be left in the pre-snapshot state.
-  //-----------------------------------------------------------------------
-
-  // Snapshot the stabilizer state of the simulator.
-  // This returns a list of stabilizer generators
-  void snapshot_stabilizer(QuantumState::Registers<Clifford::Clifford>& state,const Operations::Op &op, ExperimentResult &result);
-                            
-  // Snapshot current qubit probabilities for a measurement (average)
-  void snapshot_probabilities(QuantumState::Registers<Clifford::Clifford>& state,const Operations::Op &op,
-                              ExperimentResult &result,
-                              bool variance);
-
-  // Snapshot the expectation value of a Pauli operator
-  void snapshot_pauli_expval(QuantumState::Registers<Clifford::Clifford>& state,const Operations::Op &op,
-                             ExperimentResult &result,
-                             SnapshotDataType type);
-
-  //-----------------------------------------------------------------------
   // Config Settings
   //-----------------------------------------------------------------------
 
@@ -229,9 +187,6 @@ protected:
 
   // Table of allowed gate names to gate enum class members
   const static stringmap_t<Gates> gateset_;
-
-  // Table of allowed snapshot types to enum class members
-  const static stringmap_t<Snapshots> snapshotset_;
 
   bool shot_branching_supported(void) override
   {
@@ -264,18 +219,6 @@ const stringmap_t<Gates> State::gateset_({
   {"swap", Gates::swap},  // SWAP gate
   {"pauli", Gates::pauli} // Pauli gate
 });
-
-const stringmap_t<Snapshots> State::snapshotset_({
-  {"stabilizer", Snapshots::stabilizer},
-  {"memory", Snapshots::cmemory},
-  {"register", Snapshots::cregister},
-  {"probabilities", Snapshots::probs},
-  {"probabilities_with_variance", Snapshots::probs_var},
-  {"expectation_value_pauli", Snapshots::expval_pauli}, 
-  {"expectation_value_pauli_with_variance", Snapshots::expval_pauli_var},
-  {"expectation_value_pauli_single_shot", Snapshots::expval_pauli_shot}
-});
-
 
 //============================================================================
 // Implementation: Base class method overrides
@@ -388,9 +331,6 @@ void State::apply_op(QuantumState::RegistersBase& state_in,
         break;
       case OpType::gate:
         apply_gate(state, op);
-        break;
-      case OpType::snapshot:
-        apply_snapshot(state, op, result);
         break;
       case OpType::set_stabilizer:
         apply_set_stabilizer(state, op.clifford);
@@ -923,127 +863,6 @@ void State::get_probability_helper(QuantumState::Registers<Clifford::Clifford>& 
   get_probability_helper(state, qubits, outcome, outcome_carry, prob_carry);
   state.qreg() = cached_qreg;
 }
-
-//=========================================================================
-// Implementation: Snapshots
-//=========================================================================
-
-void State::apply_snapshot(QuantumState::Registers<Clifford::Clifford>& state, const Operations::Op &op,
-                           ExperimentResult &result) 
-{
-// Look for snapshot type in snapshotset
-  auto it = snapshotset_.find(op.name);
-  if (it == snapshotset_.end())
-    throw std::invalid_argument("Stabilizer::State::invalid snapshot instruction \'" + 
-                                op.name + "\'.");
-  switch (it->second) {
-    case Snapshots::stabilizer:
-      snapshot_stabilizer(state, op, result);
-      break;
-    case Snapshots::cmemory:
-      BaseState::snapshot_creg_memory(state, op, result);
-      break;
-    case Snapshots::cregister:
-      BaseState::snapshot_creg_register(state, op, result);
-      break;
-    case Snapshots::probs: {
-      snapshot_probabilities(state, op, result, false);
-    } break;
-    case Snapshots::probs_var: {
-      snapshot_probabilities(state, op, result, true);
-    } break;
-    case Snapshots::expval_pauli: {
-      snapshot_pauli_expval(state, op, result, SnapshotDataType::average);
-    } break;
-    case Snapshots::expval_pauli_var: {
-      snapshot_pauli_expval(state, op, result, SnapshotDataType::average_var);
-    } break;
-    case Snapshots::expval_pauli_shot: {
-      snapshot_pauli_expval(state, op, result, SnapshotDataType::pershot);
-    } break;
-    default:
-      // We shouldn't get here unless there is a bug in the snapshotset
-      throw std::invalid_argument("Stabilizer::State::invalid snapshot instruction \'" +
-                                  op.name + "\'.");
-  }
-}
-
-
-void State::snapshot_stabilizer(QuantumState::Registers<Clifford::Clifford>& state,const Operations::Op &op, ExperimentResult &result) 
-{
-  // We don't want to snapshot the full Clifford table, only the
-  // stabilizer part. First Convert simulator clifford table to JSON
-  json_t clifford = state.qreg();
-  // Then extract the stabilizer generator list
-  result.legacy_data.add_pershot_snapshot("stabilizer",
-                               op.string_params[0],
-                               clifford["stabilizer"]);
-}
-
-
-void State::snapshot_probabilities(QuantumState::Registers<Clifford::Clifford>& state, const Operations::Op &op,
-                                   ExperimentResult &result,
-                                   bool variance) 
-{
-  // Check number of qubits being measured is less than 64.
-  // otherwise we cant use 64-bit int logic.
-  // Practical limits are much lower. For example:
-  // A 32-qubit probability vector takes approx 16 GB of memory
-  // to store.
-  const size_t num_qubits = op.qubits.size();
-  if (num_qubits > max_qubits_snapshot_probs_) {
-    std::string msg =
-        "Stabilizer::State::snapshot_probabilities: "
-        "cannot return measure probabilities for " +
-        std::to_string(num_qubits) + "-qubit measurement. Maximum is set to " +
-        std::to_string(max_qubits_snapshot_probs_);
-    throw std::runtime_error(msg);
-  }
-
-  std::map<std::string, double> probs;
-  get_probabilities_auxiliary(state, 
-      op.qubits, std::string(op.qubits.size(), 'X'), 1, probs);
-
-  // Add snapshot to data
-  result.legacy_data.add_average_snapshot("probabilities", op.string_params[0],
-                                        state.creg().memory_hex(), probs, variance);
-}
-
-
-void State::snapshot_pauli_expval(QuantumState::Registers<Clifford::Clifford>& state, const Operations::Op &op,
-                                  ExperimentResult &result, SnapshotDataType type) 
-{
-  // Check empty edge case
-  if (op.params_expval_pauli.empty()) {
-    throw std::invalid_argument(
-        "Invalid expval snapshot (Pauli components are empty).");
-  }
-
-  // Compute expval components
-  complex_t expval(0., 0.);
-  for (const auto &param : op.params_expval_pauli) {
-    const auto &coeff = param.first;
-    const auto &pauli = param.second;
-    expval += coeff * expval_pauli(state, op.qubits, pauli);
-  }
-
-  // add to snapshot
-  Utils::chop_inplace(expval, json_chop_threshold_);
-  switch (type) {
-    case SnapshotDataType::average:
-      result.legacy_data.add_average_snapshot("expectation_value", op.string_params[0],
-                            state.creg().memory_hex(), expval, false);
-      break;
-    case SnapshotDataType::average_var:
-      result.legacy_data.add_average_snapshot("expectation_value", op.string_params[0],
-                            state.creg().memory_hex(), expval, true);
-      break;
-    case SnapshotDataType::pershot:
-      result.legacy_data.add_pershot_snapshot("expectation_values", op.string_params[0], expval);
-      break;
-  }
-}
-
 
 //------------------------------------------------------------------------------
 } // end namespace Stabilizer

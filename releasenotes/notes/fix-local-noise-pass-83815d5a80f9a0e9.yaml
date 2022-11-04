@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixes a bug in the handling of instructions with clbits in :class:`.LocalNoisePass`.
+    Previously, it was accidentally erasing clbits of instructions (e.g. measures)
+    to which the noise is applied in the case of ``method="append"``.
