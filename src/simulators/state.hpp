@@ -1354,38 +1354,6 @@ void State<state_t>::initialize_creg_state(RegistersBase& state, const Classical
 
 
 template <class state_t>
-void State<state_t>::snapshot_state(Registers<state_t>& state, const Operations::Op &op,
-                                    ExperimentResult &result,
-                                    std::string name) const 
-{
-  name = (name.empty()) ? op.name : name;
-  result.legacy_data.add_pershot_snapshot(name, op.string_params[0], state.qreg());
-}
-
-
-template <class state_t>
-void State<state_t>::snapshot_creg_memory(Registers<state_t>& state,const Operations::Op &op,
-                                          ExperimentResult &result,
-                                          std::string name) const 
-{
-  result.legacy_data.add_pershot_snapshot(name,
-                               op.string_params[0],
-                               state.creg().memory_hex());
-}
-
-
-template <class state_t>
-void State<state_t>::snapshot_creg_register(Registers<state_t>& state, const Operations::Op &op,
-                                            ExperimentResult &result,
-                                            std::string name) const 
-{
-  result.legacy_data.add_pershot_snapshot(name,
-                               op.string_params[0],
-                               state.creg().register_hex());
-}
-
-
-template <class state_t>
 void State<state_t>::apply_save_expval(Registers<state_t>& state, 
                                        const Operations::Op &op,
                                        ExperimentResult &result)

@@ -832,8 +832,6 @@ void State<unitary_matrix_t>::apply_gate_mcu(unitary_matrix_t& qreg, const reg_t
 }
 
 template <class unitary_matrix_t>
-
-template <class unitary_matrix_t>
 void State<unitary_matrix_t>::apply_global_phase(QuantumState::RegistersBase& state_in) 
 {
   QuantumState::Registers<unitary_matrix_t>& state = dynamic_cast<QuantumState::Registers<unitary_matrix_t>&>(state_in);

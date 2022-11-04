@@ -131,13 +131,6 @@ protected:
   // allowed_operations.
   void apply_gate(QuantumState::Registers<data_t>& state,const Operations::Op &op);
 
-<<<<<<< HEAD
-  // Apply a supported snapshot instruction
-  // If the input is not in allowed_snapshots an exeption will be raised.
-  virtual void apply_snapshot(QuantumState::Registers<data_t>& state,const Operations::Op &op, ExperimentResult &result);
-
-=======
->>>>>>> upstream/main
   // Apply a matrix to given qubits (identity on all other qubits)
   void apply_matrix(QuantumState::Registers<data_t>& state,const reg_t &qubits, const cmatrix_t &mat);
 
@@ -287,12 +280,6 @@ void State<data_t>::apply_op(QuantumState::RegistersBase& state_in,
       case Operations::OpType::set_superop:
         state.qreg().initialize_from_matrix(op.mats[0]);
         break;
-<<<<<<< HEAD
-      case Operations::OpType::snapshot:
-        apply_snapshot(state, op, result);
-        break;
-=======
->>>>>>> upstream/main
       case Operations::OpType::save_state:
       case Operations::OpType::save_superop:
         apply_save_state(state, op, result, final_op);
@@ -559,30 +546,10 @@ void State<data_t>::apply_gate_u3(QuantumState::Registers<data_t>& state, const 
   state.qreg().apply_unitary_matrix(reg_t({qubit}), u3);
 }
 
-<<<<<<< HEAD
-template <class data_t>
-void State<data_t>::apply_snapshot(QuantumState::Registers<data_t>& state, const Operations::Op &op,
-                                   ExperimentResult &result) 
-{
-  // Look for snapshot type in snapshotset
-  if (op.name == "superopertor" || op.name == "state") {
-    BaseState::snapshot_state(state, op, result, "superop");
-  } else {
-    throw std::invalid_argument(
-        "QubitSuperoperator::State::invalid snapshot instruction \'" + op.name +
-        "\'.");
-  }
-}
-
 template <class data_t>
 void State<data_t>::apply_pauli(QuantumState::Registers<data_t>& state, const reg_t &qubits,
                                     const std::string &pauli) 
 {
-=======
-template <class statevec_t>
-void State<statevec_t>::apply_pauli(const reg_t &qubits,
-                                    const std::string &pauli) {
->>>>>>> upstream/main
   // Pauli as a superoperator is (-1)^num_y P\otimes P
   complex_t coeff = (std::count(pauli.begin(), pauli.end(), 'Y') % 2) ? -1 : 1;
   state.qreg().apply_pauli(
