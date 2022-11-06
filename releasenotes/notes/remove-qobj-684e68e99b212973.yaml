@@ -1,0 +1,5 @@
+---
+upgrade:
+  - |
+    In Aer 0.8.0, the ``qboj`` parameter was replaced by circuits and schedules in Aer Simulator and Pulse Simulator.
+    The ``qboj`` parameter for `backend.run` is now removed.
