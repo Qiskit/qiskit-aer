@@ -346,7 +346,6 @@ void Circuit::set_params(bool truncation) {
           tail_meas_ops.push_back(op);
           break;  
         }
-        case OpType::snapshot:
         case OpType::save_state:
         case OpType::save_expval:
         case OpType::save_expval_var:
@@ -483,7 +482,6 @@ bool Circuit::check_result_ancestor(const Op& op, std::unordered_set<uint_t>& an
     // Result generating types
     case OpType::measure:
     case OpType::roerror:
-    case OpType::snapshot:
     case OpType::save_state:
     case OpType::save_expval:
     case OpType::save_expval_var:

@@ -43,17 +43,14 @@ public:
   // Public data members
   optypeset_t optypes;   // A set of op types
   stringset_t gates;     // A set of names for OpType::gates
-  stringset_t snapshots; // set of types for OpType::snapshot
 
   OpSet() = default;
 
-  OpSet(const optypeset_t &_optypes, const stringset_t &_gates,
-        const stringset_t &_snapshots)
-      : optypes(_optypes), gates(_gates), snapshots(_snapshots) {}
+  OpSet(const optypeset_t &_optypes, const stringset_t &_gates)
+      : optypes(_optypes), gates(_gates) {}
 
-  OpSet(optypeset_t &&_optypes, stringset_t &&_gates, stringset_t &&_snapshots)
-      : optypes(std::move(_optypes)), gates(std::move(_gates)),
-        snapshots(std::move(_snapshots)) {}
+  OpSet(optypeset_t &&_optypes, stringset_t &&_gates)
+      : optypes(std::move(_optypes)), gates(std::move(_gates)) {}
 
   OpSet(const std::vector<Op> &ops) {
     for (const auto &op : ops) {
@@ -96,12 +93,6 @@ public:
   // Return true if gate is contained in the current OpSet
   bool contains_gates(const std::string &_gate) const;
 
-  // Return true if all snapshots are contained in the current OpSet
-  bool contains_snapshots(const stringset_t &_snapshots) const;
-
-  // Return true if snapshot is contained in the current OpSet
-  bool contains_snapshots(const std::string &_snapshot) const;
-
   //-----------------------------------------------------------------------
   // Return set difference with another OpSet
   //-----------------------------------------------------------------------
@@ -118,9 +109,6 @@ public:
   // Return a set of all gates in a set not contained in the OpSet
   stringset_t difference_gates(const stringset_t &_gates) const;
 
-  // Return a set of all snapshots in a set not contained in the OpSet
-  stringset_t difference_snapshots(const stringset_t &_snapshots) const;
-
   // Return the difference between two unordered sets
   template <typename T1, typename T2>
   static std::unordered_set<T1, T2>
@@ -136,27 +124,21 @@ void OpSet::insert(const Op &op) {
   optypes.insert(op.type);
   if (op.type == OpType::gate)
     gates.insert(op.name);
-  else if (op.type == OpType::snapshot)
-    snapshots.insert(op.name);
 }
 
 void OpSet::insert(const OpSet &opset) {
   optypes.insert(opset.optypes.begin(), opset.optypes.end());
   gates.insert(opset.gates.begin(), opset.gates.end());
-  snapshots.insert(opset.snapshots.begin(), opset.snapshots.end());
 }
 
 bool OpSet::contains(const OpSet &_opset) const {
-  return (contains(_opset.optypes) && contains_gates(_opset.gates) &&
-          contains_snapshots(_opset.snapshots));
+  return (contains(_opset.optypes) && contains_gates(_opset.gates));
 }
 
 bool OpSet::contains(const Op &_op) const {
   if (contains(_op.type)) {
     if (_op.type == OpType::gate)
       return contains_gates(_op.name);
-    else if (_op.type == OpType::snapshot)
-      return contains_snapshots(_op.name);
     return true;
   }
   return false;
@@ -194,18 +176,6 @@ bool OpSet::contains_gates(const stringset_t &_gates) const {
   return true;
 }
 
-bool OpSet::contains_snapshots(const std::string &_snapshot) const {
-  return snapshots.count(_snapshot) == 1;
-}
-
-bool OpSet::contains_snapshots(const stringset_t &_snapshots) const {
-  for (const auto &snapshot : _snapshots) {
-    if (!contains_snapshots(snapshot))
-      return false;
-  }
-  return true;
-}
-
 //-----------------------------------------------------------------------
 // Return set difference with another OpSet
 //-----------------------------------------------------------------------
@@ -215,7 +185,6 @@ OpSet OpSet::difference(const OpSet &_opset) const {
   OpSet ret;
   ret.optypes = difference(_opset.optypes);
   ret.gates = difference_gates(_opset.gates);
-  ret.snapshots = difference_snapshots(_opset.snapshots);
   return ret;
 }
 
@@ -227,11 +196,6 @@ OpSet::optypeset_t OpSet::difference(const optypeset_t &_optypes) const {
 // Return a set of all gates in a set not contained in the OpSet
 stringset_t OpSet::difference_gates(const stringset_t &_gates) const {
   return unorderedset_difference(gates, _gates);
-}
-
-// Return a set of all snapshots in a set not contained in the OpSet
-stringset_t OpSet::difference_snapshots(const stringset_t &_snapshots) const {
-  return unorderedset_difference(snapshots, _snapshots);
 }
 
 template <typename T1, typename T2>
@@ -268,12 +232,6 @@ inline std::ostream &operator<<(std::ostream &out,
     if (!first)
       out << ", ";
     out << "\"gates\": " << opset.gates;
-    first = false;
-  }
-  if (!opset.snapshots.empty()) {
-    if (!first)
-      out << ", ";
-    out << "\"snapshots\": " << opset.snapshots;
     first = false;
   }
   out << "}";
