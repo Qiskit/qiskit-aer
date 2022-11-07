@@ -1,0 +1,11 @@
+---
+fixes:
+  - |
+    Fixes a bug where ``NoiseModel.from_backend()`` prints verbose warnings when
+    supplying a backend that reports un-physical device parameters such as T2 > 2 * T1
+    due to statistical errors in their estimation.
+    This commit removes such warnings because they are not actionable for users in the sense
+    that there are no means other than truncating them to the theoretical bounds as
+    done within ``noise.device`` module.
+    See `Issue 1631 <https://github.com/Qiskit/qiskit-aer/issues/1631>`__
+    for details of the fixed bug.
