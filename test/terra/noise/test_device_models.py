@@ -30,8 +30,8 @@ class TestDeviceNoiseModel(QiskitAerTestCase):
         errors_on_measure = [name for name, _, _ in gate_errors if name == "measure"]
         errors_on_reset = [name for name, _, _ in gate_errors if name == "reset"]
         self.assertEqual(len(errors_on_measure), 0)
-        self.assertEqual(len(errors_on_reset), 0)
-        self.assertEqual(len(gate_errors), 33)
+        self.assertEqual(len(errors_on_reset), 7)
+        self.assertEqual(len(gate_errors), 40)
 
     def test_basic_device_gate_errors_from_target_and_properties(self):
         """Test if the device same gate errors are produced both from target and properties"""

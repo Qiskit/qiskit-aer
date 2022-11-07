@@ -21,7 +21,7 @@ from warnings import warn, catch_warnings, filterwarnings
 from numpy import inf, exp, allclose
 
 import qiskit.quantum_info as qi
-from qiskit.circuit import Gate
+from qiskit.circuit import Gate, Measure
 from .parameters import _NANOSECOND_UNITS
 from .parameters import gate_param_values
 from .parameters import readout_error_values
@@ -97,8 +97,10 @@ def basic_device_gate_errors(properties=None,
     to apply gate time to this gate one any set of qubits,
     and ``value`` is the gate time in nanoseconds.
 
-    Note that only errors on ``Gate`` objects are generated,
-    e.g. no errors are generated on measures.
+    The resulting errors may contains two types of errors: gate errors and relaxation errors.
+    The gate errors are generated only for ``Gate`` objects while the relaxation errors are
+    generated for all ``Instruction`` objects. Exceptionally, no ``QuantumError`` s are
+    generated for ``Measure`` since ``ReadoutError`` s are generated separately instead.
 
     Args:
         properties (BackendProperties): device backend properties.
@@ -201,7 +203,7 @@ def basic_device_gate_errors(properties=None,
                 # get first value
                 relax_time = filtered[0]
         # Get relaxation error
-        if thermal_relaxation and name != "reset":
+        if thermal_relaxation:
             relax_error = _device_thermal_relaxation_error(
                 qubits, relax_time, relax_params, temperature,
                 thermal_relaxation)
@@ -240,10 +242,14 @@ def _basic_device_target_gate_errors(target,
                                      thermal_relaxation=True,
                                      temperature=0):
     """Return QuantumErrors derived from a devices Target.
-    Note that return no errors on non-Gate instructions."""
+    Note that, in the resulting error list, non-Gate instructions (e.g. Reset) will have
+    no gate errors while they may have thermal relaxation errors. Exceptionally,
+    Measure instruction will have no errors, neither gate errors nor relaxation errors.
+    """
     errors = []
     for op_name, inst_prop_dic in target.items():
-        if not isinstance(target.operation_from_name(op_name), Gate):
+        operation = target.operation_from_name(op_name)
+        if isinstance(operation, Measure):
             continue
         if inst_prop_dic is None:  # ideal simulator
             continue
@@ -265,7 +271,7 @@ def _basic_device_target_gate_errors(target,
                     temperature=temperature,
                 )
             # Get depolarizing error
-            if gate_error and inst_prop.error:
+            if gate_error and inst_prop.error and isinstance(operation, Gate):
                 depol_error = _device_depolarizing_error(
                     qubits=qubits,
                     error_param=inst_prop.error,
