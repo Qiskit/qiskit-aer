@@ -327,6 +327,7 @@ uint_t DeviceChunkContainer<data_t>::Allocate(int idev,int chunk_bits,int num_qu
 
   size_t freeMem,totalMem;
   cudaMemGetInfo(&freeMem,&totalMem);
+  freeMem = (size_t)(0.8*(double)freeMem);
   while(freeMem < ((((nc+buffers)*(uint_t)sizeof(thrust::complex<data_t>)) << chunk_bits) + param_size* (num_matrices_ + buffers)) ){
     nc--;
     if(nc == 0){
