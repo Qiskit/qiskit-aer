@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    Fixes a bug where :meth:`NoiseModel.from_backend` with a ``BackendV2`` object may generate
+    a noise model with excessive ``QuantumError`` s on non-Gate instructions while,
+    for example, only ``ReadoutError`` s should be sufficient for measures.
+    This commit updates :func:`noise.device.models.basic_device_gate_errors`
+    so that it (and hence :meth:`NoiseModel.from_backend`) does not produce
+    any QuantumErrors on non-Gate objects (e.g. measures and resets).
