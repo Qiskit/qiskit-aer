@@ -7,3 +7,11 @@ fixes:
     This commit updates :func:`noise.device.models.basic_device_gate_errors`
     so that it (and hence :meth:`NoiseModel.from_backend`) does not produce
     any QuantumErrors on non-Gate objects (e.g. measures and resets).
+upgrade:
+  - |
+    Noise models created from backend (via :meth:`NoiseModel.from_backend`) contains
+    ``QuantumError`` s only on ``Gate`` instructions. That means they no longer contains
+    errors on ``Reset`` instructions. Previously, they had relaxation errors on reset instructions.
+    The change may affect users who use :meth:`NoiseModel.from_backend` with ``temperature > 0``
+    while it should affect those who use with default value ``temperature = 0``.
+    Note that they still have ``ReadoutError`` s on ``Measure`` instructions.

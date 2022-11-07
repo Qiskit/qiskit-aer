@@ -163,9 +163,6 @@ def basic_device_gate_errors(properties=None,
             temperature=temperature
         )
 
-    # Initilize empty errors
-    depol_error = None
-    relax_error = None
     # Generate custom gate time dict
     custom_times = {}
     relax_params = []
@@ -189,6 +186,9 @@ def basic_device_gate_errors(properties=None,
     # Construct quantum errors
     errors = []
     for name, qubits, gate_length, error_param in device_gate_params:
+        # Initilize empty errors
+        depol_error = None
+        relax_error = None
         # Check for custom gate time
         relax_time = gate_length
         # Override with custom value
@@ -201,7 +201,7 @@ def basic_device_gate_errors(properties=None,
                 # get first value
                 relax_time = filtered[0]
         # Get relaxation error
-        if thermal_relaxation:
+        if thermal_relaxation and name != "reset":
             relax_error = _device_thermal_relaxation_error(
                 qubits, relax_time, relax_params, temperature,
                 thermal_relaxation)
