@@ -21,6 +21,7 @@ from warnings import warn, catch_warnings, filterwarnings
 from numpy import inf, exp, allclose
 
 import qiskit.quantum_info as qi
+from qiskit.circuit import Gate
 from .parameters import _NANOSECOND_UNITS
 from .parameters import gate_param_values
 from .parameters import readout_error_values
@@ -78,7 +79,7 @@ def basic_device_readout_errors(properties=None, target=None):
     return errors
 
 
-def basic_device_gate_errors(properties,
+def basic_device_gate_errors(properties=None,
                              gate_error=True,
                              thermal_relaxation=True,
                              gate_lengths=None,
@@ -88,7 +89,7 @@ def basic_device_gate_errors(properties,
                              warnings=None,
                              target=None):
     """
-    Return QuantumErrors derived from a devices BackendProperties.
+    Return QuantumErrors derived from either of a devices BackendProperties or Target.
 
     If non-default values are used gate_lengths should be a list
     of tuples ``(name, qubits, value)`` where ``name`` is the gate
@@ -96,8 +97,11 @@ def basic_device_gate_errors(properties,
     to apply gate time to this gate one any set of qubits,
     and ``value`` is the gate time in nanoseconds.
 
+    Note that only errors on ``Gate`` objects are generated,
+    e.g. no errors are generated on measures.
+
     Args:
-        properties (BackendProperties): device backend properties
+        properties (BackendProperties): device backend properties.
         gate_error (bool): Include depolarizing gate errors (Default: True).
         thermal_relaxation (Bool): Include thermal relaxation errors
                                    (Default: True).
@@ -126,6 +130,9 @@ def basic_device_gate_errors(properties,
     Raises:
         NoiseError: If invalid arguments are supplied.
     """
+    if properties is None and target is None:
+        raise NoiseError("Either properties or target must be supplied.")
+
     if standard_gates is not None:
         warn(
             '"standard_gates" option has been deprecated as of qiskit-aer 0.10.0'
@@ -232,9 +239,12 @@ def _basic_device_target_gate_errors(target,
                                      gate_error=True,
                                      thermal_relaxation=True,
                                      temperature=0):
-    """Return QuantumErrors derived from a devices Target."""
+    """Return QuantumErrors derived from a devices Target.
+    Note that return no errors on non-Gate instructions."""
     errors = []
     for op_name, inst_prop_dic in target.items():
+        if not isinstance(target.operation_from_name(op_name), Gate):
+            continue
         if inst_prop_dic is None:  # ideal simulator
             continue
         for qubits, inst_prop in inst_prop_dic.items():
@@ -315,8 +325,14 @@ def _device_depolarizing_error(qubits,
         max_param = 4**num_qubits / (4**num_qubits - 1)
         if depol_param > max_param:
             depol_param = min(depol_param, max_param)
-        return depolarizing_error(
-            depol_param, num_qubits, standard_gates=standard_gates)
+        with catch_warnings():
+            filterwarnings(
+                "ignore",
+                category=DeprecationWarning,
+                module="qiskit_aer.noise.device.models"
+            )
+            return depolarizing_error(
+                depol_param, num_qubits, standard_gates=standard_gates)
     return None
 
 
