@@ -294,7 +294,10 @@ class Estimator(BaseEstimator):
                 parameter_binds.append({k: [v] for k, v in zip(self._parameters[i], value)})
             experiments = self._transpile(experiments)
             for experiment in experiments:
-                experiment.metadata["cache_qobj"] = True
+                if experiment.metadata is None:
+                    experiment.metadata = {"cache_qobj": True}
+                else:
+                    experiment.metadata["cache_qobj"] = True
             self._cache[key] = (experiments, experiment_data)
         parameter_binds = parameter_binds if any(parameter_binds) else None
         result = self._backend.run(
