@@ -363,12 +363,8 @@ uint_t DeviceChunkContainer<data_t>::Allocate(int idev,int chunk_bits,int num_qu
 
   ResizeMatrixBuffers(matrix_bit);
 
-  cudaMemGetInfo(&freeMem,&totalMem);
-
   this->num_chunks_ = nc;
   data_.resize((nc+buffers) << chunk_bits);
-
-  cudaMemGetInfo(&freeMem,&totalMem);
 
   //init number of bits for chunk count
   uint_t nc_tmp = this->num_chunks_;
@@ -381,8 +377,6 @@ uint_t DeviceChunkContainer<data_t>::Allocate(int idev,int chunk_bits,int num_qu
   reduce_buffer_.resize(reduce_buffer_size_ * nc);
   if(multi_shots)
     probability_buffer_.resize(nc*QV_PROBABILITY_BUFFER_SIZE);
-
-  cudaMemGetInfo(&freeMem,&totalMem);
 
   creg_host_update_ = false;
   this->num_creg_bits_ = num_qubits;
