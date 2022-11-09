@@ -26,7 +26,8 @@ from qiskit.compiler import transpile
 from qiskit.exceptions import QiskitError
 from qiskit.opflow import PauliSumOp
 from qiskit.primitives import BaseEstimator, EstimatorResult
-from qiskit.primitives.utils import init_circuit, init_observable
+from qiskit.primitives.primitive_job import PrimitiveJob
+from qiskit.primitives.utils import _circuit_key, _observable_key, init_circuit, init_observable
 from qiskit.providers import Options
 from qiskit.quantum_info import Pauli
 from qiskit.quantum_info.operators.base_operator import BaseOperator
@@ -138,7 +139,6 @@ class Estimator(BaseEstimator):
         else:
             return self._compute(circuits, observables, parameter_values, run_options)
 
-    # This method will be used after Terra 0.22.
     def _run(
         self,
         circuits: Sequence[QuantumCircuit],
@@ -146,9 +146,6 @@ class Estimator(BaseEstimator):
         parameter_values: Sequence[Sequence[float]],
         **run_options,
     ) -> PrimitiveJob:
-        # pylint: disable=no-name-in-module, import-error, import-outside-toplevel, no-member
-        from qiskit.primitives.primitive_job import PrimitiveJob
-        from qiskit.primitives.utils import _circuit_key, _observable_key
 
         circuit_indices: list = []
         for circuit in circuits:
@@ -268,7 +265,7 @@ class Estimator(BaseEstimator):
         # Key for cache
         key = (tuple(circuits), tuple(observables), self.approximation)
         parameter_binds = []
-        shots = run_options.pop("shots", None)
+        shots = run_options.get("shots", None)
         # Create expectation value experiments.
         if key in self._cache:  # Use a cache
             experiments, experiment_data = self._cache[key]
@@ -296,6 +293,8 @@ class Estimator(BaseEstimator):
                 experiments.append(circuit)
                 parameter_binds.append({k: [v] for k, v in zip(self._parameters[i], value)})
             experiments = self._transpile(experiments)
+            for experiment in experiments:
+                experiment.metadata["cache_qobj"] = True
             self._cache[key] = (experiments, experiment_data)
         parameter_binds = parameter_binds if any(parameter_binds) else None
         result = self._backend.run(
