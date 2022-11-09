@@ -392,7 +392,7 @@ class AerBackend(Backend, ABC):
                 # Handle parameter binding
                 qobj = None
                 for circuit in circuits:
-                    if circuit.metadata.get("cache_qobj"):
+                    if circuit.metadata is not None and circuit.metadata.get("cache_qobj"):
                         if circuit.metadata.get("qobj"):
                             qobj_tmp = circuit.metadata["qobj"]
                             qobj_experiment = circuit.metadata["qobj_experiment"]
