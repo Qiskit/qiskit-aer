@@ -411,6 +411,7 @@ class AerBackend(Backend, ABC):
                             parameterizations = self._convert_binds(circuits, parameter_binds)
                             qobj.config.parameterizations = parameterizations
                     else:
+                        parameterizations = self._convert_binds(circuits, parameter_binds)
                         assemble_bind = {param: 1 for param in circuit.parameters}
                         qobj_tmp = assemble(
                             [circuit],
