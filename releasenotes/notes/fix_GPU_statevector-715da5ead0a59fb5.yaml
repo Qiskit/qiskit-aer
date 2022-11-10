@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    This is fix for GPU statevector simulator.
+    Chunk distribution tried to allocate all free memory on GPU,
+    but this causes memory allocation error.
+    So this fix allocates 80 percent of free memory.
+    Also this fixes size of matrix buffer when noise sampling is applied.
