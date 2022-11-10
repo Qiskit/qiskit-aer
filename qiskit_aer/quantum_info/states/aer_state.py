@@ -377,7 +377,7 @@ class AerState:
         self._assert_in_allocated_qubits(control_qubit)
         self._assert_in_allocated_qubits(target_qubit)
         # update state
-        self._native_state.apply_cu([target_qubit], theta, phi, lamb)
+        self._native_state.apply_cu([control_qubit, target_qubit], theta, phi, lamb)
 
     def apply_mcu(self, control_qubits, target_qubit, theta, phi, lamb):
         """apply a mcu operation."""

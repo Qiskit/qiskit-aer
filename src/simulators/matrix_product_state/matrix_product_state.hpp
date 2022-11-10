@@ -828,10 +828,10 @@ std::vector<reg_t> State::
     rnds_list.push_back(rands);
   }
 
-  //#pragma omp parallel if (BaseState::threads_ > 1) num_threads(BaseState::threads_)
+  #pragma omp parallel if (BaseState::threads_ > 1) num_threads(BaseState::threads_)
   {
     MPS temp;
-    //#pragma omp for
+    #pragma omp for
     for (int_t i=0; i<static_cast<int_t>(shots);  i++) {
       temp.initialize(qreg_);
       auto single_result = temp.apply_measure_internal(sorted_qubits, rnds_list[i]);

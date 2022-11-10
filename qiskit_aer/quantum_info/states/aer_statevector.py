@@ -187,40 +187,21 @@ class AerStatevector(Statevector):
 
         params = inst.params
 
-        def _assert_qubits(expected):
-            if len(qubits) != expected:
-                raise AerError(
-                    f"Cannot apply a {expected}-qubit instruction {inst} to qubits {qubits}"
-                )
-
-        def _assert_params(expected):
-            if len(params) < expected:
-                raise AerError(f"Need {expected} parameters, but actually {len(params)}")
-
         if inst.name in ['u', 'u3']:
-            _assert_qubits(1)
-            _assert_params(3)
             aer_state.apply_u(qubits[0], params[0], params[1], params[2])
         elif inst.name == 'h':
-            _assert_qubits(1)
             aer_state.apply_h(qubits[0])
         elif inst.name == 'x':
-            _assert_qubits(1)
             aer_state.apply_x(qubits[0])
         elif inst.name == 'cx':
-            _assert_qubits(2)
             aer_state.apply_cx(qubits[0], qubits[1])
         elif inst.name == 'y':
-            _assert_qubits(1)
             aer_state.apply_y(qubits)
         elif inst.name == 'cy':
-            _assert_qubits(2)
             aer_state.apply_cy(qubits[0], qubits[1])
         elif inst.name == 'z':
-            _assert_qubits(1)
             aer_state.apply_z(qubits)
         elif inst.name == 'cz':
-            _assert_qubits(2)
             aer_state.apply_cz(qubits[0], qubits[1])
         elif inst.name == 'unitary':
             aer_state.apply_unitary(qubits, inst.params[0])
@@ -233,7 +214,6 @@ class AerStatevector(Statevector):
         else:
             definition = inst.definition
             if definition is inst or definition is None:
-                print(inst.definition)
                 raise AerError('cannot decompose ' + inst.name)
             AerStatevector._aer_evolve_circuit(aer_state, definition, qubits)
 
