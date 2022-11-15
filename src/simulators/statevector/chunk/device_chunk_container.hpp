@@ -23,6 +23,8 @@ namespace AER {
 namespace QV {
 namespace Chunk {
 
+//reserve 512MB of memory for Thrust internal use
+#define RESERVE_FOR_THRUST (1ull << 28)
 
 //============================================================================
 // device chunk container class
@@ -116,6 +118,8 @@ public:
   void StoreMatrix(const std::complex<double>* mat,uint_t iChunk,uint_t size) override;
   void StoreUintParams(const std::vector<uint_t>& prm,uint_t iChunk) override;
   void ResizeMatrixBuffers(int bits) override;
+
+  void calculate_matrix_buffer_size(int bits);
 
   void set_device(void) const
   {
@@ -321,26 +325,43 @@ uint_t DeviceChunkContainer<data_t>::Allocate(int idev,int chunk_bits,int num_qu
     nc = chunks;
   }
 
+  matrix_buffer_size_ = 0;
+  params_buffer_size_ = 0;
+  max_blocked_gates_ = QV_MAX_BLOCKED_GATES;
+  calculate_matrix_buffer_size(matrix_bit);
+
+  reduce_buffer_size_ = 2;
+
 #ifdef AER_THRUST_CUDA
-  uint_t param_size;
-  param_size = (sizeof(thrust::complex<double>) << (matrix_bit*2)) + (sizeof(uint_t) << (matrix_bit+2));
+  size_t param_size = sizeof(thrust::complex<double>)*matrix_buffer_size_ + sizeof(uint_t)*params_buffer_size_;
+
+  if(chunk_bits < 10)
+    reduce_buffer_size_ = 1;
+  else
+    reduce_buffer_size_ = (1ull << (chunk_bits - 10));
+  reduce_buffer_size_ *= 2;
+
+  param_size += sizeof(double)*reduce_buffer_size_;
+  if(multi_shots)
+    param_size += sizeof(double)*QV_PROBABILITY_BUFFER_SIZE + sizeof(uint_t)*((this->num_creg_bits_ + 63) >> 6);
 
   size_t freeMem,totalMem;
   cudaMemGetInfo(&freeMem,&totalMem);
-  while(freeMem < ((((nc+buffers)*(uint_t)sizeof(thrust::complex<data_t>)) << chunk_bits) + param_size* (num_matrices_ + buffers)) ){
+  freeMem -= RESERVE_FOR_THRUST;
+  while(freeMem <= ((((nc+buffers)*(uint_t)sizeof(thrust::complex<data_t>)) << chunk_bits) + sizeof(double)*reduce_buffer_size_*nc + param_size* (num_matrices_ + buffers)) ){
     nc--;
+    if(num_matrices_ > 1)
+      num_matrices_--;
     if(nc == 0){
       break;
     }
   }
+
+  cudaStreamCreateWithFlags(&stream_, cudaStreamNonBlocking);
+  cudaStreamCreateWithFlags(&stream_cache_, cudaStreamNonBlocking);
 #endif
 
-  max_blocked_gates_ = QV_MAX_BLOCKED_GATES;
-
-  matrix_buffer_size_ = 0;
-  params_buffer_size_ = 0;
-  if(matrix_bit > 0)
-    ResizeMatrixBuffers(matrix_bit);
+  ResizeMatrixBuffers(matrix_bit);
 
   this->num_chunks_ = nc;
   data_.resize((nc+buffers) << chunk_bits);
@@ -353,23 +374,9 @@ uint_t DeviceChunkContainer<data_t>::Allocate(int idev,int chunk_bits,int num_qu
     nc_tmp >>= 1;
   }
 
-#ifdef AER_THRUST_CUDA
-  cudaStreamCreateWithFlags(&stream_, cudaStreamNonBlocking);
-  cudaStreamCreateWithFlags(&stream_cache_, cudaStreamNonBlocking);
-
-  if(chunk_bits < 10){
-    reduce_buffer_size_ = 1;
-  }
-  else{
-    reduce_buffer_size_ = (1ull << (chunk_bits - 10));
-  }
-#else
-  reduce_buffer_size_ = 1;
-#endif
-
-  reduce_buffer_size_ *= 2;
-  reduce_buffer_.resize(reduce_buffer_size_*nc);
-  probability_buffer_.resize(nc*QV_PROBABILITY_BUFFER_SIZE);
+  reduce_buffer_.resize(reduce_buffer_size_ * nc);
+  if(multi_shots)
+    probability_buffer_.resize(nc*QV_PROBABILITY_BUFFER_SIZE);
 
   creg_host_update_ = false;
   this->num_creg_bits_ = num_qubits;
@@ -443,47 +450,49 @@ void DeviceChunkContainer<data_t>::Deallocate(void)
 }
 
 template <typename data_t>
+void DeviceChunkContainer<data_t>::calculate_matrix_buffer_size(int bits)
+{
+  uint_t size;
+
+  //matrix buffer size
+  this->matrix_bits_ = bits;
+  size = 1ull << (bits*2);
+
+  if(max_blocked_gates_*4 > size){
+    size = max_blocked_gates_*4;
+  }
+  matrix_buffer_size_ = size;
+
+  //param buffer size
+  size = bits*3;
+  uint_t qb = this->num_qubits_*4;
+  if(this->density_matrix_)
+    qb /= 2;
+  if(size < qb)
+    size = qb;
+  if(size < 4)
+    size = 4;
+  if(QV_MAX_REGISTERS + max_blocked_gates_*4 > size){
+    size = QV_MAX_REGISTERS + max_blocked_gates_*4;
+  }
+  params_buffer_size_ = size;
+}
+
+template <typename data_t>
 void DeviceChunkContainer<data_t>::ResizeMatrixBuffers(int bits)
 {
   uint_t size;
   uint_t n = num_matrices_ + this->num_buffers_;
 
-  if(bits < 0){
+  if(bits != this->matrix_bits_){
+    calculate_matrix_buffer_size(bits);
+  }
+
+  if(matrix_.size() < n * matrix_buffer_size_)
     matrix_.resize(n * matrix_buffer_size_);
-  }
-  else{
-    this->matrix_bits_ = bits;
-    size = 1ull << (bits*2);
 
-    if(max_blocked_gates_*4 > size){
-      size = max_blocked_gates_*4;
-    }
-    if(size > matrix_buffer_size_){
-      matrix_buffer_size_ = size;
-      matrix_.resize(n * size);
-    }
-  }
-
-  if(bits < 0){
+  if(params_.size() < n * params_buffer_size_)
     params_.resize(n * params_buffer_size_);
-  }
-  else{
-    size = bits*3;
-    uint_t qb = this->num_qubits_*4;
-    if(this->density_matrix_)
-      qb /= 2;
-    if(size < qb)
-      size = qb;
-    if(size < 4)
-      size = 4;
-    if(QV_MAX_REGISTERS + max_blocked_gates_*4 > size){
-      size = QV_MAX_REGISTERS + max_blocked_gates_*4;
-    }
-    if(size > params_buffer_size_){
-      params_buffer_size_ = size;
-      params_.resize(n * size);
-    }
-  }
 }
 
 template <typename data_t>
@@ -746,7 +755,6 @@ reg_t DeviceChunkContainer<data_t>::sample_measure(uint_t iChunk,const std::vect
     cudaMemcpyAsync(&samples[i],pSmp,nshots*sizeof(uint_t),cudaMemcpyDeviceToHost,stream_);
   }
   cudaStreamSynchronize(stream_);
-
 #else
   if(this->omp_threads_ > 1){
     if(dot)
