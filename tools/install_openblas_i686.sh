@@ -3,5 +3,5 @@
 wget https://github.com/xianyi/OpenBLAS/releases/download/v0.3.21/OpenBLAS-0.3.21.zip
 unzip OpenBLAS-0.3.21.zip
 cd OpenBLAS-0.3.21
-make TARGET=NORTHWOOD
-make TARGET=NORTHWOOD PREFIX=/usr/ install
+make
+make PREFIX=/usr/ install
