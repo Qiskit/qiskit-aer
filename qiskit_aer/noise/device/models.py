@@ -141,7 +141,7 @@ def basic_device_gate_errors(properties,
         warnings = True
 
     if target is not None:
-        if not standard_gates or not warnings:
+        if standard_gates is not None or not warnings:
             warn("When `target` is supplied, `standard_gates` and `warnings` are ignored,"
                  " and they are always set to true.", UserWarning)
 
@@ -208,7 +208,7 @@ def basic_device_gate_errors(properties,
                     module="qiskit_aer.noise.errors.errorutils"
                 )
                 depol_error = _device_depolarizing_error(
-                    qubits, error_param, relax_error, standard_gates, warnings=warnings)
+                    qubits, error_param, relax_error, standard_gates)
 
         # Combine errors
         combined_error = _combine_depol_and_relax_error(depol_error, relax_error)
@@ -272,9 +272,9 @@ def _basic_device_target_gate_errors(target,
 def _device_depolarizing_error(qubits,
                                error_param,
                                relax_error=None,
-                               standard_gates=True,
-                               warnings=True):
-    """Construct a depolarizing_error for device"""
+                               standard_gates=True):
+    """Construct a depolarizing_error for device.
+    If un-physical parameters are supplied, they are truncated to the theoretical bound values."""
 
     # We now deduce the depolarizing channel error parameter in the
     # presence of T1/T2 thermal relaxation. We assume the gate error
@@ -307,11 +307,6 @@ def _device_depolarizing_error(qubits,
         # The minimum average gate fidelity is F_min = 1 / (dim + 1)
         # So the maximum gate error is 1 - F_min = dim / (dim + 1)
         if error_param > error_max:
-            if warnings:
-                logger.warning(
-                    'Device reported a gate error parameter greater'
-                    ' than maximum allowed value (%f > %f). Truncating to'
-                    ' maximum value.', error_param, error_max)
             error_param = error_max
         # Model gate error entirely as depolarizing error
         num_qubits = len(qubits)
@@ -319,11 +314,6 @@ def _device_depolarizing_error(qubits,
         depol_param = dim * (error_param - relax_infid) / (dim * relax_fid - 1)
         max_param = 4**num_qubits / (4**num_qubits - 1)
         if depol_param > max_param:
-            if warnings:
-                logger.warning(
-                    'Device model returned a depolarizing error parameter greater'
-                    ' than maximum allowed value (%f > %f). Truncating to'
-                    ' maximum value.', depol_param, max_param)
             depol_param = min(depol_param, max_param)
         return depolarizing_error(
             depol_param, num_qubits, standard_gates=standard_gates)
@@ -362,9 +352,6 @@ def _truncate_t2_value(t1, t2):
     new_t2 = t2
     if t2 > 2 * t1:
         new_t2 = 2 * t1
-        warn("Device model returned an invalid T_2 relaxation time greater than"
-             f" the theoretical maximum value 2 * T_1 ({t2} > 2 * {t1})."
-             " Truncating to maximum value.", UserWarning)
     return new_t2
 
 
