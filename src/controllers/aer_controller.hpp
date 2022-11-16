@@ -1620,7 +1620,7 @@ void Controller::run_circuit_with_sampled_noise(
       }
 
       state.set_distribution(num_process_per_experiment_);
-      state.set_max_matrix_qubits(get_max_matrix_qubits(circ) );
+      state.set_max_matrix_qubits(get_max_matrix_qubits(noise_circ) );
       // allocate qubit register
       state.allocate(noise_circ.num_qubits, block_bits);
 
