@@ -24,6 +24,7 @@ from .aer_state import AerState
 from ...backends.aerbackend import AerError
 from ...backends.backend_utils import BASIS_GATES
 
+
 class AerStatevector(Statevector):
     """AerStatevector class
 
@@ -155,7 +156,7 @@ class AerStatevector(Statevector):
             method = 'statevector'
             aer_state.configure('method', method)
 
-        basis_gates = BASIS_GATES[method] 
+        basis_gates = BASIS_GATES[method]
 
         aer_state.allocate_qubits(inst.num_qubits)
         num_qubits = inst.num_qubits
@@ -176,7 +177,7 @@ class AerStatevector(Statevector):
         return aer_state.move_to_ndarray(), aer_state
 
     @staticmethod
-    def _aer_evolve_circuit(aer_state, circuit, qubits, basis_gates=[]):
+    def _aer_evolve_circuit(aer_state, circuit, qubits, basis_gates=None):
         """Apply circuit into aer_state"""
         for instruction in circuit.data:
             if instruction.clbits:
@@ -190,13 +191,13 @@ class AerStatevector(Statevector):
                                                     for qarg in qargs], basis_gates)
 
     @staticmethod
-    def _aer_evolve_instruction(aer_state, inst, qubits, basis_gates=[]):
+    def _aer_evolve_instruction(aer_state, inst, qubits, basis_gates=None):
         """Apply instruction into aer_state"""
 
         params = inst.params
         applied = True
 
-        if inst.name in basis_gates:
+        if basis_gates and inst.name in basis_gates:
             if inst.name in ['u3', 'u']:
                 aer_state.apply_u(qubits[0], params[0], params[1], params[2])
             elif inst.name == 'h':
@@ -221,7 +222,7 @@ class AerStatevector(Statevector):
                 aer_state.apply_cu(qubits[0], qubits[1], params[0], params[1], params[2], params[3])
             elif inst.name == 'mcu':
                 aer_state.apply_mcu(qubits[0:len(qubits) - 1], qubits[len(qubits) - 1],
-                    params[0], params[1], params[2], params[3])
+                                    params[0], params[1], params[2], params[3])
             elif inst.name in 'mcx':
                 aer_state.apply_mcx(qubits[0:len(qubits) - 1], qubits[len(qubits) - 1])
             elif inst.name in 'mcy':
