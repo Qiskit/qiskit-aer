@@ -250,13 +250,13 @@ public:
   virtual void apply_u(const uint_t qubit, const double theta, const double phi, const double lambda);
 
   // Apply an optimized CU gate
-  virtual void apply_cu(const reg_t &qubits, const double theta, const double phi, const double lambda);
+  virtual void apply_cu(const reg_t &qubits, const double theta, const double phi, const double lambda, const double gammma);
 
   // Apply a general multi-controlled single-qubit unitary gate
   // If N=1 this implements an optimized single-qubit U gate
   // If N=2 this implements an optimized CU gate
   // If N=3 this implements an optimized CCU gate
-  virtual void apply_mcu(const reg_t &qubits, const double theta, const double phi, const double lambda);
+  virtual void apply_mcu(const reg_t &qubits, const double theta, const double phi, const double lambda, const double gammma);
 
   // Apply a general multi-controlled SWAP gate
   // If N=2 this implements an optimized SWAP  gate
@@ -975,26 +975,26 @@ void AerState::apply_u(const uint_t qubit, const double theta, const double phi,
   buffer_op(std::move(op));
 }
 
-void AerState::apply_cu(const reg_t &qubits, const double theta, const double phi, const double lambda) {
+void AerState::apply_cu(const reg_t &qubits, const double theta, const double phi, const double lambda, const double gamma) {
   assert_initialized();
 
   Operations::Op op;
   op.type = Operations::OpType::gate;
   op.name = "cu";
   op.qubits = qubits;
-  op.params = {theta, phi, lambda, 0.0};
+  op.params = {theta, phi, lambda, gamma};
 
   buffer_op(std::move(op));
 }
 
-void AerState::apply_mcu(const reg_t &qubits, const double theta, const double phi, const double lambda) {
+void AerState::apply_mcu(const reg_t &qubits, const double theta, const double phi, const double lambda, const double gamma) {
   assert_initialized();
 
   Operations::Op op;
   op.type = Operations::OpType::gate;
   op.name = "mcu";
   op.qubits = qubits;
-  op.params = {theta, phi, lambda, 0.0};
+  op.params = {theta, phi, lambda, gamma};
 
   buffer_op(std::move(op));
 }
