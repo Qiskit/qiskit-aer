@@ -16,11 +16,11 @@ assignees: ''
 - **Python version**:
 - **Operating system**:
 
-### What is the current behavior?
-
-
-
 ### Steps to reproduce the problem
+
+
+
+### What is the current behavior?
 
 
 
