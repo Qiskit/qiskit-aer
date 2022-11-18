@@ -113,7 +113,12 @@ class AerStatevector(Statevector):
         else:
             qubits = np.array(qargs)
         self._aer_state.close()
-        self._aer_state = AerState(**self._aer_state.configuration())
+
+        configs = self._aer_state.configuration()
+        if 'seed_simulator' in configs:
+            configs['seed_simulator'] += 1
+        self._aer_state = AerState(**configs)
+
         self._aer_state.initialize(self._data, copy=False)
         samples = self._aer_state.sample_memory(qubits, shots)
         self._data = self._aer_state.move_to_ndarray()

@@ -326,7 +326,7 @@ private:
   bool initialized_ = false;
   uint_t num_of_qubits_ = 0;
   RngEngine rng_;
-  int seed_;
+  int seed_ = std::random_device()();
   std::shared_ptr<QuantumState::Base> state_;
   json_t configs_;
   ExperimentResult last_result_;
