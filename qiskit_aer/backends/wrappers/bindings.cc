@@ -149,6 +149,7 @@ PYBIND11_MODULE(controller_wrappers, m) {
     aer_state.def("apply_mcswap",  &AER::AerState::apply_mcswap);
     aer_state.def("apply_measure",  &AER::AerState::apply_measure);
     aer_state.def("apply_reset",  &AER::AerState::apply_reset);
+    aer_state.def("apply_kraus",  &AER::AerState::apply_kraus);
     aer_state.def("probability",  &AER::AerState::probability);
     aer_state.def("probabilities", [aer_state](AER::AerState &state,
                                                    const reg_t qubits) {

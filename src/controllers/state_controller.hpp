@@ -296,6 +296,9 @@ public:
   // then discarding the outcome.
   void apply_reset(const reg_t &qubits);
 
+  // Apply a Kraus error operation
+  void apply_kraus(const reg_t &qubits, const std::vector<cmatrix_t> &krausops);
+
   //-----------------------------------------------------------------------
   // Z-measurement outcome probabilities
   //-----------------------------------------------------------------------
@@ -1087,6 +1090,18 @@ void AerState::apply_reset(const reg_t &qubits) {
 
   last_result_ = ExperimentResult();
   state_->apply_op(op, last_result_, rng_);
+}
+
+void AerState::apply_kraus(const reg_t &qubits, const std::vector<cmatrix_t> &krausops) {
+  assert_initialized();
+
+  Operations::Op op;
+  op.type = Operations::OpType::kraus;
+  op.name = "kraus";
+  op.qubits = qubits;
+  op.mats = krausops;
+
+  buffer_op(std::move(op));
 }
 
 //-----------------------------------------------------------------------
