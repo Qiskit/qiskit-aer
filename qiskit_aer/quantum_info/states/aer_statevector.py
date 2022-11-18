@@ -117,7 +117,7 @@ class AerStatevector(Statevector):
 
         configs = self._aer_state.configuration()
         if 'seed_simulator' in configs:
-            configs['seed_simulator'] += 1
+            configs['seed_simulator'] = int(configs['seed_simulator']) + 1
         self._aer_state = AerState(**configs)
 
         self._aer_state.initialize(self._data, copy=False)
