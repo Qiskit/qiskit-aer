@@ -54,6 +54,27 @@ class TestAerStatevector(common.QiskitAerTestCase):
         for e, s in zip(expected, state):
             self.assertAlmostEqual(e, s)
 
+    def test_sample_randomness(self):
+        """Test randomness of results of sample_counts """
+        circ = QuantumVolume(5, seed=1111)
+        state = AerStatevector(circ)
+
+        shots = 1024
+        counts0 = state.sample_counts(shots, qargs=range(5))
+        counts1 = state.sample_counts(shots, qargs=range(5))
+
+        self.assertNotEqual(counts0, counts1)
+
+        state = AerStatevector(circ, seed_simulator=10)
+
+        shots = 1024
+        counts2 = state.sample_counts(shots, qargs=range(5))
+        counts3 = state.sample_counts(shots, qargs=range(5))
+
+        self.assertNotEqual(counts0, counts2)
+        self.assertNotEqual(counts1, counts2)
+        self.assertNotEqual(counts2, counts3)
+
     def test_method_and_device_properties(self):
         """Test method and device properties"""
         circ = QuantumVolume(5, seed=1111)
