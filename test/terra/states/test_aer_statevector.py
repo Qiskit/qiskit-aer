@@ -266,7 +266,7 @@ class TestAerStatevector(common.QiskitAerTestCase):
         circuit.y(0)
         p_error = 0.5
         error = pauli_error([('Y', p_error), ('I', 1 - p_error)])
-        circuit.append(QuantumError(Kraus(error)).to_instruction(), [0])
+        circuit.append(Kraus(error).to_instruction(), [0])
 
         circuit = QuantumCircuit(1)
         circuit.h(0)
