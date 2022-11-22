@@ -240,8 +240,7 @@ class AerCompiler:
                 (
                     {condition_tuple[0]} if isinstance(condition_tuple[0], Clbit)
                     else set(condition_tuple[0])
-                )
-                - set(instruction.clbits)
+                ) - set(instruction.clbits)
             )
         )
         c_if_args = self._convert_c_if_args(condition_tuple, bit_map)
@@ -281,8 +280,7 @@ class AerCompiler:
                 (
                     {condition_tuple[0]} if isinstance(condition_tuple[0], Clbit)
                     else set(condition_tuple[0])
-                )
-                - set(instruction.clbits)
+                ) - set(instruction.clbits)
             )
         )
 
