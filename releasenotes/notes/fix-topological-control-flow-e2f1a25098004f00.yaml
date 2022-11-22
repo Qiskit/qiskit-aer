@@ -1,0 +1,29 @@
+---
+fixes:
+  - |
+    Fixed incorrect logic in the control-flow compiler that could allow unrelated instructions to
+    appear "inside" control-flow bodies during execution, causing incorrect results.  For example,
+    previously::
+
+        from qiskit import QuantumCircuit
+        from qiskit_aer import AerSimulator
+
+        backend = AerSimulator(method="statevector")
+
+        circuit = QuantumCircuit(3, 3)
+        circuit.measure(0, 0)
+        circuit.measure(1, 1)
+
+        with circuit.if_test((0, True)):
+            with circuit.if_test((1, False)):
+                circuit.x(2)
+
+        with circuit.if_test((0, False)):
+            with circuit.if_test((1, True)):
+                circuit.x(2)
+
+        circuit.measure(range(3), range(3))
+        print(backend.run(circuit, method=method, shots=100).result())
+
+    would print ``{'010': 100}`` as the nested control-flow operations would accidentally jump over
+    the first X gate on qubit 2, which should have been executed.
