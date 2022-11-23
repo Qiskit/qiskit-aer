@@ -261,6 +261,14 @@ class TestAerStatevector(common.QiskitAerTestCase):
 
     def test_kraus(self):
         """Test kraus"""
+
+        def same_1qubit_statevectors_up_to_global_phase(sv1, sv2):
+            if not isinstance(sv1, np.ndarray):
+                sv1 = sv1.data
+            if not isinstance(sv2, np.ndarray):
+                sv2 = sv2.data
+            return np.isclose(np.cross(sv1, sv2), 0)
+
         circuit = QuantumCircuit(1)
         circuit.h(0)
         circuit.y(0)
@@ -268,16 +276,17 @@ class TestAerStatevector(common.QiskitAerTestCase):
         error = pauli_error([('Y', p_error), ('I', 1 - p_error)])
         circuit.append(Kraus(error).to_instruction(), [0])
 
-        circuit = QuantumCircuit(1)
-        circuit.h(0)
-        circuit.y(0)
-        target0 = AerStatevector.from_label("0").evolve(Operator(circuit))
-        circuit.y(0)
-        target1 = AerStatevector.from_label("0").evolve(Operator(circuit))
+        circuit_no_noise = QuantumCircuit(1)
+        circuit_no_noise.h(0)
+        circuit_no_noise.y(0)
+        target0 = AerStatevector.from_label("0").evolve(Operator(circuit_no_noise))
+        circuit_no_noise.y(0)
+        target1 = AerStatevector.from_label("0").evolve(Operator(circuit_no_noise))
 
         for i in range(100):
             psi = AerStatevector.from_instruction(circuit)
-            self.assertTrue(psi == target0 or psi == target1)
+            self.assertTrue(same_1qubit_statevectors_up_to_global_phase(psi, target0) or \
+                            same_1qubit_statevectors_up_to_global_phase(psi, target1))
 
     def test_deepcopy(self):
         """Test deep copy"""
