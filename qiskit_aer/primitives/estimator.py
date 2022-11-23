@@ -292,7 +292,6 @@ class Estimator(BaseEstimator):
                         circuit.save_expectation_value(pauli, self._layouts[i], label=str(term_ind))
                 experiments.append(circuit)
                 parameter_binds.append({k: [v] for k, v in zip(self._parameters[i], value)})
-            experiments = self._transpile(experiments)
             for experiment in experiments:
                 if experiment.metadata is None:
                     experiment.metadata = {"cache_qobj": True}
