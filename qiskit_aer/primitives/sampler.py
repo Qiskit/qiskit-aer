@@ -201,4 +201,8 @@ class Sampler(BaseSampler):
                     **self._transpile_options,
                 )
             for i, circuit in zip(to_handle, circuits):
+                if circuit.metadata is None:
+                    circuit.metadata = {"cache_qobj": True}
+                else:
+                    circuit.metadata["cache_qobj"] = True
                 self._transpiled_circuits[(i, is_shots_none)] = circuit
