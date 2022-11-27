@@ -26,5 +26,5 @@ class AerMark(Instruction):
 
     _directive = True
 
-    def __init__(self, name, num_qubits):
-        super().__init__("mark", num_qubits, 0, [name])
+    def __init__(self, name, num_qubits, num_clbits=0):
+        super().__init__("mark", num_qubits, num_clbits, [name])
