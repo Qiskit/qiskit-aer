@@ -69,14 +69,14 @@ class AerStatevector(Statevector):
                                                                configs)
             elif isinstance(data, np.ndarray):
                 data, aer_state = AerStatevector._from_ndarray(data, configs)
-            elif isinstance(data, Statevector):
-                data, aer_state = AerStatevector._from_ndarray(np.array(data.data, dtype=complex),
-                                                               configs)
             elif isinstance(data, AerStatevector):
                 aer_state = data._aer_state
                 if dims is None:
                     dims = data._op_shape._dims_l
                 data = data._data.copy()
+            elif isinstance(data, Statevector):
+                data, aer_state = AerStatevector._from_ndarray(np.array(data.data, dtype=complex),
+                                                               configs)
             else:
                 raise AerError(f'Input data is not supported: type={data.__class__}, data={data}')
 
