@@ -35,7 +35,7 @@ class AerStatevector(Statevector):
     def __init__(self, data, dims=None, **configs):
         """
         Args:
-            data (np.array or list or AerStatevector or QuantumCircuit or
+            data (np.array or list or Statevector or AerStatevector or QuantumCircuit or
                   qiskit.circuit.Instruction):
                 Data from which the statevector can be constructed. This can be either a complex
                 vector, another statevector or a ``QuantumCircuit`` or ``Instruction``
@@ -74,6 +74,9 @@ class AerStatevector(Statevector):
                 if dims is None:
                     dims = data._op_shape._dims_l
                 data = data._data.copy()
+            elif isinstance(data, Statevector):
+                data, aer_state = AerStatevector._from_ndarray(np.array(data.data, dtype=complex),
+                                                               configs)
             else:
                 raise AerError(f'Input data is not supported: type={data.__class__}, data={data}')
 
