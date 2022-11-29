@@ -60,6 +60,8 @@ if platform.system() == "Darwin":
     import numpy as np
     np.dot(np.zeros(100), np.zeros(100))
 # ... ¯\_(ツ)_/¯
+import sys
+import warnings
 
 # pylint: disable=wrong-import-position
 from .aerprovider import AerProvider
@@ -72,6 +74,15 @@ from . import quantum_info
 from . import noise
 from . import utils
 from .version import __version__
+
+if sys.version_info < (3, 8):
+    warnings.warn(
+        "Using Qiskit Aer with Python 3.7 is deprecated as of the 0.12.0 release. "
+        "Support for running Qiskit Aer with Python 3.7 will be removed in a future "
+        "release",
+        DeprecationWarning,
+    )
+
 
 # Global instance to be used as the entry point for convenience.
 Aer = AerProvider()  # pylint: disable=invalid-name
