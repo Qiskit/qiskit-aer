@@ -56,12 +56,14 @@ Exceptions
 # Because of this issue, we need to make sure that Numpy's OpenMP library is initialized
 # before loading our simulators, so we force it using this ugly trick
 import platform
+import sys
+import warnings
+
+
 if platform.system() == "Darwin":
     import numpy as np
     np.dot(np.zeros(100), np.zeros(100))
 # ... ¯\_(ツ)_/¯
-import sys
-import warnings
 
 # pylint: disable=wrong-import-position
 from .aerprovider import AerProvider
