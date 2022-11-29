@@ -525,21 +525,17 @@ class TestSampler(QiskitAerTestCase):
             },
         )
 
-    @data(1024, None)
+    @data(8192, None)
     def test_num_clbits(self, shots):
         """test of QuasiDistribution"""
         qc = QuantumCircuit(4)
         qc.h(0)
         qc.measure_all()
 
-        result = (
-            Sampler(backend_options={"method": "statevector"})
-            .run([qc], [], shots=shots, seed_primitives=15)
-            .result()
-        )
+        result = Sampler().run(qc, shots=shots, seed=15).result()
         quasis = result.quasi_dists[0]
         bin_probs = quasis.binary_probabilities()
-        self.assertDictAlmostEqual(bin_probs, {"0000": 0.5, "0001": 0.5}, delta=1e-3)
+        self.assertDictAlmostEqual(bin_probs, {"0000": 0.5, "0001": 0.5}, delta=1e-2)
 
 
 if __name__ == "__main__":
