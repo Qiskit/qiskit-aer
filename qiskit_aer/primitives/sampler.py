@@ -125,7 +125,9 @@ class Sampler(BaseSampler):
         for i in range(len(experiments)):
             if is_shots_none:
                 probabilities = result.data(i)["probabilities"]
-                quasis.append(QuasiDistribution(probabilities))
+                num_qubits = result.results[i].metadata["num_qubits"]
+                quasi_dist = QuasiDistribution({f"{k:0{num_qubits}b}": v for k, v in probabilities.items()})
+                quasis.append(quasi_dist)
                 metadata.append({"shots": None, "simulator_metadata": result.results[i].metadata})
             else:
                 counts = result.get_counts(i)
