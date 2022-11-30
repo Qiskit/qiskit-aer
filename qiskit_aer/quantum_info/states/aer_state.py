@@ -421,6 +421,13 @@ class AerState:
         # update state
         return self._native_state.apply_reset(qubits)
 
+    def apply_kraus(self, qubits, krausops):
+        """apply a kraus operation."""
+        self._assert_allocated_or_mapped()
+        self._assert_in_allocated_qubits(qubits)
+        # update state
+        return self._native_state.apply_kraus(qubits, krausops)
+
     def probability(self, outcome):
         """return a probability of `outcome`."""
         self._assert_allocated_or_mapped()

@@ -116,12 +116,16 @@ class AerStatevector(Statevector):
             qubits = np.arange(self._aer_state.num_qubits)
         else:
             qubits = np.array(qargs)
+        self._aer_state.close()
 
-        aer_state = AerState(**self._aer_state.configuration())
-        aer_state.initialize(self._data, copy=False)
-        samples = aer_state.sample_memory(qubits, shots)
-        aer_state.close()
+        configs = self._aer_state.configuration()
+        if 'seed_simulator' in configs:
+            configs['seed_simulator'] = int(configs['seed_simulator']) + 1
+        self._aer_state = AerState(**configs)
 
+        self._aer_state.initialize(self._data, copy=False)
+        samples = self._aer_state.sample_memory(qubits, shots)
+        self._data = self._aer_state.move_to_ndarray()
         return samples
 
     @staticmethod
@@ -237,6 +241,8 @@ class AerStatevector(Statevector):
                 pass
             else:
                 applied = False
+        elif inst.name == 'kraus':
+            aer_state.apply_kraus(qubits, inst.params)
         elif inst.name == 'reset':
             aer_state.apply_reset(qubits)
         elif inst.name == 'barrier':

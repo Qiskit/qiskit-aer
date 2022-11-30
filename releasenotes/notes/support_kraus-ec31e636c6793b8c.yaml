@@ -1,0 +1,5 @@
+---
+features:
+  - |
+    Supports kraus operation in AerState and AerStatevector. In AerStatevector, a matrix
+    in kraus is applied randomly depending on quantum state.
