@@ -52,11 +52,13 @@ class AerState:
         self._last_qubit = -1
         self._configs = {}
 
-        for key, value in kwargs.items():
-            self.configure(key, value)
-
         if 'method' not in kwargs:
             self.configure('method', 'statevector')
+        else:
+            self._method = kwargs['method']
+
+        for key, value in kwargs.items():
+            self.configure(key, value)
 
     def _assert_initializing(self):
         if self._state != _STATE.INITIALIZING:
@@ -138,9 +140,15 @@ class AerState:
         if len(data) != np.power(2, num_of_qubits):
             raise AerError('length of init data must be power of two')
 
-        if (isinstance(data, np.ndarray) and
-           self._configs['method'] == 'statevector' and
-           self._native_state.initialize_statevector(num_of_qubits, data, copy)):
+        init = False
+        if self._configs['method'] == 'statevector':
+            init = self._native_state.initialize_statevector(num_of_qubits, data, copy)
+        elif self._configs['method'] == 'density_matrix':
+            if data.shape != (len(data), len(data)):
+                raise AerError('shape of init data must be a pair of power of two')
+            init = self._native_state.initialize_densitymatrix(num_of_qubits, data, copy)
+
+        if init:
             if not copy:
                 self._init_data = data
                 AerState._in_use(data)
@@ -159,7 +167,7 @@ class AerState:
         """Safely release all releated memory."""
         self._assert_allocated_or_mapped_or_moved()
         if self._state == _STATE.ALLOCATED:
-            self.move_to_ndarray()
+            self._native_state.move_to_vector()
 
         self._assert_mapped_or_moved()
         if self._state == _STATE.MAPPED:
@@ -180,7 +188,10 @@ class AerState:
         elif self._state == _STATE.MOVED:
             ret = self._moved_data
         else:
-            self._moved_data = self._native_state.move_to_ndarray()
+            if self._configs['method'] == 'density_matrix':
+                self._moved_data = self._native_state.move_to_matrix()
+            else:
+                self._moved_data = self._native_state.move_to_vector()
             ret = self._moved_data
             self._moved()
         return ret

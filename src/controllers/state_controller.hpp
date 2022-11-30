@@ -141,6 +141,8 @@ public:
   // is permitted.
   virtual bool is_initialized() const { return initialized_; };
 
+  virtual bool is_matrix() const { return method_ == Method::density_matrix; };
+
   // Allocate qubits and return a list of qubit identifiers, which start
   // `0` with incrementation `+1`.
   virtual reg_t allocate_qubits(uint_t num_qubits);
@@ -169,9 +171,16 @@ public:
   // given data will not be freed in this class
   virtual reg_t initialize_statevector(uint_t num_qubits, complex_t* data, bool copy);
 
-  // Release internal statevector
-  // The caller must free the returned pointer
+  // Allocate qubits with inputted complex array
+  // method must be densitymatrix and the length of the array must be 4^{num_qubits}
+  // given data will not be freed in this class
+  virtual reg_t initialize_densitymatrix(uint_t num_qubits, complex_t* data, bool copy);
+
+  // Release internal statevector as a vector
   virtual AER::Vector<complex_t> move_to_vector();
+
+  // Release internal statevector as a matrix
+  virtual matrix<complex_t> move_to_matrix();
 
   //-----------------------------------------------------------------------
   // Apply initialization
@@ -344,6 +353,8 @@ public:
   virtual void transpile_ops();
 
 private:
+  void initialize_state_controller();
+  void initialize_qreg_state(std::shared_ptr<QuantumState::Base> state);
   void assert_initialized() const;
   void assert_not_initialized() const;
   bool is_gpu(bool raise_error) const;
@@ -392,9 +403,11 @@ private:
 
   Transpile::Fusion fusion_pass_;
 
+#ifdef AER_MPI
   // process information (MPI)
   int myrank_ = 0;
   int num_processes_ = 1;
+#endif
   int num_process_per_experiment_ = 1;
 
   uint_t cache_block_qubits_ = 0;
@@ -560,114 +573,6 @@ void AerState::assert_not_initialized() const {
   }
 };
 
-void AerState::initialize() {
-  assert_not_initialized();
-
-#ifdef AER_MPI
-  MPI_Comm_size(MPI_COMM_WORLD, &num_processes_);
-  MPI_Comm_rank(MPI_COMM_WORLD, &myrank_);
-  num_process_per_experiment_ = num_processes_;
-#endif
-
-  if (method_ == Method::statevector) {
-    if (device_ == Device::CPU)
-      if (precision_ == Precision::Double)
-        state_ = std::make_shared<Statevector::State<QV::QubitVector<double>>>();
-      else
-        state_ = std::make_shared<Statevector::State<QV::QubitVector<float>>>();
-    else // if (device_ == Device::GPU)
-#ifdef AER_THRUST_SUPPORTED
-      if (precision_ == Precision::Double)
-        state_ = std::make_shared<Statevector::State<QV::QubitVectorThrust<double>>>();
-      else
-        state_ = std::make_shared<Statevector::State<QV::QubitVectorThrust<float>>>();
-#else
-      throw std::runtime_error("specified method does not support non-CPU device: method=statevector");
-#endif
-  } else if (method_ == Method::density_matrix) {
-    if (device_ == Device::CPU)
-      if (precision_ == Precision::Double)
-        state_ = std::make_shared<DensityMatrix::State<QV::DensityMatrix<double>>>();
-      else
-        state_ = std::make_shared<DensityMatrix::State<QV::DensityMatrix<float>>>();
-    else // if (device_ == Device::GPU)
-#ifdef AER_THRUST_SUPPORTED
-      if (precision_ == Precision::Double)
-        state_ = std::make_shared<DensityMatrix::State<QV::DensityMatrixThrust<double>>>();
-      else
-        state_ = std::make_shared<DensityMatrix::State<QV::DensityMatrixThrust<float>>>();
-#else
-      throw std::runtime_error("specified method does not support non-CPU device: method=density_matrix");
-#endif
-  } else if (method_ == Method::unitary) {
-    if (device_ == Device::CPU)
-      if (precision_ == Precision::Double)
-        state_ = std::make_shared<QubitUnitary::State<QV::UnitaryMatrix<double>>>();
-      else
-        state_ = std::make_shared<QubitUnitary::State<QV::UnitaryMatrix<float>>>();
-    else // if (device_ == Device::GPU)
-#ifdef AER_THRUST_SUPPORTED
-      if (precision_ == Precision::Double)
-        state_ = std::make_shared<QubitUnitary::State<QV::UnitaryMatrixThrust<double>>>();
-      else
-        state_ = std::make_shared<QubitUnitary::State<QV::UnitaryMatrixThrust<float>>>();
-#else
-      throw std::runtime_error("specified method does not support non-CPU device: method=unitary");
-#endif
-  } else if (method_ == Method::matrix_product_state) {
-    if (device_ == Device::CPU)
-      state_ = std::make_shared<MatrixProductState::State>();
-    else // if (device_ == Device::GPU)
-        throw std::runtime_error("specified method does not support non-CPU device: method=matrix_product_state");
-  } else if (method_ == Method::stabilizer) {
-    if (device_ == Device::CPU)
-      state_ = std::make_shared<Stabilizer::State>();
-    else // if (device_ == Device::GPU)
-        throw std::runtime_error("specified method does not support non-CPU device: method=stabilizer");
-  } else if (method_ == Method::extended_stabilizer) {
-    if (device_ == Device::CPU)
-      state_ = std::make_shared<ExtendedStabilizer::State>();
-    else // if (device_ == Device::GPU)
-        throw std::runtime_error("specified method does not support non-CPU device: method=extended_stabilizer");
-  } else if (method_ == Method::superop) {
-    if (device_ == Device::CPU)
-      if (precision_ == Precision::Double)
-        state_ = std::make_shared<QubitSuperoperator::State<QV::Superoperator<double>>>();
-      else
-        state_ = std::make_shared<QubitSuperoperator::State<QV::Superoperator<float>>>();
-    else // if (device_ == Device::GPU)
-        throw std::runtime_error("specified method does not support non-CPU device: method=superop");
-  } else {
-      throw std::runtime_error("not supported method.");
-  }
-
-#ifdef _OPENMP
-  if (parallel_state_update_ == 0) {
-    parallel_state_update_ = omp_get_max_threads();
-  }
-#endif
-
-  uint_t block_qubits = cache_block_qubits_;
-  cache_block_pass_.set_num_processes(num_process_per_experiment_);
-  cache_block_pass_.set_config(configs_);
-  if(!cache_block_pass_.enabled() || !state_->multi_chunk_distribution_supported())
-    block_qubits = num_of_qubits_;
-
-  state_->set_config(configs_);
-  state_->set_distribution(num_process_per_experiment_);
-  state_->set_max_matrix_qubits(max_gate_qubits_);
-  state_->set_parallelization(parallel_state_update_);
-  state_->allocate(num_of_qubits_, block_qubits);
-
-  state_->initialize_qreg(num_of_qubits_);
-  state_->initialize_creg(num_of_qubits_, num_of_qubits_);
-  rng_.set_seed(seed_);
-
-  clear_ops();
-
-  initialized_ = true;
-};
-
 reg_t AerState::allocate_qubits(uint_t num_qubits) {
   assert_not_initialized();
   reg_t ret;
@@ -682,38 +587,188 @@ reg_t AerState::reallocate_qubits(uint_t num_qubits) {
   return allocate_qubits(num_qubits);
 };
 
-reg_t AerState::initialize_statevector(uint_t num_of_qubits, complex_t* data, bool copy) {
-  assert_not_initialized();
+void AerState::initialize_state_controller() {
 #ifdef AER_MPI
   MPI_Comm_size(MPI_COMM_WORLD, &num_processes_);
   MPI_Comm_rank(MPI_COMM_WORLD, &myrank_);
   num_process_per_experiment_ = num_processes_;
 #endif
-  uint_t block_qubits = cache_block_qubits_;
+
+#ifdef _OPENMP
+  if (parallel_state_update_ == 0)
+    parallel_state_update_ = omp_get_max_threads();
+#endif
+
   cache_block_pass_.set_num_processes(num_process_per_experiment_);
   cache_block_pass_.set_config(configs_);
+  rng_.set_seed(seed_);
+};
+
+void AerState::initialize_qreg_state(std::shared_ptr<QuantumState::Base> state) {
+  if (!state) {
+    if (method_ == Method::statevector) {
+      if (device_ == Device::CPU)
+        if (precision_ == Precision::Double)
+          state_ = std::make_shared<Statevector::State<QV::QubitVector<double>>>();
+        else
+          state_ = std::make_shared<Statevector::State<QV::QubitVector<float>>>();
+      else // if (device_ == Device::GPU)
+  #ifdef AER_THRUST_SUPPORTED
+        if (precision_ == Precision::Double)
+          state_ = std::make_shared<Statevector::State<QV::QubitVectorThrust<double>>>();
+        else
+          state_ = std::make_shared<Statevector::State<QV::QubitVectorThrust<float>>>();
+  #else
+        throw std::runtime_error("specified method does not support non-CPU device: method=statevector");
+  #endif
+    } else if (method_ == Method::density_matrix) {
+      if (device_ == Device::CPU)
+        if (precision_ == Precision::Double)
+          state_ = std::make_shared<DensityMatrix::State<QV::DensityMatrix<double>>>();
+        else
+          state_ = std::make_shared<DensityMatrix::State<QV::DensityMatrix<float>>>();
+      else // if (device_ == Device::GPU)
+  #ifdef AER_THRUST_SUPPORTED
+        if (precision_ == Precision::Double)
+          state_ = std::make_shared<DensityMatrix::State<QV::DensityMatrixThrust<double>>>();
+        else
+          state_ = std::make_shared<DensityMatrix::State<QV::DensityMatrixThrust<float>>>();
+  #else
+        throw std::runtime_error("specified method does not support non-CPU device: method=density_matrix");
+  #endif
+    } else if (method_ == Method::unitary) {
+      if (device_ == Device::CPU)
+        if (precision_ == Precision::Double)
+          state_ = std::make_shared<QubitUnitary::State<QV::UnitaryMatrix<double>>>();
+        else
+          state_ = std::make_shared<QubitUnitary::State<QV::UnitaryMatrix<float>>>();
+      else // if (device_ == Device::GPU)
+  #ifdef AER_THRUST_SUPPORTED
+        if (precision_ == Precision::Double)
+          state_ = std::make_shared<QubitUnitary::State<QV::UnitaryMatrixThrust<double>>>();
+        else
+          state_ = std::make_shared<QubitUnitary::State<QV::UnitaryMatrixThrust<float>>>();
+  #else
+        throw std::runtime_error("specified method does not support non-CPU device: method=unitary");
+  #endif
+    } else if (method_ == Method::matrix_product_state) {
+      if (device_ == Device::CPU)
+        state_ = std::make_shared<MatrixProductState::State>();
+      else // if (device_ == Device::GPU)
+          throw std::runtime_error("specified method does not support non-CPU device: method=matrix_product_state");
+    } else if (method_ == Method::stabilizer) {
+      if (device_ == Device::CPU)
+        state_ = std::make_shared<Stabilizer::State>();
+      else // if (device_ == Device::GPU)
+          throw std::runtime_error("specified method does not support non-CPU device: method=stabilizer");
+    } else if (method_ == Method::extended_stabilizer) {
+      if (device_ == Device::CPU)
+        state_ = std::make_shared<ExtendedStabilizer::State>();
+      else // if (device_ == Device::GPU)
+          throw std::runtime_error("specified method does not support non-CPU device: method=extended_stabilizer");
+    } else if (method_ == Method::superop) {
+      if (device_ == Device::CPU)
+        if (precision_ == Precision::Double)
+          state_ = std::make_shared<QubitSuperoperator::State<QV::Superoperator<double>>>();
+        else
+          state_ = std::make_shared<QubitSuperoperator::State<QV::Superoperator<float>>>();
+      else // if (device_ == Device::GPU)
+          throw std::runtime_error("specified method does not support non-CPU device: method=superop");
+    } else {
+        throw std::runtime_error("not supported method.");
+    }    
+  } else {
+    state_ = state;
+  }
+
+  uint_t block_qubits = cache_block_qubits_;
+  if(!cache_block_pass_.enabled() || !state_->multi_chunk_distribution_supported())
+    block_qubits = num_of_qubits_;
+  state_->set_config(configs_);
+  state_->set_distribution(num_process_per_experiment_);
+  state_->set_max_matrix_qubits(max_gate_qubits_);
+  state_->set_parallelization(parallel_state_update_);
+  state_->allocate(num_of_qubits_, block_qubits);
+}
+
+void AerState::initialize() {
+  assert_not_initialized();
+
+  initialize_state_controller();
+
+  initialize_qreg_state(nullptr);
+
+  state_->initialize_qreg(num_of_qubits_);
+  state_->initialize_creg(num_of_qubits_, num_of_qubits_);
+  rng_.set_seed(seed_);
+
+  clear_ops();
+  initialized_ = true;
+};
+
+reg_t AerState::initialize_statevector(uint_t num_of_qubits, complex_t* data, bool copy) {
+  assert_not_initialized();
+
+  num_of_qubits_ = num_of_qubits;
+  uint_t data_size = 1ULL << num_of_qubits;
+
+  initialize_state_controller();
 
   if (device_ != Device::CPU)
     throw std::runtime_error("only CPU device supports initialize_statevector()");
   if (precision_ != Precision::Double)
     throw std::runtime_error("only Double precision supports initialize_statevector()");
-  num_of_qubits_ = num_of_qubits;
+
   auto state = std::make_shared<Statevector::State<QV::QubitVector<double>>>();
-  state->set_config(configs_);
-  state->set_distribution(num_process_per_experiment_);
-  state->set_max_matrix_qubits(max_gate_qubits_);
-  
-  if(!cache_block_pass_.enabled() || !state->multi_chunk_distribution_supported())
-    block_qubits = num_of_qubits_;
-  
-  state->allocate(num_of_qubits_, block_qubits);
-  auto qv = QV::QubitVector<double>(num_of_qubits_, data, copy);
-  state->initialize_qreg(num_of_qubits_);
+
+  initialize_qreg_state(state);
+
+  auto vec = copy? AER::Vector<complex_t>::copy_from_buffer(data_size, data)
+                 : AER::Vector<complex_t>::move_from_buffer(data_size, data);
+
+  auto qv = QV::QubitVector<double>();
+  qv.move_from_vector(std::move(vec));
+
+  state->initialize_qreg(num_of_qubits_, std::move(qv));
   state->initialize_creg(num_of_qubits_, num_of_qubits_);
-  state->initialize_statevector(num_of_qubits_, std::move(qv));
-  state_ = state;
-  rng_.set_seed(seed_);
+
   initialized_ = true;
+
+  reg_t ret;
+  ret.reserve(num_of_qubits);
+  for (auto i = 0; i < num_of_qubits; ++i)
+    ret.push_back(i);
+  return ret;
+};
+
+reg_t AerState::initialize_densitymatrix(uint_t num_of_qubits, complex_t* data, bool copy) {
+  assert_not_initialized();
+
+  num_of_qubits_ = num_of_qubits;
+  uint_t data_size = (1ULL << (num_of_qubits_ * 2ULL));
+
+  initialize_state_controller();
+
+  if (device_ != Device::CPU)
+    throw std::runtime_error("only CPU device supports initialize_densitymatrix()");
+  if (precision_ != Precision::Double)
+    throw std::runtime_error("only Double precision supports initialize_densitymatrix()");
+
+  auto state = std::make_shared<DensityMatrix::State<QV::DensityMatrix<double>>>();
+
+  initialize_qreg_state(state);
+
+  auto vec = copy? AER::Vector<complex_t>::copy_from_buffer(data_size, data)
+                 : AER::Vector<complex_t>::move_from_buffer(data_size, data);
+
+  auto dm = QV::DensityMatrix<double>();
+  dm.move_from_vector(std::move(vec));
+
+  state->initialize_qreg(num_of_qubits_, std::move(dm));
+  state->initialize_creg(num_of_qubits_, num_of_qubits_);
+
+  initialized_ = true;
+
   reg_t ret;
   ret.reserve(num_of_qubits);
   for (auto i = 0; i < num_of_qubits; ++i)
@@ -736,9 +791,15 @@ AER::Vector<complex_t> AerState::move_to_vector() {
   flush_ops();
 
   Operations::Op op;
-  op.type = Operations::OpType::save_statevec;
-  op.name = "save_statevec";
-  op.qubits.reserve(num_of_qubits_);
+  if (method_ == Method::statevector) {
+    op.type = Operations::OpType::save_statevec;
+    op.name = "save_statevec";
+  } else if (method_ == Method::density_matrix) {
+    op.type = Operations::OpType::save_state;
+    op.name = "save_density_matrix";
+  } else {
+    throw std::runtime_error("move_to_vector() supports only statevector or density_matrix methods");
+  }
   for (auto i = 0; i < num_of_qubits_; ++i)
     op.qubits.push_back(i);
   op.string_params.push_back("s");
@@ -747,11 +808,72 @@ AER::Vector<complex_t> AerState::move_to_vector() {
   ExperimentResult ret;
   state_->apply_op(op, ret, rng_, true);
 
-  auto sv = std::move(static_cast<DataMap<SingleData, Vector<complex_t>>>(std::move(ret).data).value()["s"].value());
-  clear();
-
-  return std::move(sv);
+  if (method_ == Method::statevector) {
+    auto vec = std::move(static_cast<DataMap<SingleData, Vector<complex_t>>>(std::move(ret).data).value()["s"].value());
+    clear();
+    return std::move(vec);
+  } else if (method_ == Method::density_matrix) {
+    auto mat = std::move(static_cast<DataMap<AverageData, matrix<complex_t>, 1>>(std::move(ret).data).value()["s"].value());
+    auto vec = Vector<complex_t>::move_from_buffer(mat.GetColumns() * mat.GetRows(), mat.move_to_buffer());
+    clear();
+    return std::move(vec);
+  } else {
+    throw std::runtime_error("move_to_vector() supports only statevector or density_matrix methods");
+  }
 };
+
+matrix<complex_t> AerState::move_to_matrix() {
+  assert_initialized();
+
+  flush_ops();
+
+  Operations::Op op;
+  if (method_ == Method::statevector) {
+    op.type = Operations::OpType::save_statevec;
+    op.name = "save_statevec";
+  } else if (method_ == Method::density_matrix) {
+    op.type = Operations::OpType::save_state;
+    op.name = "save_density_matrix";
+  } else {
+    throw std::runtime_error("move_to_vector() supports only statevector or density_matrix methods");
+  }
+  for (auto i = 0; i < num_of_qubits_; ++i)
+    op.qubits.push_back(i);
+  op.string_params.push_back("s");
+  op.save_type = Operations::DataSubType::single;
+
+  ExperimentResult ret;
+  state_->apply_op(op, ret, rng_, true);
+
+  if (method_ == Method::statevector) {
+    auto vec = std::move(
+                std::move(
+                  std::move(
+                    static_cast<DataMap<SingleData, Vector<complex_t>>>(
+                      std::move(ret).data
+                    )
+                  ).value()
+                )["s"].value()
+              );
+    clear();
+    return matrix<complex_t>((1ULL << num_of_qubits_), 1, vec.move_to_buffer());
+  } else if (method_ == Method::density_matrix) {
+    auto mat = std::move(
+                std::move(
+                  std::move(
+                    static_cast<DataMap<AverageData, matrix<complex_t>, 1>>(
+                      std::move(ret).data
+                    )
+                  ).value()
+                )["s"].value()
+              );
+    clear();
+    return std::move(mat);
+  } else {
+    throw std::runtime_error("move_to_vector() supports only statevector or density_matrix methods");
+  }
+};
+
 
 //-----------------------------------------------------------------------
 // Apply Initialization
