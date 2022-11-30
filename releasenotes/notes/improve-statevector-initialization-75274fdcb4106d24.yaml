@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    This is fix for AerStatevector.
+    It was not possible to create an AerStatevector instance directly from
+    terra's Statevector.
+    This fix allows a Statevector as AerStatevector's input.

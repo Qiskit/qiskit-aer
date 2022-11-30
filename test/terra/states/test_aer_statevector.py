@@ -258,6 +258,24 @@ class TestAerStatevector(common.QiskitAerTestCase):
         for e, s in zip(expected, state):
             self.assertAlmostEqual(e, s)
 
+    def test_initialize_with_terra_statevector(self):
+        """Test Statevector initialization """
+        circ = QuantumVolume(5, seed=1111)
+        expected = Statevector(circ)
+        state = AerStatevector(expected)
+
+        for e, s in zip(expected, state):
+            self.assertAlmostEqual(e, s)
+
+    def test_initialize_with_aer_statevector(self):
+        """Test AerStatevector initialization """
+        circ = QuantumVolume(5, seed=1111)
+        expected = AerStatevector(circ)
+        state = AerStatevector(expected)
+
+        for e, s in zip(expected, state):
+            self.assertAlmostEqual(e, s)
+
     ####                                          ####
     ###   Copy from test_statevector.py in terra   ###
     ####                                          ####
