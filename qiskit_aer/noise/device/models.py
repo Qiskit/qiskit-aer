@@ -378,17 +378,19 @@ def _truncate_t2_value(t1, t2):
 
 
 def _excited_population(freq, temperature):
-    """Return excited state population"""
+    """Return excited state population from freq [GHz] and temperature [mK]."""
     population = 0
     if freq != inf and temperature != 0:
-        # Compute the excited state population from qubit
-        # frequency and temperature
-        # Boltzman constant  kB = 8.617333262-5 (eV/K)
+        # Compute the excited state population from qubit frequency and temperature
+        # based on Maxwell-Boltzmann distribution
+        # considering only qubit states (|0> and |1>), i.e. truncating higher energy states.
+        # Boltzman constant  kB = 8.617333262e-5 (eV/K)
         # Planck constant h = 4.135667696e-15 (eV.s)
         # qubit temperature temperatue = T (mK)
         # qubit frequency frequency = f (GHz)
-        # excited state population = 1/(1+exp((2*h*f*1e9)/(kb*T*1e-3)))
-        exp_param = exp((95.9849 * freq) / abs(temperature))
+        # excited state population = 1/(1+exp((h*f*1e9)/(kb*T*1e-3)))
+        # See e.g. Phys. Rev. Lett. 114, 240501 (2015).
+        exp_param = exp((47.99243 * freq) / abs(temperature))
         population = 1 / (1 + exp_param)
         if temperature < 0:
             # negative temperate implies |1> is thermal ground

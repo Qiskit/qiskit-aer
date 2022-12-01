@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Fixed a bug in computation of the excited population from qubit frequency and temperature
+    in noise model construction. Previously, there was an incorrect exponential factor of 2
+    and hence the excited population was incorrectly squared. This fix will affects users
+    who generate a noise model using :meth:`NoiseModel.from_backend` with ``temperature``
+    option while it won't affect users of the default noise model that assumes no excitation.
