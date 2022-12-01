@@ -84,6 +84,13 @@ class AerStatevector(Statevector):
         self._result = None
         self._configs = configs
 
+    def seed(self, value=None):
+        """Set the seed for the quantum state RNG."""
+        if value is None or isinstance(value, int):
+            self._aer_state.set_seed(value)
+        else:
+            raise AerError(f'This seed is not supported: type={value.__class__}, value={value}')
+
     def _last_result(self):
         if self._result is None:
             self._result = self._aer_state.last_result()
@@ -114,12 +121,9 @@ class AerStatevector(Statevector):
             qubits = np.array(qargs)
         self._aer_state.close()
 
-        configs = self._aer_state.configuration()
-        if 'seed_simulator' in configs:
-            configs['seed_simulator'] = int(configs['seed_simulator']) + 1
-        self._aer_state = AerState(**configs)
-
+        self._aer_state.renew()
         self._aer_state.initialize(self._data, copy=False)
+
         samples = self._aer_state.sample_memory(qubits, shots)
         self._data = self._aer_state.move_to_ndarray()
         return samples
