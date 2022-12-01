@@ -123,6 +123,40 @@ class TestAerStatevector(common.QiskitAerTestCase):
 
         self.assertEqual(state1, state2)
 
+    def test_GHZ(self):
+        """Test each method can process ghz"""
+        ghz = QuantumCircuit(4)
+        ghz.h(0)
+        ghz.cx(0, 1)
+        ghz.cx(1, 2)
+        ghz.cx(2, 3)
+
+        for method in ["statevector", "matrix_product_state"]:
+            sv = AerStatevector(ghz, method=method)
+            counts = sv.sample_counts(shots=1024)
+            self.assertEqual(2, len(counts))
+            self.assertTrue('0000' in counts)
+            self.assertTrue('1111' in counts)
+
+    def test_QFT(self):
+        """Test each method can process qft"""
+        qft = QuantumCircuit(4)
+        qft.h(range(4))
+        qft.compose(QFT(4), inplace=True)
+
+        for method in ["statevector", "matrix_product_state"]:
+            sv = AerStatevector(qft, method=method)
+            counts = sv.sample_counts(shots=1024)
+            self.assertEqual(1, len(counts))
+            self.assertTrue('0000' in counts)
+
+    def test_single_qubit_QV(self):
+        """Test single qubit QuantumVolume"""
+        state = AerStatevector(QuantumVolume(1))
+        counts = state.sample_counts(shots=1024)
+        self.assertEqual(1, len(counts))
+        self.assertTrue('0' in counts)
+
     def test_evolve(self):
         """Test method and device properties"""
         circ1 = QuantumVolume(5, seed=1111)
@@ -145,7 +179,7 @@ class TestAerStatevector(common.QiskitAerTestCase):
         state1 = AerStatevector(circ)
 
     def test_ry(self):
-        # Test tensor product of 1-qubit gates
+        # Test ry
         circuit = QuantumCircuit(3)
         circuit.h(0)
         circuit.x(1)
@@ -154,11 +188,104 @@ class TestAerStatevector(common.QiskitAerTestCase):
         target = AerStatevector.from_label("000").evolve(Operator(circuit))
         self.assertEqual(target, psi)
 
-    def test_h(self):
-        # Test tensor product of 1-qubit gates
+    def test_u(self):
+        # Test u
         circuit = QuantumCircuit(3)
         circuit.h(0)
         circuit.h(1)
+        circuit.u(0.1, 0.1, 0.1, 0)
+        target = AerStatevector.from_label("000").evolve(Operator(circuit))
+        psi = AerStatevector.from_instruction(circuit)
+        self.assertEqual(psi, target)
+
+    def test_cu(self):
+        # Test cu
+        circuit = QuantumCircuit(3)
+        circuit.h(0)
+        circuit.h(1)
+        circuit.cu(0.1, 0.1, 0.1, 0.1, 0, 1)
+        target = AerStatevector.from_label("000").evolve(Operator(circuit))
+        psi = AerStatevector.from_instruction(circuit)
+        self.assertEqual(psi, target)
+
+    def test_h(self):
+        # Test h
+        circuit = QuantumCircuit(3)
+        circuit.h(0)
+        circuit.h(1)
+        target = AerStatevector.from_label("000").evolve(Operator(circuit))
+        psi = AerStatevector.from_instruction(circuit)
+        self.assertEqual(psi, target)
+
+    def test_x(self):
+        # Test x
+        circuit = QuantumCircuit(3)
+        circuit.h(0)
+        circuit.x(1)
+        target = AerStatevector.from_label("000").evolve(Operator(circuit))
+        psi = AerStatevector.from_instruction(circuit)
+        self.assertEqual(psi, target)
+
+    def test_cx(self):
+        # Test cx
+        circuit = QuantumCircuit(3)
+        circuit.h(0)
+        circuit.cx(0, 1)
+        target = AerStatevector.from_label("000").evolve(Operator(circuit))
+        psi = AerStatevector.from_instruction(circuit)
+        self.assertEqual(psi, target)
+
+    def test_y(self):
+        # Test y
+        circuit = QuantumCircuit(3)
+        circuit.h(0)
+        circuit.y(1)
+        target = AerStatevector.from_label("000").evolve(Operator(circuit))
+        psi = AerStatevector.from_instruction(circuit)
+        self.assertEqual(psi, target)
+
+    def test_cy(self):
+        # Test cy
+        circuit = QuantumCircuit(3)
+        circuit.h(0)
+        circuit.cy(0, 1)
+        target = AerStatevector.from_label("000").evolve(Operator(circuit))
+        psi = AerStatevector.from_instruction(circuit)
+        self.assertEqual(psi, target)
+
+    def test_z(self):
+        # Test z
+        circuit = QuantumCircuit(3)
+        circuit.h(0)
+        circuit.z(0)
+        target = AerStatevector.from_label("000").evolve(Operator(circuit))
+        psi = AerStatevector.from_instruction(circuit)
+        self.assertEqual(psi, target)
+
+    def test_cz(self):
+        # Test cz
+        circuit = QuantumCircuit(3)
+        circuit.h(0)
+        circuit.cz(0, 1)
+        target = AerStatevector.from_label("000").evolve(Operator(circuit))
+        psi = AerStatevector.from_instruction(circuit)
+        self.assertEqual(psi, target)
+
+    def test_unitary(self):
+        # Test unitary
+        circuit = QuantumCircuit(3)
+        mat = random_unitary(8).data
+        circuit.unitary(mat, range(3))
+        target = AerStatevector.from_label("000").evolve(Operator(circuit))
+        psi = AerStatevector.from_instruction(circuit)
+        self.assertEqual(psi, target)
+
+    def test_diagonal(self):
+        # Test diagonal
+        circuit = QuantumCircuit(3)
+        circuit.h(range(3))
+        diagonal = [ 1.0, 1.0, 1.0, -1.0, 1.0, 1.0, 1.0, -1.0 ]
+        circuit.diagonal(diagonal, list(range(3)))
         target = AerStatevector.from_label("000").evolve(Operator(circuit))
         psi = AerStatevector.from_instruction(circuit)
         self.assertEqual(psi, target)
@@ -182,6 +309,24 @@ class TestAerStatevector(common.QiskitAerTestCase):
         circ = QuantumVolume(5, seed=1111)
         expected = Statevector(circ)
         state = AerStatevector(expected.data)
+
+        for e, s in zip(expected, state):
+            self.assertAlmostEqual(e, s)
+
+    def test_initialize_with_terra_statevector(self):
+        """Test Statevector initialization """
+        circ = QuantumVolume(5, seed=1111)
+        expected = Statevector(circ)
+        state = AerStatevector(expected)
+
+        for e, s in zip(expected, state):
+            self.assertAlmostEqual(e, s)
+
+    def test_initialize_with_aer_statevector(self):
+        """Test AerStatevector initialization """
+        circ = QuantumVolume(5, seed=1111)
+        expected = AerStatevector(circ)
+        state = AerStatevector(expected)
 
         for e, s in zip(expected, state):
             self.assertAlmostEqual(e, s)

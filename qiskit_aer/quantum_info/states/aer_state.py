@@ -300,6 +300,21 @@ class AerState:
         # update state
         self._native_state.apply_diagonal(qubits, diag)
 
+    def apply_x(self, target_qubit):
+        """apply a x operation."""
+        self._assert_allocated_or_mapped()
+        self._assert_in_allocated_qubits(target_qubit)
+        # update state
+        self._native_state.apply_x(target_qubit)
+
+    def apply_cx(self, control_qubit, target_qubit):
+        """apply a cx operation."""
+        self._assert_allocated_or_mapped()
+        self._assert_in_allocated_qubits(control_qubit)
+        self._assert_in_allocated_qubits(target_qubit)
+        # update state
+        self._native_state.apply_cx([control_qubit, target_qubit])
+
     def apply_mcx(self, control_qubits, target_qubit):
         """apply a mcx operation."""
         self._assert_allocated_or_mapped()
@@ -308,6 +323,21 @@ class AerState:
         # update state
         self._native_state.apply_mcx(control_qubits + [target_qubit])
 
+    def apply_y(self, target_qubit):
+        """apply a y operation."""
+        self._assert_allocated_or_mapped()
+        self._assert_in_allocated_qubits(target_qubit)
+        # update state
+        self._native_state.apply_y(target_qubit)
+
+    def apply_cy(self, control_qubit, target_qubit):
+        """apply a cy operation."""
+        self._assert_allocated_or_mapped()
+        self._assert_in_allocated_qubits(control_qubit)
+        self._assert_in_allocated_qubits(target_qubit)
+        # update state
+        self._native_state.apply_cy([control_qubit, target_qubit])
+
     def apply_mcy(self, control_qubits, target_qubit):
         """apply a mcy operation."""
         self._assert_allocated_or_mapped()
@@ -315,6 +345,21 @@ class AerState:
         self._assert_in_allocated_qubits(target_qubit)
         # update state
         self._native_state.apply_mcy(control_qubits + [target_qubit])
+
+    def apply_z(self, target_qubit):
+        """apply a z operation."""
+        self._assert_allocated_or_mapped()
+        self._assert_in_allocated_qubits(target_qubit)
+        # update state
+        self._native_state.apply_z(target_qubit)
+
+    def apply_cz(self, control_qubit, target_qubit):
+        """apply a cz operation."""
+        self._assert_allocated_or_mapped()
+        self._assert_in_allocated_qubits(control_qubit)
+        self._assert_in_allocated_qubits(target_qubit)
+        # update state
+        self._native_state.apply_cz([control_qubit, target_qubit])
 
     def apply_mcz(self, control_qubits, target_qubit):
         """apply a mcz operation."""
@@ -332,13 +377,35 @@ class AerState:
         # update state
         self._native_state.apply_mcphase(control_qubits + [target_qubit], phase)
 
-    def apply_mcu(self, control_qubits, target_qubit, theta, phi, lamb):
+    def apply_h(self, target_qubit):
+        """apply a h operation."""
+        self._assert_allocated_or_mapped()
+        self._assert_in_allocated_qubits(target_qubit)
+        # update state
+        self._native_state.apply_h(target_qubit)
+
+    def apply_u(self, target_qubit, theta, phi, lamb):
+        """apply a u operation."""
+        self._assert_allocated_or_mapped()
+        self._assert_in_allocated_qubits(target_qubit)
+        # update state
+        self._native_state.apply_u(target_qubit, theta, phi, lamb)
+
+    def apply_cu(self, control_qubit, target_qubit, theta, phi, lamb, gamma):
+        """apply a cu operation."""
+        self._assert_allocated_or_mapped()
+        self._assert_in_allocated_qubits(control_qubit)
+        self._assert_in_allocated_qubits(target_qubit)
+        # update state
+        self._native_state.apply_cu([control_qubit, target_qubit], theta, phi, lamb, gamma)
+
+    def apply_mcu(self, control_qubits, target_qubit, theta, phi, lamb, gamma):
         """apply a mcu operation."""
         self._assert_allocated_or_mapped()
         self._assert_in_allocated_qubits(control_qubits)
         self._assert_in_allocated_qubits(target_qubit)
         # update state
-        self._native_state.apply_mcu(control_qubits + [target_qubit], theta, phi, lamb)
+        self._native_state.apply_mcu(control_qubits + [target_qubit], theta, phi, lamb, gamma)
 
     def apply_mcswap(self, control_qubits, qubit0, qubit1):
         """apply a mcswap operation."""
