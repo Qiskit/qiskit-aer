@@ -57,13 +57,13 @@ BASIS_GATES = {
         'rzz', 'rzx', 'ccx', 'cswap', 'mcx', 'mcy', 'mcz', 'mcsx',
         'mcp', 'mcphase', 'mcu', 'mcu1', 'mcu2', 'mcu3', 'mcrx', 'mcry', 'mcrz',
         'mcr', 'mcswap', 'unitary', 'diagonal', 'multiplexer',
-        'initialize', 'delay', 'pauli', 'mcx_gray'
+        'initialize', 'delay', 'pauli', 'mcx_gray', 'ecr'
     ]),
     'density_matrix': sorted([
         'u1', 'u2', 'u3', 'u', 'p', 'r', 'rx', 'ry', 'rz', 'id', 'x',
         'y', 'z', 'h', 's', 'sdg', 'sx', 'sxdg', 't', 'tdg', 'swap', 'cx',
         'cy', 'cz', 'cp', 'cu1', 'rxx', 'ryy', 'rzz', 'rzx', 'ccx',
-        'unitary', 'diagonal', 'delay', 'pauli',
+        'unitary', 'diagonal', 'delay', 'pauli', 'ecr',
     ]),
     'matrix_product_state': sorted([
         'u1', 'u2', 'u3', 'u', 'p', 'cp', 'cx', 'cy', 'cz', 'id', 'x', 'y', 'z', 'h', 's',
@@ -86,12 +86,13 @@ BASIS_GATES = {
         'rzz', 'rzx', 'ccx', 'cswap', 'mcx', 'mcy', 'mcz', 'mcsx',
         'mcp', 'mcphase', 'mcu', 'mcu1', 'mcu2', 'mcu3', 'mcrx', 'mcry', 'mcrz',
         'mcr', 'mcswap', 'unitary', 'diagonal', 'multiplexer', 'delay', 'pauli',
+        'ecr',
     ]),
     'superop': sorted([
         'u1', 'u2', 'u3', 'u', 'p', 'r', 'rx', 'ry', 'rz', 'id', 'x',
         'y', 'z', 'h', 's', 'sdg', 'sx', 'sxdg', 't', 'tdg', 'swap', 'cx',
         'cy', 'cz', 'cp', 'cu1', 'rxx', 'ryy',
-        'rzz', 'rzx', 'ccx', 'unitary', 'diagonal', 'delay', 'pauli'
+        'rzz', 'rzx', 'ccx', 'unitary', 'diagonal', 'delay', 'pauli', 'ecr',
     ])
 }
 
