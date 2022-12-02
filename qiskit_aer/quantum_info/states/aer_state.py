@@ -58,6 +58,14 @@ class AerState:
         if 'method' not in kwargs:
             self.configure('method', 'statevector')
 
+    def renew(self):
+        """Renew AerState for reuse"""
+        self._assert_closed()
+        self._state = _STATE.INITIALIZING
+        self._init_data = None
+        self._moved_data = None
+        self._last_qubit = -1
+
     def _assert_initializing(self):
         if self._state != _STATE.INITIALIZING:
             raise AerError('AerState was already initialized.')
@@ -84,6 +92,10 @@ class AerState:
         if self._state == _STATE.CLOSED:
             raise AerError('AerState has already been closed.')
 
+    def _assert_closed(self):
+        if self._state != _STATE.CLOSED:
+            raise AerError('AerState is not closed.')
+
     def _allocated(self):
         if self._state != _STATE.INITIALIZING:
             raise AerError('unexpected state transition: {self._state}->{_STATE.ALLOCATED}')
@@ -102,6 +114,7 @@ class AerState:
     def _closed(self):
         if self._state not in (_STATE.MOVED, _STATE.MAPPED):
             raise AerError('unexpected state transition: {self._state}->{_STATE.CLOSED}')
+        self._state = _STATE.CLOSED
 
     def configure(self, key, value):
         """configure AerState with options of `AerSimulator`."""
@@ -154,6 +167,13 @@ class AerState:
             self._allocated()
 
         self._last_qubit = num_of_qubits - 1
+
+    def set_seed(self, value=None):
+        """initialize seed with a specified value"""
+        if value is None:
+            self._native_state.set_random_seed()
+        else:
+            self._native_state.set_seed(value)
 
     def close(self):
         """Safely release all releated memory."""
