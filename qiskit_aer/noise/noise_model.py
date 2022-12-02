@@ -131,7 +131,7 @@ class NoiseModel:
         'y', 'z', 'h', 's', 'sdg', 'sx', 'sxdg', 't', 'tdg'])
     _2qubit_instructions = set([
         'swap', 'cx', 'cy', 'cz', 'csx', 'cp', 'cu', 'cu1', 'cu2', 'cu3', 'rxx',
-        'ryy', 'rzz', 'rzx'])
+        'ryy', 'rzz', 'rzx', 'ecr'])
     _3qubit_instructions = set(['ccx', 'cswap'])
 
     def __init__(self, basis_gates=None):
