@@ -54,6 +54,61 @@ class TestAerStatevector(common.QiskitAerTestCase):
         for e, s in zip(expected, state):
             self.assertAlmostEqual(e, s)
 
+    def test_sample_randomness(self):
+        """Test randomness of results of sample_counts """
+        circ = QuantumVolume(5, seed=1111)
+
+        state = AerStatevector(circ, seed_simulator=1)
+
+        shots = 1024
+        counts0 = state.sample_counts(shots, qargs=range(5))
+        counts1 = state.sample_counts(shots, qargs=range(5))
+
+        self.assertNotEqual(counts0, counts1)
+
+        state = AerStatevector(circ, seed_simulator=10)
+
+        shots = 1024
+        counts2 = state.sample_counts(shots, qargs=range(5))
+        counts3 = state.sample_counts(shots, qargs=range(5))
+
+        self.assertNotEqual(counts2, counts3)
+
+        self.assertNotEqual(counts0, counts2)
+        self.assertNotEqual(counts1, counts2)
+
+    def test_sample_with_same_seed(self):
+        """Test randomness of results of sample_counts """
+        circ = QuantumVolume(5, seed=1111)
+
+        state = AerStatevector(circ, seed_simulator=1)
+
+        shots = 1024
+        counts0 = state.sample_counts(shots, qargs=range(5))
+        counts1 = state.sample_counts(shots, qargs=range(5))
+
+        self.assertNotEqual(counts0, counts1)
+
+        state = AerStatevector(circ, seed_simulator=1)
+
+        shots = 1024
+        counts2 = state.sample_counts(shots, qargs=range(5))
+        counts3 = state.sample_counts(shots, qargs=range(5))
+
+        self.assertNotEqual(counts2, counts3)
+        self.assertEqual(counts0, counts2)
+        self.assertEqual(counts1, counts3)
+
+        shots = 1024
+        state.seed(1)
+        counts4 = state.sample_counts(shots, qargs=range(5))
+        counts5 = state.sample_counts(shots, qargs=range(5))
+
+        self.assertNotEqual(counts4, counts5)
+        self.assertEqual(counts0, counts4)
+        self.assertEqual(counts1, counts5)
+
+
     def test_method_and_device_properties(self):
         """Test method and device properties"""
         circ = QuantumVolume(5, seed=1111)

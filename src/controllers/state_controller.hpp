@@ -101,7 +101,7 @@ public:
   //-----------------------------------------------------------------------
   // Constructors
   //-----------------------------------------------------------------------
-  AerState() = default;
+  AerState() { set_random_seed(); };
 
   virtual ~AerState() { };
 
@@ -124,9 +124,6 @@ public:
 
   // configure custatevec enabled or not
   virtual bool set_custatevec(const bool& enabled);
-
-  // configure seed
-  virtual bool set_seed_simulator(const int& seed);
 
   // configure number of threads to update state
   virtual bool set_parallel_state_update(const uint_t& parallel_state_update);
@@ -152,7 +149,7 @@ public:
   // Return a number of qubits.
   virtual uint_t num_of_qubits() const { return num_of_qubits_; };
 
-  // Clear all the configurations
+  // Clear state and buffered ops
   virtual void clear();
 
   virtual ExperimentResult& last_result() { return last_result_; };
@@ -163,6 +160,12 @@ public:
 
   // Initialize state with given configuration
   void initialize();
+
+  // Initialize random number genrator
+  void set_random_seed();
+
+  // Initialize random number genrator with a given seed
+  void set_seed(int_t seed);
 
   // Allocate qubits with inputted complex array
   // method must be statevector and the length of the array must be 2^{num_qubits}
@@ -437,7 +440,7 @@ void AerState::configure(const std::string& _key, const std::string& _value) {
   } else if (key == "custatevec_enable") {
     error = !set_custatevec("true" == value);
   } else if (key == "seed_simulator") {
-    error = !set_seed_simulator(std::stoi(value));
+    set_seed(std::stoi(value));
   } else if (key == "parallel_state_update") {
     error = !set_parallel_state_update(std::stoul(value));
   } else if (key == "fusion_max_qubit") {
@@ -516,12 +519,6 @@ bool AerState::set_precision(const std::string& precision_name) {
 bool AerState::set_custatevec(const bool& enabled) {
   assert_not_initialized();
   cuStateVec_enable_ = enabled;
-  return true;
-};
-
-bool AerState::set_seed_simulator(const int& seed) {
-  assert_not_initialized();
-  seed_ = seed;
   return true;
 };
 
@@ -661,11 +658,19 @@ void AerState::initialize() {
 
   state_->initialize_qreg(num_of_qubits_);
   state_->initialize_creg(num_of_qubits_, num_of_qubits_);
-  rng_.set_seed(seed_);
 
   clear_ops();
 
   initialized_ = true;
+};
+
+void AerState::set_random_seed() {
+  set_seed(std::random_device()());
+};
+
+void AerState::set_seed(int_t seed) {
+  seed_ = seed;
+  rng_.set_seed(seed);
 };
 
 reg_t AerState::allocate_qubits(uint_t num_qubits) {
@@ -712,7 +717,6 @@ reg_t AerState::initialize_statevector(uint_t num_of_qubits, complex_t* data, bo
   state->initialize_creg(num_of_qubits_, num_of_qubits_);
   state->initialize_statevector(num_of_qubits_, std::move(qv));
   state_ = state;
-  rng_.set_seed(seed_);
   initialized_ = true;
   reg_t ret;
   ret.reserve(num_of_qubits);
