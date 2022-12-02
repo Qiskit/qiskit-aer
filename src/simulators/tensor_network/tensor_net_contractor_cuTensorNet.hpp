@@ -80,8 +80,6 @@ protected:
   thrust::device_vector<uint_t> sampling_out_;
   thrust::device_vector<unsigned char> dev_work_;                         //work buffer
   std::vector<void*> dev_data_ptr_;        //array of pointer to each tensor
-  std::vector<uint32_t> alignments_;       //array of alignment of each tensor pointer
-  uint32_t alignment_out_;                 //alignment of output buffer
   uint_t tensor_size_;
   uint_t additional_tensor_size_;
   uint_t out_size_;
@@ -98,18 +96,6 @@ protected:
   cutensornetContractionAutotunePreference_t autotunePref_;
 
   void release_cuTensorNet(void);
-
-  uint_t get_alignment(const void* ptr) 
-  {
-    const uint_t ptrAddr  = reinterpret_cast<uint_t>(ptr);
-    uint_t alignment = 1;
-    while(ptrAddr % alignment == 0 &&
-          alignment < 256) // at the latest we terminate once the alignment reached 256 bytes (we could be going, but any alignment larger or equal to 256 is equally fine)
-    {
-       alignment *= 2;
-    }
-    return alignment;
-  }
 
   void assert_error(const char* name, const char* desc)
   {
@@ -212,7 +198,6 @@ RawTensorData<data_t>::~RawTensorData()
   dev_work_.shrink_to_fit();
 
   dev_data_ptr_.clear();
-  alignments_.clear();
 
   sampling_rnds_.clear();
   sampling_rnds_.shrink_to_fit();
@@ -245,7 +230,6 @@ void RawTensorData<data_t>::reserve_arrays(uint_t num_tensors)
 {
   num_tensors_ = num_tensors;
   dev_data_ptr_.reserve(num_tensors);
-  alignments_.reserve(num_tensors);
 }
 
 template <typename data_t>
@@ -285,8 +269,6 @@ void RawTensorData<data_t>::allocate_output(uint_t size)
   if(out_size_ < size){
     dev_out_.resize(size);
     out_size_ = size;
-
-    alignment_out_ = get_alignment(thrust::raw_pointer_cast(dev_out_.data()));
   }
 }
 
@@ -313,8 +295,6 @@ void RawTensorData<data_t>::copy_tensors(const std::vector<std::shared_ptr<Tenso
       cudaError_t err = cudaMemcpyAsync(ptr,tensors[i]->tensor().data(),sizeof(std::complex<data_t>)*tensors[i]->tensor().size(),cudaMemcpyHostToDevice,stream_);
       if(err != cudaSuccess)
         assert_error("copy_tensors: cudaMemcpyAsync",cudaGetErrorString(err));
-
-      alignments_.push_back(get_alignment(ptr));
       size += tensors[i]->tensor().size();
     }
   }
@@ -333,8 +313,6 @@ void RawTensorData<data_t>::copy_additional_tensors(const std::vector<std::share
     cudaError_t err = cudaMemcpyAsync(ptr,tensors[i]->tensor().data(),sizeof(std::complex<data_t>)*tensors[i]->tensor().size(),cudaMemcpyHostToDevice,stream_);
     if(err != cudaSuccess)
       assert_error("copy_additional_tensors: cudaMemcpyAsync",cudaGetErrorString(err));
-
-    alignments_.push_back(get_alignment(ptr));
     size += tensors[i]->tensor().size();
   }
   num_additional_tensors_ = tensors.size();
@@ -391,16 +369,13 @@ void RawTensorData<data_t>::copy_tensors_from_device(const RawTensorData<data_t>
     }
   }
 
-  //calculate pointer and alignment
+  //calculate pointers
   dev_data_ptr_.resize(src.dev_data_ptr_.size());
-  alignments_.resize(src.alignments_.size());
   for(int_t i=0;i<num_tensors_ - num_additional_tensors_;i++){
     dev_data_ptr_[i] = thrust::raw_pointer_cast(dev_tensor_data_.data()) + ((uint_t)src.dev_data_ptr_[i] - (uint_t)src.dev_data_ptr_[0]);
-    alignments_[i] = get_alignment(dev_data_ptr_[i]);
   }
   for(int_t i=0;i<num_additional_tensors_;i++){
     dev_data_ptr_[num_tensors_+i] = thrust::raw_pointer_cast(dev_additional_tensor_data_.data()) + ((uint_t)src.dev_data_ptr_[num_tensors_+i] - (uint_t)thrust::raw_pointer_cast(src.dev_additional_tensor_data_.data()));
-    alignments_[num_tensors_+i] = get_alignment(dev_data_ptr_[num_tensors_+i]);
   }
 
   cudaStreamSynchronize(src.stream_);
@@ -430,7 +405,6 @@ template <typename data_t>
 void RawTensorData<data_t>::remove_additional_tensors(uint_t num_add)
 {
   dev_data_ptr_.erase(dev_data_ptr_.end()-num_add,dev_data_ptr_.end());
-  alignments_.erase(alignments_.end()-num_add,alignments_.end());
 
   num_additional_tensors_ = 0;
 }
@@ -463,8 +437,8 @@ void RawTensorData<data_t>::create_contraction_descriptor(uint_t num_tensors,
 
   //network descriptor
   err = cutensornetCreateNetworkDescriptor(hTensorNet_,
-                                    num_modes.size(), num_modes.data(), extents.data(), strides.data(), modes.data(), alignments_.data(),
-                                    extents_out.size(), extents_out.data(), nullptr, modes_out.data(), alignment_out_,
+                                    num_modes.size(), num_modes.data(), extents.data(), strides.data(), modes.data(), nullptr,
+                                    extents_out.size(), extents_out.data(), nullptr, modes_out.data(), 
                                     dtype, ctype, &tn_desc_);
   if(err != CUTENSORNET_STATUS_SUCCESS)
     assert_error("cutensornetCreateNetworkDescriptor",cutensornetGetErrorString(err));
@@ -486,12 +460,11 @@ uint_t RawTensorData<data_t>::optimize_contraction(void)
 
 
   // Set the value of the partitioner imbalance factor, if desired
-  int imbalance_factor = 30;
-  err = cutensornetContractionOptimizerConfigSetAttribute(hTensorNet_,
-                                                         optimizer_config_,
-                                                         CUTENSORNET_CONTRACTION_OPTIMIZER_CONFIG_GRAPH_IMBALANCE_FACTOR,
-                                                         &imbalance_factor,
-                                                         sizeof(imbalance_factor));
+  int32_t num_hypersamples = 8;
+  err = cutensornetContractionOptimizerConfigSetAttribute(hTensorNet_, optimizer_config_,
+                              CUTENSORNET_CONTRACTION_OPTIMIZER_CONFIG_HYPER_NUM_SAMPLES,
+                              &num_hypersamples,
+                              sizeof(num_hypersamples) );
   if(err != CUTENSORNET_STATUS_SUCCESS)
     assert_error("cutensornetContractionOptimizerConfigSetAttribute",cutensornetGetErrorString(err));
 
@@ -1004,7 +977,7 @@ void TensorNetContractor_cuTensorNet<data_t>::setup_contraction(bool use_autotun
   if(!tensor_data_[0].work_allocated()){
     cudaSetDevice(0);
     HANDLE_CUDA_ERROR( cudaMemGetInfo(&freeMem, &totalMem ));
-    work_size = (freeMem/nid) * 0.8;
+    work_size = (freeMem/nid) * 0.9;
     tensor_data_[0].allocate_work(work_size);
   }
 
@@ -1029,7 +1002,7 @@ void TensorNetContractor_cuTensorNet<data_t>::setup_contraction(bool use_autotun
         if(!tensor_data_[i].work_allocated()){
           cudaSetDevice(i);
           HANDLE_CUDA_ERROR( cudaMemGetInfo(&freeMem, &totalMem ));
-          work_size = (freeMem/nid) * 0.8;
+          work_size = (freeMem/nid) * 0.9;
           tensor_data_[i].allocate_work(work_size);
         }
         tensor_data_[i].copy_tensors_from_device(tensor_data_[0]);  //copy data from the first device
