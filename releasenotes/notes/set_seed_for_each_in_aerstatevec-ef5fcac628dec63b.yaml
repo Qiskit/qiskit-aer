@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Previously seed is not initialized in AerStatevector and then sampled results
+    are always same. With this commit, a seed is initialized for each sampling
+    and sampled results can be vary.
