@@ -22,6 +22,7 @@ from qiskit.quantum_info.states import Statevector
 from qiskit_aer import AerSimulator
 from .aer_state import AerState
 from ...backends.aerbackend import AerError
+from ...backends.backend_utils import BASIS_GATES
 
 
 class AerStatevector(Statevector):
@@ -35,7 +36,7 @@ class AerStatevector(Statevector):
     def __init__(self, data, dims=None, **configs):
         """
         Args:
-            data (np.array or list or AerStatevector or QuantumCircuit or
+            data (np.array or list or Statevector or AerStatevector or QuantumCircuit or
                   qiskit.circuit.Instruction):
                 Data from which the statevector can be constructed. This can be either a complex
                 vector, another statevector or a ``QuantumCircuit`` or ``Instruction``
@@ -74,6 +75,9 @@ class AerStatevector(Statevector):
                 if dims is None:
                     dims = data._op_shape._dims_l
                 data = data._data.copy()
+            elif isinstance(data, Statevector):
+                data, aer_state = AerStatevector._from_ndarray(np.array(data.data, dtype=complex),
+                                                               configs)
             else:
                 raise AerError(f'Input data is not supported: type={data.__class__}, data={data}')
 
@@ -149,6 +153,14 @@ class AerStatevector(Statevector):
         for config_key, config_value in configs.items():
             aer_state.configure(config_key, config_value)
 
+        if 'method' in configs:
+            method = configs['method']
+        else:
+            method = 'statevector'
+            aer_state.configure('method', method)
+
+        basis_gates = BASIS_GATES[method]
+
         aer_state.allocate_qubits(inst.num_qubits)
         num_qubits = inst.num_qubits
 
@@ -161,14 +173,14 @@ class AerStatevector(Statevector):
             aer_state.apply_global_phase(inst.global_phase)
 
         if isinstance(inst, QuantumCircuit):
-            AerStatevector._aer_evolve_circuit(aer_state, inst, range(num_qubits))
+            AerStatevector._aer_evolve_circuit(aer_state, inst, range(num_qubits), basis_gates)
         else:
-            AerStatevector._aer_evolve_instruction(aer_state, inst, range(num_qubits))
+            AerStatevector._aer_evolve_instruction(aer_state, inst, range(num_qubits), basis_gates)
 
         return aer_state.move_to_ndarray(), aer_state
 
     @staticmethod
-    def _aer_evolve_circuit(aer_state, circuit, qubits):
+    def _aer_evolve_circuit(aer_state, circuit, qubits, basis_gates=None):
         """Apply circuit into aer_state"""
         for instruction in circuit.data:
             if instruction.clbits:
@@ -179,34 +191,63 @@ class AerStatevector(Statevector):
             qargs = instruction.qubits
             AerStatevector._aer_evolve_instruction(aer_state, inst,
                                                    [qubits[circuit.find_bit(qarg).index]
-                                                    for qarg in qargs])
+                                                    for qarg in qargs], basis_gates)
 
     @staticmethod
-    def _aer_evolve_instruction(aer_state, inst, qubits):
+    def _aer_evolve_instruction(aer_state, inst, qubits, basis_gates=None):
         """Apply instruction into aer_state"""
+
         params = inst.params
-        if inst.name in ['u', 'u3']:
-            aer_state.apply_mcu(qubits[0:len(qubits) - 1], qubits[len(qubits) - 1],
-                                params[0], params[1], params[2])
-        elif inst.name in ['x', 'cx', 'ccx']:
-            aer_state.apply_mcx(qubits[0:len(qubits) - 1], qubits[len(qubits) - 1])
-        elif inst.name in ['y', 'cy']:
-            aer_state.apply_mcy(qubits[0:len(qubits) - 1], qubits[len(qubits) - 1])
-        elif inst.name in ['z', 'cz']:
-            aer_state.apply_mcz(qubits[0:len(qubits) - 1], qubits[len(qubits) - 1])
-        elif inst.name == 'unitary':
-            aer_state.apply_unitary(qubits, inst.params[0])
-        elif inst.name == 'diagonal':
-            aer_state.apply_diagonal(qubits, inst.params[0])
+        applied = True
+
+        if basis_gates and inst.name in basis_gates:
+            if inst.name in ['u3', 'u']:
+                aer_state.apply_u(qubits[0], params[0], params[1], params[2])
+            elif inst.name == 'h':
+                aer_state.apply_h(qubits[0])
+            elif inst.name == 'x':
+                aer_state.apply_x(qubits[0])
+            elif inst.name == 'cx':
+                aer_state.apply_cx(qubits[0], qubits[1])
+            elif inst.name == 'y':
+                aer_state.apply_y(qubits[0])
+            elif inst.name == 'cy':
+                aer_state.apply_cy(qubits[0], qubits[1])
+            elif inst.name == 'z':
+                aer_state.apply_z(qubits[0])
+            elif inst.name == 'cz':
+                aer_state.apply_cz(qubits[0], qubits[1])
+            elif inst.name == 'unitary':
+                aer_state.apply_unitary(qubits, inst.params[0])
+            elif inst.name == 'diagonal':
+                aer_state.apply_diagonal(qubits, inst.params)
+            elif inst.name == 'cu':
+                aer_state.apply_cu(qubits[0], qubits[1], params[0], params[1], params[2], params[3])
+            elif inst.name == 'mcu':
+                aer_state.apply_mcu(qubits[0:len(qubits) - 1], qubits[len(qubits) - 1],
+                                    params[0], params[1], params[2], params[3])
+            elif inst.name in 'mcx':
+                aer_state.apply_mcx(qubits[0:len(qubits) - 1], qubits[len(qubits) - 1])
+            elif inst.name in 'mcy':
+                aer_state.apply_mcy(qubits[0:len(qubits) - 1], qubits[len(qubits) - 1])
+            elif inst.name in 'mcz':
+                aer_state.apply_mcz(qubits[0:len(qubits) - 1], qubits[len(qubits) - 1])
+            elif inst.name == 'id':
+                pass
+            else:
+                applied = False
         elif inst.name == 'reset':
             aer_state.apply_reset(qubits)
+        elif inst.name == 'barrier':
+            pass
         else:
+            applied = False
+
+        if not applied:
             definition = inst.definition
-            if definition is inst:
+            if definition is inst or definition is None:
                 raise AerError('cannot decompose ' + inst.name)
-            if not definition:
-                raise AerError('cannot decompose ' + inst.name)
-            AerStatevector._aer_evolve_circuit(aer_state, definition, qubits)
+            AerStatevector._aer_evolve_circuit(aer_state, definition, qubits, basis_gates)
 
     @classmethod
     def from_label(cls, label):

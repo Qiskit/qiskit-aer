@@ -15,6 +15,7 @@ NoiseModel class integration tests
 """
 
 import unittest
+import warnings
 
 import numpy as np
 from qiskit_aer.backends import AerSimulator
@@ -33,7 +34,7 @@ from qiskit.circuit.library.generalized_gates import PauliGate
 from qiskit.circuit.library.standard_gates import IGate, XGate
 from qiskit.compiler import transpile
 from qiskit.providers.fake_provider import (
-    FakeBackend, FakeAlmaden, FakeLagos, FakeSingapore, FakeMumbai,
+    FakeBackend, FakeAlmaden, FakeLagos, FakeSingapore, FakeMumbai, FakeKolkata,
     FakeBackendV2, FakeLagosV2
 )
 from test.terra.common import QiskitAerTestCase
@@ -244,7 +245,7 @@ class TestNoiseModel(QiskitAerTestCase):
 
         backend = FakeBackendV2()
         noise_model = NoiseModel.from_backend(backend)
-        self.assertEquals([0, 1], noise_model.noise_qubits)
+        self.assertEqual([0, 1], noise_model.noise_qubits)
         circ = transpile(circ, backend, optimization_level=0)
         result = AerSimulator().run(circ, noise_model=noise_model).result()
         self.assertTrue(result.success)
@@ -257,13 +258,13 @@ class TestNoiseModel(QiskitAerTestCase):
 
         backend = FakeLagosV2()
         noise_model = NoiseModel.from_backend(backend)
-        self.assertEquals([0, 1, 2, 3, 4, 5, 6], noise_model.noise_qubits)
+        self.assertEqual([0, 1, 2, 3, 4, 5, 6], noise_model.noise_qubits)
         circ = transpile(circ, backend, optimization_level=0)
         result = AerSimulator().run(circ, noise_model=noise_model).result()
         self.assertTrue(result.success)
 
     def test_noise_model_from_invalid_t2_backend(self):
-        """Test if issue user warning when creating a noise model from invalid t2 backend"""
+        """Test if silently truncate invalid T2 values when creating a noise model from backend"""
         from qiskit.providers.models.backendproperties import BackendProperties, Gate, Nduv
         import datetime
 
@@ -312,15 +313,23 @@ class TestNoiseModel(QiskitAerTestCase):
                 return self._configuration
 
         backend = InvalidT2Fake1Q()
-        with self.assertWarns(UserWarning):
-            noise_model = NoiseModel.from_backend(backend, gate_error=False)
-            expected = thermal_relaxation_error(
-                t1=t1_ns,
-                t2=2*t1_ns,
-                time=u3_time_ns,
-                excited_state_population=_excited_population(frequency, temperature=0)
-            )
-            self.assertEqual(expected, noise_model._local_quantum_errors["u3"][(0, )])
+        noise_model = NoiseModel.from_backend(backend, gate_error=False)
+        expected = thermal_relaxation_error(
+            t1=t1_ns,
+            t2=2*t1_ns,
+            time=u3_time_ns,
+            excited_state_population=_excited_population(frequency, temperature=0)
+        )
+        self.assertEqual(expected, noise_model._local_quantum_errors["u3"][(0, )])
+
+    def test_create_noise_model_without_user_warnings(self):
+        """Test if never issue user warnings when creating a noise model from backend.
+        See issue#1631 for the details."""
+        # FakeKolkata has a qubit with T_2 > 2 * T_1
+        with warnings.catch_warnings(record=True) as warns:
+            NoiseModel.from_backend(FakeKolkata())
+            user_warnings = [w for w in warns if issubclass(w.category, UserWarning)]
+            self.assertEqual(len(user_warnings), 0)
 
     def test_transform_noise(self):
         org_error = reset_error(0.2)
