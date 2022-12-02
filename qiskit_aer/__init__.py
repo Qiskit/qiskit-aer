@@ -52,14 +52,14 @@ Exceptions
    AerError
 """
 
-# https://github.com/Qiskit/qiskit-aer/issues/1
-# Because of this issue, we need to make sure that Numpy's OpenMP library is initialized
-# before loading our simulators, so we force it using this ugly trick
 import platform
 import sys
 import warnings
 
 
+# https://github.com/Qiskit/qiskit-aer/issues/1
+# Because of this issue, we need to make sure that Numpy's OpenMP library is initialized
+# before loading our simulators, so we force it using this ugly trick
 if platform.system() == "Darwin":
     import numpy as np
     np.dot(np.zeros(100), np.zeros(100))
