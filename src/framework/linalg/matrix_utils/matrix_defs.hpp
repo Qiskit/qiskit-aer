@@ -197,10 +197,10 @@ const cmatrix_t Matrix::SWAP =
                                    {{0, 0}, {0, 0}, {0, 0}, {1, 0}}});
 
 const cmatrix_t Matrix::ECR =
-    Utils::make_matrix<complex_t>({{{0, 0}, {0, 0}, {1. / std::sqrt(2.), 0}, {0, 1. / std::sqrt(2.)}},
-                                   {{0, 0}, {0, 0}, {0, 1 / std::sqrt(2.)}, {1. / std::sqrt(2.), 0}},
-                                   {{1. / sqrt(2.), 0}, {0, -1. / std::sqrt(2.)}, {0, 0}, {0, 0}},
-                                   {{0, -1. / std::sqrt(2.)}, {1. / std::sqrt(2.), 0}, {0, 0}, {0, 0}}});
+    Utils::make_matrix<complex_t>({{{0, 0}, {1. / std::sqrt(2.), 0}, {0, 0}, {0, 1. / std::sqrt(2.)}},
+                                   {{1. / std::sqrt(2.), 0}, {0, 0}, {0, -1. / std::sqrt(2.)}, {0, 0}},
+                                   {{0, 0}, {0, 1. / std::sqrt(2.)}, {0, 0}, {1. / std::sqrt(2.), 0}},
+                                   {{0, -1. / std::sqrt(2.)}, {0, 0}, {1. / std::sqrt(2.), 0}, {0, 0}}});
 
 // Lookup table
 const stringmap_t<const cmatrix_t *> Matrix::label_map_ = {
