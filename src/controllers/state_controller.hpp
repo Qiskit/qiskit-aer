@@ -66,7 +66,7 @@ DISABLE_WARNING_POP
 #endif
 
 using int_t = int_fast64_t;
-using uint_t = uint_fast64_t; 
+using uint_t = uint_fast64_t;
 using complex_t = std::complex<double>;
 using complexf_t = std::complex<float>;
 using cvector_t = std::vector<complex_t>;
@@ -108,8 +108,8 @@ public:
   //-----------------------------------------------------------------------
   // Configuration
   //-----------------------------------------------------------------------
-  
-  // set configuration. 
+
+  // set configuration.
   // All of the configuration must be done before calling any gate operations.
   virtual void configure(const std::string& key, const std::string& value);
 
@@ -439,9 +439,9 @@ bool AerState::is_gpu(bool raise_error) const {
 void AerState::configure(const std::string& _key, const std::string& _value) {
 
   std::string key = _key;
-  std::transform(key.begin(), key.end(), key.begin(), ::tolower);  
+  std::transform(key.begin(), key.end(), key.begin(), ::tolower);
   std::string value = _value;
-  std::transform(value.begin(), value.end(), value.begin(), ::tolower);  
+  std::transform(value.begin(), value.end(), value.begin(), ::tolower);
 
   bool error = false;
   if (key == "method") {
@@ -471,7 +471,7 @@ void AerState::configure(const std::string& _key, const std::string& _value) {
   static std::unordered_set<std::string> str_config = { "method", "device", "precision", "extended_stabilizer_sampling_method",
                                                         "mps_sample_measure_algorithm", "mps_log_data", "mps_swap_direction"};
   static std::unordered_set<std::string> int_config = { "seed_simulator", "max_parallel_threads", "max_memory_mb", "parallel_state_update",
-                                                        "blocking_qubits", "batched_shots_gpu_max_qubits", "statevector_parallel_threshold", 
+                                                        "blocking_qubits", "batched_shots_gpu_max_qubits", "statevector_parallel_threshold",
                                                         "statevector_sample_measure_opt", "stabilizer_max_snapshot_probabilities",
                                                         "extended_stabilizer_metropolis_mixing_time", "extended_stabilizer_norm_estimation_samples",
                                                         "extended_stabilizer_norm_estimation_repetitions", "extended_stabilizer_parallel_threshold",
@@ -679,7 +679,7 @@ void AerState::initialize_qreg_state(std::shared_ptr<QuantumState::Base> state) 
           throw std::runtime_error("specified method does not support non-CPU device: method=superop");
     } else {
         throw std::runtime_error("not supported method.");
-    }    
+    }
   } else {
     state_ = state;
   }
@@ -794,14 +794,14 @@ AER::Vector<complex_t> AerState::move_to_vector() {
   flush_ops();
 
   Operations::Op op;
-  if (method_ == Method::statevector) {
+  if (method_ == Method::statevector || method_ == Method::matrix_product_state) {
     op.type = Operations::OpType::save_statevec;
     op.name = "save_statevec";
   } else if (method_ == Method::density_matrix) {
     op.type = Operations::OpType::save_state;
     op.name = "save_density_matrix";
   } else {
-    throw std::runtime_error("move_to_vector() supports only statevector or density_matrix methods");
+    throw std::runtime_error("move_to_vector() supports only statevector or matrix_product_state or density_matrix methods");
   }
   for (auto i = 0; i < num_of_qubits_; ++i)
     op.qubits.push_back(i);
@@ -811,7 +811,7 @@ AER::Vector<complex_t> AerState::move_to_vector() {
   ExperimentResult ret;
   state_->apply_op(op, ret, rng_, true);
 
-  if (method_ == Method::statevector) {
+  if (method_ == Method::statevector || method_ == Method::matrix_product_state) {
     auto vec = std::move(static_cast<DataMap<SingleData, Vector<complex_t>>>(std::move(ret).data).value()["s"].value());
     clear();
     return std::move(vec);
@@ -821,7 +821,7 @@ AER::Vector<complex_t> AerState::move_to_vector() {
     clear();
     return std::move(vec);
   } else {
-    throw std::runtime_error("move_to_vector() supports only statevector or density_matrix methods");
+    throw std::runtime_error("move_to_vector() supports only statevector or matrix_product_state or density_matrix methods");
   }
 };
 
@@ -831,14 +831,14 @@ matrix<complex_t> AerState::move_to_matrix() {
   flush_ops();
 
   Operations::Op op;
-  if (method_ == Method::statevector) {
+  if (method_ == Method::statevector || method_ == Method::matrix_product_state) {
     op.type = Operations::OpType::save_statevec;
     op.name = "save_statevec";
   } else if (method_ == Method::density_matrix) {
     op.type = Operations::OpType::save_state;
     op.name = "save_density_matrix";
   } else {
-    throw std::runtime_error("move_to_vector() supports only statevector or density_matrix methods");
+    throw std::runtime_error("move_to_matrix() supports only statevector or matrix_product_state or density_matrix methods");
   }
   for (auto i = 0; i < num_of_qubits_; ++i)
     op.qubits.push_back(i);
@@ -848,7 +848,7 @@ matrix<complex_t> AerState::move_to_matrix() {
   ExperimentResult ret;
   state_->apply_op(op, ret, rng_, true);
 
-  if (method_ == Method::statevector) {
+  if (method_ == Method::statevector || method_ == Method::matrix_product_state) {
     auto vec = std::move(
                 std::move(
                   std::move(
@@ -873,7 +873,7 @@ matrix<complex_t> AerState::move_to_matrix() {
     clear();
     return std::move(mat);
   } else {
-    throw std::runtime_error("move_to_vector() supports only statevector or density_matrix methods");
+    throw std::runtime_error("move_to_matrix() supports only statevector or matrix_product_state or density_matrix methods");
   }
 };
 
@@ -1354,7 +1354,7 @@ void AerState::initialize_experiment_result() {
     last_result_.metadata.add(device_names_.at(device_), "device");
   else
     last_result_.metadata.add("CPU", "device");
-  
+
   last_result_.metadata.add(num_of_qubits_, "num_qubits");
   last_result_.header = buffer_.header;
   last_result_.shots = 1;
@@ -1379,7 +1379,7 @@ void AerState::flush_ops() {
   buffer_.set_params(false);
   transpile_ops();
   state_->apply_ops(buffer_.ops.begin(), buffer_.ops.end(), last_result_, rng_);
-  
+
   finalize_experiment_result(true, std::chrono::duration<double>(myclock_t::now() - timer_start).count());
   clear_ops();
 };
@@ -1391,7 +1391,7 @@ void AerState::clear_ops() {
 
 void AerState::transpile_ops() {
   fusion_pass_ = Transpile::Fusion();
-  
+
   fusion_pass_.set_parallelization(parallel_state_update_);
 
   if (buffer_.opset().contains(Operations::OpType::superop))
@@ -1441,5 +1441,3 @@ void AerState::transpile_ops() {
 } // end namespace AER
 //-------------------------------------------------------------------------
 #endif
-
-
