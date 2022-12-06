@@ -52,6 +52,7 @@ public:
   const static cmatrix_t CY;   // name: "cy"
   const static cmatrix_t CZ;   // name: "cz"
   const static cmatrix_t SWAP; // name: "swap"
+  const static cmatrix_t ECR;  // name: "ecr"
 
   // Identity Matrix
   static cmatrix_t identity(size_t dim);
@@ -171,6 +172,10 @@ const cmatrix_t SMatrix::CZ = Utils::unitary_superop(Matrix::CZ);
 
 const cmatrix_t SMatrix::SWAP = Utils::unitary_superop(Matrix::SWAP);
 
+const cmatrix_t SMatrix::ECR = Utils::unitary_superop(Matrix::ECR);
+
+
+
 // Lookup table
 const stringmap_t<const cmatrix_t *> SMatrix::label_map_ = {
     {"id", &SMatrix::I},     {"x", &SMatrix::X},   {"y", &SMatrix::Y},
@@ -178,7 +183,7 @@ const stringmap_t<const cmatrix_t *> SMatrix::label_map_ = {
     {"sdg", &SMatrix::SDG},  {"t", &SMatrix::T},   {"tdg", &SMatrix::TDG},
     {"x90", &SMatrix::X90},  {"cx", &SMatrix::CX}, {"cy", &SMatrix::CY},
     {"cz", &SMatrix::CZ},    {"swap", &SMatrix::SWAP}, {"sx", &SMatrix::SX},
-    {"sxdg", &SMatrix::SXDG}, {"delay", &SMatrix::I}};
+    {"sxdg", &SMatrix::SXDG}, {"delay", &SMatrix::I}, {"ecr", &SMatrix::ECR}};
 
 cmatrix_t SMatrix::identity(size_t dim) { return Matrix::identity(dim * dim); }
 
