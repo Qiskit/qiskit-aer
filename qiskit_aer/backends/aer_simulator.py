@@ -17,7 +17,8 @@ import copy
 import logging
 from qiskit.providers.options import Options
 from qiskit.providers.models import QasmBackendConfiguration
-from qiskit.providers.backend import BackendV2
+from qiskit.providers.backend import BackendV2, BackendV1
+from qiskit.transpiler.target import target_to_backend_properties
 
 from ..version import __version__
 from .aerbackend import AerBackend, AerError
@@ -627,17 +628,35 @@ class AerSimulator(AerBackend):
     def from_backend(cls, backend, **options):
         """Initialize simulator from backend."""
         if isinstance(backend, BackendV2):
-            raise AerError(
-                "AerSimulator.from_backend does not currently support V2 Backends."
+            configuration = QasmBackendConfiguration(
+                backend_name=f"'aer_simulator({backend.name})",
+                backend_version=backend.backend_version,
+                n_qubits=backend.num_qubits,
+                basis_gates=backend.operation_names,
+                gates=[],
+                local=True,
+                simulator=True,
+                conditional=True,
+                open_pulse=False,
+                memory=False,
+                max_shots=int(1e6),
+                coupling_map=list(backend.coupling_map.get_edges()),
+                max_experiments=backend.max_circuits,
             )
-        # Get configuration and properties from backend
-        configuration = copy.copy(backend.configuration())
-        properties = copy.copy(backend.properties())
+            properties = target_to_backend_properties(backend.target)
+        elif isinstance(backend, BackendV1):
+            # Get configuration and properties from backend
+            configuration = copy.copy(backend.configuration())
+            properties = copy.copy(backend.properties())
 
-        # Customize configuration name
-        name = configuration.backend_name
-        configuration.backend_name = 'aer_simulator({})'.format(name)
-
+            # Customize configuration name
+            name = configuration.backend_name
+            configuration.backend_name = 'aer_simulator({})'.format(name)
+        else:
+            raise TypeError(
+                "The backend argument requires a BackendV2 or BackendV1 object, "
+                f"not a {type(backend)} object"
+            )
         # Use automatic noise model if none is provided
         if 'noise_model' not in options:
             # pylint: disable=import-outside-toplevel
