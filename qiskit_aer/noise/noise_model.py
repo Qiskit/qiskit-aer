@@ -451,8 +451,6 @@ class NoiseModel:
         temperature: float = 0,
         gate_lengths: Optional[list] = None,
         gate_length_units: str = "ns",
-        standard_gates: Optional[bool] = None,
-        warnings: bool = True,
     ):
         """Return a noise model derived from a devices backend properties.
 
@@ -530,10 +528,6 @@ class NoiseModel:
             gate_length_units (str): Time units for gate length values in
                                      gate_lengths. Can be 'ns', 'ms', 'us',
                                      or 's' (Default: 'ns').
-            standard_gates (bool): DEPRECATED, If true return errors as standard
-                                   qobj gates. If false return as unitary
-                                   qobj instructions (Default: None)
-            warnings (bool): Display warnings (Default: True).
 
         Returns:
             NoiseModel: An approximate noise model for the device backend.
@@ -557,15 +551,8 @@ class NoiseModel:
         # Add single-qubit readout errors
         if readout_error:
             for qubits, error in basic_device_readout_errors(backend_properties):
-                noise_model.add_readout_error(error, qubits, warnings=warnings)
+                noise_model.add_readout_error(error, qubits, warnings=True)
 
-        if standard_gates is not None:
-            warn(
-                '"standard_gates" option has been deprecated as of qiskit-aer 0.10.0'
-                " and will be removed no earlier than 3 months from that release date.",
-                DeprecationWarning,
-                stacklevel=2,
-            )
         # Add gate errors
         with catch_warnings():
             filterwarnings(
@@ -580,11 +567,9 @@ class NoiseModel:
                 gate_lengths=gate_lengths,
                 gate_length_units=gate_length_units,
                 temperature=temperature,
-                standard_gates=standard_gates,
-                warnings=warnings,
             )
         for name, qubits, error in gate_errors:
-            noise_model.add_quantum_error(error, name, qubits, warnings=warnings)
+            noise_model.add_quantum_error(error, name, qubits, warnings=True)
 
         if thermal_relaxation:
             # Add delay errors via RelaxationNiose pass
