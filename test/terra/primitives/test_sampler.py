@@ -547,7 +547,8 @@ class TestSampler(QiskitAerTestCase):
         qc.measure(0, 0)
         qc.measure(1, 1)
 
-        print(Sampler().run(qc, shots=100).result())
+        result = Sampler().run(qc, shots=100).result()
+        self.assertDictAlmostEqual(result.quasi_dists[0], {0: 1})
 
 
 if __name__ == "__main__":
