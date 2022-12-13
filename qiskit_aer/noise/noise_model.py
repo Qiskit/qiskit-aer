@@ -492,7 +492,7 @@ class NoiseModel:
             basis_gates.add(prop.gate)
         basis_gates = list(basis_gates)
         num_qubits = len(backend_properties.qubits)
-        dt = 0  # disable delay noise if dt is unknown
+        dt: float = 0  # disable delay noise if dt is unknown
         noise_model = NoiseModel(basis_gates=basis_gates)
 
         # Add single-qubit readout errors
