@@ -500,21 +500,14 @@ class NoiseModel:
             for qubits, error in basic_device_readout_errors(backend_properties):
                 noise_model.add_readout_error(error, qubits)
 
-        # Add gate errors
-        with catch_warnings():
-            filterwarnings(
-                "ignore",
-                category=DeprecationWarning,
-                module="qiskit.providers.aer.noise.device.models",
-            )
-            gate_errors = basic_device_gate_errors(
-                backend_properties,
-                gate_error=gate_error,
-                thermal_relaxation=thermal_relaxation,
-                gate_lengths=gate_lengths,
-                gate_length_units=gate_length_units,
-                temperature=temperature,
-            )
+        gate_errors = basic_device_gate_errors(
+            backend_properties,
+            gate_error=gate_error,
+            thermal_relaxation=thermal_relaxation,
+            gate_lengths=gate_lengths,
+            gate_length_units=gate_length_units,
+            temperature=temperature,
+        )
         for name, qubits, error in gate_errors:
             noise_model.add_quantum_error(error, name, qubits)
 
