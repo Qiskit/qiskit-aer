@@ -498,7 +498,7 @@ class NoiseModel:
         # Add single-qubit readout errors
         if readout_error:
             for qubits, error in basic_device_readout_errors(backend_properties):
-                noise_model.add_readout_error(error, qubits, warnings=True)
+                noise_model.add_readout_error(error, qubits)
 
         # Add gate errors
         with catch_warnings():
