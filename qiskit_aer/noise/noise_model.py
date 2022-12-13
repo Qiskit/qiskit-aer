@@ -516,7 +516,7 @@ class NoiseModel:
                 temperature=temperature,
             )
         for name, qubits, error in gate_errors:
-            noise_model.add_quantum_error(error, name, qubits, warnings=True)
+            noise_model.add_quantum_error(error, name, qubits)
 
         if thermal_relaxation:
             # Add delay errors via RelaxationNiose pass
