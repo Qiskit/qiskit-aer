@@ -1,0 +1,11 @@
+---
+fixes:
+  - |
+    Fixes a bug where :meth:`NoiseModel.from_backend` with a ``BackendV2`` object may generate
+    a noise model with excessive ``QuantumError`` s on non-Gate instructions while,
+    for example, only ``ReadoutError`` s should be sufficient for measures.
+    This commit updates :meth:`NoiseModel.from_backend` with a ``BackendV2`` object so that
+    it returns the same noise model as that called with the corresponding ``BackendV1`` object.
+    That is, the resulting noise model does not contain any ``QuantumError`` s on measures and
+    it may contain only thermal relaxation errors on other non-gate instructions such as resets.
+    Note that it still contains ``ReadoutError`` s on measures.

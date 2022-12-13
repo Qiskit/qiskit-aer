@@ -66,6 +66,8 @@ PYBIND11_MODULE(controller_wrappers, m) {
     aer_state.def("configure",  &AER::AerState::configure);
     aer_state.def("allocate_qubits",  &AER::AerState::allocate_qubits);
     aer_state.def("reallocate_qubits",  &AER::AerState::reallocate_qubits);
+    aer_state.def("set_random_seed",  &AER::AerState::set_random_seed);
+    aer_state.def("set_seed",  &AER::AerState::set_seed);
     aer_state.def("clear",  &AER::AerState::clear);
     aer_state.def("num_of_qubits",  &AER::AerState::num_of_qubits);
 
@@ -132,10 +134,19 @@ PYBIND11_MODULE(controller_wrappers, m) {
     });
 
     aer_state.def("apply_diagonal",  &AER::AerState::apply_diagonal_matrix);
+    aer_state.def("apply_x",  &AER::AerState::apply_x);
+    aer_state.def("apply_cx",  &AER::AerState::apply_cx);
     aer_state.def("apply_mcx",  &AER::AerState::apply_mcx);
+    aer_state.def("apply_y",  &AER::AerState::apply_y);
+    aer_state.def("apply_cy",  &AER::AerState::apply_cy);
     aer_state.def("apply_mcy",  &AER::AerState::apply_mcy);
+    aer_state.def("apply_z",  &AER::AerState::apply_z);
+    aer_state.def("apply_cz",  &AER::AerState::apply_cz);
     aer_state.def("apply_mcz",  &AER::AerState::apply_mcz);
     aer_state.def("apply_mcphase",  &AER::AerState::apply_mcphase);
+    aer_state.def("apply_h",  &AER::AerState::apply_h);
+    aer_state.def("apply_u",  &AER::AerState::apply_u);
+    aer_state.def("apply_cu",  &AER::AerState::apply_cu);
     aer_state.def("apply_mcu",  &AER::AerState::apply_mcu);
     aer_state.def("apply_mcswap",  &AER::AerState::apply_mcswap);
     aer_state.def("apply_measure",  &AER::AerState::apply_measure);
