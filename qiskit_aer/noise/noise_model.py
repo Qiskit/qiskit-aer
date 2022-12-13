@@ -452,7 +452,7 @@ class NoiseModel:
         gate_lengths: Optional[list] = None,
         gate_length_units: str = "ns",
     ):
-        """Return a noise model derived from a devices backend properties.
+        """Return a noise model derived from a backend properties.
 
         This function generates a noise model in similar way as the :meth:`~.NoiseModel.from_backend`.
         The difference is this function construct the noise model using the
