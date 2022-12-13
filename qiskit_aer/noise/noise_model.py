@@ -484,7 +484,7 @@ class NoiseModel:
             NoiseModel: An approximate noise model for the device backend.
 
         Raises:
-            NoiseError: If the input backend is not valid.
+            NoiseError: If the input backend properties are not valid.
         """
         if not isinstance(backend_properties, BackendProperties):
             raise NoiseError(
