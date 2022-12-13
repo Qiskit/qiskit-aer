@@ -1,5 +1,5 @@
 ---
 features:
   - |
-    Add a new function :func:`from_backend_properties` to :class:`NoiseModel`.
+    Add a new class method :meth:`~.NoiseModel.from_backend` to :class:`NoiseModel`.
     This function returns a noise model derived from a device backend properties.

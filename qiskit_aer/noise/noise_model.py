@@ -454,7 +454,7 @@ class NoiseModel:
     ):
         """Return a noise model derived from a devices backend properties.
 
-        This function generates a noise model in similar way as the :func:`from_backend`.
+        This function generates a noise model in similar way as the :meth:`~.NoiseModel.from_backend`.
         The difference is this function construct the noise model using the
         :class:`BackendProperties` not :class:`Backend` like :func:`from_backend`.
 
