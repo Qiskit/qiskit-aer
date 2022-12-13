@@ -451,6 +451,7 @@ class NoiseModel:
         temperature: float = 0,
         gate_lengths: Optional[list] = None,
         gate_length_units: str = "ns",
+        dt : float = 0,
     ):
         """Return a noise model derived from a backend properties.
 
@@ -476,6 +477,8 @@ class NoiseModel:
             gate_length_units (str): Time units for gate length values in
                                      gate_lengths. Can be 'ns', 'ms', 'us',
                                      or 's' (Default: 'ns').
+            dt (float): The system time resolution of input signals (Default: 0).
+                        This is required to be implemented if the backend supports Pulse scheduling.
 
         Returns:
             NoiseModel: An approximate noise model for the device backend.
@@ -493,7 +496,6 @@ class NoiseModel:
             basis_gates.add(prop.gate)
         basis_gates = list(basis_gates)
         num_qubits = len(backend_properties.qubits)
-        dt: float = 0  # disable delay noise if dt is unknown
         noise_model = NoiseModel(basis_gates=basis_gates)
 
         # Add single-qubit readout errors
