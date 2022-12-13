@@ -528,7 +528,8 @@ class NoiseModel:
             try:
                 delay_pass = RelaxationNoisePass(
                     t1s=[backend_properties.t1(q) for q in range(num_qubits)],
-                    t2s=[backend_properties.t2(q) for q in range(num_qubits)],
+                    t2s=[_truncate_t2_value(backend_properties.t1(
+                        q), backend_properties.t2(q)) for q in range(num_qubits)],
                     dt=dt,
                     op_types=Delay,
                     excited_state_populations=excited_state_populations,
