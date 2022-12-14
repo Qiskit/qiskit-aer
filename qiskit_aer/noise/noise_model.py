@@ -477,8 +477,9 @@ class NoiseModel:
             gate_length_units (str): Time units for gate length values in
                                      gate_lengths. Can be 'ns', 'ms', 'us',
                                      or 's' (Default: 'ns').
-            dt (float): The system time resolution of input signals (Default: 0).
-                        This is required to be implemented if the backend supports Pulse scheduling.
+            dt (float): Backend sample time (resolution) in seconds (Default: None).
+                        Required to convert time unit of durations to seconds
+                        if including thermal relaxation errors on delay instructions.
 
         Returns:
             NoiseModel: An approximate noise model for the device backend.
