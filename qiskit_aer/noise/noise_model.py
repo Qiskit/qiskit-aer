@@ -456,11 +456,12 @@ class NoiseModel:
         """Return a noise model derived from a backend properties.
 
         This method basically generates a noise model in the same way as
-        :meth:`~.NoiseModel.from_backend`. One small difference is that the `dt` option is
+        :meth:`~.NoiseModel.from_backend`. One small difference is that the ``dt`` option is
         required to be set manually if you want to add thermal relaxation noises to delay
-        instructions. Because it is not supplied by a :class:`BackendProperties` object
-        unlike a :class:`Backend` object.  Note that the resulting noise model is the same as
-        described in :meth:`~.NoiseModel.from_backend` so please refer to it for the details.
+        instructions with durations in ``dt`` time unit. Because it is not supplied by a
+        :class:`BackendProperties` object unlike a :class:`Backend` object.
+        Note that the resulting noise model is the same as described in
+        :meth:`~.NoiseModel.from_backend` so please refer to it for the details.
 
         Args:
             backend_properties (BackendProperties): The property of backend.
