@@ -134,6 +134,9 @@ class AerStatevector(Statevector):
 
     @staticmethod
     def _from_ndarray(init_data, configs):
+        if not init_data.flags['C_CONTIGUOUS']:
+            raise AerError('initial data must have contiguous memory layout')
+
         aer_state = AerState()
 
         options = AerSimulator._default_options()

@@ -313,6 +313,15 @@ class TestAerStatevector(common.QiskitAerTestCase):
         for e, s in zip(expected, state):
             self.assertAlmostEqual(e, s)
 
+    def test_initialize_with_non_contiguous_ndarray(self):
+        """Test ndarray initialization """
+
+        for n_qubits in [2, 4, 8, 16]:
+            u = random_unitary(n_qubits, seed=1111).data
+            vec = u[0, :]
+
+            self.assertRaises(AerError, AerStatevector, vec)
+
     def test_initialize_with_terra_statevector(self):
         """Test Statevector initialization """
         circ = QuantumVolume(5, seed=1111)
