@@ -451,7 +451,7 @@ class NoiseModel:
         temperature: float = 0,
         gate_lengths: Optional[list] = None,
         gate_length_units: str = "ns",
-        dt: float = 0,
+        dt: Optional[float] = None,
     ):
         """Return a noise model derived from a backend properties.
 
