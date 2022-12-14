@@ -472,13 +472,13 @@ class NoiseModel:
                                        (Default: True).
             temperature (double): qubit temperature in milli-Kelvin (mK) for
                                   thermal relaxation errors (Default: 0).
-            gate_lengths (list): Custom gate times for thermal relaxation errors.
+            gate_lengths (Optional[list]): Custom gate times for thermal relaxation errors.
                                   Used to extend or override the gate times in
                                   the backend properties (Default: None))
             gate_length_units (str): Time units for gate length values in
                                      gate_lengths. Can be 'ns', 'ms', 'us',
                                      or 's' (Default: 'ns').
-            dt (float): Backend sample time (resolution) in seconds (Default: None).
+            dt (Optional[float]): Backend sample time (resolution) in seconds (Default: None).
                         Required to convert time unit of durations to seconds
                         if including thermal relaxation errors on delay instructions.
 
