@@ -44,7 +44,7 @@ jobs:
     needs: ["lint"]
     strategy:
       matrix:
-        python-version: [3.7, 3.8, 3.9, "3.10"]
+        python-version: [3.7, 3.8, 3.9, "3.10", '3.11']
         platform: [
           { os: "ubuntu-latest", python-architecture: "x64" },
         ]
@@ -87,7 +87,7 @@ jobs:
     timeout-minutes: 60
     strategy:
       matrix:
-        python-version: [3.7, 3.8, 3.9, "3.10"]
+        python-version: [3.7, 3.8, 3.9, "3.10", "3.11"]
         os: ["ubuntu-latest"]
     env:
       AER_THRUST_BACKEND: OMP
@@ -177,7 +177,7 @@ jobs:
     timeout-minutes: 60
     strategy:
       matrix:
-        python-version: [3.7, 3.8, 3.9, "3.10"]
+        python-version: [3.7, 3.8, 3.9, "3.10", '3.11']
         os: ["macOS-latest"]
     env:
       AER_THRUST_BACKEND: OMP
@@ -216,7 +216,7 @@ jobs:
     timeout-minutes: 60
     strategy:
       matrix:
-        python-version: [3.7, 3.8, 3.9, "3.10"]
+        python-version: [3.7, 3.8, 3.9, "3.10", "3.11"]
         os: ["windows-2019"]
     env:
       AER_THRUST_BACKEND: OMP

@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Fixed support in the :meth:`.AerSimulator.from_backend` method for instantiating
+    an :class:`~.AerSimulator` instance from an a :class:`~.BackendV2` object.
+    Previously, attempting to use :meth:`.AerSimulator.from_backend` with a
+    :class:`~.BackendV2` object would have raised an :class:`~.AerError` saying this
+    wasn't supported.

@@ -53,12 +53,13 @@ const Operations::OpSet StateOpSet(
     {"U",    "CX",  "u1", "u2",  "u3", "u",   "cx",   "cy",  "cz",
      "swap", "id",  "x",  "y",   "z",  "h",   "s",    "sdg", "t",
      "tdg",  "ccx", "r",  "rx",  "ry", "rz",  "rxx",  "ryy", "rzz",
-     "rzx",  "p",   "cp", "cu1", "sx", "sxdg", "x90", "delay", "pauli"});
+     "rzx",  "p",   "cp", "cu1", "sx", "sxdg", "x90", "delay", "pauli",
+     "ecr"});
 
 // Allowed gates enum class
 enum class Gates {
   u1, u2, u3, r, rx,ry, rz, id, x, y, z, h, s, sdg, sx, sxdg, t, tdg,
-  cx, cy, cz, swap, rxx, ryy, rzz, rzx, ccx, cp, pauli
+  cx, cy, cz, swap, rxx, ryy, rzz, rzx, ccx, cp, pauli, ecr
 };
 
 //=========================================================================
@@ -334,6 +335,7 @@ const stringmap_t<Gates> State<densmat_t>::gateset_({
     {"ryy", Gates::ryy},   // Pauli-YY rotation gate
     {"rzz", Gates::rzz},   // Pauli-ZZ rotation gate
     {"rzx", Gates::rzx},   // Pauli-ZX rotation gate
+    {"ecr", Gates::ecr},   // ECR Gate
     // Three-qubit gates
     {"ccx", Gates::ccx},   // Controlled-CX gate (Toffoli)
     // Pauli gate
@@ -1350,6 +1352,9 @@ void State<densmat_t>::apply_gate(densmat_t& qreg, const Operations::Op &op)
     } break;
     case Gates::swap: {
       qreg.apply_swap(op.qubits[0], op.qubits[1]);
+    } break;
+    case Gates::ecr: {
+      BaseState::qregs_[iChunk].apply_unitary_matrix(op.qubits, Linalg::VMatrix::ECR);
     } break;
     case Gates::ccx:
       qreg.apply_toffoli(op.qubits[0], op.qubits[1], op.qubits[2]);

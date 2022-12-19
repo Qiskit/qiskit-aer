@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    :attr:`.SamplerResult.quasi_dists` contain the data about the number of qubits.
+    :meth:`QuasiDistribution.binary_probabilities` returns bitstrings with correct length.

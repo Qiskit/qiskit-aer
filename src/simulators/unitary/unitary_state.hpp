@@ -49,13 +49,14 @@ const Operations::OpSet StateOpSet(
      "r",      "rx",      "ry",  "rz",   "rxx",  "ryy",  "rzz",  "rzx",
      "ccx",    "cswap",   "mcx", "mcy",  "mcz",  "mcu1", "mcu2", "mcu3",
      "mcswap", "mcphase", "mcr", "mcrx", "mcry", "mcry", "sx",   "sxdg", "csx",
-     "mcsx",   "csxdg", "mcsxdg", "delay", "pauli", "cu",   "mcu", "mcp"});
+     "mcsx",   "csxdg", "mcsxdg", "delay", "pauli", "cu",   "mcu", "mcp", "ecr"});
 
 // Allowed gates enum class
 enum class Gates {
   id, h, s, sdg, t, tdg, rxx, ryy, rzz, rzx,
   mcx, mcy, mcz, mcr, mcrx, mcry, mcrz, mcp,
   mcu2, mcu3, mcu, mcswap, mcsx, mcsxdg, pauli,
+  ecr
 };
 
 //=========================================================================
@@ -252,6 +253,7 @@ const stringmap_t<Gates> State<unitary_matrix_t>::gateset_({
     {"rzx", Gates::rzx},     // Pauli-ZX rotation gate
     {"csx", Gates::mcsx},    // Controlled-Sqrt(X) gate
     {"csxdg", Gates::mcsxdg},// Controlled-Sqrt(X)dg gate
+    {"ecr", Gates::ecr},     // ECR Gate
     // Three-qubit gates
     {"ccx", Gates::mcx},      // Controlled-CX gate (Toffoli)
     {"cswap", Gates::mcswap}, // Controlled-SWAP gate (Fredkin)
@@ -702,6 +704,9 @@ void State<unitary_matrix_t>::apply_gate(unitary_matrix_t& qreg, const Operation
       break;
     case Gates::rzx:
       qreg.apply_matrix(op.qubits, Linalg::VMatrix::rzx(op.params[0]));
+      break;
+    case Gates::ecr:
+      BaseState::qregs_[iChunk].apply_matrix(op.qubits, Linalg::VMatrix::ECR);
       break;
     case Gates::id:
       break;

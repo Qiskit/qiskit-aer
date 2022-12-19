@@ -103,31 +103,31 @@ void aer_apply_z(void* handler, uint_t qubit) {
 // Clifford gate: Hadamard
 void aer_apply_h(void* handler, uint_t qubit) {
   AER::AerState* state = reinterpret_cast<AER::AerState*>(handler);
-  state->apply_mcu({qubit}, M_PI / 2.0, 0, M_PI);
+  state->apply_h(qubit);
 };
 
 // Clifford gate: sqrt(Z) or S gate
 void aer_apply_s(void* handler, uint_t qubit) {
   AER::AerState* state = reinterpret_cast<AER::AerState*>(handler);
-  state->apply_mcu({qubit}, 0, 0, M_PI / 2.0);
+  state->apply_u(qubit, 0, 0, M_PI / 2.0);
 };
 
 // Clifford gate: inverse of sqrt(Z)
 void aer_apply_sdg(void* handler, uint_t qubit) {
   AER::AerState* state = reinterpret_cast<AER::AerState*>(handler);
-  state->apply_mcu({qubit}, 0, 0, - M_PI / 2.0);
+  state->apply_u(qubit, 0, 0, - M_PI / 2.0);
 };
 
 // // sqrt(S) or T gate
 void aer_apply_t(void* handler, uint_t qubit) {
   AER::AerState* state = reinterpret_cast<AER::AerState*>(handler);
-  state->apply_mcu({qubit}, 0, 0, M_PI / 4.0);
+  state->apply_u(qubit, 0, 0, M_PI / 4.0);
 };
 
 // inverse of sqrt(S)
 void aer_apply_tdg(void* handler, uint_t qubit) {
   AER::AerState* state = reinterpret_cast<AER::AerState*>(handler);
-  state->apply_mcu({qubit}, 0, 0, - M_PI / 4.0);
+  state->apply_u({qubit}, 0, 0, - M_PI / 4.0);
 };
 
 // sqrt(NOT) gate
@@ -199,7 +199,7 @@ void aer_apply_crz(void* handler, uint_t ctrl_qubit, uint_t tgt_qubit, double th
 // controlled-H
 void aer_apply_ch(void* handler, uint_t ctrl_qubit, uint_t tgt_qubit) {
   AER::AerState* state = reinterpret_cast<AER::AerState*>(handler);
-  state->apply_mcu({ctrl_qubit, tgt_qubit}, M_PI / 2.0, 0, M_PI);
+  state->apply_mcu({ctrl_qubit, tgt_qubit}, M_PI / 2.0, 0, M_PI, 0);
 };
 
 // swap
@@ -223,7 +223,6 @@ void aer_apply_cswap(void* handler, uint_t ctrl_qubit, uint_t qubit0, uint_t qub
 // four parameter controlled-U gate with relative phase γ
 void aer_apply_cu(void* handler, uint_t ctrl_qubit, uint_t tgt_qubit, double theta, double phi, double lambda, double gamma) {
   AER::AerState* state = reinterpret_cast<AER::AerState*>(handler);
-  state->apply_mcphase({ctrl_qubit}, gamma);
-  state->apply_mcu({ctrl_qubit, tgt_qubit}, theta, phi, lambda);
+  state->apply_mcu({ctrl_qubit, tgt_qubit}, theta, phi, lambda, gamma);
 };
 }
