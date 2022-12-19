@@ -51,6 +51,7 @@ public:
   const static cmatrix_t CY;   // name: "cy"
   const static cmatrix_t CZ;   // name: "cz"
   const static cmatrix_t SWAP; // name: "swap"
+  const static cmatrix_t ECR;  // name: "ecr"
 
   // Identity Matrix
   static cmatrix_t identity(size_t dim);
@@ -195,6 +196,12 @@ const cmatrix_t Matrix::SWAP =
                                    {{0, 0}, {1, 0}, {0, 0}, {0, 0}},
                                    {{0, 0}, {0, 0}, {0, 0}, {1, 0}}});
 
+const cmatrix_t Matrix::ECR =
+    Utils::make_matrix<complex_t>({{{0, 0}, {1. / std::sqrt(2.), 0}, {0, 0}, {0, 1. / std::sqrt(2.)}},
+                                   {{1. / std::sqrt(2.), 0}, {0, 0}, {0, -1. / std::sqrt(2.)}, {0, 0}},
+                                   {{0, 0}, {0, 1. / std::sqrt(2.)}, {0, 0}, {1. / std::sqrt(2.), 0}},
+                                   {{0, -1. / std::sqrt(2.)}, {0, 0}, {1. / std::sqrt(2.), 0}, {0, 0}}});
+
 // Lookup table
 const stringmap_t<const cmatrix_t *> Matrix::label_map_ = {
     {"id", &Matrix::I},     {"x", &Matrix::X},   {"y", &Matrix::Y},
@@ -202,7 +209,7 @@ const stringmap_t<const cmatrix_t *> Matrix::label_map_ = {
     {"sdg", &Matrix::SDG},  {"t", &Matrix::T},   {"tdg", &Matrix::TDG},
     {"x90", &Matrix::X90},  {"cx", &Matrix::CX}, {"cy", &Matrix::CY},
     {"cz", &Matrix::CZ},    {"swap", &Matrix::SWAP}, {"sx", &Matrix::SX},
-    {"sxdg", &Matrix::SXDG},  {"delay", &Matrix::I}};
+    {"sxdg", &Matrix::SXDG},  {"delay", &Matrix::I}, {"ecr", &Matrix::ECR}};
 
 cmatrix_t Matrix::identity(size_t dim) {
   cmatrix_t mat(dim, dim);

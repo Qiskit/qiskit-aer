@@ -22,7 +22,7 @@ import numpy as np
 from scipy.linalg import expm
 from scipy.special import erf
 
-from qiskit.providers.aer.backends import PulseSimulator
+from qiskit_aer.backends import PulseSimulator
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.compiler import transpile
@@ -30,13 +30,13 @@ from qiskit.quantum_info import state_fidelity
 from qiskit.pulse import (Schedule, Play, ShiftPhase, SetPhase, Delay, Acquire,
                           Waveform, DriveChannel, ControlChannel,
                           AcquireChannel, MemorySlot, SetFrequency, ShiftFrequency)
-from qiskit.providers.aer.pulse.de.DE_Methods import ScipyODE
-from qiskit.providers.aer.pulse.de.DE_Options import DE_Options
-from qiskit.providers.aer.pulse.system_models.pulse_system_model import PulseSystemModel
-from qiskit.providers.aer.pulse.system_models.hamiltonian_model import HamiltonianModel
+from qiskit_aer.pulse.de.DE_Methods import ScipyODE
+from qiskit_aer.pulse.de.DE_Options import DE_Options
+from qiskit_aer.pulse.system_models.pulse_system_model import PulseSystemModel
+from qiskit_aer.pulse.system_models.hamiltonian_model import HamiltonianModel
 from qiskit.providers.models.backendconfiguration import UchannelLO
-from qiskit.providers.aer.aererror import AerError
-from qiskit.test.mock import FakeArmonk
+from qiskit.providers.fake_provider import FakeArmonk
+from qiskit_aer.aererror import AerError
 
 from .pulse_sim_independent import (simulate_1q_model,
                                     simulate_2q_exchange_model,

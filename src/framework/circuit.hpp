@@ -269,6 +269,8 @@ void Circuit::set_params(bool truncation) {
   for (size_t i = 0; i < size; ++ i) {
     const size_t rpos = size - i - 1;
     const auto& op = ops[rpos];
+    if (op.type == OpType::mark && last_ancestor_pos == 0)
+        last_ancestor_pos = rpos;
     if (!truncation || check_result_ancestor(op, ancestor_qubits)) {
       add_op_metadata(op);
       ancestor[rpos] = true;
@@ -344,7 +346,6 @@ void Circuit::set_params(bool truncation) {
           tail_meas_ops.push_back(op);
           break;  
         }
-        case OpType::snapshot:
         case OpType::save_state:
         case OpType::save_expval:
         case OpType::save_expval_var:
@@ -391,7 +392,7 @@ void Circuit::set_params(bool truncation) {
     head_end = last_ancestor_pos + 1;
   }
   for (size_t pos = 0; pos < head_end; ++pos) {
-    if (ops_to_remove && !ancestor[pos]) {
+    if (ops_to_remove && !ancestor[pos] && ops[pos].type != OpType::mark && ops[pos].type != OpType::jump) {
       // Skip if not ancestor
       continue;
     }
@@ -481,7 +482,6 @@ bool Circuit::check_result_ancestor(const Op& op, std::unordered_set<uint_t>& an
     // Result generating types
     case OpType::measure:
     case OpType::roerror:
-    case OpType::snapshot:
     case OpType::save_state:
     case OpType::save_expval:
     case OpType::save_expval_var:

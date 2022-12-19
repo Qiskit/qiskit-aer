@@ -1,7 +1,0 @@
----
-fixes:
-  - |
-    Multi-threaded transpilations to generate diagonal gates will now work correctly if
-    the number of gates of a circuit exceeds ``fusion_parallelization_threshold``.
-    Previously, different threads would occasionally fuse the same element into multiple blocks,
-    causing incorrect results.

@@ -70,7 +70,8 @@ disable=no-self-use,        # disabled as it is too verbose
     unnecessary-pass,   # allow for methods with just "pass", for clarity
     no-else-return,     # relax "elif" after a clause with a return
     docstring-first-line-empty, # relax docstring style
-    unsubscriptable-object # pylint can't determine this for numpy types
+    unsubscriptable-object, # pylint can't determine this for numpy types
+    bad-continuation, bad-whitespace # differences of opinion with black
 
 
 
@@ -295,7 +296,7 @@ ignore-mixin-members=yes
 # (useful for modules/projects where namespaces are manipulated during runtime
 # and thus existing member attributes cannot be deduced by static analysis. It
 # supports qualified module names, as well as Unix pattern matching.
-ignored-modules=matplotlib.cm,numpy.random
+ignored-modules=matplotlib.cm,numpy.random,qiskit.providers
 
 # List of class names for which member attributes should not be checked (useful
 # for classes with dynamically set attributes). This supports the use of

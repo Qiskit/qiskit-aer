@@ -37,14 +37,11 @@ const Operations::OpSet StateOpSet(
     Operations::OpType::reset, Operations::OpType::barrier,
     Operations::OpType::roerror, Operations::OpType::bfunc,
     Operations::OpType::qerror_loc,
-    Operations::OpType::snapshot, Operations::OpType::save_statevec,
+    Operations::OpType::save_statevec,
     }, //Operations::OpType::save_expval, Operations::OpType::save_expval_var},
   // Gates
   {"CX", "u0", "u1", "p", "cx", "cz", "swap", "id", "x", "y", "z", "h",
-    "s", "sdg", "sx", "sxdg", "t", "tdg", "ccx", "ccz", "delay", "pauli"},
-  // Snapshots
-  {"statevector", "probabilities", "memory", "register"}
-);
+    "s", "sdg", "sx", "sxdg", "t", "tdg", "ccx", "ccz", "delay", "pauli"});
 
 using chpauli_t = CHSimulator::pauli_t;
 using chstate_t = CHSimulator::Runner;
@@ -59,17 +56,10 @@ enum class SamplingMethod {
   norm_estimation
 };
 
-enum class Snapshots {
-  statevector,
-  cmemory,
-  cregister,
-  probs
-};
-
-class State: public Base::State<chstate_t>
+class State: public QuantumState::State<chstate_t>
 {
 public:
-  using BaseState = Base::State<chstate_t>;
+  using BaseState = QuantumState::State<chstate_t>;
   
   State() : BaseState(StateOpSet) {}
   virtual ~State() = default;
@@ -92,8 +82,6 @@ public:
                         bool final_op = false) override;
 
   void initialize_qreg(uint_t num_qubits) override;
-
-  void initialize_qreg(uint_t num_qubits, const chstate_t &state) override;
 
   size_t required_memory_mb(uint_t num_qubits,
                                     const std::vector<Operations::Op> &ops)
@@ -146,13 +134,7 @@ protected:
   // projectors Id+Z_{i} for each qubit i
   void apply_reset(const reg_t &qubits, AER::RngEngine &rng);
 
-  void apply_snapshot(const Operations::Op &op, ExperimentResult &result, RngEngine &rng);
-  //Convert a decomposition to a state-vector
-  void statevector_snapshot(const Operations::Op &op, ExperimentResult &result);
-  // //Compute probabilities from a stabilizer rank decomposition
-  void probabilities_snapshot(const Operations::Op &op, ExperimentResult &result, RngEngine &rng);
   const static stringmap_t<Gates> gateset_;
-  const static stringmap_t<Snapshots> snapshotset_;
 
   //-----------------------------------------------------------------------
   // Save data instructions
@@ -254,13 +236,6 @@ const stringmap_t<Gates> State::gateset_({
   {"pauli", Gates::pauli} // Multi-qubit Pauli gate
 });
 
-const stringmap_t<Snapshots> State::snapshotset_({
-  {"statevector", Snapshots::statevector},
-  {"probabilities", Snapshots::probs},
-  {"memory", Snapshots::cmemory},
-  {"register", Snapshots::cregister}
-});
-
 //-------------------------------------------------------------------------
 // Implementation: Initialisation and Config
 //-------------------------------------------------------------------------
@@ -268,16 +243,6 @@ const stringmap_t<Snapshots> State::snapshotset_({
 void State::initialize_qreg(uint_t num_qubits)
 {
   BaseState::qreg_.initialize(num_qubits);
-  BaseState::qreg_.initialize_omp(BaseState::threads_, omp_threshold_rank_);
-}
-
-void State::initialize_qreg(uint_t num_qubits, const chstate_t &state)
-{
-  if(BaseState::qreg_.get_n_qubits() != num_qubits)
-  {
-    throw std::invalid_argument("CH::State::initialize: initial state does not match qubit number.");
-  }
-  BaseState::qreg_ = state;
   BaseState::qreg_.initialize_omp(BaseState::threads_, omp_threshold_rank_);
 }
 
@@ -381,7 +346,6 @@ bool State::check_measurement_opt(InputIterator first, InputIterator last) const
     }
     if (op->type == Operations::OpType::measure ||
         op->type == Operations::OpType::bfunc ||
-        op->type == Operations::OpType::snapshot ||
         op->type == Operations::OpType::save_statevec ||
         op->type == Operations::OpType::save_expval)
     {
@@ -437,7 +401,7 @@ void State::apply_ops(InputIterator first, InputIterator last, ExperimentResult 
       for (auto it = it_nonstab_begin; it != last; it++)
       {
         const auto op = *it;
-        if(BaseState::creg_.check_conditional(op)) {
+        if(BaseState::creg().check_conditional(op)) {
           switch (op.type) {
             case Operations::OpType::gate:
               apply_gate(op, rng);
@@ -452,13 +416,10 @@ void State::apply_ops(InputIterator first, InputIterator last, ExperimentResult 
               apply_measure(op.qubits, op.memory, op.registers, rng);
               break;
             case Operations::OpType::roerror:
-              BaseState::creg_.apply_roerror(op, rng);
+              BaseState::creg().apply_roerror(op, rng);
               break;
             case Operations::OpType::bfunc:
-              BaseState::creg_.apply_bfunc(op);
-              break;
-            case Operations::OpType::snapshot:
-              apply_snapshot(op, result, rng);
+              BaseState::creg().apply_bfunc(op);
               break;
             case Operations::OpType::save_statevec:
               apply_save_statevector(op, result);
@@ -575,7 +536,7 @@ void State::apply_stabilizer_circuit(InputIterator first, InputIterator last,
   for (auto it = first; it != last; ++it)
   {
     const Operations::Op op = *it;
-    if(BaseState::creg_.check_conditional(op)) {
+    if(BaseState::creg().check_conditional(op)) {
       switch (op.type)
       {
         case Operations::OpType::gate:
@@ -591,13 +552,10 @@ void State::apply_stabilizer_circuit(InputIterator first, InputIterator last,
           apply_measure(op.qubits, op.memory, op.registers, rng);
           break;
         case Operations::OpType::roerror:
-          BaseState::creg_.apply_roerror(op, rng);
+          BaseState::creg().apply_roerror(op, rng);
           break;
         case Operations::OpType::bfunc:
-          BaseState::creg_.apply_bfunc(op);
-          break;
-        case Operations::OpType::snapshot:
-          apply_snapshot(op, result, rng);
+          BaseState::creg().apply_bfunc(op);
           break;
         case Operations::OpType::save_statevec:
           apply_save_statevector(op, result);
@@ -671,7 +629,7 @@ void State::apply_measure(const reg_t &qubits, const reg_t &cmemory, const reg_t
     }
   }
   // Convert the output string to a reg_t. and store
-  BaseState::creg_.store_measure(outcome, cmemory, cregister);
+  BaseState::creg().store_measure(outcome, cmemory, cregister);
 }
 
 void State::apply_reset(const reg_t &qubits, AER::RngEngine &rng)
@@ -826,8 +784,8 @@ void State::apply_save_statevector(const Operations::Op &op,
   if (BaseState::has_global_phase_) {
     statevec *= BaseState::global_phase_;
   }
-  BaseState::save_data_pershot(
-    result, op.string_params[0],
+  result.save_data_pershot(
+    creg(), op.string_params[0],
     std::move(statevec),
     op.type, op.save_type);
 }
@@ -858,45 +816,10 @@ void State::apply_save_expval(const Operations::Op &op,
     std::vector<double> expval_var(2);
     expval_var[0] = expval;  // mean
     expval_var[1] = sq_expval - expval * expval;  // variance
-    save_data_average(result, op.string_params[0], expval_var, op.type, op.save_type);
+    result.save_data_average(creg(), op.string_params[0], expval_var, op.type, op.save_type);
   } else {
-    save_data_average(result, op.string_params[0], expval, op.type, op.save_type);
+    result.save_data_average(creg(), op.string_params[0], expval, op.type, op.save_type);
   }
-}
-
-void State::apply_snapshot(const Operations::Op &op, ExperimentResult &result, RngEngine &rng)
-{
-  auto it = snapshotset_.find(op.name);
-  if (it == snapshotset_.end())
-  {
-    throw std::invalid_argument("CH::State::invlaid snapshot instruction \'"+
-                                op.name + "\'.");
-  }
-  switch(it->second)
-  {
-    case Snapshots::cmemory:
-      BaseState::snapshot_creg_memory(op, result);
-      break;
-    case Snapshots::cregister:
-      BaseState::snapshot_creg_register(op, result);
-      break;
-    case Snapshots::statevector:
-      statevector_snapshot(op, result);
-      break;
-    case Snapshots::probs:
-      probabilities_snapshot(op, result, rng);
-      break;
-    default:
-      throw std::invalid_argument("CH::State::invlaid snapshot instruction \'"+
-                              op.name + "\'.");
-      break;
-  }
-}
-
-void State::statevector_snapshot(const Operations::Op &op, ExperimentResult &result)
-{
-  result.legacy_data.add_pershot_snapshot("statevector", op.string_params[0],
-		      BaseState::qreg_.statevector());
 }
 
 double State::expval_pauli(const reg_t &qubits,
@@ -937,77 +860,6 @@ double State::expval_pauli(const reg_t &qubits,
     // empty implementation of base class virtual method
     // since in the extended stabilizer, expval relies on RNG
     return 0;
-}
-
-void State::probabilities_snapshot(const Operations::Op &op, ExperimentResult &result, RngEngine &rng)
-{
-  rvector_t probs;
-  if (op.qubits.size() == 0)
-  {
-    probs.push_back(BaseState::qreg_.norm_estimation(norm_estimation_samples_, norm_estimation_repetitions_, rng));
-  }
-  else
-  {
-    probs = rvector_t(1ULL<<op.qubits.size(), 0.);
-    int_t dim = probs.size();
-    uint_t mask = 0ULL;
-    for(auto qubit: op.qubits)
-    {
-      mask ^= (1ULL << qubit);
-    }
-    if (BaseState::qreg_.get_num_states() == 1 || sampling_method_ != SamplingMethod::norm_estimation)
-    {
-      std::vector<uint_t> samples;
-      samples.reserve(probabilities_snapshot_samples_);
-      if(BaseState::qreg_.get_num_states() == 1)
-      {
-        samples = BaseState::qreg_.stabilizer_sampler(probabilities_snapshot_samples_, rng);
-      }
-      else
-      {
-        if (sampling_method_ == SamplingMethod::metropolis)
-        {
-          samples = BaseState::qreg_.metropolis_estimation(metropolis_mixing_steps_, probabilities_snapshot_samples_,
-                                                          rng);
-        }
-        else{
-          for (uint_t s=0; s<probabilities_snapshot_samples_; s++)
-          {
-            uint_t sample = BaseState::qreg_.metropolis_estimation(metropolis_mixing_steps_, rng);
-            samples.push_back(sample);
-          }
-        }
-      }
-      #pragma omp parallel for if(BaseState::qreg_.check_omp_threshold() && BaseState::threads_>1) num_threads(BaseState::threads_)
-      for(int_t i=0; i < dim; i++)
-      {
-        uint_t target = 0ULL;
-        for(uint_t j=0; j<op.qubits.size(); j++)
-        {
-          if((i >> j) & 1ULL)
-          {
-            target ^= (1ULL << op.qubits[j]);
-          }
-        }
-        for(uint_t j=0; j<probabilities_snapshot_samples_; j++)
-        {
-          if((samples[j] & mask) == target)
-          {
-            probs[i] += 1;
-          }
-        }
-        probs[i] /= probabilities_snapshot_samples_;
-      }
-    }
-    else
-    {
-      probs = BaseState::qreg_.ne_probabilities(norm_estimation_samples_, norm_estimation_repetitions_, op.qubits, rng);
-    }
-  }
-  result.legacy_data.add_average_snapshot("probabilities", op.string_params[0],
-                            BaseState::creg_.memory_hex(),
-                            Utils::vec2ket(probs, snapshot_chop_threshold_, 16),
-                            false);
 }
 
 //-------------------------------------------------------------------------
@@ -1082,7 +934,6 @@ size_t State::required_memory_mb(uint_t num_qubits,
     required_mb *= 2;
   }
   return required_mb;
-  //Todo: Update this function to account for snapshots
 }
 
 }

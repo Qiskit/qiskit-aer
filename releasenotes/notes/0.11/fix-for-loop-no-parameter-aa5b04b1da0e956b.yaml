@@ -1,0 +1,18 @@
+---
+fixes:
+  - |
+    Fixed simulation of ``for`` loops where the loop parameter was not used in
+    the body of the loop.  For example, previously this code would fail, but
+    will now succeed:
+
+    .. code-block:: python
+
+        import qiskit
+        from qiskit_aer import AerSimulator
+
+        qc = qiskit.QuantumCircuit(2)
+        with qc.for_loop(range(4)) as i:
+            qc.h(0)
+            qc.cx(0, 1)
+
+        AerSimulator(method="statevector").run(qc)

@@ -219,7 +219,7 @@ json_t JSON::iterable_to_json_list(const py::handle& obj){
 }
 
 void std::to_json(json_t &js, const py::handle &obj) {
-    static py::object PyNoiseModel = py::module::import("qiskit.providers.aer.noise.noise_model").attr("NoiseModel");
+    static py::object PyNoiseModel = py::module::import("qiskit_aer.noise.noise_model").attr("NoiseModel");
     static py::object PyQasmQobj = py::module::import("qiskit.qobj.qasm_qobj").attr("QasmQobj");
     if (py::isinstance<py::float_>(obj)) {
         js = obj.cast<nl::json::number_float_t>();

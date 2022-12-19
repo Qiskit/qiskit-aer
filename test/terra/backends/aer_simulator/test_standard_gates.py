@@ -27,7 +27,7 @@ from qiskit.circuit.library.standard_gates import (
     C4XGate, CCXGate, CHGate, CSXGate, CSwapGate, CPhaseGate, CRXGate, CRYGate,
     CRZGate, CUGate, CU1Gate, CU3Gate, CUGate, PhaseGate, RC3XGate, RCCXGate, RGate,
     RXGate, RXXGate, RYGate, RYYGate, RZGate, RZXGate, RZZGate, UGate, U1Gate, U2Gate,
-    U3Gate, UGate, MCXGate, MCPhaseGate, MCXGrayCode)
+    U3Gate, UGate, MCXGate, MCPhaseGate, MCXGrayCode, ECRGate)
 
 
 CLIFFORD_GATES = [
@@ -57,6 +57,7 @@ NONCLIFFORD_GATES = [
     (CHGate, 0, False),
     (CSXGate, 0, False),
     (CSwapGate, 0, False),
+    (ECRGate, 0, False),
     # Parameterized Gates
     (CPhaseGate, 1, False),
     (CRXGate, 1, False),
@@ -84,8 +85,8 @@ MC_GATES = [
     (C3XGate, 0, False),
     (C4XGate, 0, False),
     # Parameterized Gates
-    (RC3XGate, 1, False),
-    (RCCXGate, 1, False),
+    (RC3XGate, 0, False),
+    (RCCXGate, 0, False),
     (MCXGate, 0, True),
     (MCPhaseGate, 1, True),
     (MCXGrayCode, 0, True),

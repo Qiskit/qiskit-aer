@@ -1,0 +1,21 @@
+---
+features:
+  - |
+    Added partial support for running on ppc64le and s390x Linux platforms.
+    This release will start publishing pre-compiled binaries for ppc64le and
+    s390x Linux platforms on all Python versions. However, unlike other
+    supported platforms not all of Qiskit's upstream dependencies support these
+    platforms yet. So a C/C++ compiler may be required to build and install
+    these dependencies and a simple ``pip install qiskit-aer`` with just a
+    working Python environment will not be sufficient to install Qiskit Aer.
+    Additionally, these same constraints prevent us from testing the
+    pre-compiled wheels before publishing them, so the same guarantees around
+    platform support that exist for the other platforms don't apply to these
+    platforms.
+issues:
+  - |
+    When running on Linux s390x platforms (or other big endian platforms)
+    running circuits that contain :class:`~.UnitaryGate` operations will not
+    work because of an endianess bug.
+    See `#1506 <https://github.com/Qiskit/qiskit-aer/issues/1506>`__ for more
+    details.

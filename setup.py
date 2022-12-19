@@ -83,18 +83,10 @@ extras_requirements = {
 if not _DISABLE_CONAN:
     setup_requirements.append('conan>=1.22.2')
 
-requirements = common_requirements + ['qiskit-terra>=0.19.1', 'scipy>=1.0']
-
-if not hasattr(setuptools,
-               'find_namespace_packages') or not inspect.ismethod(
-                    setuptools.find_namespace_packages):
-    print("Your setuptools version:'{}' does not support PEP 420 "
-          "(find_namespace_packages). Upgrade it to version >='40.1.0' and "
-          "repeat install.".format(setuptools.__version__))
-    sys.exit(1)
+requirements = common_requirements + ['qiskit-terra>=0.21.0', 'scipy>=1.0']
 
 VERSION_PATH = os.path.join(os.path.dirname(__file__),
-                            "qiskit", "providers", "aer", "VERSION.txt")
+                            "qiskit_aer", "VERSION.txt")
 with open(VERSION_PATH, "r") as version_file:
     VERSION = version_file.read().strip()
 
@@ -112,7 +104,7 @@ if is_win_32_bit:
 setup(
     name=PACKAGE_NAME,
     version=VERSION,
-    packages=setuptools.find_namespace_packages(include=['qiskit.*']),
+    packages=setuptools.find_packages(exclude=["test*"]),
     cmake_source_dir='.',
     description="Qiskit Aer - High performance simulators for Qiskit",
     long_description=README,
@@ -135,12 +127,14 @@ setup(
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
         "Topic :: Scientific/Engineering",
     ],
     python_requires=">=3.7",
     install_requires=requirements,
     setup_requires=setup_requirements,
-    include_package_data=True,
+    include_package_data=False,
+    package_data={"qiskit_aer": ["VERSION.txt"], "qiskit_aer.library": ["*.csv"]},
     extras_require=extras_requirements,
     cmake_args=cmake_args,
     keywords="qiskit aer simulator quantum addon backend",

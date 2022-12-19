@@ -69,9 +69,9 @@ public:
     sample_measure_ = enabled;
   }
 
-  void set_save_state(bool enabled)
+  void set_restore_qubit_map(bool enabled)
   {
-    save_state_ = enabled;
+    restore_qubit_map_ = enabled;
   }
 
   //setting blocking parameters automatically
@@ -89,7 +89,7 @@ protected:
   mutable reg_t qubitSwapped_;
   mutable bool blocking_enabled_;
   mutable bool sample_measure_ = false;
-  mutable bool save_state_ = false;
+  mutable bool restore_qubit_map_ = false;
   int memory_blocking_bits_ = 0;
   bool density_matrix_ = false;
   int num_processes_ = 1;
@@ -225,10 +225,12 @@ void CacheBlocking::optimize_circuit(Circuit& circ,
     //loop over operations to find max number of parameters for cross-qubits operations
     int_t max_params = 1;
     for(uint_t i=0;i<circ.ops.size();i++){
-      reg_t targets;
-      target_qubits(circ.ops[i],targets);
-      if(targets.size() > max_params)
-        max_params = targets.size();
+      if(is_blockable_operation(circ.ops[i]) && is_cross_qubits_op(circ.ops[i])){
+        reg_t targets;
+        target_qubits(circ.ops[i],targets);
+        if(targets.size() > max_params)
+          max_params = targets.size();
+      }
     }
     if(block_bits_ < max_params){
       block_bits_ = max_params;   //change blocking qubits so that we can put op with many params
@@ -237,7 +239,7 @@ void CacheBlocking::optimize_circuit(Circuit& circ,
     if(num_processes_ > 1){
       if(block_bits_ >= qubits_){
         blocking_enabled_ = false;
-        std::string error = "cache blocking : there are gates operation can not chache blocked in blocking_qubits = " + std::to_string(block_bits_);
+        std::string error = "cache blocking : there are gates operation can not cache blocked in blocking_qubits = " + std::to_string(block_bits_);
         throw std::runtime_error(error);
         return;
       }
@@ -412,7 +414,7 @@ bool CacheBlocking::block_circuit(Circuit& circ,bool doSwap) const
     return false;
   }
 
-  if(doSwap && save_state_)
+  if(doSwap && restore_qubit_map_)
     restore_qubits_order(out);
 
   circ.ops = out;
@@ -665,7 +667,7 @@ uint_t CacheBlocking::add_ops(std::vector<Operations::Op>& ops,std::vector<Opera
         else if(ops[i].type != Operations::OpType::measure && ops[i].type != Operations::OpType::reset && 
                 ops[i].type != Operations::OpType::save_amps && ops[i].type != Operations::OpType::save_amps_sq &&
                 ops[i].type != Operations::OpType::save_densmat && ops[i].type != Operations::OpType::bfunc){
-          if(!(ops[i].type == Operations::OpType::snapshot && ops[i].name == "density_matrix")){
+          if(ops[i].name != "density_matrix"){
             restore_qubits = true;
           }
         }
