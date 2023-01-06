@@ -263,7 +263,9 @@ most of the dependencies needed by the C++ source code. Internet connection may 
 when dependencies are added/updated, in order to download the required packages if they are not in your **Conan** local
 repository.
 
->  Note: Conan use can be disabled with the flag or environment variable ``DISABLE_CONAN=ON`` .
+>  Note: Conan use can be disabled with the flag or environment variable ``DISABLE_CONAN=ON``.  The Python package `conan`
+> is still required as a build dependency, it just will not called or used.
+
 This is useful for building from source offline, or to reuse the installed package dependencies.
 
 If we are only building the standalone version and do not want to install all Python requirements you can just install
