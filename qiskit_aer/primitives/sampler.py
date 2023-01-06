@@ -136,7 +136,7 @@ class Sampler(BaseSampler):
                 shots = sum(counts.values())
                 quasis.append(
                     QuasiDistribution(
-                        {k: v / shots for k, v in counts.items()},
+                        {k.replace(" ", ""): v / shots for k, v in counts.items()},
                         shots=shots,
                     )
                 )
