@@ -342,7 +342,8 @@ As any other Python package, we can install from source code by just running:
 This will build and install `Aer` with the default options which is probably suitable for most of the users.
 There's another Pythonic approach to build and install software: build the wheels distributable file.
 
-    qiskit-aer$ python ./setup.py bdist_wheel
+    qiskit-aer$ pip install build
+    qiskit-aer$ python -I -m build --wheel
 
 This is also the way we will choose to change default `Aer` behavior by passing parameters to the build system.
 
