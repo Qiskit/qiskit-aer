@@ -57,9 +57,9 @@ class QasmSimulator(AerBackend):
         backend = QasmSimulator(method='density_matrix',
                                 noise_model=noise_model)
 
-    **Simulating an IBM QUANTUM Backend**
+    **Simulating an IBM Quantum Backend**
 
-    The simulator can be automatically configured to mimic an IBM QUANTUM backend using
+    The simulator can be automatically configured to mimic an IBM Quantum backend using
     the :meth:`from_backend` method. This will configure the simulator to use the
     basic device :class:`NoiseModel` for that backend, and the same basis gates
     and coupling map.
