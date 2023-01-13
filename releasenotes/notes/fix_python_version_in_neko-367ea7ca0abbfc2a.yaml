@@ -1,5 +1,0 @@
----
-fixes:
-  - |
-    Fix the version of Python in neko to avoid load python
-    packages from the working directory in its integration tests.

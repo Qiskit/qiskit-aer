@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fix the minor version of Python 3.11 in CI to work around bugs of terra for 3.11.1.
+    Also, change installation of Qiskit-Aeer in Neko to correctly install `qiskit_aer` package.
