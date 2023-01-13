@@ -15,6 +15,5 @@ jobs:
         with:
           test_selection: backend
           repo_install_command: |
-            pip install -r requirements-dev.txt
             pip install .
             rm -rf qiskit_aer
