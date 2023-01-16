@@ -16,7 +16,5 @@ jobs:
           test_selection: backend
           repo_install_command: |
             mkdir ~/pip_tmp/
-            pip install -v .
+            TMPDIR=~/pip_tmp pip install -v .
             rm -rf qiskit_aer
-        env:
-          TMPDIR: ~/pip_tmp/
