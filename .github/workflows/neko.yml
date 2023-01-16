@@ -15,6 +15,5 @@ jobs:
         with:
           test_selection: backend
           repo_install_command: |
-            mkdir ~/pip_tmp/
-            TMPDIR=~/pip_tmp pip install -v .
-            rm -rf qiskit_aer
+            pip install conan
+            pip install -v .
