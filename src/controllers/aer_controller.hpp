@@ -1515,6 +1515,7 @@ void Controller::run_circuit_without_sampled_noise(Circuit &circ,
       state.set_max_bached_shots(max_batched_states_);
       state.set_distribution(num_processes_);
       state.set_max_matrix_qubits(max_bits);
+      state.set_num_creg_bits(circ.num_memory, circ.num_registers);
       state.allocate(circ.num_qubits, circ.num_qubits, circ.shots);    //allocate multiple-shots
 
       //qreg is initialized inside state class
