@@ -13,3 +13,4 @@ sphinx-automodapi
 jupyter-sphinx
 reno>=3.4.0
 ddt>=1.2.0,!=1.4.0
+matplotlib>=3.3
