@@ -3,87 +3,24 @@
 """
 Main setup file for qiskit-aer
 """
-import importlib
-import inspect
 import os
-import setuptools
-import subprocess
-import sys
-from pkg_resources import parse_version
 import platform
 
-
-def strtobool(val):
-    val_lower = val.lower()
-    if val_lower in ('y', 'yes', 't', 'true', 'on', '1'):
-        return True
-    elif val_lower in ('n', 'no', 'f', 'false', 'off', '0'):
-        return False
-    else:
-        raise ValueError(f'Value: "{val}" not recognizes as True or False')
-
-
-PACKAGE_NAME = os.getenv('QISKIT_AER_PACKAGE_NAME', 'qiskit-aer')
-_DISABLE_CONAN = strtobool(os.getenv("DISABLE_CONAN", "OFF"))
-_DISABLE_DEPENDENCY_INSTALL = strtobool(os.getenv("DISABLE_DEPENDENCY_INSTALL", "OFF"))
-
-
-
-def install_needed_req(import_name, package_name=None, min_version=None, max_version=None):
-    if package_name is None:
-        package_name = import_name
-    install_ver = package_name
-    if min_version:
-        install_ver += '>=' + min_version
-    if max_version:
-        install_ver += '<' + max_version
-
-    try:
-        mod = importlib.import_module(import_name)
-        mod_ver = parse_version(mod.__version__)
-        if ((min_version and mod_ver < parse_version(min_version))
-                or (max_version and mod_ver >= parse_version(max_version))):
-            raise RuntimeError(f'{package_name} {mod_ver} is installed '
-                               f'but required version is {install_ver}.')
-
-    except ImportError as err:
-        if _DISABLE_DEPENDENCY_INSTALL:
-            raise ImportError(str(err) +
-                              f"\n{package_name} is a required dependency. "
-                              f"Please provide it and repeat install")
-
-        subprocess.call([sys.executable, '-m', 'pip', 'install', install_ver])
-
-if not _DISABLE_CONAN:
-    install_needed_req('conans', package_name='conan', min_version='1.31.2')
-
-install_needed_req('skbuild', package_name='scikit-build', min_version='0.11.0')
-install_needed_req('pybind11', min_version='2.6')
-
+import setuptools
 from skbuild import setup
 
 
-# These are requirements that are both runtime/install dependencies and
-# also build time/setup requirements and will be added to both lists
-# of requirements
-common_requirements = [
-    'numpy>=1.16.3',
-]
-
-setup_requirements = common_requirements + [
-    'scikit-build>=0.11.0',
-    'cmake!=3.17,!=3.17.0',
-    'pybind11>=2.6',
-]
+PACKAGE_NAME = os.getenv('QISKIT_AER_PACKAGE_NAME', 'qiskit-aer')
 
 extras_requirements = {
     "dask": ["dask", "distributed"]
 }
 
-if not _DISABLE_CONAN:
-    setup_requirements.append('conan>=1.22.2')
-
-requirements = common_requirements + ['qiskit-terra>=0.21.0', 'scipy>=1.0']
+requirements = [
+    'qiskit-terra>=0.21.0',
+    'numpy>=1.16.3',
+    'scipy>=1.0',
+]
 
 VERSION_PATH = os.path.join(os.path.dirname(__file__),
                             "qiskit_aer", "VERSION.txt")
@@ -132,7 +69,6 @@ setup(
     ],
     python_requires=">=3.7",
     install_requires=requirements,
-    setup_requires=setup_requirements,
     include_package_data=False,
     package_data={"qiskit_aer": ["VERSION.txt"], "qiskit_aer.library": ["*.csv"]},
     extras_require=extras_requirements,
