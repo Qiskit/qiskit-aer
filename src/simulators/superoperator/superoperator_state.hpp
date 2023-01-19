@@ -48,12 +48,13 @@ const Operations::OpSet StateOpSet(
     {"U",    "CX",  "u1", "u2",  "u3", "u",   "cx",   "cy",  "cz",
      "swap", "id",  "x",  "y",   "z",  "h",   "s",    "sdg", "t",
      "tdg",  "ccx", "r",  "rx",  "ry", "rz",  "rxx",  "ryy", "rzz",
-     "rzx",  "p",   "cp", "cu1", "sx", "sxdg", "x90", "delay", "pauli"});
+     "rzx",  "p",   "cp", "cu1", "sx", "sxdg", "x90", "delay", "pauli",
+     "ecr"});
 
 // Allowed gates enum class
 enum class Gates {
   u2, u1, u3, id, x, y, z, h, s, sdg, sx, sxdg, t, tdg, r, rx, ry, rz,
-  cx, cy, cz, cp, swap, rxx, ryy, rzz, rzx, ccx, pauli
+  cx, cy, cz, cp, swap, rxx, ryy, rzz, rzx, ccx, pauli, ecr
 };
 
 //=========================================================================
@@ -217,6 +218,7 @@ const stringmap_t<Gates> State<data_t>::gateset_({
     {"ryy", Gates::ryy},   // Pauli-YY rotation gate
     {"rzz", Gates::rzz},   // Pauli-ZZ rotation gate
     {"rzx", Gates::rzx},   // Pauli-ZX rotation gate
+    {"ecr", Gates::ecr},   // ECR Gate
     // Three-qubit gates
     {"ccx", Gates::ccx}, // Controlled-CX gate (Toffoli)
     {"pauli", Gates::pauli}  // Multiple pauli operations at once
@@ -387,6 +389,9 @@ void State<data_t>::apply_gate(const Operations::Op &op) {
       break;
     case Gates::rzx:
       apply_matrix(op.qubits, Linalg::VMatrix::rzx(op.params[0]));
+      break;
+    case Gates::ecr:
+      apply_matrix(op.qubits, Linalg::VMatrix::ECR);
       break;
     case Gates::cx:
       BaseState::qreg_.apply_cnot(op.qubits[0], op.qubits[1]);

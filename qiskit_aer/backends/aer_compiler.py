@@ -12,7 +12,10 @@
 """
 Compier to convert Qiskit control-flow to Aer backend.
 """
-from qiskit.circuit import QuantumCircuit
+
+import itertools
+
+from qiskit.circuit import QuantumCircuit, Clbit
 from qiskit.extensions import Initialize
 from qiskit.pulse import Schedule, ScheduleBlock
 from qiskit.circuit.controlflow import (
@@ -117,61 +120,76 @@ class AerCompiler:
             return bool(optype.intersection(controlflow_types))
 
         # Check via iteration
-        for inst, _, _ in circuit.data:
-            if isinstance(inst, controlflow_types):
+        for instruction in circuit.data:
+            if isinstance(instruction.operation, controlflow_types):
                 return True
 
         return False
 
-    def _inline_circuit(self, circ, continue_label, break_label):
+    def _inline_circuit(self, circ, continue_label, break_label, bit_map=None):
         """convert control-flow instructions to mark and jump instructions
 
         Args:
             circ (QuantumCircuit): The QuantumCircuit to be compiled
             continue_label (str): label name for continue.
             break_label (str): label name for break.
+            bit_map (dict[Bit, Bit]): mapping of virtual bits in the current circuit to the bit they
+                represent in the outermost circuit.
 
         Returns:
             QuantumCircuit: QuantumCircuit without control-flow instructions
         """
-        ret = circ.copy()
-        ret.data = []
+        ret = circ.copy_empty_like()
+        bit_map = {bit: bit for bit in itertools.chain(ret.qubits, ret.clbits)}
 
-        q2i = {}
-        for q in ret.qubits:
-            q2i[q] = len(q2i)
-        c2i = {}
-        for c in ret.clbits:
-            c2i[c] = len(c2i)
-
-        for inst, qargs, cargs in circ.data:
-            binding_qargs = [q2i[q] for q in qargs]
-            binding_cargs = [c2i[c] for c in cargs]
-            if isinstance(inst, ForLoopOp):
-                self._inline_for_loop_op(inst, ret, binding_qargs, binding_cargs)
-            elif isinstance(inst, WhileLoopOp):
-                self._inline_while_loop_op(inst, ret, binding_qargs, binding_cargs)
-            elif isinstance(inst, IfElseOp):
-                self._inline_if_else_op(inst, continue_label, break_label,
-                                        ret, binding_qargs, binding_cargs)
-            elif isinstance(inst, BreakLoopOp):
-                ret.append(AerJump(break_label, ret.num_qubits),
-                           range(ret.num_qubits), [])
-            elif isinstance(inst, ContinueLoopOp):
-                ret.append(AerJump(continue_label, ret.num_qubits),
-                           range(ret.num_qubits), [])
+        for instruction in circ.data:
+            # The barriers around all control-flow operations is to prevent any non-control-flow
+            # operations from ending up topologically "inside" a body.  This can happen if the body
+            # is not full width on the circuit, and the other operation uses disjoint bits.
+            if isinstance(instruction.operation, ForLoopOp):
+                ret.barrier()
+                self._inline_for_loop_op(instruction, ret, bit_map)
+                ret.barrier()
+            elif isinstance(instruction.operation, WhileLoopOp):
+                ret.barrier()
+                self._inline_while_loop_op(instruction, ret, bit_map)
+                ret.barrier()
+            elif isinstance(instruction.operation, IfElseOp):
+                ret.barrier()
+                self._inline_if_else_op(instruction, continue_label, break_label, ret, bit_map)
+                ret.barrier()
+            elif isinstance(instruction.operation, BreakLoopOp):
+                ret._append(
+                    AerJump(break_label, ret.num_qubits, ret.num_clbits), ret.qubits, ret.clbits
+                )
+            elif isinstance(instruction.operation, ContinueLoopOp):
+                ret._append(
+                    AerJump(continue_label, ret.num_qubits, ret.num_clbits), ret.qubits, ret.clbits
+                )
             else:
-                ret.append(inst, qargs, cargs)
+                ret._append(instruction)
 
         return ret
 
-    def _convert_c_if_args(self, cond_tuple):
-        """convert a boolean value to 0 or 1 in c_if elements"""
-        return [1 if elem is True else 0 if elem is False else elem for elem in cond_tuple]
+    def _convert_c_if_args(self, cond_tuple, bit_map):
+        """Convert a condition tuple according to the wire map."""
+        if isinstance(cond_tuple[0], Clbit):
+            return (bit_map[cond_tuple[0]], cond_tuple[1])
+        # ClassicalRegister conditions should already be in the outer circuit.
+        return cond_tuple
 
-    def _inline_for_loop_op(self, inst, parent, qargs, cargs):
+    def _inline_for_loop_op(self, instruction, parent, bit_map):
         """inline for_loop body while iterating its indexset"""
-        indexset, loop_parameter, body = inst.params
+        qargs = [bit_map[q] for q in instruction.qubits]
+        cargs = [bit_map[c] for c in instruction.clbits]
+        indexset, loop_parameter, body = instruction.operation.params
+        inner_bit_map = {
+            inner: bit_map[outer]
+            for inner, outer in itertools.chain(
+                zip(body.qubits, instruction.qubits),
+                zip(body.clbits, instruction.clbits),
+            )
+        }
 
         self._last_flow_id += 1
         loop_id = self._last_flow_id
@@ -181,21 +199,19 @@ class AerCompiler:
         break_label = f'{loop_name}_end'
         for index in indexset:
             continue_label = f'{loop_name}_{index}'
-            inlined_body = self._inline_circuit(body,
-                                                continue_label,
-                                                break_label)
+            inlined_body = self._inline_circuit(body, continue_label, break_label, inner_bit_map)
             if loop_parameter is not None:
                 inlined_body = inlined_body.bind_parameters({loop_parameter: index})
             parent.append(inlined_body, qargs, cargs)
-            parent.append(AerMark(continue_label, inlined_body.num_qubits), qargs, [])
+            parent.append(AerMark(continue_label, len(qargs), len(cargs)), qargs, cargs)
 
-        if inlined_body:
-            parent.append(AerMark(break_label, inlined_body.num_qubits), qargs, [])
+        if inlined_body is not None:
+            parent.append(AerMark(break_label, len(qargs), len(cargs)), qargs, cargs)
 
-    def _inline_while_loop_op(self, inst, parent, qargs, cargs):
+    def _inline_while_loop_op(self, instruction, parent, bit_map):
         """inline while_loop body with jump and mark instructions"""
-        condition_tuple = inst.condition
-        body, = inst.params
+        condition_tuple = self._convert_c_if_args(instruction.operation.condition, bit_map)
+        body, = instruction.operation.params
 
         self._last_flow_id += 1
         loop_id = self._last_flow_id
@@ -204,23 +220,44 @@ class AerCompiler:
         continue_label = f'{loop_name}_continue'
         loop_start_label = f'{loop_name}_start'
         break_label = f'{loop_name}_end'
-        inlined_body = self._inline_circuit(body, continue_label, break_label)
+        inlined_body = self._inline_circuit(
+            body,
+            continue_label,
+            break_label,
+            {
+                inner: bit_map[outer]
+                for inner, outer in itertools.chain(
+                    zip(body.qubits, instruction.qubits),
+                    zip(body.clbits, instruction.clbits),
+                )
+            },
+        )
+        qargs = [bit_map[q] for q in instruction.qubits]
+        cargs = [bit_map[c] for c in instruction.clbits]
+        mark_cargs = cargs.copy()
+        mark_cargs.extend(
+            bit_map[c] for c in (
+                (
+                    {condition_tuple[0]} if isinstance(condition_tuple[0], Clbit)
+                    else set(condition_tuple[0])
+                ) - set(instruction.clbits)
+            )
+        )
+        c_if_args = self._convert_c_if_args(condition_tuple, bit_map)
 
-        c_if_args = self._convert_c_if_args(condition_tuple)
-
-        parent.append(AerMark(continue_label, inlined_body.num_qubits), qargs, [])
-        parent.append(AerJump(loop_start_label, inlined_body.num_qubits).c_if(*c_if_args),
-                      qargs, [])
-        parent.append(AerJump(break_label, inlined_body.num_qubits), qargs, [])
-        parent.append(AerMark(loop_start_label, inlined_body.num_qubits), qargs, [])
+        parent.append(AerMark(continue_label, len(qargs), len(mark_cargs)), qargs, mark_cargs)
+        parent.append(AerJump(loop_start_label, len(qargs), len(mark_cargs)).c_if(*c_if_args),
+                      qargs, mark_cargs)
+        parent.append(AerJump(break_label, len(qargs), len(mark_cargs)), qargs, mark_cargs)
+        parent.append(AerMark(loop_start_label, len(qargs), len(mark_cargs)), qargs, mark_cargs)
         parent.append(inlined_body, qargs, cargs)
-        parent.append(AerJump(continue_label, inlined_body.num_qubits), qargs, [])
-        parent.append(AerMark(break_label, inlined_body.num_qubits), qargs, [])
+        parent.append(AerJump(continue_label, len(qargs), len(mark_cargs)), qargs, mark_cargs)
+        parent.append(AerMark(break_label, len(qargs), len(mark_cargs)), qargs, mark_cargs)
 
-    def _inline_if_else_op(self, inst, continue_label, break_label, parent, qargs, cargs):
+    def _inline_if_else_op(self, instruction, continue_label, break_label, parent, bit_map):
         """inline true and false bodies of if_else with jump and mark instructions"""
-        condition_tuple = inst.condition
-        true_body, false_body = inst.params
+        condition_tuple = instruction.operation.condition
+        true_body, false_body = instruction.operation.params
 
         self._last_flow_id += 1
         if_id = self._last_flow_id
@@ -233,20 +270,54 @@ class AerCompiler:
         else:
             if_else_label = if_end_label
 
-        c_if_args = self._convert_c_if_args(condition_tuple)
+        c_if_args = self._convert_c_if_args(condition_tuple, bit_map)
 
-        parent.append(AerJump(if_true_label, true_body.num_qubits).c_if(*c_if_args), qargs, [])
-        parent.append(AerJump(if_else_label, true_body.num_qubits), qargs, [])
-        parent.append(AerMark(if_true_label, true_body.num_qubits), qargs, [])
-        parent.append(self._inline_circuit(true_body, continue_label, break_label), qargs, cargs)
+        qargs = [bit_map[q] for q in instruction.qubits]
+        cargs = [bit_map[c] for c in instruction.clbits]
+        mark_cargs = cargs.copy()
+        mark_cargs.extend(
+            bit_map[c] for c in (
+                (
+                    {condition_tuple[0]} if isinstance(condition_tuple[0], Clbit)
+                    else set(condition_tuple[0])
+                ) - set(instruction.clbits)
+            )
+        )
+
+        true_bit_map = {
+            inner: bit_map[outer]
+            for inner, outer in itertools.chain(
+                zip(true_body.qubits, instruction.qubits),
+                zip(true_body.clbits, instruction.clbits),
+            )
+        }
+
+        parent.append(
+            AerJump(if_true_label, len(qargs), len(mark_cargs)).c_if(*c_if_args), qargs, mark_cargs
+        )
+        parent.append(AerJump(if_else_label, len(qargs), len(mark_cargs)), qargs, mark_cargs)
+        parent.append(AerMark(if_true_label, len(qargs), len(mark_cargs)), qargs, mark_cargs)
+        parent.append(
+            self._inline_circuit(true_body, continue_label, break_label, true_bit_map), qargs, cargs
+        )
 
         if false_body:
-            parent.append(AerJump(if_end_label, true_body.num_qubits), qargs, [])
-            parent.append(AerMark(if_else_label, true_body.num_qubits), qargs, [])
-            parent.append(self._inline_circuit(false_body, continue_label, break_label),
-                          qargs, cargs)
+            false_bit_map = {
+                inner: bit_map[outer]
+                for inner, outer in itertools.chain(
+                    zip(false_body.qubits, instruction.qubits),
+                    zip(false_body.clbits, instruction.clbits),
+                )
+            }
+            parent.append(AerJump(if_end_label, len(qargs), len(mark_cargs)), qargs, mark_cargs)
+            parent.append(AerMark(if_else_label, len(qargs), len(mark_cargs)), qargs, mark_cargs)
+            parent.append(
+                self._inline_circuit(false_body, continue_label, break_label, false_bit_map),
+                qargs,
+                cargs,
+            )
 
-        parent.append(AerMark(if_end_label, true_body.num_qubits), qargs, [])
+        parent.append(AerMark(if_end_label, len(qargs), len(mark_cargs)), qargs, mark_cargs)
 
 
 def compile_circuit(circuits, basis_gates=None, optypes=None):

@@ -21,6 +21,7 @@ from warnings import warn, catch_warnings, filterwarnings
 from numpy import inf, exp, allclose
 
 import qiskit.quantum_info as qi
+from qiskit.circuit import Gate, Measure
 from .parameters import _NANOSECOND_UNITS
 from .parameters import gate_param_values
 from .parameters import readout_error_values
@@ -78,7 +79,7 @@ def basic_device_readout_errors(properties=None, target=None):
     return errors
 
 
-def basic_device_gate_errors(properties,
+def basic_device_gate_errors(properties=None,
                              gate_error=True,
                              thermal_relaxation=True,
                              gate_lengths=None,
@@ -88,7 +89,7 @@ def basic_device_gate_errors(properties,
                              warnings=None,
                              target=None):
     """
-    Return QuantumErrors derived from a devices BackendProperties.
+    Return QuantumErrors derived from either of a devices BackendProperties or Target.
 
     If non-default values are used gate_lengths should be a list
     of tuples ``(name, qubits, value)`` where ``name`` is the gate
@@ -96,8 +97,13 @@ def basic_device_gate_errors(properties,
     to apply gate time to this gate one any set of qubits,
     and ``value`` is the gate time in nanoseconds.
 
+    The resulting errors may contains two types of errors: gate errors and relaxation errors.
+    The gate errors are generated only for ``Gate`` objects while the relaxation errors are
+    generated for all ``Instruction`` objects. Exceptionally, no ``QuantumError`` s are
+    generated for ``Measure`` since ``ReadoutError`` s are generated separately instead.
+
     Args:
-        properties (BackendProperties): device backend properties
+        properties (BackendProperties): device backend properties.
         gate_error (bool): Include depolarizing gate errors (Default: True).
         thermal_relaxation (Bool): Include thermal relaxation errors
                                    (Default: True).
@@ -126,6 +132,9 @@ def basic_device_gate_errors(properties,
     Raises:
         NoiseError: If invalid arguments are supplied.
     """
+    if properties is None and target is None:
+        raise NoiseError("Either properties or target must be supplied.")
+
     if standard_gates is not None:
         warn(
             '"standard_gates" option has been deprecated as of qiskit-aer 0.10.0'
@@ -141,7 +150,7 @@ def basic_device_gate_errors(properties,
         warnings = True
 
     if target is not None:
-        if not standard_gates or not warnings:
+        if standard_gates is not None or not warnings:
             warn("When `target` is supplied, `standard_gates` and `warnings` are ignored,"
                  " and they are always set to true.", UserWarning)
 
@@ -156,9 +165,6 @@ def basic_device_gate_errors(properties,
             temperature=temperature
         )
 
-    # Initilize empty errors
-    depol_error = None
-    relax_error = None
     # Generate custom gate time dict
     custom_times = {}
     relax_params = []
@@ -182,6 +188,9 @@ def basic_device_gate_errors(properties,
     # Construct quantum errors
     errors = []
     for name, qubits, gate_length, error_param in device_gate_params:
+        # Initilize empty errors
+        depol_error = None
+        relax_error = None
         # Check for custom gate time
         relax_time = gate_length
         # Override with custom value
@@ -208,7 +217,7 @@ def basic_device_gate_errors(properties,
                     module="qiskit_aer.noise.errors.errorutils"
                 )
                 depol_error = _device_depolarizing_error(
-                    qubits, error_param, relax_error, standard_gates, warnings=warnings)
+                    qubits, error_param, relax_error, standard_gates)
 
         # Combine errors
         combined_error = _combine_depol_and_relax_error(depol_error, relax_error)
@@ -232,9 +241,16 @@ def _basic_device_target_gate_errors(target,
                                      gate_error=True,
                                      thermal_relaxation=True,
                                      temperature=0):
-    """Return QuantumErrors derived from a devices Target."""
+    """Return QuantumErrors derived from a devices Target.
+    Note that, in the resulting error list, non-Gate instructions (e.g. Reset) will have
+    no gate errors while they may have thermal relaxation errors. Exceptionally,
+    Measure instruction will have no errors, neither gate errors nor relaxation errors.
+    """
     errors = []
     for op_name, inst_prop_dic in target.items():
+        operation = target.operation_from_name(op_name)
+        if isinstance(operation, Measure):
+            continue
         if inst_prop_dic is None:  # ideal simulator
             continue
         for qubits, inst_prop in inst_prop_dic.items():
@@ -255,7 +271,7 @@ def _basic_device_target_gate_errors(target,
                     temperature=temperature,
                 )
             # Get depolarizing error
-            if gate_error and inst_prop.error:
+            if gate_error and inst_prop.error and isinstance(operation, Gate):
                 depol_error = _device_depolarizing_error(
                     qubits=qubits,
                     error_param=inst_prop.error,
@@ -272,9 +288,9 @@ def _basic_device_target_gate_errors(target,
 def _device_depolarizing_error(qubits,
                                error_param,
                                relax_error=None,
-                               standard_gates=True,
-                               warnings=True):
-    """Construct a depolarizing_error for device"""
+                               standard_gates=True):
+    """Construct a depolarizing_error for device.
+    If un-physical parameters are supplied, they are truncated to the theoretical bound values."""
 
     # We now deduce the depolarizing channel error parameter in the
     # presence of T1/T2 thermal relaxation. We assume the gate error
@@ -307,11 +323,6 @@ def _device_depolarizing_error(qubits,
         # The minimum average gate fidelity is F_min = 1 / (dim + 1)
         # So the maximum gate error is 1 - F_min = dim / (dim + 1)
         if error_param > error_max:
-            if warnings:
-                logger.warning(
-                    'Device reported a gate error parameter greater'
-                    ' than maximum allowed value (%f > %f). Truncating to'
-                    ' maximum value.', error_param, error_max)
             error_param = error_max
         # Model gate error entirely as depolarizing error
         num_qubits = len(qubits)
@@ -319,14 +330,15 @@ def _device_depolarizing_error(qubits,
         depol_param = dim * (error_param - relax_infid) / (dim * relax_fid - 1)
         max_param = 4**num_qubits / (4**num_qubits - 1)
         if depol_param > max_param:
-            if warnings:
-                logger.warning(
-                    'Device model returned a depolarizing error parameter greater'
-                    ' than maximum allowed value (%f > %f). Truncating to'
-                    ' maximum value.', depol_param, max_param)
             depol_param = min(depol_param, max_param)
-        return depolarizing_error(
-            depol_param, num_qubits, standard_gates=standard_gates)
+        with catch_warnings():
+            filterwarnings(
+                "ignore",
+                category=DeprecationWarning,
+                module="qiskit_aer.noise.device.models"
+            )
+            return depolarizing_error(
+                depol_param, num_qubits, standard_gates=standard_gates)
     return None
 
 
@@ -362,24 +374,23 @@ def _truncate_t2_value(t1, t2):
     new_t2 = t2
     if t2 > 2 * t1:
         new_t2 = 2 * t1
-        warn("Device model returned an invalid T_2 relaxation time greater than"
-             f" the theoretical maximum value 2 * T_1 ({t2} > 2 * {t1})."
-             " Truncating to maximum value.", UserWarning)
     return new_t2
 
 
 def _excited_population(freq, temperature):
-    """Return excited state population"""
+    """Return excited state population from freq [GHz] and temperature [mK]."""
     population = 0
     if freq != inf and temperature != 0:
-        # Compute the excited state population from qubit
-        # frequency and temperature
-        # Boltzman constant  kB = 8.617333262-5 (eV/K)
+        # Compute the excited state population from qubit frequency and temperature
+        # based on Maxwell-Boltzmann distribution
+        # considering only qubit states (|0> and |1>), i.e. truncating higher energy states.
+        # Boltzman constant  kB = 8.617333262e-5 (eV/K)
         # Planck constant h = 4.135667696e-15 (eV.s)
         # qubit temperature temperatue = T (mK)
         # qubit frequency frequency = f (GHz)
-        # excited state population = 1/(1+exp((2*h*f*1e9)/(kb*T*1e-3)))
-        exp_param = exp((95.9849 * freq) / abs(temperature))
+        # excited state population = 1/(1+exp((h*f*1e9)/(kb*T*1e-3)))
+        # See e.g. Phys. Rev. Lett. 114, 240501 (2015).
+        exp_param = exp((47.99243 * freq) / abs(temperature))
         population = 1 / (1 + exp_param)
         if temperature < 0:
             # negative temperate implies |1> is thermal ground

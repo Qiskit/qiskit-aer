@@ -1,0 +1,4 @@
+---
+features:
+  - |
+    Added support for running Qiskit Aer with Python 3.11 support.
