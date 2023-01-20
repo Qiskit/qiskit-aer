@@ -134,10 +134,10 @@ class AerStatevector(Statevector):
 
     @staticmethod
     def _from_ndarray(init_data, configs):
-        copy = True
+        do_copy = True
         if not init_data.flags['C_CONTIGUOUS']:
             init_data = np.ascontiguousarray(init_data)
-            copy = False
+            do_copy = False
 
         aer_state = AerState()
 
@@ -152,7 +152,7 @@ class AerStatevector(Statevector):
         num_qubits = int(np.log2(len(init_data)))
 
         aer_state.allocate_qubits(num_qubits)
-        aer_state.initialize(data=init_data, copy=copy)
+        aer_state.initialize(data=init_data, copy=do_copy)
 
         return aer_state.move_to_ndarray(), aer_state
 
