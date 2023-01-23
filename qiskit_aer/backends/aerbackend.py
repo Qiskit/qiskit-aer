@@ -28,7 +28,6 @@ from qiskit.providers.models import BackendStatus
 from qiskit.pulse import Schedule, ScheduleBlock
 from qiskit.qobj import QasmQobj, PulseQobj
 from qiskit.result import Result
-from qiskit.utils import deprecate_arguments
 from ..aererror import AerError
 from ..jobs import AerJob, AerJobSet, split_qobj
 from ..noise.noise_model import NoiseModel, QuantumErrorLocation
@@ -119,7 +118,6 @@ class AerBackend(Backend, ABC):
         return parameterizations
 
     # pylint: disable=arguments-differ
-    @deprecate_arguments({'qobj': 'circuits'})
     def run(self,
             circuits,
             validate=False,
