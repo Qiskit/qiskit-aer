@@ -202,7 +202,7 @@ def basic_device_gate_errors(properties=None,
         # Get depolarizing error channel
         if gate_error:
             depol_error = _device_depolarizing_error(
-                qubits, error_param, relax_error, warnings=warnings)
+                qubits, error_param, relax_error)
 
         # Combine errors
         combined_error = _combine_depol_and_relax_error(depol_error, relax_error)
@@ -272,8 +272,7 @@ def _basic_device_target_gate_errors(target,
 
 def _device_depolarizing_error(qubits,
                                error_param,
-                               relax_error=None,
-                               warnings=True):
+                               relax_error=None):
     """Construct a depolarizing_error for device.
     If un-physical parameters are supplied, they are truncated to the theoretical bound values."""
 
@@ -307,8 +306,7 @@ def _device_depolarizing_error(qubits,
         # Check if reported error param is un-physical
         # The minimum average gate fidelity is F_min = 1 / (dim + 1)
         # So the maximum gate error is 1 - F_min = dim / (dim + 1)
-        if error_param > error_max:
-            error_param = error_max
+        error_param = min(error_param, error_max)
         # Model gate error entirely as depolarizing error
         num_qubits = len(qubits)
         dim = 2 ** num_qubits
