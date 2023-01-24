@@ -37,6 +37,7 @@ from qiskit.circuit.library import QFT, HGate
 from test.terra import common
 from qiskit_aer.aererror import AerError
 from qiskit_aer.quantum_info.states import AerStatevector
+from qiskit.quantum_info.operators.predicates import ATOL_DEFAULT, RTOL_DEFAULT
 
 
 logger = logging.getLogger(__name__)
@@ -312,6 +313,16 @@ class TestAerStatevector(common.QiskitAerTestCase):
 
         for e, s in zip(expected, state):
             self.assertAlmostEqual(e, s)
+
+    def test_initialize_with_non_contiguous_ndarray(self):
+        """Test ndarray initialization """
+
+        for n_qubits in [2, 4, 8, 16]:
+            u = random_unitary(n_qubits, seed=1111).data
+            vec = u[0, :]
+            state = AerStatevector(vec)
+
+            self.assertTrue(np.allclose(state, vec, rtol=RTOL_DEFAULT, atol=ATOL_DEFAULT))
 
     def test_initialize_with_terra_statevector(self):
         """Test Statevector initialization """
