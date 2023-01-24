@@ -528,3 +528,77 @@ class TestControlFlow(SimulatorTestCase):
     
         result = backend.run(circ, method=method).result()
         self.assertSuccess(result)
+
+    @data("statevector", "density_matrix", "matrix_product_state")
+    def test_no_invalid_nested_reordering(self, method):
+        """Test that the jump/mark system doesn't allow nested conditional marks to jump incorrectly
+        relative to their outer marks.  Regression test of gh-1665."""
+        backend = self.backend(method=method)
+
+        circuit = QuantumCircuit(3, 3)
+        circuit.initialize('010', circuit.qubits)
+        circuit.measure(0, 0)
+        circuit.measure(1, 1)
+        with circuit.if_test((0, True)):
+            with circuit.if_test((1, False)):
+                circuit.x(2)
+        with circuit.if_test((0, False)):
+            with circuit.if_test((1, True)):
+                circuit.x(2)
+        circuit.measure(range(3), range(3))
+
+        result = backend.run(circuit, method=method, shots=100).result()
+        self.assertSuccess(result)
+        self.assertEqual(result.get_counts(), {"110": 100})
+
+    @data("statevector", "density_matrix", "matrix_product_state")
+    def test_no_invalid_reordering_if(self, method):
+        """Test that the jump/mark system doesn't allow an unrelated operation to jump inside a
+        conditional statement."""
+        backend = self.backend(method=method)
+
+        circuit = QuantumCircuit(3, 3)
+        circuit.measure(1, 1)
+        # This should never be entered.
+        with circuit.if_test((1, True)):
+            circuit.x(0)
+            circuit.x(2)
+        # In the topological ordering that `DAGCircuit` uses, this X on qubit 1 will naturally
+        # appear between the X on 0 and X on 2 once they are inlined, and the jump/mark instructions
+        # won't act as a full barrier, because the if test doesn't touch qubit 1.  In this case, the
+        # X on 1 will migrate to between the jump and mark, causing it to be skipped along with the
+        # other X gates.  This test ensures that suitable full-width barriers are in place to stop
+        # that from happening.
+        circuit.x(1)
+
+        circuit.measure(circuit.qubits, circuit.clbits)
+
+        result = backend.run(circuit, method=method, shots=100).result()
+        self.assertSuccess(result)
+        self.assertEqual(result.get_counts(), {"010": 100})
+
+    @data("statevector", "density_matrix", "matrix_product_state")
+    def test_no_invalid_reordering_while(self, method):
+        """Test that the jump/mark system doesn't allow an unrelated operation to jump inside a
+        conditional statement."""
+        backend = self.backend(method=method)
+
+        circuit = QuantumCircuit(3, 3)
+        circuit.measure(1, 1)
+        # This should never be entered.
+        with circuit.while_loop((1, True)):
+            circuit.x(0)
+            circuit.x(2)
+        # In the topological ordering that `DAGCircuit` uses, this X on qubit 1 will naturally
+        # appear between the X on 0 and X on 2 once they are inlined, and the jump/mark instructions
+        # won't act as a full barrier, because the if test doesn't touch qubit 1.  In this case, the
+        # X on 1 will migrate to between the jump and mark, causing it to be skipped along with the
+        # other X gates.  This test ensures that suitable full-width barriers are in place to stop
+        # that from happening.
+        circuit.x(1)
+
+        circuit.measure(circuit.qubits, circuit.clbits)
+
+        result = backend.run(circuit, method=method, shots=100).result()
+        self.assertSuccess(result)
+        self.assertEqual(result.get_counts(), {"010": 100})

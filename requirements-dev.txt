@@ -3,7 +3,7 @@ cmake!=3.17.1,!=3.17.0
 conan>=1.40.0
 scikit-build>=0.11.0
 asv
-cvxpy>=1.0.0,<1.1.15
+cvxpy>=1.0.0,<1.1.15;platform_system != 'Windows' and python_version < '3.11'
 pylint
 pycodestyle
 Sphinx>=1.8.3
@@ -13,3 +13,5 @@ sphinx-automodapi
 jupyter-sphinx
 reno>=3.4.0
 ddt>=1.2.0,!=1.4.0
+matplotlib>=3.3
+seaborn>=0.9.0

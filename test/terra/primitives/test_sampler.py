@@ -20,7 +20,7 @@ from test.terra.decorators import deprecated
 
 import numpy as np
 from ddt import data, ddt
-from qiskit import QuantumCircuit
+from qiskit import ClassicalRegister, QuantumCircuit
 from qiskit.circuit import Parameter
 from qiskit.circuit.library import RealAmplitudes
 from qiskit.exceptions import QiskitError
@@ -524,6 +524,31 @@ class TestSampler(QiskitAerTestCase):
                 3: 0.596984802333687,
             },
         )
+
+    @data(8192, None)
+    def test_num_clbits(self, shots):
+        """test of QuasiDistribution"""
+        qc = QuantumCircuit(4)
+        qc.h(0)
+        qc.measure_all()
+
+        result = Sampler().run(qc, shots=shots, seed=15).result()
+        quasis = result.quasi_dists[0]
+        bin_probs = quasis.binary_probabilities()
+        self.assertDictAlmostEqual(bin_probs, {"0000": 0.5, "0001": 0.5}, delta=1e-2)
+
+    def test_multiple_cregs(self):
+        """Test for the circuit with multipe cregs"""
+        qc = QuantumCircuit(2)
+        cr1 = ClassicalRegister(1, "cr1")
+        cr2 = ClassicalRegister(1, "cr2")
+        qc.add_register(cr1)
+        qc.add_register(cr2)
+        qc.measure(0, 0)
+        qc.measure(1, 1)
+
+        result = Sampler().run(qc, shots=100).result()
+        self.assertDictAlmostEqual(result.quasi_dists[0], {0: 1})
 
 
 if __name__ == "__main__":

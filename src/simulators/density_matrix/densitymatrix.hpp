@@ -112,6 +112,9 @@ public:
   // Apply a 2-qubit SWAP gate to the state vector
   void apply_swap(const uint_t q0, const uint_t q1);
 
+  // Apply a 2-qubit SWAP gate to the state vector
+  void apply_ecr(const uint_t q0, const uint_t q1);
+
   // Apply a single-qubit Pauli-X gate to the state vector
   void apply_x(const uint_t qubit);
 

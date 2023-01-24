@@ -567,6 +567,22 @@ class TestAerState(common.QiskitAerTestCase):
         for idx in range(0, 2**5):
             self.assertAlmostEqual(actual[idx], expected[idx])
 
+    def test_set_seed(self):
+        """Test set_seed"""
+        init_state = random_statevector(2**5, seed=111)
+
+        state = AerState(seed_simulator=11111)
+        state.allocate_qubits(5)
+        state.initialize(init_state.data)
+        sample1 = state.sample_counts()
+        sample2 = state.sample_counts()
+
+        state.set_seed(11111)
+        sample3 = state.sample_counts()
+
+        self.assertNotEqual(sample1, sample2)
+        self.assertEqual(sample1, sample3)
+
     def test_sampling(self):
         """Test sampling"""
         init_state = random_statevector(2**5, seed=111)
