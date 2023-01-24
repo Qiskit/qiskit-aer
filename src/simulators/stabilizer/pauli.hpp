@@ -32,18 +32,6 @@ public:
   BV::BinaryVector X;
   BV::BinaryVector Z;
 
-  Pauli(const Pauli& pauli)
-  {
-    X = pauli.X;
-    Z = pauli.Z;
-  }
-  Pauli& operator=(const Pauli& pauli)
-  {
-    X = pauli.X;
-    Z = pauli.Z;
-    return *this;
-  }
-
   // Construct an empty pauli
   Pauli() : X(0), Z(0) {};
 

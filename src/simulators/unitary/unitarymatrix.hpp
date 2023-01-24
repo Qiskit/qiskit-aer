@@ -44,20 +44,15 @@ public:
 
   UnitaryMatrix() : UnitaryMatrix(0) {};
   explicit UnitaryMatrix(size_t num_qubits);
-  UnitaryMatrix(const UnitaryMatrix& obj)
-  {
-  }
-  UnitaryMatrix &operator=(const UnitaryMatrix& obj)
-  {
-    return *this;
-  }
+  UnitaryMatrix(const UnitaryMatrix& obj){}
+  UnitaryMatrix &operator=(const UnitaryMatrix& obj){}
 
   //-----------------------------------------------------------------------
   // Utility functions
   //-----------------------------------------------------------------------
 
   // Set the size of the vector in terms of qubit number
-  void set_num_qubits(size_t num_qubits) override;
+  void set_num_qubits(size_t num_qubits);
 
   // Return the number of rows in the matrix
   size_t num_rows() const {return rows_;}
@@ -79,15 +74,6 @@ public:
 
   // Initializes the current vector so that all qubits are in the |0> state.
   void initialize();
-
-  //initialize from existing state (copy)
-  void initialize(const UnitaryMatrix<data_t>& obj)
-  {
-    BaseVector::initialize(obj);
-    num_qubits_ = obj.num_qubits_;
-    rows_ = obj.rows_;
-    identity_threshold_ = obj.identity_threshold_;
-  }
 
   // Initializes the vector to a custom initial state.
   // If the length of the statevector does not match the number of qubits

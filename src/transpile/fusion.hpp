@@ -123,7 +123,6 @@ public:
 
     // Unitary simulation
     QubitUnitary::State<> unitary_simulator;
-    unitary_simulator.allocate(qubits.size(),qubits.size());
     unitary_simulator.initialize_qreg(qubits.size());
     unitary_simulator.apply_ops(fusioned_ops.cbegin(), fusioned_ops.cend(), dummy_result, dummy_rng);
     return Operations::make_unitary(qubits, unitary_simulator.qreg().move_to_matrix(),

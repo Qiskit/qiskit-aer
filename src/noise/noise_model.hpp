@@ -514,7 +514,7 @@ NoiseModel::NoiseOps NoiseModel::sample_noise_helper(const Operations::Op &op,
   // Combine errors
   auto &noise_ops = noise_before;
   noise_ops.reserve(noise_before.size() + noise_after.size() + 1);
-  if (op.type != Operations::OpType::sample_noise) {
+  if (op.type != Operations::OpType::qerror_loc) {
     noise_ops.push_back(op);
   }
   noise_ops.insert(noise_ops.end(),
@@ -789,7 +789,7 @@ NoiseModel::NoiseOps NoiseModel::create_noise_loc(const Operations::Op &op) cons
 {
   NoiseOps ops(1);
   ops[0] = op;
-  ops[0].type = Operations::OpType::sample_noise;
+  ops[0].type = Operations::OpType::qerror_loc;
   return ops;
 }
 

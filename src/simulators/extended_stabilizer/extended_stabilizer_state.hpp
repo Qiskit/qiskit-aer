@@ -30,10 +30,6 @@
 namespace AER{
 namespace ExtendedStabilizer {
 
-using chpauli_t = CHSimulator::pauli_t;
-using chstate_t = CHSimulator::Runner;
-using Gates = CHSimulator::Gates;
-
 // OpSet of supported instructions
 const Operations::OpSet StateOpSet(
   // Op types
@@ -46,6 +42,10 @@ const Operations::OpSet StateOpSet(
   // Gates
   {"CX", "u0", "u1", "p", "cx", "cz", "swap", "id", "x", "y", "z", "h",
     "s", "sdg", "sx", "sxdg", "t", "tdg", "ccx", "ccz", "delay", "pauli"});
+
+using chpauli_t = CHSimulator::pauli_t;
+using chstate_t = CHSimulator::Runner;
+using Gates = CHSimulator::Gates;
 
 uint_t zero = 0ULL;
 uint_t toff_branch_max = 7ULL;
@@ -76,38 +76,30 @@ public:
 
   // Apply a single operation
   // If the op is not in allowed_ops an exeption will be raised.
-  void apply_op(QuantumState::RegistersBase& state,
-                        const Operations::Op &op,
+  virtual void apply_op(const Operations::Op &op,
                         ExperimentResult &result,
                         RngEngine &rng,
                         bool final_op = false) override;
 
+  void initialize_qreg(uint_t num_qubits) override;
+
   size_t required_memory_mb(uint_t num_qubits,
-                                    QuantumState::OpItr first, QuantumState::OpItr last)
+                                    const std::vector<Operations::Op> &ops)
                                     const override;
 
-  std::vector<reg_t> sample_measure(QuantumState::RegistersBase& state_in, const reg_t& qubits,
+  void set_config(const json_t &config) override;
+
+  std::vector<reg_t> sample_measure(const reg_t& qubits,
                                     uint_t shots,
                                     RngEngine &rng) override;
 
 protected:
-  void initialize_qreg_state(QuantumState::RegistersBase& state_in, const uint_t num_qubits) override;
-
-  void initialize_qreg_state(QuantumState::RegistersBase& state_in, const chstate_t &state) override;
-
-  void set_state_config(QuantumState::RegistersBase& state_in, const json_t &config) override;
-
-  template <typename InputIterator>
-  void apply_ops_state(QuantumState::Registers<chstate_t>& state, InputIterator first, InputIterator last,
-                  ExperimentResult &result,
-                  RngEngine &rng,
-                  bool final_ops = false);
 
   //Alongside the sample measure optimisaiton, we can parallelise
   //circuit applicaiton over the states. This reduces the threading overhead
   //as we only have to fork once per circuit.
   template <typename InputIterator>
-  void apply_ops_parallel(QuantumState::Registers<chstate_t>& state, InputIterator first, InputIterator last,
+  void apply_ops_parallel(InputIterator first, InputIterator last,
                           ExperimentResult &result,
                           RngEngine &rng);
 
@@ -115,7 +107,7 @@ protected:
   //circuit to a single state. This is used to optimize a circuit with a large
   //initial clifford fraction, or for running stabilizer circuits.
   template <typename InputIterator>
-  void apply_stabilizer_circuit(QuantumState::Registers<chstate_t>& state, InputIterator first, InputIterator last,
+  void apply_stabilizer_circuit(InputIterator first, InputIterator last,
                                 ExperimentResult &result,
                                 RngEngine &rng);
 
@@ -123,24 +115,24 @@ protected:
   // If the input is not in allowed_gates an exeption will be raised.
   // TODO: Investigate OMP synchronisation over stattes to remove these different versions
   // One option would be tasks, but the memory overhead isn't clear
-  void apply_gate(QuantumState::Registers<chstate_t>& state,const Operations::Op &op, RngEngine &rng);
-  void apply_gate(QuantumState::Registers<chstate_t>& state,const Operations::Op &op, RngEngine &rng, uint_t rank);
+  void apply_gate(const Operations::Op &op, RngEngine &rng);
+  void apply_gate(const Operations::Op &op, RngEngine &rng, uint_t rank);
 
   // Apply a multi-qubit Pauli gate
-  void apply_pauli(QuantumState::Registers<chstate_t>& state,const reg_t &qubits, const std::string& pauli, uint_t rank);
+  void apply_pauli(const reg_t &qubits, const std::string& pauli, uint_t rank);
 
   // Measure qubits and return a list of outcomes [q0, q1, ...]
   // If a state subclass supports this function then "measure" 
   // should be contained in the set returned by the 'allowed_ops'
   // method.
-  void apply_measure(QuantumState::Registers<chstate_t>& state,const reg_t &qubits,
+  void apply_measure(const reg_t &qubits,
                      const reg_t &cmemory,
                      const reg_t &cregister,
                      RngEngine &rng);
 
   // Reset the specified qubits to the |0> state by measuring the
   // projectors Id+Z_{i} for each qubit i
-  void apply_reset(QuantumState::Registers<chstate_t>& state, const reg_t &qubits, AER::RngEngine &rng);
+  void apply_reset(const reg_t &qubits, AER::RngEngine &rng);
 
   const static stringmap_t<Gates> gateset_;
 
@@ -149,21 +141,21 @@ protected:
   //-----------------------------------------------------------------------
 
   // Compute and save the statevector for the current simulator state
-  void apply_save_statevector(QuantumState::Registers<chstate_t>& state,const Operations::Op &op,
+  void apply_save_statevector(const Operations::Op &op,
                               ExperimentResult &result);
 
   // Compute and save the expval for the current simulator state
-  void apply_save_expval(QuantumState::Registers<chstate_t>& state,const Operations::Op &op,
+  void apply_save_expval(const Operations::Op &op,
                               ExperimentResult &result,
                               RngEngine &rng);
 
    // Helper function for computing expectation value
-   double expval_pauli(QuantumState::Registers<chstate_t>& state,const reg_t &qubits,
+   double expval_pauli(const reg_t &qubits,
                        const std::string& pauli,
                        RngEngine &rng);
 
   // Helper function for computing expectation value
-  virtual double expval_pauli(QuantumState::RegistersBase& state,const reg_t &qubits,
+  virtual double expval_pauli(const reg_t &qubits,
                               const std::string& pauli) override;
 
   //-----------------------------------------------------------------------
@@ -248,31 +240,13 @@ const stringmap_t<Gates> State::gateset_({
 // Implementation: Initialisation and Config
 //-------------------------------------------------------------------------
 
-void State::initialize_qreg_state(QuantumState::RegistersBase& state_in, const uint_t num_qubits)
+void State::initialize_qreg(uint_t num_qubits)
 {
-  QuantumState::Registers<chstate_t>& state = dynamic_cast<QuantumState::Registers<chstate_t>&>(state_in);
-  if(state.qregs().size() == 0)
-    state.allocate(1);
-  state.qreg().initialize(num_qubits);
-  state.qreg().initialize_omp(BaseState::threads_, omp_threshold_rank_);
+  BaseState::qreg_.initialize(num_qubits);
+  BaseState::qreg_.initialize_omp(BaseState::threads_, omp_threshold_rank_);
 }
 
-void State::initialize_qreg_state(QuantumState::RegistersBase& state_in, const chstate_t &chstate)
-{
-  QuantumState::Registers<chstate_t>& state = dynamic_cast<QuantumState::Registers<chstate_t>&>(state_in);
-  if(state.qregs().size() == 0)
-    state.allocate(1);
-
-  if(state.qreg().get_n_qubits() != BaseState::num_qubits_)
-  {
-    throw std::invalid_argument("CH::State::initialize: initial state does not match qubit number.");
-  }
-
-  state.qreg() = chstate;
-  state.qreg().initialize_omp(BaseState::threads_, omp_threshold_rank_);
-}
-
-void State::set_state_config(QuantumState::RegistersBase& state_in, const json_t &config)
+void State::set_config(const json_t &config)
 {
   // Set the error upper bound in the stabilizer rank approximation
   JSON::get_value(approximation_error_, "extended_stabilizer_approximation_error", config);
@@ -384,29 +358,20 @@ bool State::check_measurement_opt(InputIterator first, InputIterator last) const
 //-------------------------------------------------------------------------
 // Implementation: Operations
 //-------------------------------------------------------------------------
-void State::apply_op(QuantumState::RegistersBase& state_in, const Operations::Op &op, ExperimentResult &result,
-                     RngEngine &rng, bool final_op) 
-{
-  QuantumState::Registers<chstate_t>& state = dynamic_cast<QuantumState::Registers<chstate_t>&>(state_in);
-  apply_ops_state(state, &op, &op+1, result, rng, final_op);
+void State::apply_op(const Operations::Op &op, ExperimentResult &result,
+                     RngEngine &rng, bool final_op) {
+  apply_ops(&op, &op+1, result, rng, final_op);
 }
 
 template <typename InputIterator>
 void State::apply_ops(InputIterator first, InputIterator last, ExperimentResult &result,
                       RngEngine &rng, bool final_ops)
 {
-  apply_ops_state(BaseState::state_,first, last, result, rng, final_ops);
-}
-
-template <typename InputIterator>
-void State::apply_ops_state(QuantumState::Registers<chstate_t>& state, InputIterator first, InputIterator last, ExperimentResult &result,
-                      RngEngine &rng, bool final_ops)
-{
   std::pair<bool, size_t> stabilizer_opts = check_stabilizer_opt(first, last);
   bool is_stabilizer = stabilizer_opts.first;
   if(is_stabilizer)
   {
-    apply_stabilizer_circuit(state, first, last, result, rng);
+    apply_stabilizer_circuit(first, last, result, rng);
   }
   else
   {
@@ -416,48 +381,48 @@ void State::apply_ops_state(QuantumState::Registers<chstate_t>& state, InputIter
     {
       //Apply the stabilizer circuit first. This optimisaiton avoids duplicating the application
       //of the initial stabilizer circuit chi times.
-      apply_stabilizer_circuit(state, first, first+first_non_clifford, result, rng);
+      apply_stabilizer_circuit(first, first+first_non_clifford, result, rng);
     }
 
     auto it_nonstab_begin = first+first_non_clifford;
 
     uint_t chi = compute_chi(it_nonstab_begin, last);
     double delta = std::pow(approximation_error_, -2);
-    state.qreg().initialize_decomposition(chi, delta);
+    BaseState::qreg_.initialize_decomposition(chi, delta);
     //Check for measurement optimisaitons
     bool measurement_opt = check_measurement_opt(first, last);
 
     if(measurement_opt)
     {
-      apply_ops_parallel(state, it_nonstab_begin, last, result, rng);
+      apply_ops_parallel(it_nonstab_begin, last, result, rng);
     }
     else
     {
       for (auto it = it_nonstab_begin; it != last; it++)
       {
         const auto op = *it;
-        if(state.creg().check_conditional(op)) {
+        if(BaseState::creg().check_conditional(op)) {
           switch (op.type) {
             case Operations::OpType::gate:
-              apply_gate(state, op, rng);
+              apply_gate(op, rng);
               break;
             case Operations::OpType::reset:
-              apply_reset(state, op.qubits, rng);
+              apply_reset(op.qubits, rng);
               break;
             case Operations::OpType::barrier:
             case Operations::OpType::qerror_loc:
               break;
             case Operations::OpType::measure:
-              apply_measure(state, op.qubits, op.memory, op.registers, rng);
+              apply_measure(op.qubits, op.memory, op.registers, rng);
               break;
             case Operations::OpType::roerror:
-              state.creg().apply_roerror(op, rng);
+              BaseState::creg().apply_roerror(op, rng);
               break;
             case Operations::OpType::bfunc:
-              state.creg().apply_bfunc(op);
+              BaseState::creg().apply_bfunc(op);
               break;
             case Operations::OpType::save_statevec:
-              apply_save_statevector(state, op, result);
+              apply_save_statevector(op, result);
               break;
             // Disabled until can fix bug in expval
             // case Operations::OpType::save_expval:
@@ -475,22 +440,20 @@ void State::apply_ops_state(QuantumState::Registers<chstate_t>& state, InputIter
   }
 }
 
-std::vector<reg_t> State::sample_measure(QuantumState::RegistersBase& state_in, const reg_t& qubits,
+std::vector<reg_t> State::sample_measure(const reg_t& qubits,
                            uint_t shots,
                            RngEngine &rng)
 {
-  QuantumState::Registers<chstate_t>& state = dynamic_cast<QuantumState::Registers<chstate_t>&>(state_in);
-
   std::vector<uint_t> output_samples;
-  if(state.qreg().get_num_states() == 1)
+  if(BaseState::qreg_.get_num_states() == 1)
   {
-    output_samples = state.qreg().stabilizer_sampler(shots, rng);
+    output_samples = BaseState::qreg_.stabilizer_sampler(shots, rng);
   }
   else
   {
     if (sampling_method_ == SamplingMethod::metropolis)
     {
-      output_samples = state.qreg().metropolis_estimation(metropolis_mixing_steps_, shots, rng);
+        output_samples = BaseState::qreg_.metropolis_estimation(metropolis_mixing_steps_, shots, rng);
     }
     else if (sampling_method_ == SamplingMethod::resampled_metropolis)
     {
@@ -498,7 +461,7 @@ std::vector<reg_t> State::sample_measure(QuantumState::RegistersBase& state_in, 
       for (uint_t i=0; i<shots; i++)
       {
         output_samples.push_back(
-          state.qreg().metropolis_estimation(metropolis_mixing_steps_, rng)
+          BaseState::qreg_.metropolis_estimation(metropolis_mixing_steps_, rng)
         );
       }
     }
@@ -508,7 +471,7 @@ std::vector<reg_t> State::sample_measure(QuantumState::RegistersBase& state_in, 
       for(uint_t i=0; i<shots; i++)
       {
         output_samples.push_back(
-          state.qreg().ne_single_sample(norm_estimation_samples_, norm_estimation_repetitions_, true, qubits, rng)
+          BaseState::qreg_.ne_single_sample(norm_estimation_samples_, norm_estimation_repetitions_, true, qubits, rng)
         );
       }
     }
@@ -537,13 +500,13 @@ std::vector<reg_t> State::sample_measure(QuantumState::RegistersBase& state_in, 
 
 //Method with slighty optimized parallelisation for the case of a sample_measure circuit
 template <typename InputIterator>
-void State::apply_ops_parallel(QuantumState::Registers<chstate_t>& state,InputIterator first, InputIterator last, ExperimentResult &result, RngEngine &rng)
+void State::apply_ops_parallel(InputIterator first, InputIterator last, ExperimentResult &result, RngEngine &rng)
 {
-  const int_t NUM_STATES = state.qreg().get_num_states();
-  #pragma omp parallel for if(state.qreg().check_omp_threshold() && BaseState::threads_>1) num_threads(BaseState::threads_)
+  const int_t NUM_STATES = BaseState::qreg_.get_num_states();
+  #pragma omp parallel for if(BaseState::qreg_.check_omp_threshold() && BaseState::threads_>1) num_threads(BaseState::threads_)
   for(int_t i=0; i < NUM_STATES; i++)
   {
-    if(!state.qreg().check_eps(i))
+    if(!BaseState::qreg_.check_eps(i))
     {
       continue;
     }
@@ -552,7 +515,7 @@ void State::apply_ops_parallel(QuantumState::Registers<chstate_t>& state,InputIt
       switch (it->type)
       {
         case Operations::OpType::gate:
-          apply_gate(state, *it, rng, i);
+          apply_gate(*it, rng, i);
           break;
         case Operations::OpType::barrier:
         case Operations::OpType::qerror_loc:
@@ -567,39 +530,39 @@ void State::apply_ops_parallel(QuantumState::Registers<chstate_t>& state,InputIt
 }
 
 template <typename InputIterator>
-void State::apply_stabilizer_circuit(QuantumState::Registers<chstate_t>& state,InputIterator first, InputIterator last,
+void State::apply_stabilizer_circuit(InputIterator first, InputIterator last,
                                      ExperimentResult &result, RngEngine &rng)
 {
   for (auto it = first; it != last; ++it)
   {
     const Operations::Op op = *it;
-    if(state.creg().check_conditional(op)) {
+    if(BaseState::creg().check_conditional(op)) {
       switch (op.type)
       {
         case Operations::OpType::gate:
-          apply_gate(state,op, rng, 0);
+          apply_gate(op, rng, 0);
           break;
         case Operations::OpType::reset:
-          apply_reset(state,op.qubits, rng);
+          apply_reset(op.qubits, rng);
           break;
         case Operations::OpType::barrier:
         case Operations::OpType::qerror_loc:
           break;
         case Operations::OpType::measure:
-          apply_measure(state, op.qubits, op.memory, op.registers, rng);
+          apply_measure(op.qubits, op.memory, op.registers, rng);
           break;
         case Operations::OpType::roerror:
-          state.creg().apply_roerror(op, rng);
+          BaseState::creg().apply_roerror(op, rng);
           break;
         case Operations::OpType::bfunc:
-          state.creg().apply_bfunc(op);
+          BaseState::creg().apply_bfunc(op);
           break;
         case Operations::OpType::save_statevec:
-          apply_save_statevector(state, op, result);
+          apply_save_statevector(op, result);
           break;
         case Operations::OpType::save_expval:
         case Operations::OpType::save_expval_var:
-          apply_save_expval(state, op, result, rng);
+          apply_save_expval(op, result, rng);
           break;
         default:
           throw std::invalid_argument("CH::State::apply_stabilizer_circuit does not support operations of the type \'" + 
@@ -610,17 +573,17 @@ void State::apply_stabilizer_circuit(QuantumState::Registers<chstate_t>& state,I
   }
 }
 
-void State::apply_measure(QuantumState::Registers<chstate_t>& state,const reg_t &qubits, const reg_t &cmemory, const reg_t &cregister, RngEngine &rng)
+void State::apply_measure(const reg_t &qubits, const reg_t &cmemory, const reg_t &cregister, RngEngine &rng)
 {
   uint_t out_string;
   // Flag if the Pauli projector is applied already as part of the sampling
   bool do_projector_correction = true;
   // Prepare an output register for the qubits we are measurig
   reg_t outcome(qubits.size(), 0ULL);
-  if(state.qreg().get_num_states() == 1)
+  if(BaseState::qreg_.get_num_states() == 1)
   {
     //For a single state, we use the efficient sampler defined in Sec IV.A ofarxiv:1808.00128
-    out_string = state.qreg().stabilizer_sampler(rng);
+    out_string = BaseState::qreg_.stabilizer_sampler(rng);
   }
   else
   {
@@ -628,7 +591,7 @@ void State::apply_measure(QuantumState::Registers<chstate_t>& state,const reg_t 
     {
       do_projector_correction = false;
       //Run the norm estimation routine
-      out_string = state.qreg().ne_single_sample(
+      out_string = BaseState::qreg_.ne_single_sample(
         norm_estimation_samples_, norm_estimation_repetitions_, false, qubits, rng
       );
     }
@@ -636,7 +599,7 @@ void State::apply_measure(QuantumState::Registers<chstate_t>& state,const reg_t 
     {
       // We use the metropolis algorithm to sample an output string non-destructively
       // This is a single measure step so we do the same for metropolis or resampled_metropolis
-      out_string = state.qreg().metropolis_estimation(metropolis_mixing_steps_, rng);
+      out_string = BaseState::qreg_.metropolis_estimation(metropolis_mixing_steps_, rng);
     }
   }
   if (do_projector_correction)
@@ -654,7 +617,7 @@ void State::apply_measure(QuantumState::Registers<chstate_t>& state,const reg_t 
       }
     }
     //Project the decomposition onto the measurement outcome
-    state.qreg().apply_pauli_projector(paulis);
+    BaseState::qreg_.apply_pauli_projector(paulis);
   }
   for (uint_t i=0; i<qubits.size(); i++)
   {
@@ -666,20 +629,20 @@ void State::apply_measure(QuantumState::Registers<chstate_t>& state,const reg_t 
     }
   }
   // Convert the output string to a reg_t. and store
-  state.creg().store_measure(outcome, cmemory, cregister);
+  BaseState::creg().store_measure(outcome, cmemory, cregister);
 }
 
-void State::apply_reset(QuantumState::Registers<chstate_t>& state,const reg_t &qubits, AER::RngEngine &rng)
+void State::apply_reset(const reg_t &qubits, AER::RngEngine &rng)
 {
   uint_t measure_string;
-  const int_t NUM_STATES = state.qreg().get_num_states();
-  if(state.qreg().get_num_states() == 1)
+  const int_t NUM_STATES = BaseState::qreg_.get_num_states();
+  if(BaseState::qreg_.get_num_states() == 1)
   {
-    measure_string = state.qreg().stabilizer_sampler(rng);
+    measure_string = BaseState::qreg_.stabilizer_sampler(rng);
   }
   else
   {
-    measure_string = state.qreg().metropolis_estimation(metropolis_mixing_steps_, rng);
+    measure_string = BaseState::qreg_.metropolis_estimation(metropolis_mixing_steps_, rng);
   }
 
   std::vector<chpauli_t> paulis(qubits.size(), chpauli_t());
@@ -693,34 +656,34 @@ void State::apply_reset(QuantumState::Registers<chstate_t>& state,const reg_t &q
       paulis[i].e = 2;
     }
   }
-  state.qreg().apply_pauli_projector(paulis);
-  #pragma omp parallel for if(BaseState::threads_ > 1 && state.qreg().check_omp_threshold()) num_threads(BaseState::threads_)
+  BaseState::qreg_.apply_pauli_projector(paulis);
+  #pragma omp parallel for if(BaseState::threads_ > 1 && BaseState::qreg_.check_omp_threshold()) num_threads(BaseState::threads_)
   for(int_t i=0; i< NUM_STATES; i++)
   {
     for (auto qubit: qubits)
     {
       if ((measure_string>>qubit) & 1ULL)
       {
-        state.qreg().apply_x(qubit, i);
+        BaseState::qreg_.apply_x(qubit, i);
       }
     }
   }
 }
 
-void State::apply_gate(QuantumState::Registers<chstate_t>& state,const Operations::Op &op, RngEngine &rng)
+void State::apply_gate(const Operations::Op &op, RngEngine &rng)
 {
-  const int_t NUM_STATES = state.qreg().get_num_states();
-  #pragma omp parallel for if (BaseState::threads_ > 1 && state.qreg().check_omp_threshold()) num_threads(BaseState::threads_)
+  const int_t NUM_STATES = BaseState::qreg_.get_num_states();
+  #pragma omp parallel for if (BaseState::threads_ > 1 && BaseState::qreg_.check_omp_threshold()) num_threads(BaseState::threads_)
   for(int_t i=0; i < NUM_STATES; i++)
   {
-    if(state.qreg().check_eps(i))
+    if(BaseState::qreg_.check_eps(i))
     {
-      apply_gate(state, op, rng, i);
+      apply_gate(op, rng, i);
     }
   }
 }
 
-void State::apply_gate(QuantumState::Registers<chstate_t>& state,const Operations::Op &op, RngEngine &rng, uint_t rank)
+void State::apply_gate(const Operations::Op &op, RngEngine &rng, uint_t rank)
 {
   auto it = gateset_.find(op.name);
   if (it == gateset_.end())
@@ -731,64 +694,64 @@ void State::apply_gate(QuantumState::Registers<chstate_t>& state,const Operation
   switch(it->second)
   {
     case Gates::x:
-      state.qreg().apply_x(op.qubits[0], rank);
+      BaseState::qreg_.apply_x(op.qubits[0], rank);
       break;
     case Gates::y:
-      state.qreg().apply_y(op.qubits[0], rank);
+      BaseState::qreg_.apply_y(op.qubits[0], rank);
       break;
     case Gates::z:
-      state.qreg().apply_z(op.qubits[0], rank);
+      BaseState::qreg_.apply_z(op.qubits[0], rank);
       break;
     case Gates::s:
-      state.qreg().apply_s(op.qubits[0], rank);
+      BaseState::qreg_.apply_s(op.qubits[0], rank);
       break;
     case Gates::sdg:
-      state.qreg().apply_sdag(op.qubits[0], rank);
+      BaseState::qreg_.apply_sdag(op.qubits[0], rank);
       break;
     case Gates::h:
-      state.qreg().apply_h(op.qubits[0], rank);
+      BaseState::qreg_.apply_h(op.qubits[0], rank);
       break;
     case Gates::sx:
       BaseState::add_global_phase(M_PI / 4.);
-      state.qreg().apply_sx(op.qubits[0], rank);
+      BaseState::qreg_.apply_sx(op.qubits[0], rank);
       break;
     case Gates::sxdg:
       BaseState::add_global_phase(-M_PI / 4.);
-      state.qreg().apply_sxdg(op.qubits[0], rank);
+      BaseState::qreg_.apply_sxdg(op.qubits[0], rank);
       break;
     case Gates::cx:
-      state.qreg().apply_cx(op.qubits[0], op.qubits[1], rank);
+      BaseState::qreg_.apply_cx(op.qubits[0], op.qubits[1], rank);
       break;
     case Gates::cz:
-      state.qreg().apply_cz(op.qubits[0], op.qubits[1], rank);
+      BaseState::qreg_.apply_cz(op.qubits[0], op.qubits[1], rank);
       break;
     case Gates::swap:
-      state.qreg().apply_swap(op.qubits[0], op.qubits[1], rank);
+      BaseState::qreg_.apply_swap(op.qubits[0], op.qubits[1], rank);
       break;
     case Gates::t:
-      state.qreg().apply_t(op.qubits[0], rng.rand(), rank);
+      BaseState::qreg_.apply_t(op.qubits[0], rng.rand(), rank);
       break;
     case Gates::tdg:
-      state.qreg().apply_tdag(op.qubits[0], rng.rand(), rank);
+      BaseState::qreg_.apply_tdag(op.qubits[0], rng.rand(), rank);
       break;
     case Gates::ccx:
-      state.qreg().apply_ccx(op.qubits[0], op.qubits[1], op.qubits[2], rng.rand_int(zero, toff_branch_max), rank);
+      BaseState::qreg_.apply_ccx(op.qubits[0], op.qubits[1], op.qubits[2], rng.rand_int(zero, toff_branch_max), rank);
       break;
     case Gates::ccz:
-      state.qreg().apply_ccz(op.qubits[0], op.qubits[1], op.qubits[2], rng.rand_int(zero, toff_branch_max), rank);
+      BaseState::qreg_.apply_ccz(op.qubits[0], op.qubits[1], op.qubits[2], rng.rand_int(zero, toff_branch_max), rank);
       break;
     case Gates::u1:
-      state.qreg().apply_u1(op.qubits[0], op.params[0], rng.rand(), rank);
+      BaseState::qreg_.apply_u1(op.qubits[0], op.params[0], rng.rand(), rank);
       break;
     case Gates::pauli:
-      apply_pauli(state, op.qubits, op.string_params[0], rank);
+      apply_pauli(op.qubits, op.string_params[0], rank);
       break;
     default: //u0 or Identity
       break;
   }
 }
 
-void State::apply_pauli(QuantumState::Registers<chstate_t>& state, const reg_t &qubits, const std::string& pauli, uint_t rank) {
+void State::apply_pauli(const reg_t &qubits, const std::string& pauli, uint_t rank) {
   const auto size = qubits.size();
   for (size_t i = 0; i < qubits.size(); ++i) {
     const auto qubit = qubits[size - 1 - i];
@@ -796,13 +759,13 @@ void State::apply_pauli(QuantumState::Registers<chstate_t>& state, const reg_t &
       case 'I':
         break;
       case 'X':
-        state.qreg().apply_x(qubit, rank);
+        BaseState::qreg_.apply_x(qubit, rank);
         break;
       case 'Y':
-        state.qreg().apply_y(qubit, rank);
+        BaseState::qreg_.apply_y(qubit, rank);
         break;
       case 'Z':
-        state.qreg().apply_z(qubit, rank);
+        BaseState::qreg_.apply_z(qubit, rank);
         break;
       default:
         throw std::invalid_argument("invalid Pauli \'" + std::to_string(pauli[i]) + "\'.");
@@ -810,28 +773,26 @@ void State::apply_pauli(QuantumState::Registers<chstate_t>& state, const reg_t &
   }
 }
 
-void State::apply_save_statevector(QuantumState::Registers<chstate_t>& state,const Operations::Op &op,
-                                   ExperimentResult &result) 
-{
-  if (op.qubits.size() != state.qreg().get_n_qubits()) {
+void State::apply_save_statevector(const Operations::Op &op,
+                                   ExperimentResult &result) {
+  if (op.qubits.size() != BaseState::qreg_.get_n_qubits()) {
     throw std::invalid_argument(
         "Save statevector was not applied to all qubits."
         " Only the full statevector can be saved.");
   }
-  auto statevec = state.qreg().statevector();
+  auto statevec = BaseState::qreg_.statevector();
   if (BaseState::has_global_phase_) {
     statevec *= BaseState::global_phase_;
   }
   result.save_data_pershot(
-    state.creg(), op.string_params[0],
+    creg(), op.string_params[0],
     std::move(statevec),
     op.type, op.save_type);
 }
 
-void State::apply_save_expval(QuantumState::Registers<chstate_t>& state,const Operations::Op &op,
+void State::apply_save_expval(const Operations::Op &op,
                                 ExperimentResult &result,
-                                RngEngine& rng) 
-{
+                                RngEngine& rng) {
   // Check empty edge case
   if (op.expval_params.empty()) {
     throw std::invalid_argument(
@@ -845,7 +806,7 @@ void State::apply_save_expval(QuantumState::Registers<chstate_t>& state,const Op
 
   for (const auto &param : op.expval_params) {
     // param is tuple (pauli, coeff, sq_coeff)
-    const auto val = expval_pauli(state, op.qubits, std::get<0>(param), rng);
+    const auto val = expval_pauli(op.qubits, std::get<0>(param), rng);
     expval += std::get<1>(param) * val;
     if (variance) {
       sq_expval += std::get<2>(param) * val;
@@ -855,19 +816,17 @@ void State::apply_save_expval(QuantumState::Registers<chstate_t>& state,const Op
     std::vector<double> expval_var(2);
     expval_var[0] = expval;  // mean
     expval_var[1] = sq_expval - expval * expval;  // variance
-    result.save_data_average(state.creg(), op.string_params[0], expval_var, op.type, op.save_type);
+    result.save_data_average(creg(), op.string_params[0], expval_var, op.type, op.save_type);
   } else {
-    result.save_data_average(state.creg(), op.string_params[0], expval, op.type, op.save_type);
+    result.save_data_average(creg(), op.string_params[0], expval, op.type, op.save_type);
   }
 }
 
-
-double State::expval_pauli(QuantumState::Registers<chstate_t>& state, const reg_t &qubits,
+double State::expval_pauli(const reg_t &qubits,
                            const std::string& pauli,
-                           RngEngine &rng) 
-{
+                           RngEngine &rng) {
     // Compute expval components
-    auto state_cpy = state.qreg();
+    auto state_cpy = BaseState::qreg_;
     auto phi_norm = state_cpy.norm_estimation(norm_estimation_samples_, norm_estimation_repetitions_, rng);
     std::vector<chpauli_t>paulis(1, chpauli_t());
     for (uint_t pos = 0; pos < qubits.size(); ++pos) {
@@ -896,7 +855,7 @@ double State::expval_pauli(QuantumState::Registers<chstate_t>& state, const reg_
     return (2*g_norm - phi_norm);
 }
 
-double State::expval_pauli(QuantumState::RegistersBase& state, const reg_t &qubits,
+double State::expval_pauli(const reg_t &qubits,
                            const std::string& pauli) {
     // empty implementation of base class virtual method
     // since in the extended stabilizer, expval relies on RNG
@@ -961,9 +920,9 @@ void State::compute_extent(const Operations::Op &op, double &xi) const
 }
 
 size_t State::required_memory_mb(uint_t num_qubits,
-                                 QuantumState::OpItr first, QuantumState::OpItr last) const
+                                 const std::vector<Operations::Op> &ops) const
 {
-  size_t required_chi = compute_chi(first, last);
+  size_t required_chi = compute_chi(ops.cbegin(), ops.cend());
   // 5 vectors of num_qubits*8byte words
   // Plus 2*CHSimulator::scalar_t which has 3 4 byte words
   // Plus 2*CHSimulator::pauli_t which has 2 8 byte words and one 4 byte word;

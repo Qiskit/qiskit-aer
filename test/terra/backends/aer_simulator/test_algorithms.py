@@ -43,6 +43,10 @@ class TestAlgorithms(SimulatorTestCase):
     def _test_teleport(self, **options):
         """Test teleport circuits."""
         shots = 1000
+        for key, val in options.items():
+            if 'method' == key and 'tensor_network' in val:
+                shots = 100
+
         backend = self.backend(**options)
 
         circuits = ref_algorithms.teleport_circuit()

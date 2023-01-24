@@ -78,17 +78,25 @@ public:
 
   // Apply an operation
   // If the op is not in allowed_ops an exeption will be raised.
-  virtual void apply_op(QuantumState::RegistersBase& state, const Operations::Op &op,
+  virtual void apply_op(const Operations::Op &op,
                         ExperimentResult &result,
                         RngEngine &rng,
                         bool final_op = false) override;
+
+  // Initializes an n-qubit unitary to the identity matrix
+  virtual void initialize_qreg(uint_t num_qubits) override;
 
   // Returns the required memory for storing an n-qubit state in megabytes.
   // For this state the memory is indepdentent of the number of ops
   // and is approximately 16 * 1 << 4 * num_qubits bytes
   virtual size_t
   required_memory_mb(uint_t num_qubits,
-                     QuantumState::OpItr first, QuantumState::OpItr last) const override;
+                     const std::vector<Operations::Op> &ops) const override;
+
+  // Load the threshold for applying OpenMP parallelization
+  // if the controller/engine allows threads for it
+  // Config: {"omp_qubit_threshold": 3}
+  virtual void set_config(const json_t &config) override;
 
   virtual bool allocate(uint_t num_qubits,uint_t block_bits,uint_t num_parallel_shots = 1) override;
 
@@ -96,33 +104,14 @@ public:
   // Additional methods
   //-----------------------------------------------------------------------
 
-  // Initializes to a specific n-qubit unitary given as a complex matrix
-  void initialize_qreg_from_data(uint_t num_qubits, const cmatrix_t &unitary);
-
   // Initialize OpenMP settings for the underlying QubitVector class
-  void initialize_omp(QuantumState::Registers<data_t>& state);
+  void initialize_omp();
 
   auto move_to_matrix()
   {
-    return BaseState::state_.qreg().move_to_matrix();
-  }
-
-  auto move_to_matrix(QuantumState::Registers<data_t>& state)
-  {
-    return state.qreg().move_to_matrix();
+    return BaseState::qreg_.move_to_matrix();
   }
 protected:
-  // Initializes an n-qubit unitary to the identity matrix
-  void initialize_qreg_state(QuantumState::RegistersBase& state_in, const uint_t num_qubits) override;
-
-  // Initializes to a specific n-qubit unitary superop
-  void initialize_qreg_state(QuantumState::RegistersBase& state_in, const data_t &unitary) override;
-
-  // Load the threshold for applying OpenMP parallelization
-  // if the controller/engine allows threads for it
-  // Config: {"omp_qubit_threshold": 3}
-  void set_state_config(QuantumState::RegistersBase& state_in, const json_t &config) override;
-
   //-----------------------------------------------------------------------
   // Apply Instructions
   //-----------------------------------------------------------------------
@@ -130,24 +119,24 @@ protected:
   // Applies a Gate operation to the state class.
   // This should support all and only the operations defined in
   // allowed_operations.
-  void apply_gate(QuantumState::Registers<data_t>& state,const Operations::Op &op);
+  void apply_gate(const Operations::Op &op);
 
   // Apply a matrix to given qubits (identity on all other qubits)
-  void apply_matrix(QuantumState::Registers<data_t>& state,const reg_t &qubits, const cmatrix_t &mat);
+  void apply_matrix(const reg_t &qubits, const cmatrix_t &mat);
 
   // Apply a matrix to given qubits (identity on all other qubits)
-  void apply_matrix(QuantumState::Registers<data_t>& state,const reg_t &qubits, const cvector_t &vmat);
+  void apply_matrix(const reg_t &qubits, const cvector_t &vmat);
 
   // Reset the specified qubits to the |0> state by simulating
   // a measurement, applying a conditional x-gate if the outcome is 1, and
   // then discarding the outcome.
-  void apply_reset(QuantumState::Registers<data_t>& state,const reg_t &qubits);
+  void apply_reset(const reg_t &qubits);
 
   // Apply a Kraus error operation
-  void apply_kraus(QuantumState::Registers<data_t>& state,const reg_t &qubits, const std::vector<cmatrix_t> &krausops);
+  void apply_kraus(const reg_t &qubits, const std::vector<cmatrix_t> &krausops);
 
   // Apply an N-qubit Pauli gate
-  void apply_pauli(QuantumState::Registers<data_t>& state,const reg_t &qubits, const std::string &pauli);
+  void apply_pauli(const reg_t &qubits, const std::string &pauli);
 
   //-----------------------------------------------------------------------
   // Multi-controlled u3
@@ -156,7 +145,7 @@ protected:
   // Apply N-qubit multi-controlled single qubit waltz gate specified by
   // parameters u3(theta, phi, lambda)
   // NOTE: if N=1 this is just a regular u3 gate.
-  void apply_gate_u3(QuantumState::Registers<data_t>& state,const uint_t qubit, const double theta, const double phi,
+  void apply_gate_u3(const uint_t qubit, const double theta, const double phi,
                      const double lambda);
 
   //-----------------------------------------------------------------------
@@ -164,12 +153,12 @@ protected:
   //-----------------------------------------------------------------------
 
   // Save the current superop matrix
-  void apply_save_state(QuantumState::Registers<data_t>& state,const Operations::Op &op,
+  void apply_save_state(const Operations::Op &op,
                         ExperimentResult &result,
                         bool last_op = false);
 
   // Helper function for computing expectation value
-  virtual double expval_pauli(QuantumState::RegistersBase& state,const reg_t &qubits,
+  virtual double expval_pauli(const reg_t &qubits,
                               const std::string& pauli) override;
     
   //-----------------------------------------------------------------------
@@ -240,51 +229,47 @@ const stringmap_t<Gates> State<data_t>::gateset_({
 //============================================================================
 
 template <class data_t>
-void State<data_t>::apply_op(QuantumState::RegistersBase& state_in,
-                             const Operations::Op &op,
+void State<data_t>::apply_op(const Operations::Op &op,
                              ExperimentResult &result,
                              RngEngine &rng,
-                             bool final_op) 
-{
-  QuantumState::Registers<data_t>& state = dynamic_cast<QuantumState::Registers<data_t>&>(state_in);
-
-  if (state.creg().check_conditional(op)) {
+                             bool final_op) {
+  if (BaseState::creg().check_conditional(op)) {
     switch (op.type) {
       case Operations::OpType::barrier:
       case Operations::OpType::qerror_loc:
         break;
       case Operations::OpType::gate:
-        apply_gate(state, op);
+        apply_gate(op);
         break;
       case Operations::OpType::bfunc:
-        state.creg().apply_bfunc(op);
+          BaseState::creg().apply_bfunc(op);
         break;
       case Operations::OpType::roerror:
-        state.creg().apply_roerror(op, rng);
+          BaseState::creg().apply_roerror(op, rng);
         break;
       case Operations::OpType::reset:
-        apply_reset(state, op.qubits);
+        apply_reset(op.qubits);
         break;
       case Operations::OpType::matrix:
-        apply_matrix(state, op.qubits, op.mats[0]);
+        apply_matrix(op.qubits, op.mats[0]);
         break;
       case Operations::OpType::diagonal_matrix:
-        state.qreg().apply_diagonal_matrix(op.qubits, op.params);
+        BaseState::qreg_.apply_diagonal_matrix(op.qubits, op.params);
         break;
       case Operations::OpType::kraus:
-        apply_kraus(state, op.qubits, op.mats);
+        apply_kraus(op.qubits, op.mats);
         break;
       case Operations::OpType::superop:
-        state.qreg().apply_superop_matrix(
+        BaseState::qreg_.apply_superop_matrix(
             op.qubits, Utils::vectorize_matrix(op.mats[0]));
         break;
       case Operations::OpType::set_unitary:
       case Operations::OpType::set_superop:
-        state.qreg().initialize_from_matrix(op.mats[0]);
+        BaseState::qreg_.initialize_from_matrix(op.mats[0]);
         break;
       case Operations::OpType::save_state:
       case Operations::OpType::save_superop:
-        apply_save_state(state, op, result, final_op);
+        apply_save_state(op, result, final_op);
         break;
       default:
         throw std::invalid_argument(
@@ -296,105 +281,54 @@ void State<data_t>::apply_op(QuantumState::RegistersBase& state_in,
 
 template <class data_t>
 size_t State<data_t>::required_memory_mb(
-    uint_t num_qubits, QuantumState::OpItr first, QuantumState::OpItr last) const {
+    uint_t num_qubits, const std::vector<Operations::Op> &ops) const {
   // An n-qubit unitary as 2^4n complex doubles
   // where each complex double is 16 bytes
-  (void)first; // avoid unused variable compiler warning
-      (void)last;
+  (void)ops; // avoid unused variable compiler warning
   size_t shift_mb = std::max<int_t>(0, num_qubits + 4 - 20);
   size_t mem_mb = 1ULL << (4 * shift_mb);
   return mem_mb;
 }
 
-template <class data_t> void State<data_t>::set_state_config(QuantumState::RegistersBase& state_in, const json_t &config) 
-{
-  double thresh;
+template <class data_t> void State<data_t>::set_config(const json_t &config) {
   // Set OMP threshold for state update functions
   JSON::get_value(omp_qubit_threshold_, "superoperator_parallel_threshold",
                   config);
 
   // Set threshold for truncating snapshots
   JSON::get_value(json_chop_threshold_, "zero_threshold", config);
-  thresh = json_chop_threshold_;
-
-  QuantumState::Registers<data_t>& state = dynamic_cast<QuantumState::Registers<data_t>&>(state_in);
-  if(state.qregs().size() == 0)
-    state.allocate(1);
-  state.qreg().set_json_chop_threshold(thresh);
+  BaseState::qreg_.set_json_chop_threshold(json_chop_threshold_);
 }
 
-template <class data_t> void State<data_t>::initialize_qreg_state(QuantumState::RegistersBase& state_in, const uint_t num_qubits) 
-{
-  QuantumState::Registers<data_t>& state = dynamic_cast<QuantumState::Registers<data_t>&>(state_in);
-  if(state.qregs().size() == 0)
-    state.allocate(1);
-  initialize_omp(state);
-  state.qreg().set_num_qubits(num_qubits);
-  state.qreg().initialize();
+template <class data_t> void State<data_t>::initialize_qreg(uint_t num_qubits) {
+  initialize_omp();
+  BaseState::qreg_.set_num_qubits(num_qubits);
+  BaseState::qreg_.initialize();
 }
 
-template <class data_t>
-void State<data_t>::initialize_qreg_state(QuantumState::RegistersBase& state_in, const data_t &supermat) 
-{
-  // Check dimension of state
-  if (supermat.num_qubits() != BaseState::num_qubits_) {
-    throw std::invalid_argument("QubitSuperoperator::State::initialize: "
-                                "initial state does not match qubit number");
-  }
-  QuantumState::Registers<data_t>& state = dynamic_cast<QuantumState::Registers<data_t>&>(state_in);
-  if(state.qregs().size() == 0)
-    state.allocate(1);
-
-  initialize_omp(state);
-  state.qreg().set_num_qubits(BaseState::num_qubits_);
-  const size_t sz = 1ULL << state.qreg().size();
-  state.qreg().initialize_from_data(supermat.data(), sz);
-}
-
-template <class data_t>
-void State<data_t>::initialize_qreg_from_data(uint_t num_qubits, const cmatrix_t &mat) {
-  // Check dimension of unitary
-  const auto sz_uni = 1ULL << (2 * num_qubits);
-  const auto sz_super = 1ULL << (4 * num_qubits);
-  if (mat.size() != sz_uni && mat.size() != sz_super) {
-    throw std::invalid_argument("QubitSuperoperator::State::initialize: "
-                                "initial state does not match qubit number");
-  }
-  QuantumState::Registers<data_t>& state = BaseState::state_;
-  if(state.qregs().size() == 0)
-    state.allocate(1);
-  initialize_omp(state);
-  state.qreg().set_num_qubits(num_qubits);
-  state.qreg().initialize_from_matrix(mat);
-}
-
-template <class data_t> void State<data_t>::initialize_omp(QuantumState::Registers<data_t>& state) 
-{
-  state.qreg().set_omp_threshold(omp_qubit_threshold_);
+template <class data_t> void State<data_t>::initialize_omp() {
+  BaseState::qreg_.set_omp_threshold(omp_qubit_threshold_);
   if (BaseState::threads_ > 0)
-    state.qreg().set_omp_threads(
+    BaseState::qreg_.set_omp_threads(
         BaseState::threads_); // set allowed OMP threads in qubitvector
 }
 
 template <class data_t>
 bool State<data_t>::allocate(uint_t num_qubits, uint_t block_bits,uint_t num_parallel_shots)
 {
-  if(BaseState::state_.qregs().size() == 0)
-    BaseState::state_.allocate(1);
-
-  return BaseState::state_.qreg().chunk_setup(num_qubits * 4, num_qubits * 4, 0, 1);
+  return BaseState::qreg_.chunk_setup(num_qubits * 4, num_qubits * 4, 0, 1);
 }
 
 //=========================================================================
 // Implementation: Reset
 //=========================================================================
 
-template <class data_t> void State<data_t>::apply_reset(QuantumState::Registers<data_t>& state, const reg_t &qubits) {
+template <class data_t> void State<data_t>::apply_reset(const reg_t &qubits) {
   // TODO: This can be more efficient by adding reset
   // to base class rather than doing a matrix multiplication
   // where all but 1 row is zeros.
   const auto reset_op = Linalg::SMatrix::reset(1ULL << qubits.size());
-  state.qreg().apply_superop_matrix(qubits,
+  BaseState::qreg_.apply_superop_matrix(qubits,
                                         Utils::vectorize_matrix(reset_op));
 }
 
@@ -402,11 +336,10 @@ template <class data_t> void State<data_t>::apply_reset(QuantumState::Registers<
 // Implementation: Kraus Noise
 //=========================================================================
 
-template <class data_t>
-void State<data_t>::apply_kraus(QuantumState::Registers<data_t>& state,const reg_t &qubits,
-                                    const std::vector<cmatrix_t> &kmats) 
-{
-  state.qreg().apply_superop_matrix(
+template <class statevec_t>
+void State<statevec_t>::apply_kraus(const reg_t &qubits,
+                                    const std::vector<cmatrix_t> &kmats) {
+  BaseState::qreg_.apply_superop_matrix(
       qubits, Utils::vectorize_matrix(Utils::kraus_superop(kmats)));
 }
 
@@ -415,8 +348,7 @@ void State<data_t>::apply_kraus(QuantumState::Registers<data_t>& state,const reg
 //=========================================================================
 
 template <class data_t>
-void State<data_t>::apply_gate(QuantumState::Registers<data_t>& state, const Operations::Op &op) 
-{
+void State<data_t>::apply_gate(const Operations::Op &op) {
   // Look for gate name in gateset
   auto it = gateset_.find(op.name);
   if (it == gateset_.end())
@@ -424,98 +356,98 @@ void State<data_t>::apply_gate(QuantumState::Registers<data_t>& state, const Ope
                                 op.name + "\'.");
   switch (it->second) {
     case Gates::u3:
-      apply_gate_u3(state, op.qubits[0], std::real(op.params[0]),
+      apply_gate_u3(op.qubits[0], std::real(op.params[0]),
                     std::real(op.params[1]), std::real(op.params[2]));
       break;
     case Gates::u2:
-      apply_gate_u3(state, op.qubits[0], M_PI / 2., std::real(op.params[0]),
+      apply_gate_u3(op.qubits[0], M_PI / 2., std::real(op.params[0]),
                     std::real(op.params[1]));
       break;
     case Gates::u1:
-      state.qreg().apply_phase(op.qubits[0], std::exp(complex_t(0., 1.) * op.params[0]));
+      BaseState::qreg_.apply_phase(op.qubits[0], std::exp(complex_t(0., 1.) * op.params[0]));
       break;
     case Gates::r:
-      apply_matrix(state, op.qubits, Linalg::VMatrix::r(op.params[0], op.params[1]));
+      apply_matrix(op.qubits, Linalg::VMatrix::r(op.params[0], op.params[1]));
       break;
     case Gates::rx:
-      apply_matrix(state, op.qubits, Linalg::VMatrix::rx(op.params[0]));
+      apply_matrix(op.qubits, Linalg::VMatrix::rx(op.params[0]));
       break;
     case Gates::ry:
-      apply_matrix(state, op.qubits, Linalg::VMatrix::ry(op.params[0]));
+      apply_matrix(op.qubits, Linalg::VMatrix::ry(op.params[0]));
       break;
     case Gates::rz:
-      apply_matrix(state, op.qubits, Linalg::VMatrix::rz_diag(op.params[0]));
+      apply_matrix(op.qubits, Linalg::VMatrix::rz_diag(op.params[0]));
       break;
     case Gates::rxx:
-      apply_matrix(state, op.qubits, Linalg::VMatrix::rxx(op.params[0]));
+      apply_matrix(op.qubits, Linalg::VMatrix::rxx(op.params[0]));
       break;
     case Gates::ryy:
-      apply_matrix(state, op.qubits, Linalg::VMatrix::ryy(op.params[0]));
+      apply_matrix(op.qubits, Linalg::VMatrix::ryy(op.params[0]));
       break;
     case Gates::rzz:
-      apply_matrix(state, op.qubits, Linalg::VMatrix::rzz_diag(op.params[0]));
+      apply_matrix(op.qubits, Linalg::VMatrix::rzz_diag(op.params[0]));
       break;
     case Gates::rzx:
-      apply_matrix(state, op.qubits, Linalg::VMatrix::rzx(op.params[0]));
+      apply_matrix(op.qubits, Linalg::VMatrix::rzx(op.params[0]));
       break;
     case Gates::ecr:
       apply_matrix(op.qubits, Linalg::VMatrix::ECR);
       break;
     case Gates::cx:
-      state.qreg().apply_cnot(op.qubits[0], op.qubits[1]);
+      BaseState::qreg_.apply_cnot(op.qubits[0], op.qubits[1]);
       break;
     case Gates::cy:
-      apply_matrix(state, op.qubits, Linalg::VMatrix::CY);
+      apply_matrix(op.qubits, Linalg::VMatrix::CY);
       break;
     case Gates::cz:
-      state.qreg().apply_cphase(op.qubits[0], op.qubits[1], -1);
+      BaseState::qreg_.apply_cphase(op.qubits[0], op.qubits[1], -1);
       break;
     case Gates::cp:
-      state.qreg().apply_cphase(op.qubits[0], op.qubits[1],
+      BaseState::qreg_.apply_cphase(op.qubits[0], op.qubits[1],
                                     std::exp(complex_t(0., 1.) * op.params[0]));
       break;
     case Gates::id:
       break;
     case Gates::x:
-      state.qreg().apply_x(op.qubits[0]);
+      BaseState::qreg_.apply_x(op.qubits[0]);
       break;
     case Gates::y:
-      state.qreg().apply_y(op.qubits[0]);
+      BaseState::qreg_.apply_y(op.qubits[0]);
       break;
     case Gates::z:
-      state.qreg().apply_phase(op.qubits[0], -1);
+      BaseState::qreg_.apply_phase(op.qubits[0], -1);
       break;
     case Gates::h:
-      apply_gate_u3(state, op.qubits[0], M_PI / 2., 0., M_PI);
+      apply_gate_u3(op.qubits[0], M_PI / 2., 0., M_PI);
       break;
     case Gates::s:
-      state.qreg().apply_phase(op.qubits[0], complex_t(0., 1.));
+      BaseState::qreg_.apply_phase(op.qubits[0], complex_t(0., 1.));
       break;
     case Gates::sdg:
-      state.qreg().apply_phase(op.qubits[0], complex_t(0., -1.));
+      BaseState::qreg_.apply_phase(op.qubits[0], complex_t(0., -1.));
       break;
     case Gates::sx:
-      state.qreg().apply_unitary_matrix(op.qubits, Linalg::VMatrix::SX);
+      BaseState::qreg_.apply_unitary_matrix(op.qubits, Linalg::VMatrix::SX);
       break;
     case Gates::sxdg:
-      state.qreg().apply_unitary_matrix(op.qubits, Linalg::VMatrix::SXDG);
+      BaseState::qreg_.apply_unitary_matrix(op.qubits, Linalg::VMatrix::SXDG);
       break;
     case Gates::t: {
       const double isqrt2{1. / std::sqrt(2)};
-      state.qreg().apply_phase(op.qubits[0], complex_t(isqrt2, isqrt2));
+      BaseState::qreg_.apply_phase(op.qubits[0], complex_t(isqrt2, isqrt2));
     } break;
     case Gates::tdg: {
       const double isqrt2{1. / std::sqrt(2)};
-      state.qreg().apply_phase(op.qubits[0], complex_t(isqrt2, -isqrt2));
+      BaseState::qreg_.apply_phase(op.qubits[0], complex_t(isqrt2, -isqrt2));
     } break;
     case Gates::swap: {
-      state.qreg().apply_swap(op.qubits[0], op.qubits[1]);
+      BaseState::qreg_.apply_swap(op.qubits[0], op.qubits[1]);
     } break;
     case Gates::ccx:
-      state.qreg().apply_toffoli(op.qubits[0], op.qubits[1], op.qubits[2]);
+      BaseState::qreg_.apply_toffoli(op.qubits[0], op.qubits[1], op.qubits[2]);
       break;
     case Gates::pauli:
-      apply_pauli(state, op.qubits, op.string_params[0]);
+      apply_pauli(op.qubits, op.string_params[0]);
       break;
     default:
       // We shouldn't reach here unless there is a bug in gateset
@@ -525,49 +457,44 @@ void State<data_t>::apply_gate(QuantumState::Registers<data_t>& state, const Ope
 }
 
 template <class data_t>
-void State<data_t>::apply_matrix(QuantumState::Registers<data_t>& state, const reg_t &qubits, const cmatrix_t &mat) 
-{
+void State<data_t>::apply_matrix(const reg_t &qubits, const cmatrix_t &mat) {
   if (qubits.empty() == false && mat.size() > 0) {
-    state.qreg().apply_unitary_matrix(qubits, Utils::vectorize_matrix(mat));
+    BaseState::qreg_.apply_unitary_matrix(qubits, Utils::vectorize_matrix(mat));
   }
 }
 
 template <class data_t>
-void State<data_t>::apply_matrix(QuantumState::Registers<data_t>& state, const reg_t &qubits, const cvector_t &vmat) 
-{
+void State<data_t>::apply_matrix(const reg_t &qubits, const cvector_t &vmat) {
   // Check if diagonal matrix
   if (vmat.size() == 1ULL << qubits.size()) {
-    state.qreg().apply_diagonal_unitary_matrix(qubits, vmat);
+    BaseState::qreg_.apply_diagonal_unitary_matrix(qubits, vmat);
   } else {
-    state.qreg().apply_unitary_matrix(qubits, vmat);
+    BaseState::qreg_.apply_unitary_matrix(qubits, vmat);
   }
 }
 
-template <class data_t>
-void State<data_t>::apply_gate_u3(QuantumState::Registers<data_t>& state, const uint_t qubit, double theta,
-                                      double phi, double lambda) 
-{
+template <class statevec_t>
+void State<statevec_t>::apply_gate_u3(const uint_t qubit, double theta,
+                                      double phi, double lambda) {
   const auto u3 = Linalg::VMatrix::u3(theta, phi, lambda);
-  state.qreg().apply_unitary_matrix(reg_t({qubit}), u3);
+  BaseState::qreg_.apply_unitary_matrix(reg_t({qubit}), u3);
 }
 
-template <class data_t>
-void State<data_t>::apply_pauli(QuantumState::Registers<data_t>& state, const reg_t &qubits,
-                                    const std::string &pauli) 
-{
+template <class statevec_t>
+void State<statevec_t>::apply_pauli(const reg_t &qubits,
+                                    const std::string &pauli) {
   // Pauli as a superoperator is (-1)^num_y P\otimes P
   complex_t coeff = (std::count(pauli.begin(), pauli.end(), 'Y') % 2) ? -1 : 1;
-  state.qreg().apply_pauli(
-      state.qreg().superop_qubits(qubits), pauli + pauli, coeff);
+  BaseState::qreg_.apply_pauli(
+      BaseState::qreg_.superop_qubits(qubits), pauli + pauli, coeff);
 }
 
 
-template <class data_t>
-void State<data_t>::apply_save_state(QuantumState::Registers<data_t>& state, const Operations::Op &op,
+template <class statevec_t>
+void State<statevec_t>::apply_save_state(const Operations::Op &op,
                                         ExperimentResult &result,
-                                        bool last_op) 
-{
-  if (op.qubits.size() != state.qreg().num_qubits()) {
+                                        bool last_op) {
+  if (op.qubits.size() != BaseState::qreg_.num_qubits()) {
     throw std::invalid_argument(
         op.name + " was not applied to all qubits."
         " Only the full state can be saved.");
@@ -577,22 +504,21 @@ void State<data_t>::apply_save_state(QuantumState::Registers<data_t>& state, con
                       ? "superop"
                       : op.string_params[0];
   if (last_op) {
-    result.save_data_pershot(state.creg(), key,
-                             state.qreg().move_to_matrix(),
+    result.save_data_pershot(BaseState::creg(), key,
+                             BaseState::qreg_.move_to_matrix(),
                              Operations::OpType::save_superop,
                              op.save_type);
   } else {
-    result.save_data_pershot(state.creg(), key,
-                             state.qreg().copy_to_matrix(),
+    result.save_data_pershot(BaseState::creg(), key,
+                             BaseState::qreg_.copy_to_matrix(),
                              Operations::OpType::save_superop,
                              op.save_type);
   }
 }
 
 template <class data_t>
-double  State<data_t>::expval_pauli(QuantumState::RegistersBase& state,const reg_t &qubits,
-                                    const std::string& pauli) 
-{
+double  State<data_t>::expval_pauli(const reg_t &qubits,
+                                    const std::string& pauli) {
   throw std::runtime_error("SuperOp simulator does not support Pauli expectation values.");
 }
 

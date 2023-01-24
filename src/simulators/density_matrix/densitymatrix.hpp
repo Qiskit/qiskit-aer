@@ -46,15 +46,8 @@ public:
 
   DensityMatrix() : DensityMatrix(0) {};
   explicit DensityMatrix(size_t num_qubits);
-  DensityMatrix(const DensityMatrix& obj) : BaseMatrix(obj)
-  {
-    apply_unitary_threshold_ = obj.apply_unitary_threshold_;
-  }
-  DensityMatrix &operator=(const DensityMatrix& obj)
-  {
-    apply_unitary_threshold_ = obj.apply_unitary_threshold_;
-    return *this;
-  }
+  DensityMatrix(const DensityMatrix& obj) {};
+  DensityMatrix &operator=(const DensityMatrix& obj) {};
 
   //-----------------------------------------------------------------------
   // Utility functions
@@ -65,12 +58,6 @@ public:
 
   // Initializes the current vector so that all qubits are in the |0> state.
   void initialize();
-
-  //initialize from existing state (copy)
-  void initialize(const DensityMatrix<data_t>& obj)
-  {
-    BaseMatrix::initialize(obj);
-  }
 
   // Initializes the vector to a custom initial state.
   // The vector can be either a statevector or a vectorized density matrix

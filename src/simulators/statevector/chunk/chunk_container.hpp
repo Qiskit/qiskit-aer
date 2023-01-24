@@ -323,9 +323,6 @@ public:
   {
     return 0;
   }
-  virtual void write_cbit(uint_t iChunk,int qubit,int val){}
-  virtual void store_cbits(void){}
-
 
   virtual uint_t* creg_buffer(uint_t iChunk) const
   {
@@ -443,7 +440,6 @@ void ChunkContainer<data_t>::Execute(Function func,uint_t iChunk,const uint_t gi
   func.set_cregs_(creg_buffer(iChunk),num_creg_bits_);
 
   if(iChunk == 0 && conditional_bit_ >= 0){
-    store_cbits();  //update creg on device
     func.set_conditional(conditional_bit_);
     if(!keep_conditional_bit_)
       conditional_bit_ = -1;  //reset conditional

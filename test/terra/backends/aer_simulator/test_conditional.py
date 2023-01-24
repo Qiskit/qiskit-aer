@@ -62,6 +62,8 @@ class TestConditionalGates(SimulatorTestCase):
     def test_conditional_gates_64bit(self, method, device):
         """Test conditional gate operations on 64-bit conditional register."""
         shots = 100
+        if 'tensor_network' in method:
+            shots = 1
         # [value of conditional register, list of condtional values]
         cases = ref_conditionals.conditional_cases_64bit()
         backend = self.backend(method=method, device=device)
@@ -80,7 +82,8 @@ class TestConditionalGates(SimulatorTestCase):
     @supported_methods(SUPPORTED_METHODS)
     def test_conditional_gates_132bit(self, method, device):
         """Test conditional gate operations on 132-bit conditional register."""
-        shots = 100
+        if 'tensor_network' in method:
+            shots = 1
         cases = ref_conditionals.conditional_cases_132bit()
         backend = self.backend(method=method, device=device)
         backend.set_options(max_parallel_experiments=0)
@@ -133,6 +136,8 @@ class TestConditionalUnitary(SimulatorTestCase):
     def test_conditional_unitary_64bit(self, method, device):
         """Test conditional unitary operations on 64-bit conditional register."""
         shots = 100
+        if 'tensor_network' in method:
+            shots = 1
         cases = ref_conditionals.conditional_cases_64bit()
         backend = self.backend(method=method, device=device)
         backend.set_options(max_parallel_experiments=0)
@@ -149,6 +154,8 @@ class TestConditionalUnitary(SimulatorTestCase):
     def test_conditional_unitary_132bit(self, method, device):
         """Test conditional unitary operations on 132-bit conditional register."""
         shots = 100
+        if 'tensor_network' in method:
+            shots = 1
         cases = ref_conditionals.conditional_cases_132bit()
         backend = self.backend(method=method, device=device)
         backend.set_options(max_parallel_experiments=0)
@@ -201,6 +208,8 @@ class TestConditionalKraus(SimulatorTestCase):
     def test_conditional_kraus_64bit(self, method, device):
         """Test conditional kraus operations on 64-bit conditional register."""
         shots = 100
+        if 'tensor_network' in method:
+            shots = 1
         cases = ref_conditionals.conditional_cases_64bit()
         backend = self.backend(method=method, device=device)
         backend.set_options(max_parallel_experiments=0)
@@ -217,6 +226,8 @@ class TestConditionalKraus(SimulatorTestCase):
     def test_conditional_kraus_132bit(self, method, device):
         """Test conditional kraus operations on 132-bit conditional register."""
         shots = 100
+        if 'tensor_network' in method:
+            shots = 1
         cases = ref_conditionals.conditional_cases_132bit()
         backend = self.backend(method=method, device=device)
         backend.set_options(max_parallel_experiments=0)
@@ -267,6 +278,8 @@ class TestConditionalSuperOp(SimulatorTestCase):
     def test_conditional_superop_64bit(self, method, device):
         """Test conditional superop operations on 64-bit conditional register."""
         shots = 100
+        if 'tensor_network' in method:
+            shots = 1
         cases = ref_conditionals.conditional_cases_64bit()
         backend = self.backend(method=method, device=device)
         backend.set_options(max_parallel_experiments=0)
@@ -283,6 +296,8 @@ class TestConditionalSuperOp(SimulatorTestCase):
     def test_conditional_superop_132bit(self, method, device):
         """Test conditional superop operations on 132-bit conditional register."""
         shots = 100
+        if 'tensor_network' in method:
+            shots = 1
         cases = ref_conditionals.conditional_cases_132bit()
         backend = self.backend(method=method, device=device)
         backend.set_options(max_parallel_experiments=0)

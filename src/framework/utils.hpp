@@ -107,11 +107,6 @@ template <class T> void split (const matrix<T> &A, matrix<T> &B, matrix<T> &C, u
 //Elementwise matrix multiplication
 template <class T> matrix<T> elementwise_multiplication(const matrix<T> &A, const matrix<T> &B);
 
-// Inplace multiply each entry in a matrix by a scalar and returns a reference to
-// the input matrix argument. The product of types T1 * T2 must be valid.
-template <typename T1, typename T2>
-matrix<T1>& scalar_multiply_inplace(matrix<T1> &mat, T2 scalar);
-
 //Matrix sum of elements
 template <class T> T sum(const matrix<T> &A);
 
@@ -628,17 +623,6 @@ matrix<T> elementwise_multiplication(const matrix<T> &A, const matrix<T> &B) {
     for (size_t j = 0; j < cols1; j++)
       temp(i, j) = A(i, j) * B(i, j);
   return temp;
-}
-
-template <typename T1, typename T2>
-matrix<T1>& scalar_multiply_inplace(matrix<T1> &mat, T2 val) 
-{
-  const auto nrows = mat.GetRows();
-  const auto ncols = mat.GetColumns();
-  for (size_t i=0; i < nrows; i++)
-    for (size_t j=0; j < ncols; j++)
-      mat(i,j) *= val;
-  return mat;
 }
 
 template <class T>
@@ -1305,26 +1289,6 @@ size_t get_system_memory_mb()
   return total_physical_memory >> 20;
 }
 
-size_t get_free_memory_mb() 
-{
-  size_t total_physical_memory = 0;
-#if defined(__linux__) || defined(__APPLE__)
-#if defined _SC_AVPHYS_PAGES
-  size_t pages = (size_t)sysconf(_SC_AVPHYS_PAGES);
-#else
-  size_t pages = (size_t)sysconf(_SC_PHYS_PAGES);
-#endif
-  size_t page_size = (size_t)sysconf(_SC_PAGE_SIZE);
-  total_physical_memory = pages * page_size;
-#elif defined(_WIN64) || defined(_WIN32)
-  MEMORYSTATUSEX status;
-  status.dwLength = sizeof(status);
-  GlobalMemoryStatusEx(&status);
-  total_physical_memory = status.ullAvailPhys;
-#endif
-  return total_physical_memory >> 20;
-}
-
 //apply OpenMP parallel loop to lambda function if enabled
 template<typename Lambda>
 void apply_omp_parallel_for(bool enabled, int_t i_begin, int_t i_end, Lambda& func, int nthreads = 0)
@@ -1371,29 +1335,6 @@ double apply_omp_parallel_for_reduction(bool enabled, int_t i_begin, int_t i_end
   return val;
 }
 
-//apply OpenMP parallel loop to lambda function and return reduced integer if enabled
-template<typename Lambda>
-int apply_omp_parallel_for_reduction_int(bool enabled, int_t i_begin, int_t i_end, Lambda& func, int nthreads = 0)
-{
-  int val = 0;
-  if(enabled){
-    if(nthreads > 0){
-#pragma omp parallel for reduction(+:val) num_threads(nthreads)
-      for(int_t i=i_begin;i<i_end;i++)
-        val += func(i);
-    }
-    else{
-#pragma omp parallel for reduction(+:val)
-      for(int_t i=i_begin;i<i_end;i++)
-        val += func(i);
-    }
-  }
-  else{
-    for(int_t i=i_begin;i<i_end;i++)
-      val += func(i);
-  }
-  return val;
-}
 
 //------------------------------------------------------------------------------
 } // end namespace Utils

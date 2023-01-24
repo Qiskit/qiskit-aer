@@ -324,13 +324,10 @@ protected:
 //TODO : implement CPU version of contractor
 #ifdef AER_THRUST_CUDA && AER_CUTENSORNET
 #define create_contractor(contractor) \
-  if(cuTensorNet_enable_) \
-    contractor = new TensorNetContractor_cuTensorNet<data_t>; \
-  else \
-    contractor = new TensorNetContractorDummy<data_t>
+  contractor = new TensorNetContractor_cuTensorNet<data_t>
 #else
 #define create_contractor(contractor) \
-    contractor = new TensorNetContractorDummy<data_t>
+  contractor = new TensorNetContractorDummy<data_t>
 #endif
 
 /*******************************************************************************
@@ -1127,7 +1124,6 @@ std::vector<double> TensorNet<data_t>::probabilities(const reg_t &qubits) const
   std::vector<int32_t> modes_out(nqubits*2);
   std::vector<int64_t> extents_out(nqubits*2);
   std::vector<std::complex<data_t>> trace;
-
   //connect qubits not to be measured
   for(int_t i=0;i<num_qubits_;i++){
     bool check = false;
@@ -1195,7 +1191,6 @@ std::vector<double> TensorNet<data_t>::probabilities(const reg_t &qubits) const
       }
     }
   }
-
   return probs;
 }
 
