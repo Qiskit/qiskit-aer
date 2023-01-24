@@ -92,6 +92,10 @@ jobs:
     env:
       AER_THRUST_BACKEND: OMP
       QISKIT_TEST_CAPTURE_STREAMS: 1
+      # Needed to suppress a warning in jupyter-core 5.x by eagerly migrating to
+      # a new internal interface that will be the default in jupyter-core 6.x.
+      # This variable should become redundant on release of jupyter-core 6.
+      JUPYTER_PLATFORM_DIRS: 1
     steps:
       - uses: actions/checkout@v2
       - name: Set up Python ${{ matrix.python-version }}
@@ -136,6 +140,10 @@ jobs:
     env:
       AER_THRUST_BACKEND: OMP
       QISKIT_TEST_CAPTURE_STREAMS: 1
+      # Needed to suppress a warning in jupyter-core 5.x by eagerly migrating to
+      # a new internal interface that will be the default in jupyter-core 6.x.
+      # This variable should become redundant on release of jupyter-core 6.
+      JUPYTER_PLATFORM_DIRS: 1
     steps:
       - uses: actions/checkout@v2
       - name: Set up Python ${{ matrix.python-version }}
@@ -182,6 +190,10 @@ jobs:
     env:
       AER_THRUST_BACKEND: OMP
       QISKIT_TEST_CAPTURE_STREAMS: 1
+      # Needed to suppress a warning in jupyter-core 5.x by eagerly migrating to
+      # a new internal interface that will be the default in jupyter-core 6.x.
+      # This variable should become redundant on release of jupyter-core 6.
+      JUPYTER_PLATFORM_DIRS: 1
     steps:
       - uses: actions/checkout@v2
       - name: Set up Python ${{ matrix.python-version }}
@@ -221,6 +233,10 @@ jobs:
     env:
       AER_THRUST_BACKEND: OMP
       QISKIT_TEST_CAPTURE_STREAMS: 1
+      # Needed to suppress a warning in jupyter-core 5.x by eagerly migrating to
+      # a new internal interface that will be the default in jupyter-core 6.x.
+      # This variable should become redundant on release of jupyter-core 6.
+      JUPYTER_PLATFORM_DIRS: 1
     steps:
       - uses: actions/checkout@v2
       - name: Set up Python ${{ matrix.python-version }}
