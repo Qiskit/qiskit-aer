@@ -1352,7 +1352,7 @@ class TestAerStatevector(common.QiskitAerTestCase):
             ([1 + np.sqrt(2)], ["(1 + \\sqrt{2})"]),
         ]
         for numbers, latex_terms in cases:
-            terms = numbers_to_latex_terms(numbers)
+            terms = numbers_to_latex_terms(numbers, 15)
             self.assertListEqual(terms, latex_terms)
 
     def test_statevector_draw_latex_regression(self):
