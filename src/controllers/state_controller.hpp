@@ -607,7 +607,6 @@ void AerState::initialize_state_controller() {
 
   cache_block_pass_.set_num_processes(num_process_per_experiment_);
   cache_block_pass_.set_config(configs_);
-  rng_.set_seed(seed_);
 };
 
 void AerState::initialize_qreg_state(std::shared_ptr<QuantumState::Base> state) {
@@ -706,7 +705,6 @@ void AerState::initialize() {
 
   state_->initialize_qreg(num_of_qubits_);
   state_->initialize_creg(num_of_qubits_, num_of_qubits_);
-  rng_.set_seed(seed_);
 
   clear_ops();
   initialized_ = true;
