@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Fixed a bug in :meth:`NoiseModel.from_backend` where using the ``temperature`` kwarg with
+    a non-default value would incorrectly compute the excited state population for
+    the specified temperature. Previously, there was an additional factor of 2 in
+    the Boltzman distribution calculation leading to an incorrect smaller value
+    for the excited state population.

@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Fixed compatibility of the  :class:`~.qiskit_aer.primitives.Sampler` and :class:`~.qiskit_aer.primtives.Estimator` 
+    primitive classes with qiskit-terra 0.22.0 release. In qiskit-terra 0.22.0 breaking API changes were made to the
+    abstract interface which broke compatibility with these classes, this has been addressed so that
+    :class:`~.qiskit_aer.primitives.Sampler` and :class:`~.qiskit_aer.primtives.Estimator` can now be used with
+    qiskit-terra >= 0.22.0.

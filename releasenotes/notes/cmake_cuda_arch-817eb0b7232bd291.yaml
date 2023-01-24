@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    cmake 3.18 or later requires setting CMAKE_CUDA_ARCHITECTURES with
+    architecture value for the target GPU.
+    This fix sets CMAKE_CUDA_ARCHITECTURES by referring to AER_CUDA_ARCH.

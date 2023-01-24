@@ -124,6 +124,7 @@ public:
     matrix_bits_ = AER_DEFAULT_MATRIX_BITS;
     density_matrix_ = false;
     omp_threads_ = 1;
+    num_creg_bits_ = 0;
   }
   virtual ~ChunkContainer(){}
 
@@ -314,6 +315,10 @@ public:
 
   //classical register to store measured bits/used for bfunc operations
   virtual void allocate_creg(uint_t num_mem,uint_t num_reg){}
+  void set_num_creg_bits(uint_t bits)
+  {
+    num_creg_bits_ = bits + QV_NUM_INTERNAL_REGS;
+  }
   virtual int measured_cbit(uint_t iChunk,int qubit)
   {
     return 0;

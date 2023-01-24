@@ -1,0 +1,9 @@
+---
+features:
+  - |
+    Added support for :class:`~.BackendV2` to
+    :meth:`~.NoiseModel.from_backend`.
+    Now it can generate a :class:`~.NoiseModel` object from an
+    input :class:`~.BackendV2` instance. When a :class:`~.BackendV2`
+    input is used on :meth:`~.NoiseModel.from_backend` the two deprecated
+    options, ``standard_gates`` and ``warnings``, are gracefully ignored.

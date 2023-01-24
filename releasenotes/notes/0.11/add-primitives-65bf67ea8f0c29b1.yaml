@@ -1,0 +1,10 @@
+---
+features:
+  - |
+    Added Aer implementation of :mod:`~qiskit.primitives`,
+    :class:`~.qiskit_aer.primitives.Sampler` and :class:`~.qiskit_aer.primitives.Estimator.
+    Thes implementations of the :class:`~qiskit.primitives.BaseSampler` and
+    :class:`~qiskit.primitives.BaseEstimator` interfaces leverage qiskit aer to
+    efficiently perform the computation of the primitive operations. You can
+    refer to the :mod:`qiskit.primitives` docs for a more detailed description
+    of the primitives API.

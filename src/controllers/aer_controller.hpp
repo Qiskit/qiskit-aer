@@ -229,10 +229,6 @@ protected:
   bool check_measure_sampling_opt(const Circuit &circ,
                                   const Method method) const;
 
-  // Save count data
-  void save_count_data(ExperimentResult &result,
-                       const ClassicalRegister &creg) const;
-
   //-------------------------------------------------------------------------
   // State validation
   //-------------------------------------------------------------------------
@@ -521,7 +517,7 @@ void Controller::set_config(const json_t &config) {
       if(cuStateVec_enable_){
         //Aer is not built for cuStateVec
         throw std::runtime_error(
-            "Simulation device \"GPU\" does not supported cuStateVec on this system");
+            "Simulation device \"GPU\" does not support cuStateVec on this system");
       }
 #endif
       int nDev;
@@ -1042,17 +1038,6 @@ Result Controller::execute(std::vector<Circuit> &circuits,
   return result;
 }
 
-void Controller::save_count_data(ExperimentResult &result,
-                                 const ClassicalRegister &creg) const {
-  if (creg.memory_size() > 0) {
-    std::string memory_hex = creg.memory_hex();
-    result.data.add_accum(static_cast<uint_t>(1ULL), "counts", memory_hex);
-    if (save_creg_memory_) {
-      result.data.add_list(std::move(memory_hex), "memory");
-    }
-  }
-}
-
 //-------------------------------------------------------------------------
 // Base class override
 //-------------------------------------------------------------------------
@@ -1299,9 +1284,6 @@ void Controller::run_circuit_helper(const Circuit &circ,
   // Start individual circuit timer
   auto timer_start = myclock_t::now(); // state circuit timer
 
-  // Initialize circuit json return
-  result.legacy_data.set_config(config);
-
   // Execute in try block so we can catch errors and return the error message
   // for individual circuit failures.
   try {
@@ -1409,7 +1391,7 @@ void Controller::run_single_shot(const Circuit &circ, State_t &state,
   state.initialize_qreg(circ.num_qubits);
   state.initialize_creg(circ.num_memory, circ.num_registers);
   state.apply_ops(circ.ops.cbegin(), circ.ops.cend(), result, rng, true);
-  save_count_data(result, state.creg());
+  result.save_count_data(state.cregs(), save_creg_memory_);
 }
 
 template <class State_t>
@@ -1533,6 +1515,7 @@ void Controller::run_circuit_without_sampled_noise(Circuit &circ,
       state.set_max_bached_shots(max_batched_states_);
       state.set_distribution(num_processes_);
       state.set_max_matrix_qubits(max_bits);
+      state.set_num_creg_bits(circ.num_memory, circ.num_registers);
       state.allocate(circ.num_qubits, circ.num_qubits, circ.shots);    //allocate multiple-shots
 
       //qreg is initialized inside state class
@@ -1540,7 +1523,7 @@ void Controller::run_circuit_without_sampled_noise(Circuit &circ,
 
       state.apply_ops_multi_shots(circ.ops.cbegin(), circ.ops.cend(), noise, result, circ.seed, true);
 
-      state.save_count_data(result,save_creg_memory_);
+      result.save_count_data(state.cregs(), save_creg_memory_);
 
       // Add batched multi-shots optimizaiton metadata
       result.metadata.add(true, "batched_shots_optimization");
@@ -1638,7 +1621,7 @@ void Controller::run_circuit_with_sampled_noise(
       }
 
       state.set_distribution(num_process_per_experiment_);
-      state.set_max_matrix_qubits(get_max_matrix_qubits(circ) );
+      state.set_max_matrix_qubits(get_max_matrix_qubits(noise_circ) );
       // allocate qubit register
       state.allocate(noise_circ.num_qubits, block_bits);
 
@@ -1709,7 +1692,7 @@ void Controller::measure_sampler(
   // Check if meas_circ is empty, and if so return initial creg
   if (first_meas == last_meas) {
     while (shots-- > 0) {
-      save_count_data(result, state.creg());
+      result.save_count_data(state.cregs(), save_creg_memory_);
     }
     return;
   }
@@ -1791,7 +1774,7 @@ void Controller::measure_sampler(
     }
 
     // Save count data
-    save_count_data(result, creg);
+      result.save_count_data(creg, save_creg_memory_);
 
     // pop off processed sample
     all_samples.pop_back();

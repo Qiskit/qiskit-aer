@@ -24,7 +24,6 @@ from qiskit.compiler import schedule
 from qiskit.providers.options import Options
 from qiskit.providers.models import BackendConfiguration, PulseDefaults
 from qiskit.providers.backend import BackendV2
-from qiskit.utils import deprecate_arguments
 
 from ..version import __version__
 from ..aererror import AerError
@@ -208,7 +207,6 @@ class PulseSimulator(AerBackend):
             max_shot_size=None)
 
     # pylint: disable=arguments-differ, missing-param-doc
-    @deprecate_arguments({'qobj': 'schedules'})
     def run(self,
             schedules,
             validate=True,

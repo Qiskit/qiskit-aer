@@ -38,7 +38,7 @@ const Operations::OpSet StateOpSet(
      Operations::OpType::bfunc, Operations::OpType::roerror,
      Operations::OpType::qerror_loc,
      Operations::OpType::matrix, Operations::OpType::diagonal_matrix,
-     Operations::OpType::snapshot, Operations::OpType::save_unitary,
+    Operations::OpType::save_unitary,
      Operations::OpType::save_state, Operations::OpType::set_unitary,
      Operations::OpType::jump, Operations::OpType::mark
     },
@@ -49,15 +49,14 @@ const Operations::OpSet StateOpSet(
      "r",      "rx",      "ry",  "rz",   "rxx",  "ryy",  "rzz",  "rzx",
      "ccx",    "cswap",   "mcx", "mcy",  "mcz",  "mcu1", "mcu2", "mcu3",
      "mcswap", "mcphase", "mcr", "mcrx", "mcry", "mcry", "sx",   "sxdg", "csx",
-     "mcsx",   "csxdg", "mcsxdg", "delay", "pauli", "cu",   "mcu", "mcp"},
-    // Snapshots
-    {"unitary"});
+     "mcsx",   "csxdg", "mcsxdg", "delay", "pauli", "cu",   "mcu", "mcp", "ecr"});
 
 // Allowed gates enum class
 enum class Gates {
   id, h, s, sdg, t, tdg, rxx, ryy, rzz, rzx,
   mcx, mcy, mcz, mcr, mcrx, mcry, mcrz, mcp,
   mcu2, mcu3, mcu, mcswap, mcsx, mcsxdg, pauli,
+  ecr
 };
 
 //=========================================================================
@@ -65,9 +64,9 @@ enum class Gates {
 //=========================================================================
 
 template <class unitary_matrix_t = QV::UnitaryMatrix<double>>
-class State : public virtual Base::StateChunk<unitary_matrix_t> {
+class State : public virtual QuantumState::StateChunk<unitary_matrix_t> {
 public:
-  using BaseState = Base::StateChunk<unitary_matrix_t>;
+  using BaseState = QuantumState::StateChunk<unitary_matrix_t>;
 
   State() : BaseState(StateOpSet) {}
   virtual ~State() = default;
@@ -88,10 +87,6 @@ public:
 
   // Initializes an n-qubit unitary to the identity matrix
   virtual void initialize_qreg(uint_t num_qubits) override;
-
-  // Initializes to a specific n-qubit unitary matrix
-  virtual void initialize_qreg(uint_t num_qubits,
-                               const unitary_matrix_t &unitary) override;
 
   // Returns the required memory for storing an n-qubit state in megabytes.
   // For this state the memory is indepdentent of the number of ops
@@ -131,10 +126,6 @@ protected:
   // This should support all and only the operations defined in
   // allowed_operations.
   void apply_gate(const int_t iChunk, const Operations::Op &op);
-
-  // Apply a supported snapshot instruction
-  // If the input is not in allowed_snapshots an exeption will be raised.
-  virtual void apply_snapshot(const int_t iChunk, const Operations::Op &op, ExperimentResult &result);
 
   // Apply a matrix to given qubits (identity on all other qubits)
   void apply_matrix(const int_t iChunk, const reg_t &qubits, const cmatrix_t &mat);
@@ -254,6 +245,7 @@ const stringmap_t<Gates> State<unitary_matrix_t>::gateset_({
     {"rzx", Gates::rzx},     // Pauli-ZX rotation gate
     {"csx", Gates::mcsx},    // Controlled-Sqrt(X) gate
     {"csxdg", Gates::mcsxdg},// Controlled-Sqrt(X)dg gate
+    {"ecr", Gates::ecr},     // ECR Gate
     // Three-qubit gates
     {"ccx", Gates::mcx},      // Controlled-CX gate (Toffoli)
     {"cswap", Gates::mcswap}, // Controlled-SWAP gate (Fredkin)
@@ -306,9 +298,6 @@ void State<unitary_matrix_t>::apply_op(const int_t iChunk,
       case Operations::OpType::save_state:
       case Operations::OpType::save_unitary:
         apply_save_unitary(iChunk, op, result, final_op);
-        break;
-      case Operations::OpType::snapshot:
-        apply_snapshot(iChunk, op, result);
         break;
       case Operations::OpType::matrix:
         apply_matrix(iChunk, op.qubits, op.mats[0]);
@@ -430,72 +419,6 @@ void State<unitary_matrix_t>::initialize_qreg(uint_t num_qubits)
     for(iChunk=0;iChunk<BaseState::qregs_.size();iChunk++){
       BaseState::qregs_[iChunk].initialize();
     }
-  }
-  apply_global_phase();
-}
-
-template <class unitary_matrix_t>
-void State<unitary_matrix_t>::initialize_qreg(uint_t num_qubits,
-                                              const unitary_matrix_t &unitary) 
-{
-  // Check dimension of state
-  if (unitary.num_qubits() != num_qubits) {
-    throw std::invalid_argument(
-        "Unitary::State::initialize: initial state does not match qubit "
-        "number");
-  }
-  if(BaseState::qregs_.size() == 0)
-    BaseState::allocate(num_qubits,num_qubits,1);
-  initialize_omp();
-
-  int_t iChunk;
-  for(iChunk=0;iChunk<BaseState::qregs_.size();iChunk++)
-    BaseState::qregs_[iChunk].set_num_qubits(BaseState::chunk_bits_);
-
-  if(BaseState::multi_chunk_distribution_){
-    auto input = unitary.copy_to_matrix();
-    uint_t mask = (1ull << (BaseState::chunk_bits_)) - 1;
-
-    if(BaseState::chunk_omp_parallel_ && BaseState::num_groups_ > 0){
-#pragma omp parallel for private(iChunk) 
-      for(int_t ig=0;ig<BaseState::num_groups_;ig++){
-        for(iChunk = BaseState::top_chunk_of_group_[ig];iChunk < BaseState::top_chunk_of_group_[ig + 1];iChunk++){
-          uint_t irow_chunk = ((iChunk + BaseState::global_chunk_index_) >> ((BaseState::num_qubits_ - BaseState::chunk_bits_)));
-          uint_t icol_chunk = ((iChunk + BaseState::global_chunk_index_) & ((1ull << ((BaseState::num_qubits_ - BaseState::chunk_bits_)))-1));
-
-          //copy part of state for this chunk
-          uint_t i,row,col;
-          cvector_t tmp(1ull << BaseState::chunk_bits_);
-          for(i=0;i<(1ull << BaseState::chunk_bits_);i++){
-            uint_t icol = i >> (BaseState::chunk_bits_);
-            uint_t irow = i & mask;
-            uint_t idx = ((icol+(irow_chunk << BaseState::chunk_bits_)) << (BaseState::num_qubits_)) + (icol_chunk << BaseState::chunk_bits_) + irow;
-            tmp[i] = input[idx];
-          }
-          BaseState::qregs_[iChunk].initialize_from_vector(tmp);
-        }
-      }
-    }
-    else{
-      for(iChunk=0;iChunk<BaseState::qregs_.size();iChunk++){
-        uint_t irow_chunk = ((iChunk + BaseState::global_chunk_index_) >> ((BaseState::num_qubits_ - BaseState::chunk_bits_)));
-        uint_t icol_chunk = ((iChunk + BaseState::global_chunk_index_) & ((1ull << ((BaseState::num_qubits_ - BaseState::chunk_bits_)))-1));
-
-        //copy part of state for this chunk
-        uint_t i,row,col;
-        cvector_t tmp(1ull << BaseState::chunk_bits_);
-        for(i=0;i<(1ull << BaseState::chunk_bits_);i++){
-          uint_t icol = i >> (BaseState::chunk_bits_);
-          uint_t irow = i & mask;
-          uint_t idx = ((icol+(irow_chunk << BaseState::chunk_bits_)) << (BaseState::num_qubits_)) + (icol_chunk << BaseState::chunk_bits_) + irow;
-          tmp[i] = input[idx];
-        }
-        BaseState::qregs_[iChunk].initialize_from_vector(tmp);
-      }
-    }
-  }
-  else{
-    BaseState::qregs_[iChunk].initialize_from_data(unitary.data(), 1ULL << 2 * num_qubits);
   }
   apply_global_phase();
 }
@@ -662,6 +585,9 @@ void State<unitary_matrix_t>::apply_gate(const int_t iChunk, const Operations::O
     case Gates::rzx:
       BaseState::qregs_[iChunk].apply_matrix(op.qubits, Linalg::VMatrix::rzx(op.params[0]));
       break;
+    case Gates::ecr:
+      BaseState::qregs_[iChunk].apply_matrix(op.qubits, Linalg::VMatrix::ECR);
+      break;
     case Gates::id:
       break;
     case Gates::h:
@@ -791,21 +717,6 @@ void State<unitary_matrix_t>::apply_gate_mcu(const int_t iChunk, const reg_t &qu
 }
 
 template <class unitary_matrix_t>
-void State<unitary_matrix_t>::apply_snapshot(const int_t iChunk, const Operations::Op &op,
-                                             ExperimentResult &result) 
-{
-  // Look for snapshot type in snapshotset
-  if (op.name == "unitary" || op.name == "state") {
-    result.legacy_data.add_pershot_snapshot("unitary", op.string_params[0],
-                              copy_to_matrix(iChunk));
-    BaseState::snapshot_state(iChunk, op, result);
-  } else {
-    throw std::invalid_argument(
-        "Unitary::State::invalid snapshot instruction \'" + op.name + "\'.");
-  }
-}
-
-template <class unitary_matrix_t>
 void State<unitary_matrix_t>::apply_global_phase() 
 {
   if (BaseState::has_global_phase_) {
@@ -836,11 +747,11 @@ void State<unitary_matrix_t>::apply_save_unitary(const int_t iChunk, const Opera
   std::string key = (op.string_params[0] == "_method_") ? "unitary" : op.string_params[0];
 
   if (last_op) {
-    BaseState::save_data_pershot(iChunk, result, key, move_to_matrix(iChunk),
+    result.save_data_pershot(BaseState::chunk_creg(iChunk), key, move_to_matrix(iChunk),
                                  Operations::OpType::save_unitary,
                                  op.save_type);
   } else {
-    BaseState::save_data_pershot(iChunk, result, key, copy_to_matrix(iChunk),
+    result.save_data_pershot(BaseState::chunk_creg(iChunk), key, copy_to_matrix(iChunk),
                                  Operations::OpType::save_unitary,
                                  op.save_type);
   }

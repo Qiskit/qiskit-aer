@@ -34,7 +34,7 @@ namespace QubitSuperoperator {
 const Operations::OpSet StateOpSet(
     // Op types
     {Operations::OpType::gate, Operations::OpType::reset,
-     Operations::OpType::snapshot, Operations::OpType::barrier,
+     Operations::OpType::barrier,
      Operations::OpType::qerror_loc,
      Operations::OpType::bfunc, Operations::OpType::roerror,
      Operations::OpType::matrix, Operations::OpType::diagonal_matrix,
@@ -48,27 +48,23 @@ const Operations::OpSet StateOpSet(
     {"U",    "CX",  "u1", "u2",  "u3", "u",   "cx",   "cy",  "cz",
      "swap", "id",  "x",  "y",   "z",  "h",   "s",    "sdg", "t",
      "tdg",  "ccx", "r",  "rx",  "ry", "rz",  "rxx",  "ryy", "rzz",
-     "rzx",  "p",   "cp", "cu1", "sx", "sxdg", "x90", "delay", "pauli"},
-    // Snapshots
-    {"superop"});
+     "rzx",  "p",   "cp", "cu1", "sx", "sxdg", "x90", "delay", "pauli",
+     "ecr"});
 
 // Allowed gates enum class
 enum class Gates {
   u2, u1, u3, id, x, y, z, h, s, sdg, sx, sxdg, t, tdg, r, rx, ry, rz,
-  cx, cy, cz, cp, swap, rxx, ryy, rzz, rzx, ccx, pauli
+  cx, cy, cz, cp, swap, rxx, ryy, rzz, rzx, ccx, pauli, ecr
 };
-
-// Allowed snapshots enum class
-enum class Snapshots { superop };
 
 //=========================================================================
 // QubitUnitary State subclass
 //=========================================================================
 
 template <class data_t = QV::Superoperator<double>>
-class State : public Base::State<data_t> {
+class State : public QuantumState::State<data_t> {
 public:
-  using BaseState = Base::State<data_t>;
+  using BaseState = QuantumState::State<data_t>;
 
   State() : BaseState(StateOpSet) {}
   virtual ~State() = default;
@@ -90,10 +86,6 @@ public:
   // Initializes an n-qubit unitary to the identity matrix
   virtual void initialize_qreg(uint_t num_qubits) override;
 
-  // Initializes to a specific n-qubit unitary superop
-  virtual void initialize_qreg(uint_t num_qubits,
-                               const data_t &unitary) override;
-
   // Returns the required memory for storing an n-qubit state in megabytes.
   // For this state the memory is indepdentent of the number of ops
   // and is approximately 16 * 1 << 4 * num_qubits bytes
@@ -112,9 +104,6 @@ public:
   // Additional methods
   //-----------------------------------------------------------------------
 
-  // Initializes to a specific n-qubit unitary given as a complex matrix
-  virtual void initialize_qreg(uint_t num_qubits, const cmatrix_t &unitary);
-
   // Initialize OpenMP settings for the underlying QubitVector class
   void initialize_omp();
 
@@ -131,10 +120,6 @@ protected:
   // This should support all and only the operations defined in
   // allowed_operations.
   void apply_gate(const Operations::Op &op);
-
-  // Apply a supported snapshot instruction
-  // If the input is not in allowed_snapshots an exeption will be raised.
-  virtual void apply_snapshot(const Operations::Op &op, ExperimentResult &result);
 
   // Apply a matrix to given qubits (identity on all other qubits)
   void apply_matrix(const reg_t &qubits, const cmatrix_t &mat);
@@ -233,6 +218,7 @@ const stringmap_t<Gates> State<data_t>::gateset_({
     {"ryy", Gates::ryy},   // Pauli-YY rotation gate
     {"rzz", Gates::rzz},   // Pauli-ZZ rotation gate
     {"rzx", Gates::rzx},   // Pauli-ZX rotation gate
+    {"ecr", Gates::ecr},   // ECR Gate
     // Three-qubit gates
     {"ccx", Gates::ccx}, // Controlled-CX gate (Toffoli)
     {"pauli", Gates::pauli}  // Multiple pauli operations at once
@@ -247,7 +233,7 @@ void State<data_t>::apply_op(const Operations::Op &op,
                              ExperimentResult &result,
                              RngEngine &rng,
                              bool final_op) {
-  if (BaseState::creg_.check_conditional(op)) {
+  if (BaseState::creg().check_conditional(op)) {
     switch (op.type) {
       case Operations::OpType::barrier:
       case Operations::OpType::qerror_loc:
@@ -256,10 +242,10 @@ void State<data_t>::apply_op(const Operations::Op &op,
         apply_gate(op);
         break;
       case Operations::OpType::bfunc:
-          BaseState::creg_.apply_bfunc(op);
+          BaseState::creg().apply_bfunc(op);
         break;
       case Operations::OpType::roerror:
-          BaseState::creg_.apply_roerror(op, rng);
+          BaseState::creg().apply_roerror(op, rng);
         break;
       case Operations::OpType::reset:
         apply_reset(op.qubits);
@@ -280,9 +266,6 @@ void State<data_t>::apply_op(const Operations::Op &op,
       case Operations::OpType::set_unitary:
       case Operations::OpType::set_superop:
         BaseState::qreg_.initialize_from_matrix(op.mats[0]);
-        break;
-      case Operations::OpType::snapshot:
-        apply_snapshot(op, result);
         break;
       case Operations::OpType::save_state:
       case Operations::OpType::save_superop:
@@ -321,33 +304,6 @@ template <class data_t> void State<data_t>::initialize_qreg(uint_t num_qubits) {
   initialize_omp();
   BaseState::qreg_.set_num_qubits(num_qubits);
   BaseState::qreg_.initialize();
-}
-
-template <class data_t>
-void State<data_t>::initialize_qreg(uint_t num_qubits, const data_t &supermat) {
-  // Check dimension of state
-  if (supermat.num_qubits() != num_qubits) {
-    throw std::invalid_argument("QubitSuperoperator::State::initialize: "
-                                "initial state does not match qubit number");
-  }
-  initialize_omp();
-  BaseState::qreg_.set_num_qubits(num_qubits);
-  const size_t sz = 1ULL << BaseState::qreg_.size();
-  BaseState::qreg_.initialize_from_data(supermat.data(), sz);
-}
-
-template <class data_t>
-void State<data_t>::initialize_qreg(uint_t num_qubits, const cmatrix_t &mat) {
-  // Check dimension of unitary
-  const auto sz_uni = 1ULL << (2 * num_qubits);
-  const auto sz_super = 1ULL << (4 * num_qubits);
-  if (mat.size() != sz_uni && mat.size() != sz_super) {
-    throw std::invalid_argument("QubitSuperoperator::State::initialize: "
-                                "initial state does not match qubit number");
-  }
-  initialize_omp();
-  BaseState::qreg_.set_num_qubits(num_qubits);
-  BaseState::qreg_.initialize_from_matrix(mat);
 }
 
 template <class data_t> void State<data_t>::initialize_omp() {
@@ -433,6 +389,9 @@ void State<data_t>::apply_gate(const Operations::Op &op) {
       break;
     case Gates::rzx:
       apply_matrix(op.qubits, Linalg::VMatrix::rzx(op.params[0]));
+      break;
+    case Gates::ecr:
+      apply_matrix(op.qubits, Linalg::VMatrix::ECR);
       break;
     case Gates::cx:
       BaseState::qreg_.apply_cnot(op.qubits[0], op.qubits[1]);
@@ -521,19 +480,6 @@ void State<statevec_t>::apply_gate_u3(const uint_t qubit, double theta,
   BaseState::qreg_.apply_unitary_matrix(reg_t({qubit}), u3);
 }
 
-template <class data_t>
-void State<data_t>::apply_snapshot(const Operations::Op &op,
-                                   ExperimentResult &result) {
-  // Look for snapshot type in snapshotset
-  if (op.name == "superopertor" || op.name == "state") {
-    BaseState::snapshot_state(op, result, "superop");
-  } else {
-    throw std::invalid_argument(
-        "QubitSuperoperator::State::invalid snapshot instruction \'" + op.name +
-        "\'.");
-  }
-}
-
 template <class statevec_t>
 void State<statevec_t>::apply_pauli(const reg_t &qubits,
                                     const std::string &pauli) {
@@ -558,15 +504,15 @@ void State<statevec_t>::apply_save_state(const Operations::Op &op,
                       ? "superop"
                       : op.string_params[0];
   if (last_op) {
-    BaseState::save_data_pershot(result, key,
-                                 BaseState::qreg_.move_to_matrix(),
-                                 Operations::OpType::save_superop,
-                                 op.save_type);
+    result.save_data_pershot(BaseState::creg(), key,
+                             BaseState::qreg_.move_to_matrix(),
+                             Operations::OpType::save_superop,
+                             op.save_type);
   } else {
-    BaseState::save_data_pershot(result, key,
-                                 BaseState::qreg_.copy_to_matrix(),
-                                 Operations::OpType::save_superop,
-                                 op.save_type);
+    result.save_data_pershot(BaseState::creg(), key,
+                             BaseState::qreg_.copy_to_matrix(),
+                             Operations::OpType::save_superop,
+                             op.save_type);
   }
 }
 

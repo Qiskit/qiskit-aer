@@ -33,7 +33,7 @@
 
 namespace AER {
 
-namespace Base {
+namespace QuantumState {
 
 #define STATE_APPLY_TO_ALL_CHUNKS     0
 
@@ -50,6 +50,7 @@ public:
   using BaseState = State<state_t>;
   using DataSubType = Operations::DataSubType;
   using OpType = Operations::OpType;
+  using OpItr = std::vector<Operations::Op>::const_iterator;
 
   //-----------------------------------------------------------------------
   // Constructors
@@ -62,7 +63,6 @@ public:
   // - `OpType::gate` if gates are supported
   // - `OpType::measure` if measure is supported
   // - `OpType::reset` if reset is supported
-  // - `OpType::snapshot` if any snapshots are supported
   // - `OpType::barrier` if barrier is supported
   // - `OpType::matrix` if arbitrary unitary matrices are supported
   // - `OpType::kraus` if general Kraus noise channels are supported
@@ -70,8 +70,6 @@ public:
   // For gate ops allowed gates are specified by a set of string names,
   // for example this could include {"u1", "u2", "u3", "U", "cx", "CX"}
   //
-  // For snapshot ops allowed snapshots are specified by a set of string names,
-  // For example this could include {"probabilities", "pauli_observable"}
 
   StateChunk(const Operations::OpSet &opset) : BaseState(opset)
   {
@@ -104,9 +102,9 @@ public:
   auto &qreg(int_t idx=0) { return qregs_[idx]; }
   const auto &qreg(int_t idx=0) const { return qregs_[idx]; }
 
-  // Return the state creg object
-  auto &creg(uint_t idx=0) { return cregs_[idx]; }
-  const auto &creg(uint_t idx=0) const { return cregs_[idx]; }
+  // Return the creg object
+  auto &chunk_creg(uint_t iChunk) { return BaseState::creg(get_global_shot_index(iChunk)); }
+  const auto &chunk_creg(uint_t iChunk) const { return BaseState::creg(get_global_shot_index(iChunk)); }
 
   //=======================================================================
   // Subclass Override Methods
@@ -129,9 +127,6 @@ public:
   // Initializes the StateChunk to the default state.
   // Typically this is the n-qubit all |0> state
   virtual void initialize_qreg(uint_t num_qubits) = 0;
-
-  // Initializes the StateChunk to a specific state.
-  virtual void initialize_qreg(uint_t num_qubits, const state_t &state) = 0;
 
   // Return an estimate of the required memory for implementing the
   // specified sequence of operations on a `num_qubit` sized StateChunk.
@@ -157,29 +152,6 @@ public:
   // Load any settings for the StateChunk class from a config JSON
   virtual void set_config(const json_t &config);
 
-  //-----------------------------------------------------------------------
-  // Optional: Add information to metadata 
-  //-----------------------------------------------------------------------
-
-  // Every state can add information to the metadata structure
-  virtual void add_metadata(ExperimentResult &result) const {
-  }
-
-  //-----------------------------------------------------------------------
-  // Optional: measurement sampling
-  //
-  // This method is only required for a StateChunk subclass to be compatible with
-  // the measurement sampling optimization of a general the QasmController
-  //-----------------------------------------------------------------------
-
-  // Sample n-measurement outcomes without applying the measure operation
-  // to the system state. Even though this method is not marked as const
-  // at the end of sample the system should be left in the same state
-  // as before sampling
-  virtual std::vector<reg_t> sample_measure(const reg_t &qubits,
-                                            uint_t shots,
-                                            RngEngine &rng);
-
   //=======================================================================
   // Standard non-virtual methods
   //
@@ -199,7 +171,7 @@ public:
   void apply_op(const Operations::Op &op,
                       ExperimentResult &result,
                       RngEngine& rng,
-                      bool final_op = false) override final {}
+                      bool final_op = false) override final { apply_op(0, op, result, rng, final_op); }
 
   //so this one is used
   virtual void apply_op(const int_t iChunk, const Operations::Op &op,
@@ -216,12 +188,11 @@ public:
   // The `final_ops` flag indicates no more instructions will be applied
   // to the state after this sequence, so the state can be modified at the
   // end of the instructions.
-  template <typename InputIterator>
-  void apply_ops(InputIterator first,
-                 InputIterator last,
+  void apply_ops(OpItr first,
+                 OpItr last,
                  ExperimentResult &result,
                  RngEngine &rng,
-                 bool final_ops = false);
+                 bool final_ops = false) override;
 
   //apply ops to multiple shots
   //this function should be separately defined since apply_ops is called in quantum_error
@@ -256,78 +227,11 @@ public:
                        const std::string &register_hex);
 
   //-----------------------------------------------------------------------
-  // Save result data
-  //-----------------------------------------------------------------------
-
-  // Save current value of all classical registers to result
-  // This supports DataSubTypes: c_accum (counts), list (memory)
-  // TODO: Make classical data allow saving only subset of specified clbit values
-  void save_creg(const int_t iChunk, ExperimentResult &result,
-                 const std::string &key,
-                 DataSubType subtype = DataSubType::c_accum) const;
-
-  // Save single shot data type. Typically this will be the value for the
-  // last shot of the simulation
-  template <class T>
-  void save_data_single(ExperimentResult &result,
-                        const std::string &key, const T& datum, OpType type) const;
-
-  template <class T>
-  void save_data_single(ExperimentResult &result,
-                        const std::string &key, T&& datum, OpType type) const;
-
-  // Save data type which can be averaged over all shots.
-  // This supports DataSubTypes: list, c_list, accum, c_accum, average, c_average
-  template <class T>
-  void save_data_average(const int_t iChunk, ExperimentResult &result,
-                         const std::string &key, const T& datum,
-                         OpType type, DataSubType subtype = DataSubType::average) const;
-
-  template <class T>
-  void save_data_average(const int_t iChunk, ExperimentResult &result,
-                         const std::string &key, T&& datum,
-                         OpType type, DataSubType subtype = DataSubType::average) const;
-  
-  // Save data type which is pershot and does not support accumulator or average
-  // This supports DataSubTypes: single, c_single, list, c_list
-  template <class T>
-  void save_data_pershot(const int_t iChunk, ExperimentResult &result,
-                         const std::string &key, const T& datum,
-                         OpType type, DataSubType subtype = DataSubType::list) const;
-
-  template <class T>
-  void save_data_pershot(const int_t iChunk, ExperimentResult &result,
-                         const std::string &key, T&& datum,
-                         OpType type, DataSubType subtype = DataSubType::list) const;
-
-
-  //save creg as count data 
-  virtual void save_count_data(ExperimentResult& result,bool save_memory);
-
-  //-----------------------------------------------------------------------
   // Common instructions
   //-----------------------------------------------------------------------
  
   // Apply a save expectation value instruction
   void apply_save_expval(const int_t iChunk, const Operations::Op &op, ExperimentResult &result);
-
-  //-----------------------------------------------------------------------
-  // Standard snapshots
-  //-----------------------------------------------------------------------
-
-  // Snapshot the current statevector (single-shot)
-  // if type_label is the empty string the operation type will be used for the type
-  virtual void snapshot_state(const int_t iChunk, const Operations::Op &op, ExperimentResult &result,
-                      std::string name = "") const;
-
-  // Snapshot the classical memory bits state (single-shot)
-  void snapshot_creg_memory(const int_t iChunk, const Operations::Op &op, ExperimentResult &result,
-                            std::string name = "memory") const;
-
-  // Snapshot the classical register bits state (single-shot)
-  void snapshot_creg_register(const int_t iChunk, const Operations::Op &op, ExperimentResult &result,
-                              std::string name = "register") const;
-
 
   //-----------------------------------------------------------------------
   // Config Settings
@@ -343,19 +247,22 @@ public:
     max_batched_shots_ = shots;
   }
 
-
   //Does this state support multi-chunk distribution?
   virtual bool multi_chunk_distribution_supported(void){return true;}
   //Does this state support multi-shot parallelization?
   virtual bool multi_shot_parallelization_supported(void){return true;}
 
+  //set creg bit counts before initialize creg
+  void set_num_creg_bits(uint_t num_memory, uint_t num_register) override
+  {
+    num_creg_memory_ = num_memory;
+    num_creg_registers_ = num_register;
+  }
+
 protected:
 
   // The array of the quantum state data structure
   std::vector<state_t> qregs_;
-
-  // The array of classical register data
-  std::vector<ClassicalRegister> cregs_;
 
   //number of qubits for the circuit
   uint_t num_qubits_;
@@ -400,6 +307,9 @@ protected:
 
   //cuStateVec settings
   bool cuStateVec_enable_ = false;
+
+  uint_t num_creg_memory_ = 0;    //number of total bits for creg (reserve for multi-shots)
+  uint_t num_creg_registers_ = 0;
 
   //-----------------------------------------------------------------------
   // Apply circuits and ops
@@ -504,7 +414,7 @@ protected:
   auto apply_to_matrix(bool copy = false);
 
   // Apply the global phase
-  virtual void apply_global_phase(){}
+  virtual void apply_global_phase() override {}
 
   //check if the operator should be applied to each chunk
   virtual bool is_applied_to_each_chunk(const Operations::Op &op);
@@ -628,7 +538,7 @@ bool StateChunk<state_t>::allocate(uint_t num_qubits,uint_t block_bits,uint_t nu
     multi_shots_parallelization_ = false;
     num_global_chunks_ = 1ull << ((num_qubits_ - chunk_bits_)*qubit_scale());
 
-    cregs_.resize(1);
+    BaseState::cregs_.resize(1);
   }
   else{
     //multi-shots parallelization
@@ -640,7 +550,7 @@ bool StateChunk<state_t>::allocate(uint_t num_qubits,uint_t block_bits,uint_t nu
     num_global_chunks_ = num_parallel_shots;
 
     //classical registers for all shots
-    cregs_.resize(num_parallel_shots);
+    BaseState::cregs_.resize(num_parallel_shots);
   }
 
   chunk_index_begin_.resize(distributed_procs_);
@@ -712,6 +622,13 @@ bool StateChunk<state_t>::allocate_qregs(uint_t num_chunks)
 
   qregs_.resize(num_chunks);
 
+  if(num_creg_memory_ !=0 || num_creg_registers_ !=0){
+    for(i=0;i<num_chunks;i++){
+      //set number of creg bits before actual initialization
+      qregs_[i].initialize_creg(num_creg_memory_, num_creg_registers_);
+    }
+  }
+
   //allocate qregs
   uint_t chunk_id = multi_chunk_distribution_ ? global_chunk_index_ : 0;
   bool ret = true;
@@ -756,52 +673,16 @@ uint_t StateChunk<state_t>::get_process_by_chunk(uint_t cid)
 }
 
 template <class state_t>
-template <typename InputIterator>
-void StateChunk<state_t>::apply_ops(InputIterator first, InputIterator last,
+void StateChunk<state_t>::apply_ops(OpItr first, OpItr last,
                                ExperimentResult &result,
                                RngEngine &rng,
                                bool final_ops) 
 {
   if(multi_chunk_distribution_){
-    return apply_ops_chunks(first,last,result,rng,final_ops);
+    apply_ops_chunks(first,last,result,rng,final_ops);
   }
-
-  std::unordered_map<std::string, InputIterator> marks;
-  // Simple loop over vector of input operations
-  for (auto it = first; it != last; ++it) {
-    switch (it->type) {
-    case Operations::OpType::mark: {
-      marks[it->string_params[0]] = it;
-      break;
-    }
-    case Operations::OpType::jump: {
-      if (check_conditional(0, *it)) {
-        const auto& mark_name = it->string_params[0];
-        auto mark_it = marks.find(mark_name);
-        if (mark_it != marks.end()) {
-          it = mark_it->second;
-        } else {
-          for (++it; it != last; ++it) {
-            if (it->type == Operations::OpType::mark) {
-              marks[it->string_params[0]] = it;
-              if (it->string_params[0] == mark_name) {
-                break;
-              }
-            }
-          }
-          if (it == last) {
-            std::stringstream msg;
-            msg << "Invalid jump destination:\"" << mark_name << "\"." << std::endl;
-            throw std::runtime_error(msg.str());
-          }
-        }
-      }
-      break;
-    }
-    default: {
-    apply_op(0, *it, result, rng, final_ops && (it + 1 == last) );
-    }
-    }
+  else{
+    Base::apply_ops(first, last, result, rng,final_ops);
   }
 
   qregs_[0].synchronize();
@@ -1018,7 +899,7 @@ bool StateChunk<state_t>::check_conditional(const int_t iChunk, const Operations
     return true;
   }
   else{
-    return cregs_[0].check_conditional(op);
+    return BaseState::cregs_[0].check_conditional(op);
   }
 }
 
@@ -1055,7 +936,7 @@ void StateChunk<state_t>::apply_ops_multi_shots(InputIterator first, InputIterat
         qregs_[j].initialize();
 
         //initialize creg here
-        qregs_[j].initialize_creg(cregs_[0].memory_size(), cregs_[0].register_size());
+        qregs_[j].initialize_creg(this->creg(0).memory_size(), this->creg(0).register_size());
       }
     };
     Utils::apply_omp_parallel_for((num_groups_ > 1 && chunk_omp_parallel_),0,num_groups_,init_group);
@@ -1079,7 +960,7 @@ void StateChunk<state_t>::apply_ops_multi_shots(InputIterator first, InputIterat
 
     //collect measured bits and copy memory
     for(i=0;i<n_shots;i++){
-      qregs_[i].read_measured_data(cregs_[global_chunk_index_ + i_begin + i]);
+      qregs_[i].read_measured_data(this->creg(global_chunk_index_ + i_begin + i));
     }
 
     i_begin += n_shots;
@@ -1264,20 +1145,10 @@ void StateChunk<state_t>::apply_batched_noise_ops(const int_t i_group, const std
 }
 
 template <class state_t>
-std::vector<reg_t> StateChunk<state_t>::sample_measure(const reg_t &qubits,
-                                                  uint_t shots,
-                                                  RngEngine &rng) {
-  (ignore_argument)qubits;
-  (ignore_argument)shots;
-  return std::vector<reg_t>();
-}
-
-
-template <class state_t>
 void StateChunk<state_t>::initialize_creg(uint_t num_memory, uint_t num_register) 
 {
-  for(int_t i=0;i<cregs_.size();i++){
-    cregs_[i].initialize(num_memory, num_register);
+  for(int_t i=0;i<BaseState::cregs_.size();i++){
+    BaseState::cregs_[i].initialize(num_memory, num_register);
   }
 }
 
@@ -1287,207 +1158,10 @@ void StateChunk<state_t>::initialize_creg(uint_t num_memory,
                                      uint_t num_register,
                                      const std::string &memory_hex,
                                      const std::string &register_hex) {
-  for(int_t i=0;i<cregs_.size();i++){
-    cregs_[i].initialize(num_memory, num_register, memory_hex, register_hex);
+  for(int_t i=0;i<BaseState::cregs_.size();i++){
+    BaseState::cregs_[i].initialize(num_memory, num_register, memory_hex, register_hex);
   }
 }
-
-template <class state_t>
-void StateChunk<state_t>::save_creg(const int_t iChunk, ExperimentResult &result,
-                               const std::string &key,
-                               DataSubType subtype) const 
-{
-  int_t ishot = get_global_shot_index(iChunk);
-  if (cregs_[ishot].memory_size() == 0)
-    return;
-  switch (subtype) {
-    case DataSubType::list:
-      result.data.add_list(cregs_[ishot].memory_hex(), key);
-      result.metadata.add("creg", "result_types", key);
-      break;
-    case DataSubType::c_accum:
-      result.data.add_accum(1ULL, key, cregs_[ishot].memory_hex());
-      result.metadata.add("creg", "result_types", key);
-      break;
-    default:
-      throw std::runtime_error("Invalid creg data subtype for data key: " + key);
-  }
-  result.metadata.add(subtype, "result_subtypes", key);
-}
-
-template <class state_t>
-template <class T>
-void StateChunk<state_t>::save_data_average(const int_t iChunk, ExperimentResult &result,
-                                       const std::string &key,
-                                       const T& datum, OpType type,
-                                       DataSubType subtype) const {
-  int_t ishot = get_global_shot_index(iChunk);
-  switch (subtype) {
-    case DataSubType::list:
-      result.data.add_list(datum, key);
-      break;
-    case DataSubType::c_list:
-      result.data.add_list(datum, key, cregs_[ishot].memory_hex());
-      break;
-    case DataSubType::accum:
-      result.data.add_accum(datum, key);
-      break;
-    case DataSubType::c_accum:
-      result.data.add_accum(datum, key, cregs_[ishot].memory_hex());
-      break;
-    case DataSubType::average:
-      result.data.add_average(datum, key);
-      break;
-    case DataSubType::c_average:
-      result.data.add_average(datum, key, cregs_[ishot].memory_hex());
-      break;
-    default:
-      throw std::runtime_error("Invalid average data subtype for data key: " + key);
-  }
-  result.metadata.add(type, "result_types", key);
-  result.metadata.add(subtype, "result_subtypes", key);
-}
-
-template <class state_t>
-template <class T>
-void StateChunk<state_t>::save_data_average(const int_t iChunk, ExperimentResult &result,
-                                       const std::string &key,
-                                       T&& datum, OpType type,
-                                       DataSubType subtype) const {
-  int_t ishot = get_global_shot_index(iChunk);
-  switch (subtype) {
-    case DataSubType::list:
-      result.data.add_list(std::move(datum), key);
-      break;
-    case DataSubType::c_list:
-      result.data.add_list(std::move(datum), key, cregs_[ishot].memory_hex());
-      break;
-    case DataSubType::accum:
-      result.data.add_accum(std::move(datum), key);
-      break;
-    case DataSubType::c_accum:
-      result.data.add_accum(std::move(datum), key, cregs_[ishot].memory_hex());
-      break;
-    case DataSubType::average:
-      result.data.add_average(std::move(datum), key);
-      break;
-    case DataSubType::c_average:
-      result.data.add_average(std::move(datum), key, cregs_[ishot].memory_hex());
-      break;
-    default:
-      throw std::runtime_error("Invalid average data subtype for data key: " + key);
-  }
-  result.metadata.add(type, "result_types", key);
-  result.metadata.add(subtype, "result_subtypes", key);
-}
-
-template <class state_t>
-template <class T>
-void StateChunk<state_t>::save_data_pershot(const int_t iChunk, ExperimentResult &result,
-                                       const std::string &key,
-                                       const T& datum, OpType type,
-                                       DataSubType subtype) const {
-  int_t ishot = get_global_shot_index(iChunk);
-  switch (subtype) {
-  case DataSubType::single:
-    result.data.add_single(datum, key);
-    break;
-  case DataSubType::c_single:
-    result.data.add_single(datum, key, cregs_[ishot].memory_hex());
-    break;
-  case DataSubType::list:
-    result.data.add_list(datum, key);
-    break;
-  case DataSubType::c_list:
-    result.data.add_list(datum, key, cregs_[ishot].memory_hex());
-    break;
-  default:
-    throw std::runtime_error("Invalid pershot data subtype for data key: " + key);
-  }
-  result.metadata.add(type, "result_types", key);
-  result.metadata.add(subtype, "result_subtypes", key);
-}
-
-template <class state_t>
-template <class T>
-void StateChunk<state_t>::save_data_pershot(const int_t iChunk, ExperimentResult &result, 
-                                       const std::string &key,
-                                       T&& datum, OpType type,
-                                       DataSubType subtype) const {
-  int_t ishot = get_global_shot_index(iChunk);
-  switch (subtype) {
-    case DataSubType::single:
-      result.data.add_single(std::move(datum), key);
-      break;
-    case DataSubType::c_single:
-      result.data.add_single(std::move(datum), key, cregs_[ishot].memory_hex());
-      break;
-    case DataSubType::list:
-      result.data.add_list(std::move(datum), key);
-      break;
-    case DataSubType::c_list:
-      result.data.add_list(std::move(datum), key, cregs_[ishot].memory_hex());
-      break;
-    default:
-      throw std::runtime_error("Invalid pershot data subtype for data key: " + key);
-  }
-  result.metadata.add(type, "result_types", key);
-  result.metadata.add(subtype, "result_subtypes", key);
-}
-
-template <class state_t>
-template <class T>
-void StateChunk<state_t>::save_data_single(ExperimentResult &result,
-                                      const std::string &key,
-                                      const T& datum, OpType type) const {
-  result.data.add_single(datum, key);
-  result.metadata.add(type, "result_types", key);
-  result.metadata.add(DataSubType::single, "result_subtypes", key);
-}
-
-template <class state_t>
-template <class T>
-void StateChunk<state_t>::save_data_single(ExperimentResult &result,
-                                      const std::string &key,
-                                      T&& datum, OpType type) const {
-  result.data.add_single(std::move(datum), key);
-  result.metadata.add(type, "result_types", key);
-  result.metadata.add(DataSubType::single, "result_subtypes", key);
-}
-
-template <class state_t>
-void StateChunk<state_t>::snapshot_state(const int_t iChunk, const Operations::Op &op,
-                                    ExperimentResult &result,
-                                    std::string name) const 
-{
-  name = (name.empty()) ? op.name : name;
-  result.legacy_data.add_pershot_snapshot(name, op.string_params[0], qregs_[iChunk]);
-}
-
-
-template <class state_t>
-void StateChunk<state_t>::snapshot_creg_memory(const int_t iChunk, const Operations::Op &op,
-                                          ExperimentResult &result,
-                                          std::string name) const 
-{
-  int_t ishot = get_global_shot_index(iChunk);
-  result.legacy_data.add_pershot_snapshot(name,
-                               op.string_params[0],
-                               cregs_[ishot].memory_hex());
-}
-
-
-template <class state_t>
-void StateChunk<state_t>::snapshot_creg_register(const int_t iChunk, const Operations::Op &op,
-                                            ExperimentResult &result,
-                                            std::string name) const 
-{
-  int_t ishot = get_global_shot_index(iChunk);
-  result.legacy_data.add_pershot_snapshot(name,
-                               op.string_params[0],
-                               cregs_[ishot].register_hex());
-}
-
 
 template <class state_t>
 void StateChunk<state_t>::apply_save_expval(const int_t iChunk, const Operations::Op &op,
@@ -1515,23 +1189,9 @@ void StateChunk<state_t>::apply_save_expval(const int_t iChunk, const Operations
     std::vector<double> expval_var(2);
     expval_var[0] = expval;  // mean
     expval_var[1] = sq_expval - expval * expval;  // variance
-    save_data_average(iChunk, result, op.string_params[0], expval_var, op.type, op.save_type);
+    result.save_data_average(BaseState::cregs_[get_global_shot_index(iChunk)], op.string_params[0], expval_var, op.type, op.save_type);
   } else {
-    save_data_average(iChunk, result, op.string_params[0], expval, op.type, op.save_type);
-  }
-}
-
-template <class state_t>
-void StateChunk<state_t>::save_count_data(ExperimentResult& result,bool save_memory)
-{
-  for(int_t i=0;i<cregs_.size();i++){
-    if (cregs_[i].memory_size() > 0) {
-      std::string memory_hex = cregs_[i].memory_hex();
-      result.data.add_accum(static_cast<uint_t>(1ULL), "counts", memory_hex);
-      if(save_memory) {
-        result.data.add_list(std::move(memory_hex), "memory");
-      }
-    }
+    result.save_data_average(BaseState::cregs_[get_global_shot_index(iChunk)], op.string_params[0], expval, op.type, op.save_type);
   }
 }
 
@@ -2490,20 +2150,20 @@ void StateChunk<state_t>::gather_creg_memory(void)
 
   if(distributed_procs_ == 1)
     return;
-  if(cregs_[0].memory_size() == 0)
+  if(BaseState::cregs_[0].memory_size() == 0)
     return;
 
   //number of 64-bit integers per memory
-  n64 = (cregs_[0].memory_size() + 63) >> 6;
+  n64 = (BaseState::cregs_[0].memory_size() + 63) >> 6;
 
   reg_t bin_memory(n64*num_local_chunks_,0);
   //compress memory string to binary
 #pragma omp parallel for private(i,j,i64,ibit)
   for(i=0;i<num_local_chunks_;i++){
-    for(j=0;j<cregs_[0].memory_size();j++){
+    for(j=0;j<BaseState::cregs_[0].memory_size();j++){
       i64 = j >> 6;
       ibit = j & 63;
-      if(cregs_[global_chunk_index_ + i].creg_memory()[j] == '1'){
+      if(BaseState::cregs_[global_chunk_index_ + i].creg_memory()[j] == '1'){
         bin_memory[i*n64 + i64] |= (1ull << ibit);
       }
     }
@@ -2524,13 +2184,13 @@ void StateChunk<state_t>::gather_creg_memory(void)
   //store gathered memory
 #pragma omp parallel for private(i,j,i64,ibit)
   for(i=0;i<num_global_chunks_;i++){
-    for(j=0;j<cregs_[0].memory_size();j++){
+    for(j=0;j<BaseState::cregs_[0].memory_size();j++){
       i64 = j >> 6;
       ibit = j & 63;
       if(((recv[i*n64 + i64] >> ibit) & 1) == 1)
-        cregs_[i].creg_memory()[j] = '1';
+        BaseState::cregs_[i].creg_memory()[j] = '1';
       else
-        cregs_[i].creg_memory()[j] = '0';
+        BaseState::cregs_[i].creg_memory()[j] = '0';
     }
   }
 #endif

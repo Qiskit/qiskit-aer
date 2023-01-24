@@ -17,7 +17,8 @@ import copy
 import logging
 from qiskit.providers.options import Options
 from qiskit.providers.models import QasmBackendConfiguration
-from qiskit.providers.backend import BackendV2
+from qiskit.providers.backend import BackendV2, BackendV1
+from qiskit.transpiler.target import target_to_backend_properties
 
 from ..version import __version__
 from .aerbackend import AerBackend, AerError
@@ -55,9 +56,9 @@ class AerSimulator(AerBackend):
         backend = AerSimulator(method='density_matrix',
                                 noise_model=noise_model)
 
-    **Simulating an IBMQ Backend**
+    **Simulating an IBM Quantum Backend**
 
-    The simulator can be automatically configured to mimic an IBMQ backend using
+    The simulator can be automatically configured to mimic an IBM Quantum backend using
     the :meth:`from_backend` method. This will configure the simulator to use the
     basic device :class:`NoiseModel` for that backend, and the same basis gates
     and coupling map.
@@ -431,42 +432,46 @@ class AerSimulator(AerBackend):
     _CUSTOM_INSTR = {
         'statevector': sorted([
             'quantum_channel', 'qerror_loc', 'roerror', 'kraus',
-            'snapshot', 'save_expval', 'save_expval_var',
+            'save_expval', 'save_expval_var',
             'save_probabilities', 'save_probabilities_dict',
             'save_amplitudes', 'save_amplitudes_sq',
             'save_density_matrix', 'save_state', 'save_statevector',
             'save_statevector_dict', 'set_statevector',
+            'if_else', 'for_loop', 'while_loop',
         ]),
         'density_matrix': sorted([
-            'quantum_channel', 'qerror_loc', 'roerror', 'kraus', 'superop', 'snapshot',
+            'quantum_channel', 'qerror_loc', 'roerror', 'kraus', 'superop',
             'save_state', 'save_expval', 'save_expval_var',
             'save_probabilities', 'save_probabilities_dict',
-            'save_density_matrix', 'save_amplitudes_sq', 'set_density_matrix'
+            'save_density_matrix', 'save_amplitudes_sq', 'set_density_matrix',
+            'if_else', 'for_loop', 'while_loop',
         ]),
         'matrix_product_state': sorted([
-            'quantum_channel', 'qerror_loc', 'roerror', 'snapshot', 'kraus',
+            'quantum_channel', 'qerror_loc', 'roerror', 'kraus',
             'save_expval', 'save_expval_var',
             'save_probabilities', 'save_probabilities_dict',
             'save_state', 'save_matrix_product_state', 'save_statevector',
             'save_density_matrix', 'save_amplitudes', 'save_amplitudes_sq',
             'set_matrix_product_state',
+            'if_else', 'for_loop', 'while_loop',
         ]),
         'stabilizer': sorted([
-            'quantum_channel', 'qerror_loc', 'roerror', 'snapshot',
+            'quantum_channel', 'qerror_loc', 'roerror',
             'save_expval', 'save_expval_var',
             'save_probabilities', 'save_probabilities_dict',
             'save_amplitudes_sq', 'save_state', 'save_clifford',
-            'save_stabilizer', 'set_stabilizer'
+            'save_stabilizer', 'set_stabilizer',
+            'if_else', 'for_loop', 'while_loop',
         ]),
         'extended_stabilizer': sorted([
-            'quantum_channel', 'qerror_loc', 'roerror', 'snapshot', 'save_statevector'
+            'quantum_channel', 'qerror_loc', 'roerror', 'save_statevector',
         ]),
         'unitary': sorted([
-            'snapshot', 'save_state', 'save_unitary', 'set_unitary'
+            'save_state', 'save_unitary', 'set_unitary',
         ]),
         'superop': sorted([
             'quantum_channel', 'qerror_loc', 'kraus', 'superop', 'save_state',
-            'save_superop', 'set_superop'
+            'save_superop', 'set_superop',
         ])
     }
 
@@ -623,17 +628,35 @@ class AerSimulator(AerBackend):
     def from_backend(cls, backend, **options):
         """Initialize simulator from backend."""
         if isinstance(backend, BackendV2):
-            raise AerError(
-                "AerSimulator.from_backend does not currently support V2 Backends."
+            configuration = QasmBackendConfiguration(
+                backend_name=f"'aer_simulator({backend.name})",
+                backend_version=backend.backend_version,
+                n_qubits=backend.num_qubits,
+                basis_gates=backend.operation_names,
+                gates=[],
+                local=True,
+                simulator=True,
+                conditional=True,
+                open_pulse=False,
+                memory=False,
+                max_shots=int(1e6),
+                coupling_map=list(backend.coupling_map.get_edges()),
+                max_experiments=backend.max_circuits,
             )
-        # Get configuration and properties from backend
-        configuration = copy.copy(backend.configuration())
-        properties = copy.copy(backend.properties())
+            properties = target_to_backend_properties(backend.target)
+        elif isinstance(backend, BackendV1):
+            # Get configuration and properties from backend
+            configuration = copy.copy(backend.configuration())
+            properties = copy.copy(backend.properties())
 
-        # Customize configuration name
-        name = configuration.backend_name
-        configuration.backend_name = 'aer_simulator({})'.format(name)
-
+            # Customize configuration name
+            name = configuration.backend_name
+            configuration.backend_name = 'aer_simulator({})'.format(name)
+        else:
+            raise TypeError(
+                "The backend argument requires a BackendV2 or BackendV1 object, "
+                f"not a {type(backend)} object"
+            )
         # Use automatic noise model if none is provided
         if 'noise_model' not in options:
             # pylint: disable=import-outside-toplevel

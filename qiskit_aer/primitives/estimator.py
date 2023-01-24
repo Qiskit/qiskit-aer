@@ -22,16 +22,14 @@ from itertools import accumulate
 
 import numpy as np
 from qiskit.circuit import Parameter, QuantumCircuit
-from qiskit.circuit.parametertable import ParameterView
 from qiskit.compiler import transpile
 from qiskit.exceptions import QiskitError
 from qiskit.opflow import PauliSumOp
 from qiskit.primitives import BaseEstimator, EstimatorResult
 from qiskit.primitives.utils import init_circuit, init_observable
+from qiskit.providers import Options
 from qiskit.quantum_info import Pauli
 from qiskit.quantum_info.operators.base_operator import BaseOperator
-
-from qiskit.providers import Options
 
 from .. import AerSimulator
 
@@ -66,6 +64,7 @@ class Estimator(BaseEstimator):
         parameters: Iterable[Iterable[Parameter]] | None = None,
         backend_options: dict | None = None,
         transpile_options: dict | None = None,
+        run_options: dict | None = None,
         approximation: bool = False,
         skip_transpilation: bool = False,
     ):
@@ -79,6 +78,7 @@ class Estimator(BaseEstimator):
                 ``circuits[i]``.
             backend_options: Options passed to AerSimulator.
             transpile_options: Options passed to transpile.
+            run_options: Options passed to run.
             approximation: If True, it calculates expectation values with normal distribution
                 approximation.
             skip_transpilation: If True, transpilation is skipped.
@@ -99,6 +99,7 @@ class Estimator(BaseEstimator):
             circuits=circuits,
             observables=observables,
             parameters=parameters,
+            options=run_options,
         )
         self._is_closed = False
         backend_options = {} if backend_options is None else backend_options
@@ -143,31 +144,32 @@ class Estimator(BaseEstimator):
         circuits: Sequence[QuantumCircuit],
         observables: Sequence[BaseOperator | PauliSumOp],
         parameter_values: Sequence[Sequence[float]],
-        parameters: Sequence[ParameterView],
         **run_options,
     ) -> PrimitiveJob:
         # pylint: disable=no-name-in-module, import-error, import-outside-toplevel, no-member
         from qiskit.primitives.primitive_job import PrimitiveJob
+        from qiskit.primitives.utils import _circuit_key, _observable_key
 
         circuit_indices: list = []
-        for i, circuit in enumerate(circuits):
-            index = self._circuit_ids.get(id(circuit))
+        for circuit in circuits:
+            index = self._circuit_ids.get(_circuit_key(circuit))
             if index is not None:
                 circuit_indices.append(index)
             else:
                 circuit_indices.append(len(self._circuits))
-                self._circuit_ids[id(circuit)] = len(self._circuits)
+                self._circuit_ids[_circuit_key(circuit)] = len(self._circuits)
                 self._circuits.append(circuit)
-                self._parameters.append(parameters[i])
+                self._parameters.append(circuit.parameters)
         observable_indices: list = []
         for observable in observables:
-            index = self._observable_ids.get(id(observable))
+            observable = init_observable(observable)
+            index = self._observable_ids.get(_observable_key(observable))
             if index is not None:
                 observable_indices.append(index)
             else:
                 observable_indices.append(len(self._observables))
-                self._observable_ids[id(observable)] = len(self._observables)
-                self._observables.append(init_observable(observable))
+                self._observable_ids[_observable_key(observable)] = len(self._observables)
+                self._observables.append(observable)
         job = PrimitiveJob(
             self._call, circuit_indices, observable_indices, parameter_values, **run_options
         )
@@ -293,7 +295,6 @@ class Estimator(BaseEstimator):
                         circuit.save_expectation_value(pauli, self._layouts[i], label=str(term_ind))
                 experiments.append(circuit)
                 parameter_binds.append({k: [v] for k, v in zip(self._parameters[i], value)})
-            experiments = self._transpile(experiments)
             self._cache[key] = (experiments, experiment_data)
         parameter_binds = parameter_binds if any(parameter_binds) else None
         result = self._backend.run(
@@ -334,7 +335,7 @@ class Estimator(BaseEstimator):
 
     def _validate_parameter_length(self, parameter, circuit_index):
         if len(parameter) != len(self._parameters[circuit_index]):
-            raise QiskitError(
+            raise ValueError(
                 f"The number of values ({len(parameter)}) does not match "
                 f"the number of parameters ({len(self._parameters[circuit_index])})."
             )

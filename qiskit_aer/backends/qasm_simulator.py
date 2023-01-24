@@ -57,9 +57,9 @@ class QasmSimulator(AerBackend):
         backend = QasmSimulator(method='density_matrix',
                                 noise_model=noise_model)
 
-    **Simulating an IBMQ Backend**
+    **Simulating an IBM Quantum Backend**
 
-    The simulator can be automatically configured to mimic an IBMQ backend using
+    The simulator can be automatically configured to mimic an IBM Quantum backend using
     the :meth:`from_backend` method. This will configure the simulator to use the
     basic device :class:`NoiseModel` for that backend, and the same basis gates
     and coupling map.
@@ -307,11 +307,11 @@ class QasmSimulator(AerBackend):
         'rzz', 'rzx', 'ccx', 'cswap', 'mcx', 'mcy', 'mcz', 'mcsx',
         'mcp', 'mcphase', 'mcu', 'mcu1', 'mcu2', 'mcu3', 'mcrx', 'mcry', 'mcrz',
         'mcr', 'mcswap', 'unitary', 'diagonal', 'multiplexer',
-        'initialize', 'delay', 'pauli', 'mcx_gray'
+        'initialize', 'delay', 'pauli', 'mcx_gray', 'ecr'
     ])
 
     _DEFAULT_CUSTOM_INSTR = sorted([
-        'quantum_channel', 'qerror_loc', 'roerror', 'kraus', 'snapshot',
+        'quantum_channel', 'qerror_loc', 'roerror', 'kraus',
         'save_expval', 'save_expval_var',
         'save_probabilities', 'save_probabilities_dict',
         'save_amplitudes', 'save_amplitudes_sq', 'save_state',
@@ -601,7 +601,7 @@ class QasmSimulator(AerBackend):
                 'u1', 'u2', 'u3', 'u', 'p', 'r', 'rx', 'ry', 'rz', 'id', 'x',
                 'y', 'z', 'h', 's', 'sdg', 'sx', 'sxdg', 't', 'tdg', 'swap', 'cx',
                 'cy', 'cz', 'cp', 'cu1', 'rxx', 'ryy', 'rzz', 'rzx', 'ccx',
-                'unitary', 'diagonal', 'delay', 'pauli'
+                'unitary', 'diagonal', 'delay', 'pauli', 'ecr'
             ])
         if method == 'matrix_product_state':
             return sorted([
@@ -632,7 +632,7 @@ class QasmSimulator(AerBackend):
         if method in ['statevector', 'statevector_gpu',
                       'statevector_custatevec', 'statevector_thrust']:
             return sorted([
-                'quantum_channel', 'qerror_loc', 'roerror', 'kraus', 'snapshot', 'save_expval',
+                'quantum_channel', 'qerror_loc', 'roerror', 'kraus', 'save_expval',
                 'save_expval_var', 'save_probabilities', 'save_probabilities_dict',
                 'save_amplitudes', 'save_amplitudes_sq', 'save_state',
                 'save_density_matrix', 'save_statevector', 'save_statevector_dict',
@@ -641,21 +641,21 @@ class QasmSimulator(AerBackend):
         if method in ['density_matrix', 'density_matrix_gpu',
                       'density_matrix_custatevec', 'density_matrix_thrust']:
             return sorted([
-                'quantum_channel', 'qerror_loc', 'roerror', 'kraus', 'superop', 'snapshot',
+                'quantum_channel', 'qerror_loc', 'roerror', 'kraus', 'superop',
                 'save_expval', 'save_expval_var', 'save_probabilities', 'save_probabilities_dict',
                 'save_state', 'save_density_matrix', 'save_amplitudes_sq',
                 'set_statevector', 'set_density_matrix'
             ])
         if method == 'matrix_product_state':
             return sorted([
-                'quantum_channel', 'qerror_loc', 'roerror', 'snapshot', 'kraus', 'save_expval',
+                'quantum_channel', 'qerror_loc', 'roerror', 'kraus', 'save_expval',
                 'save_expval_var', 'save_probabilities', 'save_probabilities_dict',
                 'save_density_matrix', 'save_state', 'save_statevector',
                 'save_amplitudes', 'save_amplitudes_sq', 'save_matrix_product_state',
                 'set_matrix_product_state'])
         if method == 'stabilizer':
             return sorted([
-                'quantum_channel', 'qerror_loc', 'roerror', 'snapshot', 'save_expval',
+                'quantum_channel', 'qerror_loc', 'roerror', 'save_expval',
                 'save_expval_var', 'save_probabilities', 'save_probabilities_dict',
                 'save_amplitudes_sq', 'save_state', 'save_stabilizer',
                 'set_stabilizer'
@@ -663,7 +663,7 @@ class QasmSimulator(AerBackend):
         if method == 'extended_stabilizer':
             return sorted([
                 'quantum_channel', 'qerror_loc', 'roerror',
-                'snapshot', 'save_statevector'])
+                'save_statevector'])
         return QasmSimulator._DEFAULT_CUSTOM_INSTR
 
     def _set_method_config(self, method=None):

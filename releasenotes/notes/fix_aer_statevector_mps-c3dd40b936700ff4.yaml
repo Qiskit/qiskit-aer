@@ -1,0 +1,8 @@
+---
+issues:
+  - |
+    Fix two bugs in AerStatevector. AerStatevector uses mc* instructions, which are
+    not enabled in matrix_product_state method. This commit changes AerStatevector
+    not to use MC* and use H, X, Y, Z, U and CX. AerStatevector also failed if an
+    instruction is decomposed to empty QuantumCircuit. This commit allows such
+    instruction.

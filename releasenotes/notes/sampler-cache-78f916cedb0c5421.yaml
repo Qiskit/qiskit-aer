@@ -1,0 +1,4 @@
+---
+upgrade:
+  - |
+    Improved the performance of :class:`.Sampler` introducing cache of transpiled circuits.

@@ -1,0 +1,17 @@
+---
+features:
+  - |
+    Allow initialization with a label, that consists of ``+-rl``. Now the following
+    code works:
+
+    .. code-block:: python
+
+        import qiskit
+        from qiskit_aer import AerSimulator
+
+        qc = qiskit.QuantumCircuit(4)
+        qc.initialize('+-rl')
+        qc.save_statevector()
+
+        AerSimulator(method="statevector").run(qc)
+

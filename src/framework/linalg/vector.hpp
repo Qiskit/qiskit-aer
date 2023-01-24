@@ -60,7 +60,8 @@ public:
   Vector(Vector<T> &&other) noexcept;
 
   // Destructor
-  virtual ~Vector() { free(data_); }
+  virtual ~Vector() { 
+    free(data_); }
 
   //-----------------------------------------------------------------------
   // Assignment
