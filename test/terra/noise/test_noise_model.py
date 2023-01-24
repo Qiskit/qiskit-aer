@@ -331,6 +331,20 @@ class TestNoiseModel(QiskitAerTestCase):
             user_warnings = [w for w in warns if issubclass(w.category, UserWarning)]
             self.assertEqual(len(user_warnings), 0)
 
+    def test_noise_model_from_backend_properties(self):
+        circ = QuantumCircuit(2)
+        circ.x(0)
+        circ.x(1)
+        circ.measure_all()
+
+        backend = FakeAlmaden()
+        backend_propeties = backend.properties()
+        noise_model = NoiseModel.from_backend_properties(backend_propeties)
+        circ = transpile(circ, backend, optimization_level=0)
+        result = AerSimulator().run(circ, noise_model=noise_model).result()
+        self.assertTrue(result.success)
+
+
     def test_transform_noise(self):
         org_error = reset_error(0.2)
         new_error = pauli_error([("I", 0.5), ("Z", 0.5)])

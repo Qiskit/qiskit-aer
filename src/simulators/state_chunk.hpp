@@ -186,6 +186,13 @@ public:
     return true;
   }
 
+  //set creg bit counts before initialize creg
+  void set_num_creg_bits(uint_t num_memory, uint_t num_register) override
+  {
+    num_creg_memory_ = num_memory;
+    num_creg_registers_ = num_register;
+  }
+
 protected:
 
   //extra parameters for parallel simulations
@@ -486,6 +493,13 @@ bool StateChunk<state_t>::allocate_qregs(Registers<state_t>& state, uint_t num_c
     state.qregs().clear();
   }
   state.allocate(num_local_chunks_);   //for multi-shot + multi-chunk, allocate 1st set of chunks only (=num_local_chunks_)
+
+  if(num_creg_memory_ !=0 || num_creg_registers_ !=0){
+    for(i=0;i<num_chunks;i++){
+      //set number of creg bits before actual initialization
+      qregs_[i].initialize_creg(num_creg_memory_, num_creg_registers_);
+    }
+  }
 
   //allocate qregs
   uint_t chunk_id = multi_chunk_distribution_ ? global_chunk_index_ : 0;

@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    The bits count of classical register used on the GPU was not set before
+    calculating free available memory for chunks that causes infinite loop.
+    So this fix set bits count before allocating chunks if batch shots
+    execution is enabled.
