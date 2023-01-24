@@ -485,8 +485,8 @@ protected:
 
   bool register_blocking_;
 
-  uint_t num_creg_bits_;
-  uint_t num_cmem_bits_;
+  uint_t num_creg_bits_ = 0;
+  uint_t num_cmem_bits_ = 0;
 
   int_t max_matrix_bits_ = 0;
 
@@ -849,6 +849,7 @@ bool QubitVectorThrust<data_t>::chunk_setup(int chunk_bits,int num_qubits,uint_t
   if(chunk_bits > 0 && num_qubits > 0){
     chunk_manager_ = std::make_shared<Chunk::ChunkManager<data_t>>();
     chunk_manager_->set_num_threads_per_group(num_threads_per_group_);
+    chunk_manager_->set_num_creg_bits(num_creg_bits_ + num_cmem_bits_);
     chunk_manager_->Allocate(chunk_bits,num_qubits,num_local_chunks,chunk_index_,max_matrix_bits_, is_density_matrix(), cuStateVec_enable_);
   }
 
@@ -1258,9 +1259,9 @@ void QubitVectorThrust<data_t>::initialize_from_data(const std::complex<data_t>*
 template <typename data_t>
 void QubitVectorThrust<data_t>::initialize_creg(uint_t num_memory, uint_t num_register)
 {
+  num_creg_bits_ = num_register;
+  num_cmem_bits_ = num_memory;
   if(chunk_manager_){
-    num_creg_bits_ = num_register;
-    num_cmem_bits_ = num_memory;
     if(chunk_.pos() == 0){
       chunk_.container()->allocate_creg(num_cmem_bits_,num_creg_bits_);
     }
@@ -1273,9 +1274,9 @@ void QubitVectorThrust<data_t>::initialize_creg(uint_t num_memory,
                        const std::string &memory_hex,
                        const std::string &register_hex)
 {
+  num_creg_bits_ = num_register;
+  num_cmem_bits_ = num_memory;
   if(chunk_manager_){
-    num_creg_bits_ = num_register;
-    num_cmem_bits_ = num_memory;
     if(chunk_.pos() == 0){
       chunk_.container()->allocate_creg(num_cmem_bits_,num_creg_bits_);
 

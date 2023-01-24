@@ -52,6 +52,7 @@ public:
   const static cvector_t CY;   // name: "cy"
   const static cvector_t CZ;   // name: "cz"
   const static cvector_t SWAP; // name: "swap"
+  const static cvector_t ECR;  // name: "ECR"
 
   // Identity Matrix
   static cvector_t identity(size_t dim);
@@ -170,6 +171,9 @@ const cvector_t VMatrix::CZ = Utils::vectorize_matrix(Matrix::CZ);
 
 const cvector_t VMatrix::SWAP = Utils::vectorize_matrix(Matrix::SWAP);
 
+const cvector_t VMatrix::ECR = Utils::vectorize_matrix(Matrix::ECR);
+
+
 // Lookup table
 const stringmap_t<const cvector_t *> VMatrix::label_map_ = {
     {"id", &VMatrix::I},     {"x", &VMatrix::X},   {"y", &VMatrix::Y},
@@ -177,7 +181,7 @@ const stringmap_t<const cvector_t *> VMatrix::label_map_ = {
     {"sdg", &VMatrix::SDG},  {"t", &VMatrix::T},   {"tdg", &VMatrix::TDG},
     {"x90", &VMatrix::X90},  {"cx", &VMatrix::CX}, {"cy", &VMatrix::CY},
     {"cz", &VMatrix::CZ},    {"swap", &VMatrix::SWAP}, {"sx", &VMatrix::SX},
-    {"sxdg", &VMatrix::SXDG},    {"delay", &VMatrix::I}};
+    {"sxdg", &VMatrix::SXDG},    {"delay", &VMatrix::I}, {"ecr", &VMatrix::ECR}};
 
 cvector_t VMatrix::identity(size_t dim) {
   cvector_t mat(dim * dim);

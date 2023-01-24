@@ -226,6 +226,9 @@ public:
   //Does this state support multi-shot parallelization?
   virtual bool multi_shot_parallelization_supported(void){return false;}
 
+  //set creg bit counts before initialize creg
+  virtual void set_num_creg_bits(uint_t num_memory, uint_t num_register){}
+
   //-----------------------------------------------------------------------
   // Common instructions
   //-----------------------------------------------------------------------
