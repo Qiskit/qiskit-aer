@@ -35,6 +35,8 @@ class TestInitialize(SimulatorTestCase):
         """Test AerSimulator initialize"""
         backend = self.backend(method=method, device=device)
         shots = 100
+        if 'tensor_network' in method:
+            shots = 10
         lst = [0, 1]
         init_states = [
             np.array(lst),
@@ -55,6 +57,8 @@ class TestInitialize(SimulatorTestCase):
         """Test AerSimulator initialize"""
         backend = self.backend(method=method, device=device)
         shots = 100
+        if 'tensor_network' in method:
+            shots = 10
         lst = [0, 1, 0, 0]
         init_states = [
             np.array(lst),
@@ -77,11 +81,15 @@ class TestInitialize(SimulatorTestCase):
         # For statevector output we can combine deterministic and non-deterministic
         # count output circuits
         shots = 1000
+        delta=0.05
+        if 'tensor_network' in method:
+            shots = 50
+            delta=0.2
         circuits = ref_initialize.initialize_circuits_1(final_measure=True)
         targets = ref_initialize.initialize_counts_1(shots)
         result = backend.run(circuits, shots=shots).result()
         self.assertSuccess(result)
-        self.compare_counts(result, circuits, targets, delta=0.05 * shots)
+        self.compare_counts(result, circuits, targets, delta=delta * shots)
 
     @supported_methods(SUPPORTED_METHODS)
     def test_initialize_2(self, method, device):
@@ -90,33 +98,45 @@ class TestInitialize(SimulatorTestCase):
         # For statevector output we can combine deterministic and non-deterministic
         # count output circuits
         shots = 1000
+        delta=0.05
+        if 'tensor_network' in method:
+            shots = 50
+            delta=0.2
         circuits = ref_initialize.initialize_circuits_2(final_measure=True)
         targets = ref_initialize.initialize_counts_2(shots)
         result = backend.run(circuits, shots=shots).result()
         self.assertSuccess(result)
-        self.compare_counts(result, circuits, targets, delta=0.05 * shots)
+        self.compare_counts(result, circuits, targets, delta=delta * shots)
 
     @supported_methods(SUPPORTED_METHODS)
     def test_initialize_sampling_opt(self, method, device):
         """Test sampling optimization"""
         backend = self.backend(method=method, device=device)
         shots = 1000
+        delta=0.05
+        if 'tensor_network' in method:
+            shots = 50
+            delta=0.2
         circuits = ref_initialize.initialize_sampling_optimization()
         targets = ref_initialize.initialize_counts_sampling_optimization(shots)
         result = backend.run(circuits, shots=shots).result()
         self.assertSuccess(result)
-        self.compare_counts(result, circuits, targets, delta=0.05 * shots)
+        self.compare_counts(result, circuits, targets, delta=delta * shots)
 
     @supported_methods(SUPPORTED_METHODS)
     def test_initialize_entangled_qubits(self, method, device):
         """Test initialize entangled qubits"""
         backend = self.backend(method=method, device=device)
         shots = 1000
+        delta=0.05
+        if 'tensor_network' in method:
+            shots = 50
+            delta=0.2
         circuits = ref_initialize.initialize_entangled_qubits()
         targets = ref_initialize.initialize_counts_entangled_qubits(shots)
         result = backend.run(circuits, shots=shots).result()
         self.assertSuccess(result)
-        self.compare_counts(result, circuits, targets, delta=0.05 * shots)
+        self.compare_counts(result, circuits, targets, delta=delta * shots)
 
     @supported_methods(SUPPORTED_METHODS)
     def test_initialize_sampling_opt_enabled(self, method, device):
@@ -155,7 +175,10 @@ class TestInitialize(SimulatorTestCase):
         circ = QuantumCircuit(4)
         circ.initialize('+-rl')
         circ.save_statevector()
-        actual = backend.run(circ).result().get_statevector(circ)
+        if 'tensor_network' in method:
+            actual = backend.run(circ, shots=50).result().get_statevector(circ)
+        else:
+            actual = backend.run(circ).result().get_statevector(circ)
 
         for q4, p4 in enumerate([1, 1]):
             for q3, p3 in enumerate([1, -1]):

@@ -1,7 +1,7 @@
 /**
  * This code is part of Qiskit.
  *
- * (C) Copyright IBM 2018, 2019, 2022.
+ * (C) Copyright IBM 2018, 2019, 2023.
  *
  * This code is licensed under the Apache License, Version 2.0. You may
  * obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -29,18 +29,19 @@ namespace AER {
 namespace TensorNetwork {
 
 
+//class for tensor expression
 template <typename data_t>
 class Tensor
 {
 protected:
-  int base_;
-  int rank_;
-  std::vector<int64_t> extents_;
-  int64_t size_;
-  std::vector<std::complex<data_t>> tensor_;
-  std::vector<int32_t> modes_;
-  reg_t qubits_;
-  bool sp_tensor_;
+  int base_;                                      //basis of bit, 2 for qubit, 3 for qutrit (not supported yet)
+  int rank_;                                      //rank(dimension) of tensor
+  std::vector<int64_t> extents_;                  //number of elements in each rank ( = base_)
+  int64_t size_;                                  //size of tensor (number of elements)
+  std::vector<std::complex<data_t>> tensor_;      //tensor elements (row major)
+  std::vector<int32_t> modes_;                    //indices of connected tensors
+  reg_t qubits_;                                  //bits for each rank
+  bool sp_tensor_;                                //this tensor is superop matrix
 public:
   Tensor()
   {
@@ -74,17 +75,21 @@ public:
     return qubits_;
   }
 
+  //create tensor from matrix
   void set(const reg_t& qubits,std::vector<std::complex<data_t>>& mat);
   void set(int qubit,std::vector<std::complex<data_t>>& mat);
   void set(const reg_t& qubits,std::complex<data_t>* mat, uint64_t size);
 
+  //create conjugate tensor
   void set_conj(const reg_t& qubits,std::vector<std::complex<data_t>>& mat);
 
   void set_rank(int nr);
 
+  //multiply matrix
   void mult_matrix(std::vector<std::complex<data_t>>& mat);
   void mult_matrix_conj(std::vector<std::complex<data_t>>& mat);
 
+  //make conjugate tensor
   void conjugate_tensor(void);
 
   bool& sp_tensor(void)
@@ -167,7 +172,7 @@ void Tensor<data_t>::set(int qubit,std::vector<std::complex<data_t>>& mat)
 }
 
 template <typename data_t>
-void Tensor<data_t>::set(const reg_t& qubits,std::complex<data_t>* mat, size_t size)
+void Tensor<data_t>::set(const reg_t& qubits,std::complex<data_t>* mat, uint_t size)
 {
   tensor_.resize(size);
   for(int i=0;i<size;i++)

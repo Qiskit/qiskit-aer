@@ -541,6 +541,10 @@ void Controller::set_config(const json_t &config) {
     }
   }
 
+  if(method_ == Method::tensor_network && sim_device_ != Device::GPU){
+    throw std::runtime_error("Invalid combination of simulation method and device, \"tensor_network\" only supports \"device=GPU\"");
+  }
+
   std::string precision;
   if (JSON::get_value(precision, "precision", config)) {
     if (precision == "double") {
@@ -1476,7 +1480,7 @@ void Controller::run_circuit_without_sampled_noise(Circuit &circ,
   state.set_config(config);
   state.set_parallelization(parallel_state_update_);
   state.set_global_phase(circ.global_phase_angle);
-  state.has_statevector_ops(has_statevector_ops(circ));
+  state.enable_density_matrix(!has_statevector_ops(circ));
 
   bool can_sample = circ.can_sample;
 
@@ -1524,7 +1528,7 @@ void Controller::run_circuit_without_sampled_noise(Circuit &circ,
         shot_state.set_config(config);
         shot_state.set_parallelization(parallel_state_update_);
         shot_state.set_global_phase(circ.global_phase_angle);
-        shot_state.has_statevector_ops(has_statevector_ops(circ));
+        shot_state.enable_density_matrix(!has_statevector_ops(circ));
 
         shot_state.set_max_matrix_qubits(max_bits);
 
@@ -1588,7 +1592,7 @@ void Controller::run_circuit_without_sampled_noise(Circuit &circ,
         par_state.set_config(config);
         par_state.set_parallelization(parallel_state_update_);
         par_state.set_global_phase(circ.global_phase_angle);
-        par_state.has_statevector_ops(has_statevector_ops(circ));
+        par_state.enable_density_matrix(!has_statevector_ops(circ));
 
         par_state.set_distribution(num_process_per_experiment_);
         par_state.set_max_matrix_qubits(max_bits );
@@ -1638,7 +1642,7 @@ void Controller::run_circuit_with_sampled_noise(
     state.set_config(config);
     state.set_parallelization(parallel_state_update_);
     state.set_global_phase(circ.global_phase_angle);
-    state.has_statevector_ops(has_statevector_ops(circ));
+    state.enable_density_matrix(!has_statevector_ops(circ));
 
     // Transpilation for circuit noise method
     auto fusion_pass = transpile_fusion(method, circ.opset(), config);

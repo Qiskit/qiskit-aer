@@ -229,11 +229,8 @@ public:
   //set creg bit counts before initialize creg
   virtual void set_num_creg_bits(uint_t num_memory, uint_t num_register){}
 
-  void has_statevector_ops(bool flg)
-  {
-    has_statevector_ops_ = flg;
-  }
-
+  //can apply density matrix (without statevector output required)
+  virtual void enable_density_matrix(bool flg){}
   //-----------------------------------------------------------------------
   // Common instructions
   //-----------------------------------------------------------------------
@@ -261,8 +258,6 @@ protected:
 
   std::string sim_device_name_ = "CPU";
 
-  //there are statevector operations
-  bool has_statevector_ops_ = false;
 };
 
 void Base::set_config(const json_t &config) 

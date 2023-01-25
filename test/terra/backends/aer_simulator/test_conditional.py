@@ -82,6 +82,7 @@ class TestConditionalGates(SimulatorTestCase):
     @supported_methods(SUPPORTED_METHODS)
     def test_conditional_gates_132bit(self, method, device):
         """Test conditional gate operations on 132-bit conditional register."""
+        shots = 100
         if 'tensor_network' in method:
             shots = 1
         cases = ref_conditionals.conditional_cases_132bit()

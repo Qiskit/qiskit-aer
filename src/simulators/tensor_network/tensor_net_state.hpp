@@ -125,6 +125,10 @@ public:
   auto move_to_vector();
   auto copy_to_vector();
 
+  void enable_density_matrix(bool flg)
+  {
+    enable_density_matrix_ = flg;
+  }
 protected:
   //-----------------------------------------------------------------------
   // Apply instructions
@@ -238,8 +242,6 @@ protected:
   std::pair<uint_t, double> sample_measure_with_prob(const reg_t &qubits,
                                                      RngEngine &rng);
 
-  rvector_t sample_measure_with_prob_shot_branching(const reg_t &qubits);
-
   void measure_reset_update(const std::vector<uint_t> &qubits,
                             const uint_t final_state, const uint_t meas_state,
                             const double meas_prob);
@@ -276,6 +278,8 @@ protected:
 
   uint_t num_sampling_qubits_ = 10;
   bool use_cuTensorNet_autotuning_ = false;
+
+  bool enable_density_matrix_ = true;
 };
 
 //=========================================================================
@@ -818,7 +822,7 @@ template <class tensor_net_t>
 void State<tensor_net_t>::apply_reset( const reg_t &qubits, RngEngine &rng)
 {
   //if there is no save_statevec, reset can be applied as density matrix mode
-  if(!BaseState::has_statevector_ops_)
+  if(enable_density_matrix_)
     BaseState::qreg_.apply_reset(qubits);
   else{
     // Simulate unobserved measurement
@@ -992,7 +996,7 @@ void State<tensor_net_t>::apply_kraus(const reg_t &qubits,
     return; // end function early
 
   //if there is no save_statevec, use density matrix mode
-  if(!BaseState::has_statevector_ops_){
+  if(enable_density_matrix_){
     BaseState::qreg_.apply_superop_matrix(
         qubits, Utils::vectorize_matrix(Utils::kraus_superop(kmats)));
     return;
