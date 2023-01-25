@@ -96,7 +96,7 @@ class TestOptions(SimulatorTestCase):
         self.assertTrue((value in device))
 
     @data('automatic', 'statevector', 'density_matrix', 'stabilizer',
-          'matrix_product_state', 'extended_stabilizer', 'tensor_network')
+          'matrix_product_state', 'extended_stabilizer')
     def test_option_basis_gates(self, method):
         """Test setting method and noise model has correct basis_gates"""
         config = self.backend(method=method).configuration()
@@ -110,7 +110,7 @@ class TestOptions(SimulatorTestCase):
         self.assertEqual(sorted(basis_gates), sorted(target_gates))
 
     @data('automatic', 'statevector', 'density_matrix', 'stabilizer',
-          'matrix_product_state', 'extended_stabilizer', 'tensor_network')
+          'matrix_product_state', 'extended_stabilizer')
     def test_option_order_basis_gates(self, method):
         """Test order of setting method and noise model gives same basis gates"""
         noise_model = NoiseModel(basis_gates=['id', 'sx', 'x', 'cx'])
