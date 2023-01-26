@@ -134,16 +134,16 @@ def available_methods(controller, methods, devices):
     dummy_circ.i(0)
 
     valid_methods = []
-    for method in methods:
-        for device in devices:
-            qobj = assemble(dummy_circ,
-                            optimization_level=0,
-                            shots=1,
-                            method=method,
-                            device=device)
-            result = cpp_execute(controller, qobj)
-            if result.get('success', False):
-                if not method in valid_methods:
+    for device in devices:
+        for method in methods:
+            if method not in valid_methods:
+                qobj = assemble(dummy_circ,
+                                optimization_level=0,
+                                shots=1,
+                                method=method,
+                                device=device)
+                result = cpp_execute(controller, qobj)
+                if result.get('success', False):
                     valid_methods.append(method)
     return tuple(valid_methods)
 
