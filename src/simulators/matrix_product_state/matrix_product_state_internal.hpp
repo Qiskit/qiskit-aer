@@ -337,6 +337,8 @@ public:
   reg_t apply_measure_internal(const reg_t &qubits, const rvector_t &rands);
   reg_t sample_measure(uint_t shots, RngEngine &rng) const;
 
+  reg_t sort_measured_values(reg_t input_outcome, reg_t& sub_ordering);
+
   //----------------------------------------------------------------
   // Function name: initialize_from_statevector_internal
   // Description: This function receives as input a state_vector and
