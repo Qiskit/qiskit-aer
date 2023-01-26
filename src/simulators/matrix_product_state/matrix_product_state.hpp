@@ -794,8 +794,6 @@ rvector_t State::measure_probs(const reg_t &qubits) const {
 std::vector<reg_t> State::sample_measure(const reg_t& qubits,
 					 uint_t shots,
                                          RngEngine &rng) {
-   std::cout << "sample measure, n = "<< qreg_.num_qubits() << std::endl;
-    qreg_.print(std::cout);
   // There are two alternative algorithms for sample measure
   // We choose the one that is optimal relative to the total number 
   // of qubits,and the number of shots.
@@ -829,15 +827,12 @@ std::vector<reg_t> State::
       rands.push_back(rng.rand(0., 1.));
     rnds_list.push_back(rands);
   }
-   std::cout << "qreg.num qubits = " << qreg_.num_qubits() << std::endl;
   #pragma omp parallel if (BaseState::threads_ > 1) num_threads(BaseState::threads_)
   {
     MPS temp;
     #pragma omp for
     for (int_t i=0; i<static_cast<int_t>(shots);  i++) {
       temp.initialize(qreg_);
-      std::cout << "temp.num qubits = " << temp.num_qubits() << std::endl;
-
       auto single_result = temp.apply_measure_internal(sorted_qubits, rnds_list[i]);
       all_samples[i] = single_result;
     }
