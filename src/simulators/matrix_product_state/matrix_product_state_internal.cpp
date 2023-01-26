@@ -1588,7 +1588,6 @@ void MPS::propagate_to_neighbors_internal(uint_t min_qubit, uint_t max_qubit,
 reg_t MPS::sample_measure(uint_t shots, RngEngine &rng) const {
   double prob = 1;
   reg_t current_measure(num_qubits_);
-  bool is_first_qubit = true;
   cmatrix_t mat;
   rvector_t rnds(num_qubits_);
   for (uint_t i = 0; i < num_qubits_; ++i) {

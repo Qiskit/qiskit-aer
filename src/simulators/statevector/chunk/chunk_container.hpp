@@ -824,7 +824,6 @@ void host_func_launcher(void* pParam)
 template <typename data_t>
 void ChunkContainer<data_t>::allocate_chunks(void)
 {
-  uint_t i;
   chunks_map_.resize(num_chunks_,false);
 
   reduced_queue_begin_.resize(num_chunks_,0);
@@ -960,7 +959,6 @@ void ChunkContainer<data_t>::apply_multi_swaps(const uint_t iChunk,const reg_t& 
 template <typename data_t>
 void ChunkContainer<data_t>::apply_permutation(const uint_t iChunk,const reg_t& qubits,const std::vector<std::pair<uint_t, uint_t>> &pairs, const uint_t gid, const uint_t count)
 {
-  const size_t N = qubits.size();
   auto qubits_sorted = qubits;
   std::sort(qubits_sorted.begin(), qubits_sorted.end());
 

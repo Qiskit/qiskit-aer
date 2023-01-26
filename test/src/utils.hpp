@@ -117,6 +117,16 @@ namespace Utilities {
                  T max_relative_diff = std::numeric_limits<T>::epsilon()) {
         return _compare(lhs, rhs, max_diff, max_relative_diff);
     }
+
+    template<typename T>
+    bool compare(const T &lhs, const T &rhs) {
+        if (lhs != rhs) {
+            std::cout << "differ: " << lhs << " != " << rhs << "\n";
+            return false;
+        }
+        return true;
+    }
+
 } // End of Utilities namespace
 } // End of Test namespace
 } // End of AER namspace

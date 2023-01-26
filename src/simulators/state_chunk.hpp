@@ -122,20 +122,20 @@ public:
   //-----------------------------------------------------------------------
   
   // Return a string name for the StateChunk type
-  virtual std::string name() const = 0;
+  virtual std::string name() const override = 0;
 
   // Initializes the StateChunk to the default state.
   // Typically this is the n-qubit all |0> state
-  virtual void initialize_qreg(uint_t num_qubits) = 0;
+  virtual void initialize_qreg(uint_t num_qubits) override = 0;
 
   // Return an estimate of the required memory for implementing the
   // specified sequence of operations on a `num_qubit` sized StateChunk.
   virtual size_t required_memory_mb(uint_t num_qubits,
                                     const std::vector<Operations::Op> &ops)
-                                    const = 0;
+                                    const override = 0;
 
   //memory allocation (previously called before inisitalize_qreg)
-  virtual bool allocate(uint_t num_qubits,uint_t block_bits,uint_t num_parallel_shots = 1);
+  virtual bool allocate(uint_t num_qubits,uint_t block_bits,uint_t num_parallel_shots = 1) override;
 
   // Return the expectation value of a N-qubit Pauli operator
   // If the simulator does not support Pauli expectation value this should
@@ -150,7 +150,7 @@ public:
   //-----------------------------------------------------------------------
 
   // Load any settings for the StateChunk class from a config JSON
-  virtual void set_config(const json_t &config);
+  virtual void set_config(const json_t &config) override;
 
   //=======================================================================
   // Standard non-virtual methods
@@ -218,13 +218,13 @@ public:
   //-----------------------------------------------------------------------
 
   // Initialize classical memory and register to default value (all-0)
-  virtual void initialize_creg(uint_t num_memory, uint_t num_register);
+  virtual void initialize_creg(uint_t num_memory, uint_t num_register) override;
 
   // Initialize classical memory and register to specific values
   virtual void initialize_creg(uint_t num_memory,
                        uint_t num_register,
                        const std::string &memory_hex,
-                       const std::string &register_hex);
+                       const std::string &register_hex) override;
 
   //-----------------------------------------------------------------------
   // Common instructions
@@ -239,18 +239,18 @@ public:
 
 
   //set number of processes to be distributed
-  virtual void set_distribution(uint_t nprocs);
+  virtual void set_distribution(uint_t nprocs) override;
 
   //set max number of shots to execute in a batch
-  void set_max_bached_shots(uint_t shots)
+  void set_max_bached_shots(uint_t shots) override
   {
     max_batched_shots_ = shots;
   }
 
   //Does this state support multi-chunk distribution?
-  virtual bool multi_chunk_distribution_supported(void){return true;}
+  virtual bool multi_chunk_distribution_supported(void) override {return true;}
   //Does this state support multi-shot parallelization?
-  virtual bool multi_shot_parallelization_supported(void){return true;}
+  virtual bool multi_shot_parallelization_supported(void) override {return true;}
 
   //set creg bit counts before initialize creg
   void set_num_creg_bits(uint_t num_memory, uint_t num_register) override
@@ -494,7 +494,6 @@ void StateChunk<state_t>::set_distribution(uint_t nprocs)
   distributed_group_ = myrank_ / nprocs;
 
   distributed_proc_bits_ = 0;
-  int proc_bits = 0;
   uint_t p = distributed_procs_;
   while(p > 1){
     if((p & 1) != 0){   //procs is not power of 2
@@ -1071,7 +1070,7 @@ void StateChunk<state_t>::apply_batched_noise_ops(const int_t i_group, const std
                              ExperimentResult &result,
                              std::vector<RngEngine> &rng)
 {
-  int_t i,j,k,count,nop,pos = 0;
+  int_t i,j,k,count = 0;
   uint_t istate = top_chunk_of_group_[i_group];
   count = ops.size();
 
@@ -1132,10 +1131,10 @@ void StateChunk<state_t>::apply_batched_noise_ops(const int_t i_group, const std
 
       if(!apply_batched_op(istate, cop, result,rng, false)){
         //call apply_op for each state
-        for(uint_t j=top_chunk_of_group_[i_group];j<top_chunk_of_group_[i_group+1];j++){
-          qregs_[j].enable_batch(false);
-          apply_op(j, cop, result ,rng[j-top_chunk_of_group_[i_group]],false);
-          qregs_[j].enable_batch(true);
+        for(uint_t l=top_chunk_of_group_[i_group];l<top_chunk_of_group_[i_group+1];l++){
+          qregs_[l].enable_batch(false);
+          apply_op(l, cop, result ,rng[l-top_chunk_of_group_[i_group]],false);
+          qregs_[l].enable_batch(true);
         }
       }
     }
@@ -1308,7 +1307,7 @@ void StateChunk<state_t>::initialize_from_matrix(const int_t iChunkIn, const lis
           uint_t icol_chunk = ((iChunk + global_chunk_index_) & ((1ull << ((num_qubits_ - chunk_bits_)))-1)) << (chunk_bits_);
 
           //copy part of state for this chunk
-          uint_t i,row,col;
+          uint_t i;
           for(i=0;i<(1ull << (chunk_bits_*qubit_scale()));i++){
             uint_t icol = i & ((1ull << chunk_bits_)-1);
             uint_t irow = i >> chunk_bits_;
@@ -1325,7 +1324,7 @@ void StateChunk<state_t>::initialize_from_matrix(const int_t iChunkIn, const lis
         uint_t icol_chunk = ((iChunk + global_chunk_index_) & ((1ull << ((num_qubits_ - chunk_bits_)))-1)) << (chunk_bits_);
 
         //copy part of state for this chunk
-        uint_t i,row,col;
+        uint_t i;
         for(i=0;i<(1ull << (chunk_bits_*qubit_scale()));i++){
           uint_t icol = i & ((1ull << chunk_bits_)-1);
           uint_t irow = i >> chunk_bits_;
@@ -1431,9 +1430,7 @@ uint_t StateChunk<state_t>::mapped_index(const uint_t idx)
 template <class state_t>
 void StateChunk<state_t>::apply_chunk_swap(const reg_t &qubits)
 {
-  uint_t nLarge = 1;
   uint_t q0,q1;
-  int_t iChunk;
 
   q0 = qubits[qubits.size() - 2];
   q1 = qubits[qubits.size() - 1];
@@ -1498,6 +1495,7 @@ void StateChunk<state_t>::apply_chunk_swap(const reg_t &qubits)
     }
 #ifdef AER_MPI
     else{
+      uint_t nLarge = 1;
       int_t iPair;
       uint_t nPair;
       uint_t baseChunk,iChunk1,iChunk2;
@@ -1694,7 +1692,9 @@ void StateChunk<state_t>::apply_multi_chunk_swap(const reg_t &qubits)
     //all-to-all
     //send data
     for(uint_t iswap=1;iswap<nchunk;iswap++){
+#ifdef AER_MPI
       uint_t sizeRecv,sizeSend;
+#endif
       uint_t num_local_swap = 0;
       for(i1=0;i1<nchunk;i1++){
         i2 = i1 ^ iswap;
@@ -1801,10 +1801,6 @@ void StateChunk<state_t>::apply_multi_chunk_swap(const reg_t &qubits)
 template <class state_t>
 void StateChunk<state_t>::apply_chunk_x(const uint_t qubit)
 {
-  int_t iChunk;
-  uint_t nLarge = 1;
-
-
   if(qubit < chunk_bits_*qubit_scale()){
     auto apply_mcx = [this, qubit](int_t ig)
     {
@@ -1815,9 +1811,11 @@ void StateChunk<state_t>::apply_chunk_x(const uint_t qubit)
     Utils::apply_omp_parallel_for((chunk_omp_parallel_ && num_groups_ > 1),0,num_groups_,apply_mcx);
   }
   else{ //exchange over chunks
+#ifdef AER_MPI
     int_t iPair;
-    uint_t nPair,mask;
     uint_t baseChunk,iChunk1,iChunk2;
+#endif
+    uint_t nPair,mask;
     reg_t qubits(2);
     qubits[0] = qubit;
     qubits[1] = qubit;
@@ -1849,7 +1847,6 @@ void StateChunk<state_t>::apply_chunk_x(const uint_t qubit)
       uint_t iLocalChunk,iRemoteChunk,iProc;
       int i;
 
-      nLarge = 1;
       nu[0] = 1ull << (qubit - chunk_bits_*qubit_scale());
       ub[0] = 0;
       iu[0] = 0;

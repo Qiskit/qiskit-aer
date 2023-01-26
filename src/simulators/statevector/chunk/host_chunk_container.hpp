@@ -38,7 +38,7 @@ public:
   HostChunkContainer(){}
   ~HostChunkContainer();
 
-  uint_t size(void)
+  uint_t size(void) override
   {
     return data_.size();
   }
@@ -48,7 +48,7 @@ public:
     return data_;
   }
 
-  thrust::complex<data_t>& operator[](uint_t i)
+  thrust::complex<data_t>& operator[](uint_t i) override
   {
     return data_[i];
   }
@@ -69,7 +69,7 @@ public:
   {
     params_[iChunk] = (uint_t*)&prm[0];
   }
-  void ResizeMatrixBuffers(int bits){}
+  void ResizeMatrixBuffers(int bits) override {}
 
   void Set(uint_t i,const thrust::complex<data_t>& t) override
   {
@@ -84,7 +84,7 @@ public:
   {
     return (thrust::complex<data_t>*)thrust::raw_pointer_cast(data_.data()) + (iChunk << this->chunk_bits_);
   }
-  thrust::complex<data_t>* buffer_pointer(void) const
+  thrust::complex<data_t>* buffer_pointer(void) const override
   {
     return (thrust::complex<data_t>*)thrust::raw_pointer_cast(data_.data()) + (this->num_chunks_ << this->chunk_bits_);
   }
@@ -99,7 +99,7 @@ public:
     return params_[iChunk];
   }
 
-  bool peer_access(int i_dest)
+  bool peer_access(int i_dest) override
   {
 #ifdef AER_ATS
     //for IBM AC922
@@ -131,7 +131,6 @@ template <typename data_t>
 uint_t HostChunkContainer<data_t>::Allocate(int idev,int chunk_bits,int num_qubits,uint_t chunks,uint_t buffers,bool multi_shots,int matrix_bit, bool density_matrix)
 {
   uint_t nc = chunks;
-  uint_t i;
 
   ChunkContainer<data_t>::chunk_bits_ = chunk_bits;
   ChunkContainer<data_t>::num_qubits_ = num_qubits;

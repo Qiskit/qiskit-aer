@@ -377,7 +377,6 @@ void State<densmat_t>::initialize_from_vector(const int_t iChunkIn, const list_t
     BaseState::initialize_from_vector(iChunkIn, vec);
   }
   else if((1ull << (BaseState::num_qubits_*2)) == vec.size() * vec.size()) {
-    int_t iChunk;
     if(BaseState::multi_chunk_distribution_){
       if(BaseState::chunk_omp_parallel_ && BaseState::num_groups_ > 0){
 #pragma omp parallel for 
@@ -387,7 +386,7 @@ void State<densmat_t>::initialize_from_vector(const int_t iChunkIn, const list_t
             uint_t icol_chunk = ((iChunk + BaseState::global_chunk_index_) & ((1ull << ((BaseState::num_qubits_ - BaseState::chunk_bits_)))-1)) << (BaseState::chunk_bits_);
 
             //copy part of state for this chunk
-            uint_t i,row,col;
+            uint_t i;
             list_t vec1(1ull << BaseState::chunk_bits_);
             list_t vec2(1ull << BaseState::chunk_bits_);
 
@@ -400,12 +399,12 @@ void State<densmat_t>::initialize_from_vector(const int_t iChunkIn, const list_t
         }
       }
       else{
-        for(iChunk=0;iChunk<BaseState::qregs_.size();iChunk++){
+        for(int_t iChunk=0;iChunk<BaseState::qregs_.size();iChunk++){
           uint_t irow_chunk = ((iChunk + BaseState::global_chunk_index_) >> ((BaseState::num_qubits_ - BaseState::chunk_bits_))) << (BaseState::chunk_bits_);
           uint_t icol_chunk = ((iChunk + BaseState::global_chunk_index_) & ((1ull << ((BaseState::num_qubits_ - BaseState::chunk_bits_)))-1)) << (BaseState::chunk_bits_);
 
           //copy part of state for this chunk
-          uint_t i,row,col;
+          uint_t i;
           list_t vec1(1ull << BaseState::chunk_bits_);
           list_t vec2(1ull << BaseState::chunk_bits_);
 
@@ -662,10 +661,10 @@ void State<densmat_t>::apply_save_amplitudes_sq(const int_t iChunkIn, const Oper
 }
 
 template <class densmat_t>
-double State<densmat_t>::expval_pauli(const int_t iChunk, const reg_t &qubits,
+double State<densmat_t>::expval_pauli(const int_t iChunk_, const reg_t &qubits,
                                       const std::string& pauli)  {
   if(!BaseState::multi_chunk_distribution_)
-    return BaseState::qregs_[iChunk].expval_pauli(qubits, pauli);
+    return BaseState::qregs_[iChunk_].expval_pauli(qubits, pauli);
 
   reg_t qubits_in_chunk;
   reg_t qubits_out_chunk;

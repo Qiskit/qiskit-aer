@@ -922,7 +922,7 @@ Result Controller::execute(std::vector<Circuit> &circuits,
   // Execute each circuit in a try block
   try {
     //check if multi-chunk distribution is required
-    bool multi_chunk_required_ = false;
+    multi_chunk_required_ = false;
     for (size_t j = 0; j < circuits.size(); j++){
       if(circuits[j].num_qubits > 0){
         if(multiple_chunk_required(circuits[j], noise_model, methods[j]))
@@ -1534,7 +1534,7 @@ void Controller::run_circuit_without_sampled_noise(Circuit &circ,
       if(block_bits != circ.num_qubits)
         par_shots = 1;
 
-      auto run_circuit_without_sampled_noise_lambda = [this,&par_results,circ,noise,config,method,block_bits,max_bits,par_shots](int_t i){
+      auto run_circuit_without_sampled_noise_lambda = [this,&par_results,circ,noise,config,block_bits,max_bits,par_shots](int_t i){
         uint_t i_shot,shot_end;
         i_shot = circ.shots*i/par_shots;
         shot_end = circ.shots*(i+1)/par_shots;

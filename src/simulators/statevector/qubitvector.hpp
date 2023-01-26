@@ -68,7 +68,7 @@ public:
   explicit QubitVector(size_t num_qubits);
   virtual ~QubitVector();
   QubitVector(size_t num_qubits, std::complex<data_t>* data, bool copy=false);
-  QubitVector(const QubitVector& obj) {};
+  QubitVector(const QubitVector& obj);
   QubitVector &operator=(QubitVector&& obj) {
     num_qubits_ = obj.num_qubits_;
     data_size_ = obj.data_size_;
@@ -737,6 +737,10 @@ QubitVector<data_t>::QubitVector(size_t num_qubits, std::complex<data_t>* data, 
       unmanaged_data_ = false;
     }
 }
+
+template <typename data_t>
+QubitVector<data_t>::QubitVector(const QubitVector& obj): QubitVector(obj.num_qubits_, obj.data_, true) {
+};
 
 template <typename data_t>
 QubitVector<data_t>::QubitVector(size_t num_qubits)

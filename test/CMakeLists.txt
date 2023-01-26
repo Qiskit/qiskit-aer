@@ -6,7 +6,8 @@ macro(add_test_executable target_name)
 			CXX_STANDARD 14)
 	target_include_directories(${target_name}
 			PRIVATE ${AER_SIMULATOR_CPP_SRC_DIR}
-			PRIVATE ${AER_SIMULATOR_CPP_EXTERNAL_LIBS})
+			PRIVATE ${AER_SIMULATOR_CPP_EXTERNAL_LIBS}
+			PRIVATE "${PROJECT_SOURCE_DIR}/test/src")
 	target_link_libraries(${target_name}
 			PRIVATE AER_DEPENDENCY_PKG::catch2
 			PRIVATE ${AER_LIBRARIES})
@@ -18,8 +19,5 @@ macro(add_test_executable target_name)
 	endif()
 endmacro()
 
-add_test_executable(test_linalg "src/test_linalg.cpp")
-
 # Don't forget to add your test target here
-add_custom_target(build_tests
-		test_linalg)
+add_subdirectory(src)

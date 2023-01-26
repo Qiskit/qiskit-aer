@@ -396,8 +396,10 @@ private:
   Transpile::Fusion fusion_pass_;
 
   // process information (MPI)
+#ifdef AER_MPI
   int myrank_ = 0;
   int num_processes_ = 1;
+#endif
   int num_process_per_experiment_ = 1;
 
   uint_t cache_block_qubits_ = 0;
@@ -751,10 +753,8 @@ AER::Vector<complex_t> AerState::move_to_vector() {
   ExperimentResult ret;
   state_->apply_op(op, ret, rng_, true);
 
-  auto sv = std::move(static_cast<DataMap<SingleData, Vector<complex_t>>>(std::move(ret).data).value()["s"].value());
   clear();
-
-  return std::move(sv);
+  return std::move(static_cast<DataMap<SingleData, Vector<complex_t>>>(std::move(ret).data).value()["s"].value());
 };
 
 //-----------------------------------------------------------------------

@@ -89,7 +89,6 @@ PYBIND11_MODULE(controller_wrappers, m) {
     aer_state.def("move_to_ndarray", [aer_state](AER::AerState &state) {
       auto vec = state.move_to_vector();
 
-      std::complex<double>* data_ptr = vec.data();
       auto ret = AerToPy::to_numpy(std::move(vec));
       return ret;
     });

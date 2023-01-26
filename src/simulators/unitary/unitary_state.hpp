@@ -176,7 +176,7 @@ protected:
   //-----------------------------------------------------------------------
 
   // Apply the global phase
-  void apply_global_phase();
+  void apply_global_phase() override;
 
   // OpenMP qubit threshold
   int omp_qubit_threshold_ = 6;
@@ -456,7 +456,7 @@ void State<unitary_matrix_t>::initialize_qreg(uint_t num_qubits,
           uint_t icol_chunk = ((iChunk + BaseState::global_chunk_index_) & ((1ull << ((BaseState::num_qubits_ - BaseState::chunk_bits_)))-1));
 
           //copy part of state for this chunk
-          uint_t i,row,col;
+          uint_t i;
           cvector_t tmp(1ull << BaseState::chunk_bits_);
           for(i=0;i<(1ull << BaseState::chunk_bits_);i++){
             uint_t icol = i >> (BaseState::chunk_bits_);
@@ -474,7 +474,7 @@ void State<unitary_matrix_t>::initialize_qreg(uint_t num_qubits,
         uint_t icol_chunk = ((iChunk + BaseState::global_chunk_index_) & ((1ull << ((BaseState::num_qubits_ - BaseState::chunk_bits_)))-1));
 
         //copy part of state for this chunk
-        uint_t i,row,col;
+        uint_t i;
         cvector_t tmp(1ull << BaseState::chunk_bits_);
         for(i=0;i<(1ull << BaseState::chunk_bits_);i++){
           uint_t icol = i >> (BaseState::chunk_bits_);

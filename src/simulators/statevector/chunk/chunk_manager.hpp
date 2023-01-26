@@ -128,7 +128,6 @@ public:
 template <typename data_t>
 ChunkManager<data_t>::ChunkManager()
 {
-  int i,j;
   num_places_ = 1;
   chunk_bits_ = 0;
   num_chunks_ = 0;
@@ -193,13 +192,17 @@ uint_t ChunkManager<data_t>::Allocate(int chunk_bits,int nqubits,uint_t nchunks,
   uint_t is,ie,nc;
   int i;
   char* str;
+#ifdef AER_THRUST_CUDA
   bool multi_gpu = false;
+#endif
   bool hybrid = false;
 
   //--- for test
   str = getenv("AER_MULTI_GPU");
   if(str){
+#ifdef AER_THRUST_CUDA
     multi_gpu = true;
+#endif
     num_places_ = num_devices_;
   }
   str = getenv("AER_HYBRID");
@@ -233,10 +236,14 @@ uint_t ChunkManager<data_t>::Allocate(int chunk_bits,int nqubits,uint_t nchunks,
         multi_shots_ = true;
 
 #ifdef AER_THRUST_CPU
+#ifdef AER_THRUST_CUDA
         multi_gpu = false;
+#endif
         num_places_ = 1;
 #else
+#ifdef AER_THRUST_CUDA
         multi_gpu = true;
+#endif
         num_places_ = num_devices_;
         if(num_threads_per_group_ > 1)
           num_places_ *= num_threads_per_group_;
@@ -248,7 +255,9 @@ uint_t ChunkManager<data_t>::Allocate(int chunk_bits,int nqubits,uint_t nchunks,
       }
       else{    //single chunk
         num_buffers = 0;
+#ifdef AER_THRUST_CUDA
         multi_gpu = false;
+#endif
         num_places_ = 1;
         num_chunks_ = nchunks;
         multi_shots_ = false;

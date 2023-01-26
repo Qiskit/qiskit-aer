@@ -143,7 +143,6 @@ template <class data_t>
 json_t UnitaryMatrixThrust<data_t>::json() const 
 {
   const int_t nrows = rows_;
-  int iPlace;
   int_t i, irow, icol;
   uint_t csize = BaseVector::data_size_;
   cvector_t<data_t> tmp(csize);
@@ -317,9 +316,7 @@ std::pair<bool, double> UnitaryMatrixThrust<data_t>::check_identity() const {
 
   // Check conditions 2 and 3
   double delta = 0.;
-	int iPlace;
-	uint_t i,irow,icol,ic,nc;
-	uint_t pos = 0;
+	uint_t i,irow,icol;
 	uint_t csize = BaseVector::data_size_;
 	cvector_t<data_t> tmp(csize);
 

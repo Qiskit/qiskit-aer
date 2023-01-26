@@ -129,7 +129,7 @@ public:
                                     std::string("fusion"));
   };
 
-  virtual bool can_apply(const op_t& op, uint_t max_fused_qubits) const {
+  virtual bool can_apply(const op_t& op, uint_t max_fused_qubits) const override {
     if (op.conditional)
       return false;
     switch (op.type) {
@@ -174,7 +174,7 @@ public:
     return Operations::make_superop(qubits, std::move(superop));
   };
 
-  virtual bool can_apply(const op_t& op, uint_t max_fused_qubits) const {
+  virtual bool can_apply(const op_t& op, uint_t max_fused_qubits) const override {
     if (op.conditional)
       return false;
     switch (op.type) {
@@ -222,7 +222,7 @@ public:
     return Operations::make_kraus(qubits, Utils::superop2kraus(superop, dim));
   };
 
-  virtual bool can_apply(const op_t& op, uint_t max_fused_qubits) const {
+  virtual bool can_apply(const op_t& op, uint_t max_fused_qubits) const override {
     if (op.conditional)
       return false;
     switch (op.type) {
@@ -306,6 +306,8 @@ public:
     std::fill_n(costs_, 64, -1);
   };
 
+  virtual ~CostBasedFusion() = default;
+
   virtual std::string name() const override { return "cost_base"; };
 
   virtual void set_config(const json_t &config) override;
@@ -341,6 +343,8 @@ public:
   NQubitFusion(): opt_name(std::to_string(N) + "_qubits"),
                   activate_prop_name("fusion_enable." + std::to_string(N) + "_qubits") {
   }
+
+  virtual ~NQubitFusion() = default;
 
   virtual void set_config(const json_t &config) override;
 
@@ -686,7 +690,9 @@ public:
    *       gate [Default: 1.8]
    */
   Fusion();
-  
+
+  virtual ~Fusion() = default;
+
   void set_config(const json_t &config) override;
 
   virtual void set_parallelization(uint_t num) { parallelization_ = num; };

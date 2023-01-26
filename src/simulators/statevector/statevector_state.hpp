@@ -274,7 +274,7 @@ protected:
   //-----------------------------------------------------------------------
 
   // Apply the global phase
-  void apply_global_phase();
+  void apply_global_phase() override;
 
   // OpenMP qubit threshold
   int omp_qubit_threshold_ = 14;
@@ -771,11 +771,11 @@ void State<statevec_t>::apply_save_probs(const int_t iChunk, const Operations::O
 
 
 template <class statevec_t>
-double State<statevec_t>::expval_pauli(const int_t iChunk, const reg_t &qubits,
+double State<statevec_t>::expval_pauli(const int_t iChunk_, const reg_t &qubits,
                                        const std::string& pauli) 
 {
   if(!BaseState::multi_chunk_distribution_)
-    return BaseState::qregs_[iChunk].expval_pauli(qubits, pauli);
+    return BaseState::qregs_[iChunk_].expval_pauli(qubits, pauli);
 
   //multi-chunk distribution
   reg_t qubits_in_chunk;
@@ -836,6 +836,9 @@ double State<statevec_t>::expval_pauli(const int_t iChunk, const reg_t &qubits,
       if(on_same_process){
         auto apply_expval_pauli_chunk = [this, x_mask, z_mask, x_max,mask_u,mask_l, qubits_in_chunk, pauli_in_chunk, phase](int_t iGroup)
         {
+          (void) x_max;
+          (void) mask_u;
+          (void) mask_l;
           double expval = 0.0;
           for(int_t iChunk = BaseState::top_chunk_of_group_[iGroup];iChunk < BaseState::top_chunk_of_group_[iGroup + 1];iChunk++){
             uint_t pair_chunk = iChunk ^ x_mask;
@@ -852,7 +855,7 @@ double State<statevec_t>::expval_pauli(const int_t iChunk, const reg_t &qubits,
         expval += Utils::apply_omp_parallel_for_reduction((BaseState::chunk_omp_parallel_ && BaseState::num_groups_ > 0),0,BaseState::num_global_chunks_/2,apply_expval_pauli_chunk);
       }
       else{
-        for(int_t i=0;i<BaseState::num_global_chunks_/2;i++){
+        for(i=0;i<BaseState::num_global_chunks_/2;i++){
           uint_t iChunk = ((i << 1) & mask_u) | (i & mask_l);
           uint_t pair_chunk = iChunk ^ x_mask;
           uint_t iProc = BaseState::get_process_by_chunk(pair_chunk);
@@ -1353,7 +1356,7 @@ rvector_t State<statevec_t>::measure_probs(const int_t iChunk, const reg_t &qubi
     if(BaseState::chunk_omp_parallel_ && BaseState::num_groups_ > 0){
 #pragma omp parallel for private(i,j,k) 
       for(int_t ig=0;ig<BaseState::num_groups_;ig++){
-        for(int_t i = BaseState::top_chunk_of_group_[ig];i < BaseState::top_chunk_of_group_[ig + 1];i++){
+        for(i = BaseState::top_chunk_of_group_[ig];i < BaseState::top_chunk_of_group_[ig + 1];i++){
           auto chunkSum = BaseState::qregs_[i].probabilities(qubits_in_chunk);
 
           if(qubits_in_chunk.size() == qubits.size()){
@@ -1418,7 +1421,7 @@ rvector_t State<statevec_t>::measure_probs(const int_t iChunk, const reg_t &qubi
     if(BaseState::chunk_omp_parallel_ && BaseState::num_groups_ > 0){
 #pragma omp parallel for private(i,j,k) 
       for(int_t ig=0;ig<BaseState::num_groups_;ig++){
-        for(int_t i = BaseState::top_chunk_of_group_[ig];i < BaseState::top_chunk_of_group_[ig + 1];i++){
+        for(i = BaseState::top_chunk_of_group_[ig];i < BaseState::top_chunk_of_group_[ig + 1];i++){
           auto nr = std::real(BaseState::qregs_[i].norm());
           int idx = 0;
           for(k=0;k<qubits_out_chunk.size();k++){

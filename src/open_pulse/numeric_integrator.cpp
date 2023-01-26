@@ -139,7 +139,6 @@ struct RhsData {
           auto idxs_back = idxs.emplace(idxs.end());
           auto ptrs_back = ptrs.emplace(ptrs.end());
           ptrs_back->push_back(0);
-          auto first_j = 0;
           auto last_j = 0;
           for (auto i = 0; i < data.shape[0]; i++) {
               for (auto j = 0; j < data.shape[1]; j++) {
