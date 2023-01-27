@@ -528,9 +528,9 @@ Op input_to_op(const inputdata_t& input); // Partial TODO
 json_t op_to_json(const Op &op); // Partial TODO
 
 inline void from_json(const json_t &js, Op &op) {op = input_to_op(js);}
-
 inline void to_json(json_t &js, const Op &op) { js = op_to_json(op);}
 
+void to_json(json_t &js, const OpType& type);
 void to_json(json_t &js, const DataSubType& type);
 
 // Standard operations

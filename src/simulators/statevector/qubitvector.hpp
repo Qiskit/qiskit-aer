@@ -740,7 +740,7 @@ QubitVector<data_t>::QubitVector(size_t num_qubits, std::complex<data_t>* data, 
 
 template <typename data_t>
 QubitVector<data_t>::QubitVector(const QubitVector& obj): QubitVector(obj.num_qubits_, obj.data_, true) {
-};
+}
 
 template <typename data_t>
 QubitVector<data_t>::QubitVector(size_t num_qubits)
@@ -913,7 +913,11 @@ void QubitVector<data_t>::allocate_mem(size_t data_size){
   if (data_ == nullptr) {
 #if !defined(_WIN64) && !defined(_WIN32)
     void* data = nullptr;
-    posix_memalign(&data, 64, sizeof(std::complex<data_t>) * data_size);
+    if (posix_memalign(&data, 64, sizeof(std::complex<data_t>) * data_size) != 0) {
+      std::string error = "QubitVector: memory allocation error: size=" 
+                          + std::to_string(sizeof(std::complex<data_t>) * data_size);
+      throw std::runtime_error(error);
+    }
     data_ = reinterpret_cast<std::complex<data_t>*>(data);
 #else
     data_ = reinterpret_cast<std::complex<data_t>*>(malloc(sizeof(std::complex<data_t>) * data_size));
@@ -926,7 +930,11 @@ void QubitVector<data_t>::allocate_checkpoint(size_t data_size){
   free_checkpoint();
 #if !defined(_WIN64) && !defined(_WIN32)
   void* data = nullptr;
-  posix_memalign(&data, 64, sizeof(std::complex<data_t>) * data_size);
+  if (posix_memalign(&data, 64, sizeof(std::complex<data_t>) * data_size) != 0) {
+    std::string error = "QubitVector: memory allocation error: size=" 
+                        + std::to_string(sizeof(std::complex<data_t>) * data_size);
+    throw std::runtime_error(error);
+  }
   checkpoint_ = reinterpret_cast<std::complex<data_t>*>(data);
 #else
   checkpoint_ = reinterpret_cast<std::complex<data_t>*>(malloc(sizeof(std::complex<data_t>) * data_size));
@@ -1780,17 +1788,17 @@ void QubitVector<data_t>::apply_multi_swaps(const reg_t &qubits)
     auto lambda = [&](const indexes_t &inds)->void 
     {
       cvector_t<data_t> cache(size);
-      for(int_t i=0;i<size;i++)
-        cache[i] = data_[inds[i]];
+      for(int_t ii=0;ii<size;ii++)
+        cache[ii] = data_[inds[ii]];
 
-      for(int_t i=0;i<size;i++){
-        uint_t pos = i;
+      for(int_t ii=0;ii<size;ii++){
+        uint_t pos = ii;
         for(int_t j=0;j<nq;j+=2){
           if((((pos >> j) & 1) ^ ((pos >> (j+1)) & 1)) != 0){
             pos ^= ((1ull << j) | (1ull << (j+1)));
           }
         }
-        data_[inds[i]] = cache[pos];
+        data_[inds[ii]] = cache[pos];
       }
     };
     apply_lambda(lambda, qubits_swap);

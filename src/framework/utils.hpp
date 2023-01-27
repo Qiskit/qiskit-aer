@@ -265,6 +265,12 @@ uint_t reg2int(const reg_t &reg, uint_t base);
 const uint_t zer = 0U;
 const uint_t one = 1U;
 
+//------------------------------------------------------------------------------
+// Others
+//------------------------------------------------------------------------------
+
+// return system memory with mb unit
+size_t get_system_memory_mb() ;
 
 //==============================================================================
 // Implementations: Matrix functions

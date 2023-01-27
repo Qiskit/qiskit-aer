@@ -31,6 +31,7 @@
 //    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //#############################################################################
 #include <complex>
+#include "zspmv.hpp"
 
 #if defined(__GNUC__) && defined(__SSE3__) // Using GCC or CLANG and SSE3
 #include <pmmintrin.h>
