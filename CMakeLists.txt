@@ -334,7 +334,7 @@ if(SKBUILD) # Terra Addon build
 	set(AER_LIBRARIES ${AER_LIBRARIES} AER_DEPENDENCY_PKG::muparserx)
 	add_subdirectory(qiskit_aer/backends/wrappers)
 	add_subdirectory(src/open_pulse)
-else() # Standalone build
+elseif(NOT SKIP_STANDALONE) # Standalone build
 
 	function(build_cuda target src_file is_exec)
 		if(CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64" OR CMAKE_SYSTEM_PROCESSOR STREQUAL "AMD64" OR CMAKE_HOST_SYSTEM_PROCESSOR STREQUAL "amd64")

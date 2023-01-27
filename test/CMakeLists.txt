@@ -13,7 +13,7 @@ macro(add_test_executable target_name)
 			PRIVATE ${AER_LIBRARIES})
 	add_test(${target_name} ${target_name})
 	if(WIN32 AND NOT BLAS_LIB_PATH)
-		add_custom_command(TARGET test_linalg POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy_if_different
+		add_custom_command(TARGET ${target_name} POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy_if_different
 				${BACKEND_REDIST_DEPS}
 				$<TARGET_FILE_DIR:${target_name}>)
 	endif()
