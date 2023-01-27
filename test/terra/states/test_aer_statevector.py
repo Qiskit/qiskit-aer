@@ -1358,7 +1358,7 @@ class TestAerStatevector(common.QiskitAerTestCase):
             ([-1, 1j], ["-", "+i"]),
             ([1e-16 + 1j], ["i"]),
             ([-1 + 1e-16 * 1j], ["-"]),
-            ([-1, -1 - 1j], ["-", "+ (-1 - i)"]),
+            ([-1, -1 - 1j], ["-", "+(-1 - i)"]),
             ([np.sqrt(2) / 2, np.sqrt(2) / 2], ["\\frac{\\sqrt{2}}{2}", "+\\frac{\\sqrt{2}}{2}"]),
             ([1 + np.sqrt(2)], ["(1 + \\sqrt{2})"]),
         ]
