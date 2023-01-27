@@ -50,11 +50,11 @@ TEST_CASE("AER::QV::QubitVector") {
 
     SECTION("QubitVector(size_t num_qubits, std::complex<data_t>* data, bool copy=false)") {
         std::complex<double> data[16];
-        for (uint i = 0; i < 16; ++i)
+        for (uint_t i = 0; i < 16; ++i)
           data[i] = 0;
         {
             QubitVector<double> qv(4, data, false);
-            for (uint i = 0; i < 16; ++i)
+            for (uint_t i = 0; i < 16; ++i)
                 REQUIRE(compare<std::complex<double>>(0, qv[i]));
             data[0] = 1;
             REQUIRE(compare<std::complex<double>>(1, qv[0]));
@@ -70,19 +70,19 @@ TEST_CASE("AER::QV::QubitVector") {
 
     SECTION("QubitVector(const QubitVector& obj)") {
         std::complex<double> data[16];
-        for (uint i = 0; i < 16; ++i)
+        for (uint_t i = 0; i < 16; ++i)
           data[i] = i;
 
         QubitVector<double> qv(4, data, false);
         auto copy = qv;
 
-        for (uint i = 0; i < 16; ++i)
+        for (uint_t i = 0; i < 16; ++i)
           data[i] = 0;
 
-        for (uint i = 0; i < 16; ++i)
+        for (uint_t i = 0; i < 16; ++i)
             REQUIRE(compare<std::complex<double>>(0, qv[i]));
 
-        for (uint i = 0; i < 16; ++i)
+        for (uint_t i = 0; i < 16; ++i)
             REQUIRE(compare<std::complex<double>>(i, copy[i]));
     }
 
@@ -90,72 +90,72 @@ TEST_CASE("AER::QV::QubitVector") {
         QubitVector<double> qvlist[1];
 
         std::complex<double> data[16];
-        for (uint i = 0; i < 16; ++i)
+        for (uint_t i = 0; i < 16; ++i)
           data[i] = i;
 
         QubitVector<double> qv(4, data, false);
         qvlist[0] = std::move(qv);
 
-        for (uint i = 0; i < 16; ++i)
+        for (uint_t i = 0; i < 16; ++i)
           data[i] *= 2;
 
-        for (uint i = 0; i < 16; ++i)
+        for (uint_t i = 0; i < 16; ++i)
             REQUIRE(compare<std::complex<double>>(i*2, qvlist[0][i]));
     }
 
     SECTION("std::complex<data_t> &operator[](uint_t element)") {
         std::complex<double> data[16];
-        for (uint i = 0; i < 16; ++i)
+        for (uint_t i = 0; i < 16; ++i)
           data[i] = i;
 
         QubitVector<double> qv(4, data, false);
 
-        for (uint i = 0; i < 16; ++i)
+        for (uint_t i = 0; i < 16; ++i)
           qv[i] = i * 2;
 
-        for (uint i = 0; i < 16; ++i)
+        for (uint_t i = 0; i < 16; ++i)
             REQUIRE(compare<std::complex<double>>(i*2, qv[i]));
     }
 
     SECTION("std::complex<data_t> operator[](uint_t element) const") {
         std::complex<double> data[16];
-        for (uint i = 0; i < 16; ++i)
+        for (uint_t i = 0; i < 16; ++i)
           data[i] = i;
 
         QubitVector<double> qv(4, data, false);
 
-        for (uint i = 0; i < 16; ++i)
+        for (uint_t i = 0; i < 16; ++i)
             REQUIRE(compare<std::complex<double>>(i, qv[i]));
     }
 
     SECTION("void set_state(uint_t pos, std::complex<data_t>& val)") {
         std::complex<double> data[16];
-        for (uint i = 0; i < 16; ++i)
+        for (uint_t i = 0; i < 16; ++i)
           data[i] = i;
 
         QubitVector<double> qv(4, data, false);
         std::complex<double> val = 0;
         qv.set_state(15, val);
 
-        for (uint i = 0; i < 15; ++i)
+        for (uint_t i = 0; i < 15; ++i)
             REQUIRE(compare<std::complex<double>>(i, qv[i]));
         REQUIRE(compare<std::complex<double>>(0, qv[15]));
     }
 
     SECTION("std::complex<data_t> get_state(uint_t pos) const") {
         std::complex<double> data[16];
-        for (uint i = 0; i < 16; ++i)
+        for (uint_t i = 0; i < 16; ++i)
           data[i] = i;
 
         QubitVector<double> qv(4, data, false);
 
-        for (uint i = 0; i < 16; ++i)
+        for (uint_t i = 0; i < 16; ++i)
             REQUIRE(compare<std::complex<double>>(i, qv.get_state(i)));
     }
 
     SECTION("std::complex<data_t>* &data()") {
         std::complex<double> data[16];
-        for (uint i = 0; i < 16; ++i)
+        for (uint_t i = 0; i < 16; ++i)
           data[i] = i;
 
         QubitVector<double> qv(4, data, false);
@@ -166,20 +166,20 @@ TEST_CASE("AER::QV::QubitVector") {
 
     SECTION("void set_num_qubits(size_t num_qubits)") {
         std::complex<double> data[16];
-        for (uint i = 0; i < 16; ++i)
+        for (uint_t i = 0; i < 16; ++i)
           data[i] = i;
 
         QubitVector<double> qv(4, data, false);
 
         qv.set_num_qubits(5);
 
-        for (uint i = 0; i < 32; ++i)
+        for (uint_t i = 0; i < 32; ++i)
           qv[i] = i;
 
-        for (uint i = 0; i < 16; ++i)
+        for (uint_t i = 0; i < 16; ++i)
           data[i] *= 2;
 
-        for (uint i = 0; i < 32; ++i)
+        for (uint_t i = 0; i < 32; ++i)
             REQUIRE(compare<std::complex<double>>(i, qv[i]));
     }
 
@@ -213,25 +213,25 @@ TEST_CASE("AER::QV::QubitVector") {
     SECTION("cvector_t<data_t> vector() const") {
         QubitVector<double> qv;
         qv.set_num_qubits(4);
-        for (uint i = 0; i < 16; ++i)
+        for (uint_t i = 0; i < 16; ++i)
             qv[i] = i;
         auto vec = qv.vector();
-        for (uint i = 0; i < 16; ++i)
+        for (uint_t i = 0; i < 16; ++i)
             REQUIRE(compare<std::complex<double>>(i, vec[i]));
     }
 
     SECTION("cdict_t<data_t> vector_ket(double epsilon = 0) const") {
         QubitVector<double> qv;
         qv.set_num_qubits(4);
-        for (uint i = 0; i < 16; ++i)
+        for (uint_t i = 0; i < 16; ++i)
             qv[i] = i;
         auto ket = qv.vector_ket(8);
 
-        for (uint i = 0; i < 9; ++i) {
+        for (uint_t i = 0; i < 9; ++i) {
             std::string key = AER::Utils::int2hex(i);
             REQUIRE(compare<std::complex<double>>(0, ket[key]));
         }
-        for (uint i = 9; i < 16; ++i) {
+        for (uint_t i = 9; i < 16; ++i) {
             std::string key = AER::Utils::int2hex(i);
             REQUIRE(compare<std::complex<double>>(i, ket[key]));
         }
@@ -240,18 +240,18 @@ TEST_CASE("AER::QV::QubitVector") {
     SECTION("AER::Vector<std::complex<data_t>> copy_to_vector() const") {
         QubitVector<double> qv;
         qv.set_num_qubits(4);
-        for (uint i = 0; i < 16; ++i)
+        for (uint_t i = 0; i < 16; ++i)
             qv[i] = i;
         auto data = qv.copy_to_vector();
 
         REQUIRE(compare<uint_t>(16, data.size()));
 
-        for (uint i = 0; i < 16; ++i)
+        for (uint_t i = 0; i < 16; ++i)
             REQUIRE(compare<std::complex<double>>(i, data[i]));
 
         REQUIRE(compare<uint_t>(4, qv.num_qubits()));
 
-        for (uint i = 0; i < 16; ++i)
+        for (uint_t i = 0; i < 16; ++i)
             REQUIRE(compare<std::complex<double>>(i, qv[i]));
 
     }
@@ -259,13 +259,13 @@ TEST_CASE("AER::QV::QubitVector") {
     SECTION("AER::Vector<std::complex<data_t>> move_to_vector() const") {
         QubitVector<double> qv;
         qv.set_num_qubits(4);
-        for (uint i = 0; i < 16; ++i)
+        for (uint_t i = 0; i < 16; ++i)
             qv[i] = i;
         auto data = qv.move_to_vector();
 
         REQUIRE(compare<uint_t>(16, data.size()));
 
-        for (uint i = 0; i < 16; ++i)
+        for (uint_t i = 0; i < 16; ++i)
             REQUIRE(compare<std::complex<double>>(i, data[i]));
 
         REQUIRE(compare<uint_t>(0, qv.num_qubits()));
@@ -275,13 +275,13 @@ TEST_CASE("AER::QV::QubitVector") {
     SECTION("json_t json() const") {
         QubitVector<double> qv;
         qv.set_num_qubits(4);
-        for (uint i = 0; i < 16; ++i)
+        for (uint_t i = 0; i < 16; ++i)
             qv[i] = i;
 
         auto json = qv.json();
 
         REQUIRE(compare<uint_t>(16, json.size()));
-        for (uint i = 0; i < 16; ++i) {
+        for (uint_t i = 0; i < 16; ++i) {
             REQUIRE(compare<uint_t>(2, json[i].size()));
             REQUIRE(compare<double>(i, json[i][0]));
             REQUIRE(compare<double>(0, json[i][1]));
@@ -291,89 +291,89 @@ TEST_CASE("AER::QV::QubitVector") {
     SECTION("void zero()") {
         QubitVector<double> qv;
         qv.set_num_qubits(4);
-        for (uint i = 0; i < 16; ++i)
+        for (uint_t i = 0; i < 16; ++i)
             qv[i] = i;
 
         qv.zero();
 
-        for (uint i = 0; i < 16; ++i)
+        for (uint_t i = 0; i < 16; ++i)
             REQUIRE(compare<std::complex<double>>(0, qv[i]));
     }
 
     SECTION("void initialize()") {
         QubitVector<double> qv;
         qv.set_num_qubits(4);
-        for (uint i = 0; i < 16; ++i)
+        for (uint_t i = 0; i < 16; ++i)
             qv[i] = i;
 
         qv.initialize();
 
         REQUIRE(compare<std::complex<double>>(1, qv[0]));
-        for (uint i = 1; i < 16; ++i)
+        for (uint_t i = 1; i < 16; ++i)
             REQUIRE(compare<std::complex<double>>(0, qv[i]));
     }
 
     SECTION("void initialize_from_vector(const list_t &vec)") {
         QubitVector<double> qv;
         qv.set_num_qubits(4);
-        for (uint i = 0; i < 16; ++i)
+        for (uint_t i = 0; i < 16; ++i)
             qv[i] = i;
 
         std::vector<std::complex<double>> vec;
-        for (uint i = 0; i < 16; ++i)
+        for (uint_t i = 0; i < 16; ++i)
             vec.push_back(i * 2);
 
         qv.initialize_from_vector(vec);
 
-        for (uint i = 0; i < 16; ++i)
+        for (uint_t i = 0; i < 16; ++i)
             REQUIRE(compare<std::complex<double>>(vec[i], qv[i]));
     }
 
     SECTION("void initialize_from_vector(std::vector<std::complex<data_t>> &&vec)") {
         QubitVector<double> qv;
         qv.set_num_qubits(4);
-        for (uint i = 0; i < 16; ++i)
+        for (uint_t i = 0; i < 16; ++i)
             qv[i] = i;
 
         std::vector<std::complex<double>> vec;
-        for (uint i = 0; i < 16; ++i)
+        for (uint_t i = 0; i < 16; ++i)
             vec.push_back(i * 2);
 
         qv.initialize_from_vector(std::move(vec));
 
-        for (uint i = 0; i < 16; ++i)
+        for (uint_t i = 0; i < 16; ++i)
             REQUIRE(compare<std::complex<double>>(i * 2, qv[i]));
     }
 
     SECTION("void initialize_from_vector(AER::Vector<std::complex<data_t>> &&vec)") {
         QubitVector<double> qv;
         qv.set_num_qubits(4);
-        for (uint i = 0; i < 16; ++i)
+        for (uint_t i = 0; i < 16; ++i)
             qv[i] = i;
 
         AER::Vector<std::complex<double>> vec(16);
-        for (uint i = 0; i < 16; ++i)
+        for (uint_t i = 0; i < 16; ++i)
             vec[i] = i * 2;
 
         qv.initialize_from_vector(std::move(vec));
 
-        for (uint i = 0; i < 16; ++i)
+        for (uint_t i = 0; i < 16; ++i)
             REQUIRE(compare<std::complex<double>>(i * 2, qv[i]));
     }
 
     SECTION("void initialize_from_data(const std::complex<data_t>* data, const size_t num_states)") {
         QubitVector<double> qv;
         qv.set_num_qubits(4);
-        for (uint i = 0; i < 16; ++i)
+        for (uint_t i = 0; i < 16; ++i)
             qv[i] = i;
 
         std::complex<double> vec[16];
-        for (uint i = 0; i < 16; ++i)
+        for (uint_t i = 0; i < 16; ++i)
             vec[i] = i * 2;
 
         qv.initialize_from_data(vec, 16);
 
-        for (uint i = 0; i < 16; ++i)
+        for (uint_t i = 0; i < 16; ++i)
             REQUIRE(compare<std::complex<double>>(i * 2, qv[i]));
     }
 
