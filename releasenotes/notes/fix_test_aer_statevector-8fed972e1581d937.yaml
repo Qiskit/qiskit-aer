@@ -1,0 +1,4 @@
+---
+fixes:
+  - |
+    Fix error of test_aer_statevector caused by the latest Terra release
