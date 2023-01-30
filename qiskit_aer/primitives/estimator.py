@@ -16,17 +16,16 @@ Estimator class.
 
 from __future__ import annotations
 
-from collections.abc import Iterable, Sequence
+from collections.abc import Sequence
 from copy import copy
 from itertools import accumulate
 
 import numpy as np
-from qiskit.circuit import Parameter, QuantumCircuit
+from qiskit.circuit import QuantumCircuit
 from qiskit.compiler import transpile
-from qiskit.exceptions import QiskitError
 from qiskit.opflow import PauliSumOp
 from qiskit.primitives import BaseEstimator, EstimatorResult
-from qiskit.primitives.utils import init_circuit, init_observable
+from qiskit.primitives.utils import init_observable
 from qiskit.providers import Options
 from qiskit.quantum_info import Pauli
 from qiskit.quantum_info.operators.base_operator import BaseOperator
@@ -59,9 +58,7 @@ class Estimator(BaseEstimator):
 
     def __init__(
         self,
-        circuits: QuantumCircuit | Iterable[QuantumCircuit] | None = None,
-        observables: BaseOperator | PauliSumOp | Iterable[BaseOperator | PauliSumOp] | None = None,
-        parameters: Iterable[Iterable[Parameter]] | None = None,
+        *,
         backend_options: dict | None = None,
         transpile_options: dict | None = None,
         run_options: dict | None = None,
@@ -70,12 +67,6 @@ class Estimator(BaseEstimator):
     ):
         """
         Args:
-            circuits: Quantum circuits that represent quantum states.
-            observables: Observables.
-            parameters: Parameters of quantum circuits, specifying the order in which values
-                will be bound. Defaults to ``[circ.parameters for circ in circuits]``
-                The indexing is such that ``parameters[i, j]`` is the j-th formal parameter of
-                ``circuits[i]``.
             backend_options: Options passed to AerSimulator.
             transpile_options: Options passed to transpile.
             run_options: Options passed to run.
@@ -83,25 +74,8 @@ class Estimator(BaseEstimator):
                 approximation.
             skip_transpilation: If True, transpilation is skipped.
         """
-        if isinstance(circuits, QuantumCircuit):
-            circuits = (circuits,)
-        if circuits is not None:
-            circuits = tuple(init_circuit(circuit) for circuit in circuits)
+        super().__init__(options=run_options)
 
-        if isinstance(observables, (PauliSumOp, BaseOperator)):
-            observables = (observables,)
-        if observables is not None:
-            observables = tuple(
-                init_observable(observable).simplify(atol=0) for observable in observables
-            )
-
-        super().__init__(
-            circuits=circuits,
-            observables=observables,
-            parameters=parameters,
-            options=run_options,
-        )
-        self._is_closed = False
         backend_options = {} if backend_options is None else backend_options
         method = (
             "density_matrix" if approximation and "noise_model" in backend_options else "automatic"
@@ -116,6 +90,8 @@ class Estimator(BaseEstimator):
         self._cache = {}
         self._transpiled_circuits = {}
         self._layouts = {}
+        self._circuit_ids = {}
+        self._observable_ids = {}
 
     def _call(
         self,
@@ -124,8 +100,6 @@ class Estimator(BaseEstimator):
         parameter_values: Sequence[Sequence[float]],
         **run_options,
     ) -> EstimatorResult:
-        if self._is_closed:
-            raise QiskitError("The primitive has been closed.")
 
         seed = run_options.pop("seed", None)
         if seed is not None:
@@ -138,7 +112,6 @@ class Estimator(BaseEstimator):
         else:
             return self._compute(circuits, observables, parameter_values, run_options)
 
-    # This method will be used after Terra 0.22.
     def _run(
         self,
         circuits: Sequence[QuantumCircuit],
@@ -175,9 +148,6 @@ class Estimator(BaseEstimator):
         )
         job.submit()
         return job
-
-    def close(self):
-        self._is_closed = True
 
     def _compute(self, circuits, observables, parameter_values, run_options):
         # Key for cache
