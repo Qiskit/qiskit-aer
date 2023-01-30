@@ -29,7 +29,7 @@ def statevec_as_dict(data):
 class TestSaveStatevectorDict(SimulatorTestCase):
     """Test SaveStatevectorDict instruction."""
 
-    @supported_methods(['automatic', 'statevector'])
+    @supported_methods(['automatic', 'statevector', 'tensor_network'])
     def test_save_statevector_dict(self, method, device):
         """Test save statevector for instruction"""
 
@@ -58,7 +58,7 @@ class TestSaveStatevectorDict(SimulatorTestCase):
         value = simdata[label]
         self.assertDictAlmostEqual(value, target)
 
-    @supported_methods(['automatic', 'statevector'])
+    @supported_methods(['automatic', 'statevector', 'tensor_network'])
     def test_save_statevector_conditional(self, method, device):
         """Test conditional save statevector instruction"""
 
@@ -87,7 +87,7 @@ class TestSaveStatevectorDict(SimulatorTestCase):
             self.assertIn(key, target)
             self.assertDictAlmostEqual(vec, target[key])
 
-    @supported_methods(['automatic', 'statevector'])
+    @supported_methods(['automatic', 'statevector', 'tensor_network'])
     def test_save_statevector_dict_pershot(self, method, device):
         """Test pershot save statevector instruction"""
 
@@ -119,7 +119,7 @@ class TestSaveStatevectorDict(SimulatorTestCase):
         for vec in value:
             self.assertDictAlmostEqual(vec, target)
 
-    @supported_methods(['automatic', 'statevector'])
+    @supported_methods(['automatic', 'statevector', 'tensor_network'])
     def test_save_statevector_dict_pershot_conditional(
             self, method, device):
         """Test pershot conditional save statevector instruction"""

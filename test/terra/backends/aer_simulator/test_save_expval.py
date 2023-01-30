@@ -64,7 +64,7 @@ class TestSaveExpectationValueTests(SimulatorTestCase):
     @supported_methods(
         [
             'automatic', 'stabilizer', 'statevector', 'density_matrix',
-            'matrix_product_state'
+            'matrix_product_state', 'tensor_network'
         ],
         PAULI2)
     def test_save_expval_bell_pauli(self, method, device, pauli):
@@ -84,7 +84,7 @@ class TestSaveExpectationValueTests(SimulatorTestCase):
     @supported_methods(
         [
             'automatic', 'stabilizer', 'statevector', 'density_matrix',
-            'matrix_product_state'
+            'matrix_product_state', 'tensor_network'
         ],
         PAULI2)
     def test_save_expval_stabilizer_pauli(self, method, device, pauli):
@@ -103,7 +103,7 @@ class TestSaveExpectationValueTests(SimulatorTestCase):
     @supported_methods(
         [
             'automatic', 'stabilizer', 'statevector', 'density_matrix',
-            'matrix_product_state'
+            'matrix_product_state', 'tensor_network'
         ],
         PAULI2)
     def test_save_expval_var_stabilizer_pauli(self, method, device, pauli):
@@ -122,7 +122,7 @@ class TestSaveExpectationValueTests(SimulatorTestCase):
     @supported_methods(
         [
             'automatic', 'stabilizer', 'statevector', 'density_matrix',
-            'matrix_product_state'
+            'matrix_product_state', 'tensor_network'
         ],
         [[0, 1], [1, 0], [0, 2], [2, 0], [1, 2], [2, 1]])
     def test_save_expval_stabilizer_hermitian(self, method, device, qubits):
@@ -140,7 +140,7 @@ class TestSaveExpectationValueTests(SimulatorTestCase):
     @supported_methods(
         [
             'automatic', 'stabilizer', 'statevector', 'density_matrix',
-            'matrix_product_state'
+            'matrix_product_state', 'tensor_network'
         ],  # , 'extended_stabilizer'],
         [[0, 1], [1, 0], [0, 2], [2, 0], [1, 2], [2, 1]])
     def test_save_expval_var_stabilizer_hermitian(self, method, device,
@@ -157,7 +157,7 @@ class TestSaveExpectationValueTests(SimulatorTestCase):
                                device=device)
 
     @supported_methods(
-        ['automatic', 'statevector', 'density_matrix', 'matrix_product_state'],
+        ['automatic', 'statevector', 'density_matrix', 'matrix_product_state', 'tensor_network'],
         PAULI2)
     def test_save_expval_nonstabilizer_pauli(self, method, device, pauli):
         """Test Pauli expval for non-stabilizer circuit"""
@@ -173,7 +173,7 @@ class TestSaveExpectationValueTests(SimulatorTestCase):
                                device=device)
 
     @supported_methods(
-        ['automatic', 'statevector', 'density_matrix', 'matrix_product_state'],
+        ['automatic', 'statevector', 'density_matrix', 'matrix_product_state', 'tensor_network'],
         PAULI2)
     def test_save_expval_var_nonstabilizer_pauli(self, method, device, pauli):
         """Test Pauli expval_var for non-stabilizer circuit"""
@@ -189,7 +189,7 @@ class TestSaveExpectationValueTests(SimulatorTestCase):
                                device=device)
 
     @supported_methods(
-        ['automatic', 'statevector', 'density_matrix', 'matrix_product_state'],
+        ['automatic', 'statevector', 'density_matrix', 'matrix_product_state', 'tensor_network'],
         [[0, 1], [1, 0], [0, 2], [2, 0], [1, 2], [2, 1]])
     def test_save_expval_nonstabilizer_hermitian(self, method, device, qubits):
         """Test expval for non-stabilizer circuit and Hermitian operator"""
@@ -204,7 +204,7 @@ class TestSaveExpectationValueTests(SimulatorTestCase):
                                device=device)
 
     @supported_methods(
-        ['automatic', 'statevector', 'density_matrix', 'matrix_product_state'],
+        ['automatic', 'statevector', 'density_matrix', 'matrix_product_state', 'tensor_network'],
         [[0, 1], [1, 0], [0, 2], [2, 0], [1, 2], [2, 1]])
     def test_save_expval_var_nonstabilizer_hermitian(self, method, device,
                                                      qubits):
@@ -219,7 +219,7 @@ class TestSaveExpectationValueTests(SimulatorTestCase):
                                method=method,
                                device=device)
 
-    @supported_methods(['density_matrix'], PAULI2)
+    @supported_methods(['density_matrix', 'tensor_network'], PAULI2)
     def test_save_expval_cptp_pauli(self, method, device, pauli):
         """Test Pauli expval for stabilizer circuit"""
         SEED = 5832
@@ -235,7 +235,7 @@ class TestSaveExpectationValueTests(SimulatorTestCase):
                                method=method,
                                device=device)
 
-    @supported_methods(['density_matrix'], PAULI2)
+    @supported_methods(['density_matrix', 'tensor_network'], PAULI2)
     def test_save_expval_var_cptp_pauli(self, method, device, pauli):
         """Test Pauli expval_var for stabilizer circuit"""
         SEED = 5832
