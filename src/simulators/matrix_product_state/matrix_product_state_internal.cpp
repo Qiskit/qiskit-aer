@@ -1581,23 +1581,23 @@ void MPS::propagate_to_neighbors_internal(uint_t min_qubit, uint_t max_qubit,
   }
 }
 
- reg_t MPS::sort_by_ordering(reg_t input_vec, reg_t& sub_ordering) {
-    reg_t sorted_qubits(input_vec.size());
-    uint_t k = 0;
-    for (uint_t i=0; i<qubit_ordering_.order_.size(); i++) {
-       for (uint_t j=0; j<input_vec.size(); j++) {
-          if (input_vec[j] == qubit_ordering_.order_[i]) {
-             sorted_qubits[k] = i;
-             sub_ordering[k] = qubit_ordering_.order_[i];
-             k++;
+reg_t MPS::sort_by_ordering(reg_t input_qubits, reg_t& sub_ordering) {
+  reg_t sorted_qubits(input_qubits.size());
+  uint_t next = 0;
+  for (uint_t i=0; i<num_qubits_; i++) {
+      for (uint_t j=0; j<input_qubits.size(); j++) {
+          if (input_qubits[j] == qubit_ordering_.order_[i]) {
+             sorted_qubits[next] = i;
+             sub_ordering[next] = qubit_ordering_.order_[i];
+             next++;
              break;
           }
-       }
-    }
-    return sorted_qubits;
- }
+      }
+  }
+  return sorted_qubits;
+}
 
- reg_t MPS::sort_measured_values(reg_t input_outcome, reg_t& sub_ordering) {
+reg_t MPS::sort_measured_values(reg_t input_outcome, reg_t& sub_ordering) {
   reg_t sorted_outcome(input_outcome.size());
   uint_t next = 0;
   for (uint_t min_index=0; min_index<num_qubits_; min_index++) {

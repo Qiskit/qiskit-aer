@@ -454,9 +454,11 @@ private:
   uint_t sample_measure_single_qubit(uint_t qubit, double &prob, 
 				     double rnd, cmatrix_t &mat) const;
 
-  // The elements in input_vec are a subset of ordering. We sort the elements of input_vec
-  // to be in the order defined in ordering.
-  reg_t sort_by_ordering(reg_t input_vec, reg_t& sub_ordering);
+  // The return result contains the elements of input_qubits sorted according to
+  // their order in ordering_.order_.
+  // The vector returned in sub_ordering contains the indices of the qubits to be
+  // measured in ordering_.order_.
+  reg_t sort_by_ordering(reg_t input_qubits, reg_t& sub_ordering);
   reg_t sort_measured_values(reg_t input_outcome, reg_t& sub_ordering);
   //----------------------------------------------------------------
   // Function name: get_single_probability0

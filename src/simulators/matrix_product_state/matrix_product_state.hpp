@@ -812,10 +812,6 @@ std::vector<reg_t> State::
 				     RngEngine &rng) {
   std::vector<reg_t> all_samples;
   all_samples.resize(shots);
-  // input is always sorted in qasm_controller
-  //reg_t sorted_qubits = qubits;
-  //std::sort(sorted_qubits.begin(), sorted_qubits.end());
-
   std::vector<rvector_t> rnds_list;
   rnds_list.reserve(shots);
   for (int_t i = 0; i < shots; ++i) {
