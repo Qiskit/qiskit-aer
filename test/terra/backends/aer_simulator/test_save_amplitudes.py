@@ -64,14 +64,14 @@ class TestSaveAmplitudes(SimulatorTestCase):
         self.assertTrue(np.allclose(value, target))
 
     @supported_methods(
-        ['automatic', 'statevector', 'matrix_product_state'], AMPLITUDES)
+        ['automatic', 'statevector', 'matrix_product_state', 'tensor_network'], AMPLITUDES)
     def test_save_amplitudes(self, method, device, params):
         """Test save_amplitudes instruction"""
         self._test_save_amplitudes(
             QFT(3), params, False, method=method, device=device)
 
     @supported_methods(
-        ['automatic', 'statevector', 'matrix_product_state', 'density_matrix'],
+        ['automatic', 'statevector', 'matrix_product_state', 'density_matrix', 'tensor_network'],
         AMPLITUDES)
     def test_save_amplitudes_squared(self, method, device, params):
         """Test save_amplitudes_squared instruction"""
@@ -80,7 +80,7 @@ class TestSaveAmplitudes(SimulatorTestCase):
 
     @supported_methods(
         ['automatic', 'stabilizer', 'statevector', 'matrix_product_state',
-         'density_matrix'], AMPLITUDES)
+         'density_matrix', 'tensor_network'], AMPLITUDES)
     def test_save_amplitudes_squared_clifford(self, method, device, params):
         """Test save_amplitudes_squared instruction for Clifford circuit"""
         # Stabilizer test circuit

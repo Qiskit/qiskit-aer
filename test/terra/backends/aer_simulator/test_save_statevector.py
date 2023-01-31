@@ -25,7 +25,7 @@ class TestSaveStatevector(SimulatorTestCase):
     """SaveStatevector instruction tests."""
 
     @supported_methods(['automatic', 'statevector', 'matrix_product_state',
-                        'extended_stabilizer'])
+                        'extended_stabilizer', 'tensor_network'])
     def test_save_statevector(self, method, device):
         """Test save statevector instruction"""
         backend = self.backend(method=method, device=device)
@@ -54,7 +54,7 @@ class TestSaveStatevector(SimulatorTestCase):
         self.assertEqual(value, target)
 
     @supported_methods(['automatic', 'statevector', 'matrix_product_state',
-                        'extended_stabilizer'])
+                        'extended_stabilizer', 'tensor_network'])
     def test_save_statevector_conditional(self, method, device):
         """Test conditional save statevector instruction"""
 
@@ -85,7 +85,7 @@ class TestSaveStatevector(SimulatorTestCase):
             self.assertEqual(vec, target[key])
 
     @supported_methods(['automatic', 'statevector', 'matrix_product_state',
-                        'extended_stabilizer'])
+                        'extended_stabilizer', 'tensor_network'])
     def test_save_statevector_pershot(self, method, device):
         """Test pershot save statevector instruction"""
         backend = self.backend(method=method, device=device)
@@ -117,7 +117,7 @@ class TestSaveStatevector(SimulatorTestCase):
             self.assertEqual(vec, target)
 
     @supported_methods(['automatic', 'statevector', 'matrix_product_state',
-                        'extended_stabilizer'])
+                        'extended_stabilizer', 'tensor_network'])
     def test_save_statevector_pershot_conditional(self, method, device):
         """Test pershot conditional save statevector instruction"""
 

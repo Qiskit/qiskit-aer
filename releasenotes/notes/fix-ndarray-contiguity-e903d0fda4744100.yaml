@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    If non contiguous numpy.ndarray is input, an AerStatevector instance with
+    unexpected data is created. So this fix discontiguity of the memory layout
+    of numpy.ndarray if it is detected.
