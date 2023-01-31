@@ -75,7 +75,7 @@ class TestSaveProbabilities(SimulatorTestCase):
 
     @supported_methods([
         'automatic', 'statevector', 'density_matrix', 'matrix_product_state',
-        'stabilizer'
+        'stabilizer', 'tensor_network'
     ], [[0, 1], [1, 0], [0], [1]])
     def test_save_probabilities(self, method, device, qubits):
         """Test save probabilities instruction"""
@@ -83,7 +83,7 @@ class TestSaveProbabilities(SimulatorTestCase):
 
     @supported_methods([
         'automatic', 'statevector', 'density_matrix', 'matrix_product_state',
-        'stabilizer'
+        'stabilizer', 'tensor_network'
     ], [[0, 1], [1, 0], [0], [1]])
     def test_save_probabilities_dict(self, method, device, qubits):
         """Test save probabilities dict instruction"""

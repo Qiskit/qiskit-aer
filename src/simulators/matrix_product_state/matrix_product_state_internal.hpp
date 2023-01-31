@@ -337,8 +337,6 @@ public:
   reg_t apply_measure_internal(const reg_t &qubits, const rvector_t &rands);
   reg_t sample_measure(uint_t shots, RngEngine &rng) const;
 
-  reg_t sort_measured_values(reg_t input_outcome, reg_t& sub_ordering);
-
   //----------------------------------------------------------------
   // Function name: initialize_from_statevector_internal
   // Description: This function receives as input a state_vector and
@@ -455,6 +453,13 @@ private:
 
   uint_t sample_measure_single_qubit(uint_t qubit, double &prob, 
 				     double rnd, cmatrix_t &mat) const;
+
+  // The return result contains the elements of input_qubits sorted according to
+  // their order in ordering_.order_.
+  // The vector returned in sub_ordering contains the indices of the qubits to be
+  // measured in ordering_.order_.
+  reg_t sort_qubits_by_ordering(reg_t input_qubits, reg_t& sub_ordering);
+  reg_t sort_measured_values(reg_t input_outcome, reg_t& sub_ordering);
   //----------------------------------------------------------------
   // Function name: get_single_probability0
   // Description: Returns the probability that `qubit` will measure 0, given all the measurements

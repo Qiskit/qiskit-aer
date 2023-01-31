@@ -43,6 +43,10 @@ class TestAlgorithms(SimulatorTestCase):
     def _test_teleport(self, **options):
         """Test teleport circuits."""
         shots = 1000
+        for key, val in options.items():
+            if 'method' == key and 'tensor_network' in val:
+                shots = 100
+
         backend = self.backend(**options)
 
         circuits = ref_algorithms.teleport_circuit()
@@ -56,7 +60,7 @@ class TestAlgorithms(SimulatorTestCase):
 
     @supported_methods(
         ['automatic', 'statevector', 'density_matrix',
-         'matrix_product_state', 'extended_stabilizer'])
+         'matrix_product_state', 'extended_stabilizer', 'tensor_network'])
     def test_grovers(self, method, device):
         """Test grovers circuits execute."""
         
@@ -71,7 +75,7 @@ class TestAlgorithms(SimulatorTestCase):
 
     @supported_methods(
         ['automatic', 'statevector', 'density_matrix',
-         'matrix_product_state', 'extended_stabilizer'])
+         'matrix_product_state', 'extended_stabilizer', 'tensor_network'])
     def test_teleport(self, method, device):
         """Test teleport circuits."""
         self._test_teleport(method=method, device=device)

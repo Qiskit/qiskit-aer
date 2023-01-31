@@ -28,7 +28,7 @@ class TestPauliGate(SimulatorTestCase):
 
     @supported_methods(
         ["automatic", "stabilizer", "statevector", "density_matrix", "matrix_product_state",
-         "unitary", "superop", "extended_stabilizer"], ['I', 'X', 'Y', 'Z', 'XY', 'ZXY'])
+         "unitary", "superop", "extended_stabilizer", "tensor_network"], ['I', 'X', 'Y', 'Z', 'XY', 'ZXY'])
     def test_pauli_gate(self, method, device, pauli):
         """Test multi-qubit Pauli gate."""
         pauli = qi.Pauli(pauli)

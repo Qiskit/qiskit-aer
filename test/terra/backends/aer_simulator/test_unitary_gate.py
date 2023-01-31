@@ -29,7 +29,7 @@ from test.terra.backends.simulator_test_case import (
 class TestUnitaryGates(SimulatorTestCase):
     """AerSimulator unitary gate tests."""
  
-    METHODS = ["automatic", "statevector", "density_matrix", "matrix_product_state"]
+    METHODS = ["automatic", "statevector", "density_matrix", "matrix_product_state", "tensor_network"]
 
     # ---------------------------------------------------------------------
     # Test unitary gate qobj instruction
