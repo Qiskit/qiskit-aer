@@ -16,9 +16,9 @@ Sampler class.
 
 from __future__ import annotations
 
-from collections.abc import Iterable, Sequence
+from collections.abc import Sequence
 
-from qiskit.circuit import Parameter, QuantumCircuit
+from qiskit.circuit import QuantumCircuit
 from qiskit.compiler import transpile
 from qiskit.exceptions import QiskitError
 from qiskit.primitives import BaseSampler, SamplerResult
@@ -52,8 +52,7 @@ class Sampler(BaseSampler):
 
     def __init__(
         self,
-        circuits: QuantumCircuit | Iterable[QuantumCircuit] | None = None,
-        parameters: Iterable[Iterable[Parameter]] | None = None,
+        *,
         backend_options: dict | None = None,
         transpile_options: dict | None = None,
         run_options: dict | None = None,
@@ -61,24 +60,12 @@ class Sampler(BaseSampler):
     ):
         """
         Args:
-            circuits: Circuits to be executed.
-            parameters: Parameters of each of the quantum circuits.
-                Defaults to ``[circ.parameters for circ in circuits]``.
             backend_options: Options passed to AerSimulator.
             transpile_options: Options passed to transpile.
             run_options: Options passed to run.
             skip_transpilation: if True, transpilation is skipped.
         """
-        if isinstance(circuits, QuantumCircuit):
-            circuits = (circuits,)
-        if circuits is not None:
-            circuits = tuple(init_circuit(circuit) for circuit in circuits)
-
-        super().__init__(
-            circuits=circuits,
-            parameters=parameters,
-            options=run_options,
-        )
+        super().__init__(options=run_options)
         self._is_closed = False
         self._backend = AerSimulator()
         backend_options = {} if backend_options is None else backend_options
@@ -87,6 +74,7 @@ class Sampler(BaseSampler):
         self._skip_transpilation = skip_transpilation
 
         self._transpiled_circuits = {}
+        self._circuit_ids = {}
 
     def _call(
         self,
@@ -144,7 +132,6 @@ class Sampler(BaseSampler):
 
         return SamplerResult(quasis, metadata)
 
-    # This method will be used after Terra 0.22.
     def _run(
         self,
         circuits: Sequence[QuantumCircuit],
