@@ -37,6 +37,7 @@ from qiskit.circuit.library import QFT, HGate
 from test.terra import common
 from qiskit_aer.aererror import AerError
 from qiskit_aer.quantum_info.states import AerStatevector
+from qiskit.quantum_info.operators.predicates import ATOL_DEFAULT, RTOL_DEFAULT
 
 
 logger = logging.getLogger(__name__)
@@ -312,6 +313,16 @@ class TestAerStatevector(common.QiskitAerTestCase):
 
         for e, s in zip(expected, state):
             self.assertAlmostEqual(e, s)
+
+    def test_initialize_with_non_contiguous_ndarray(self):
+        """Test ndarray initialization """
+
+        for n_qubits in [2, 4, 8, 16]:
+            u = random_unitary(n_qubits, seed=1111).data
+            vec = u[0, :]
+            state = AerStatevector(vec)
+
+            self.assertTrue(np.allclose(state, vec, rtol=RTOL_DEFAULT, atol=ATOL_DEFAULT))
 
     def test_initialize_with_terra_statevector(self):
         """Test Statevector initialization """
@@ -1347,13 +1358,14 @@ class TestAerStatevector(common.QiskitAerTestCase):
             ([-1, 1j], ["-", "+i"]),
             ([1e-16 + 1j], ["i"]),
             ([-1 + 1e-16 * 1j], ["-"]),
-            ([-1, -1 - 1j], ["-", "+ (-1 - i)"]),
+            ([-1, -1 - 1j], ["-", "+(-1 - i)"]),
             ([np.sqrt(2) / 2, np.sqrt(2) / 2], ["\\frac{\\sqrt{2}}{2}", "+\\frac{\\sqrt{2}}{2}"]),
             ([1 + np.sqrt(2)], ["(1 + \\sqrt{2})"]),
         ]
-        for numbers, latex_terms in cases:
-            terms = numbers_to_latex_terms(numbers)
-            self.assertListEqual(terms, latex_terms)
+        with self.assertWarns(DeprecationWarning):
+            for numbers, latex_terms in cases:
+                terms = numbers_to_latex_terms(numbers, 15)
+                self.assertListEqual(terms, latex_terms)
 
     def test_statevector_draw_latex_regression(self):
         """Test numerical rounding errors are not printed"""

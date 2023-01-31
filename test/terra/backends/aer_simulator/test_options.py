@@ -27,7 +27,7 @@ class TestOptions(SimulatorTestCase):
 
     @supported_methods(
         ['automatic', 'stabilizer', 'statevector', 'density_matrix',
-         'matrix_product_state', 'extended_stabilizer'])
+         'matrix_product_state', 'extended_stabilizer', 'tensor_network'])
     def test_seed_simulator_option_measure(self, method, device):
         """Test seed_simulator option fixes measurement outcomes"""
         backend = self.backend(method=method, device=device,
@@ -45,7 +45,7 @@ class TestOptions(SimulatorTestCase):
 
     @supported_methods(
         ['automatic', 'stabilizer', 'statevector', 'density_matrix',
-         'matrix_product_state', 'extended_stabilizer'])
+         'matrix_product_state', 'extended_stabilizer', 'tensor_network'])
     def test_seed_simulator_run_option_measure(self, method, device):
         """Test seed_simulator option fixes measurement outcomes"""
         backend = self.backend(method=method, device=device)
@@ -61,7 +61,7 @@ class TestOptions(SimulatorTestCase):
 
     @supported_methods(
         ['automatic', 'stabilizer', 'statevector', 'density_matrix',
-         'matrix_product_state', 'extended_stabilizer', 'unitary', 'superop'])
+         'matrix_product_state', 'extended_stabilizer', 'unitary', 'superop', 'tensor_network'])
     def test_method_option(self, method, device):
         """Test method option works"""
         backend = self.backend(method=method, device=device)
@@ -81,7 +81,7 @@ class TestOptions(SimulatorTestCase):
 
     @supported_methods(
         ['automatic', 'stabilizer', 'statevector', 'density_matrix',
-         'matrix_product_state', 'extended_stabilizer', 'unitary', 'superop'])
+         'matrix_product_state', 'extended_stabilizer', 'unitary', 'superop', 'tensor_network'])
     def test_device_option(self, method, device):
         """Test device option works"""
         backend = self.backend(method=method, device=device)
@@ -121,7 +121,7 @@ class TestOptions(SimulatorTestCase):
         self.assertEqual(sorted(basis_gates1), sorted(basis_gates2))
     @supported_methods(
         ['automatic', 'stabilizer', 'statevector', 'density_matrix',
-         'matrix_product_state', 'extended_stabilizer'])
+         'matrix_product_state', 'extended_stabilizer', 'tensor_network'])
     def test_shots_option(self, method, device):
         """Test shots option is observed"""
         shots = 99
@@ -136,7 +136,7 @@ class TestOptions(SimulatorTestCase):
 
     @supported_methods(
         ['automatic', 'stabilizer', 'statevector', 'density_matrix',
-         'matrix_product_state', 'extended_stabilizer'])
+         'matrix_product_state', 'extended_stabilizer', 'tensor_network'])
     def test_shots_run_option(self, method, device):
         """Test shots option is observed"""
         shots = 99

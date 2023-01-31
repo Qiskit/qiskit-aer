@@ -21,7 +21,7 @@ from test.terra.backends.simulator_test_case import (
 
 SUPPORTED_METHODS = [
     'automatic', 'stabilizer', 'statevector', 'density_matrix',
-    'matrix_product_state', 'extended_stabilizer'
+    'matrix_product_state', 'extended_stabilizer', 'tensor_network'
 ]
 
 
