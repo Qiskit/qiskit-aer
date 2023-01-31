@@ -58,6 +58,7 @@ protected:
   bool enable_cuStatevec_;
 
   int num_threads_per_group_;
+  uint_t num_creg_bits_ = 0;
 public:
   ChunkManager();
 
@@ -105,6 +106,10 @@ public:
   void set_num_threads_per_group(int n)
   {
     num_threads_per_group_ = n;
+  }
+  void set_num_creg_bits(uint_t bits)
+  {
+    num_creg_bits_ = bits;
   }
 
   bool MapChunk(Chunk<data_t>& chunk,int iplace = -1);
@@ -312,6 +317,7 @@ uint_t ChunkManager<data_t>::Allocate(int chunk_bits,int nqubits,uint_t nchunks,
           nc = 1;
       }
       chunks_[iDev]->set_chunk_index(chunk_index_ + chunks_allocated);  //set first chunk index for the container
+      chunks_[iDev]->set_num_creg_bits(num_creg_bits_);
       if(num_devices_ > 0)
         chunks_allocated += chunks_[iDev]->Allocate((iDev + idev_start)%num_devices_,chunk_bits,nqubits,nc,num_buffers,multi_shots_,matrix_bit,density_matrix_);
       else

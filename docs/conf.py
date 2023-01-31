@@ -67,6 +67,7 @@ extensions = [
     'sphinx_tabs.tabs',
     'jupyter_sphinx',
     'reno.sphinxext',
+    'matplotlib.sphinxext.plot_directive',
 ]
 html_static_path = ['_static']
 templates_path = ['_templates']

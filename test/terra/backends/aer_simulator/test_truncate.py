@@ -12,13 +12,12 @@ from ddt import ddt
 from qiskit import transpile, QuantumCircuit, Aer
 from qiskit.providers.fake_provider import FakeQuito
 from qiskit_aer.noise import NoiseModel
-from qiskit.test import mock
 from test.terra.backends.simulator_test_case import (
     SimulatorTestCase, supported_methods)
 
 ALL_METHODS = [
     'automatic', 'stabilizer', 'statevector', 'density_matrix',
-    'matrix_product_state', 'extended_stabilizer'
+    'matrix_product_state', 'extended_stabilizer', 'tensor_network'
 ]
 
 @ddt
