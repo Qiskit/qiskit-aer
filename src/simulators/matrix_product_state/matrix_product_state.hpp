@@ -812,12 +812,6 @@ std::vector<reg_t> State::
 				     RngEngine &rng) {
   std::vector<reg_t> all_samples;
   all_samples.resize(shots);
-  // input is always sorted in qasm_controller, therefore, we must return the qubits 
-  // to their original location (sorted)
-  //qreg_.move_all_qubits_to_sorted_ordering();
-  reg_t sorted_qubits = qubits;
-  std::sort(sorted_qubits.begin(), sorted_qubits.end());
-
   std::vector<rvector_t> rnds_list;
   rnds_list.reserve(shots);
   for (int_t i = 0; i < shots; ++i) {
@@ -827,13 +821,14 @@ std::vector<reg_t> State::
       rands.push_back(rng.rand(0., 1.));
     rnds_list.push_back(rands);
   }
+
   #pragma omp parallel if (BaseState::threads_ > 1) num_threads(BaseState::threads_)
   {
     MPS temp;
     #pragma omp for
     for (int_t i=0; i<static_cast<int_t>(shots);  i++) {
       temp.initialize(qreg_);
-      auto single_result = temp.apply_measure_internal(sorted_qubits, rnds_list[i]);
+      auto single_result = temp.apply_measure_internal(qubits, rnds_list[i]);
       all_samples[i] = single_result;
     }
   }

@@ -70,7 +70,7 @@ class TestSetState(SimulatorTestCase):
         value = simdata[label]
         self.assertEqual(value, target)
 
-    @supported_methods(['automatic', 'statevector'], [1, 2, 3])
+    @supported_methods(['automatic', 'statevector', 'tensor_network'], [1, 2, 3])
     def test_set_statevector(self, method, device, num_qubits):
         """Test SetStatevector for instruction"""
         backend = self.backend(method=method, device=device)
@@ -93,7 +93,7 @@ class TestSetState(SimulatorTestCase):
         value = simdata[label]
         self.assertEqual(value, target)
 
-    @supported_methods(['automatic', 'density_matrix'], [1, 2, 3])
+    @supported_methods(['automatic', 'density_matrix', 'tensor_network'], [1, 2, 3])
     def test_set_density_matrix(self, method, device, num_qubits):
         """Test SetDensityMatrix instruction"""
         backend = self.backend(method=method, device=device)

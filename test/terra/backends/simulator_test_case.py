@@ -37,6 +37,9 @@ class SimulatorTestCase(QiskitAerTestCase):
             if 'device' == key and 'cuStateVec' in val:
                 sim_options['device'] = 'GPU'
                 sim_options['cuStateVec_enable'] = True
+            elif 'device' == key and 'batch' in val:
+                sim_options['device'] = 'GPU'
+                sim_options['batched_shots_gpu'] = True
             else:
                 sim_options[key] = val
         return self.BACKEND(**sim_options)
@@ -77,17 +80,25 @@ def _method_device(methods):
     #add special test device for cuStateVec if available
     cuStateVec = check_cuStateVec(available_devices)
 
-    gpu_methods = ['statevector', 'density_matrix', 'unitary']
+    gpu_methods = ['statevector', 'density_matrix', 'unitary', 'tensor_network']
     data_args = []
     for method in methods:
         if method in gpu_methods:
-            for device in available_devices:
-                data_args.append((method, device))
-            #add test cases for cuStateVec if available using special device = 'GPU_cuStateVec'
-            #'GPU_cuStateVec' is used only inside tests not available in Aer
-            #and this is converted to "device='GPU'" and option "cuStateVec_enalbe = True" is added
-            if cuStateVec:
-                data_args.append((method, 'GPU_cuStateVec'))
+            if 'tensor_network' == method:
+                for device in available_devices:
+                    if device == 'GPU':
+	                    data_args.append((method, 'GPU'))
+            else:
+                for device in available_devices:
+                    data_args.append((method, device))
+                    if device == 'GPU':
+                        #add batched optimization test for GPU
+                        data_args.append((method, 'GPU_batch'))
+                #add test cases for cuStateVec if available using special device = 'GPU_cuStateVec'
+                #'GPU_cuStateVec' is used only inside tests not available in Aer
+                #and this is converted to "device='GPU'" and option "cuStateVec_enalbe = True" is added
+                if cuStateVec and 'tensor_network' != method:
+                    data_args.append((method, 'GPU_cuStateVec'))
         else:
             data_args.append((method, 'CPU'))
     return data_args
