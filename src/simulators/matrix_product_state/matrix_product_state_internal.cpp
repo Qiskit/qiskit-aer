@@ -149,7 +149,6 @@ bool is_ordered(const reg_t &qubits);
 uint_t binary_search(const rvector_t &acc_probvector, 
 		     uint_t start, uint_t end, 
 		     double rnd);
-
 //------------------------------------------------------------------------
 // local function implementations
 //------------------------------------------------------------------------
@@ -174,8 +173,7 @@ void reorder_all_qubits(const vec_t& orig_probvector,
 			const reg_t &qubits,
 			vec_t& new_probvector) {
   uint_t new_index;
-  //uint_t length = 1ULL << qubits.size();   // length = pow(2, num_qubits)
-  uint_t length = orig_probvector.size();
+  uint_t length = 1ULL << qubits.size();   // length = pow(2, num_qubits)
 
   // if qubits are [k0, k1,...,kn], move them to [0, 1, .. , n], but preserve relative
   // ordering
@@ -1497,7 +1495,7 @@ reg_t MPS::apply_measure(const reg_t &qubits, const rvector_t &rnds) {
 
 reg_t MPS::apply_measure_internal(const reg_t &qubits, const rvector_t &rands) {
   // We begin measuring the qubits from the leftmost qubit in the internal
-  // MPS structure that is in 'qubits'.
+  // MPS structure that is in 'qubits'. We measure the qubits from left to right.
   // For every qubit, q, that is measured, we must propagate the effect of its
   // measurement to its neighbors, l and r, and then to their neighbors, and
   // so on. If r (or l) is measured next, then there is no need to propagate to
@@ -1518,7 +1516,7 @@ reg_t MPS::apply_measure_internal(const reg_t &qubits, const rvector_t &rands) {
   // This means the qubits will be measured in the order they appear in the MPS
   // structure. This allows more efficient propagation of values between qubits.
   reg_t sub_ordering(qubits.size());
-  reg_t sorted_qubits = sort_by_ordering(qubits, sub_ordering);
+  reg_t sorted_qubits = sort_qubits_by_ordering(qubits, sub_ordering);
 
   uint_t next_measured_qubit = num_qubits_-1;
   for (uint_t i=0; i<size; i++) {
@@ -1581,7 +1579,7 @@ void MPS::propagate_to_neighbors_internal(uint_t min_qubit, uint_t max_qubit,
   }
 }
 
-reg_t MPS::sort_by_ordering(reg_t input_qubits, reg_t& sub_ordering) {
+reg_t MPS::sort__qubits_by_ordering(reg_t input_qubits, reg_t& sub_ordering) {
   reg_t sorted_qubits(input_qubits.size());
   uint_t next = 0;
   for (uint_t i=0; i<num_qubits_; i++) {
@@ -1626,7 +1624,6 @@ reg_t MPS::sort_measured_values(reg_t input_outcome, reg_t& sub_ordering) {
 reg_t MPS::sample_measure(uint_t shots, RngEngine &rng) const {
   double prob = 1;
   reg_t current_measure(num_qubits_);
-  //bool is_first_qubit = true;
   cmatrix_t mat;
   rvector_t rnds(num_qubits_);
   for (uint_t i = 0; i < num_qubits_; ++i) {

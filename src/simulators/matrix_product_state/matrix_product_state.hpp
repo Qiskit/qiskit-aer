@@ -821,6 +821,7 @@ std::vector<reg_t> State::
       rands.push_back(rng.rand(0., 1.));
     rnds_list.push_back(rands);
   }
+
   #pragma omp parallel if (BaseState::threads_ > 1) num_threads(BaseState::threads_)
   {
     MPS temp;

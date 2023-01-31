@@ -458,7 +458,7 @@ private:
   // their order in ordering_.order_.
   // The vector returned in sub_ordering contains the indices of the qubits to be
   // measured in ordering_.order_.
-  reg_t sort_by_ordering(reg_t input_qubits, reg_t& sub_ordering);
+  reg_t sort_qubits_by_ordering(reg_t input_qubits, reg_t& sub_ordering);
   reg_t sort_measured_values(reg_t input_outcome, reg_t& sub_ordering);
   //----------------------------------------------------------------
   // Function name: get_single_probability0
