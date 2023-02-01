@@ -14,4 +14,6 @@ jobs:
       - uses: Qiskit/qiskit-neko@main
         with:
           test_selection: backend
-          repo_install_command: pip install -e .
+          repo_install_command: |
+            pip install conan
+            pip install .

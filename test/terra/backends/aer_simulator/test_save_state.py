@@ -29,7 +29,7 @@ class TestSaveState(SimulatorTestCase):
 
     @supported_methods(['automatic', 'statevector', 'density_matrix',
                         'stabilizer', 'matrix_product_state',
-                        'unitary', 'superop'])
+                        'unitary', 'superop', 'tensor_network'])
     def test_save_state(self, method, device):
         """Test save_amplitudes instruction"""
 
@@ -40,7 +40,8 @@ class TestSaveState(SimulatorTestCase):
             'density_matrix': SaveDensityMatrix,
             'matrix_product_state': SaveMatrixProductState,
             'unitary': SaveUnitary,
-            'superop': SaveSuperOp
+            'superop': SaveSuperOp,
+            'tensor_network' : SaveStatevector
         }
 
         backend = self.backend(method=method, device=device)

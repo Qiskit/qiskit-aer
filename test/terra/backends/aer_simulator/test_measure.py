@@ -27,7 +27,7 @@ from test.terra.backends.simulator_test_case import (
 
 SUPPORTED_METHODS = [
     'automatic', 'stabilizer', 'statevector', 'density_matrix',
-    'matrix_product_state', 'extended_stabilizer'
+    'matrix_product_state', 'extended_stabilizer', 'tensor_network'
 ]
 
 
@@ -91,12 +91,16 @@ class TestMeasure(SimulatorTestCase):
         """Test AerSimulator measure with non-deterministic counts without sampling"""
         backend = self.backend(method=method, device=device)
         shots = 4000
+        delta=0.05
+        if 'tensor_network' in method:
+            shots = 100
+            delta=0.1
         circuits = ref_measure.measure_circuits_nondeterministic(
             allow_sampling=False)
         targets = ref_measure.measure_counts_nondeterministic(shots)
         result = backend.run(circuits, shots=shots).result()
         self.assertSuccess(result)
-        self.compare_counts(result, circuits, targets, delta=0.05 * shots)
+        self.compare_counts(result, circuits, targets, delta=delta * shots)
         self.compare_result_metadata(result, circuits, "measure_sampling", False)
 
     @supported_methods(SUPPORTED_METHODS)
@@ -139,7 +143,7 @@ class TestMeasure(SimulatorTestCase):
         targets = ref_measure.measure_counts_deterministic(shots)
         result = backend.run(circuits, shots=shots).result()
         self.assertSuccess(result)
-        sampling = (method == "density_matrix")
+        sampling = (method == "density_matrix" or method == "tensor_network")
         self.compare_result_metadata(result, circuits, "measure_sampling", sampling)
 
     # ---------------------------------------------------------------------
@@ -192,12 +196,16 @@ class TestMeasure(SimulatorTestCase):
         """Test AerSimulator measure with non-deterministic counts"""
         backend = self.backend(method=method, device=device)
         shots = 4000
+        delta=0.05
+        if 'tensor_network' in method:
+            shots = 100
+            delta=0.1
         circuits = ref_measure.multiqubit_measure_circuits_nondeterministic(
             allow_sampling=False)
         targets = ref_measure.multiqubit_measure_counts_nondeterministic(shots)
         result = backend.run(circuits, shots=shots).result()
         self.assertSuccess(result)
-        self.compare_counts(result, circuits, targets, delta=0.05 * shots)
+        self.compare_counts(result, circuits, targets, delta=delta * shots)
         self.compare_result_metadata(result, circuits, "measure_sampling", False)
 
     # ---------------------------------------------------------------------
