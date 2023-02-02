@@ -1595,7 +1595,7 @@ reg_t MPS::sort_qubits_by_ordering(const reg_t& input_qubits, reg_t& sub_orderin
   return sorted_qubits;
 }
 
-reg_t MPS::sort_measured_values(reg_t input_outcome, reg_t& sub_ordering) {
+reg_t MPS::sort_measured_values(const reg_t& input_outcome, reg_t& sub_ordering) {
   reg_t sorted_outcome(input_outcome.size());
   uint_t next = 0;
   for (uint_t min_index=0; min_index<num_qubits_; min_index++) {
