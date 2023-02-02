@@ -213,7 +213,7 @@ const stringmap_t<Gates> State::gateset_({
 //-------------------------------------------------------------------------
 
 void State::initialize_qreg(uint_t num_qubits) {
-  BaseState::qreg_ = Clifford::Clifford(num_qubits);
+  BaseState::qreg_.initialize(num_qubits);
 }
 
 //-------------------------------------------------------------------------
@@ -456,8 +456,7 @@ void State::apply_set_stabilizer(const Clifford::Clifford &clifford) {
       std::to_string(clifford.num_qubits()) + " != " +
       std::to_string(BaseState::qreg_.num_qubits()) + ").");
   }
-  BaseState::qreg_.table() = clifford.table();
-  BaseState::qreg_.phases() = clifford.phases();
+  BaseState::qreg_.apply_set_stabilizer(clifford);
 }
 
 //=========================================================================
@@ -540,74 +539,9 @@ void State::apply_save_amplitudes_sq(const Operations::Op &op,
 }
 
 double State::expval_pauli(const reg_t &qubits,
-                           const std::string& pauli) {
-  // Construct Pauli on N-qubits
-  const auto num_qubits = BaseState::qreg_.num_qubits();
-  Pauli::Pauli P(num_qubits);
-  uint_t phase = 0;
-  for (size_t i = 0; i < qubits.size(); ++i) {
-    switch (pauli[pauli.size() - 1 - i]) {
-      case 'X':
-        P.X.set1(qubits[i]);
-        break;
-      case 'Y':
-        P.X.set1(qubits[i]);
-        P.Z.set1(qubits[i]);
-        phase += 1;
-        break;
-      case 'Z':
-        P.Z.set1(qubits[i]);
-        break;
-      default:
-        break;
-    };
-  }
-
-  // Check if there is a stabilizer that anti-commutes with an odd number of qubits
-  // If so expectation value is 0
-  for (size_t i = 0; i < num_qubits; i++) {
-    const auto& stabi = BaseState::qreg_.stabilizer(i);
-    size_t num_anti = 0;
-    for (const auto& qubit : qubits) {
-      if (P.Z[qubit] & stabi.X[qubit]) {
-	      num_anti++;
-      }
-      if (P.X[qubit] & stabi.Z[qubit]) {
-	      num_anti++;
-      }
-    }
-    if(num_anti % 2 == 1)
-      return 0.0;
-  }
-
-  // Otherwise P is (-1)^a prod_j S_j^b_j for Clifford stabilizers
-  // If P anti-commutes with D_j then b_j = 1.
-  // Multiply P by stabilizers with anti-commuting destabilizers
-  auto PZ = P.Z; // Make a copy of P.Z 
-  for (size_t i = 0; i < num_qubits; i++) {
-    // Check if destabilizer anti-commutes
-    const auto& destabi = BaseState::qreg_.destabilizer(i);
-    size_t num_anti = 0;
-    for (const auto& qubit : qubits) {
-      if (P.Z[qubit] & destabi.X[qubit]) {
-	      num_anti++;
-      }
-      if (P.X[qubit] & destabi.Z[qubit]) {
-	      num_anti++;
-      }
-    }
-    if (num_anti % 2 == 0) continue;
-
-    // If anti-commutes multiply Pauli by stabilizer
-    const auto& stabi = BaseState::qreg_.stabilizer(i);
-    phase += 2 * BaseState::qreg_.phases()[i + num_qubits];
-    for (size_t k = 0; k < num_qubits; k++) {
-      phase += stabi.Z[k] & stabi.X[k];
-      phase += 2 * (PZ[k] & stabi.X[k]);
-      PZ.setValue(PZ[k] ^ stabi.Z[k], k);
-    }
-  }
-  return (phase % 4) ? -1.0 : 1.0;
+                           const std::string& pauli) 
+{
+  return BaseState::qreg_.expval_pauli(qubits, pauli);
 }
 
 static void set_value_helper(std::map<std::string, double>& probs,
