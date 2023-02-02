@@ -1579,7 +1579,7 @@ void MPS::propagate_to_neighbors_internal(uint_t min_qubit, uint_t max_qubit,
   }
 }
 
-reg_t MPS::sort_qubits_by_ordering(reg_t input_qubits, reg_t& sub_ordering) {
+reg_t MPS::sort_qubits_by_ordering(const reg_t& input_qubits, reg_t& sub_ordering) {
   reg_t sorted_qubits(input_qubits.size());
   uint_t next = 0;
   for (uint_t i=0; i<num_qubits_; i++) {
