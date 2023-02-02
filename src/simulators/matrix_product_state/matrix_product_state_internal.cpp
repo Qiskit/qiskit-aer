@@ -1517,6 +1517,7 @@ reg_t MPS::apply_measure_internal(const reg_t &qubits, const rvector_t &rands) {
   // structure. This allows more efficient propagation of values between qubits.
   reg_t sub_ordering(qubits.size());
   reg_t sorted_qubits = sort_qubits_by_ordering(qubits, sub_ordering);
+  
 
   uint_t next_measured_qubit = num_qubits_-1;
   for (uint_t i=0; i<size; i++) {
@@ -1579,6 +1580,13 @@ void MPS::propagate_to_neighbors_internal(uint_t min_qubit, uint_t max_qubit,
   }
 }
 
+// Here is an example to demonstrate what the following method does:
+// Assume qubit_ordering_.order_ == [0, 3, 1, 2,] and
+// we are measuring input_qubits == [2, 0, 3]
+// sub_ordering will contain the same qubits as in input_qubits, but in the
+// order they appear in qubit_ordering_.order_, i.e., [0, 3, 2].
+// sorted_qubits will contain the indices of input_qubits within
+// qubit_ordering_.order_, i.e., sorted_qubits == [0, 2, 3]
 reg_t MPS::sort_qubits_by_ordering(const reg_t& input_qubits, reg_t& sub_ordering) {
   reg_t sorted_qubits(input_qubits.size());
   uint_t next = 0;
