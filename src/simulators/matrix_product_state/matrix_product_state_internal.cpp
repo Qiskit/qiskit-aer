@@ -1515,9 +1515,9 @@ reg_t MPS::apply_measure_internal(const reg_t &qubits, const rvector_t &rands) {
   // We sort 'qubits' according to `ordering_.order_`.
   // This means the qubits will be measured in the order they appear in the MPS
   // structure. This allows more efficient propagation of values between qubits.
+  // This order will be defined in sorted_qubits.
   reg_t sub_ordering(qubits.size());
   reg_t sorted_qubits = sort_qubits_by_ordering(qubits, sub_ordering);
-  
 
   uint_t next_measured_qubit = num_qubits_-1;
   for (uint_t i=0; i<size; i++) {
@@ -1582,11 +1582,11 @@ void MPS::propagate_to_neighbors_internal(uint_t min_qubit, uint_t max_qubit,
 
 // Here is an example to demonstrate what the following method does:
 // Assume qubit_ordering_.order_ == [0, 3, 1, 2,] and
-// we are measuring input_qubits == [2, 0, 3]
+// we are measuring input_qubits == [0, 2, 3]
 // sub_ordering will contain the same qubits as in input_qubits, but in the
 // order they appear in qubit_ordering_.order_, i.e., [0, 3, 2].
 // sorted_qubits will contain the indices of input_qubits within
-// qubit_ordering_.order_, i.e., sorted_qubits == [0, 2, 3]
+// qubit_ordering_.order_, i.e., sorted_qubits == [0, 1, 3]
 reg_t MPS::sort_qubits_by_ordering(const reg_t& input_qubits, reg_t& sub_ordering) {
   reg_t sorted_qubits(input_qubits.size());
   uint_t next = 0;
@@ -1603,6 +1603,10 @@ reg_t MPS::sort_qubits_by_ordering(const reg_t& input_qubits, reg_t& sub_orderin
   return sorted_qubits;
 }
 
+// This method sorts the measurement outcomes in ascending order (0,1,2,...) because
+// this is the order expected by AerSimulator. For example,
+// If sub_ordering == [0,3,2,1] and input_outcome == [1000, 0100, 0010, 0001], then
+// sorted_outcome = [1000, 0001, 0010, 0100].
 reg_t MPS::sort_measured_values(const reg_t& input_outcome, reg_t& sub_ordering) {
   reg_t sorted_outcome(input_outcome.size());
   uint_t next = 0;
