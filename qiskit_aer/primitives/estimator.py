@@ -157,19 +157,22 @@ class Estimator(BaseEstimator):
 
         # Create expectation value experiments.
         if key in self._cache:  # Use a cache
-            experiments_dict, obs_maps = self._cache[key]
+            experiments_dict, obs_maps, num_exps = self._cache[key]
             param_binds_dict, param_inds = self._pre_process_params(circuits, parameter_values)
             experiments, parameter_binds = self._flatten(experiments_dict, param_binds_dict)
             post_processings = self._create_post_processing(
-                circuits, observables, param_inds, obs_maps, param_binds_dict
+                circuits, observables, param_inds, obs_maps, param_binds_dict, num_exps
             )
         else:
             experiments_dict = {}
-            obs_maps = {}
+            obs_maps = {}  # circ_ind => obs_ind => term_ind (Original Pauli) => exp_ind
             self._transpile_circuits(circuits)
             circ_obs_map = defaultdict(list)
+            num_exps = {}  # circ_ind => num_paulis for experiments
+            # Aggregate observables
             for circ_ind, obs_ind in zip(circuits, observables):
                 circ_obs_map[circ_ind].append(obs_ind)
+            # Group and create measurement circuit
             for circ_ind, obs_indices in circ_obs_map.items():
                 pauli_list = sum(
                     [self._observables[obs_ind].paulis for obs_ind in obs_indices]
@@ -178,6 +181,7 @@ class Estimator(BaseEstimator):
                     pauli_lists = pauli_list.group_commuting(qubit_wise=True)
                 else:
                     pauli_lists = [PauliList(pauli) for pauli in pauli_list]
+                num_exps[circ_ind] = len(pauli_lists)
                 obs_map = defaultdict(list)
                 for obs_ind in obs_indices:
                     for pauli in self._observables[obs_ind].paulis:
@@ -186,25 +190,17 @@ class Estimator(BaseEstimator):
                                 obs_map[obs_ind].append(exp_ind)
                                 break
                 obs_maps[circ_ind] = obs_map
-                paulis = [
-                    Pauli(
-                        (
-                            np.logical_or.reduce(pauli_list.z),  # pylint:disable=no-member
-                            np.logical_or.reduce(pauli_list.x),  # pylint:disable=no-member
-                        )
-                    )
-                    for pauli_list in pauli_lists
-                ]
-                if len(paulis) == 1 and not paulis[0].x.any() and not paulis[0].z.any():
+                bases = [_paulis2basis(pauli_list) for pauli_list in pauli_lists]
+                if len(bases) == 1 and not bases[0].x.any() and not bases[0].z.any():  # identity
                     break
-                meas_circuits = [self._create_meas_circuit(basis, circ_ind) for basis in paulis]
+                meas_circuits = [self._create_meas_circuit(basis, circ_ind) for basis in bases]
                 circuit = (
                     self._circuits[circ_ind]
                     if self._skip_transpilation
                     else self._transpiled_circuits[circ_ind]
                 )
                 experiments_dict[circ_ind] = self._combine_circs(circuit, meas_circuits)
-            self._cache[key] = experiments_dict, obs_maps
+            self._cache[key] = experiments_dict, obs_maps, num_exps
 
             param_binds_dict, param_inds = self._pre_process_params(circuits, parameter_values)
 
@@ -213,7 +209,7 @@ class Estimator(BaseEstimator):
 
             # Create PostProcessing
             post_processings = self._create_post_processing(
-                circuits, observables, param_inds, obs_maps, param_binds_dict
+                circuits, observables, param_inds, obs_maps, param_binds_dict, num_exps
             )
 
         # Run experiments
@@ -231,28 +227,31 @@ class Estimator(BaseEstimator):
             results = []
 
         # Post processing (calculate expectation values)
-        expectation_values = []
-        metadata = []
-        for post_processing in post_processings:
-            expval, meta = post_processing.run(results)
-            expectation_values.append(expval)
-            metadata.append(meta)
-        return EstimatorResult(np.real_if_close(expectation_values), metadata)
+        expectation_values, metadata = zip(
+            *(post_processing.run(results) for post_processing in post_processings)
+        )
+        return EstimatorResult(np.real_if_close(expectation_values), list(metadata))
 
     def _pre_process_params(self, circuits, parameter_values):
         param_inds = []
-        param_binds_dict = {}
+        param_binds_dict = {}  # circ_ind => parameter => value
+        param_history = defaultdict(list)
         for circ_ind, param_val in zip(circuits, parameter_values):
             self._validate_parameter_length(param_val, circ_ind)
             if circ_ind in param_binds_dict and len(self._parameters[circ_ind]) > 0:
-                param_inds.append(len(next(iter(param_binds_dict[circ_ind].values()))))
-                for k, v in zip(self._parameters[circ_ind], param_val):
-                    param_binds_dict[circ_ind][k].append(v)
+                if param_val in param_history[circ_ind]:
+                    param_inds.append(param_history[circ_ind].index(param_val))
+                else:
+                    param_inds.append(len(next(iter(param_binds_dict[circ_ind].values()))))
+                    for k, v in zip(self._parameters[circ_ind], param_val):
+                        param_binds_dict[circ_ind][k].append(v)
+                    param_history[circ_ind].append(param_val)
             else:
                 param_binds_dict[circ_ind] = {
                     k: [v] for k, v in zip(self._parameters[circ_ind], param_val)
                 }
                 param_inds.append(0)
+                param_history[circ_ind].append(param_val)
         return param_binds_dict, param_inds
 
     def _create_meas_circuit(self, basis: Pauli, circuit_index):
@@ -285,23 +284,18 @@ class Estimator(BaseEstimator):
 
     @staticmethod
     def _calculate_result_index(
-        obs_maps, param_ind, circ_ind, obs_ind, term_ind, param_binds
+        obs_maps, param_ind, circ_ind, obs_ind, term_ind, param_binds, num_exps
     ) -> int:
         circ_dup_num = {
             circ_ind: len(next(iter(v.values()))) if v else 1 for circ_ind, v in param_binds.items()
         }
-        obs_dup_num = {
-            circ_ind: {obs_ind: max(exp_inds) + 1 for obs_ind, exp_inds in obs_map.items()}
-            for circ_ind, obs_map in obs_maps.items()
-        }
         result_index = 0
-        for _circ_ind, obs_num_dict in obs_dup_num.items():
-            for _obs_ind, obs_num in obs_num_dict.items():
-                if circ_ind == _circ_ind and obs_ind == _obs_ind:
-                    obs_offset = obs_maps[circ_ind][obs_ind][term_ind]
-                    result_index += obs_offset * circ_dup_num[circ_ind] + param_ind
-                    return result_index
-                result_index += circ_dup_num[_circ_ind] * obs_num
+        for _circ_ind, obs_map in obs_maps.items():
+            if circ_ind == _circ_ind:
+                obs_offset = obs_map[obs_ind][term_ind]
+                result_index += obs_offset * circ_dup_num[circ_ind] + param_ind
+                return result_index
+            result_index += circ_dup_num[_circ_ind] * num_exps[_circ_ind]
         raise AerError(
             "Bug. Please report from isssue: https://github.com/Qiskit/qiskit-aer/issues"
         )
@@ -317,7 +311,7 @@ class Estimator(BaseEstimator):
         return experiments_list, parameter_binds
 
     def _create_post_processing(
-        self, circuits, observables, param_inds, obs_maps, param_binds
+        self, circuits, observables, param_inds, obs_maps, param_binds, num_exps
     ) -> list[_PostProcessing]:
         post_processings = []
         for circ_ind, obs_ind, param_ind in zip(circuits, observables, param_inds):
@@ -334,7 +328,7 @@ class Estimator(BaseEstimator):
                     continue
 
                 result_index = self._calculate_result_index(
-                    obs_maps, param_ind, circ_ind, obs_ind, term_ind, param_binds
+                    obs_maps, param_ind, circ_ind, obs_ind, term_ind, param_binds, num_exps
                 )
                 if result_index in result_indices:
                     i = result_indices.index(result_index)
@@ -553,3 +547,12 @@ def _paulis2inds(paulis: PauliList) -> list[int]:
 def _parity(integer: int) -> int:
     """Return the parity of an integer"""
     return bin(integer).count("1") % 2
+
+
+def _paulis2basis(paulis: PauliList) -> Pauli:
+    return Pauli(
+        (
+            np.logical_or.reduce(paulis.z),  # pylint:disable=no-member
+            np.logical_or.reduce(paulis.x),  # pylint:disable=no-member
+        )
+    )
