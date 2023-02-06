@@ -31,7 +31,7 @@
 #include "simulators/tensor_network/tensor.hpp"
 
 #include "simulators/tensor_network/tensor_net_contractor.hpp"
-#ifdef AER_THRUST_CUDA && AER_CUTENSORNET
+#if defined(AER_THRUST_CUDA) && defined(AER_CUTENSORNET)
 #include "simulators/tensor_network/tensor_net_contractor_cuTensorNet.hpp"
 #endif
 
@@ -322,7 +322,7 @@ protected:
 };
 
 //TODO : implement CPU version of contractor
-#ifdef AER_THRUST_CUDA && AER_CUTENSORNET
+#if defined(AER_THRUST_CUDA) && defined(AER_CUTENSORNET)
 #define create_contractor(contractor) \
   contractor = new TensorNetContractor_cuTensorNet<data_t>
 #else
