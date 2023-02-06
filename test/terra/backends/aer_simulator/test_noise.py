@@ -31,7 +31,7 @@ from test.terra.reference import ref_reset_noise
 
 ALL_METHODS = [
     'automatic', 'stabilizer', 'statevector', 'density_matrix',
-    'matrix_product_state', 'extended_stabilizer'
+    'matrix_product_state', 'extended_stabilizer', 'tensor_network'
 ]
 
 
@@ -85,7 +85,7 @@ class TestNoise(SimulatorTestCase):
 
     @supported_methods([
         'automatic', 'stabilizer', 'statevector', 'density_matrix',
-        'matrix_product_state', 'extended_stabilizer'])
+        'matrix_product_state', 'extended_stabilizer', 'tensor_network'])
     def test_pauli_reset_noise(self, method, device):
         """Test simulation with Pauli reset error noise model."""
         backend = self.backend(method=method, device=device)
@@ -134,7 +134,7 @@ class TestNoise(SimulatorTestCase):
             self.compare_counts(result, [circuit], [target], delta=0.05 * shots)
 
     @supported_methods([
-        'automatic', 'statevector', 'density_matrix', 'matrix_product_state'])
+        'automatic', 'statevector', 'density_matrix', 'matrix_product_state', 'tensor_network'])
     def test_kraus_gate_noise(self, method, device):
         """Test simulation with Kraus gate error noise model."""
         backend = self.backend(method=method, device=device)
@@ -182,7 +182,7 @@ class TestNoise(SimulatorTestCase):
         self.compare_counts(result, [ideal_circuit], [ref_target], hex_counts=False, delta=0.1 * shots)
 
     @supported_methods([
-        'automatic', 'statevector', 'density_matrix', 'matrix_product_state'])
+        'automatic', 'statevector', 'density_matrix', 'matrix_product_state', 'tensor_network'])
     def test_kraus_gate_noise_on_QFT(self, method, device):
         """Test Kraus noise on a QFT circuit"""
         self._test_kraus_gate_noise_on_QFT(
@@ -225,7 +225,7 @@ class TestNoise(SimulatorTestCase):
         probs = {key: val / shots for key, val in result.get_counts(0).items()}
         self.assertDictAlmostEqual(target_probs, probs, delta=0.1)
 
-    @supported_methods(['automatic', 'statevector', 'density_matrix'])
+    @supported_methods(['automatic', 'statevector', 'density_matrix', 'tensor_network'])
     def test_kraus_circuit_noise(self, method, device):
         """Test simulation with Kraus quantum errors in circuit."""
         backend = self.backend(method=method, device=device)

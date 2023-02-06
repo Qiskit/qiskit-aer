@@ -27,7 +27,7 @@ class TestMetadata(SimulatorTestCase):
 
     @supported_methods(
         ['automatic', 'statevector', 'density_matrix',
-         'matrix_product_state', 'extended_stabilizer'])
+         'matrix_product_state', 'extended_stabilizer', 'tensor_network'])
     def test_single_circuit_metadata(self, method, device):
         """Test circuits with object metadata."""
         backend = self.backend(method=method, device=device)
@@ -40,7 +40,7 @@ class TestMetadata(SimulatorTestCase):
 
     @supported_methods(
         ['automatic', 'statevector', 'density_matrix',
-         'matrix_product_state', 'extended_stabilizer'])
+         'matrix_product_state', 'extended_stabilizer', 'tensor_network'])
     def test_three_circuit_metadata(self, method, device):
         """Test circuits with object metadata."""
         backend = self.backend(method=method, device=device)
@@ -65,7 +65,7 @@ class TestMetadata(SimulatorTestCase):
         self.assertEqual(circuit2.metadata, metadata2)
 
     @supported_methods(
-        ['automatic', 'statevector', 'density_matrix', 'matrix_product_state'])
+        ['automatic', 'statevector', 'density_matrix', 'matrix_product_state', 'tensor_network'])
     def test_three_parameterized_circuit_metadata(self, method, device):
         """Test circuits with object metadata."""
         backend = self.backend(method=method, device=device)

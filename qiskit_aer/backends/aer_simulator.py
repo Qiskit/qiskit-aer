@@ -119,6 +119,10 @@ class AerSimulator(AerBackend):
       can simulate ideal and noisy gates, and reset, but does not support
       measurement.
 
+    * ``"tensor_network"``: A tensor-network based simulation that supports
+      both statevector and density matrix. Currently there is only available
+      for GPU and accelerated by using cuTensorNet APIs of cuQuantum.
+
     **GPU Simulation**
 
     By default all simulation methods run on the CPU, however select methods
@@ -143,6 +147,8 @@ class AerSimulator(AerBackend):
     | ``unitary``              | Yes           |
     +--------------------------+---------------+
     | ``superop``              | No            |
+    +--------------------------+---------------+
+    | ``tensor_network``       | Yes(GPU only) |
     +--------------------------+---------------+
 
     Running a GPU simulation is done using ``device="GPU"`` kwarg during
@@ -262,9 +268,10 @@ class AerSimulator(AerBackend):
       intermediate measurements and can greatly accelerate simulation time
       on GPUs. If there are multiple GPUs on the system, shots are distributed
       automatically across available GPUs. Also this option distributes multiple
-      shots to parallel processes of MPI (Default: True).
+      shots to parallel processes of MPI (Default: False).
       If multiple GPUs are used for batched exectuion number of GPUs is
       reported to ``batched_shots_optimization_parallel_gpus`` metadata.
+      ``cuStateVec_enable`` is not supported for this option.
 
     * ``batched_shots_gpu_max_qubits`` (int): This option sets the maximum
       number of qubits for enabling the ``batched_shots_gpu`` option. If the
@@ -395,6 +402,17 @@ class AerSimulator(AerBackend):
       Possible values are "mps_swap_right" and "mps_swap_left".
       (Default: "mps_swap_left")
 
+    These backend options only apply when using the ``tensor_network``
+    simulation method:
+
+    * ``tensor_network_num_sampling_qubits`` (int): is used to set number
+      of qubits to be sampled in single tensor network contraction when
+      using sampling measure. (Default: 10)
+
+    * ``use_cuTensorNet_autotuning`` (bool): enables auto tuning of plan
+      in cuTensorNet API. It takes some time for tuning, so enable if the
+      circuit is very large. (Default: False)
+
     These backend options apply in circuit optimization passes:
 
     * ``fusion_enable`` (bool): Enable fusion optimization in circuit
@@ -472,6 +490,14 @@ class AerSimulator(AerBackend):
         'superop': sorted([
             'quantum_channel', 'qerror_loc', 'kraus', 'superop', 'save_state',
             'save_superop', 'set_superop',
+        ]),
+        'tensor_network': sorted([
+            'quantum_channel', 'qerror_loc', 'roerror', 'kraus', 'superop',
+            'save_state', 'save_expval', 'save_expval_var',
+            'save_probabilities', 'save_probabilities_dict',
+            'save_density_matrix', 'save_amplitudes', 'save_amplitudes_sq',
+            'save_statevector', 'save_statevector_dict',
+            'set_statevector', 'set_density_matrix'
         ])
     }
 
@@ -483,7 +509,8 @@ class AerSimulator(AerBackend):
                 _CUSTOM_INSTR['density_matrix']).union(
                     _CUSTOM_INSTR['matrix_product_state']).union(
                         _CUSTOM_INSTR['unitary']).union(
-                            _CUSTOM_INSTR['superop']))
+                            _CUSTOM_INSTR['superop']).union(
+                                _CUSTOM_INSTR['tensor_network']))
 
     _DEFAULT_CONFIGURATION = {
         'backend_name': 'aer_simulator',
@@ -506,7 +533,7 @@ class AerSimulator(AerBackend):
     _SIMULATION_METHODS = [
         'automatic', 'statevector', 'density_matrix',
         'stabilizer', 'matrix_product_state', 'extended_stabilizer',
-        'unitary', 'superop'
+        'unitary', 'superop', 'tensor_network'
     ]
 
     _AVAILABLE_METHODS = None
@@ -524,12 +551,12 @@ class AerSimulator(AerBackend):
         self._controller = aer_controller_execute()
 
         # Update available methods and devices for class
-        if AerSimulator._AVAILABLE_METHODS is None:
-            AerSimulator._AVAILABLE_METHODS = available_methods(
-                self._controller, AerSimulator._SIMULATION_METHODS)
         if AerSimulator._AVAILABLE_DEVICES is None:
             AerSimulator._AVAILABLE_DEVICES = available_devices(
                 self._controller, AerSimulator._SIMULATION_DEVICES)
+        if AerSimulator._AVAILABLE_METHODS is None:
+            AerSimulator._AVAILABLE_METHODS = available_methods(
+                self._controller, AerSimulator._SIMULATION_METHODS, AerSimulator._AVAILABLE_DEVICES)
 
         # Default configuration
         if configuration is None:
@@ -578,7 +605,7 @@ class AerSimulator(AerBackend):
             blocking_enable=False,
             chunk_swap_buffer_qubits=None,
             # multi-shots optimization options (GPU only)
-            batched_shots_gpu=True,
+            batched_shots_gpu=False,
             batched_shots_gpu_max_qubits=16,
             num_threads_per_device=1,
             # statevector options
@@ -602,7 +629,11 @@ class AerSimulator(AerBackend):
             mps_swap_direction='mps_swap_left',
             chop_threshold=1e-8,
             mps_parallel_threshold=14,
-            mps_omp_threads=1)
+            mps_omp_threads=1,
+            # tensor network options
+            tensor_network_num_sampling_qubits=10,
+            use_cuTensorNet_autotuning=False
+        )
 
     def __repr__(self):
         """String representation of an AerSimulator."""
