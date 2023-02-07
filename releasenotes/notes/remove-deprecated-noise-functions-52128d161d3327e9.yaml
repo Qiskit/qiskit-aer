@@ -1,0 +1,29 @@
+---
+upgrade:
+  - |
+    A deprecated method :meth:`add_nonlocal_quantum_error` in `~.NoiseModel` has been removed.
+    No alternative method is available. So if you want to add non-local quantum errors,
+    you should write a transpiler pass that inserts your own quantum error into a circuit,
+    and run the pass just before running the circuit on Aer simulator.
+  - |
+    The :meth:`~.NoiseModel.from_backend` now has changed not to accept ``BackendProperties``
+    object as a ``backend`` argument. Use newly added :meth:`~.NoiseModel.from_backend_properties`
+    method instead.
+  - |
+    A deprecated ``standard_gates`` argument broadly used in several methods and functions
+    across :mod:`~.noise` module has been removed.
+  - |
+    The constructor of :class:`QuantumError` has now dropped deprecated arguments,
+    ``number_of_qubits``, ``standard_gates`` and ``atol``, and the support of deprecated
+    json-like objects for ``noise_ops`` argument.
+  - |
+    The deprecated :mod:`utils.noise_remapper` and :mod:`noise.errors.errorutils` modules
+    have been entirely removed.
+  - |
+    All deprecated functions and classes
+    in :mod:`utils.noise_transformation` module has been removed.
+deprecations:
+  - |
+    A ``warnings`` argument broadly used in several methods and functions
+    across :mod:`~.noise` module has been deprecated in favor of
+    the use of filtering functions in Python's standard ``warnings`` library.
