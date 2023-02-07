@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Aer does not work as a backend to transpile circuits with control-flow
+    because `break_loop` and `continue_loop` are not supported. This PR adds
+    these two gates as basis gates of statevector, density matrix, and mps
+    methods.
