@@ -727,6 +727,9 @@ reg_t AerState::initialize_statevector(uint_t num_of_qubits, complex_t* data, bo
 
   initialize_qreg_state(state);
 
+  if (cache_block_qubits_ > 0)
+    copy = true;
+
   auto vec = copy? AER::Vector<complex_t>::copy_from_buffer(data_size, data)
                  : AER::Vector<complex_t>::move_from_buffer(data_size, data);
 
@@ -760,6 +763,9 @@ reg_t AerState::initialize_densitymatrix(uint_t num_of_qubits, complex_t* data, 
   auto state = std::make_shared<DensityMatrix::State<QV::DensityMatrix<double>>>();
 
   initialize_qreg_state(state);
+
+  if (cache_block_qubits_ > 0)
+    copy = true;
 
   auto vec = copy? AER::Vector<complex_t>::copy_from_buffer(data_size, data)
                  : AER::Vector<complex_t>::move_from_buffer(data_size, data);
