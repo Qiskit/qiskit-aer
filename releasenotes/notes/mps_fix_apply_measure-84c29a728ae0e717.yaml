@@ -1,0 +1,10 @@
+---
+
+fixes:
+  - |
+    Fixed issue <https://github.com/Qiskit/qiskit-aer/issues/1694>.
+    Changed the MPS measurement algorithm so that it does not move the qubits
+    to the sorted positions before measuring. We measure the qubits in the
+    order of the current MPS structure and then sort the measurement values
+    as a post-process. Beside fixing the bug, this is expected to improve 
+    performance and enable more accurate representation of entangled states. 

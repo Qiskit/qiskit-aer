@@ -541,8 +541,11 @@ void Controller::set_config(const json_t &config) {
     }
   }
 
-  if(method_ == Method::tensor_network && sim_device_ != Device::GPU){
-    throw std::runtime_error("Invalid combination of simulation method and device, \"tensor_network\" only supports \"device=GPU\"");
+  if(method_ == Method::tensor_network){
+#if defined(AER_THRUST_CUDA) && defined(AER_CUTENSORNET)
+    if(sim_device_ != Device::GPU)
+#endif
+      throw std::runtime_error("Invalid combination of simulation method and device, \"tensor_network\" only supports \"device=GPU\"");
   }
 
   std::string precision;
