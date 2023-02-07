@@ -59,6 +59,7 @@
 #include "simulators/statevector/statevector_state.hpp"
 #include "simulators/superoperator/superoperator_state.hpp"
 #include "simulators/unitary/unitary_state.hpp"
+#include "simulators/tensor_network/tensor_net_state.hpp"
 
 namespace AER {
 
@@ -112,7 +113,8 @@ protected:
     stabilizer,
     extended_stabilizer,
     unitary,
-    superop
+    superop,
+    tensor_network
   };
 
   enum class Device { CPU, GPU, ThrustCPU };
@@ -128,7 +130,8 @@ protected:
     {Method::stabilizer, "stabilizer"},
     {Method::extended_stabilizer, "extended_stabilizer"},
     {Method::unitary, "unitary"},
-    {Method::superop, "superop"}
+    {Method::superop, "superop"},
+    {Method::tensor_network, "tensor_network"}
   };
 
   //-----------------------------------------------------------------------
@@ -289,6 +292,8 @@ protected:
   //return maximum number of qubits for matrix
   int_t get_max_matrix_qubits(const Circuit &circ) const;
   int_t get_matrix_bits(const Operations::Op& op) const;
+
+  bool has_statevector_ops(const Circuit &circuit) const;
 
   //-----------------------------------------------------------------------
   // Parallelization Config
@@ -487,6 +492,8 @@ void Controller::set_config(const json_t &config) {
       method_ = Method::unitary;
     } else if (method == "superop") {
       method_ = Method::superop;
+    } else if (method == "tensor_network") {
+      method_ = Method::tensor_network;
     } else if (method != "automatic") {
       throw std::runtime_error(std::string("Invalid simulation method (") +
                                method + std::string(")."));
@@ -532,6 +539,13 @@ void Controller::set_config(const json_t &config) {
       throw std::runtime_error(std::string("Invalid simulation device (\"") +
                                sim_device_name_ + std::string("\")."));
     }
+  }
+
+  if(method_ == Method::tensor_network){
+#if defined(AER_THRUST_CUDA) && defined(AER_CUTENSORNET)
+    if(sim_device_ != Device::GPU)
+#endif
+      throw std::runtime_error("Invalid combination of simulation method and device, \"tensor_network\" only supports \"device=GPU\"");
   }
 
   std::string precision;
@@ -681,7 +695,8 @@ void Controller::set_parallelization_circuit(const Circuit &circ,
       break;
     }
     case Method::density_matrix:
-    case Method::superop: {
+    case Method::superop:
+    case Method::tensor_network: {
       if (circ.shots == 1 || num_process_per_experiment_ > 1 ||
           check_measure_sampling_opt(circ, method)) {
         parallel_shots_ = 1;
@@ -1157,6 +1172,17 @@ void Controller::run_circuit(const Circuit &circ, const Noise::NoiseModel &noise
   case Method::matrix_product_state:
     return run_circuit_helper<MatrixProductState::State>(
         circ, noise, config, Method::matrix_product_state, result);
+  case Method::tensor_network: {
+    if (sim_precision_ == Precision::Double) {
+      return run_circuit_helper<
+          TensorNetwork::State<TensorNetwork::TensorNet<double>>>(
+          circ, noise, config, Method::tensor_network, result);
+    } else {
+      return run_circuit_helper<
+          TensorNetwork::State<TensorNetwork::TensorNet<float>>>(
+          circ, noise, config, Method::tensor_network, result);
+    }
+  }
   default:
     throw std::runtime_error("Controller:Invalid simulation method");
   }
@@ -1218,6 +1244,15 @@ size_t Controller::required_memory_mb(const Circuit &circ,
     MatrixProductState::State state;
     return state.required_memory_mb(circ.num_qubits, circ.ops);
   }
+  case Method::tensor_network: {
+    if (sim_precision_ == Precision::Single) {
+      TensorNetwork::State<TensorNetwork::TensorNet<float>> state;
+      return state.required_memory_mb(circ.num_qubits, circ.ops);
+    } else {
+      TensorNetwork::State<TensorNetwork::TensorNet<double>> state;
+      return state.required_memory_mb(circ.num_qubits, circ.ops);
+    }
+  }
   default:
     // We shouldn't get here, so throw an exception if we do
     throw std::runtime_error("Controller: Invalid simulation method");
@@ -1260,6 +1295,20 @@ Transpile::Fusion Controller::transpile_fusion(Method method,
     fusion_pass.threshold /= 2;
     break;
   }
+  case Method::tensor_network: {
+    if(opset.contains(Operations::OpType::save_statevec) || opset.contains(Operations::OpType::save_statevec_dict)){
+      if (fusion_pass.allow_kraus) {
+        // Halve default max fused qubits for Kraus noise fusion
+        fusion_pass.max_qubit /= 2;
+      }
+    }
+    else{
+      // Halve the default threshold and max fused qubits for density matrix
+      fusion_pass.threshold /= 2;
+      fusion_pass.max_qubit /= 2;
+    }
+    break;
+  }
   default: {
     fusion_pass.active = false;
     return fusion_pass;
@@ -1295,7 +1344,7 @@ void Controller::run_circuit_helper(const Circuit &circ,
     result.set_config(config);
     result.metadata.add(method_names_.at(method), "method");
     if (method == Method::statevector || method == Method::density_matrix ||
-        method == Method::unitary) {
+        method == Method::unitary || method == Method::tensor_network) {
       result.metadata.add(sim_device_name_, "device");
     } else {
       result.metadata.add("CPU", "device");
@@ -1329,7 +1378,7 @@ void Controller::run_circuit_helper(const Circuit &circ,
         result.metadata.add("readout", "noise");
       }
       // Superop noise sampling
-      else if (method == Method::density_matrix || method == Method::superop) {
+      else if (method == Method::density_matrix || method == Method::superop || (method == Method::tensor_network && !has_statevector_ops(circ))) {
         // Sample noise using SuperOp method
         opt_circ = noise.sample_noise(circ, rng, Noise::NoiseModel::Method::superop);
         result.metadata.add("superop", "noise");
@@ -1434,6 +1483,7 @@ void Controller::run_circuit_without_sampled_noise(Circuit &circ,
   state.set_config(config);
   state.set_parallelization(parallel_state_update_);
   state.set_global_phase(circ.global_phase_angle);
+  state.enable_density_matrix(!has_statevector_ops(circ));
 
   bool can_sample = circ.can_sample;
 
@@ -1481,6 +1531,7 @@ void Controller::run_circuit_without_sampled_noise(Circuit &circ,
         shot_state.set_config(config);
         shot_state.set_parallelization(parallel_state_update_);
         shot_state.set_global_phase(circ.global_phase_angle);
+        shot_state.enable_density_matrix(!has_statevector_ops(circ));
 
         shot_state.set_max_matrix_qubits(max_bits);
 
@@ -1515,6 +1566,7 @@ void Controller::run_circuit_without_sampled_noise(Circuit &circ,
       state.set_max_bached_shots(max_batched_states_);
       state.set_distribution(num_processes_);
       state.set_max_matrix_qubits(max_bits);
+      state.set_num_creg_bits(circ.num_memory, circ.num_registers);
       state.allocate(circ.num_qubits, circ.num_qubits, circ.shots);    //allocate multiple-shots
 
       //qreg is initialized inside state class
@@ -1543,6 +1595,7 @@ void Controller::run_circuit_without_sampled_noise(Circuit &circ,
         par_state.set_config(config);
         par_state.set_parallelization(parallel_state_update_);
         par_state.set_global_phase(circ.global_phase_angle);
+        par_state.enable_density_matrix(!has_statevector_ops(circ));
 
         par_state.set_distribution(num_process_per_experiment_);
         par_state.set_max_matrix_qubits(max_bits );
@@ -1592,6 +1645,7 @@ void Controller::run_circuit_with_sampled_noise(
     state.set_config(config);
     state.set_parallelization(parallel_state_update_);
     state.set_global_phase(circ.global_phase_angle);
+    state.enable_density_matrix(!has_statevector_ops(circ));
 
     // Transpilation for circuit noise method
     auto fusion_pass = transpile_fusion(method, circ.opset(), config);
@@ -1660,6 +1714,14 @@ bool Controller::check_measure_sampling_opt(const Circuit &circ,
       method == Method::unitary) {
     return true;
   }
+  if(method == Method::tensor_network){
+    //if there are no save statevec ops, tensor network simulator runs as density matrix simulator
+    if((!circ.opset().contains(Operations::OpType::save_statevec)) &&
+       (!circ.opset().contains(Operations::OpType::save_statevec_dict)) ){
+        return true;
+    }
+  }
+
   
   // If circuit contains a non-initial initialize that is not a full width
   // instruction we can't sample
@@ -1800,11 +1862,11 @@ Controller::simulation_methods(std::vector<Circuit> &circuits,
     for (const auto& circ: circuits) {
       auto method = automatic_simulation_method(circ, noise_model);
       sim_methods.push_back(method);
-      if (!superop_enabled && (method == Method::density_matrix || method == Method::superop)) {
+      if (!superop_enabled && (method == Method::density_matrix || method == Method::superop || (method == Method::tensor_network && !has_statevector_ops(circ)) )) {
         noise_model.enable_superop_method(max_parallel_threads_);
         superop_enabled = true;
       } else if (kraus_noise && !kraus_enabled &&
-                 (method == Method::statevector || method == Method::matrix_product_state)) {
+                 (method == Method::statevector || method == Method::matrix_product_state || (method == Method::tensor_network && has_statevector_ops(circ))) ) {
         noise_model.enable_kraus_method(max_parallel_threads_);
         kraus_enabled = true;
       }
@@ -1820,6 +1882,18 @@ Controller::simulation_methods(std::vector<Circuit> &circuits,
               method_ == Method::statevector
               || method_ == Method::matrix_product_state)) {
     noise_model.enable_kraus_method(max_parallel_threads_);
+  }
+  else if(method_ == Method::tensor_network){
+    bool has_save_statevec = false;
+    for (const auto& circ: circuits) {
+      has_save_statevec |= has_statevector_ops(circ);
+      if(has_save_statevec)
+        break;
+    }
+    if(!has_save_statevec)
+      noise_model.enable_superop_method(max_parallel_threads_);
+    else if(kraus_noise)
+      noise_model.enable_kraus_method(max_parallel_threads_);
   }
   return sim_methods;
 }
@@ -1885,6 +1959,8 @@ bool Controller::validate_method(Method method,
       return validate_state(QubitUnitary::State<>(), circ, noise_model, throw_except);
     case Method::superop:
       return validate_state(QubitSuperoperator::State<>(), circ, noise_model, throw_except);
+    case Method::tensor_network:
+      return validate_state(TensorNetwork::State<>(), circ, noise_model, throw_except);
     case Method::automatic:
       throw std::runtime_error("Cannot validate circuit for unresolved simulation method.");
   }
@@ -1977,6 +2053,11 @@ int_t Controller::get_max_matrix_qubits(const Circuit &circ) const
     max_bits = std::max(max_bits,bit);
   }
   return max_bits;
+}
+
+bool Controller::has_statevector_ops(const Circuit &circ) const
+{
+  return circ.opset().contains(Operations::OpType::save_statevec) || circ.opset().contains(Operations::OpType::save_statevec_dict) || circ.opset().contains(Operations::OpType::save_amps);
 }
 
 //-------------------------------------------------------------------------

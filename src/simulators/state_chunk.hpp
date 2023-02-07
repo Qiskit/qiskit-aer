@@ -252,6 +252,13 @@ public:
   //Does this state support multi-shot parallelization?
   virtual bool multi_shot_parallelization_supported(void){return true;}
 
+  //set creg bit counts before initialize creg
+  void set_num_creg_bits(uint_t num_memory, uint_t num_register) override
+  {
+    num_creg_memory_ = num_memory;
+    num_creg_registers_ = num_register;
+  }
+
 protected:
 
   // The array of the quantum state data structure
@@ -300,6 +307,9 @@ protected:
 
   //cuStateVec settings
   bool cuStateVec_enable_ = false;
+
+  uint_t num_creg_memory_ = 0;    //number of total bits for creg (reserve for multi-shots)
+  uint_t num_creg_registers_ = 0;
 
   //-----------------------------------------------------------------------
   // Apply circuits and ops
@@ -611,6 +621,13 @@ bool StateChunk<state_t>::allocate_qregs(uint_t num_chunks)
   }
 
   qregs_.resize(num_chunks);
+
+  if(num_creg_memory_ !=0 || num_creg_registers_ !=0){
+    for(i=0;i<num_chunks;i++){
+      //set number of creg bits before actual initialization
+      qregs_[i].initialize_creg(num_creg_memory_, num_creg_registers_);
+    }
+  }
 
   //allocate qregs
   uint_t chunk_id = multi_chunk_distribution_ ? global_chunk_index_ : 0;

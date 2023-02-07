@@ -26,7 +26,7 @@ class QasmSaveDensityMatrixTests(SimulatorTestCase):
     """Test SaveDensityMatrix instruction."""
 
     @supported_methods(['automatic', 'statevector', 'density_matrix',
-                        'matrix_product_state'])
+                        'matrix_product_state', 'tensor_network'])
     def test_save_density_matrix(self, method, device):
         """Test save density matrix for instruction"""
         backend = self.backend(method=method, device=device)
@@ -54,7 +54,7 @@ class QasmSaveDensityMatrixTests(SimulatorTestCase):
         self.assertEqual(value, target)
 
     @supported_methods(['automatic', 'statevector', 'density_matrix',
-                        'matrix_product_state'])
+                        'matrix_product_state', 'tensor_network'])
     def test_save_density_matrix_conditional(self, method, device):
         """Test conditional save density matrix instruction"""
         backend = self.backend(method=method, device=device)
@@ -82,7 +82,7 @@ class QasmSaveDensityMatrixTests(SimulatorTestCase):
             self.assertEqual(qi.DensityMatrix(state), target[key])
 
     @supported_methods(['automatic', 'statevector', 'density_matrix',
-                        'matrix_product_state'])
+                        'matrix_product_state', 'tensor_network'])
     def test_save_density_matrix_pershot(self, method, device):
         """Test pershot save density matrix instruction"""
         backend = self.backend(method=method, device=device)
@@ -112,7 +112,7 @@ class QasmSaveDensityMatrixTests(SimulatorTestCase):
             self.assertEqual(qi.DensityMatrix(state), target)
 
     @supported_methods(['automatic', 'statevector', 'density_matrix',
-                        'matrix_product_state'])
+                        'matrix_product_state', 'tensor_network'])
     def test_save_density_matrix_pershot_conditional(self, method, device):
         """Test pershot conditional save density matrix instruction"""
         backend = self.backend(method=method, device=device)

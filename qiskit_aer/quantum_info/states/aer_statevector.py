@@ -36,7 +36,7 @@ class AerStatevector(Statevector):
     def __init__(self, data, dims=None, **configs):
         """
         Args:
-            data (np.array or list or AerStatevector or QuantumCircuit or
+            data (np.array or list or Statevector or AerStatevector or QuantumCircuit or
                   qiskit.circuit.Instruction):
                 Data from which the statevector can be constructed. This can be either a complex
                 vector, another statevector or a ``QuantumCircuit`` or ``Instruction``
@@ -75,6 +75,9 @@ class AerStatevector(Statevector):
                 if dims is None:
                     dims = data._op_shape._dims_l
                 data = data._data.copy()
+            elif isinstance(data, Statevector):
+                data, aer_state = AerStatevector._from_ndarray(np.array(data.data, dtype=complex),
+                                                               configs)
             else:
                 raise AerError(f'Input data is not supported: type={data.__class__}, data={data}')
 
@@ -84,6 +87,13 @@ class AerStatevector(Statevector):
 
         self._result = None
         self._configs = configs
+
+    def seed(self, value=None):
+        """Set the seed for the quantum state RNG."""
+        if value is None or isinstance(value, int):
+            self._aer_state.set_seed(value)
+        else:
+            raise AerError(f'This seed is not supported: type={value.__class__}, value={value}')
 
     def _last_result(self):
         if self._result is None:
@@ -115,18 +125,20 @@ class AerStatevector(Statevector):
             qubits = np.array(qargs)
         self._aer_state.close()
 
-        configs = self._aer_state.configuration()
-        if 'seed_simulator' in configs:
-            configs['seed_simulator'] = int(configs['seed_simulator']) + 1
-        self._aer_state = AerState(**configs)
-
+        self._aer_state.renew()
         self._aer_state.initialize(self._data, copy=False)
+
         samples = self._aer_state.sample_memory(qubits, shots)
         self._data = self._aer_state.move_to_ndarray()
         return samples
 
     @staticmethod
     def _from_ndarray(init_data, configs):
+        do_copy = True
+        if not init_data.flags['C_CONTIGUOUS']:
+            init_data = np.ascontiguousarray(init_data)
+            do_copy = False
+
         aer_state = AerState()
 
         options = AerSimulator._default_options()
@@ -140,7 +152,7 @@ class AerStatevector(Statevector):
         num_qubits = int(np.log2(len(init_data)))
 
         aer_state.allocate_qubits(num_qubits)
-        aer_state.initialize(data=init_data)
+        aer_state.initialize(data=init_data, copy=do_copy)
 
         return aer_state.move_to_ndarray(), aer_state
 

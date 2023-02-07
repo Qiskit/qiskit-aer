@@ -66,6 +66,8 @@ PYBIND11_MODULE(controller_wrappers, m) {
     aer_state.def("configure",  &AER::AerState::configure);
     aer_state.def("allocate_qubits",  &AER::AerState::allocate_qubits);
     aer_state.def("reallocate_qubits",  &AER::AerState::reallocate_qubits);
+    aer_state.def("set_random_seed",  &AER::AerState::set_random_seed);
+    aer_state.def("set_seed",  &AER::AerState::set_seed);
     aer_state.def("clear",  &AER::AerState::clear);
     aer_state.def("num_of_qubits",  &AER::AerState::num_of_qubits);
 

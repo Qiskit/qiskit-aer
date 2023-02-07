@@ -57,9 +57,9 @@ class QasmSimulator(AerBackend):
         backend = QasmSimulator(method='density_matrix',
                                 noise_model=noise_model)
 
-    **Simulating an IBMQ Backend**
+    **Simulating an IBM Quantum Backend**
 
-    The simulator can be automatically configured to mimic an IBMQ backend using
+    The simulator can be automatically configured to mimic an IBM Quantum backend using
     the :meth:`from_backend` method. This will configure the simulator to use the
     basic device :class:`NoiseModel` for that backend, and the same basis gates
     and coupling map.
@@ -307,7 +307,7 @@ class QasmSimulator(AerBackend):
         'rzz', 'rzx', 'ccx', 'cswap', 'mcx', 'mcy', 'mcz', 'mcsx',
         'mcp', 'mcphase', 'mcu', 'mcu1', 'mcu2', 'mcu3', 'mcrx', 'mcry', 'mcrz',
         'mcr', 'mcswap', 'unitary', 'diagonal', 'multiplexer',
-        'initialize', 'delay', 'pauli', 'mcx_gray'
+        'initialize', 'delay', 'pauli', 'mcx_gray', 'ecr'
     ])
 
     _DEFAULT_CUSTOM_INSTR = sorted([
@@ -366,7 +366,8 @@ class QasmSimulator(AerBackend):
         # Update available methods for class
         if QasmSimulator._AVAILABLE_METHODS is None:
             QasmSimulator._AVAILABLE_METHODS = available_methods(
-                self._controller, QasmSimulator._SIMULATION_METHODS)
+                self._controller, QasmSimulator._SIMULATION_METHODS,
+                QasmSimulator._SIMULATION_DEVICES)
 
         # Default configuration
         if configuration is None:
@@ -601,7 +602,7 @@ class QasmSimulator(AerBackend):
                 'u1', 'u2', 'u3', 'u', 'p', 'r', 'rx', 'ry', 'rz', 'id', 'x',
                 'y', 'z', 'h', 's', 'sdg', 'sx', 'sxdg', 't', 'tdg', 'swap', 'cx',
                 'cy', 'cz', 'cp', 'cu1', 'rxx', 'ryy', 'rzz', 'rzx', 'ccx',
-                'unitary', 'diagonal', 'delay', 'pauli'
+                'unitary', 'diagonal', 'delay', 'pauli', 'ecr'
             ])
         if method == 'matrix_product_state':
             return sorted([

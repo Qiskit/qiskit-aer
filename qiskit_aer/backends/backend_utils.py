@@ -57,13 +57,13 @@ BASIS_GATES = {
         'rzz', 'rzx', 'ccx', 'cswap', 'mcx', 'mcy', 'mcz', 'mcsx',
         'mcp', 'mcphase', 'mcu', 'mcu1', 'mcu2', 'mcu3', 'mcrx', 'mcry', 'mcrz',
         'mcr', 'mcswap', 'unitary', 'diagonal', 'multiplexer',
-        'initialize', 'delay', 'pauli', 'mcx_gray'
+        'initialize', 'delay', 'pauli', 'mcx_gray', 'ecr'
     ]),
     'density_matrix': sorted([
         'u1', 'u2', 'u3', 'u', 'p', 'r', 'rx', 'ry', 'rz', 'id', 'x',
         'y', 'z', 'h', 's', 'sdg', 'sx', 'sxdg', 't', 'tdg', 'swap', 'cx',
         'cy', 'cz', 'cp', 'cu1', 'rxx', 'ryy', 'rzz', 'rzx', 'ccx',
-        'unitary', 'diagonal', 'delay', 'pauli',
+        'unitary', 'diagonal', 'delay', 'pauli', 'ecr',
     ]),
     'matrix_product_state': sorted([
         'u1', 'u2', 'u3', 'u', 'p', 'cp', 'cx', 'cy', 'cz', 'id', 'x', 'y', 'z', 'h', 's',
@@ -86,12 +86,22 @@ BASIS_GATES = {
         'rzz', 'rzx', 'ccx', 'cswap', 'mcx', 'mcy', 'mcz', 'mcsx',
         'mcp', 'mcphase', 'mcu', 'mcu1', 'mcu2', 'mcu3', 'mcrx', 'mcry', 'mcrz',
         'mcr', 'mcswap', 'unitary', 'diagonal', 'multiplexer', 'delay', 'pauli',
+        'ecr',
     ]),
     'superop': sorted([
         'u1', 'u2', 'u3', 'u', 'p', 'r', 'rx', 'ry', 'rz', 'id', 'x',
         'y', 'z', 'h', 's', 'sdg', 'sx', 'sxdg', 't', 'tdg', 'swap', 'cx',
         'cy', 'cz', 'cp', 'cu1', 'rxx', 'ryy',
         'rzz', 'rzx', 'ccx', 'unitary', 'diagonal', 'delay', 'pauli'
+    ]),
+    'tensor_network': sorted([
+        'u1', 'u2', 'u3', 'u', 'p', 'r', 'rx', 'ry', 'rz', 'id', 'x',
+        'y', 'z', 'h', 's', 'sdg', 'sx', 'sxdg', 't', 'tdg', 'swap', 'cx',
+        'cy', 'cz', 'csx', 'cp', 'cu', 'cu1', 'cu2', 'cu3', 'rxx', 'ryy',
+        'rzz', 'rzx', 'ccx', 'cswap', 'mcx', 'mcy', 'mcz', 'mcsx',
+        'mcp', 'mcphase', 'mcu', 'mcu1', 'mcu2', 'mcu3', 'mcrx', 'mcry', 'mcrz',
+        'mcr', 'mcswap', 'unitary', 'diagonal', 'multiplexer',
+        'initialize', 'delay', 'pauli', 'mcx_gray'
     ])
 }
 
@@ -103,7 +113,8 @@ BASIS_GATES[None] = BASIS_GATES['automatic'] = sorted(
             BASIS_GATES['density_matrix']).union(
                 BASIS_GATES['matrix_product_state']).union(
                     BASIS_GATES['unitary']).union(
-                        BASIS_GATES['superop']))
+                        BASIS_GATES['superop']).union(
+                            BASIS_GATES['tensor_network']))
 
 
 def cpp_execute(controller, qobj):
@@ -116,21 +127,24 @@ def cpp_execute(controller, qobj):
     return controller(qobj)
 
 
-def available_methods(controller, methods):
+def available_methods(controller, methods, devices):
     """Check available simulation methods by running a dummy circuit."""
     # Test methods are available using the controller
     dummy_circ = QuantumCircuit(1)
     dummy_circ.i(0)
 
     valid_methods = []
-    for method in methods:
-        qobj = assemble(dummy_circ,
-                        optimization_level=0,
-                        shots=1,
-                        method=method)
-        result = cpp_execute(controller, qobj)
-        if result.get('success', False):
-            valid_methods.append(method)
+    for device in devices:
+        for method in methods:
+            if method not in valid_methods:
+                qobj = assemble(dummy_circ,
+                                optimization_level=0,
+                                shots=1,
+                                method=method,
+                                device=device)
+                result = cpp_execute(controller, qobj)
+                if result.get('success', False):
+                    valid_methods.append(method)
     return tuple(valid_methods)
 
 

@@ -17,7 +17,8 @@ import copy
 import logging
 from qiskit.providers.options import Options
 from qiskit.providers.models import QasmBackendConfiguration
-from qiskit.providers.backend import BackendV2
+from qiskit.providers.backend import BackendV2, BackendV1
+from qiskit.transpiler.target import target_to_backend_properties
 
 from ..version import __version__
 from .aerbackend import AerBackend, AerError
@@ -55,9 +56,9 @@ class AerSimulator(AerBackend):
         backend = AerSimulator(method='density_matrix',
                                 noise_model=noise_model)
 
-    **Simulating an IBMQ Backend**
+    **Simulating an IBM Quantum Backend**
 
-    The simulator can be automatically configured to mimic an IBMQ backend using
+    The simulator can be automatically configured to mimic an IBM Quantum backend using
     the :meth:`from_backend` method. This will configure the simulator to use the
     basic device :class:`NoiseModel` for that backend, and the same basis gates
     and coupling map.
@@ -118,6 +119,10 @@ class AerSimulator(AerBackend):
       can simulate ideal and noisy gates, and reset, but does not support
       measurement.
 
+    * ``"tensor_network"``: A tensor-network based simulation that supports
+      both statevector and density matrix. Currently there is only available
+      for GPU and accelerated by using cuTensorNet APIs of cuQuantum.
+
     **GPU Simulation**
 
     By default all simulation methods run on the CPU, however select methods
@@ -142,6 +147,8 @@ class AerSimulator(AerBackend):
     | ``unitary``              | Yes           |
     +--------------------------+---------------+
     | ``superop``              | No            |
+    +--------------------------+---------------+
+    | ``tensor_network``       | Yes(GPU only) |
     +--------------------------+---------------+
 
     Running a GPU simulation is done using ``device="GPU"`` kwarg during
@@ -261,9 +268,10 @@ class AerSimulator(AerBackend):
       intermediate measurements and can greatly accelerate simulation time
       on GPUs. If there are multiple GPUs on the system, shots are distributed
       automatically across available GPUs. Also this option distributes multiple
-      shots to parallel processes of MPI (Default: True).
+      shots to parallel processes of MPI (Default: False).
       If multiple GPUs are used for batched exectuion number of GPUs is
       reported to ``batched_shots_optimization_parallel_gpus`` metadata.
+      ``cuStateVec_enable`` is not supported for this option.
 
     * ``batched_shots_gpu_max_qubits`` (int): This option sets the maximum
       number of qubits for enabling the ``batched_shots_gpu`` option. If the
@@ -394,6 +402,17 @@ class AerSimulator(AerBackend):
       Possible values are "mps_swap_right" and "mps_swap_left".
       (Default: "mps_swap_left")
 
+    These backend options only apply when using the ``tensor_network``
+    simulation method:
+
+    * ``tensor_network_num_sampling_qubits`` (int): is used to set number
+      of qubits to be sampled in single tensor network contraction when
+      using sampling measure. (Default: 10)
+
+    * ``use_cuTensorNet_autotuning`` (bool): enables auto tuning of plan
+      in cuTensorNet API. It takes some time for tuning, so enable if the
+      circuit is very large. (Default: False)
+
     These backend options apply in circuit optimization passes:
 
     * ``fusion_enable`` (bool): Enable fusion optimization in circuit
@@ -471,6 +490,14 @@ class AerSimulator(AerBackend):
         'superop': sorted([
             'quantum_channel', 'qerror_loc', 'kraus', 'superop', 'save_state',
             'save_superop', 'set_superop',
+        ]),
+        'tensor_network': sorted([
+            'quantum_channel', 'qerror_loc', 'roerror', 'kraus', 'superop',
+            'save_state', 'save_expval', 'save_expval_var',
+            'save_probabilities', 'save_probabilities_dict',
+            'save_density_matrix', 'save_amplitudes', 'save_amplitudes_sq',
+            'save_statevector', 'save_statevector_dict',
+            'set_statevector', 'set_density_matrix'
         ])
     }
 
@@ -482,7 +509,8 @@ class AerSimulator(AerBackend):
                 _CUSTOM_INSTR['density_matrix']).union(
                     _CUSTOM_INSTR['matrix_product_state']).union(
                         _CUSTOM_INSTR['unitary']).union(
-                            _CUSTOM_INSTR['superop']))
+                            _CUSTOM_INSTR['superop']).union(
+                                _CUSTOM_INSTR['tensor_network']))
 
     _DEFAULT_CONFIGURATION = {
         'backend_name': 'aer_simulator',
@@ -505,7 +533,7 @@ class AerSimulator(AerBackend):
     _SIMULATION_METHODS = [
         'automatic', 'statevector', 'density_matrix',
         'stabilizer', 'matrix_product_state', 'extended_stabilizer',
-        'unitary', 'superop'
+        'unitary', 'superop', 'tensor_network'
     ]
 
     _AVAILABLE_METHODS = None
@@ -523,12 +551,12 @@ class AerSimulator(AerBackend):
         self._controller = aer_controller_execute()
 
         # Update available methods and devices for class
-        if AerSimulator._AVAILABLE_METHODS is None:
-            AerSimulator._AVAILABLE_METHODS = available_methods(
-                self._controller, AerSimulator._SIMULATION_METHODS)
         if AerSimulator._AVAILABLE_DEVICES is None:
             AerSimulator._AVAILABLE_DEVICES = available_devices(
                 self._controller, AerSimulator._SIMULATION_DEVICES)
+        if AerSimulator._AVAILABLE_METHODS is None:
+            AerSimulator._AVAILABLE_METHODS = available_methods(
+                self._controller, AerSimulator._SIMULATION_METHODS, AerSimulator._AVAILABLE_DEVICES)
 
         # Default configuration
         if configuration is None:
@@ -577,7 +605,7 @@ class AerSimulator(AerBackend):
             blocking_enable=False,
             chunk_swap_buffer_qubits=None,
             # multi-shots optimization options (GPU only)
-            batched_shots_gpu=True,
+            batched_shots_gpu=False,
             batched_shots_gpu_max_qubits=16,
             num_threads_per_device=1,
             # statevector options
@@ -601,7 +629,11 @@ class AerSimulator(AerBackend):
             mps_swap_direction='mps_swap_left',
             chop_threshold=1e-8,
             mps_parallel_threshold=14,
-            mps_omp_threads=1)
+            mps_omp_threads=1,
+            # tensor network options
+            tensor_network_num_sampling_qubits=10,
+            use_cuTensorNet_autotuning=False
+        )
 
     def __repr__(self):
         """String representation of an AerSimulator."""
@@ -627,17 +659,35 @@ class AerSimulator(AerBackend):
     def from_backend(cls, backend, **options):
         """Initialize simulator from backend."""
         if isinstance(backend, BackendV2):
-            raise AerError(
-                "AerSimulator.from_backend does not currently support V2 Backends."
+            configuration = QasmBackendConfiguration(
+                backend_name=f"'aer_simulator({backend.name})",
+                backend_version=backend.backend_version,
+                n_qubits=backend.num_qubits,
+                basis_gates=backend.operation_names,
+                gates=[],
+                local=True,
+                simulator=True,
+                conditional=True,
+                open_pulse=False,
+                memory=False,
+                max_shots=int(1e6),
+                coupling_map=list(backend.coupling_map.get_edges()),
+                max_experiments=backend.max_circuits,
             )
-        # Get configuration and properties from backend
-        configuration = copy.copy(backend.configuration())
-        properties = copy.copy(backend.properties())
+            properties = target_to_backend_properties(backend.target)
+        elif isinstance(backend, BackendV1):
+            # Get configuration and properties from backend
+            configuration = copy.copy(backend.configuration())
+            properties = copy.copy(backend.properties())
 
-        # Customize configuration name
-        name = configuration.backend_name
-        configuration.backend_name = 'aer_simulator({})'.format(name)
-
+            # Customize configuration name
+            name = configuration.backend_name
+            configuration.backend_name = 'aer_simulator({})'.format(name)
+        else:
+            raise TypeError(
+                "The backend argument requires a BackendV2 or BackendV1 object, "
+                f"not a {type(backend)} object"
+            )
         # Use automatic noise model if none is provided
         if 'noise_model' not in options:
             # pylint: disable=import-outside-toplevel
