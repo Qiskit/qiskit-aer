@@ -14,7 +14,7 @@ State class that handles internal C++ state safely
 """
 from enum import Enum
 import numpy as np
-from qiskit.providers.aer.backends.controller_wrappers import AerStateWrapper
+from qiskit_aer.backends.controller_wrappers import AerStateWrapper
 from ...backends.aerbackend import AerError
 
 

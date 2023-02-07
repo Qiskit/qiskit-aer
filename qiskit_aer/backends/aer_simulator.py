@@ -22,8 +22,8 @@ from qiskit.transpiler.target import target_to_backend_properties
 
 from ..version import __version__
 from .aerbackend import AerBackend, AerError
-from .backend_utils import (cpp_execute, available_methods,
-                            available_devices,
+from .backend_utils import (cpp_execute, cpp_execute_direct,
+                            available_methods, available_devices,
                             MAX_QUBITS_STATEVECTOR,
                             BASIS_GATES)
 # pylint: disable=import-error, no-name-in-module
@@ -729,6 +729,11 @@ class AerSimulator(AerBackend):
         # Update simulator name
         config.backend_name = self.name()
         return config
+
+    def _execute_direct(self, circuits, noise_model, config):
+        """Execute circuits on the backend.
+        """
+        return cpp_execute_direct(self._controller, circuits, noise_model, config)
 
     def _execute(self, qobj):
         """Execute a qobj on the backend.

@@ -100,6 +100,12 @@ public:
   // to end of circuit
   void set_params(bool truncation = false);
 
+  // Set metadata from a specified configuration.
+  // If `truncation = false`, some configurations related to qubits will be
+  // overriden because `set_params(false)` sets minimum qubits to simulate
+  // circuits.
+  void set_metadata(const json_t &config, bool truncation);
+
   // Set the circuit rng seed to random value
   inline void set_random_seed() {seed = std::random_device()();}
 
@@ -161,10 +167,8 @@ Circuit::Circuit(const inputdata_t &circ, const json_t &qobj_config, bool trunca
     }
   }
   
-  // Load metadata
+  // Set header
   Parser<inputdata_t>::get_value(header, "header", circ);
-  Parser<json_t>::get_value(shots, "shots", config);
-  Parser<json_t>::get_value(global_phase_angle, "global_phase", header);
 
   // Load instructions
   if (Parser<inputdata_t>::check_key("instructions", circ) == false) {
@@ -181,7 +185,15 @@ Circuit::Circuit(const inputdata_t &circ, const json_t &qobj_config, bool trunca
     converted_ops.emplace_back(Operations::input_to_op(the_op));
   }
   ops = std::move(converted_ops);
+
   set_params(truncation);
+  set_metadata(config, truncation);
+}
+
+void Circuit::set_metadata(const json_t &config, bool truncation) {
+  // Load metadata
+  Parser<json_t>::get_value(shots, "shots", config);
+  Parser<json_t>::get_value(global_phase_angle, "global_phase", header);
 
   // Check for specified memory slots
   uint_t memory_slots = 0;

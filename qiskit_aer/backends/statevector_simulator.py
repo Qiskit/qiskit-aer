@@ -27,7 +27,11 @@ from .backend_utils import (cpp_execute, available_devices,
                             MAX_QUBITS_STATEVECTOR,
                             LEGACY_METHOD_MAP,
                             add_final_save_instruction,
-                            map_legacy_method_options)
+                            cpp_execute_direct,
+                            map_legacy_method_options,
+                            map_legacy_method_config,
+                            add_final_save_op,
+                            )
 # pylint: disable=import-error, no-name-in-module
 from .controller_wrappers import aer_controller_execute
 
@@ -261,11 +265,16 @@ class StatevectorSimulator(AerBackend):
         Returns:
             dict: return a dictionary of results.
         """
-        # Make deepcopy so we don't modify the original qobj
-        qobj = copy.deepcopy(qobj)
         qobj = add_final_save_instruction(qobj, "statevector")
         qobj = map_legacy_method_options(qobj)
         return cpp_execute(self._controller, qobj)
+
+    def _execute_direct(self, circuits, noise_model, config):
+        """Execute circuits on the backend.
+        """
+        circuits = add_final_save_op(circuits, "statevector")
+        config = map_legacy_method_config(config)
+        return cpp_execute_direct(self._controller, circuits, noise_model, config)
 
     def _validate(self, qobj):
         """Semantic validations of the qobj which cannot be done via schemas.

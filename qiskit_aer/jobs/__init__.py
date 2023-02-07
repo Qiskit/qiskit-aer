@@ -30,9 +30,11 @@ The following are the classes used to manage job submissions.
 
     AerJob
     AerJobSet
+    AerJobDirect
 
 """
 
 from .aerjob import AerJob
 from .aerjobset import AerJobSet
+from .aerjobdirect import AerJobDirect
 from .utils import split_qobj

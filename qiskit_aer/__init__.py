@@ -74,6 +74,7 @@ from qiskit_aer import library
 from qiskit_aer import pulse
 from qiskit_aer import quantum_info
 from qiskit_aer import noise
+from qiskit_aer import circuit
 from qiskit_aer import utils
 from qiskit_aer.version import __version__
 

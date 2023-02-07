@@ -24,7 +24,7 @@ from qiskit.result import ProbDistribution
 from qiskit.quantum_info import Clifford
 from .compatibility import (
     Statevector, DensityMatrix, StabilizerState, Operator, SuperOp)
-
+from qiskit_aer.circuit.aer_operation import AerOp
 
 # Available system memory
 SYSTEM_MEMORY_GB = local_hardware_info()['memory']
@@ -126,6 +126,18 @@ def cpp_execute(controller, qobj):
 
     return controller(qobj)
 
+def cpp_execute_direct(controller, aer_circuits, noise_model, config):
+    """Execute aer circuits on C++ controller wrapper"""
+
+    native_circuits = [aer_circuit.assemble_native() for aer_circuit in aer_circuits]
+
+    # Location where we put external libraries that will be
+    # loaded at runtime by the simulator extension
+    config['library_dir'] = LIBRARY_DIR
+
+    noise_model = noise_model.to_dict(serializable=True) if noise_model else {}
+
+    return controller.execute(native_circuits, noise_model, config)
 
 def available_methods(controller, methods, devices):
     """Check available simulation methods by running a dummy circuit."""
@@ -185,6 +197,23 @@ def add_final_save_instruction(qobj, state):
     return qobj
 
 
+def add_final_save_op(aer_circs, state):
+    """Add final save state op to all experiments in a qobj."""
+
+    def save_inst(num_qubits):
+        """Return n-qubit save statevector inst"""
+        return QasmQobjInstruction(
+            name=f"save_{state}",
+            qubits=list(range(num_qubits)),
+            label=f"{state}",
+            snapshot_type="single")
+
+    for aer_circ in aer_circs:
+        num_qubits = aer_circ.num_qubits
+        aer_circ.append(AerOp(save_inst(num_qubits)))
+
+    return aer_circs
+
 def map_legacy_method_options(qobj):
     """Map legacy method names of qasm simulator to aer simulator options"""
     method = getattr(qobj.config, "method", None)
@@ -192,6 +221,12 @@ def map_legacy_method_options(qobj):
         qobj.config.method, qobj.config.device = LEGACY_METHOD_MAP[method]
     return qobj
 
+def map_legacy_method_config(config):
+    """Map legacy method names of qasm simulator to aer simulator options"""
+    method = config["method"] if "method" in config else None
+    if method in LEGACY_METHOD_MAP:
+        config["method"], config["device"] = LEGACY_METHOD_MAP[method]
+    return config
 
 def format_save_type(data, save_type, save_subtype):
     """Format raw simulator result data based on save type."""
