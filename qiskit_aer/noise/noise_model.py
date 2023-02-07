@@ -299,7 +299,7 @@ class NoiseModel:
             NoiseError: If the input backend is not valid.
         """
         if warnings is not None:
-            warnings.warn(
+            warn(
                 '"warnings" argument has been deprecated as of qiskit-aer 0.12.0 '
                 'and will be removed no earlier than 3 months from that release date. '
                 'Use the warnings filter in Python standard library instead.',
