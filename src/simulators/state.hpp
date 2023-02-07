@@ -229,6 +229,8 @@ public:
   //set creg bit counts before initialize creg
   virtual void set_num_creg_bits(uint_t num_memory, uint_t num_register){}
 
+  //can apply density matrix (without statevector output required)
+  virtual void enable_density_matrix(bool flg){}
   //-----------------------------------------------------------------------
   // Common instructions
   //-----------------------------------------------------------------------
@@ -255,6 +257,7 @@ protected:
   int_t max_matrix_qubits_ = 0;
 
   std::string sim_device_name_ = "CPU";
+
 };
 
 void Base::set_config(const json_t &config) 

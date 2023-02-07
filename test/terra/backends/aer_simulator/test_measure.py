@@ -17,7 +17,7 @@ from ddt import ddt
 from test.terra.reference import ref_measure
 from qiskit import QuantumCircuit
 from qiskit import transpile
-from qiskit_aer import QasmSimulator
+from qiskit_aer import AerSimulator
 from qiskit_aer.noise import NoiseModel
 from qiskit_aer.noise.errors import ReadoutError, depolarizing_error
 from qiskit.circuit.library import QuantumVolume
@@ -27,7 +27,7 @@ from test.terra.backends.simulator_test_case import (
 
 SUPPORTED_METHODS = [
     'automatic', 'stabilizer', 'statevector', 'density_matrix',
-    'matrix_product_state', 'extended_stabilizer'
+    'matrix_product_state', 'extended_stabilizer', 'tensor_network'
 ]
 
 
@@ -91,12 +91,16 @@ class TestMeasure(SimulatorTestCase):
         """Test AerSimulator measure with non-deterministic counts without sampling"""
         backend = self.backend(method=method, device=device)
         shots = 4000
+        delta=0.05
+        if 'tensor_network' in method:
+            shots = 100
+            delta=0.1
         circuits = ref_measure.measure_circuits_nondeterministic(
             allow_sampling=False)
         targets = ref_measure.measure_counts_nondeterministic(shots)
         result = backend.run(circuits, shots=shots).result()
         self.assertSuccess(result)
-        self.compare_counts(result, circuits, targets, delta=0.05 * shots)
+        self.compare_counts(result, circuits, targets, delta=delta * shots)
         self.compare_result_metadata(result, circuits, "measure_sampling", False)
 
     @supported_methods(SUPPORTED_METHODS)
@@ -139,7 +143,7 @@ class TestMeasure(SimulatorTestCase):
         targets = ref_measure.measure_counts_deterministic(shots)
         result = backend.run(circuits, shots=shots).result()
         self.assertSuccess(result)
-        sampling = (method == "density_matrix")
+        sampling = (method == "density_matrix" or method == "tensor_network")
         self.compare_result_metadata(result, circuits, "measure_sampling", sampling)
 
     # ---------------------------------------------------------------------
@@ -192,12 +196,16 @@ class TestMeasure(SimulatorTestCase):
         """Test AerSimulator measure with non-deterministic counts"""
         backend = self.backend(method=method, device=device)
         shots = 4000
+        delta=0.05
+        if 'tensor_network' in method:
+            shots = 100
+            delta=0.1
         circuits = ref_measure.multiqubit_measure_circuits_nondeterministic(
             allow_sampling=False)
         targets = ref_measure.multiqubit_measure_counts_nondeterministic(shots)
         result = backend.run(circuits, shots=shots).result()
         self.assertSuccess(result)
-        self.compare_counts(result, circuits, targets, delta=0.05 * shots)
+        self.compare_counts(result, circuits, targets, delta=delta * shots)
         self.compare_result_metadata(result, circuits, "measure_sampling", False)
 
     # ---------------------------------------------------------------------
@@ -258,3 +266,32 @@ class TestMeasure(SimulatorTestCase):
             self.assertDictAlmostEqual(result1.get_counts(circuit),
                                        result2.get_counts(circuit),
                                        delta=0.1 * shots)
+
+    def test_mps_measure_with_limited_bond_dimension(self):
+        """Test MPS measure with limited bond dimension,
+           where the qubits are not in sorted order
+        """
+        backend_statevector = self.backend(method="statevector")
+        shots = 1000
+        n = 4
+        for bd in [2, 4]:
+            backend_mps = self.backend(method="matrix_product_state",
+                                       matrix_product_state_max_bond_dimension=bd)
+            for measured_qubits in [[0,1,2,3],
+                                    [3,2,1,0],
+                                    [2,0,1,3],
+                                    [0,1,2],
+                                    [2,1,3],
+                                    [1,3,0],
+                                    [0,2,3]
+                                    ]:
+                circuit = QuantumCircuit(n, n)
+                circuit.h(3)
+                circuit.h(1)
+                circuit.cx(1, 2)
+                circuit.cx(3, 0)
+                circuit.measure(measured_qubits, measured_qubits)
+                res_mps = backend_mps.run(circuit, shots=shots).result().get_counts()
+                self.assertTrue(getattr(res_mps, 'success', 'True'))
+                res_sv = backend_statevector.run(circuit, shots=shots).result().get_counts()
+                self.assertDictAlmostEqual(res_mps, res_sv, delta=0.1 * shots)
