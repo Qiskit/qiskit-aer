@@ -74,8 +74,9 @@ def supported_devices(func):
 
 def _method_device(methods):
     """Return list of (methods, device) supported on current system"""
+    available_methods = AerSimulator().available_methods()
     if not methods:
-        methods = AerSimulator().available_methods()
+        methods = available_methods
     available_devices = AerSimulator().available_devices()
     #add special test device for cuStateVec if available
     cuStateVec = check_cuStateVec(available_devices)
@@ -83,24 +84,25 @@ def _method_device(methods):
     gpu_methods = ['statevector', 'density_matrix', 'unitary', 'tensor_network']
     data_args = []
     for method in methods:
-        if method in gpu_methods:
-            if 'tensor_network' == method:
-                for device in available_devices:
-                    if device == 'GPU':
-	                    data_args.append((method, 'GPU'))
+        if method in available_methods:
+            if method in gpu_methods:
+                if 'tensor_network' == method:
+                    for device in available_devices:
+                        if device == 'GPU':
+                            data_args.append((method, 'GPU'))
+                else:
+                    for device in available_devices:
+                        data_args.append((method, device))
+                        if device == 'GPU':
+                            #add batched optimization test for GPU
+                            data_args.append((method, 'GPU_batch'))
+                    #add test cases for cuStateVec if available using special device = 'GPU_cuStateVec'
+                    #'GPU_cuStateVec' is used only inside tests not available in Aer
+                    #and this is converted to "device='GPU'" and option "cuStateVec_enalbe = True" is added
+                    if cuStateVec and 'tensor_network' != method:
+                        data_args.append((method, 'GPU_cuStateVec'))
             else:
-                for device in available_devices:
-                    data_args.append((method, device))
-                    if device == 'GPU':
-                        #add batched optimization test for GPU
-                        data_args.append((method, 'GPU_batch'))
-                #add test cases for cuStateVec if available using special device = 'GPU_cuStateVec'
-                #'GPU_cuStateVec' is used only inside tests not available in Aer
-                #and this is converted to "device='GPU'" and option "cuStateVec_enalbe = True" is added
-                if cuStateVec and 'tensor_network' != method:
-                    data_args.append((method, 'GPU_cuStateVec'))
-        else:
-            data_args.append((method, 'CPU'))
+                data_args.append((method, 'CPU'))
     return data_args
 
 def check_cuStateVec(devices):
