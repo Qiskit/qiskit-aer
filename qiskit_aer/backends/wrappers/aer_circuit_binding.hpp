@@ -168,8 +168,32 @@ void bind_aer_circuit_(MODULE m) {
   });
 
   aer_circuit.def("append", [aer_circuit](Circuit &circ, const Operations::Op &op) {
-      circ.ops.push_back(op);
+    circ.ops.push_back(op);
   });
+
+  aer_circuit.def("bfunc", &Circuit::bfunc);
+  aer_circuit.def("gate", &Circuit::gate);
+  aer_circuit.def("diagonal", &Circuit::diagonal);
+  aer_circuit.def("unitary", &Circuit::unitary);
+  aer_circuit.def("roerror", &Circuit::roerror);
+  aer_circuit.def("multiplexer", &Circuit::multiplexer);
+  aer_circuit.def("kraus", &Circuit::kraus);
+  aer_circuit.def("superop", &Circuit::superop);
+  aer_circuit.def("save_state", &Circuit::save_state);
+  aer_circuit.def("save_amplitudes", &Circuit::save_state);
+  aer_circuit.def("save_expval", &Circuit::save_expval);
+  aer_circuit.def("initialize", &Circuit::initialize);
+  aer_circuit.def("set_statevector", &Circuit::set_statevector<py::handle>);
+  aer_circuit.def("set_density_matrix", &Circuit::set_density_matrix<py::handle>);
+  aer_circuit.def("set_unitary", &Circuit::set_unitary<py::handle>);
+  aer_circuit.def("set_superop", &Circuit::set_superop<py::handle>);
+  aer_circuit.def("set_matrix_product_state", &Circuit::set_matrix_product_state<py::handle>);
+  aer_circuit.def("set_clifford", &Circuit::set_clifford<py::handle>);
+  aer_circuit.def("jump", &Circuit::jump);
+  aer_circuit.def("mark", &Circuit::mark);
+  aer_circuit.def("measure", &Circuit::measure);
+  aer_circuit.def("reset", &Circuit::reset);
+
 }
 
 template<typename MODULE>

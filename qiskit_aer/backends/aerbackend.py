@@ -169,9 +169,11 @@ class AerBackend(Backend, ABC):
             if (('executor' in run_options and run_options['executor']) or 
                 ('executor' in self.options.__dict__ and self.options.__dict__['executor']) or
                 validate):
+                # This path remains for DASK execution to split a qobj insttance
+                # into sub-qobj instances. This will be replaced with _run_circuits path
+                # in the near releases
                 return self._run_qobj(circuits, validate, parameter_binds, **run_options)
             else:
-                # return self._run_qobj(circuits, validate, parameter_binds, **run_options)
                 return self._run_circuits(circuits, parameter_binds, **run_options)
         elif all(isinstance(circ, (ScheduleBlock, Schedule)) for circ in circuits):
             return self._run_qobj(circuits, validate, parameter_binds, **run_options)
