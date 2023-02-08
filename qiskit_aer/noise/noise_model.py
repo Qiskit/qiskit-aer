@@ -21,6 +21,8 @@ from warnings import warn, catch_warnings, filterwarnings
 import numpy as np
 
 from qiskit.circuit import Instruction, Delay
+from qiskit.circuit import QuantumCircuit
+from qiskit.extensions import UnitaryGate
 from qiskit.providers import QubitProperties
 from qiskit.providers.exceptions import BackendPropertyError
 from qiskit.providers.models import BackendProperties
@@ -902,10 +904,6 @@ class NoiseModel:
         warn('from_dict has been deprecated as of qiskit-aer 0.10.0'
              ' and will be removed no earlier than 3 months from that release date.',
              DeprecationWarning, stacklevel=2)
-
-        # pylint: disable=import-outside-toplevel
-        from qiskit.circuit import QuantumCircuit
-        from qiskit.extensions import UnitaryGate
 
         def inst_dic_list_to_circuit(dic_list):
             num_qubits = max([max(dic['qubits']) for dic in dic_list]) + 1
