@@ -1,7 +1,13 @@
 ---
 fixes:
   - |
-    Aer does not work as a backend to transpile circuits with control-flow
-    because `break_loop` and `continue_loop` are not supported. This PR adds
-    these two gates as basis gates of statevector, density matrix, and mps
-    methods.
+    The :class:`.AerSimulator` backend with methods:
+    
+    * ``statevector``
+    * ``density_matrix``
+    * ``matrix_product_state``
+    * ``stabilizer``
+    
+    now report that they support ``break_loop`` and ``continue_loop`` instructions when used
+    as backends for the Terra :func:`~qiskit.compiler.transpile` function.  The simulators
+    already did support these, but had just not been reporting it.
