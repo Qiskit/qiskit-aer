@@ -607,13 +607,29 @@ class TestControlFlow(SimulatorTestCase):
     def test_transpile_break_and_continue_loop(self, method):
         """Test that transpiler can transpile break_loop and continue_loop with AerSimulator"""
 
-        qc = QuantumCircuit(2, 1)
+        backend = self.backend(method=method, seed_simulator=1)
 
-        with qc.for_loop(range(5)):
+        qc = QuantumCircuit(1, 1)
+
+        with qc.for_loop(range(1000)):
+            qc.h(0)
             qc.measure(0, 0)
-            qc.break_loop().c_if(0, True)
-            qc.continue_loop().c_if(0, True)
+            with qc.if_test((0, True)):
+                qc.break_loop()
 
-        backend = self.backend(method=method)
+        transpiled = transpile(qc, backend)
+        result = backend.run(transpiled, method=method, shots=100).result()
+        self.assertEqual(result.get_counts(), {"1": 100})
 
-        transpile(qc, backend)
+        qc = QuantumCircuit(1, 1)
+
+        with qc.for_loop(range(1000)):
+            qc.h(0)
+            qc.measure(0, 0)
+            with qc.if_test((0, False)):
+                qc.continue_loop()
+            qc.break_loop()
+
+        transpiled = transpile(qc, backend)
+        result = backend.run(transpiled, method=method, shots=100).result()
+        self.assertEqual(result.get_counts(), {"1": 100})
