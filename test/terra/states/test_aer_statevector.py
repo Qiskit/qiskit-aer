@@ -28,14 +28,17 @@ from qiskit.providers.basicaer import QasmSimulatorPy
 from qiskit.quantum_info.random import random_unitary, random_statevector, random_pauli
 from qiskit.quantum_info.states import Statevector
 from qiskit.circuit.library import QuantumVolume
-from qiskit.providers.aer import AerSimulator
+from qiskit.quantum_info import Kraus
 from qiskit.quantum_info.operators.operator import Operator
 from qiskit.quantum_info.operators.symplectic import Pauli, SparsePauliOp
 from qiskit.quantum_info.operators.predicates import matrix_equal
 from qiskit.visualization.state_visualization import numbers_to_latex_terms, state_to_latex
 from qiskit.circuit.library import QFT, HGate
+
 from test.terra import common
+from qiskit_aer import AerSimulator
 from qiskit_aer.aererror import AerError
+from qiskit_aer.noise import pauli_error, QuantumError
 from qiskit_aer.quantum_info.states import AerStatevector
 from qiskit.quantum_info.operators.predicates import ATOL_DEFAULT, RTOL_DEFAULT
 
@@ -108,7 +111,6 @@ class TestAerStatevector(common.QiskitAerTestCase):
         self.assertNotEqual(counts4, counts5)
         self.assertEqual(counts0, counts4)
         self.assertEqual(counts1, counts5)
-
 
     def test_method_and_device_properties(self):
         """Test method and device properties"""
@@ -290,6 +292,35 @@ class TestAerStatevector(common.QiskitAerTestCase):
         target = AerStatevector.from_label("000").evolve(Operator(circuit))
         psi = AerStatevector.from_instruction(circuit)
         self.assertEqual(psi, target)
+
+    def test_kraus(self):
+        """Test kraus"""
+
+        def same_1qubit_statevectors_up_to_global_phase(sv1, sv2):
+            if not isinstance(sv1, np.ndarray):
+                sv1 = sv1.data
+            if not isinstance(sv2, np.ndarray):
+                sv2 = sv2.data
+            return np.isclose(np.cross(sv1, sv2), 0)
+
+        circuit = QuantumCircuit(1)
+        circuit.h(0)
+        circuit.y(0)
+        p_error = 0.5
+        error = pauli_error([('Y', p_error), ('I', 1 - p_error)])
+        circuit.append(Kraus(error).to_instruction(), [0])
+
+        circuit_no_noise = QuantumCircuit(1)
+        circuit_no_noise.h(0)
+        circuit_no_noise.y(0)
+        target0 = AerStatevector.from_label("0").evolve(Operator(circuit_no_noise))
+        circuit_no_noise.y(0)
+        target1 = AerStatevector.from_label("0").evolve(Operator(circuit_no_noise))
+
+        for i in range(100):
+            psi = AerStatevector(circuit, seed_simulator=i)
+            self.assertTrue(same_1qubit_statevectors_up_to_global_phase(psi, target0) or \
+                            same_1qubit_statevectors_up_to_global_phase(psi, target1))
 
     def test_deepcopy(self):
         """Test deep copy"""

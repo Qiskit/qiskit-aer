@@ -1,0 +1,5 @@
+---
+features:
+  - |
+    :class:`.AerState` and :class:`.AerStatevector` now support applying :class:`~qiskit.quantum_info.Kraus` operators.
+    In :class:`.AerStatevector`, one of the Kraus operators is applied randomly to the quantum state based on the error probabilities.
