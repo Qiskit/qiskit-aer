@@ -130,14 +130,14 @@ class TestAerState(common.QiskitAerTestCase):
         dm2 = state2.move_to_ndarray()
         state2.close()
 
-    #     self.assertEqual((16, 16), dm2.shape)
+        self.assertEqual((16, 16), dm2.shape)
 
-    #     for row in range(dm2.shape[0]):
-    #         for col in range(dm2.shape[1]):
-    #             if row == len(dm2) - 1 and col == len(dm2) - 1:
-    #                 self.assertEqual(dm2[row][col], complex(1., 0.))
-    #             else:
-    #                 self.assertEqual(dm2[row][col], complex(0., 0.))
+        for row in range(dm2.shape[0]):
+            for col in range(dm2.shape[1]):
+                if row == len(dm2) - 1 and col == len(dm2) - 1:
+                    self.assertEqual(dm2[row][col], complex(1., 0.))
+                else:
+                    self.assertEqual(dm2[row][col], complex(0., 0.))
 
     def test_initialize_densitymatrix_cache_blocking(self):
         """Test initialization of AerState with densitymatrix"""
