@@ -308,6 +308,9 @@ public:
   // then discarding the outcome.
   void apply_reset(const reg_t &qubits);
 
+  // Apply a Kraus error operation
+  void apply_kraus(const reg_t &qubits, const std::vector<cmatrix_t> &krausops);
+
   //-----------------------------------------------------------------------
   // Z-measurement outcome probabilities
   //-----------------------------------------------------------------------
@@ -367,7 +370,7 @@ private:
   bool initialized_ = false;
   uint_t num_of_qubits_ = 0;
   RngEngine rng_;
-  int seed_;
+  int seed_ = std::random_device()();
   std::shared_ptr<QuantumState::Base> state_;
   json_t configs_;
   ExperimentResult last_result_;
@@ -1218,6 +1221,18 @@ void AerState::apply_reset(const reg_t &qubits) {
 
   last_result_ = ExperimentResult();
   state_->apply_op(op, last_result_, rng_);
+}
+
+void AerState::apply_kraus(const reg_t &qubits, const std::vector<cmatrix_t> &krausops) {
+  assert_initialized();
+
+  Operations::Op op;
+  op.type = Operations::OpType::kraus;
+  op.name = "kraus";
+  op.qubits = qubits;
+  op.mats = krausops;
+
+  buffer_op(std::move(op));
 }
 
 //-----------------------------------------------------------------------
