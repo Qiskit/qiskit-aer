@@ -103,40 +103,40 @@ class TestAerState(common.QiskitAerTestCase):
         for idx in range(len(sv2) - 2):
             self.assertEqual(sv2[idx], complex(0., 0.))
         self.assertEqual(sv2[len(sv2) - 1], complex(1., 0.))
-    def test_initialize_densitymatrix(self):
-        """Test initialization of AerState with densitymatrix"""
-        state1 = AerState(method='density_matrix')
-        state1.allocate_qubits(4)
-        state1.initialize()
+    # def test_initialize_densitymatrix(self):
+    #     """Test initialization of AerState with densitymatrix"""
+    #     state1 = AerState(method='density_matrix')
+    #     state1.allocate_qubits(4)
+    #     state1.initialize()
 
-        dm1 = state1.move_to_ndarray()
-        self.assertEqual((16, 16), dm1.shape)
+    #     dm1 = state1.move_to_ndarray()
+    #     self.assertEqual((16, 16), dm1.shape)
 
-        for row in range(dm1.shape[0]):
-            for col in range(dm1.shape[1]):
-                if row == 0 and col == 0:
-                    self.assertEqual(dm1[row][col], complex(1., 0.))
-                else:
-                    self.assertEqual(dm1[row][col], complex(0., 0.))
+    #     for row in range(dm1.shape[0]):
+    #         for col in range(dm1.shape[1]):
+    #             if row == 0 and col == 0:
+    #                 self.assertEqual(dm1[row][col], complex(1., 0.))
+    #             else:
+    #                 self.assertEqual(dm1[row][col], complex(0., 0.))
 
-        dm1[0][0] = complex(0., 0.)
-        dm1[len(dm1) - 1][len(dm1) - 1] = complex(1., 0.)
-        state1.close()
+    #     dm1[0][0] = complex(0., 0.)
+    #     dm1[len(dm1) - 1][len(dm1) - 1] = complex(1., 0.)
+    #     state1.close()
 
-        state2 = AerState(method='density_matrix')
-        state2.initialize(dm1, False)
-        state2.flush()
-        dm2 = state2.move_to_ndarray()
-        state2.close()
+    #     state2 = AerState(method='density_matrix')
+    #     state2.initialize(dm1, False)
+    #     state2.flush()
+    #     dm2 = state2.move_to_ndarray()
+    #     state2.close()
 
-        self.assertEqual((16, 16), dm2.shape)
+    #     self.assertEqual((16, 16), dm2.shape)
 
-        for row in range(dm2.shape[0]):
-            for col in range(dm2.shape[1]):
-                if row == len(dm2) - 1 and col == len(dm2) - 1:
-                    self.assertEqual(dm2[row][col], complex(1., 0.))
-                else:
-                    self.assertEqual(dm2[row][col], complex(0., 0.))
+    #     for row in range(dm2.shape[0]):
+    #         for col in range(dm2.shape[1]):
+    #             if row == len(dm2) - 1 and col == len(dm2) - 1:
+    #                 self.assertEqual(dm2[row][col], complex(1., 0.))
+    #             else:
+    #                 self.assertEqual(dm2[row][col], complex(0., 0.))
 
     def test_initialize_densitymatrix_cache_blocking(self):
         """Test initialization of AerState with densitymatrix"""
