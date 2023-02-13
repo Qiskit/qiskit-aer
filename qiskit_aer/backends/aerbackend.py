@@ -170,7 +170,7 @@ class AerBackend(Backend, ABC):
         if all(isinstance(circ, QuantumCircuit) for circ in circuits):
             executor = run_options.get('executor', None)
             if executor is None and 'executor' in self.options.__dict__:
-                executor = 'executor' in self.options.__dict__
+                executor = self.options.__dict__.get('executor', None)
             if executor or validate:
                 # This path remains for DASK execution to split a qobj insttance
                 # into sub-qobj instances. This will be replaced with _run_circuits path
