@@ -730,10 +730,11 @@ class AerSimulator(AerBackend):
         config.backend_name = self.name()
         return config
 
-    def _execute_direct(self, aer_circuits, noise_model, config):
+    def _execute_direct(self, circuits, noise_model, config):
         """Execute circuits on the backend.
         """
-        return cpp_execute_direct(self._controller, aer_circuits, noise_model, config)
+        ret = cpp_execute_direct(self._controller, circuits, noise_model, config)
+        return ret
 
     def _execute(self, qobj):
         """Execute a qobj on the backend.

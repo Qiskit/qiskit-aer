@@ -34,7 +34,7 @@ from ..noise.noise_model import NoiseModel, QuantumErrorLocation
 from ..noise.errors.quantum_error import QuantumChannelInstruction
 from .aer_compiler import compile_circuit
 from .backend_utils import format_save_type, circuit_optypes
-from ..circuit.aer_circuit import generate_aer_circuits
+from ..circuit.aer_circuit import generate_aer_circuits, generate_aer_config
 
 # Logger
 logger = logging.getLogger(__name__)
@@ -211,11 +211,11 @@ class AerBackend(Backend, ABC):
         circuits, noise_model = self._compile(circuits, **run_options)
         if parameter_binds:
             run_options['parameterizations'] = self._convert_binds(circuits, parameter_binds)
-        aer_circuits, config = generate_aer_circuits(circuits, self.options, **run_options)
+        config = generate_aer_config(circuits, self.options, **run_options)
 
         # Submit job
         job_id = str(uuid.uuid4())
-        aer_job = AerJobDirect(self, job_id, self._run_direct, aer_circuits, noise_model, config)
+        aer_job = AerJobDirect(self, job_id, self._run_direct, circuits, noise_model, config)
         aer_job.submit()
 
         return aer_job
@@ -401,16 +401,16 @@ class AerBackend(Backend, ABC):
 
         # Take metadata from headers of experiments to work around JSON serialization error
         metadata_list = []
-        metadata_index = 0
-        for circ in circuits:
-            if hasattr(circ._header, "metadata") and circ._header.metadata:
-                metadata_copy = circ._header.metadata.copy()
-                metadata_list.append(metadata_copy)
-                circ._header.metadata.clear()
-                if "id" in metadata_copy:
-                    circ._header.metadata["id"] = metadata_copy["id"]
-                circ._header.metadata["metadata_index"] = metadata_index
-                metadata_index += 1
+        for idx, circ in enumerate(circuits):
+            if hasattr(circ, "metadata") and circ.metadata:
+                metadata = circ.metadata
+                metadata_list.append(metadata)
+                circ.metadata = {}
+                if "id" in metadata:
+                    circ.metadata["id"] = metadata["id"]
+                circ.metadata["metadata_index"] = idx
+            else:
+                metadata_list.append(None)
 
         # Run simulation
         output = self._execute_direct(circuits, noise_model, config)
@@ -436,6 +436,9 @@ class AerBackend(Backend, ABC):
                     "metadata_index" in result["header"]["metadata"]):
                 metadata_index = result["header"]["metadata"]["metadata_index"]
                 result["header"]["metadata"] = metadata_list[metadata_index]
+
+        for circ, metadata in zip(circuits, metadata_list):
+            circ.metadata = metadata
 
         # Add execution time
         output["time_taken"] = time.time() - start
@@ -608,11 +611,11 @@ class AerBackend(Backend, ABC):
         pass
 
     @abstractmethod
-    def _execute_direct(self, aer_circuits, noise_model, config):
+    def _execute_direct(self, circuits, noise_model, config):
         """Execute aer circuits on the backend.
 
         Args:
-            aer_circuits (List of AerCircuit): simulator input.
+            circuits (List of AerCircuit): simulator input.
             noise_model (NoiseModel): noise model
             config (Dict): configuration for simulation
 

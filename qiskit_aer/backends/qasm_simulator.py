@@ -520,11 +520,11 @@ class QasmSimulator(AerBackend):
         qobj = map_legacy_method_options(qobj)
         return cpp_execute(self._controller, qobj)
 
-    def _execute_direct(self, aer_circuits, noise_model, config):
+    def _execute_direct(self, circuits, noise_model, config):
         """Execute circuits on the backend.
         """
         config = map_legacy_method_config(config)
-        return cpp_execute_direct(self._controller, aer_circuits, noise_model, config)
+        return cpp_execute_direct(self._controller, circuits, noise_model, config)
 
     def set_option(self, key, value):
         if key == "custom_instructions":

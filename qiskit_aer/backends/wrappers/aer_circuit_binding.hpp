@@ -180,7 +180,7 @@ void bind_aer_circuit_(MODULE m) {
   aer_circuit.def("kraus", &Circuit::kraus);
   aer_circuit.def("superop", &Circuit::superop);
   aer_circuit.def("save_state", &Circuit::save_state);
-  aer_circuit.def("save_amplitudes", &Circuit::save_state);
+  aer_circuit.def("save_amplitudes", &Circuit::save_amplitudes);
   aer_circuit.def("save_expval", &Circuit::save_expval);
   aer_circuit.def("initialize", &Circuit::initialize);
   aer_circuit.def("set_statevector", &Circuit::set_statevector<py::handle>);
@@ -193,6 +193,7 @@ void bind_aer_circuit_(MODULE m) {
   aer_circuit.def("mark", &Circuit::mark);
   aer_circuit.def("measure", &Circuit::measure);
   aer_circuit.def("reset", &Circuit::reset);
+  aer_circuit.def("set_qerror_loc", &Circuit::set_qerror_loc);
 
 }
 

@@ -465,7 +465,7 @@ inline Op make_bfunc(const std::string &mask, const std::string &val, const std:
 
   op.string_params.resize(2);
   op.string_params[0] = mask;
-  op.string_params[0] = val;
+  op.string_params[1] = val;
 
   // Load single register
   op.registers.push_back(regidx);
@@ -635,6 +635,8 @@ inline Op make_save_state(const reg_t &qubits,
     {"save_state", OpType::save_state},
     {"save_statevector", OpType::save_statevec},
     {"save_statevector_dict", OpType::save_statevec_dict},
+    {"save_amplitudes", OpType::save_amps},
+    {"save_amplitudes_sq", OpType::save_amps_sq},
     {"save_clifford", OpType::save_clifford},
     {"save_probabilities", OpType::save_probs},
     {"save_probabilities_dict", OpType::save_probs_ket},
@@ -673,6 +675,8 @@ inline Op make_save_state(const reg_t &qubits,
   }
   op.save_type = subtype_it->second;
  
+  op.string_params.emplace_back(label);
+
   op.qubits = qubits;
 
   return op;
@@ -791,6 +795,19 @@ inline Op make_measure(const reg_t &qubits, const reg_t &memory, const reg_t &re
   op.registers = registers;
   return op;
 }
+
+inline Op make_qerror_loc(const reg_t &qubits, const std::string &label, const int_t conditional = -1) {
+  Op op;
+  op.type = OpType::qerror_loc;
+  op.name = label;
+  op.qubits = qubits;
+  if (conditional >= 0) {
+    op.conditional = true;
+    op.conditional_reg = conditional;
+  }
+  return op;
+}
+
 
 //------------------------------------------------------------------------------
 // JSON conversion
@@ -1219,6 +1236,7 @@ Op input_to_op_bfunc(const inputdata_t& input) {
   if (op.registers.empty()) {
     throw std::invalid_argument("Invalid measure operation: \"register\" is empty.");
   }
+  std::cout << "bfunc: " << op.string_params[0] << ", " << op.string_params[1] << ", " << relation << ", " << op.registers[0] << std::endl;
   return op;
 }
 

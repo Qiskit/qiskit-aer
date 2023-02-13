@@ -195,6 +195,12 @@ public:
     ops.push_back(Operations::make_save_expval(qubits, name, pauli_strings, coeff_reals, coeff_imags, snapshot_type, label));
   }
 
+  void set_qerror_loc(const reg_t &qubits,
+                      const std::string &label,
+                      const int_t conditional = -1) {
+    ops.push_back(Operations::make_qerror_loc(qubits, label, conditional));
+  }
+
   template<typename inputdata_t>
   void set_statevector(const reg_t &qubits, const inputdata_t &param) {
     ops.push_back(Operations::make_set_vector(qubits, "set_statevector", param));

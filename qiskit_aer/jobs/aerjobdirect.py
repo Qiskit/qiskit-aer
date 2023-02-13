@@ -26,20 +26,20 @@ LOGGER = logging.getLogger(__name__)
 class AerJobDirect(Job):
     """AerJobDirect class for Qiskit Aer Simulators."""
 
-    def __init__(self, backend, job_id, fn, aer_circs, noise_model, config):
+    def __init__(self, backend, job_id, fn, circuits, noise_model, config):
         """ Initializes the asynchronous job.
 
         Args:
             backend(AerBackend): the backend used to run the job.
             job_id(str): a unique id in the context of the backend used to run the job.
             fn(function): a callable function to execute circuits on backend.
-            aer_circs (list of AerCircuit): circuits to execute
+            aer_circs (list of QuantumCircuit): circuits to execute
             noise_model (noise_model): noise mode in simulation
             config (dict): configuration of simulation
         """
         super().__init__(backend, job_id)
         self._fn = fn
-        self._aer_circs = aer_circs
+        self._circuits = circuits
         self._noise_model = noise_model
         self._config = config
         self._executor = DEFAULT_EXECUTOR
@@ -55,7 +55,7 @@ class AerJobDirect(Job):
         """
         if self._future is not None:
             raise JobError("Aer job has already been submitted.")
-        self._future = self._executor.submit(self._fn, self._aer_circs, self._noise_model,
+        self._future = self._executor.submit(self._fn, self._circuits, self._noise_model,
                                              self._config, self._job_id)
 
     @requires_submit

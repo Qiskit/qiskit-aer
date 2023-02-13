@@ -278,7 +278,7 @@ class PulseSimulator(AerBackend):
         qobj.config.qubit_freq_est = self.defaults().qubit_freq_est
         return pulse_controller(qobj)
 
-    def _execute_direct(self, aer_circuits, noise_model, config):
+    def _execute_direct(self, circuits, noise_model, config):
         """Execute circuits on the backend.
         """
         raise AerError("not implemented yet")

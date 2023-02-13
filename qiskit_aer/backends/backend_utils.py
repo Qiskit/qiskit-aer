@@ -22,6 +22,8 @@ from qiskit.compiler import assemble
 from qiskit.qobj import QasmQobjInstruction
 from qiskit.result import ProbDistribution
 from qiskit.quantum_info import Clifford
+from qiskit_aer.circuit.aer_circuit import generate_aer_circuits
+from qiskit_aer.library.save_instructions.save_data import SaveData
 from .compatibility import (
     Statevector, DensityMatrix, StabilizerState, Operator, SuperOp)
 
@@ -122,13 +124,13 @@ def cpp_execute(controller, qobj):
     # Location where we put external libraries that will be
     # loaded at runtime by the simulator extension
     qobj.config.library_dir = LIBRARY_DIR
-
     return controller(qobj)
 
 
-def cpp_execute_direct(controller, aer_circuits, noise_model, config):
+def cpp_execute_direct(controller, circuits, noise_model, config):
     """Execute aer circuits on C++ controller wrapper"""
 
+    aer_circuits = generate_aer_circuits(circuits)
     native_circuits = [aer_circuit.native_circuit for aer_circuit in aer_circuits]
 
     # Location where we put external libraries that will be
@@ -198,14 +200,14 @@ def add_final_save_instruction(qobj, state):
     return qobj
 
 
-def add_final_save_op(aer_circs, state):
+def add_final_save_op(circs, state):
     """Add final save state op to all experiments in a qobj."""
 
-    for aer_circ in aer_circs:
-        num_qubits = aer_circ.num_qubits
-        getattr(aer_circ, f"save_{state}")(list(range(num_qubits)), f"{state}", "single")
+    for circ in circs:
+        num_qubits = circ.num_qubits
+        circ.append(SaveData(f"save_{state}", num_qubits, f"{state}", "single"), circ.qubits)
 
-    return aer_circs
+    return circs
 
 
 def map_legacy_method_options(qobj):
