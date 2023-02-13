@@ -18,6 +18,7 @@ import datetime
 import logging
 import time
 import uuid
+import warnings
 from abc import ABC, abstractmethod
 
 from qiskit.circuit import QuantumCircuit, ParameterExpression, Delay
@@ -25,6 +26,7 @@ from qiskit.compiler import assemble
 from qiskit.providers import BackendV1 as Backend
 from qiskit.providers.models import BackendStatus
 from qiskit.pulse import Schedule, ScheduleBlock
+from qiskit.qobj import QasmQobj, PulseQobj
 from qiskit.result import Result
 from ..aererror import AerError
 from ..jobs import AerJob, AerJobSet, AerJobDirect, split_qobj
@@ -160,8 +162,9 @@ class AerBackend(Backend, ABC):
         """
         if isinstance(circuits, (QuantumCircuit, Schedule, ScheduleBlock)):
             circuits = [circuits]
+
         if not isinstance(circuits, list):
-            raise AerError("bad input to run() function; " +
+            raise AerError("bad input to run() function; "
                            "circuits must be either circuits or schedules")
 
         if all(isinstance(circ, QuantumCircuit) for circ in circuits):
@@ -176,6 +179,24 @@ class AerBackend(Backend, ABC):
             else:
                 return self._run_circuits(circuits, parameter_binds, **run_options)
         elif all(isinstance(circ, (ScheduleBlock, Schedule)) for circ in circuits):
+            return self._run_qobj(circuits, validate, parameter_binds, **run_options)
+        elif isinstance(circuits, (QasmQobj, PulseQobj)):
+            warnings.warn(
+                'Using a qobj for run() is deprecated as of qiskit-aer 0.9.0'
+                ' and will be removed no sooner than 3 months from that release'
+                ' date. Transpiled circuits should now be passed directly using'
+                ' `backend.run(circuits, **run_options).',
+                DeprecationWarning, stacklevel=2)
+            if parameter_binds:
+                raise AerError("Parameter binds can't be used with an input qobj")
+            # A work around to support both qobj options and run options until
+            # qobj is deprecated is to copy all the set qobj.config fields into
+            # run_options that don't override existing fields. This means set
+            # run_options fields will take precidence over the value for those
+            # fields that are set via assemble.
+            if not run_options:
+                run_options = circuits.config.__dict__
+
             return self._run_qobj(circuits, validate, parameter_binds, **run_options)
         else:
             raise AerError("bad input to run() function;" +
@@ -207,8 +228,10 @@ class AerBackend(Backend, ABC):
                   **run_options):
         """Run circuits by assembling qobj.
         """
-
-        qobj = self._assemble(circuits, parameter_binds=parameter_binds, **run_options)
+        if isinstance(circuits, (QasmQobj, PulseQobj)):
+            qobj = circuits
+        else:
+            qobj = self._assemble(circuits, parameter_binds=parameter_binds, **run_options)
 
         # Optional validation
         if validate:
