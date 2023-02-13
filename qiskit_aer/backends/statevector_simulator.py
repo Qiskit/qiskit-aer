@@ -269,12 +269,12 @@ class StatevectorSimulator(AerBackend):
         qobj = map_legacy_method_options(qobj)
         return cpp_execute(self._controller, qobj)
 
-    def _execute_direct(self, circuits, noise_model, config):
+    def _execute_direct(self, aer_circuits, noise_model, config):
         """Execute circuits on the backend.
         """
-        circuits = add_final_save_op(circuits, "statevector")
+        aer_circuits = add_final_save_op(aer_circuits, "statevector")
         config = map_legacy_method_config(config)
-        return cpp_execute_direct(self._controller, circuits, noise_model, config)
+        return cpp_execute_direct(self._controller, aer_circuits, noise_model, config)
 
     def _validate(self, qobj):
         """Semantic validations of the qobj which cannot be done via schemas.

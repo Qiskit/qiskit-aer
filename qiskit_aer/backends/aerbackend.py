@@ -18,7 +18,6 @@ import datetime
 import logging
 import time
 import uuid
-import warnings
 from abc import ABC, abstractmethod
 
 from qiskit.circuit import QuantumCircuit, ParameterExpression, Delay
@@ -26,7 +25,6 @@ from qiskit.compiler import assemble
 from qiskit.providers import BackendV1 as Backend
 from qiskit.providers.models import BackendStatus
 from qiskit.pulse import Schedule, ScheduleBlock
-from qiskit.qobj import QasmQobj, PulseQobj
 from qiskit.result import Result
 from ..aererror import AerError
 from ..jobs import AerJob, AerJobSet, AerJobDirect, split_qobj
@@ -163,12 +161,14 @@ class AerBackend(Backend, ABC):
         if isinstance(circuits, (QuantumCircuit, Schedule, ScheduleBlock)):
             circuits = [circuits]
         if not isinstance(circuits, list):
-            raise AerError("bad input to run() function; circuits must be either circuits or schedules")
+            raise AerError("bad input to run() function; " +
+                           "circuits must be either circuits or schedules")
 
         if all(isinstance(circ, QuantumCircuit) for circ in circuits):
-            if (('executor' in run_options and run_options['executor']) or 
-                ('executor' in self.options.__dict__ and self.options.__dict__['executor']) or
-                validate):
+            executor = run_options.get('executor', None)
+            if executor is None and 'executor' in self.options.__dict__:
+                executor = 'executor' in self.options.__dict__
+            if executor or validate:
                 # This path remains for DASK execution to split a qobj insttance
                 # into sub-qobj instances. This will be replaced with _run_circuits path
                 # in the near releases
@@ -178,7 +178,8 @@ class AerBackend(Backend, ABC):
         elif all(isinstance(circ, (ScheduleBlock, Schedule)) for circ in circuits):
             return self._run_qobj(circuits, validate, parameter_binds, **run_options)
         else:
-            raise AerError("bad input to run() function; circuits must be either circuits or schedules")
+            raise AerError("bad input to run() function;" +
+                           "circuits must be either circuits or schedules")
 
     def _run_circuits(self,
                       circuits,
@@ -375,7 +376,7 @@ class AerBackend(Backend, ABC):
         # Start timer
         start = time.time()
 
-         # Take metadata from headers of experiments to work around JSON serialization error
+        # Take metadata from headers of experiments to work around JSON serialization error
         metadata_list = []
         metadata_index = 0
         for circ in circuits:
@@ -386,7 +387,7 @@ class AerBackend(Backend, ABC):
                 if "id" in metadata_copy:
                     circ._header.metadata["id"] = metadata_copy["id"]
                 circ._header.metadata["metadata_index"] = metadata_index
-                metadata_index += 1       
+                metadata_index += 1
 
         # Run simulation
         output = self._execute_direct(circuits, noise_model, config)
@@ -583,13 +584,14 @@ class AerBackend(Backend, ABC):
         """
         pass
 
-
     @abstractmethod
     def _execute_direct(self, aer_circuits, noise_model, config):
         """Execute aer circuits on the backend.
 
         Args:
             aer_circuits (List of AerCircuit): simulator input.
+            noise_model (NoiseModel): noise model
+            config (Dict): configuration for simulation
 
         Returns:
             dict: return a dictionary of results.
@@ -625,7 +627,7 @@ class AerBackend(Backend, ABC):
             self._set_defaults_option(key, value)
         else:
             if not hasattr(self._options, key):
-                raise AerError("Invalid option %s" % key)
+                raise AerError(f"Invalid option {key}")
             if value is not None:
                 # Only add an option if its value is not None
                 setattr(self._options, key, value)

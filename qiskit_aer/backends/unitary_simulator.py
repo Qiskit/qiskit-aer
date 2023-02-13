@@ -267,12 +267,12 @@ class UnitarySimulator(AerBackend):
         qobj = map_legacy_method_options(qobj)
         return cpp_execute(self._controller, qobj)
 
-    def _execute_direct(self, circuits, noise_model, config):
+    def _execute_direct(self, aer_circuits, noise_model, config):
         """Execute circuits on the backend.
         """
-        circuits = add_final_save_op(circuits, "unitary")
+        aer_circuits = add_final_save_op(aer_circuits, "unitary")
         config = map_legacy_method_config(config)
-        return cpp_execute_direct(self._controller, circuits, noise_model, config)
+        return cpp_execute_direct(self._controller, aer_circuits, noise_model, config)
 
     def _validate(self, qobj):
         """Semantic validations of the qobj which cannot be done via schemas.
@@ -283,15 +283,15 @@ class UnitarySimulator(AerBackend):
         """
         name = self.name()
         if getattr(qobj.config, 'noise_model', None) is not None:
-            raise AerError("{} does not support noise.".format(name))
+            raise AerError(f"{name} does not support noise.")
 
         n_qubits = qobj.config.n_qubits
         max_qubits = self.configuration().n_qubits
         if n_qubits > max_qubits:
             raise AerError(
-                'Number of qubits ({}) is greater than max ({}) for "{}" with {} GB system memory.'
-                .format(n_qubits, max_qubits, name,
-                        int(local_hardware_info()['memory'])))
+                f'Number of qubits ({n_qubits}) is greater than '
+                f'max ({max_qubits}) for "{name}" with '
+                f"{int(local_hardware_info()['memory'])} GB system memory.")
         if qobj.config.shots != 1:
             logger.info('"%s" only supports 1 shot. Setting shots=1.', name)
             qobj.config.shots = 1

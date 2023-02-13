@@ -55,7 +55,8 @@ class AerJobDirect(Job):
         """
         if self._future is not None:
             raise JobError("Aer job has already been submitted.")
-        self._future = self._executor.submit(self._fn, self._aer_circs, self._noise_model, self._config, self._job_id)
+        self._future = self._executor.submit(self._fn, self._aer_circs, self._noise_model,
+                                             self._config, self._job_id)
 
     @requires_submit
     def result(self, timeout=None):

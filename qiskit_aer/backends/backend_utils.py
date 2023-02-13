@@ -125,6 +125,7 @@ def cpp_execute(controller, qobj):
 
     return controller(qobj)
 
+
 def cpp_execute_direct(controller, aer_circuits, noise_model, config):
     """Execute aer circuits on C++ controller wrapper"""
 
@@ -137,6 +138,7 @@ def cpp_execute_direct(controller, aer_circuits, noise_model, config):
     noise_model = noise_model.to_dict(serializable=True) if noise_model else {}
 
     return controller.execute(native_circuits, noise_model, config)
+
 
 def available_methods(controller, methods, devices):
     """Check available simulation methods by running a dummy circuit."""
@@ -201,9 +203,10 @@ def add_final_save_op(aer_circs, state):
 
     for aer_circ in aer_circs:
         num_qubits = aer_circ.num_qubits
-        getattr(aer_circ, f"save_{state}")(list(range(num_qubits)),f"{state}","single")
+        getattr(aer_circ, f"save_{state}")(list(range(num_qubits)), f"{state}", "single")
 
     return aer_circs
+
 
 def map_legacy_method_options(qobj):
     """Map legacy method names of qasm simulator to aer simulator options"""
@@ -212,12 +215,14 @@ def map_legacy_method_options(qobj):
         qobj.config.method, qobj.config.device = LEGACY_METHOD_MAP[method]
     return qobj
 
+
 def map_legacy_method_config(config):
     """Map legacy method names of qasm simulator to aer simulator options"""
     method = config["method"] if "method" in config else None
     if method in LEGACY_METHOD_MAP:
         config["method"], config["device"] = LEGACY_METHOD_MAP[method]
     return config
+
 
 def format_save_type(data, save_type, save_subtype):
     """Format raw simulator result data based on save type."""

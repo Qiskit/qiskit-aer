@@ -11,23 +11,25 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-from typing import List, Dict, Optional
+from typing import List, Optional
 from copy import copy
 
 from qiskit.circuit import QuantumCircuit, Clbit
 from qiskit.tools.parallel import parallel_map
 from qiskit.providers.options import Options
-from qiskit_aer.aererror import AerError
-from qiskit_aer.backends.controller_wrappers import AerCircuit_
-from ..noise.noise_model import NoiseModel
 from qiskit.qobj import QobjExperimentHeader
+from qiskit_aer.aererror import AerError
+# pylint: disable=import-error, no-name-in-module
+from qiskit_aer.backends.controller_wrappers import AerCircuit_
+
 
 class AerCircuit:
+    """"Aer Internal Circuit class"""
 
     def __init__(self,
-               circuit: QuantumCircuit,
-               shots: int,
-               seed: Optional[int] = None):
+                 circuit: QuantumCircuit,
+                 shots: int,
+                 seed: Optional[int] = None):
 
         self._num_qubits = 0
         self._num_memory = 0
@@ -82,7 +84,7 @@ class AerCircuit:
             seed = self._aer_circ.seed
         self._seed = seed
         self._aer_circ.global_phase_angle = self._global_phase
-        
+
         for inst in circuit.data:
             # To convert to a qobj-style conditional, insert a bfunc prior
             # to the conditional instruction to map the creg ?= val condition
@@ -93,16 +95,14 @@ class AerCircuit:
                 mask = 0
                 val = 0
                 if isinstance(ctrl_reg, Clbit):
-                    mask = 1 << clbit_indices[ctrl_reg]
-                    val = (ctrl_val & 1) << clbit_indices[ctrl_reg]
+                    mask = 1 << self._clbit_indices[ctrl_reg]
+                    val = (ctrl_val & 1) << self._clbit_indices[ctrl_reg]
                 else:
-                    for clbit in clbit_indices:
+                    for clbit, idx in self._clbit_indices.items():
                         if clbit in ctrl_reg:
-                            mask |= 1 << clbit_indices[clbit]
-                            val |= ((ctrl_val >> list(ctrl_reg).index(clbit)) & 1) << clbit_indices[
-                                clbit
-                            ]
-                conditional_reg_idx = memory_slots + self._max_conditional_idx
+                            mask |= 1 << idx
+                            val |= ((ctrl_val >> list(ctrl_reg).index(clbit)) & 1) << idx
+                conditional_reg_idx = self._num_memory + self._max_conditional_idx
                 self._aer_circ.bfunc(mask, val, "==", conditional_reg_idx)
                 self._max_conditional_idx += 1
 
@@ -116,14 +116,16 @@ class AerCircuit:
         label = operation.label
         params = operation.params
 
-        if name in ('ccx', 'ccz', 'cp', 'cswap', 'csx', 'cx', 'cy', 'cz', 'delay', 
-                    'ecr', 'h', 'id', 'mcp', 'mcphase', 'mcr', 'mcrx', 'mcry', 'mcrz',
-                    'mcswap', 'mcsx', 'mcu', 'mcu1', 'mcu2', 'mcu3', 'mcx', 'mcx_gray', 'mcy', 'mcz',
+        if name in ('ccx', 'ccz', 'cp', 'cswap', 'csx', 'cx', 'cy', 'cz', 'delay', 'ecr',
+                    'h', 'id', 'mcp', 'mcphase', 'mcr', 'mcrx', 'mcry', 'mcrz', 'mcswap',
+                    'mcsx', 'mcu', 'mcu1', 'mcu2', 'mcu3', 'mcx', 'mcx_gray', 'mcy', 'mcz',
                     'p', 'r', 'rx', 'rxx', 'ry', 'ryy', 'rz', 'rzx', 'rzz', 's', 'sdg', 'swap',
                     'sx', 'sxdg', 't', 'tdg', 'u', 'x', 'y', 'z'):
-            self._aer_circ.gate(name, qubits, params, [], conditional_reg_idx, label if label else name)
+            self._aer_circ.gate(name, qubits, params, [],
+                                conditional_reg_idx, label if label else name)
         elif name == 'pauli':
-            self._aer_circ.gate(name, qubits, [], params, conditional_reg_idx, label if label else name)
+            self._aer_circ.gate(name, qubits, [], params,
+                                conditional_reg_idx, label if label else name)
         elif name == 'measure':
             if self._max_conditional_idx:
                 self._aer_circ.measure(qubits, clbits, clbits)
@@ -134,7 +136,8 @@ class AerCircuit:
         elif name == 'diagonal':
             self._aer_circ.diagonal(qubits, params, label if label else 'diagonal')
         elif name == 'unitary':
-            self._aer_circ.unitary(qubits, params[0], conditional_reg_idx, label if label else 'unitary')
+            self._aer_circ.unitary(qubits, params[0], conditional_reg_idx,
+                                   label if label else 'unitary')
         elif name == 'initialize':
             self._aer_circ.initialize(qubits, params)
         elif name == 'roerror':
@@ -144,9 +147,9 @@ class AerCircuit:
         elif name == 'kraus':
             self._aer_circ.kraus(qubits, params, conditional_reg_idx, label)
         elif name in ('save_statevector', 'save_statevector_dict', 'save_clifford',
-                    'save_probabilities', 'save_probabilities_dict', 'save_matrix_product_state',
-                    'save_unitary', 'save_superop', 'save_density_matrix', 'save_state',
-                    'save_stabilizer'):
+                      'save_probabilities', 'save_probabilities_dict', 'save_matrix_product_state',
+                      'save_unitary', 'save_superop', 'save_density_matrix', 'save_state',
+                      'save_stabilizer'):
             self._aer_circ.save_state(qubits, name, inst.subtype, conditional_reg_idx)
         elif name in ('save_amplitudes', 'save_amplitudes_sq'):
             self._aer_circ.save_amplitudes(qubits, name, params, inst.subtype, conditional_reg_idx)
@@ -158,7 +161,8 @@ class AerCircuit:
                 paulis.append(pauli)
                 coeff_reals.append(coeff[0])
                 coeff_reals.append(coeff[1])
-            self._aer_circ.save_expval(qubits, name, paulis, coeff_reals, coeff_imags, inst.subtype, conditional_reg_idx)
+            self._aer_circ.save_expval(qubits, name, paulis, coeff_reals,
+                                       coeff_imags, inst.subtype, conditional_reg_idx)
         elif name == 'set_statevector':
             self._aer_circ.set_statevector(qubits, params)
         elif name == 'set_unitary':
@@ -180,31 +184,38 @@ class AerCircuit:
         elif name == 'mark':
             self._aer_circ.mark(qubits, params)
         elif name in ('for_loop', 'while_loop', 'if_else'):
-            raise AerError(f'control-flow instructions must be converted to jump and mark instructions: {name}')
+            raise AerError('control-flow instructions must be converted ' +
+                           f'to jump and mark instructions: {name}')
         else:
             raise AerError(f'unknown instruction: {name}')
 
     @property
     def native_circuit(self):
+        """a native circuit instance"""
         return self._aer_circ
 
     @property
     def num_memory(self):
+        """a number of memory"""
         return self._num_memory
 
     @property
     def num_qubits(self):
+        """a number of qubits"""
         return self._num_qubits
+
 
 def generate_aer_circuit(
     circuit: QuantumCircuit,
     shots: int = 1024,
     seed: Optional[int] = None,
-)-> AerCircuit:
+) -> AerCircuit:
     """converts a Qiskit circuit into a circuit that Aer can directly run.
 
     Args:
         circuit: circuit to be converted
+        shots: a number of shots
+        seed: seed to generate random numbers
 
     Returns:
         circuit to be run on the Aer backends
@@ -212,15 +223,18 @@ def generate_aer_circuit(
 
     return AerCircuit(circuit, shots, seed)
 
+
 def generate_aer_circuits(
     circuits: List[QuantumCircuit],
     backend_options: Options,
-    **run_options    
+    **run_options
 ) -> List[AerCircuit]:
     """converts a list of Qiskit circuits into circuits that Aer can directly run.
 
     Args:
         circuits: circuit(s) to be converted
+        backend_options: backend options
+        run_options: run options
 
     Returns:
         circuits to be run on the Aer backends
@@ -245,8 +259,8 @@ def generate_aer_circuits(
     else:
         aer_circs = parallel_map(generate_aer_circuit, circuits)
     config = {
-        'memory_slots': max([aer_circ.num_memory for aer_circ in aer_circs]),
-        'n_qubits': max([aer_circ.num_qubits for aer_circ in aer_circs]),
+        'memory_slots': max(aer_circ.num_memory for aer_circ in aer_circs),
+        'n_qubits': max(aer_circ.num_qubits for aer_circ in aer_circs),
         **backend_options.__dict__,
         **run_options
     }
