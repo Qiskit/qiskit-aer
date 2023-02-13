@@ -55,17 +55,17 @@ public:
   }
 };
 
-template <> struct type_caster<Clifford::Clifford>{
-    using base = type_caster_base<Clifford::Clifford>;
+template <> struct type_caster<AER::Clifford::Clifford>{
+    using base = type_caster_base<AER::Clifford::Clifford>;
 public:
-    PYBIND11_TYPE_CASTER(Clifford::Clifford, _("clifford"));
+    PYBIND11_TYPE_CASTER(AER::Clifford::Clifford, _("clifford"));
     // Conversion part 1 (Python->C++):
     bool load(py::handle src, bool convert){
-        Clifford::build_from(src, value);
+        AER::Clifford::build_from(src, value);
         return true;
     }
     // Conversion part 2 (C++ -> Python):
-    static py::handle cast(Clifford::Clifford, py::return_value_policy policy, py::handle parent){
+    static py::handle cast(AER::Clifford::Clifford, py::return_value_policy policy, py::handle parent){
         throw std::runtime_error("Casting from Clifford to python not supported.");
     }
 };

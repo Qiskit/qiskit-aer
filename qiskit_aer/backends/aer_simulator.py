@@ -455,14 +455,14 @@ class AerSimulator(AerBackend):
             'save_amplitudes', 'save_amplitudes_sq',
             'save_density_matrix', 'save_state', 'save_statevector',
             'save_statevector_dict', 'set_statevector',
-            'if_else', 'for_loop', 'while_loop',
+            'if_else', 'for_loop', 'while_loop', 'break_loop', 'continue_loop',
         ]),
         'density_matrix': sorted([
             'quantum_channel', 'qerror_loc', 'roerror', 'kraus', 'superop',
             'save_state', 'save_expval', 'save_expval_var',
             'save_probabilities', 'save_probabilities_dict',
             'save_density_matrix', 'save_amplitudes_sq', 'set_density_matrix',
-            'if_else', 'for_loop', 'while_loop',
+            'if_else', 'for_loop', 'while_loop', 'break_loop', 'continue_loop',
         ]),
         'matrix_product_state': sorted([
             'quantum_channel', 'qerror_loc', 'roerror', 'kraus',
@@ -471,7 +471,7 @@ class AerSimulator(AerBackend):
             'save_state', 'save_matrix_product_state', 'save_statevector',
             'save_density_matrix', 'save_amplitudes', 'save_amplitudes_sq',
             'set_matrix_product_state',
-            'if_else', 'for_loop', 'while_loop',
+            'if_else', 'for_loop', 'while_loop', 'break_loop', 'continue_loop',
         ]),
         'stabilizer': sorted([
             'quantum_channel', 'qerror_loc', 'roerror',
@@ -479,7 +479,7 @@ class AerSimulator(AerBackend):
             'save_probabilities', 'save_probabilities_dict',
             'save_amplitudes_sq', 'save_state', 'save_clifford',
             'save_stabilizer', 'set_stabilizer',
-            'if_else', 'for_loop', 'while_loop',
+            'if_else', 'for_loop', 'while_loop', 'break_loop', 'continue_loop',
         ]),
         'extended_stabilizer': sorted([
             'quantum_channel', 'qerror_loc', 'roerror', 'save_statevector',
