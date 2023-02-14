@@ -29,7 +29,7 @@ from qiskit.pulse import Schedule, ScheduleBlock
 from qiskit.qobj import QasmQobj, PulseQobj
 from qiskit.result import Result
 from ..aererror import AerError
-from ..jobs import AerJob, AerJobSet, AerJobDirect, split_qobj
+from ..jobs import AerJob, AerJobSet, split_qobj
 from ..noise.noise_model import NoiseModel, QuantumErrorLocation
 from ..noise.errors.quantum_error import QuantumChannelInstruction
 from .aer_compiler import compile_circuit
@@ -163,10 +163,6 @@ class AerBackend(Backend, ABC):
         if isinstance(circuits, (QuantumCircuit, Schedule, ScheduleBlock)):
             circuits = [circuits]
 
-        if not isinstance(circuits, list):
-            raise AerError("bad input to run() function; "
-                           "circuits must be either circuits or schedules")
-
         if all(isinstance(circ, QuantumCircuit) for circ in circuits):
             executor = run_options.get('executor', None)
             if executor is None and 'executor' in self.options.__dict__:
@@ -215,7 +211,8 @@ class AerBackend(Backend, ABC):
 
         # Submit job
         job_id = str(uuid.uuid4())
-        aer_job = AerJobDirect(self, job_id, self._run_direct, circuits, noise_model, config)
+        aer_job = AerJob(self, job_id, self._run_direct,
+                         circuits=circuits, noise_model=noise_model, config=config)
         aer_job.submit()
 
         return aer_job
@@ -258,7 +255,7 @@ class AerBackend(Backend, ABC):
         if isinstance(experiments, list):
             aer_job = AerJobSet(self, job_id, self._run, experiments, executor)
         else:
-            aer_job = AerJob(self, job_id, self._run, experiments, executor)
+            aer_job = AerJob(self, job_id, self._run, qobj=experiments, executor=executor)
         aer_job.submit()
 
         # Restore removed executor after submission

@@ -1,0 +1,10 @@
+---
+features:
+  - |
+    Aer simulates :class:`~qiskit.circuit.QuantumCircuit` without serialization to
+    :class:`~qiskit.qobj.QasmQobj`. Instead, Aer converts a circuit to
+    a :class:`.AerCircuit` instance that a wrapper of internal circuit structure
+    of Aer C++. With this change, because overheads of serialization is reduced,
+    performance of simulation especially for low-qubit circuts is improved.
+    Note that pulse simualation and DASK-based simulation still use Qobj and
+    :class`.AerJob` does not return Qobj otherwise.
