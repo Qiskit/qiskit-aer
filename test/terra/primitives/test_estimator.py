@@ -19,6 +19,7 @@ import unittest
 from test.terra.common import QiskitAerTestCase
 
 import numpy as np
+from ddt import data, ddt
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.library import RealAmplitudes
 from qiskit.exceptions import QiskitError
@@ -29,6 +30,7 @@ from qiskit.quantum_info import Operator, SparsePauliOp
 from qiskit_aer.primitives import Estimator
 
 
+@ddt
 class TestEstimator(QiskitAerTestCase):
     """Testing estimator class"""
 
@@ -44,15 +46,17 @@ class TestEstimator(QiskitAerTestCase):
                 ("XX", 0.18093119978423156),
             ]
         )
-        self.expvals = -1.014918456829035, -1.2922526095793785
+        self.expval = -1.284366511861733
+        self.expval_rev = -0.5140997668602956
 
-    def test_estimator(self):
+    @data(True, False)
+    def test_estimator(self, abelian_grouping):
         """test for a simple use case"""
         lst = [("XX", 1), ("YY", 2), ("ZZ", 3)]
         with self.subTest("PauliSumOp"):
             observable = PauliSumOp.from_list(lst)
             ansatz = RealAmplitudes(num_qubits=2, reps=2)
-            est = Estimator()
+            est = Estimator(abelian_grouping=abelian_grouping)
             result = est.run(
                 ansatz, observable, parameter_values=[[0, 1, 1, 2, 3, 5]], seed=15
             ).result()
@@ -62,14 +66,15 @@ class TestEstimator(QiskitAerTestCase):
         with self.subTest("SparsePauliOp"):
             observable = SparsePauliOp.from_list(lst)
             ansatz = RealAmplitudes(num_qubits=2, reps=2)
-            est = Estimator()
+            est = Estimator(abelian_grouping=abelian_grouping)
             result = est.run(
                 ansatz, observable, parameter_values=[[0, 1, 1, 2, 3, 5]], seed=15
             ).result()
             self.assertIsInstance(result, EstimatorResult)
             np.testing.assert_allclose(result.values, [1.728515625])
 
-    def test_init_observable_from_operator(self):
+    @data(True, False)
+    def test_init_observable_from_operator(self, abelian_grouping):
         """test for evaluate without parameters"""
         circuit = self.ansatz.bind_parameters([0, 1, 1, 2, 3, 5])
         matrix = Operator(
@@ -80,54 +85,59 @@ class TestEstimator(QiskitAerTestCase):
                 [0.1809312, 0.0, 0.0, -1.06365335],
             ]
         )
-        est = Estimator()
-        result = est.run([circuit], [matrix], seed=15).result()
+        est = Estimator(abelian_grouping=abelian_grouping)
+        result = est.run([circuit], [matrix], seed=15, shots=8192).result()
         self.assertIsInstance(result, EstimatorResult)
-        np.testing.assert_allclose(result.values, [-1.284607781171875])
+        np.testing.assert_allclose(result.values, [self.expval], rtol=0.02)
 
-    def test_evaluate(self):
+    @data(True, False)
+    def test_evaluate(self, abelian_grouping):
         """test for evaluate"""
-        est = Estimator()
+        est = Estimator(abelian_grouping=abelian_grouping)
         result = est.run(
-            self.ansatz, self.observable, parameter_values=[[0, 1, 1, 2, 3, 5]], seed=15
+            self.ansatz, self.observable, parameter_values=[[0, 1, 1, 2, 3, 5]], seed=15, shots=8192
         ).result()
         self.assertIsInstance(result, EstimatorResult)
-        np.testing.assert_allclose(result.values, [-1.2895828299114598])
+        np.testing.assert_allclose(result.values, [self.expval], rtol=0.02)
 
-    def test_evaluate_multi_params(self):
+    @data(True, False)
+    def test_evaluate_multi_params(self, abelian_grouping):
         """test for evaluate with multiple parameters"""
-        est = Estimator()
+        est = Estimator(abelian_grouping=abelian_grouping)
         result = est.run(
             [self.ansatz] * 2,
             [self.observable] * 2,
-            parameter_values=[[0, 1, 1, 2, 3, 5], [1, 1, 2, 3, 5, 8]],
+            parameter_values=[[0, 1, 1, 2, 3, 5], [5, 3, 2, 1, 1, 0]],
             seed=15,
         ).result()
         self.assertIsInstance(result, EstimatorResult)
-        np.testing.assert_allclose(result.values, [-1.2895828299114598, -1.3237023178807785])
+        np.testing.assert_allclose(result.values, [self.expval, self.expval_rev], rtol=0.02)
 
-    def test_evaluate_no_params(self):
+    @data(True, False)
+    def test_evaluate_no_params(self, abelian_grouping):
         """test for evaluate without parameters"""
         circuit = self.ansatz.bind_parameters([0, 1, 1, 2, 3, 5])
-        est = Estimator()
-        result = est.run(circuit, self.observable, seed=15).result()
+        est = Estimator(abelian_grouping=abelian_grouping)
+        result = est.run(circuit, self.observable, seed=15, shots=8192).result()
         self.assertIsInstance(result, EstimatorResult)
-        np.testing.assert_allclose(result.values, [-1.2895828299114598])
+        np.testing.assert_allclose(result.values, [self.expval], rtol=0.02)
 
-    def test_run_with_multiple_observables_and_none_parameters(self):
+    @data(True, False)
+    def test_run_with_multiple_observables_and_none_parameters(self, abelian_grouping):
         """test for evaluate without parameters"""
         circuit = QuantumCircuit(3)
         circuit.h(0)
         circuit.cx(0, 1)
         circuit.cx(1, 2)
-        est = Estimator()
+        est = Estimator(abelian_grouping=abelian_grouping)
         result = est.run(
             [circuit] * 2, [SparsePauliOp("ZZZ"), SparsePauliOp("III")], seed=15
         ).result()
         self.assertIsInstance(result, EstimatorResult)
         np.testing.assert_allclose(result.values, [0.00390625, 1.0])
 
-    def test_1qubit(self):
+    @data(True, False)
+    def test_1qubit(self, abelian_grouping):
         """Test for 1-qubit cases"""
         qc0 = QuantumCircuit(1)
         qc1 = QuantumCircuit(1)
@@ -136,7 +146,7 @@ class TestEstimator(QiskitAerTestCase):
         op0 = SparsePauliOp.from_list([("I", 1)])
         op1 = SparsePauliOp.from_list([("Z", 1)])
 
-        est = Estimator()
+        est = Estimator(abelian_grouping=abelian_grouping)
         with self.subTest("test circuit 0, observable 0"):
             result = est.run(qc0, op0).result()
             self.assertIsInstance(result, EstimatorResult)
@@ -157,7 +167,8 @@ class TestEstimator(QiskitAerTestCase):
             self.assertIsInstance(result, EstimatorResult)
             np.testing.assert_allclose(result.values, [-1])
 
-    def test_2qubits(self):
+    @data(True, False)
+    def test_2qubits(self, abelian_grouping):
         """Test for 2-qubit cases (to check endian)"""
         qc0 = QuantumCircuit(2)
         qc1 = QuantumCircuit(2)
@@ -167,7 +178,7 @@ class TestEstimator(QiskitAerTestCase):
         op1 = SparsePauliOp.from_list([("ZI", 1)])
         op2 = SparsePauliOp.from_list([("IZ", 1)])
 
-        est = Estimator()
+        est = Estimator(abelian_grouping=abelian_grouping)
         with self.subTest("test circuit 0, observable 0"):
             result = est.run(qc0, op0).result()
             self.assertIsInstance(result, EstimatorResult)
@@ -198,12 +209,13 @@ class TestEstimator(QiskitAerTestCase):
             self.assertIsInstance(result, EstimatorResult)
             np.testing.assert_allclose(result.values, [-1])
 
-    def test_empty_parameter(self):
+    @data(True, False)
+    def test_empty_parameter(self, abelian_grouping):
         """Test for empty parameter"""
         n = 2
         qc = QuantumCircuit(n)
         op = SparsePauliOp.from_list([("I" * n, 1)])
-        estimator = Estimator()
+        estimator = Estimator(abelian_grouping=abelian_grouping)
         with self.subTest("one circuit"):
             result = estimator.run(qc, op, shots=1000).result()
             np.testing.assert_allclose(result.values, [1])
@@ -214,7 +226,8 @@ class TestEstimator(QiskitAerTestCase):
             np.testing.assert_allclose(result.values, [1, 1])
             self.assertEqual(len(result.metadata), 2)
 
-    def test_numpy_params(self):
+    @data(True, False)
+    def test_numpy_params(self, abelian_grouping):
         """Test for numpy array as parameter values"""
         qc = RealAmplitudes(num_qubits=2, reps=2)
         op = SparsePauliOp.from_list([("IZ", 1), ("XI", 2), ("ZY", -1)])
@@ -222,7 +235,7 @@ class TestEstimator(QiskitAerTestCase):
         params_array = np.random.rand(k, qc.num_parameters)
         params_list = params_array.tolist()
         params_list_array = list(params_array)
-        estimator = Estimator()
+        estimator = Estimator(abelian_grouping=abelian_grouping)
         target = estimator.run([qc] * k, [op] * k, params_list, seed=15).result()
 
         with self.subTest("ndarrary"):
@@ -237,7 +250,7 @@ class TestEstimator(QiskitAerTestCase):
 
     def test_with_shots_option_with_approximation(self):
         """test with shots option."""
-        est = Estimator(approximation=True)
+        est = Estimator(approximation=True, abelian_grouping=False)
         result = est.run(
             self.ansatz, self.observable, parameter_values=[[0, 1, 1, 2, 3, 5]], shots=1024, seed=15
         ).result()
@@ -246,7 +259,7 @@ class TestEstimator(QiskitAerTestCase):
 
     def test_with_shots_option_without_approximation(self):
         """test with shots option."""
-        est = Estimator(approximation=False)
+        est = Estimator(approximation=False, abelian_grouping=False)
         result = est.run(
             self.ansatz, self.observable, parameter_values=[[0, 1, 1, 2, 3, 5]], shots=1024, seed=15
         ).result()
