@@ -163,20 +163,7 @@ class AerBackend(Backend, ABC):
         if isinstance(circuits, (QuantumCircuit, Schedule, ScheduleBlock)):
             circuits = [circuits]
 
-        if all(isinstance(circ, QuantumCircuit) for circ in circuits):
-            executor = run_options.get('executor', None)
-            if executor is None and 'executor' in self.options.__dict__:
-                executor = self.options.__dict__.get('executor', None)
-            if executor or validate:
-                # This path remains for DASK execution to split a qobj insttance
-                # into sub-qobj instances. This will be replaced with _run_circuits path
-                # in the near releases
-                return self._run_qobj(circuits, validate, parameter_binds, **run_options)
-            else:
-                return self._run_circuits(circuits, parameter_binds, **run_options)
-        elif all(isinstance(circ, (ScheduleBlock, Schedule)) for circ in circuits):
-            return self._run_qobj(circuits, validate, parameter_binds, **run_options)
-        elif isinstance(circuits, (QasmQobj, PulseQobj)):
+        if isinstance(circuits, (QasmQobj, PulseQobj)):
             warnings.warn(
                 'Using a qobj for run() is deprecated as of qiskit-aer 0.9.0'
                 ' and will be removed no sooner than 3 months from that release'
@@ -193,6 +180,19 @@ class AerBackend(Backend, ABC):
             if not run_options:
                 run_options = circuits.config.__dict__
 
+            return self._run_qobj(circuits, validate, parameter_binds, **run_options)
+        elif all(isinstance(circ, QuantumCircuit) for circ in circuits):
+            executor = run_options.get('executor', None)
+            if executor is None and 'executor' in self.options.__dict__:
+                executor = self.options.__dict__.get('executor', None)
+            if executor or validate:
+                # This path remains for DASK execution to split a qobj insttance
+                # into sub-qobj instances. This will be replaced with _run_circuits path
+                # in the near releases
+                return self._run_qobj(circuits, validate, parameter_binds, **run_options)
+            else:
+                return self._run_circuits(circuits, parameter_binds, **run_options)
+        elif all(isinstance(circ, (ScheduleBlock, Schedule)) for circ in circuits):
             return self._run_qobj(circuits, validate, parameter_binds, **run_options)
         else:
             raise AerError("bad input to run() function;" +
