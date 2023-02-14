@@ -721,6 +721,24 @@ inline Op make_set_vector(const reg_t &qubits, const std::string &name, const in
   // Get type
   static const std::unordered_map<std::string, OpType> types {
     {"set_statevector", OpType::set_statevec},
+  };
+  auto type_it = types.find(name);
+  if (type_it == types.end()) {
+    throw std::runtime_error("Invalid data type \"" + name +
+                             "\" in set data instruction.");
+  }
+  op.type = type_it->second;
+  op.name = name;
+  op.qubits = qubits;
+  op.params = Parser<inputdata_t>::template get_list_elem<std::vector<complex_t>>(params, 0);
+  return op;
+}
+
+template<typename inputdata_t>
+inline Op make_set_matrix(const reg_t &qubits, const std::string &name, const inputdata_t &params) {
+  Op op;
+  // Get type
+  static const std::unordered_map<std::string, OpType> types {
     {"set_density_matrix", OpType::set_densmat},
     {"set_unitary", OpType::set_unitary},
     {"set_superop", OpType::set_superop}
@@ -733,7 +751,7 @@ inline Op make_set_vector(const reg_t &qubits, const std::string &name, const in
   op.type = type_it->second;
   op.name = name;
   op.qubits = qubits;
-  op.params = Parser<inputdata_t>::template get_list_elem<std::vector<complex_t>>(params, 0);
+  op.mats.push_back(Parser<inputdata_t>::template get_list_elem<cmatrix_t>(params, 0));
   return op;
 }
 

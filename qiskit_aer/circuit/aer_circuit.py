@@ -134,13 +134,13 @@ class AerCircuit:
         elif name == 'set_statevector':
             aer_circ.set_statevector(qubits, params)
         elif name == 'set_unitary':
-            aer_circ.set_unitary(qubits, params[0])
+            aer_circ.set_unitary(qubits, params)
         elif name == 'set_density_matrix':
-            aer_circ.set_density_matrix(qubits, params[0])
+            aer_circ.set_density_matrix(qubits, params)
         elif name == 'set_stabilizer':
             aer_circ.set_clifford(qubits, params)
         elif name == 'set_superop':
-            aer_circ.set_superop(qubits, params[0])
+            aer_circ.set_superop(qubits, params)
         elif name == 'set_matrix_product_state':
             aer_circ.set_matrix_product_state(qubits, params)
         elif name == 'superop':

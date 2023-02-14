@@ -208,17 +208,17 @@ public:
 
   template<typename inputdata_t>
   void set_density_matrix(const reg_t &qubits, const inputdata_t &param) {
-    ops.push_back(Operations::make_set_vector(qubits, "set_density_matrix", param));
+    ops.push_back(Operations::make_set_matrix(qubits, "set_density_matrix", param));
   }
 
   template<typename inputdata_t>
   void set_unitary(const reg_t &qubits, const inputdata_t &param) {
-    ops.push_back(Operations::make_set_vector(qubits, "set_unitary", param));
+    ops.push_back(Operations::make_set_matrix(qubits, "set_unitary", param));
   }
 
   template<typename inputdata_t>
   void set_superop(const reg_t &qubits, const inputdata_t &param) {
-    ops.push_back(Operations::make_set_vector(qubits, "set_superop", param));
+    ops.push_back(Operations::make_set_matrix(qubits, "set_superop", param));
   }
 
   template<typename inputdata_t>
