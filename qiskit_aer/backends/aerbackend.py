@@ -179,7 +179,11 @@ class AerBackend(Backend, ABC):
             # fields that are set via assemble.
             if not run_options:
                 run_options = circuits.config.__dict__
-
+            else:
+                run_options = copy.copy(run_options)
+                for key, value in circuits.config.__dict__.items():
+                    if key not in run_options and value is not None:
+                        run_options[key] = value
             return self._run_qobj(circuits, validate, parameter_binds, **run_options)
         elif all(isinstance(circ, QuantumCircuit) for circ in circuits):
             executor = run_options.get('executor', None)
@@ -225,10 +229,7 @@ class AerBackend(Backend, ABC):
                   **run_options):
         """Run circuits by assembling qobj.
         """
-        if isinstance(circuits, (QasmQobj, PulseQobj)):
-            qobj = circuits
-        else:
-            qobj = self._assemble(circuits, parameter_binds=parameter_binds, **run_options)
+        qobj = self._assemble(circuits, parameter_binds=parameter_binds, **run_options)
 
         # Optional validation
         if validate:
@@ -484,30 +485,33 @@ class AerBackend(Backend, ABC):
     def _assemble(self, circuits, parameter_binds=None, **run_options):
         """Assemble one or more Qobj for running on the simulator"""
 
-        # compile and insert noise injection points
-        circuits, noise_model = self._compile(circuits, **run_options)
-
-        # If noise model exists, add it to the run options
-        if noise_model:
-            run_options['noise_model'] = noise_model
-
-        if parameter_binds:
-            # Handle parameter binding
-            parameterizations = self._convert_binds(circuits, parameter_binds)
-            qobj = None
-            for circuit in circuits:
-                assemble_bind = {param: 1 for param in circuit.parameters}
-                qobj_tmp = assemble(
-                    [circuit],
-                    backend=self,
-                    parameter_binds=[assemble_bind],
-                    parameterizations=parameterizations)
-                if qobj:
-                    qobj.experiments.append(qobj_tmp.experiments[0])
-                else:
-                    qobj = qobj_tmp
+        if isinstance(circuits, (QasmQobj, PulseQobj)):
+            qobj = circuits
         else:
-            qobj = assemble(circuits, backend=self)
+            # compile and insert noise injection points
+            circuits, noise_model = self._compile(circuits, **run_options)
+
+            # If noise model exists, add it to the run options
+            if noise_model:
+                run_options['noise_model'] = noise_model
+
+            if parameter_binds:
+                # Handle parameter binding
+                parameterizations = self._convert_binds(circuits, parameter_binds)
+                qobj = None
+                for circuit in circuits:
+                    assemble_bind = {param: 1 for param in circuit.parameters}
+                    qobj_tmp = assemble(
+                        [circuit],
+                        backend=self,
+                        parameter_binds=[assemble_bind],
+                        parameterizations=parameterizations)
+                    if qobj:
+                        qobj.experiments.append(qobj_tmp.experiments[0])
+                    else:
+                        qobj = qobj_tmp
+            else:
+                qobj = assemble(circuits, backend=self)
 
         # Add options
         for key, val in self.options.__dict__.items():
