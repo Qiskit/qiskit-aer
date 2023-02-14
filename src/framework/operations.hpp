@@ -721,8 +721,8 @@ inline Op make_set_vector(const reg_t &qubits, const std::string &name, const in
   // Get type
   static const std::unordered_map<std::string, OpType> types {
     {"set_statevector", OpType::set_statevec},
-    {"set_density_matrix", OpType::set_statevec},
-    {"set_unitary", OpType::set_statevec},
+    {"set_density_matrix", OpType::set_densmat},
+    {"set_unitary", OpType::set_unitary},
     {"set_superop", OpType::set_superop}
   };
   auto type_it = types.find(name);
@@ -1236,7 +1236,6 @@ Op input_to_op_bfunc(const inputdata_t& input) {
   if (op.registers.empty()) {
     throw std::invalid_argument("Invalid measure operation: \"register\" is empty.");
   }
-  std::cout << "bfunc: " << op.string_params[0] << ", " << op.string_params[1] << ", " << relation << ", " << op.registers[0] << std::endl;
   return op;
 }
 

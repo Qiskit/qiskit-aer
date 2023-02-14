@@ -127,10 +127,9 @@ def cpp_execute(controller, qobj):
     return controller(qobj)
 
 
-def cpp_execute_direct(controller, circuits, noise_model, config):
+def cpp_execute_direct(controller, aer_circuits, noise_model, config):
     """Execute aer circuits on C++ controller wrapper"""
 
-    aer_circuits = generate_aer_circuits(circuits)
     native_circuits = [aer_circuit.native_circuit for aer_circuit in aer_circuits]
 
     # Location where we put external libraries that will be
@@ -200,14 +199,17 @@ def add_final_save_instruction(qobj, state):
     return qobj
 
 
-def add_final_save_op(circs, state):
+def add_final_save_op(aer_circuits, state):
     """Add final save state op to all experiments in a qobj."""
 
-    for circ in circs:
-        num_qubits = circ.num_qubits
-        circ.append(SaveData(f"save_{state}", num_qubits, f"{state}", "single"), circ.qubits)
+    for aer_circuit in aer_circuits:
+        num_qubits = aer_circuit.num_qubits
+        aer_circuit.native_circuit.save_state(list(range(num_qubits)),
+                                              f"save_{state}",
+                                              "single",
+                                              state)
 
-    return circs
+    return aer_circuits
 
 
 def map_legacy_method_options(qobj):

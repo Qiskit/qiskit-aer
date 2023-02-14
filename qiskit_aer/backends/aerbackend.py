@@ -34,7 +34,7 @@ from ..noise.noise_model import NoiseModel, QuantumErrorLocation
 from ..noise.errors.quantum_error import QuantumChannelInstruction
 from .aer_compiler import compile_circuit
 from .backend_utils import format_save_type, circuit_optypes
-from ..circuit.aer_circuit import generate_aer_circuits, generate_aer_config
+from ..circuit.aer_circuit import generate_aer_config
 
 # Logger
 logger = logging.getLogger(__name__)

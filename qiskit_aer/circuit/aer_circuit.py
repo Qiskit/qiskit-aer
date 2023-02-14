@@ -152,7 +152,7 @@ class AerCircuit:
         elif name == 'set_density_matrix':
             aer_circ.set_density_matrix(qubits, params[0])
         elif name == 'set_stabilizer':
-            aer_circ.set_stabilizer(qubits, params)
+            aer_circ.set_clifford(qubits, params)
         elif name == 'set_superop':
             aer_circ.set_superop(qubits, params[0])
         elif name == 'set_matrix_product_state':

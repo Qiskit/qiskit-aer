@@ -32,6 +32,7 @@ from .backend_utils import (cpp_execute, available_devices,
                             map_legacy_method_config,
                             add_final_save_op,
                             )
+from ..circuit.aer_circuit import generate_aer_circuits
 # pylint: disable=import-error, no-name-in-module
 from .controller_wrappers import aer_controller_execute
 
@@ -272,9 +273,10 @@ class StatevectorSimulator(AerBackend):
     def _execute_direct(self, circuits, noise_model, config):
         """Execute circuits on the backend.
         """
-        circuits = add_final_save_op(circuits, "statevector")
         config = map_legacy_method_config(config)
-        return cpp_execute_direct(self._controller, circuits, noise_model, config)
+        aer_circuits = generate_aer_circuits(circuits)
+        circuits = add_final_save_op(aer_circuits, "statevector")
+        return cpp_execute_direct(self._controller, aer_circuits, noise_model, config)
 
     def _validate(self, qobj):
         """Semantic validations of the qobj which cannot be done via schemas.

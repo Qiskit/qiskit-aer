@@ -216,18 +216,20 @@ class TestSimulationMethod(SimulatorTestCase):
 
     def test_auto_method_partial_result_a_single_invalid_circuit(self):
         """Test a partial result is returned with a job with a valid and invalid circuit."""
+
         circuits = []
         qc = QuantumCircuit(2)
         qc.h(0)
         qc.cx(0, 1)
         qc.measure_all()
-        qc_2 = QuantumVolume(5)
+        qc_2 = QuantumCircuit(50)
+        qc_2.h(range(50))
         qc_2.measure_all()
         circuits.append(qc_2)
         circuits.append(qc)
         backend = self.backend()
         shots = 100
-        result = backend.run(circuits, shots=shots).result()
+        result = backend.run(circuits, shots=shots, method='statevector').result()
         self.assertEqual(result.status, 'PARTIAL COMPLETED')
         self.assertTrue(hasattr(result.results[1].data, 'counts'))
         self.assertFalse(hasattr(result.results[0].data, 'counts'))
