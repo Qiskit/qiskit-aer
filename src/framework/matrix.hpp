@@ -46,12 +46,12 @@ Multiplication is done with the C wrapper of the fortran blas library.
  ******************************************************************************/
 
 template <class T>
-inline T* malloc_array(size_t size) {
+T* malloc_array(size_t size) {
   return reinterpret_cast<T*>(malloc(sizeof(T) * size));
 }
 
 template <class T>
-inline T* calloc_array(size_t size) {
+T* calloc_array(size_t size) {
   return reinterpret_cast<T*>(calloc(size, sizeof(T)));
 }
 
