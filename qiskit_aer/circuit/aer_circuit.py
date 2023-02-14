@@ -37,36 +37,26 @@ class AerCircuit:
 
         self._aer_circ = None
 
-        self._num_qubits = 0
-        self._num_memory = 0
+        self._num_qubits = circuit.num_qubits
+        self._num_memory = circuit.num_clbits
         self._max_conditional_idx = 0
 
         qreg_sizes = []
         creg_sizes = []
-        qubit_labels = []
-        clbit_labels = []
         self._global_phase = float(circuit.global_phase)
 
         for qreg in circuit.qregs:
             qreg_sizes.append([qreg.name, qreg.size])
-            for j in range(qreg.size):
-                qubit_labels.append([qreg.name, j])
-            self._num_qubits += qreg.size
         for creg in circuit.cregs:
             creg_sizes.append([creg.name, creg.size])
-            for j in range(creg.size):
-                clbit_labels.append([creg.name, j])
-            self._num_memory += creg.size
 
         self._is_conditional_experiment = any(
             getattr(inst.operation, "condition", None) for inst in circuit.data
         )
 
         self._header = QobjExperimentHeader(
-            qubit_labels=qubit_labels,
             n_qubits=self._num_qubits,
             qreg_sizes=qreg_sizes,
-            clbit_labels=clbit_labels,
             memory_slots=self._num_memory,
             creg_sizes=creg_sizes,
             name=circuit.name,
@@ -289,8 +279,8 @@ def generate_aer_config(
     Returns:
         dict to run Aer
     """
-    num_qubits = max(sum(qreg.size for qreg in circuit.qregs) for circuit in circuits)
-    memory_slots = max(sum(creg.size for creg in circuit.cregs) for circuit in circuits)
+    num_qubits = max(circuit.num_qubits for circuit in circuits)
+    memory_slots = max(circuit.num_clbits for circuit in circuits)
 
     config = {
         'memory_slots': memory_slots,

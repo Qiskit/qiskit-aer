@@ -30,7 +30,6 @@ The following are the classes used to manage job submissions.
 
     AerJob
     AerJobSet
-    AerJobDirect
 
 """
 
