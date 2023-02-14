@@ -22,8 +22,6 @@ from qiskit.compiler import assemble
 from qiskit.qobj import QasmQobjInstruction
 from qiskit.result import ProbDistribution
 from qiskit.quantum_info import Clifford
-from qiskit_aer.circuit.aer_circuit import generate_aer_circuits
-from qiskit_aer.library.save_instructions.save_data import SaveData
 from .compatibility import (
     Statevector, DensityMatrix, StabilizerState, Operator, SuperOp)
 

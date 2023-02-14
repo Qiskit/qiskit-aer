@@ -307,5 +307,4 @@ class UnitarySimulator(AerBackend):
             for operation in experiment.instructions:
                 if operation.name in ['measure', 'reset']:
                     raise AerError(
-                        'Unsupported {} instruction {} in circuit {}'.format(
-                            name, operation.name, exp_name))
+                        f'Unsupported {name} instruction {operation.name} in circuit {exp_name}')

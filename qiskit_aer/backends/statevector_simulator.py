@@ -287,15 +287,14 @@ class StatevectorSimulator(AerBackend):
         """
         name = self.name()
         if getattr(qobj.config, 'noise_model', None) is not None:
-            raise AerError("{} does not support noise.".format(name))
+            raise AerError(f"{name} does not support noise.")
 
         n_qubits = qobj.config.n_qubits
         max_qubits = self.configuration().n_qubits
         if n_qubits > max_qubits:
             raise AerError(
-                'Number of qubits ({}) is greater than max ({}) for "{}" with {} GB system memory.'
-                .format(n_qubits, max_qubits, name,
-                        int(local_hardware_info()['memory'])))
+                f'Number of qubits ({n_qubits}) is greater than max ({max_qubits}) '
+                f'for "{name}" with {int(local_hardware_info()["memory"])} GB system memory.')
 
         if qobj.config.shots != 1:
             logger.info('"%s" only supports 1 shot. Setting shots=1.', name)

@@ -88,9 +88,8 @@ class AerCircuit:
         params = operation.params if hasattr(operation, "params") else None
         copied = False
 
-        for i in range(len(params)):
-            if (isinstance(params[i], ParameterExpression)
-                    and len(params[i].parameters) > 0):
+        for i, param in enumerate(params):
+            if (isinstance(param, ParameterExpression) and len(param.parameters) > 0):
                 if not copied:
                     params = copy(params)
                     copied = True
@@ -102,11 +101,9 @@ class AerCircuit:
                     'p', 'r', 'rx', 'rxx', 'ry', 'ryy', 'rz', 'rzx', 'rzz', 's', 'sdg', 'swap',
                     'sx', 'sxdg', 't', 'tdg', 'u', 'x', 'y', 'z', 'u1', 'u2', 'u3',
                     'cu', 'cu1', 'cu2', 'cu3'):
-            aer_circ.gate(name, qubits, params, [],
-                                conditional_reg_idx, label if label else name)
+            aer_circ.gate(name, qubits, params, [], conditional_reg_idx, label if label else name)
         elif name == 'pauli':
-            aer_circ.gate(name, qubits, [], params,
-                                conditional_reg_idx, label if label else name)
+            aer_circ.gate(name, qubits, [], params, conditional_reg_idx, label if label else name)
         elif name == 'measure':
             if self._is_conditional_experiment:
                 aer_circ.measure(qubits, clbits, clbits)
@@ -117,8 +114,7 @@ class AerCircuit:
         elif name == 'diagonal':
             aer_circ.diagonal(qubits, params, label if label else 'diagonal')
         elif name == 'unitary':
-            aer_circ.unitary(qubits, params[0], conditional_reg_idx,
-                                   label if label else 'unitary')
+            aer_circ.unitary(qubits, params[0], conditional_reg_idx, label if label else 'unitary')
         elif name == 'initialize':
             aer_circ.initialize(qubits, params)
         elif name == 'roerror':
@@ -209,7 +205,7 @@ class AerCircuit:
                             mask |= 1 << idx
                             val |= ((ctrl_val >> list(ctrl_reg).index(clbit)) & 1) << idx
                 conditional_reg_idx = self._num_memory + self._max_conditional_idx
-                self._aer_circ.bfunc("0x%X" % mask, "0x%X" % val, "==", conditional_reg_idx)
+                self._aer_circ.bfunc(f"0x{mask:X}", f"0x{val:X}", "==", conditional_reg_idx)
                 self._max_conditional_idx += 1
 
             self._append_op(self._aer_circ, inst, conditional_reg_idx)
@@ -253,8 +249,6 @@ def generate_aer_circuits(
 
     Args:
         circuits: circuit(s) to be converted
-        backend_options: backend options
-        run_options: run options
 
     Returns:
         circuits to be run on the Aer backends
@@ -278,6 +272,7 @@ def generate_aer_circuits(
         return [generate_aer_circuit(circuits[0])]
     else:
         return parallel_map(generate_aer_circuit, circuits)
+
 
 def generate_aer_config(
     circuits: List[QuantumCircuit],
