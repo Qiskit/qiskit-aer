@@ -1,0 +1,6 @@
+---
+upgrade:
+  - |
+    :meth:`run` in :class:`~AerSimulator`, :class:`~QasmSimulator`, :class:`~StatevectorSimulator`,
+    :class:`~UnitarySimulator`, and :class:`~PulseSimulator` no longer support qobj as an argument.
+    Now, the method can run only ``QuantumCircuit`` or `Schedule`.

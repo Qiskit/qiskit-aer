@@ -478,13 +478,13 @@ if __name__ == '__main__':
     # Run pulse simulator
     system_model, schedule = model_and_pi_schedule()
     backend_sim = PulseSimulator()
-    qobj = assemble([schedule],
-                    backend=backend_sim,
-                    qubit_lo_freq=[5.0],
-                    meas_level=1,
-                    meas_return='avg',
-                    shots=1)
-    results = backend_sim.run(qobj, system_model=system_model).result()
+    results = backend_sim.run([schedule],
+                              backend=backend_sim,
+                              qubit_lo_freq=[5.0],
+                              meas_level=1,
+                              meas_return='avg',
+                              shots=1,
+                              system_model=system_model).result()
     state = results.get_statevector(0)
     assertAlmostEqual(state[0], 0, delta=10**-3)
     assertAlmostEqual(state[1], -1j, delta=10**-3)

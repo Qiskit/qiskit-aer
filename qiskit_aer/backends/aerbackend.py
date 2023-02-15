@@ -123,7 +123,7 @@ class AerBackend(Backend, ABC):
             validate=False,
             parameter_binds=None,
             **run_options):
-        """Run a qobj on the backend.
+        """Run circuits on the backend.
 
         Args:
             circuits (QuantumCircuit or list): The QuantumCircuit (or list
@@ -159,30 +159,8 @@ class AerBackend(Backend, ABC):
         Raises:
             ValueError: if run is not implemented
         """
-        if isinstance(circuits, (QasmQobj, PulseQobj)):
-            warnings.warn(
-                'Using a qobj for run() is deprecated as of qiskit-aer 0.9.0'
-                ' and will be removed no sooner than 3 months from that release'
-                ' date. Transpiled circuits should now be passed directly using'
-                ' `backend.run(circuits, **run_options).',
-                DeprecationWarning, stacklevel=2)
-            if parameter_binds:
-                raise AerError("Parameter binds can't be used with an input qobj")
-            # A work around to support both qobj options and run options until
-            # qobj is deprecated is to copy all the set qobj.config fields into
-            # run_options that don't override existing fields. This means set
-            # run_options fields will take precidence over the value for those
-            # fields that are set via assemble.
-            if not run_options:
-                run_options = circuits.config.__dict__
-            else:
-                run_options = copy.copy(run_options)
-                for key, value in circuits.config.__dict__.items():
-                    if key not in run_options and value is not None:
-                        run_options[key] = value
-            qobj = self._assemble(circuits, **run_options)
-        else:
-            qobj = self._assemble(circuits, parameter_binds=parameter_binds, **run_options)
+
+        qobj = self._assemble(circuits, parameter_binds=parameter_binds, **run_options)
 
         # Optional validation
         if validate:

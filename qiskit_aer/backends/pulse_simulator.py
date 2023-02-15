@@ -74,11 +74,8 @@ class PulseSimulator(AerBackend):
         # Set the pulse system model for the simulator
         backend_sim.set_options(system_model=system_model)
 
-        # Assemble schedules using PulseSimulator as the backend
-        pulse_qobj = assemble(schedules, backend=backend_sim)
-
         # Run simulation
-        results = backend_sim.run(pulse_qobj)
+        results = backend_sim.run(schedules)
 
     or by supplying the system model at runtime, e.g.:
 
@@ -86,11 +83,8 @@ class PulseSimulator(AerBackend):
 
         backend_sim = qiskit_aer.PulseSimulator()
 
-        # Assemble schedules using PulseSimulator as the backend
-        pulse_qobj = assemble(schedules, backend=backend_sim)
-
         # Run simulation on a PulseSystemModel object
-        results = backend_sim.run(pulse_qobj, system_model=system_model)
+        results = backend_sim.run(schedules, system_model=system_model)
 
     Alternatively, an instance of the ``PulseSimulator`` may be further configured to contain more
     information present in a real backend. The simplest way to do this is to instantiate the
@@ -99,16 +93,15 @@ class PulseSimulator(AerBackend):
     .. code-block:: python
 
         armonk_sim = qiskit_aer.PulseSimulator.from_backend(FakeArmonk())
-        pulse_qobj = assemble(schedules, backend=armonk_sim)
-        armonk_sim.run(pulse_qobj)
+        armonk_sim.run(schedules)
 
     In the above example, the ``PulseSimulator`` copies all configuration and default data from
     ``FakeArmonk()``, and as such has the same affect as ``FakeArmonk()`` when passed as an
-    argument to ``assemble``. Furthermore it constructs a
+    argument to ``run``. Furthermore it constructs a
     :class:`~qiskit_aer.pulse.PulseSystemModel` from the model details in the supplied
     backend, which is then used in simulation.
 
-    **Supported PulseQobj parameters**
+    **Supported parameters**
 
     * ``qubit_lo_freq``: Local oscillator frequencies for each :class:`DriveChannel`.
       Defaults to either the value given in the
