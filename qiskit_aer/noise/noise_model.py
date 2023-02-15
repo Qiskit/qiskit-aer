@@ -22,6 +22,8 @@ import numpy as np
 
 from qiskit.circuit import Instruction, Delay
 from qiskit.circuit import QuantumCircuit
+from qiskit.circuit import Reset
+from qiskit.circuit.library.generalized_gates import PauliGate
 from qiskit.extensions import UnitaryGate
 from qiskit.providers import QubitProperties
 from qiskit.providers.exceptions import BackendPropertyError
@@ -910,7 +912,6 @@ class NoiseModel:
             circ = QuantumCircuit(num_qubits)
             for dic in dic_list:
                 if dic['name'] == 'reset':
-                    from qiskit.circuit import Reset
                     circ.append(Reset(), qargs=dic['qubits'])
                 elif dic['name'] == 'kraus':
                     circ.append(Instruction(name='kraus',
@@ -922,7 +923,6 @@ class NoiseModel:
                     circ.append(UnitaryGate(data=dic['params'][0]),
                                 qargs=dic['qubits'])
                 elif dic['name'] == 'pauli':
-                    from qiskit.circuit.library.generalized_gates import PauliGate
                     circ.append(PauliGate(dic['params'][0]),
                                 qargs=dic['qubits'])
                 else:
