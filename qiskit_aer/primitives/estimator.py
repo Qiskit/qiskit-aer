@@ -19,7 +19,6 @@ from __future__ import annotations
 from collections import defaultdict
 from collections.abc import Sequence
 from copy import copy
-from warnings import warn
 
 import numpy as np
 from qiskit.circuit import QuantumCircuit
@@ -77,7 +76,8 @@ class Estimator(BaseEstimator):
             approximation: If True, it calculates expectation values with normal distribution
                 approximation.
             skip_transpilation: If True, transpilation is skipped.
-            abelian_grouping: Whether the observable should be grouped into commuting
+            abelian_grouping: Whether the observable should be grouped into commuting.
+                If approximation is True, this parameter is ignored and assumed to be False.
         """
         super().__init__(options=run_options)
 
@@ -346,8 +346,6 @@ class Estimator(BaseEstimator):
     ):
         if self._abelian_grouping:
             warn(
-                "approximation and abelian_grouping cannot be True at the same time. "
-                "abelian_grouping is automatically assumed to be False.",
                 UserWarning,
             )
         # Key for cache
