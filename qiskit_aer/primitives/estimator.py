@@ -19,6 +19,7 @@ from __future__ import annotations
 from collections import defaultdict
 from collections.abc import Sequence
 from copy import copy
+from warnings import warn
 
 import numpy as np
 from qiskit.circuit import QuantumCircuit
@@ -344,7 +345,11 @@ class Estimator(BaseEstimator):
         self, circuits, observables, parameter_values, run_options, seed
     ):
         if self._abelian_grouping:
-            raise AerError("approximation and abelian_grouping cannot be True at the same time.")
+            warn(
+                "approximation and abelian_grouping cannot be True at the same time. "
+                "abelian_grouping is automatically assumed to be False.",
+                UserWarning,
+            )
         # Key for cache
         key = (tuple(circuits), tuple(observables), self.approximation)
         parameter_binds = []
