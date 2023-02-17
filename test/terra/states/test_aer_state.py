@@ -19,7 +19,7 @@ import numpy as np
 
 from qiskit.circuit import QuantumCircuit, Gate
 from qiskit.quantum_info.random import random_unitary
-from qiskit.quantum_info.states.random import random_statevector
+from qiskit.quantum_info import random_statevector, random_density_matrix
 from qiskit_aer import AerSimulator
 
 from test.terra import common
@@ -106,23 +106,19 @@ class TestAerState(common.QiskitAerTestCase):
 
     def test_initialize_densitymatrix(self):
         """Test initialization of AerState with densitymatrix"""
+        target_c = random_density_matrix(2**4, seed=1111).data
+        target_f = np.array(target_c, order='F')
+
         state1 = AerState(method='density_matrix')
-        state1.allocate_qubits(4)
-        state1.initialize()
-
+        state1.initialize(target_f, True) # copy
         dm1 = state1.move_to_ndarray()
-        self.assertEqual((16, 16), dm1.shape)
+        state1.close()
 
+        self.assertTrue(np.isfortran(dm1))
+        self.assertEqual((16, 16), dm1.shape)
         for row in range(dm1.shape[0]):
             for col in range(dm1.shape[1]):
-                if row == 0 and col == 0:
-                    self.assertEqual(dm1[row][col], complex(1., 0.))
-                else:
-                    self.assertEqual(dm1[row][col], complex(0., 0.))
-
-        dm1[0][0] = complex(0., 0.)
-        dm1[len(dm1) - 1][len(dm1) - 1] = complex(1., 0.)
-        state1.close()
+                self.assertAlmostEqual(target_f[row][col], dm1[row][col])
 
         state2 = AerState(method='density_matrix')
         state2.initialize(dm1, False)
@@ -130,49 +126,24 @@ class TestAerState(common.QiskitAerTestCase):
         dm2 = state2.move_to_ndarray()
         state2.close()
 
+        self.assertTrue(np.isfortran(dm2))
         self.assertEqual((16, 16), dm2.shape)
-
-        for row in range(dm2.shape[0]):
-            for col in range(dm2.shape[1]):
-                if row == len(dm2) - 1 and col == len(dm2) - 1:
-                    self.assertEqual(dm2[row][col], complex(1., 0.))
-                else:
-                    self.assertEqual(dm2[row][col], complex(0., 0.))
-
-    def test_initialize_densitymatrix_cache_blocking(self):
-        """Test initialization of AerState with densitymatrix"""
-        state1 = AerState(method='density_matrix', blocking_qubits=2)
-        state1.allocate_qubits(4)
-        state1.initialize()
-
-        dm1 = state1.move_to_ndarray()
-        self.assertEqual((16, 16), dm1.shape)
 
         for row in range(dm1.shape[0]):
             for col in range(dm1.shape[1]):
-                if row == 0 and col == 0:
-                    self.assertEqual(dm1[row][col], complex(1., 0.))
-                else:
-                    self.assertEqual(dm1[row][col], complex(0., 0.))
+                self.assertAlmostEqual(target_f[row][col], dm2[row][col])
 
-        dm1[0][0] = complex(0., 0.)
-        dm1[len(dm1) - 1][len(dm1) - 1] = complex(1., 0.)
-        state1.close()
+        state3 = AerState(method='density_matrix')
+        state3.initialize(target_c, True) # copy
+        dm3 = state3.move_to_ndarray()
+        state3.close()
 
-        state2 = AerState(method='density_matrix', blocking_qubits=2)
-        state2.initialize(dm1, False)
-        state2.flush()
-        dm2 = state2.move_to_ndarray()
-        state2.close()
+        self.assertTrue(np.isfortran(dm3))
+        self.assertEqual((16, 16), dm3.shape)
+        for row in range(dm3.shape[0]):
+            for col in range(dm3.shape[1]):
+                self.assertAlmostEqual(target_f[row][col], dm3[row][col])
 
-        self.assertEqual((16, 16), dm2.shape)
-
-        for row in range(dm2.shape[0]):
-            for col in range(dm2.shape[1]):
-                if row == len(dm2) - 1 and col == len(dm2) - 1:
-                    self.assertEqual(dm2[row][col], complex(1., 0.))
-                else:
-                    self.assertEqual(dm2[row][col], complex(0., 0.))
     def test_map_statevector(self):
         """Test initialization of AerState with statevector"""
         init_state = random_statevector(2**5, seed=111)
