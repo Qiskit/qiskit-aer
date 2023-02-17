@@ -177,7 +177,7 @@ public:
   // Allocate qubits with inputted complex array
   // method must be densitymatrix and the length of the array must be 4^{num_qubits}
   // given data will not be freed in this class
-  virtual reg_t initialize_densitymatrix(uint_t num_qubits, complex_t* data, bool copy);
+  virtual reg_t initialize_densitymatrix(uint_t num_qubits, complex_t* data, bool is_fortran, bool copy);
 
   // Release internal statevector as a vector
   virtual AER::Vector<complex_t> move_to_vector();
@@ -750,7 +750,7 @@ reg_t AerState::initialize_statevector(uint_t num_of_qubits, complex_t* data, bo
   return ret;
 };
 
-reg_t AerState::initialize_densitymatrix(uint_t num_of_qubits, complex_t* data, bool copy) {
+reg_t AerState::initialize_densitymatrix(uint_t num_of_qubits, complex_t* data, bool is_fortran, bool copy) {
   assert_not_initialized();
 
   num_of_qubits_ = num_of_qubits;
@@ -778,6 +778,9 @@ reg_t AerState::initialize_densitymatrix(uint_t num_of_qubits, complex_t* data, 
 
   state->initialize_qreg(num_of_qubits_, std::move(dm));
   state->initialize_creg(num_of_qubits_, num_of_qubits_);
+
+  if (!is_fortran)
+    state->qreg().transpose();
 
   initialized_ = true;
 

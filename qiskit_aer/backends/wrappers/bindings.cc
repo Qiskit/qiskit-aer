@@ -87,8 +87,9 @@ PYBIND11_MODULE(controller_wrappers, m) {
                                                         py::array_t<std::complex<double>> &values,
                                                         bool copy) {
       std::complex<double>* data_ptr = reinterpret_cast<std::complex<double>*>(values.mutable_data(0));
+      auto c_order = values.attr("flags").attr("carray").template cast<bool>();
       state.configure("method", "density_matrix");
-      state.initialize_densitymatrix(num_of_qubits, data_ptr, copy);
+      state.initialize_densitymatrix(num_of_qubits, data_ptr, !c_order, copy);
       return true;
     });
 
