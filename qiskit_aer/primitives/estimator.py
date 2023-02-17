@@ -344,10 +344,6 @@ class Estimator(BaseEstimator):
     def _compute_with_approximation(
         self, circuits, observables, parameter_values, run_options, seed
     ):
-        if self._abelian_grouping:
-            warn(
-                UserWarning,
-            )
         # Key for cache
         key = (tuple(circuits), tuple(observables), self.approximation)
         parameter_binds = []
