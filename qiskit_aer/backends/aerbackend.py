@@ -94,6 +94,8 @@ class AerBackend(Backend, ABC):
                         # it's already bound and should be skipped
                         if not param.parameters:
                             continue
+                        if not binds:
+                            raise AerError("The element of parameter_binds is empty.")
                         len_vals = len(next(iter(binds.values())))
                         bind_list = [
                             {
