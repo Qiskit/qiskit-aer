@@ -76,7 +76,8 @@ class Estimator(BaseEstimator):
             approximation: If True, it calculates expectation values with normal distribution
                 approximation.
             skip_transpilation: If True, transpilation is skipped.
-            abelian_grouping: Whether the observable should be grouped into commuting
+            abelian_grouping: Whether the observable should be grouped into commuting.
+                If approximation is True, this parameter is ignored and assumed to be False.
         """
         super().__init__(options=run_options)
 
@@ -343,8 +344,6 @@ class Estimator(BaseEstimator):
     def _compute_with_approximation(
         self, circuits, observables, parameter_values, run_options, seed
     ):
-        if self._abelian_grouping:
-            raise AerError("approximation and abelian_grouping cannot be True at the same time.")
         # Key for cache
         key = (tuple(circuits), tuple(observables), self.approximation)
         parameter_binds = []
