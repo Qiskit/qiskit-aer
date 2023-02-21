@@ -248,9 +248,12 @@ class TestEstimator(QiskitAerTestCase):
             self.assertEqual(len(result.metadata), k)
             np.testing.assert_allclose(result.values, target.values)
 
-    def test_with_shots_option_with_approximation(self):
+    @data(True, False)
+    def test_with_shots_option_with_approximation(self, abelian_grouping):
         """test with shots option."""
-        est = Estimator(approximation=True, abelian_grouping=False)
+        # Note: abelian_gropuing is ignored when approximation is True as documented.
+        # The purpose of this test is to make sure the results remain the same.
+        est = Estimator(approximation=True, abelian_grouping=abelian_grouping)
         result = est.run(
             self.ansatz, self.observable, parameter_values=[[0, 1, 1, 2, 3, 5]], shots=1024, seed=15
         ).result()
