@@ -198,6 +198,7 @@ class AerState:
         return copy
 
     def method(self):
+        """return method to simulate"""
         return self._method
 
     def set_seed(self, value=None):

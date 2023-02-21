@@ -126,12 +126,12 @@ class AerStatevector(Statevector):
         self._aer_state.close()
 
         self._aer_state.renew()
-        copy = self._aer_state.initialize(self._data, copy=False)
+        copied = self._aer_state.initialize(self._data, copy=False)
 
         samples = self._aer_state.sample_memory(qubits, shots)
-        if copy:
+        if copied:
             self._aer_state.move_to_ndarray()
-        if not copy:
+        else:
             self._data = self._aer_state.move_to_ndarray()
         return samples
 
