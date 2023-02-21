@@ -76,8 +76,9 @@ PYBIND11_MODULE(controller_wrappers, m) {
                                                         int num_of_qubits,
                                                         py::array_t<std::complex<double>> &values,
                                                         bool copy) {
-      auto contiguous = values.attr("flags").attr("contiguous").template cast<bool>();
-      if (!contiguous)
+      auto c_contiguous = values.attr("flags").attr("c_contiguous").template cast<bool>();
+      auto f_contiguous = values.attr("flags").attr("f_contiguous").template cast<bool>();
+      if (!c_contiguous && !f_contiguous)
         return false;
       std::complex<double>* data_ptr = reinterpret_cast<std::complex<double>*>(values.mutable_data(0));
       state.configure("method", "statevector");
@@ -121,7 +122,7 @@ PYBIND11_MODULE(controller_wrappers, m) {
       return AerToPy::to_python(state.last_result().to_json());
     });
 
-
+    aer_state.def("apply_initialize",  &AER::AerState::apply_initialize);
     aer_state.def("set_statevector",  &AER::AerState::set_statevector);
     aer_state.def("set_density_matrix",  &AER::AerState::set_density_matrix);
 

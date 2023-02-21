@@ -189,6 +189,9 @@ public:
   // Apply initialization
   //-----------------------------------------------------------------------
 
+  // Apply an initialization op
+  void apply_initialize(const reg_t &qubits, cvector_t &&mat);
+
   // Apply set_statevec op
   void set_statevector(const reg_t &qubits, cvector_t &&vec);
 
@@ -896,6 +899,18 @@ matrix<complex_t> AerState::move_to_matrix() {
 //-----------------------------------------------------------------------
 // Apply Initialization
 //-----------------------------------------------------------------------
+
+void AerState::apply_initialize(const reg_t &qubits, cvector_t && vec) {
+  assert_initialized();
+  Operations::Op op;
+  op.type = Operations::OpType::initialize;
+  op.name = "initialize";
+  op.qubits = qubits;
+  op.params = std::move(vec);
+
+  last_result_ = ExperimentResult();
+  state_->apply_op(op, last_result_, rng_);
+};
 
 void AerState::set_statevector(const reg_t &qubits, cvector_t && vec) {
   assert_initialized();

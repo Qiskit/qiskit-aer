@@ -23,7 +23,8 @@ class _STATE(Enum):
     ALLOCATED = 2
     MAPPED = 3
     MOVED = 4
-    CLOSED = 5
+    RELEASED = 5
+    CLOSED = 6
 
 
 class AerState:
@@ -105,13 +106,18 @@ class AerState:
             raise AerError('unexpected state transition: {self._state}->{_STATE.MAPPED}')
         self._state = _STATE.MAPPED
 
+    def _released(self):
+        if self._state != _STATE.MAPPED:
+            raise AerError('unexpected state transition: {self._state}->{_STATE.RELEASED}')
+        self._state = _STATE.RELEASED
+
     def _moved(self):
         if self._state != _STATE.ALLOCATED:
             raise AerError('unexpected state transition: {self._state}->{_STATE.MOVED}')
         self._state = _STATE.MOVED
 
     def _closed(self):
-        if self._state not in (_STATE.MOVED, _STATE.MAPPED):
+        if self._state not in (_STATE.MOVED, _STATE.MAPPED, _STATE.RELEASED):
             raise AerError('unexpected state transition: {self._state}->{_STATE.CLOSED}')
         self._state = _STATE.CLOSED
 
@@ -144,8 +150,9 @@ class AerState:
         if data is None:
             self._native_state.initialize()
             self._allocated()
+            return True
         elif isinstance(data, np.ndarray):
-            self._initialize_with_ndarray(data, copy)
+            return self._initialize_with_ndarray(data, copy)
         else:
             raise AerError(f'unsupported init data: {data.__class__}')
 
@@ -158,9 +165,9 @@ class AerState:
             raise AerError('length of init data must be power of two')
 
         init = False
-        if self._configs['method'] == 'statevector':
+        if self._method == 'statevector':
             init = self._native_state.initialize_statevector(num_of_qubits, data, copy)
-        elif self._configs['method'] == 'density_matrix':
+        elif self._method == 'density_matrix':
             if data.shape != (len(data), len(data)):
                 raise AerError('shape of init data must be a pair of power of two')
             init = self._native_state.initialize_density_matrix(num_of_qubits, data, copy)
@@ -177,14 +184,21 @@ class AerState:
             self._native_state.reallocate_qubits(num_of_qubits)
             self._native_state.initialize()
             if not data.flags.c_contiguous and not data.flags.f_contiguous:
-                data = np.array(data)
-            if self._configs['method'] == 'statevector':
-                self._native_state.set_statevector(range(num_of_qubits), data)
-            elif self._configs['method'] == 'density_matrix':
+                data = np.ascontiguousarray(data)
+            if self._method == 'statevector':
+                self._native_state.apply_initialize(range(num_of_qubits), data)
+            elif self._method == 'density_matrix':
                 self._native_state.set_density_matrix(range(num_of_qubits), data)
+            else:
+                self._native_state.apply_initialize(range(num_of_qubits), data)
             self._allocated()
+            copy = True
 
         self._last_qubit = num_of_qubits - 1
+        return copy
+
+    def method(self):
+        return self._method
 
     def set_seed(self, value=None):
         """initialize seed with a specified value"""
@@ -215,10 +229,17 @@ class AerState:
 
         if self._state == _STATE.MAPPED:
             ret = self._init_data
+            # native memory will be freed when self._init_data is collected.
+            # this call of move_to_buffer() is to avoid free in C++
+            self._native_state.move_to_buffer()
+            AerState._not_in_use(self._init_data)
+            self._released()
+        elif self._state == _STATE.RELEASED:
+            ret = self._init_data
         elif self._state == _STATE.MOVED:
             ret = self._moved_data
         else:
-            if self._configs['method'] == 'density_matrix':
+            if self._method == 'density_matrix':
                 self._moved_data = self._native_state.move_to_matrix()
             else:
                 self._moved_data = self._native_state.move_to_ndarray()
