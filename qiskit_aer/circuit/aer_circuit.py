@@ -85,12 +85,12 @@ class AerCircuit:
                     copied = True
                 params[i] = 0.0
 
-        if name in ('ccx', 'ccz', 'cp', 'cswap', 'csx', 'cx', 'cy', 'cz', 'delay', 'ecr',
+        if name in {'ccx', 'ccz', 'cp', 'cswap', 'csx', 'cx', 'cy', 'cz', 'delay', 'ecr',
                     'h', 'id', 'mcp', 'mcphase', 'mcr', 'mcrx', 'mcry', 'mcrz', 'mcswap',
                     'mcsx', 'mcu', 'mcu1', 'mcu2', 'mcu3', 'mcx', 'mcx_gray', 'mcy', 'mcz',
                     'p', 'r', 'rx', 'rxx', 'ry', 'ryy', 'rz', 'rzx', 'rzz', 's', 'sdg', 'swap',
                     'sx', 'sxdg', 't', 'tdg', 'u', 'x', 'y', 'z', 'u1', 'u2', 'u3',
-                    'cu', 'cu1', 'cu2', 'cu3'):
+                    'cu', 'cu1', 'cu2', 'cu3'}:
             aer_circ.gate(name, qubits, params, [], conditional_reg_idx, label if label else name)
         elif name == 'pauli':
             aer_circ.gate(name, qubits, [], params, conditional_reg_idx, label if label else name)

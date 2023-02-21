@@ -15,6 +15,7 @@
 """This module implements the job class used for AerBackend objects."""
 
 import logging
+import warnings
 
 from qiskit.providers import JobV1 as Job
 from qiskit.providers import JobStatus, JobError
@@ -145,6 +146,12 @@ class AerJob(Job):
         Returns:
             Qobj: the Qobj submitted for this job.
         """
+        warnings.warn(
+            '`AerJob.qobj() is deprecated as of qiskit-aer 0.12.0`. '
+            'Using a qobj for `backend.run()` is deprecated as of qiskit-aer 0.9.0'
+            ' and will be removed no sooner than 3 months from that release'
+            ' date. Once it is removed, this `qobj()` returns always `None`.',
+            DeprecationWarning, stacklevel=2)
         return self._qobj
 
     def circuits(self):

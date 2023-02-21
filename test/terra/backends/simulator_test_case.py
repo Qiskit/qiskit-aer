@@ -20,7 +20,7 @@ from qiskit_aer import AerSimulator
 from test.terra.common import QiskitAerTestCase
 from qiskit.circuit import QuantumCircuit
 from qiskit.compiler import assemble
-from qiskit_aer.backends.backend_utils import cpp_execute
+from qiskit_aer.backends.backend_utils import cpp_execute_qobj
 from qiskit_aer.backends.controller_wrappers import aer_controller_execute
 
 
@@ -117,7 +117,7 @@ def check_cuStateVec(devices):
                         device="GPU",
                         cuStateVec_enable=True)
         #run dummy circuit to check if Aer is built with cuStateVec
-        result = cpp_execute(aer_controller_execute(), qobj)
+        result = cpp_execute_qobj(aer_controller_execute(), qobj)
         return result.get('success', False)
     else:
         return False

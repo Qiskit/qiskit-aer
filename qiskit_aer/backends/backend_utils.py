@@ -116,7 +116,7 @@ BASIS_GATES[None] = BASIS_GATES['automatic'] = sorted(
                             BASIS_GATES['tensor_network']))
 
 
-def cpp_execute(controller, qobj):
+def cpp_execute_qobj(controller, qobj):
     """Execute qobj on C++ controller wrapper"""
 
     # Location where we put external libraries that will be
@@ -125,7 +125,7 @@ def cpp_execute(controller, qobj):
     return controller(qobj)
 
 
-def cpp_execute_direct(controller, aer_circuits, noise_model, config):
+def cpp_execute_circuits(controller, aer_circuits, noise_model, config):
     """Execute aer circuits on C++ controller wrapper"""
 
     native_circuits = [aer_circuit.native_circuit for aer_circuit in aer_circuits]
@@ -154,7 +154,7 @@ def available_methods(controller, methods, devices):
                                 shots=1,
                                 method=method,
                                 device=device)
-                result = cpp_execute(controller, qobj)
+                result = cpp_execute_qobj(controller, qobj)
                 if result.get('success', False):
                     valid_methods.append(method)
     return tuple(valid_methods)
@@ -173,7 +173,7 @@ def available_devices(controller, devices):
                         shots=1,
                         method="statevector",
                         device=device)
-        result = cpp_execute(controller, qobj)
+        result = cpp_execute_qobj(controller, qobj)
         if result.get('success', False):
             valid_devices.append(device)
     return tuple(valid_devices)

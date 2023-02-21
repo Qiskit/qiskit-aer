@@ -24,7 +24,8 @@ from qiskit.providers.models import QasmBackendConfiguration
 from ..aererror import AerError
 from ..version import __version__
 from .aerbackend import AerBackend
-from .backend_utils import (cpp_execute, cpp_execute_direct,
+from .backend_utils import (cpp_execute_qobj,
+                            cpp_execute_circuits,
                             available_devices,
                             MAX_QUBITS_STATEVECTOR,
                             LEGACY_METHOD_MAP,
@@ -255,7 +256,7 @@ class UnitarySimulator(AerBackend):
         """Return the available simulation methods."""
         return copy.copy(self._AVAILABLE_DEVICES)
 
-    def _execute(self, qobj):
+    def _execute_qobj(self, qobj):
         """Execute a qobj on the backend.
 
         Args:
@@ -264,17 +265,19 @@ class UnitarySimulator(AerBackend):
         Returns:
             dict: return a dictionary of results.
         """
+        # Make deepcopy so we don't modify the original qobj
+        qobj = copy.deepcopy(qobj)
         qobj = add_final_save_instruction(qobj, "unitary")
         qobj = map_legacy_method_options(qobj)
-        return cpp_execute(self._controller, qobj)
+        return cpp_execute_qobj(self._controller, qobj)
 
-    def _execute_direct(self, circuits, noise_model, config):
+    def _execute_circuits(self, circuits, noise_model, config):
         """Execute circuits on the backend.
         """
         config = map_legacy_method_config(config)
         aer_circuits = generate_aer_circuits(circuits)
         circuits = add_final_save_op(aer_circuits, "unitary")
-        return cpp_execute_direct(self._controller, aer_circuits, noise_model, config)
+        return cpp_execute_circuits(self._controller, aer_circuits, noise_model, config)
 
     def _validate(self, qobj):
         """Semantic validations of the qobj which cannot be done via schemas.

@@ -23,8 +23,8 @@ from qiskit.providers.backend import BackendV2
 from ..version import __version__
 from ..aererror import AerError
 from .aerbackend import AerBackend
-from .backend_utils import (cpp_execute,
-                            cpp_execute_direct,
+from .backend_utils import (cpp_execute_qobj,
+                            cpp_execute_circuits,
                             available_methods,
                             MAX_QUBITS_STATEVECTOR,
                             LEGACY_METHOD_MAP,
@@ -509,7 +509,7 @@ class QasmSimulator(AerBackend):
         """Return the available simulation methods."""
         return copy.copy(self._AVAILABLE_DEVICES)
 
-    def _execute(self, qobj):
+    def _execute_qobj(self, qobj):
         """Execute a qobj on the backend.
 
         Args:
@@ -519,14 +519,14 @@ class QasmSimulator(AerBackend):
             dict: return a dictionary of results.
         """
         qobj = map_legacy_method_options(qobj)
-        return cpp_execute(self._controller, qobj)
+        return cpp_execute_qobj(self._controller, qobj)
 
-    def _execute_direct(self, circuits, noise_model, config):
+    def _execute_circuits(self, circuits, noise_model, config):
         """Execute circuits on the backend.
         """
         config = map_legacy_method_config(config)
         aer_circuits = generate_aer_circuits(circuits)
-        return cpp_execute_direct(self._controller, aer_circuits, noise_model, config)
+        return cpp_execute_circuits(self._controller, aer_circuits, noise_model, config)
 
     def set_option(self, key, value):
         if key == "custom_instructions":

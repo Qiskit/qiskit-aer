@@ -8,3 +8,12 @@ features:
     performance of simulation especially for low-qubit circuts is improved.
     Note that pulse simualation and DASK-based simulation still use Qobj and
     :class`.AerJob` does not return Qobj otherwise.
+  - |
+    :class:`AerJob` has a new method :meth:`circuits` that return a list of
+    :class:`~qiskit.circuit.QuantumCircuit` This method returns `None` if Qobj
+    is used for simulation.
+deprecations:
+  - |
+    A method :meth:`qobj` of :class:`AerJob` is deprecated because Using a qobj
+    is deprecated as of qiskit-aer 0.9.0. Once qobj support is removed,  :meth:`qobj`
+    will return always `None`.

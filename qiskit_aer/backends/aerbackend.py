@@ -138,8 +138,8 @@ class AerBackend(Backend, ABC):
             AerJob: The simulation job.
 
         Raises:
-            AerError: If ``parameter_binds`` is specified with a qobj input or has a
-                length mismatch with the number of circuits.
+            TypeError: If ``parameter_binds`` is specified with a qobj input or
+                has a length mismatch with the number of circuits.
 
         Additional Information:
             * Each parameter binding dictionary is of the form::
@@ -185,7 +185,14 @@ class AerBackend(Backend, ABC):
                     if key not in run_options and value is not None:
                         run_options[key] = value
             return self._run_qobj(circuits, validate, parameter_binds, **run_options)
-        elif all(isinstance(circ, QuantumCircuit) for circ in circuits):
+
+        only_circuits = True
+        only_pulse = True
+        for circ in circuits:
+            only_circuits &= isinstance(circ, QuantumCircuit)
+            only_pulse &= isinstance(circ, (ScheduleBlock, Schedule))
+
+        if only_circuits and not only_pulse:
             executor = run_options.get('executor', None)
             if executor is None and 'executor' in self.options.__dict__:
                 executor = self.options.__dict__.get('executor', None)
@@ -196,11 +203,14 @@ class AerBackend(Backend, ABC):
                 return self._run_qobj(circuits, validate, parameter_binds, **run_options)
             else:
                 return self._run_circuits(circuits, parameter_binds, **run_options)
-        elif all(isinstance(circ, (ScheduleBlock, Schedule)) for circ in circuits):
+        elif not only_circuits and only_pulse:
             return self._run_qobj(circuits, validate, parameter_binds, **run_options)
+        elif not only_circuits and not only_pulse:
+            raise TypeError("bad input to run() function;"
+                            "circuits and schedules cannot be mixed in a single run")
         else:
-            raise AerError("bad input to run() function;" +
-                           "circuits must be either circuits or schedules")
+            raise TypeError("bad input to run() function;"
+                            "circuits must be either circuits or schedules")
 
     def _run_circuits(self,
                       circuits,
@@ -215,7 +225,7 @@ class AerBackend(Backend, ABC):
 
         # Submit job
         job_id = str(uuid.uuid4())
-        aer_job = AerJob(self, job_id, self._run_direct,
+        aer_job = AerJob(self, job_id, self._execute_circuits_job,
                          circuits=circuits, noise_model=noise_model, config=config)
         aer_job.submit()
 
@@ -254,9 +264,10 @@ class AerBackend(Backend, ABC):
         # Submit job
         job_id = str(uuid.uuid4())
         if isinstance(experiments, list):
-            aer_job = AerJobSet(self, job_id, self._run, experiments, executor)
+            aer_job = AerJobSet(self, job_id, self._execute_qobj_job, experiments, executor)
         else:
-            aer_job = AerJob(self, job_id, self._run, qobj=experiments, executor=executor)
+            aer_job = AerJob(self, job_id, self._execute_qobj_job, qobj=experiments,
+                             executor=executor)
         aer_job.submit()
 
         # Restore removed executor after submission
@@ -328,8 +339,8 @@ class AerBackend(Backend, ABC):
             pending_jobs=0,
             status_msg='')
 
-    def _run(self, qobj, job_id='', format_result=True):
-        """Run a job"""
+    def _execute_qobj_job(self, qobj, job_id='', format_result=True):
+        """Run a qobj job"""
         # Start timer
         start = time.time()
 
@@ -347,7 +358,7 @@ class AerBackend(Backend, ABC):
                 metadata_index += 1
 
         # Run simulation
-        output = self._execute(qobj)
+        output = self._execute_qobj(qobj)
 
         # Recover metadata
         metadata_index = 0
@@ -392,7 +403,8 @@ class AerBackend(Backend, ABC):
             return self._format_results(output)
         return output
 
-    def _run_direct(self, circuits, noise_model, config, job_id='', format_result=True):
+    def _execute_circuits_job(self, circuits, noise_model, config, job_id='',
+                              format_result=True):
         """Run a job"""
         # Start timer
         start = time.time()
@@ -400,18 +412,16 @@ class AerBackend(Backend, ABC):
         # Take metadata from headers of experiments to work around JSON serialization error
         metadata_list = []
         for idx, circ in enumerate(circuits):
-            if hasattr(circ, "metadata") and circ.metadata:
+            if circ.metadata:
                 metadata = circ.metadata
                 metadata_list.append(metadata)
                 circ.metadata = {}
-                if "id" in metadata:
-                    circ.metadata["id"] = metadata["id"]
                 circ.metadata["metadata_index"] = idx
             else:
                 metadata_list.append(None)
 
         # Run simulation
-        output = self._execute_direct(circuits, noise_model, config)
+        output = self._execute_circuits(circuits, noise_model, config)
 
         # Validate output
         if not isinstance(output, dict):
@@ -600,7 +610,7 @@ class AerBackend(Backend, ABC):
             return getattr(self._options, 'executor', None)
 
     @abstractmethod
-    def _execute(self, qobj):
+    def _execute_qobj(self, qobj):
         """Execute a qobj on the backend.
 
         Args:
@@ -611,8 +621,7 @@ class AerBackend(Backend, ABC):
         """
         pass
 
-    @abstractmethod
-    def _execute_direct(self, circuits, noise_model, config):
+    def _execute_circuits(self, circuits, noise_model, config):
         """Execute aer circuits on the backend.
 
         Args:

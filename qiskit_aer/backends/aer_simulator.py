@@ -22,7 +22,7 @@ from qiskit.transpiler.target import target_to_backend_properties
 
 from ..version import __version__
 from .aerbackend import AerBackend, AerError
-from .backend_utils import (cpp_execute, cpp_execute_direct,
+from .backend_utils import (cpp_execute_circuits, cpp_execute_qobj,
                             available_methods, available_devices,
                             MAX_QUBITS_STATEVECTOR,
                             BASIS_GATES)
@@ -731,14 +731,14 @@ class AerSimulator(AerBackend):
         config.backend_name = self.name()
         return config
 
-    def _execute_direct(self, circuits, noise_model, config):
+    def _execute_circuits(self, circuits, noise_model, config):
         """Execute circuits on the backend.
         """
         aer_circuits = generate_aer_circuits(circuits)
-        ret = cpp_execute_direct(self._controller, aer_circuits, noise_model, config)
+        ret = cpp_execute_circuits(self._controller, aer_circuits, noise_model, config)
         return ret
 
-    def _execute(self, qobj):
+    def _execute_qobj(self, qobj):
         """Execute a qobj on the backend.
 
         Args:
@@ -747,7 +747,7 @@ class AerSimulator(AerBackend):
         Returns:
             dict: return a dictionary of results.
         """
-        return cpp_execute(self._controller, qobj)
+        return cpp_execute_qobj(self._controller, qobj)
 
     def set_option(self, key, value):
         if key == "custom_instructions":

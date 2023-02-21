@@ -266,7 +266,7 @@ class PulseSimulator(AerBackend):
                   **options)
         return sim
 
-    def _execute(self, qobj):
+    def _execute_qobj(self, qobj):
         """Execute a qobj on the backend.
 
         Args:
@@ -277,11 +277,6 @@ class PulseSimulator(AerBackend):
         """
         qobj.config.qubit_freq_est = self.defaults().qubit_freq_est
         return pulse_controller(qobj)
-
-    def _execute_direct(self, circuits, noise_model, config):
-        """Execute circuits on the backend.
-        """
-        raise AerError("not implemented yet")
 
     def set_option(self, key, value):
         """Set pulse simulation options and update backend."""
