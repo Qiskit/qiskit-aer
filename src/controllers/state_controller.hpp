@@ -177,7 +177,7 @@ public:
   // Allocate qubits with inputted complex array
   // method must be densitymatrix and the length of the array must be 4^{num_qubits}
   // given data will not be freed in this class
-  virtual reg_t initialize_densitymatrix(uint_t num_qubits, complex_t* data, bool is_fortran, bool copy);
+  virtual reg_t initialize_density_matrix(uint_t num_qubits, complex_t* data, bool f_order, bool copy);
 
   // Release internal statevector as a vector
   virtual AER::Vector<complex_t> move_to_vector();
@@ -189,8 +189,11 @@ public:
   // Apply initialization
   //-----------------------------------------------------------------------
 
-  // Apply an initialization op
-  void apply_initialize(const reg_t &qubits, cvector_t &&mat);
+  // Apply set_statevec op
+  void set_statevector(const reg_t &qubits, cvector_t &&vec);
+
+  // Apply set_densmat op
+  void set_density_matrix(const reg_t &qubits, cmatrix_t &&mat);
 
   // Apply global phase
   void apply_global_phase(double phase);
@@ -750,7 +753,7 @@ reg_t AerState::initialize_statevector(uint_t num_of_qubits, complex_t* data, bo
   return ret;
 };
 
-reg_t AerState::initialize_densitymatrix(uint_t num_of_qubits, complex_t* data, bool is_fortran, bool copy) {
+reg_t AerState::initialize_density_matrix(uint_t num_of_qubits, complex_t* data, bool f_order, bool copy) {
   assert_not_initialized();
 
   num_of_qubits_ = num_of_qubits;
@@ -759,9 +762,9 @@ reg_t AerState::initialize_densitymatrix(uint_t num_of_qubits, complex_t* data, 
   initialize_state_controller();
 
   if (device_ != Device::CPU)
-    throw std::runtime_error("only CPU device supports initialize_densitymatrix()");
+    throw std::runtime_error("only CPU device supports initialize_density_matrix()");
   if (precision_ != Precision::Double)
-    throw std::runtime_error("only Double precision supports initialize_densitymatrix()");
+    throw std::runtime_error("only Double precision supports initialize_density_matrix()");
 
   auto state = std::make_shared<DensityMatrix::State<QV::DensityMatrix<double>>>();
 
@@ -779,7 +782,7 @@ reg_t AerState::initialize_densitymatrix(uint_t num_of_qubits, complex_t* data, 
   state->initialize_qreg(num_of_qubits_, std::move(dm));
   state->initialize_creg(num_of_qubits_, num_of_qubits_);
 
-  if (!is_fortran)
+  if (!f_order)
     state->qreg().transpose();
 
   initialized_ = true;
@@ -894,14 +897,25 @@ matrix<complex_t> AerState::move_to_matrix() {
 // Apply Initialization
 //-----------------------------------------------------------------------
 
-void AerState::apply_initialize(const reg_t &qubits, cvector_t && vec) {
+void AerState::set_statevector(const reg_t &qubits, cvector_t && vec) {
   assert_initialized();
   Operations::Op op;
-  op.type = Operations::OpType::initialize;
-  op.name = "initialize";
+  op.type = Operations::OpType::set_statevec;
+  op.name = "set_statevec";
   op.qubits = qubits;
   op.params = std::move(vec);
 
+  last_result_ = ExperimentResult();
+  state_->apply_op(op, last_result_, rng_);
+};
+
+void AerState::set_density_matrix(const reg_t &qubits, cmatrix_t &&mat) {
+  assert_initialized();
+  Operations::Op op;
+  op.type = Operations::OpType::set_densmat;
+  op.name = "set_densmat";
+  op.qubits = qubits;
+  op.mats.push_back(std::move(mat));
   last_result_ = ExperimentResult();
   state_->apply_op(op, last_result_, rng_);
 };

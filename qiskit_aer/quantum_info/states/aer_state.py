@@ -52,10 +52,7 @@ class AerState:
         self._last_qubit = -1
         self._configs = {}
 
-        if 'method' not in kwargs:
-            self.configure('method', 'statevector')
-        else:
-            self._method = kwargs['method']
+        self._method = None
 
         for key, value in kwargs.items():
             self.configure(key, value)
@@ -126,8 +123,12 @@ class AerState:
             raise AerError('AerState is configured with a str key')
         if not isinstance(value, str):
             value = str(value)
+
         self._configs[key] = value
         self._native_state.configure(key, value)
+
+        if key == "method":
+            self._method = value
 
     def configuration(self):
         """return configuration"""
@@ -136,6 +137,9 @@ class AerState:
     def initialize(self, data=None, copy=True):
         """initialize state."""
         self._assert_initializing()
+
+        if not self._method:
+            raise AerError('method is not configured yet.')
 
         if data is None:
             self._native_state.initialize()
@@ -159,7 +163,7 @@ class AerState:
         elif self._configs['method'] == 'density_matrix':
             if data.shape != (len(data), len(data)):
                 raise AerError('shape of init data must be a pair of power of two')
-            init = self._native_state.initialize_densitymatrix(num_of_qubits, data, copy)
+            init = self._native_state.initialize_density_matrix(num_of_qubits, data, copy)
 
         if init:
             if not copy:
@@ -169,9 +173,15 @@ class AerState:
             else:
                 self._allocated()
         else:
+            # slow path
             self._native_state.reallocate_qubits(num_of_qubits)
             self._native_state.initialize()
-            self._native_state.apply_initialize(range(num_of_qubits), data)
+            if not data.flags.c_contiguous and not data.flags.f_contiguous:
+                data = np.array(data)
+            if self._configs['method'] == 'statevector':
+                self._native_state.set_statevector(range(num_of_qubits), data)
+            elif self._configs['method'] == 'density_matrix':
+                self._native_state.set_density_matrix(range(num_of_qubits), data)
             self._allocated()
 
         self._last_qubit = num_of_qubits - 1
@@ -187,7 +197,7 @@ class AerState:
         """Safely release all releated memory."""
         self._assert_allocated_or_mapped_or_moved()
         if self._state == _STATE.ALLOCATED:
-            self._native_state.move_to_vector()
+            self._native_state.move_to_ndarray()
 
         self._assert_mapped_or_moved()
         if self._state == _STATE.MAPPED:
@@ -211,7 +221,7 @@ class AerState:
             if self._configs['method'] == 'density_matrix':
                 self._moved_data = self._native_state.move_to_matrix()
             else:
-                self._moved_data = self._native_state.move_to_vector()
+                self._moved_data = self._native_state.move_to_ndarray()
             ret = self._moved_data
             self._moved()
         return ret
