@@ -327,6 +327,19 @@ class TestParameterizedQobj(common.QiskitAerTestCase):
         res2 = backend.run(circuit, shots=shots, parameter_binds=parameter_binds, seed_simulator=seed_simulator_list[0]).result()
         self.assertEqual(seed_simulator_list, [ result.seed_simulator for result in res2.results ])
 
+    def test_run_empty(self):
+        """Test parameterized circuit with empty dict path via backed.run()"""
+        shots = 1000
+        backend = AerSimulator()
+        circuit = QuantumCircuit(2)
+        theta = Parameter('theta')
+        circuit.rx(theta, 0)
+        circuit.cx(0, 1)
+        circuit.measure_all()
+        parameter_binds = [{}]
+        with self.assertRaises(AerError):
+            res = backend.run(circuit, shots=shots, parameter_binds=parameter_binds).result()
+
 
 if __name__ == '__main__':
     unittest.main()

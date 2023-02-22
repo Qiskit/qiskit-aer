@@ -1,0 +1,8 @@
+---
+features:
+  - |
+    Add ``abelian_grouping`` option to :class:`~Estimator`.
+upgrade:
+  - |
+    In default, :class:`~Estimator` groups the qubit-wise commutable observables.
+    The grouping reduces the number of circuits to be executed and improves the performance.
