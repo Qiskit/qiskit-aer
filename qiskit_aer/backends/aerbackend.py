@@ -621,6 +621,7 @@ class AerBackend(Backend, ABC):
         """
         pass
 
+    @abstractmethod
     def _execute_circuits(self, aer_circuits, noise_model, config):
         """Execute aer circuits on the backend.
 
@@ -632,7 +633,7 @@ class AerBackend(Backend, ABC):
         Returns:
             dict: return a dictionary of results.
         """
-        raise AttributeError('This backend does not support simulation with QuantumCircuit')
+        pass
 
     def _validate(self, qobj):
         """Validate the qobj for the backend"""

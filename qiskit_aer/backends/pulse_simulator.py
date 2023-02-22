@@ -278,6 +278,11 @@ class PulseSimulator(AerBackend):
         qobj.config.qubit_freq_est = self.defaults().qubit_freq_est
         return pulse_controller(qobj)
 
+    def _execute_circuits(self, aer_circuits, noise_model, config):
+        """Execute circuits on the backend.
+        """
+        raise TypeError("pulse simulator does not support circuit execution")
+
     def set_option(self, key, value):
         """Set pulse simulation options and update backend."""
         if key == 'meas_levels':
