@@ -28,7 +28,6 @@ from qiskit.circuit.controlflow import (
     BreakLoopOp,
     ContinueLoopOp)
 from qiskit.compiler import transpile
-from qiskit.tools.parallel import parallel_map
 from qiskit.qobj import QobjExperimentHeader
 from qiskit_aer.aererror import AerError
 # pylint: disable=import-error, no-name-in-module
@@ -548,7 +547,7 @@ def assemble_circuits(
             aer_qc_list = assemble_circuits(circuits=[qc])
     """
     # generate aer circuits
-    if len(circuits) == 1:
-        return [assemble_circuit(circuits[0])]
-    else:
-        return parallel_map(assemble_circuit, circuits)
+    # TODO parallel_map will improve performance for multi circuit assembly.
+    # However, it calls pickling AerCircuit in Linux environment. Until AerCircuit
+    # supports pickle, circuits are assembleed sequentially in a single thread
+    return [assemble_circuit(circuit) for circuit in circuits]
