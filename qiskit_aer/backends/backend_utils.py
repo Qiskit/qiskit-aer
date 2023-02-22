@@ -128,15 +128,13 @@ def cpp_execute_qobj(controller, qobj):
 def cpp_execute_circuits(controller, aer_circuits, noise_model, config):
     """Execute aer circuits on C++ controller wrapper"""
 
-    native_circuits = [aer_circuit.native_circuit for aer_circuit in aer_circuits]
-
     # Location where we put external libraries that will be
     # loaded at runtime by the simulator extension
     config['library_dir'] = LIBRARY_DIR
 
     noise_model = noise_model.to_dict(serializable=True) if noise_model else {}
 
-    return controller.execute(native_circuits, noise_model, config)
+    return controller.execute(aer_circuits, noise_model, config)
 
 
 def available_methods(controller, methods, devices):
@@ -202,10 +200,10 @@ def add_final_save_op(aer_circuits, state):
 
     for aer_circuit in aer_circuits:
         num_qubits = aer_circuit.num_qubits
-        aer_circuit.native_circuit.save_state(list(range(num_qubits)),
-                                              f"save_{state}",
-                                              "single",
-                                              state)
+        aer_circuit.save_state(list(range(num_qubits)),
+                               f"save_{state}",
+                               "single",
+                               state)
 
     return aer_circuits
 

@@ -32,9 +32,8 @@ from ..aererror import AerError
 from ..jobs import AerJob, AerJobSet, split_qobj
 from ..noise.noise_model import NoiseModel, QuantumErrorLocation
 from ..noise.errors.quantum_error import QuantumChannelInstruction
-from .aer_compiler import compile_circuit
+from .aer_compiler import compile_circuit, assemble_circuits, generate_aer_config
 from .backend_utils import format_save_type, circuit_optypes
-from ..circuit.aer_circuit import generate_aer_config
 
 # Logger
 logger = logging.getLogger(__name__)
@@ -171,7 +170,7 @@ class AerBackend(Backend, ABC):
                 ' `backend.run(circuits, **run_options).',
                 DeprecationWarning, stacklevel=2)
             if parameter_binds:
-                raise AerError("Parameter binds can't be used with an input qobj")
+                raise TypeError("Parameter binds can't be used with an input qobj")
             # A work around to support both qobj options and run options until
             # qobj is deprecated is to copy all the set qobj.config fields into
             # run_options that don't override existing fields. This means set
@@ -421,7 +420,8 @@ class AerBackend(Backend, ABC):
                 metadata_list.append(None)
 
         # Run simulation
-        output = self._execute_circuits(circuits, noise_model, config)
+        aer_circuits = assemble_circuits(circuits)
+        output = self._execute_circuits(aer_circuits, noise_model, config)
 
         # Validate output
         if not isinstance(output, dict):
@@ -621,18 +621,18 @@ class AerBackend(Backend, ABC):
         """
         pass
 
-    def _execute_circuits(self, circuits, noise_model, config):
+    def _execute_circuits(self, aer_circuits, noise_model, config):
         """Execute aer circuits on the backend.
 
         Args:
-            circuits (List of AerCircuit): simulator input.
+            aer_circuits (List of AerCircuit): simulator input.
             noise_model (NoiseModel): noise model
             config (Dict): configuration for simulation
 
         Returns:
             dict: return a dictionary of results.
         """
-        pass
+        raise AttributeError('This backend does not support simulation with QuantumCircuit')
 
     def _validate(self, qobj):
         """Validate the qobj for the backend"""

@@ -30,7 +30,6 @@ from .backend_utils import (cpp_execute_qobj,
                             LEGACY_METHOD_MAP,
                             map_legacy_method_options,
                             map_legacy_method_config)
-from ..circuit.aer_circuit import generate_aer_circuits
 # pylint: disable=import-error, no-name-in-module
 from .controller_wrappers import aer_controller_execute
 
@@ -521,11 +520,10 @@ class QasmSimulator(AerBackend):
         qobj = map_legacy_method_options(qobj)
         return cpp_execute_qobj(self._controller, qobj)
 
-    def _execute_circuits(self, circuits, noise_model, config):
+    def _execute_circuits(self, aer_circuits, noise_model, config):
         """Execute circuits on the backend.
         """
         config = map_legacy_method_config(config)
-        aer_circuits = generate_aer_circuits(circuits)
         return cpp_execute_circuits(self._controller, aer_circuits, noise_model, config)
 
     def set_option(self, key, value):

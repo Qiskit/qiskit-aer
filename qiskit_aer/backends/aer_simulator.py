@@ -26,7 +26,6 @@ from .backend_utils import (cpp_execute_circuits, cpp_execute_qobj,
                             available_methods, available_devices,
                             MAX_QUBITS_STATEVECTOR,
                             BASIS_GATES)
-from ..circuit.aer_circuit import generate_aer_circuits
 # pylint: disable=import-error, no-name-in-module
 from .controller_wrappers import aer_controller_execute
 
@@ -731,10 +730,9 @@ class AerSimulator(AerBackend):
         config.backend_name = self.name()
         return config
 
-    def _execute_circuits(self, circuits, noise_model, config):
+    def _execute_circuits(self, aer_circuits, noise_model, config):
         """Execute circuits on the backend.
         """
-        aer_circuits = generate_aer_circuits(circuits)
         ret = cpp_execute_circuits(self._controller, aer_circuits, noise_model, config)
         return ret
 
