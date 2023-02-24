@@ -54,7 +54,14 @@ DEFAULT_CONFIGURATION = {
 
 
 class PulseSimulator(AerBackend):
-    r"""Pulse schedule simulator backend.
+    r"""Deprecated: Pulse schedule simulator backend.
+
+    .. warning::
+
+       This simulator is deprecated having been superseded by the
+       `Qiskit Dynamics <https://qiskit.org/documentation/dynamics/>`__ library.
+       If you need to perform pulse level simulation you should use the
+       Qiskit Dynamics library instead.
 
     The ``PulseSimulator`` simulates continuous time Hamiltonian dynamics of a quantum system,
     with controls specified by pulse :class:`~qiskit.Schedule` objects, and the model of the
@@ -154,6 +161,13 @@ class PulseSimulator(AerBackend):
                  defaults=None,
                  provider=None,
                  **backend_options):
+        warn(
+            "The Pulse simulator backend in Qiskit Aer is deprecated and will "
+            "be removed in a future release. Instead the qiskit-dynamics "
+            "library should be used instead for simulating at the pulse level.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
 
         if configuration is None:
             configuration = BackendConfiguration.from_dict(
