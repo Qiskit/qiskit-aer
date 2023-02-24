@@ -45,7 +45,8 @@ public:
   UnitaryMatrix() : UnitaryMatrix(0) {};
   explicit UnitaryMatrix(size_t num_qubits);
   UnitaryMatrix(const UnitaryMatrix& obj){}
-  UnitaryMatrix &operator=(const UnitaryMatrix& obj){}
+  UnitaryMatrix &operator=(const UnitaryMatrix& obj) = delete;
+  UnitaryMatrix &operator=(UnitaryMatrix&& obj);
 
   //-----------------------------------------------------------------------
   // Utility functions
@@ -82,6 +83,8 @@ public:
   void initialize_from_matrix(const matrix<std::complex<T>> &mat);
   // Move semantics
   void initialize_from_matrix(matrix<std::complex<data_t>> &&mat);
+
+  virtual void move_from_vector(AER::Vector<std::complex<data_t>> &&vec) override;
 
   //-----------------------------------------------------------------------
   // Identity checking
@@ -185,6 +188,15 @@ UnitaryMatrix<data_t>::UnitaryMatrix(size_t num_qubits) {
   set_num_qubits(num_qubits);
 }
 
+template <typename data_t>
+UnitaryMatrix<data_t>& UnitaryMatrix<data_t>::operator=(UnitaryMatrix<data_t>&& obj) {
+  num_qubits_ = obj.num_qubits_;
+  rows_ = obj.rows_;
+  identity_threshold_ = obj.identity_threshold_;
+  BaseVector::operator = (std::move(obj));
+  return *this;
+};
+
 //------------------------------------------------------------------------------
 // Convert data vector to matrix
 //------------------------------------------------------------------------------
@@ -250,6 +262,19 @@ void UnitaryMatrix<data_t>::initialize_from_matrix(matrix<std::complex<data_t>> 
   }
   BaseVector::free_mem();
   BaseVector::data_ = mat.move_to_buffer();
+}
+
+template <class data_t>
+void UnitaryMatrix<data_t>::move_from_vector(AER::Vector<std::complex<data_t>> &&vec) {
+  num_qubits_ = std::log2(vec.size()) / 2;
+  if ((1ULL << (num_qubits_ * 2)) != vec.size()) {
+    std::string error = "UnitaryMatrix::move_from_vector input vector is incorrect length (" +
+                        std::to_string((1ULL << (num_qubits_ * 2))) + "!=" +
+                        std::to_string(vec.size()) + ")";
+    throw std::runtime_error(error);
+  }
+  rows_ = 1ULL << num_qubits_;
+  BaseVector::move_from_vector(std::move(vec));
 }
 
 template <class data_t>

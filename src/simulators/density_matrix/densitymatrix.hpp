@@ -47,7 +47,8 @@ public:
   DensityMatrix() : DensityMatrix(0) {};
   explicit DensityMatrix(size_t num_qubits);
   DensityMatrix(const DensityMatrix& obj) {};
-  DensityMatrix &operator=(const DensityMatrix& obj) {};
+  DensityMatrix &operator=(const DensityMatrix& obj) = delete;
+  DensityMatrix &operator=(DensityMatrix&& obj);
 
   //-----------------------------------------------------------------------
   // Utility functions
@@ -67,6 +68,9 @@ public:
   void initialize_from_vector(const list_t &data);
   template <typename list_t>
   void initialize_from_vector(list_t &&data);
+
+  // Transpose matrix with omp
+  void transpose();
 
   // Returns the number of qubits for the superoperator
   virtual uint_t num_qubits() const override {return BaseMatrix::num_qubits_;}
@@ -171,6 +175,14 @@ template <typename data_t>
 DensityMatrix<data_t>::DensityMatrix(size_t num_qubits)
   : UnitaryMatrix<data_t>(num_qubits) {}
 
+template <typename data_t>
+DensityMatrix<data_t>& DensityMatrix<data_t>::operator=(DensityMatrix<data_t>&& obj) {
+  apply_unitary_threshold_ = obj.apply_unitary_threshold_;
+  BaseMatrix::operator= (std::move(obj));
+  return *this;
+};
+
+
 //------------------------------------------------------------------------------
 // Utility
 //------------------------------------------------------------------------------
@@ -214,6 +226,21 @@ void DensityMatrix<data_t>::initialize_from_vector(list_t &&vec) {
     throw std::runtime_error("DensityMatrix::initialize input vector is incorrect length. Expected: " +
                              std::to_string(BaseVector::data_size_) + " Received: " +
                              std::to_string(vec.size()));
+  }
+}
+
+template <typename data_t>
+void DensityMatrix<data_t>::transpose() {
+  const size_t rows = BaseMatrix::num_rows();
+#pragma omp parallel for if (BaseVector::num_qubits_ > BaseVector::omp_threshold_ && BaseVector::omp_threads_ > 1) num_threads(BaseVector::omp_threads_)
+  for (int_t i = 0; i < rows; i++) {
+    for (int_t j = i + 1; j < rows; j++) {
+      const uint_t pos_a = i * rows + j;
+      const uint_t pos_b = j * rows + i;
+      const auto tmp = BaseVector::data_[pos_a];
+      BaseVector::data_[pos_a] = BaseVector::data_[pos_b];
+      BaseVector::data_[pos_b] = tmp;
+    }
   }
 }
 

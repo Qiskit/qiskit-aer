@@ -76,21 +76,43 @@ PYBIND11_MODULE(controller_wrappers, m) {
                                                         int num_of_qubits,
                                                         py::array_t<std::complex<double>> &values,
                                                         bool copy) {
+      auto c_contiguous = values.attr("flags").attr("c_contiguous").template cast<bool>();
+      auto f_contiguous = values.attr("flags").attr("f_contiguous").template cast<bool>();
+      if (!c_contiguous && !f_contiguous)
+        return false;
       std::complex<double>* data_ptr = reinterpret_cast<std::complex<double>*>(values.mutable_data(0));
       state.configure("method", "statevector");
       state.initialize_statevector(num_of_qubits, data_ptr, copy);
       return true;
     });
 
-    aer_state.def("move_to_buffer",  [aer_state](AER::AerState &state) {
+    aer_state.def("initialize_density_matrix", [aer_state](AER::AerState &state,
+                                                        int num_of_qubits,
+                                                        py::array_t<std::complex<double>> &values,
+                                                        bool copy) {
+      auto c_contiguous = values.attr("flags").attr("c_contiguous").template cast<bool>();
+      auto f_contiguous = values.attr("flags").attr("f_contiguous").template cast<bool>();
+      if (!c_contiguous && !f_contiguous)
+        return false;
+      std::complex<double>* data_ptr = reinterpret_cast<std::complex<double>*>(values.mutable_data(0));
+      state.configure("method", "density_matrix");
+      state.initialize_density_matrix(num_of_qubits, data_ptr, f_contiguous, copy);
+      return true;
+    });
+
+    aer_state.def("move_to_buffer", [aer_state](AER::AerState &state) {
       return state.move_to_vector().move_to_buffer();
     });
 
     aer_state.def("move_to_ndarray", [aer_state](AER::AerState &state) {
       auto vec = state.move_to_vector();
-
-      std::complex<double>* data_ptr = vec.data();
       auto ret = AerToPy::to_numpy(std::move(vec));
+      return ret;
+    });
+
+    aer_state.def("move_to_matrix", [aer_state](AER::AerState &state) {
+      auto mat = state.move_to_matrix();
+      auto ret = AerToPy::to_numpy(std::move(mat));
       return ret;
     });
 
@@ -100,8 +122,10 @@ PYBIND11_MODULE(controller_wrappers, m) {
       return AerToPy::to_python(state.last_result().to_json());
     });
 
-
     aer_state.def("apply_initialize",  &AER::AerState::apply_initialize);
+    aer_state.def("set_statevector",  &AER::AerState::set_statevector);
+    aer_state.def("set_density_matrix",  &AER::AerState::set_density_matrix);
+
     aer_state.def("apply_global_phase",  &AER::AerState::apply_global_phase);
     aer_state.def("apply_unitary", [aer_state](AER::AerState &state,
                                                    const reg_t &qubits,
