@@ -69,6 +69,8 @@ public:
   template <typename list_t>
   void initialize_from_vector(const list_t &data);
 
+  // Transplose a matrix
+  void transpose();
 
   // Returns the number of qubits for the superoperator
   virtual uint_t num_qubits() const override {return BaseMatrix::num_qubits_;}
@@ -215,6 +217,21 @@ void DensityMatrixThrust<data_t>::initialize_from_vector(const list_t &vec) {
 #ifdef AER_DEBUG
 	BaseVector::DebugMsg(" density::initialize_from_vector");
 #endif
+}
+
+template <typename data_t>
+void DensityMatrixThrust<data_t>::transpose() {
+  const size_t rows = BaseMatrix::num_rows();
+#pragma omp parallel for if (BaseVector::num_qubits_ > BaseVector::omp_threshold_ && BaseVector::omp_threads_ > 1) num_threads(BaseVector::omp_threads_)
+  for (size_t i = 0; i < rows; i++) {
+    for (size_t j = i + 1; j < rows; j++) {
+      const uint_t pos_a = i * rows + j;
+      const uint_t pos_b = j * rows + i;
+      const auto tmp = BaseVector::data_[pos_a];
+      BaseVector::data_[pos_a] = BaseVector::data_[pos_b];
+      BaseVector::data_[pos_b] = tmp;
+    }
+  }
 }
 
 //------------------------------------------------------------------------------
