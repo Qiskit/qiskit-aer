@@ -40,7 +40,8 @@ class TestConfigPulseSimulator(common.QiskitAerTestCase):
         """Test that configuration, defaults, and properties are correclty imported."""
 
         athens_backend = FakeAthens()
-        athens_sim = PulseSimulator.from_backend(athens_backend)
+        with self.assertWarns(DeprecationWarning):
+            athens_sim = PulseSimulator.from_backend(athens_backend)
 
         self.assertEqual(athens_backend.properties(), athens_sim.properties())
         # check that configuration is correctly imported
@@ -79,7 +80,8 @@ class TestConfigPulseSimulator(common.QiskitAerTestCase):
         """Test that the system model is correctly imported from the backend."""
 
         athens_backend = FakeAthens()
-        athens_sim = PulseSimulator.from_backend(athens_backend)
+        with self.assertWarns(DeprecationWarning):
+            athens_sim = PulseSimulator.from_backend(athens_backend)
 
         # u channel lo
         athens_attr = athens_backend.configuration().u_channel_lo
@@ -97,7 +99,8 @@ class TestConfigPulseSimulator(common.QiskitAerTestCase):
         """Test setting of options that need to be changed in multiple places."""
 
         athens_backend = FakeAthens()
-        athens_sim = PulseSimulator.from_backend(athens_backend)
+        with self.assertWarns(DeprecationWarning):
+            athens_sim = PulseSimulator.from_backend(athens_backend)
 
         # u channel lo
         set_attr = [[UchannelLO(0, 1.0 + 0.0j)]]
@@ -118,7 +121,8 @@ class TestConfigPulseSimulator(common.QiskitAerTestCase):
         Results don't matter, just need to check that it runs.
         """
 
-        backend = PulseSimulator.from_backend(FakeAthens())
+        with self.assertWarns(DeprecationWarning):
+            backend = PulseSimulator.from_backend(FakeAthens())
 
         qc = QuantumCircuit(2)
         qc.x(0)
@@ -132,7 +136,8 @@ class TestConfigPulseSimulator(common.QiskitAerTestCase):
         """Verify error is raised if a parametric pulse makes it into the digest."""
 
         fake_backend = FakeAthens()
-        backend = PulseSimulator.from_backend(fake_backend)
+        with self.assertWarns(DeprecationWarning):
+            backend = PulseSimulator.from_backend(fake_backend)
 
         # reset parametric_pulses option
         backend.set_option('parametric_pulses', fake_backend.configuration().parametric_pulses)
@@ -150,7 +155,8 @@ class TestConfigPulseSimulator(common.QiskitAerTestCase):
         """Test setting of meas_levels."""
 
         athens_backend = FakeAthens()
-        athens_sim = PulseSimulator.from_backend(athens_backend)
+        with self.assertWarns(DeprecationWarning):
+            athens_sim = PulseSimulator.from_backend(athens_backend)
 
         # test that a warning is thrown when meas_level 0 is attempted to be set
         with warnings.catch_warnings(record=True) as w:
@@ -187,7 +193,8 @@ class TestConfigPulseSimulator(common.QiskitAerTestCase):
             armonk_sim = PulseSimulator.from_backend(backend=armonk_backend,
                                                      system_model=system_model)
 
-            self.assertEqual(len(w), 1)
+            self.assertEqual(len(w), 2)
+            self.assertTrue('will be removed in a future release' in str(w[0].message))
             self.assertTrue('inconsistencies' in str(w[-1].message))
 
         # check that system model properties have been imported
@@ -211,7 +218,8 @@ class TestConfigPulseSimulator(common.QiskitAerTestCase):
 
             test_sim = PulseSimulator(system_model=system_model)
 
-            self.assertEqual(len(w), 0)
+            self.assertEqual(len(w), 1)
+            self.assertTrue('will be removed in a future release' in str(w[0].message))
 
         # check that system model properties have been imported
         self.assertEqual(test_sim.configuration().dt, system_model.dt)
@@ -226,7 +234,8 @@ class TestConfigPulseSimulator(common.QiskitAerTestCase):
         system_model.u_channel_lo = [[UchannelLO(0, 1.0 + 0.0j)]]
 
         # first test setting after construction with no hamiltonian
-        test_sim = PulseSimulator()
+        with self.assertWarns(DeprecationWarning):
+            test_sim = PulseSimulator()
 
         with warnings.catch_warnings(record=True) as w:
             # Cause all warnings to always be triggered.
@@ -243,7 +252,8 @@ class TestConfigPulseSimulator(common.QiskitAerTestCase):
         # next, construct a pulse simulator with a config containing a Hamiltonian and observe
         # warnings
         armonk_backend = FakeArmonk()
-        test_sim = PulseSimulator(configuration=armonk_backend.configuration())
+        with self.assertWarns(DeprecationWarning):
+            test_sim = PulseSimulator(configuration=armonk_backend.configuration())
 
         # add system model and verify warning is raised
         with warnings.catch_warnings(record=True) as w:
@@ -261,7 +271,8 @@ class TestConfigPulseSimulator(common.QiskitAerTestCase):
     def test_validation_num_acquires(self):
         """Test that validation fails if 0 or >1 acquire is given in a schedule."""
 
-        test_sim = PulseSimulator.from_backend(FakeArmonk())
+        with self.assertWarns(DeprecationWarning):
+            test_sim = PulseSimulator.from_backend(FakeArmonk())
         test_sim.set_options(
             meas_level=2,
             qubit_lo_freq=test_sim.defaults().qubit_freq_est,
@@ -298,7 +309,8 @@ class TestConfigPulseSimulator(common.QiskitAerTestCase):
         dt = 2.2222222222222221e-10
         armonk_backend.configuration().dt = dt
 
-        armonk_sim = PulseSimulator.from_backend(armonk_backend)
+        with self.assertWarns(DeprecationWarning):
+            armonk_sim = PulseSimulator.from_backend(armonk_backend)
         armonk_sim.set_options(
             meas_level=2,
             meas_return='single',

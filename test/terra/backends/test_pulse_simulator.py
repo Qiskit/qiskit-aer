@@ -49,14 +49,16 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         """ Set configuration settings for pulse simulator"""
         super().setUp()
         # Get pulse simulator backend
-        self.backend_sim = PulseSimulator()
+        with self.assertWarns(DeprecationWarning):
+            self.backend_sim = PulseSimulator()
 
         self.X = np.array([[0., 1.], [1., 0.]])
         self.Y = np.array([[0., -1j], [1j, 0.]])
         self.Z = np.array([[1., 0.], [0., -1.]])
 
     def test_circuit_conversion(self):
-        pulse_sim = PulseSimulator.from_backend(FakeArmonk())
+        with self.assertWarns(DeprecationWarning):
+            pulse_sim = PulseSimulator.from_backend(FakeArmonk())
         qc = QuantumCircuit(1)
         qc.h(0)
         qc.t(0)
@@ -67,7 +69,8 @@ class TestPulseSimulator(common.QiskitAerTestCase):
                                    delta=128)
 
     def test_multiple_circuit_conversion(self):
-        pulse_sim = PulseSimulator.from_backend(FakeArmonk())
+        with self.assertWarns(DeprecationWarning):
+            pulse_sim = PulseSimulator.from_backend(FakeArmonk())
         qc = QuantumCircuit(1)
         qc.h(0)
         qc.t(0)
@@ -101,7 +104,8 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         seed = 9000
 
         # set up simulator
-        pulse_sim = PulseSimulator(system_model=self._system_model_1Q(omega_0, r))
+        with self.assertWarns(DeprecationWarning):
+            pulse_sim = PulseSimulator(system_model=self._system_model_1Q(omega_0, r))
         pulse_sim.set_options(
             meas_level=2,
             meas_return='single',
@@ -152,7 +156,8 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         seed = 9000
 
         # set up simulator
-        pulse_sim = PulseSimulator(system_model=self._system_model_1Q(omega_0, r))
+        with self.assertWarns(DeprecationWarning):
+            pulse_sim = PulseSimulator(system_model=self._system_model_1Q(omega_0, r))
         pulse_sim.set_options(
             meas_level=2,
             meas_return='single',
@@ -188,7 +193,8 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         seed = 9000
 
         # set up simulator
-        pulse_sim = PulseSimulator(system_model=self._system_model_1Q(omega_0, r))
+        with self.assertWarns(DeprecationWarning):
+            pulse_sim = PulseSimulator(system_model=self._system_model_1Q(omega_0, r))
         pulse_sim.set_options(
             meas_level=2,
             meas_return='single',
@@ -239,7 +245,8 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         seed = 9000
 
         # set up simulator
-        pulse_sim = PulseSimulator(system_model=self._system_model_1Q(omega_0, r))
+        with self.assertWarns(DeprecationWarning):
+            pulse_sim = PulseSimulator(system_model=self._system_model_1Q(omega_0, r))
         pulse_sim.set_options(
             meas_level=2,
             meas_return='single',
@@ -292,8 +299,9 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         noise_model = {"qubit": {"0": {"Sm": 1.}}}
 
         # set up simulator
-        pulse_sim = PulseSimulator(system_model=self._system_model_1Q(omega_0, r),
-                                   noise_model=noise_model)
+        with self.assertWarns(DeprecationWarning):
+            pulse_sim = PulseSimulator(system_model=self._system_model_1Q(omega_0, r),
+                                    noise_model=noise_model)
         pulse_sim.set_options(
             meas_level=2,
             meas_return='single',
@@ -329,7 +337,8 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         y0 = np.array([1.0, 0.0])
         seed = 9000
 
-        pulse_sim = PulseSimulator(system_model=self._system_model_1Q(omega_0, r))
+        with self.assertWarns(DeprecationWarning):
+            pulse_sim = PulseSimulator(system_model=self._system_model_1Q(omega_0, r))
         pulse_sim.set_options(
             meas_level=2,
             meas_return='single',
@@ -373,7 +382,8 @@ class TestPulseSimulator(common.QiskitAerTestCase):
 
             # set up simulator
             system_model = self._system_model_1Q(omega_0, r)
-            pulse_sim = PulseSimulator(system_model=self._system_model_1Q(omega_0, r))
+            with self.assertWarns(DeprecationWarning):
+                pulse_sim = PulseSimulator(system_model=self._system_model_1Q(omega_0, r))
             pulse_sim.set_options(dt=scale)
             pulse_sim.set_options(
                 meas_level=2,
@@ -435,7 +445,8 @@ class TestPulseSimulator(common.QiskitAerTestCase):
             with self.subTest(i=i):
 
                 # set up simulator
-                pulse_sim = PulseSimulator(system_model=self._system_model_1Q(omega_0, r_vals[i]))
+                with self.assertWarns(DeprecationWarning):
+                    pulse_sim = PulseSimulator(system_model=self._system_model_1Q(omega_0, r_vals[i]))
                 pulse_sim.set_options(
                     meas_level=2,
                     meas_return='single',
@@ -486,7 +497,8 @@ class TestPulseSimulator(common.QiskitAerTestCase):
 
         # set up simulator
         system_model = system_model = self._system_model_3d_oscillator(freq, anharm, r)
-        pulse_sim = PulseSimulator(system_model=system_model)
+        with self.assertWarns(DeprecationWarning):
+            pulse_sim = PulseSimulator(system_model=system_model)
         pulse_sim.set_options(
             meas_level=2,
             meas_return='single',
@@ -547,7 +559,8 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         y0 = np.kron(np.array([1., 0.]), np.array([0., 1.]))
         seed=9000
 
-        pulse_sim = PulseSimulator(system_model=self._system_model_2Q(j))
+        with self.assertWarns(DeprecationWarning):
+            pulse_sim = PulseSimulator(system_model=self._system_model_2Q(j))
         pulse_sim.set_options(
             meas_level=2,
             meas_return='single',
@@ -589,7 +602,8 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         y0 = np.kron(np.array([1., 0.]), np.array([0., 1.]))
 
         system_model = self._system_model_3Q(j, subsystem_list=subsystem_list)
-        pulse_sim = PulseSimulator(system_model=system_model)
+        with self.assertWarns(DeprecationWarning):
+            pulse_sim = PulseSimulator(system_model=system_model)
 
         schedule = self._3Q_constant_sched(total_samples,
                                            u_idx=0,
@@ -683,9 +697,10 @@ class TestPulseSimulator(common.QiskitAerTestCase):
                                         u_channel_lo=u_channel_lo,
                                         subsystem_list=subsystem_list,
                                         dt=dt)
-        pulse_sim = PulseSimulator(system_model=system_model,
-                                   initial_state=np.array([1., 0.]),
-                                   seed=9000)
+        with self.assertWarns(DeprecationWarning):
+            pulse_sim = PulseSimulator(system_model=system_model,
+                                       initial_state=np.array([1., 0.]),
+                                       seed=9000)
         pulse_sim.set_options(
             meas_level=2,
             meas_return='single',
@@ -724,9 +739,10 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         schedule = self._1Q_constant_sched(total_samples, amp=amp)
 
         y0=np.array([1.0, 0.0])
-        pulse_sim = PulseSimulator(system_model=system_model,
-                                   initial_state=y0,
-                                   seed=9000)
+        with self.assertWarns(DeprecationWarning):
+            pulse_sim = PulseSimulator(system_model=system_model,
+                                       initial_state=y0,
+                                       seed=9000)
         pulse_sim.set_options(
             meas_level=1,
             meas_return='single',
@@ -782,7 +798,8 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         gauss_sigmas = [total_samples / 6, total_samples / 3, total_samples]
 
         # set up pulse simulator
-        pulse_sim = PulseSimulator(system_model=self._system_model_1Q(omega_0, r))
+        with self.assertWarns(DeprecationWarning):
+            pulse_sim = PulseSimulator(system_model=self._system_model_1Q(omega_0, r))
         pulse_sim.set_options(
             meas_level=2,
             meas_return='single',
@@ -859,9 +876,10 @@ class TestPulseSimulator(common.QiskitAerTestCase):
                             MemorySlot(1)) << 3 * total_samples
 
         y0 = np.array([1., 0., 0., 0.])
-        pulse_sim = PulseSimulator(system_model=system_model,
-                                   initial_state=y0,
-                                   seed=9000)
+        with self.assertWarns(DeprecationWarning):
+            pulse_sim = PulseSimulator(system_model=system_model,
+                                    initial_state=y0,
+                                    seed=9000)
         pulse_sim.set_options(
             meas_level=2,
             meas_return='single',
@@ -919,8 +937,9 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         sched |= Acquire(1, AcquireChannel(0), MemorySlot(0)) << sched.duration
 
         # Result of schedule should be the unitary -1j*Z, so check rotation of an X eigenstate
-        pulse_sim = PulseSimulator(system_model=system_model,
-                                   initial_state=np.array([1., 1.]) / np.sqrt(2))
+        with self.assertWarns(DeprecationWarning):
+            pulse_sim = PulseSimulator(system_model=system_model,
+                                       initial_state=np.array([1., 1.]) / np.sqrt(2))
         pulse_sim.set_options(
             meas_return='single',
             meas_map=[[0]],
@@ -981,8 +1000,9 @@ class TestPulseSimulator(common.QiskitAerTestCase):
 
         y0 = np.array([1., 0])
 
-        pulse_sim = PulseSimulator(system_model=system_model,
-                                   initial_state=y0)
+        with self.assertWarns(DeprecationWarning):
+            pulse_sim = PulseSimulator(system_model=system_model,
+                                       initial_state=y0)
         pulse_sim.set_options(
             meas_level=2,
             meas_return='single',
@@ -1052,8 +1072,9 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         sched |= Acquire(1, AcquireChannel(0), MemorySlot(0)) << sched.duration
 
         y0 = np.array([1., 0.])
-        pulse_sim = PulseSimulator(system_model=system_model,
-                                   initial_state=y0)
+        with self.assertWarns(DeprecationWarning):
+            pulse_sim = PulseSimulator(system_model=system_model,
+                                       initial_state=y0)
         pulse_sim.set_options(
             meas_level=2,
             meas_return='single',
@@ -1088,8 +1109,9 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         sched |= Acquire(1, AcquireChannel(0), MemorySlot(0)) << sched.duration
 
         y0 = np.array([1., 1.]) / np.sqrt(2)
-        pulse_sim = PulseSimulator(system_model=system_model,
-                                   initial_state=y0)
+        with self.assertWarns(DeprecationWarning):
+            pulse_sim = PulseSimulator(system_model=system_model,
+                                       initial_state=y0)
         pulse_sim.set_options(
             meas_level=2,
             meas_return='single',
@@ -1119,7 +1141,8 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         total_samples = 100
 
         # set up simulator
-        pulse_sim = PulseSimulator(system_model=self._system_model_1Q(omega_0, r))
+        with self.assertWarns(DeprecationWarning):
+            pulse_sim = PulseSimulator(system_model=self._system_model_1Q(omega_0, r))
 
         # set up schedule with ShiftFrequency
         drive_pulse = Waveform(1. * np.ones(total_samples))
@@ -1162,7 +1185,8 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         seed = 9000
 
         # set up simulator
-        pulse_sim = PulseSimulator(system_model=self._system_model_1Q(omega_0, r))
+        with self.assertWarns(DeprecationWarning):
+            pulse_sim = PulseSimulator(system_model=self._system_model_1Q(omega_0, r))
         frequencies = np.array([0.5, 1.0, 1.5]) * omega_d
         pulse_sim.set_options(
             shots=128
@@ -1221,9 +1245,10 @@ class TestPulseSimulator(common.QiskitAerTestCase):
                             MemorySlot(1)) << 3 * total_samples
 
         y0 = np.array([1., 1., 0., 0., 0., 0., 0., 0., 0.]) / np.sqrt(2)
-        pulse_sim = PulseSimulator(system_model=system_model,
-                                   initial_state=y0,
-                                   seed=50)
+        with self.assertWarns(DeprecationWarning):
+            pulse_sim = PulseSimulator(system_model=system_model,
+                                       initial_state=y0,
+                                       seed=50)
         pulse_sim.set_options(
             meas_level=2,
             meas_return='single',
