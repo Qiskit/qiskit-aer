@@ -36,8 +36,8 @@ class AerDensityMatrix(DensityMatrix):
     def __init__(self, data, dims=None, **configs):
         """
         Args:
-            data (np.array or list or AerStatevector or QuantumCircuit or
-                  qiskit.circuit.Instruction):
+            data (np.array or list or Statevector or AerStatevector or DensityMatrix or
+                  AerDensityMatrix or QuantumCircuit or qiskit.circuit.Instruction):
                 Data from which the densitymatrix can be constructed. This can be either a complex
                 vector, another densitymatrix or statevector or a ``QuantumCircuit`` or
                 ``Instruction`` (``Operator`` is not supportted in the current implementation).
