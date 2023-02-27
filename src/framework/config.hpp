@@ -60,7 +60,7 @@ bool get_value(optional<T> &var, const std::string& key, const json_t &js) {
 
 template <typename T>
 bool get_value(T &var, const std::string& key, const json_t &js) {
-  JSON::get_value(var, key, js);
+  return JSON::get_value(var, key, js);
 }
 
 // Configuration of Aer simulation
