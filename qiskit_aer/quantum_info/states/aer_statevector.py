@@ -127,7 +127,6 @@ class AerStatevector(Statevector):
 
         self._aer_state.renew()
         self._aer_state.initialize(self._data, copy=False)
-
         samples = self._aer_state.sample_memory(qubits, shots)
         self._data = self._aer_state.move_to_ndarray()
         return samples
