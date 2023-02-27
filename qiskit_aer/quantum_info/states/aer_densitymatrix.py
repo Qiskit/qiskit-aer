@@ -57,7 +57,7 @@ class AerDensityMatrix(DensityMatrix):
         else:
             if 'method' not in configs:
                 configs['method'] = 'density_matrix'
-            elif configs['method'] not in ('density_matrix'):
+            elif configs['method'] != 'density_matrix':
                 method = configs['method']
                 raise AerError(f'Method {method} is not supported')
             if isinstance(data, (QuantumCircuit, Instruction)):
