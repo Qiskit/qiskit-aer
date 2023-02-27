@@ -333,6 +333,7 @@ def compile_circuit(circuits, basis_gates=None, optypes=None):
     """
     return AerCompiler().compile(circuits, basis_gates, optypes)
 
+
 def generate_aer_config(
     circuits: List[QuantumCircuit],
     backend_options: Options,
