@@ -267,10 +267,10 @@ class AerDensityMatrix(DensityMatrix):
 
         # Normally, DensityMatrix.reset returns DensityMatrix, which should
         # be converted to AerDensityMatrix if necessary.
-        dm = super().reset(qargs=qargs)
-        if isinstance(dm, DensityMatrix):
-            dm = AerDensityMatrix(dm)
-        return dm
+        density_matrix = super().reset(qargs=qargs)
+        if isinstance(density_matrix, DensityMatrix):
+            density_matrix = AerDensityMatrix(density_matrix)
+        return density_matrix
 
     @classmethod
     def from_label(cls, label):
