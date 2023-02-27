@@ -19,6 +19,7 @@
 
 #include "framework/operations.hpp"
 #include "framework/opset.hpp"
+#include "framework/config.hpp"
 
 using complex_t = std::complex<double>;
 
@@ -106,7 +107,7 @@ public:
   // If `truncation = false`, some configurations related to qubits will be
   // overriden because `set_params(false)` sets minimum qubits to simulate
   // circuits.
-  void set_metadata(const json_t &config, bool truncation);
+  void set_metadata(const AER::Config &config, bool truncation);
 
   // Set the circuit rng seed to random value
   inline void set_random_seed() {seed = std::random_device()();}
@@ -296,7 +297,7 @@ Circuit::Circuit(const inputdata_t &circ, bool truncation) : Circuit(circ, json_
 template<typename inputdata_t>
 Circuit::Circuit(const inputdata_t &circ, const json_t &qobj_config, bool truncation) : Circuit() {
   // Get config
-  json_t config = qobj_config;
+  auto config = qobj_config;
   if (Parser<inputdata_t>::check_key("config", circ)) {
     json_t circ_config;
     Parser<inputdata_t>::get_value(circ_config, "config", circ);
@@ -328,14 +329,13 @@ Circuit::Circuit(const inputdata_t &circ, const json_t &qobj_config, bool trunca
   set_metadata(config, truncation);
 }
 
-void Circuit::set_metadata(const json_t &config, bool truncation) {
+void Circuit::set_metadata(const AER::Config &config, bool truncation) {
   // Load metadata
-  Parser<json_t>::get_value(shots, "shots", config);
-  Parser<json_t>::get_value(global_phase_angle, "global_phase", header);
+  shots = config.shots;
+  global_phase_angle = config.global_phase;
 
   // Check for specified memory slots
-  uint_t memory_slots = 0;
-  Parser<json_t>::get_value(memory_slots, "memory_slots", config);
+  uint_t memory_slots = config.memory_slots;
   if (memory_slots < num_memory) {
     throw std::invalid_argument("Invalid Qobj experiment: not enough memory slots.");
   }
@@ -343,10 +343,9 @@ void Circuit::set_metadata(const json_t &config, bool truncation) {
   num_memory = memory_slots;
 
   // Check for specified n_qubits
-  if (Parser<json_t>::check_key("n_qubits", config)) {
+  if (config.n_qubits) {
     // uint_t n_qubits = config["n_qubits"];
-    uint_t n_qubits;
-    Parser<json_t>::get_value(n_qubits, "n_qubits", config);
+    uint_t n_qubits = config.n_qubits;
     if (n_qubits < num_qubits) {
       throw std::invalid_argument("Invalid Qobj experiment: n_qubits < instruction qubits.");
     }

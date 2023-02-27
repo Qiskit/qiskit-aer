@@ -87,7 +87,7 @@ public:
                                     const std::vector<Operations::Op> &ops)
                                     const override;
 
-  void set_config(const json_t &config) override;
+  void set_config(const Config &config) override;
 
   std::vector<reg_t> sample_measure(const reg_t& qubits,
                                     uint_t shots,
@@ -246,28 +246,28 @@ void State::initialize_qreg(uint_t num_qubits)
   BaseState::qreg_.initialize_omp(BaseState::threads_, omp_threshold_rank_);
 }
 
-void State::set_config(const json_t &config)
+void State::set_config(const Config &config)
 {
   // Set the error upper bound in the stabilizer rank approximation
-  JSON::get_value(approximation_error_, "extended_stabilizer_approximation_error", config);
+  approximation_error_ = config.extended_stabilizer_approximation_error;
   // Set the number of samples used in the norm estimation routine
-  JSON::get_value(norm_estimation_samples_, "extended_stabilizer_norm_estimation_default_samples", config);
+  norm_estimation_samples_ = config.extended_stabilizer_norm_estimation_default_samples;
   // Set the desired number of repetitions of the norm estimation step. If not explicitly set, we
   // compute a default basd on the approximation error
   norm_estimation_repetitions_ = std::llrint(std::log2(1. / approximation_error_));
-  JSON::get_value(norm_estimation_repetitions_, "extended_stabilizer_norm_estimation_repetitions", config);
+  norm_estimation_repetitions_ = config.extended_stabilizer_norm_estimation_repetitions;
   // Set the number of steps used in the metropolis sampler before we
   // consider the distribution as approximating the output
-  JSON::get_value(metropolis_mixing_steps_, "extended_stabilizer_metropolis_mixing_time", config);
+  metropolis_mixing_steps_ = config.extended_stabilizer_metropolis_mixing_time;
   //Set the threshold of the decomposition before we use omp
-  JSON::get_value(omp_threshold_rank_, "extended_stabilizer_parallel_threshold", config);
+  omp_threshold_rank_ = config.extended_stabilizer_parallel_threshold;
   //Set the truncation threshold for the probabilities snapshot.
-  JSON::get_value(snapshot_chop_threshold_, "zero_threshold", config);
+  snapshot_chop_threshold_ = config.zero_threshold;
   //Set the number of samples for the probabilities snapshot
-  JSON::get_value(probabilities_snapshot_samples_, "extended_stabilizer_probabilities_snapshot_samples", config);
+  probabilities_snapshot_samples_ = config.extended_stabilizer_probabilities_snapshot_samples;
   //Set the measurement strategy
   std::string sampling_method_str = "resampled_metropolis";
-  JSON::get_value(sampling_method_str, "extended_stabilizer_sampling_method", config);
+  sampling_method_str = config.extended_stabilizer_sampling_method;
   if (sampling_method_str == "metropolis") {
     sampling_method_ = SamplingMethod::metropolis;
   }

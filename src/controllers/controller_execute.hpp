@@ -21,6 +21,7 @@
 #include "framework/results/result.hpp"
 #include "framework/python_parser.hpp"
 #include "framework/matrix.hpp"
+#include "framework/config.hpp"
 
 //=========================================================================
 // Controller Execute interface
@@ -44,12 +45,12 @@ Result controller_execute(const inputdata_t& qobj) {
 }
 
 template <class controller_t>
-Result controller_execute(std::vector<Circuit>& input_circs, AER::Noise::NoiseModel &noise_model, json_t& config) {
+Result controller_execute(std::vector<Circuit>& input_circs, AER::Noise::NoiseModel &noise_model, AER::Config &config) {
   controller_t controller;
 
   bool truncate = true;
-  if (Parser<json_t>::check_key("enable_truncation", config))
-    Parser<json_t>::get_value(truncate, "enable_truncation", config);
+  if (config.enable_truncation)
+    truncate = config.enable_truncation;
 
   if (noise_model.has_nonlocal_quantum_errors())
     truncate = false;
@@ -66,8 +67,7 @@ Result controller_execute(std::vector<Circuit>& input_circs, AER::Noise::NoiseMo
   //    pars = [par0, par1, ...] is a list of different parameterizations
   using pos_t = std::pair<uint_t, uint_t>;
   using exp_params_t = std::vector<std::pair<pos_t, std::vector<double>>>;
-  std::vector<exp_params_t> param_table;
-  Parser<json_t>::get_value(param_table, "parameterizations", config);
+  std::vector<exp_params_t> param_table = config.param_table;
 
   // Validate parameterizations for number of circuis
   if (!param_table.empty() && param_table.size() != num_circs) {
@@ -137,8 +137,9 @@ Result controller_execute(std::vector<Circuit>& input_circs, AER::Noise::NoiseMo
   int_t seed = -1;
   uint_t seed_shift = 0;
 
-  bool has_simulator_seed = Parser<json_t>::get_value(seed, "seed_simulator", config);
-  if (!has_simulator_seed) 
+  if (config.seed_simulator)
+    seed = config.seed_simulator;
+  else
     seed = circs[0].seed;
 
   for (auto& circ: circs) {
@@ -148,9 +149,7 @@ Result controller_execute(std::vector<Circuit>& input_circs, AER::Noise::NoiseMo
 
   // Fix for MacOS and OpenMP library double initialization crash.
   // Issue: https://github.com/Qiskit/qiskit-aer/issues/1
-  std::string path;
-  Parser<json_t>::get_value(path, "library_dir", config);
-  Hacks::maybe_load_openmp(path);
+  Hacks::maybe_load_openmp(config.library_dir);
   controller.set_config(config);
   return controller.execute(circs, noise_model, config);
 }

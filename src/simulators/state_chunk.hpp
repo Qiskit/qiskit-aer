@@ -149,8 +149,8 @@ public:
   // Optional: Load config settings
   //-----------------------------------------------------------------------
 
-  // Load any settings for the StateChunk class from a config JSON
-  virtual void set_config(const json_t &config);
+  // Load any settings for the StateChunk class from a config
+  virtual void set_config(const Config &config);
 
   //=======================================================================
   // Standard non-virtual methods
@@ -455,24 +455,21 @@ StateChunk<state_t>::~StateChunk(void)
 }
 
 template <class state_t>
-void StateChunk<state_t>::set_config(const json_t &config) 
+void StateChunk<state_t>::set_config(const Config &config) 
 {
   BaseState::set_config(config);
 
   num_threads_per_group_ = 1;
-  if(JSON::check_key("num_threads_per_device", config)) {
-    JSON::get_value(num_threads_per_group_, "num_threads_per_device", config);
-  }
+  if (config.num_threads_per_device)
+    num_threads_per_group_ = config.num_threads_per_device.value();
 
-  if(JSON::check_key("chunk_swap_buffer_qubits", config)) {
-    JSON::get_value(chunk_swap_buffer_qubits_, "chunk_swap_buffer_qubits", config);
-  }
+  if (config.chunk_swap_buffer_qubits)
+    chunk_swap_buffer_qubits_ = config.chunk_swap_buffer_qubits.value();
 
 #ifdef AER_CUSTATEVEC
   //cuStateVec configs
-  if(JSON::check_key("cuStateVec_enable", config)) {
-    JSON::get_value(cuStateVec_enable_, "cuStateVec_enable", config);
-  }
+  if (config.cuStateVec_enable)
+    cuStateVec_enable_ = config.cuStateVec_enable.value();
 #endif
 }
 
