@@ -365,19 +365,19 @@ private:
 template<size_t N>
 void NQubitFusion<N>::set_config(const Config &config) {
   // For debuging
-  if (config._fusion_enable_n_qubits)
+  if (config._fusion_enable_n_qubits.has_value())
     active = config._fusion_enable_n_qubits.value();
 
 #if N == 1
-  if (config._fusion_enable_n_qubits_1) active = config._fusion_enable_1.value();
+  if (config._fusion_enable_n_qubits_1.has_value()) active = config._fusion_enable_1.value();
 #elif N == 2
-  if (config._fusion_enable_n_qubits_2) active = config._fusion_enable_n_qubits_2.value();
+  if (config._fusion_enable_n_qubits_2.has_value()) active = config._fusion_enable_n_qubits_2.value();
 #elif N == 3
-  if (config._fusion_enable_n_qubits_3) active = config._fusion_enable_n_qubits_3.value();
+  if (config._fusion_enable_n_qubits_3.has_value()) active = config._fusion_enable_n_qubits_3.value();
 #elif N == 4
-  if (config._fusion_enable_n_qubits_4) active = config._fusion_enable_n_qubits_4.value();
+  if (config._fusion_enable_n_qubits_4.has_value()) active = config._fusion_enable_n_qubits_4.value();
 #elif N == 5
-  if (config._fusion_enable_n_qubits_5) active = config._fusion_enable_n_qubits_5.value();
+  if (config._fusion_enable_n_qubits_5.has_value()) active = config._fusion_enable_n_qubits_5.value();
 #endif
   // if (JSON::check_key(activate_prop_name, config))
   //   JSON::get_value(active, activate_prop_name, config);
@@ -498,9 +498,9 @@ private:
 };
 
 void DiagonalFusion::set_config(const Config &config) {
-  if (config._fusion_enable_diagonal)
+  if (config._fusion_enable_diagonal.has_value())
     active = config._fusion_enable_diagonal.value();
-  if (config._fusion_min_qubit)
+  if (config._fusion_min_qubit.has_value())
     min_qubit = config._fusion_min_qubit.value();
 }
 
@@ -778,22 +778,22 @@ void Fusion::set_config(const Config &config) {
   verbose = config.fusion_verbose;
   active = config.fusion_enable;
 
-  if (config.fusion_max_qubit)
+  if (config.fusion_max_qubit.has_value())
     max_qubit = config.fusion_max_qubit.value();
 
-  if (config.fusion_threshold)
+  if (config.fusion_threshold.has_value())
     threshold = config.fusion_threshold.value();
 
   for (std::shared_ptr<Fuser>& fuser: fusers)
     fuser->set_config(config_);
 
-  if (config.fusion_allow_kraus)
+  if (config.fusion_allow_kraus.has_value())
     allow_kraus = config.fusion_allow_kraus.value();
 
-  if (config.fusion_allow_superop)
+  if (config.fusion_allow_superop.has_value())
     allow_superop = config.fusion_allow_superop.value();
 
-  if (config.fusion_parallelization_threshold)
+  if (config.fusion_parallelization_threshold.has_value())
     parallel_threshold_ = config.fusion_parallelization_threshold.value();
 }
 
@@ -908,31 +908,31 @@ void CostBasedFusion::set_metadata(ExperimentResult &result) const {
 
 void CostBasedFusion::set_config(const Config &config) {
 
-  if (config.fusion_cost_factor)
+  if (config.fusion_cost_factor.has_value())
     cost_factor = config.fusion_cost_factor.value();
 
-  if (config._fusion_enable_cost_based)
+  if (config._fusion_enable_cost_based.has_value())
     active = config._fusion_enable_cost_based.value();
 
-  if (config._fusion_cost_1)
+  if (config._fusion_cost_1.has_value())
     costs_[0] = config._fusion_cost_1.value();
-  if (config._fusion_cost_2)
+  if (config._fusion_cost_2.has_value())
     costs_[1] = config._fusion_cost_2.value();
-  if (config._fusion_cost_3)
+  if (config._fusion_cost_3.has_value())
     costs_[2] = config._fusion_cost_3.value();
-  if (config._fusion_cost_4)
+  if (config._fusion_cost_4.has_value())
     costs_[3] = config._fusion_cost_4.value();
-  if (config._fusion_cost_5)
+  if (config._fusion_cost_5.has_value())
     costs_[4] = config._fusion_cost_5.value();
-  if (config._fusion_cost_6)
+  if (config._fusion_cost_6.has_value())
     costs_[5] = config._fusion_cost_6.value();
-  if (config._fusion_cost_7)
+  if (config._fusion_cost_7.has_value())
     costs_[6] = config._fusion_cost_7.value();
-  if (config._fusion_cost_8)
+  if (config._fusion_cost_8.has_value())
     costs_[7] = config._fusion_cost_8.value();
-  if (config._fusion_cost_9)
+  if (config._fusion_cost_9.has_value())
     costs_[8] = config._fusion_cost_9.value();
-  if (config._fusion_cost_10)
+  if (config._fusion_cost_10.has_value())
     costs_[9] = config._fusion_cost_10.value();
 
 }

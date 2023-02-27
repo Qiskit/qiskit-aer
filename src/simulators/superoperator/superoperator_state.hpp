@@ -293,7 +293,8 @@ size_t State<data_t>::required_memory_mb(
 
 template <class data_t> void State<data_t>::set_config(const Config &config) {
   // Set OMP threshold for state update functions
-  omp_qubit_threshold_ = config.superoperator_parallel_threshold;
+  if (config.superoperator_parallel_threshold.has_value())
+    omp_qubit_threshold_ = config.superoperator_parallel_threshold.value();
 
   // Set threshold for truncating snapshots
   json_chop_threshold_ = config.zero_threshold;

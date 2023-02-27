@@ -31,7 +31,7 @@ from qiskit.compiler import transpile
 from qiskit.qobj import QobjExperimentHeader
 from qiskit_aer.aererror import AerError
 # pylint: disable=import-error, no-name-in-module
-from qiskit_aer.backends.controller_wrappers import AerCircuit
+from qiskit_aer.backends.controller_wrappers import AerCircuit, AerConfig
 from .backend_utils import circuit_optypes
 from ..library.control_flow_instructions import AerMark, AerJump
 
@@ -333,12 +333,11 @@ def compile_circuit(circuits, basis_gates=None, optypes=None):
     """
     return AerCompiler().compile(circuits, basis_gates, optypes)
 
-
 def generate_aer_config(
     circuits: List[QuantumCircuit],
     backend_options: Options,
     **run_options
-) -> List[AerCircuit]:
+) -> AerConfig:
     """generates a configuration to run simulation.
 
     Args:
@@ -347,17 +346,20 @@ def generate_aer_config(
         run_options: run options
 
     Returns:
-        dict to run Aer
+        AerConfig to run Aer
     """
     num_qubits = max(circuit.num_qubits for circuit in circuits)
     memory_slots = max(circuit.num_clbits for circuit in circuits)
 
-    config = {
-        'memory_slots': memory_slots,
-        'n_qubits': num_qubits,
-        **backend_options.__dict__,
-        **run_options
-    }
+    config = AerConfig()
+    config.memory_slots = memory_slots
+    config.n_qubits = num_qubits
+    for key, value in backend_options.__dict__.items():
+        if hasattr(config, key) and value is not None:
+            setattr(config, key, value)
+    for key, value in run_options.items():
+        if hasattr(config, key) and value is not None:
+            setattr(config, key, value)
     return config
 
 

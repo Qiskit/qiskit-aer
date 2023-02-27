@@ -42,7 +42,11 @@ struct optional {
     exist = false;
   }
 
-  operator bool() const { 
+  // operator bool() const { 
+  //   return exist;
+  // }
+
+  bool has_value() const {
     return exist;
   }
 };
@@ -273,28 +277,28 @@ struct Config {
     enable_truncation = other.enable_truncation;
     zero_threshold = other.zero_threshold;
     validation_threshold = other.validation_threshold;
-    if (other.max_parallel_threads) max_parallel_threads.value(other.max_parallel_threads.value());
-    if (other.max_parallel_experiments) max_parallel_experiments.value(other.max_parallel_experiments.value());
-    if (other.max_parallel_shots) max_parallel_shots.value(other.max_parallel_shots.value());
-    if (other.max_memory_mb) max_memory_mb.value(other.max_memory_mb.value());
+    if (other.max_parallel_threads.has_value()) max_parallel_threads.value(other.max_parallel_threads.value());
+    if (other.max_parallel_experiments.has_value()) max_parallel_experiments.value(other.max_parallel_experiments.value());
+    if (other.max_parallel_shots.has_value()) max_parallel_shots.value(other.max_parallel_shots.value());
+    if (other.max_memory_mb.has_value()) max_memory_mb.value(other.max_memory_mb.value());
     fusion_enable = other.fusion_enable;
     fusion_verbose = other.fusion_verbose;
-    if (other.fusion_max_qubit) fusion_max_qubit.value(other.fusion_max_qubit.value());
-    if (other.fusion_threshold) fusion_threshold.value(other.fusion_threshold.value());
-    if (other.accept_distributed_results) accept_distributed_results.value(other.accept_distributed_results.value());
-    if (other.memory) memory.value(other.memory.value());
+    if (other.fusion_max_qubit.has_value()) fusion_max_qubit.value(other.fusion_max_qubit.value());
+    if (other.fusion_threshold.has_value()) fusion_threshold.value(other.fusion_threshold.value());
+    if (other.accept_distributed_results.has_value()) accept_distributed_results.value(other.accept_distributed_results.value());
+    if (other.memory.has_value()) memory.value(other.memory.value());
     // noise_model=None,
-    if (other.seed_simulator) seed_simulator.value(other.seed_simulator.value());
+    if (other.seed_simulator.has_value()) seed_simulator.value(other.seed_simulator.value());
     // # cuStateVec (cuQuantum) option
-    if (other.cuStateVec_enable) cuStateVec_enable.value(other.cuStateVec_enable.value());
+    if (other.cuStateVec_enable.has_value()) cuStateVec_enable.value(other.cuStateVec_enable.value());
     // # cache blocking for multi-GPUs/MPI options
-    if (other.blocking_qubits) blocking_qubits.value(other.blocking_qubits.value());
+    if (other.blocking_qubits.has_value()) blocking_qubits.value(other.blocking_qubits.value());
     blocking_enable = other.blocking_enable;
-    if (other.chunk_swap_buffer_qubits) chunk_swap_buffer_qubits.value(other.chunk_swap_buffer_qubits.value());
+    if (other.chunk_swap_buffer_qubits.has_value()) chunk_swap_buffer_qubits.value(other.chunk_swap_buffer_qubits.value());
     // # multi-shots optimization options (GPU only)
     batched_shots_gpu = other.batched_shots_gpu;
     batched_shots_gpu_max_qubits = other.batched_shots_gpu_max_qubits;
-    if (other.num_threads_per_device) num_threads_per_device.value(other.num_threads_per_device.value());
+    if (other.num_threads_per_device.has_value()) num_threads_per_device.value(other.num_threads_per_device.value());
     // # statevector options
     statevector_parallel_threshold = other.statevector_parallel_threshold;
     statevector_sample_measure_opt = other.statevector_sample_measure_opt;
@@ -310,7 +314,7 @@ struct Config {
     extended_stabilizer_probabilities_snapshot_samples = other.extended_stabilizer_probabilities_snapshot_samples;
     // # MPS options
     matrix_product_state_truncation_threshold = other.matrix_product_state_truncation_threshold;
-    if (other.matrix_product_state_max_bond_dimension) matrix_product_state_max_bond_dimension.value(other.matrix_product_state_max_bond_dimension.value());
+    if (other.matrix_product_state_max_bond_dimension.has_value()) matrix_product_state_max_bond_dimension.value(other.matrix_product_state_max_bond_dimension.value());
     mps_sample_measure_algorithm = other.mps_sample_measure_algorithm;
     mps_log_data = other.mps_log_data;
     mps_swap_direction = other.mps_swap_direction;
@@ -323,30 +327,30 @@ struct Config {
     // system configurations
     param_table = other.param_table;
     library_dir = other.library_dir;
-    if (other.n_qubits) n_qubits.value(other.n_qubits.value());
+    if (other.n_qubits.has_value()) n_qubits.value(other.n_qubits.value());
     global_phase = other.global_phase;
     memory_slots = other.memory_slots;
-    if (other._parallel_experiments) _parallel_experiments.value(other._parallel_experiments.value());
-    if (other._parallel_shots) _parallel_shots.value(other._parallel_shots.value());
-    if (other._parallel_state_update) _parallel_state_update.value(other._parallel_state_update.value());
-    if (other._parallel_experiments) _parallel_experiments.value(other._parallel_experiments.value());
-    if (other.fusion_allow_kraus) fusion_allow_kraus.value(other.fusion_allow_kraus.value());
-    if (other.fusion_allow_superop) fusion_allow_superop.value(other.fusion_allow_superop.value());
-    if (other.fusion_parallelization_threshold) fusion_parallelization_threshold.value(other.fusion_parallelization_threshold.value());
-    if (other._fusion_enable_n_qubits) _fusion_enable_n_qubits.value(other._fusion_enable_n_qubits.value());
-    if (other._fusion_enable_n_qubits_1) _fusion_enable_n_qubits_1.value(other._fusion_enable_n_qubits_1.value());
-    if (other._fusion_enable_n_qubits_2) _fusion_enable_n_qubits_2.value(other._fusion_enable_n_qubits_2.value());
-    if (other._fusion_enable_n_qubits_3) _fusion_enable_n_qubits_3.value(other._fusion_enable_n_qubits_3.value());
-    if (other._fusion_enable_n_qubits_4) _fusion_enable_n_qubits_4.value(other._fusion_enable_n_qubits_4.value());
-    if (other._fusion_enable_n_qubits_5) _fusion_enable_n_qubits_5.value(other._fusion_enable_n_qubits_5.value());
-    if (other._fusion_enable_diagonal) _fusion_enable_diagonal.value(other._fusion_enable_diagonal.value());
-    if (other._fusion_min_qubit) _fusion_min_qubit.value(other._fusion_min_qubit.value());
-    if (other.fusion_cost_factor) fusion_cost_factor.value(other.fusion_cost_factor.value());
+    if (other._parallel_experiments.has_value()) _parallel_experiments.value(other._parallel_experiments.value());
+    if (other._parallel_shots.has_value()) _parallel_shots.value(other._parallel_shots.value());
+    if (other._parallel_state_update.has_value()) _parallel_state_update.value(other._parallel_state_update.value());
+    if (other._parallel_experiments.has_value()) _parallel_experiments.value(other._parallel_experiments.value());
+    if (other.fusion_allow_kraus.has_value()) fusion_allow_kraus.value(other.fusion_allow_kraus.value());
+    if (other.fusion_allow_superop.has_value()) fusion_allow_superop.value(other.fusion_allow_superop.value());
+    if (other.fusion_parallelization_threshold.has_value()) fusion_parallelization_threshold.value(other.fusion_parallelization_threshold.value());
+    if (other._fusion_enable_n_qubits.has_value()) _fusion_enable_n_qubits.value(other._fusion_enable_n_qubits.value());
+    if (other._fusion_enable_n_qubits_1.has_value()) _fusion_enable_n_qubits_1.value(other._fusion_enable_n_qubits_1.value());
+    if (other._fusion_enable_n_qubits_2.has_value()) _fusion_enable_n_qubits_2.value(other._fusion_enable_n_qubits_2.value());
+    if (other._fusion_enable_n_qubits_3.has_value()) _fusion_enable_n_qubits_3.value(other._fusion_enable_n_qubits_3.value());
+    if (other._fusion_enable_n_qubits_4.has_value()) _fusion_enable_n_qubits_4.value(other._fusion_enable_n_qubits_4.value());
+    if (other._fusion_enable_n_qubits_5.has_value()) _fusion_enable_n_qubits_5.value(other._fusion_enable_n_qubits_5.value());
+    if (other._fusion_enable_diagonal.has_value()) _fusion_enable_diagonal.value(other._fusion_enable_diagonal.value());
+    if (other._fusion_min_qubit.has_value()) _fusion_min_qubit.value(other._fusion_min_qubit.value());
+    if (other.fusion_cost_factor.has_value()) fusion_cost_factor.value(other.fusion_cost_factor.value());
 
-    if (other.superoperator_parallel_threshold) superoperator_parallel_threshold.value(other.superoperator_parallel_threshold.value());
-    if (other.unitary_parallel_threshold) unitary_parallel_threshold.value(other.unitary_parallel_threshold.value());
-    if (other.memory_blocking_bits) memory_blocking_bits.value(other.memory_blocking_bits.value());
-    if (other.extended_stabilizer_norm_estimation_default_samples) extended_stabilizer_norm_estimation_default_samples.value(other.extended_stabilizer_norm_estimation_default_samples.value());
+    if (other.superoperator_parallel_threshold.has_value()) superoperator_parallel_threshold.value(other.superoperator_parallel_threshold.value());
+    if (other.unitary_parallel_threshold.has_value()) unitary_parallel_threshold.value(other.unitary_parallel_threshold.value());
+    if (other.memory_blocking_bits.has_value()) memory_blocking_bits.value(other.memory_blocking_bits.value());
+    if (other.extended_stabilizer_norm_estimation_default_samples.has_value()) extended_stabilizer_norm_estimation_default_samples.value(other.extended_stabilizer_norm_estimation_default_samples.value());
   }
 };
 

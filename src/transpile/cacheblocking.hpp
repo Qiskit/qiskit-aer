@@ -129,14 +129,14 @@ void CacheBlocking::set_config(const Config &config)
 {
   CircuitOptimization::set_config(config);
 
-  if (config.blocking_qubits)
+  if (config.blocking_qubits.has_value())
     block_bits_ = config.blocking_qubits.value();
 
   if(block_bits_ >= 1){
     blocking_enabled_ = true;
   }
 
-  if (config.memory_blocking_bits) {
+  if (config.memory_blocking_bits.has_value()) {
     memory_blocking_bits_ = config.memory_blocking_bits.value();
     if(memory_blocking_bits_ >= 10){   //blocking qubit should be <=10
       memory_blocking_bits_ = 10;

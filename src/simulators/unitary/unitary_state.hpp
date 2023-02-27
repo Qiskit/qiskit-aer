@@ -367,7 +367,8 @@ void State<unitary_matrix_t>::set_config(const Config &config)
   BaseState::set_config(config);
 
   // Set OMP threshold for state update functions
-  omp_qubit_threshold_ = config.unitary_parallel_threshold;
+  if (config.unitary_parallel_threshold.has_value())
+    omp_qubit_threshold_ = config.unitary_parallel_threshold.value();
 
   // Set threshold for truncating snapshots
   json_chop_threshold_ = config.zero_threshold;

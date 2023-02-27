@@ -343,7 +343,7 @@ void State::set_config(const Config &config) {
   // Set threshold for truncating Schmidt coefficients
   MPS_Tensor::set_truncation_threshold(config.matrix_product_state_truncation_threshold);
 
-  if (config.matrix_product_state_max_bond_dimension)
+  if (config.matrix_product_state_max_bond_dimension.has_value())
     MPS_Tensor::set_max_bond_dimension(config.matrix_product_state_max_bond_dimension.value());
   else
     MPS_Tensor::set_max_bond_dimension(UINT64_MAX);

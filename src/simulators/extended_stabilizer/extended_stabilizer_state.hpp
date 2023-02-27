@@ -251,7 +251,8 @@ void State::set_config(const Config &config)
   // Set the error upper bound in the stabilizer rank approximation
   approximation_error_ = config.extended_stabilizer_approximation_error;
   // Set the number of samples used in the norm estimation routine
-  norm_estimation_samples_ = config.extended_stabilizer_norm_estimation_default_samples;
+  if (config.extended_stabilizer_norm_estimation_default_samples.has_value())
+    norm_estimation_samples_ = config.extended_stabilizer_norm_estimation_default_samples.value();
   // Set the desired number of repetitions of the norm estimation step. If not explicitly set, we
   // compute a default basd on the approximation error
   norm_estimation_repetitions_ = std::llrint(std::log2(1. / approximation_error_));

@@ -308,7 +308,8 @@ Circuit::Circuit(const inputdata_t &circ, const json_t &qobj_config, bool trunca
   
   // Set header
   Parser<inputdata_t>::get_value(header, "header", circ);
-
+  Parser<json_t>::get_value(global_phase_angle, "global_phase", header);
+  
   // Load instructions
   if (Parser<inputdata_t>::check_key("instructions", circ) == false) {
     throw std::invalid_argument("Invalid Qobj experiment: no \"instructions\" field.");
@@ -332,7 +333,6 @@ Circuit::Circuit(const inputdata_t &circ, const json_t &qobj_config, bool trunca
 void Circuit::set_metadata(const AER::Config &config, bool truncation) {
   // Load metadata
   shots = config.shots;
-  global_phase_angle = config.global_phase;
 
   // Check for specified memory slots
   uint_t memory_slots = config.memory_slots;
@@ -343,9 +343,8 @@ void Circuit::set_metadata(const AER::Config &config, bool truncation) {
   num_memory = memory_slots;
 
   // Check for specified n_qubits
-  if (config.n_qubits) {
-    // uint_t n_qubits = config["n_qubits"];
-    uint_t n_qubits = config.n_qubits;
+  if (config.n_qubits.has_value()) {
+    uint_t n_qubits = config.n_qubits.value();
     if (n_qubits < num_qubits) {
       throw std::invalid_argument("Invalid Qobj experiment: n_qubits < instruction qubits.");
     }

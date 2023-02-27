@@ -460,10 +460,10 @@ void StateChunk<state_t>::set_config(const Config &config)
   BaseState::set_config(config);
 
   num_threads_per_group_ = 1;
-  if (config.num_threads_per_device)
+  if (config.num_threads_per_device.has_value())
     num_threads_per_group_ = config.num_threads_per_device.value();
 
-  if (config.chunk_swap_buffer_qubits)
+  if (config.chunk_swap_buffer_qubits.has_value())
     chunk_swap_buffer_qubits_ = config.chunk_swap_buffer_qubits.value();
 
 #ifdef AER_CUSTATEVEC

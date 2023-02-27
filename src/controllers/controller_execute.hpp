@@ -48,9 +48,7 @@ template <class controller_t>
 Result controller_execute(std::vector<Circuit>& input_circs, AER::Noise::NoiseModel &noise_model, AER::Config &config) {
   controller_t controller;
 
-  bool truncate = true;
-  if (config.enable_truncation)
-    truncate = config.enable_truncation;
+  bool truncate = config.enable_truncation;
 
   if (noise_model.has_nonlocal_quantum_errors())
     truncate = false;
@@ -137,8 +135,8 @@ Result controller_execute(std::vector<Circuit>& input_circs, AER::Noise::NoiseMo
   int_t seed = -1;
   uint_t seed_shift = 0;
 
-  if (config.seed_simulator)
-    seed = config.seed_simulator;
+  if (config.seed_simulator.has_value())
+    seed = config.seed_simulator.value();
   else
     seed = circs[0].seed;
 

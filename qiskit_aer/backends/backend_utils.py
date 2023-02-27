@@ -130,7 +130,7 @@ def cpp_execute_circuits(controller, aer_circuits, noise_model, config):
 
     # Location where we put external libraries that will be
     # loaded at runtime by the simulator extension
-    config['library_dir'] = LIBRARY_DIR
+    config.library_dir = LIBRARY_DIR
 
     noise_model = noise_model.to_dict(serializable=True) if noise_model else {}
 
@@ -218,9 +218,9 @@ def map_legacy_method_options(qobj):
 
 def map_legacy_method_config(config):
     """Map legacy method names of qasm simulator to aer simulator options"""
-    method = config["method"] if "method" in config else None
+    method = config.method
     if method in LEGACY_METHOD_MAP:
-        config["method"], config["device"] = LEGACY_METHOD_MAP[method]
+        config.method, config.device = LEGACY_METHOD_MAP[method]
     return config
 
 

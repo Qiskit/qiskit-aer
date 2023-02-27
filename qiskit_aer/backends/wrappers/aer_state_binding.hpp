@@ -99,6 +99,12 @@ void bind_aer_state(MODULE m) {
     auto ret = AerToPy::to_numpy(std::move(vec));
     return ret;
   });
+  
+  aer_state.def("move_to_matrix", [aer_state](AER::AerState &state) {
+    auto mat = state.move_to_matrix();
+    auto ret = AerToPy::to_numpy(std::move(mat));
+    return ret;
+  });
 
   aer_state.def("flush",  &AerState::flush_ops);
 

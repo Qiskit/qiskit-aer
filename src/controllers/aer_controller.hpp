@@ -397,15 +397,16 @@ void Controller::set_config(const Config &config) {
   validation_threshold_ = config.validation_threshold;
 
   // Load config for memory (creg list data)
-  save_creg_memory_ = config.memory;
+  if (config.memory.has_value())
+    save_creg_memory_ = config.memory.value();
 
 #ifdef _OPENMP
   // Load OpenMP maximum thread settings
-  if (config.max_parallel_threads)
+  if (config.max_parallel_threads.has_value())
     max_parallel_threads_ = config.max_parallel_threads.value();
-  if (config.max_parallel_experiments)
+  if (config.max_parallel_experiments.has_value())
     max_parallel_experiments_ = config.max_parallel_experiments.value();
-  if (config.max_parallel_shots)
+  if (config.max_parallel_shots.has_value())
     max_parallel_shots_ = config.max_parallel_shots.value();
   // Limit max threads based on number of available OpenMP threads
   auto omp_threads = omp_get_max_threads();
@@ -422,23 +423,23 @@ void Controller::set_config(const Config &config) {
 
   // Load configurations for parallelization
 
-  if (config.max_memory_mb)
+  if (config.max_memory_mb.has_value())
     max_memory_mb_ = config.max_memory_mb.value();
 
   // for debugging
-  if (config._parallel_experiments) {
+  if (config._parallel_experiments.has_value()) {
     parallel_experiments_ = config._parallel_experiments.value();
     explicit_parallelization_ = true;
   }
 
   // for debugging
-  if (config._parallel_shots) {
+  if (config._parallel_shots.has_value()) {
     parallel_shots_ = config._parallel_shots.value();
     explicit_parallelization_ = true;
   }
 
   // for debugging
-  if (config._parallel_state_update) {
+  if (config._parallel_state_update.has_value()) {
     parallel_state_update_ = config._parallel_state_update.value();
     explicit_parallelization_ = true;
   }
@@ -449,11 +450,12 @@ void Controller::set_config(const Config &config) {
     parallel_state_update_ = std::max<int>({parallel_state_update_, 1});
   }
 
-  if (config.accept_distributed_results)
+  if (config.accept_distributed_results.has_value())
     accept_distributed_results_ = config.accept_distributed_results.value();
 
   // enable multiple qregs if cache blocking is enabled
-  cache_block_qubit_ = config.blocking_qubits;
+  if (config.blocking_qubits.has_value())
+     cache_block_qubit_ = config.blocking_qubits.value();
 
   //enable batched multi-shots/experiments optimization
   batched_shots_gpu_ = config.batched_shots_gpu;
@@ -461,7 +463,7 @@ void Controller::set_config(const Config &config) {
 
   //cuStateVec configs
   cuStateVec_enable_ = false;
-  if (config.cuStateVec_enable)
+  if (config.cuStateVec_enable.has_value())
     cuStateVec_enable_ = config.cuStateVec_enable.value();
 
   // Override automatic simulation method with a fixed method
