@@ -78,6 +78,7 @@ extensions = [
     'jupyter_sphinx',
     'reno.sphinxext',
     'matplotlib.sphinxext.plot_directive',
+    'sphinx.ext.intersphinx'
 ]
 
 # -----------------------------------------------------------------------------
@@ -158,3 +159,7 @@ html_theme_options = {
 }
 
 autoclass_content = 'both'
+intersphinx_mapping = {
+    "matplotlib": ("https://matplotlib.org/stable/", None),
+    "qiskit": ("https://qiskit.org/documentation/", None),
+}
