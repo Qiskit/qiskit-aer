@@ -74,7 +74,6 @@ extensions = [
     'sphinx.ext.mathjax',
     'sphinx.ext.viewcode',
     'sphinx.ext.extlinks',
-    'sphinx_tabs.tabs',
     'jupyter_sphinx',
     'reno.sphinxext',
     'matplotlib.sphinxext.plot_directive',
