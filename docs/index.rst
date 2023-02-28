@@ -2,9 +2,9 @@
 Qiskit Aer documentation
 ##########################
 
-.. toctree::
-    :maxdepth: 2
-
+.. toctree:: 
+    :hidden: 
+ 
     API Documentation <apidocs/aer>
     Release Notes <release_notes>
 

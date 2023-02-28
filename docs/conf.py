@@ -43,10 +43,20 @@ project = 'Qiskit'
 copyright = '2019, Qiskit Development Team'  # pylint: disable=redefined-builtin
 author = 'Qiskit Development Team'
 
+import qiskit_sphinx_theme
+
 # The short X.Y version
 version = ''
 # The full version, including alpha/beta/rc tags
 release = '0.12.0'
+
+rst_prolog = """
+.. |version| replace:: {0}
+""".format(release)
+
+html_static_path = ['_static']
+templates_path = ['_templates']
+html_css_files = ['gallery.css','style.css']
 
 # -- General configuration ---------------------------------------------------
 
@@ -68,11 +78,6 @@ extensions = [
     'jupyter_sphinx',
     'reno.sphinxext',
     'matplotlib.sphinxext.plot_directive',
-]
-html_static_path = ['_static']
-templates_path = ['_templates']
-html_css_files = [
-    'style.css',
 ]
 
 # -----------------------------------------------------------------------------
@@ -135,7 +140,10 @@ modindex_common_prefix = ['qiskit_aer']
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-html_theme = 'sphinx_rtd_theme'  # use the theme in subdir 'theme'
+
+html_theme = "qiskit_sphinx_theme"
+
+html_theme_path = [".", qiskit_sphinx_theme.get_html_theme_path()]
 
 html_logo = 'images/logo.png'
 #html_sidebars = {'**': ['globaltoc.html']}
@@ -146,7 +154,7 @@ html_theme_options = {
     'display_version': True,
     'prev_next_buttons_location': 'bottom',
     'style_external_links': True,
-    'style_nav_header_background': '#212121',
+    #'style_nav_header_background': '#212121',
 }
 
 autoclass_content = 'both'
