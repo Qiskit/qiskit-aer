@@ -54,9 +54,9 @@ rst_prolog = """
 .. |version| replace:: {0}
 """.format(release)
 
-html_static_path = ['_static']
+html_static_path = []
 templates_path = ['_templates']
-html_css_files = ['style.css']
+html_css_files = []
 
 # -- General configuration ---------------------------------------------------
 
