@@ -100,6 +100,13 @@ class AerDensityMatrix(DensityMatrix):
         self._result = None
         self._configs = configs
 
+    def seed(self, value=None):
+        """Set the seed for the quantum state RNG."""
+        if value is None or isinstance(value, int):
+            self._aer_state.set_seed(value)
+        else:
+            raise AerError(f'This seed is not supported: type={value.__class__}, value={value}')
+
     def _last_result(self):
         if self._result is None:
             self._result = self._aer_state.last_result()
@@ -178,11 +185,11 @@ class AerDensityMatrix(DensityMatrix):
         else:
             qubits = np.array(qargs)
 
-        aer_state = AerState(**self._aer_state.configuration())
-        aer_state.initialize(self._data, copy=False)
-        samples = aer_state.sample_memory(qubits, shots)
-        aer_state.close()
-
+        self._aer_state.close()
+        self._aer_state.renew()
+        self._aer_state.initialize(self._data, copy=False)
+        samples = self._aer_state.sample_memory(qubits, shots)
+        self._data = self._aer_state.move_to_ndarray()
         return samples
 
     @staticmethod
