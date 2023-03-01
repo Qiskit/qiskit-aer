@@ -191,6 +191,8 @@ class AerBackend(Backend, ABC):
                 for key, value in circuits.config.__dict__.items():
                     if key not in run_options and value is not None:
                         run_options[key] = value
+                if 'parameter_binds' in run_options:
+                    parameter_binds = run_options.pop('parameter_binds')
             return self._run_qobj(circuits, validate, parameter_binds, **run_options)
 
         only_circuits = True
@@ -200,10 +202,14 @@ class AerBackend(Backend, ABC):
             only_pulse &= isinstance(circ, (ScheduleBlock, Schedule))
 
         if only_circuits and not only_pulse:
+            if validate:
+                raise TypeError("bad input to run() function;"
+                                "`validation` argument is only effective for input qobj")
+
             executor = run_options.get('executor', None)
             if executor is None and 'executor' in self.options.__dict__:
                 executor = self.options.__dict__.get('executor', None)
-            if executor or validate:
+            if executor:
                 # This path remains for DASK execution to split a qobj insttance
                 # into sub-qobj instances. This will be replaced with _run_circuits path
                 # in the near releases

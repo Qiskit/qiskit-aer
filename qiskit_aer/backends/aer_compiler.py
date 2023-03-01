@@ -393,8 +393,8 @@ def assemble_circuit(circuit: QuantumCircuit):
         global_phase=global_phase,
     )
 
-    if hasattr(circuit, "metadata") and circuit.metadata:
-        header.metadata = copy(circuit.metadata)
+    if circuit.metadata is not None:
+        header.metadata = circuit.metadata
 
     qubit_indices = {qubit: idx for idx, qubit in enumerate(circuit.qubits)}
     clbit_indices = {clbit: idx for idx, clbit in enumerate(circuit.clbits)}
@@ -455,8 +455,6 @@ def _assemble_op(aer_circ, inst, qubit_indices, clbit_indices, is_conditional, c
                 'sx', 'sxdg', 't', 'tdg', 'u', 'x', 'y', 'z', 'u1', 'u2', 'u3',
                 'cu', 'cu1', 'cu2', 'cu3'}:
         aer_circ.gate(name, qubits, params, [], conditional_reg, label if label else name)
-    elif name == 'pauli':
-        aer_circ.gate(name, qubits, [], params, conditional_reg, label if label else name)
     elif name == 'measure':
         if is_conditional:
             aer_circ.measure(qubits, clbits, clbits)
@@ -468,6 +466,8 @@ def _assemble_op(aer_circ, inst, qubit_indices, clbit_indices, is_conditional, c
         aer_circ.diagonal(qubits, params, label if label else 'diagonal')
     elif name == 'unitary':
         aer_circ.unitary(qubits, params[0], conditional_reg, label if label else 'unitary')
+    elif name == 'pauli':
+        aer_circ.gate(name, qubits, [], params, conditional_reg, label if label else name)
     elif name == 'initialize':
         aer_circ.initialize(qubits, params)
     elif name == 'roerror':
@@ -476,12 +476,12 @@ def _assemble_op(aer_circ, inst, qubit_indices, clbit_indices, is_conditional, c
         aer_circ.multiplexer(qubits, params, conditional_reg, label if label else name)
     elif name == 'kraus':
         aer_circ.kraus(qubits, params, conditional_reg)
-    elif name in ('save_statevector', 'save_statevector_dict', 'save_clifford',
+    elif name in {'save_statevector', 'save_statevector_dict', 'save_clifford',
                   'save_probabilities', 'save_probabilities_dict', 'save_matrix_product_state',
                   'save_unitary', 'save_superop', 'save_density_matrix', 'save_state',
-                  'save_stabilizer'):
+                  'save_stabilizer'}:
         aer_circ.save_state(qubits, name, operation._subtype, label if label else name)
-    elif name in ('save_amplitudes', 'save_amplitudes_sq'):
+    elif name in {'save_amplitudes', 'save_amplitudes_sq'}:
         aer_circ.save_amplitudes(qubits, name, params, operation._subtype,
                                  label if label else name)
     elif name in ('save_expval', 'save_expval_var'):
@@ -549,8 +549,4 @@ def assemble_circuits(
             # Generate AerCircuit from the input circuit
             aer_qc_list = assemble_circuits(circuits=[qc])
     """
-    # generate aer circuits
-    # TODO parallel_map will improve performance for multi circuit assembly.
-    # However, it calls pickling AerCircuit in Linux environment. Until AerCircuit
-    # supports pickle, circuits are assembleed sequentially in a single thread
     return [assemble_circuit(circuit) for circuit in circuits]

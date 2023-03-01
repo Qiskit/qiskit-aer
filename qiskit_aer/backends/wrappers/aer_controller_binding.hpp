@@ -102,9 +102,6 @@ void bind_aer_controller(MODULE m) {
     aer_config.def_readwrite("method", &Config::method);
     aer_config.def_readwrite("device", &Config::device);
     aer_config.def_readwrite("precision", &Config::precision);
-    // executor=None,
-    // max_job_size=None,
-    // max_shot_size=None,
     aer_config.def_readwrite("enable_truncation", &Config::enable_truncation);
     aer_config.def_readwrite("zero_threshold", &Config::zero_threshold);
     aer_config.def_readwrite("validation_threshold", &Config::validation_threshold);
@@ -134,7 +131,6 @@ void bind_aer_controller(MODULE m) {
     aer_config.def_property("memory",
                             [](const Config &config) { return config.memory.val;},
                             [](Config &config, bool val) { config.memory.value(val);});
-    // noise_model=None,
     aer_config.def_property("seed_simulator",
                             [](const Config &config) { return config.seed_simulator.val;},
                             [](Config &config, int_t val) { config.seed_simulator.value(val);});

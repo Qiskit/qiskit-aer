@@ -379,8 +379,6 @@ void NQubitFusion<N>::set_config(const Config &config) {
 #elif N == 5
   if (config._fusion_enable_n_qubits_5.has_value()) active = config._fusion_enable_n_qubits_5.value();
 #endif
-  // if (JSON::check_key(activate_prop_name, config))
-  //   JSON::get_value(active, activate_prop_name, config);
 }
 
 template<size_t N>

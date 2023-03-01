@@ -16,7 +16,6 @@ from math import sqrt
 from ddt import ddt
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
 from qiskit.circuit import CircuitInstruction
-from qiskit.circuit.library import Measure
 from test.terra.reference import ref_algorithms
 
 from test.terra.backends.simulator_test_case import (
@@ -42,7 +41,7 @@ class TestVariousCircuit(SimulatorTestCase):
         circuit.cx(qubits[0], qubits[2])
 
         for q, c in zip(qubits, clbits):
-            circuit.append(CircuitInstruction(Measure(), [q], [c]))
+            circuit.measure(q, c)
 
         backend = self.backend(
             method=method,
@@ -72,7 +71,7 @@ class TestVariousCircuit(SimulatorTestCase):
         circuit.cx(qubits[0], qubits[2])
 
         for q, c in zip(qubits, clbits):
-            circuit.append(CircuitInstruction(Measure(), [q], [c]))
+            circuit.measure(q, c)
 
         backend = self.backend(
             method=method,
@@ -105,7 +104,7 @@ class TestVariousCircuit(SimulatorTestCase):
 
         for qubits, clbits in zip([qubits0, qubits1], [clbits1, clbits2]):
             for q, c in zip(qubits, clbits):
-                circuit.append(CircuitInstruction(Measure(), [q], [c]))
+                circuit.measure(q, c)
 
         backend = self.backend(
             method=method,
@@ -136,8 +135,8 @@ class TestVariousCircuit(SimulatorTestCase):
 
         for qubits, clbits in zip([qubits0, qubits1, qubits2], [clbits1, clbits2, clbits3]):
             for q, c in zip(qubits, clbits):
-                circuit.append(CircuitInstruction(Measure(), [q], [c]))
-
+                circuit.measure(q, c)
+ 
         backend = self.backend(
             method=method,
             device=device,
