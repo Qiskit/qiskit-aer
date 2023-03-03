@@ -135,6 +135,9 @@ public:
   // and should have their values assigned before use.
   matrix(size_t rows, size_t cols, bool fill = true);
 
+  // Construct a matrix of specified size and an array
+  matrix(size_t rows, size_t cols, T* data);
+
   // Copy construct a matrix
   matrix(const matrix<T> &other);
 
@@ -271,6 +274,11 @@ matrix<T>::matrix(matrix<T>&& other) noexcept
     data_(other.data_) {
   other.data_ = nullptr;
 }
+
+template <class T>
+matrix<T>::matrix(size_t rows, size_t cols, T* data)
+    : rows_(rows), cols_(cols), size_(rows * cols), LD_(rows),
+      data_(data) {}
 
 //-----------------------------------------------------------------------
 // Assignment

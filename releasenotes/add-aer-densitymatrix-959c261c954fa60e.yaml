@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    Add AerDensityMatrix class that allows faster Aer simulation for density
+    matrix. Roughly speaking, this is a counterpart of AerStatevector which
+    is for state vector.

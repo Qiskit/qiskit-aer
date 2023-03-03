@@ -13,3 +13,4 @@
 """Aer Quantum States."""
 
 from .aer_statevector import AerStatevector
+from .aer_densitymatrix import AerDensityMatrix
