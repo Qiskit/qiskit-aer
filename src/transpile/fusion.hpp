@@ -368,17 +368,17 @@ void NQubitFusion<N>::set_config(const Config &config) {
   if (config._fusion_enable_n_qubits.has_value())
     active = config._fusion_enable_n_qubits.value();
 
-#if N == 1
-  if (config._fusion_enable_n_qubits_1.has_value()) active = config._fusion_enable_1.value();
-#elif N == 2
-  if (config._fusion_enable_n_qubits_2.has_value()) active = config._fusion_enable_n_qubits_2.value();
-#elif N == 3
-  if (config._fusion_enable_n_qubits_3.has_value()) active = config._fusion_enable_n_qubits_3.value();
-#elif N == 4
-  if (config._fusion_enable_n_qubits_4.has_value()) active = config._fusion_enable_n_qubits_4.value();
-#elif N == 5
-  if (config._fusion_enable_n_qubits_5.has_value()) active = config._fusion_enable_n_qubits_5.value();
-#endif
+  if (N == 1 && config._fusion_enable_n_qubits_1.has_value())
+    active = config._fusion_enable_n_qubits_1.value();
+  else if (N == 2 && config._fusion_enable_n_qubits_2.has_value())
+    active = config._fusion_enable_n_qubits_2.value();
+  else if (N == 3 && config._fusion_enable_n_qubits_3.has_value())
+    active = config._fusion_enable_n_qubits_3.value();
+  else if (N == 4 && config._fusion_enable_n_qubits_4.has_value())
+    active = config._fusion_enable_n_qubits_4.value();
+  else if (N == 5 && config._fusion_enable_n_qubits_5.has_value())
+    active = config._fusion_enable_n_qubits_5.value();
+
 }
 
 template<size_t N>
