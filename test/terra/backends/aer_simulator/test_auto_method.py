@@ -230,5 +230,7 @@ class TestSimulationMethod(SimulatorTestCase):
         circuits.append(qc)
         backend = self.backend()
         shots = 100
-        result = backend.run(circuits, shots=shots).result()
         result = backend.run(circuits, shots=shots, method='statevector').result()
+        self.assertEqual(result.status, 'PARTIAL COMPLETED')
+        self.assertTrue(hasattr(result.results[1].data, 'counts'))
+        self.assertFalse(hasattr(result.results[0].data, 'counts'))
