@@ -107,6 +107,14 @@ public:
   virtual std::vector<reg_t> sample_measure(const reg_t &qubits, uint_t shots,
                                             RngEngine &rng) override;
 
+
+  //-----------------------------------------------------------------------
+  // Additional methods
+  //-----------------------------------------------------------------------
+
+  // Initializes to a specific n-qubit state
+  virtual void initialize_qreg(uint_t num_qubits, densmat_t &&state);
+
   // Initialize OpenMP settings for the underlying DensityMatrix class
   void initialize_omp();
 
@@ -355,6 +363,53 @@ void State<densmat_t>::initialize_qreg(uint_t num_qubits)
   else{
     for(int_t i=0;i<BaseState::qregs_.size();i++){
       BaseState::qregs_[i].initialize();
+    }
+  }
+}
+
+template <class densmat_t>
+void State<densmat_t>::initialize_qreg(uint_t num_qubits, densmat_t &&state) 
+{
+  if (state.num_qubits() != num_qubits) {
+    state.move_to_vector().move_to_buffer();
+    throw std::invalid_argument("DensityMatrix::State::initialize_qreg: initial state does not match qubit number");
+  }
+
+  if (BaseState::qregs_.size() == 1) {
+    BaseState::qregs_[0] = std::move(state);
+  } else {
+    initialize_omp();
+    for(int_t iChunk=0;iChunk<BaseState::qregs_.size();iChunk++){
+      BaseState::qregs_[iChunk].set_num_qubits(BaseState::chunk_bits_);
+    }
+
+    if(BaseState::multi_chunk_distribution_){
+      auto matrix = state.move_to_matrix();
+      uint_t size = 1ull << (BaseState::chunk_bits_*2);
+      uint_t mask = (1ull << (BaseState::chunk_bits_)) - 1;
+
+      auto copy_matrix_to_chunks_lambda = [this, &matrix, size, mask](int_t ig){
+        for(int_t iChunk = BaseState::top_chunk_of_group_[ig];iChunk < BaseState::top_chunk_of_group_[ig + 1];iChunk++){
+          uint_t irow_chunk = ((iChunk + BaseState::global_chunk_index_) >> ((BaseState::num_qubits_ - BaseState::chunk_bits_))) << (BaseState::chunk_bits_);
+          uint_t icol_chunk = ((iChunk + BaseState::global_chunk_index_) & ((1ull << ((BaseState::num_qubits_ - BaseState::chunk_bits_)))-1)) << (BaseState::chunk_bits_);
+
+          auto sub_mat = BaseState::qregs_[iChunk].copy_to_matrix();    //allocate sub-matrix by copying data type and storage from chunk
+          for(int_t i=0;i<size;i++){
+            uint_t irow = (i >> (BaseState::chunk_bits_)) + irow_chunk;
+            uint_t icol = (i & mask) + icol_chunk;
+            sub_mat[i] = matrix[(irow << BaseState::num_qubits_) + icol];
+          }
+          BaseState::qregs_[iChunk].initialize_from_vector(sub_mat);
+        }
+      };
+      Utils::apply_omp_parallel_for((BaseState::chunk_omp_parallel_ && BaseState::num_groups_ > 0), 0, BaseState::num_groups_, copy_matrix_to_chunks_lambda);
+    }
+    else{
+      auto mat = state.copy_to_matrix();
+      for(int_t iChunk=0;iChunk<BaseState::qregs_.size()-1;iChunk++){
+        BaseState::qregs_[iChunk].initialize_from_vector(mat);
+      }
+      BaseState::qregs_[BaseState::qregs_.size()-1] = std::move(state);
     }
   }
 }

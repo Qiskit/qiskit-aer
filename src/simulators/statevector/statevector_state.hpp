@@ -98,10 +98,6 @@ public:
   // Initializes an n-qubit state to the all |0> state
   virtual void initialize_qreg(uint_t num_qubits) override;
 
-  // Initializes to a specific n-qubit state
-  virtual void initialize_statevector(uint_t num_qubits,
-                                      statevec_t &&state);
-
   // Returns the required memory for storing an n-qubit state in megabytes.
   // For this state the memory is independent of the number of ops
   // and is approximately 16 * 1 << num_qubits bytes
@@ -124,6 +120,9 @@ public:
 
   // Initialize OpenMP settings for the underlying QubitVector class
   void initialize_omp();
+
+  // Initializes to a specific n-qubit state
+  virtual void initialize_qreg(uint_t num_qubits, statevec_t &&state);
 
   auto move_to_vector(const int_t iChunk);
   auto copy_to_vector(const int_t iChunk);
@@ -419,8 +418,7 @@ void State<statevec_t>::initialize_qreg(uint_t num_qubits)
 }
 
 template <class statevec_t>
-void State<statevec_t>::initialize_statevector(uint_t num_qubits,
-                                               statevec_t &&state) 
+void State<statevec_t>::initialize_qreg(uint_t num_qubits, statevec_t &&state) 
 {
   if (state.num_qubits() != num_qubits) {
     throw std::invalid_argument("QubitVector::State::initialize: initial state does not match qubit number");

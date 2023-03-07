@@ -84,20 +84,28 @@ class AerBackend(Backend, ABC):
 
     def _convert_circuit_binds(self, circuit, binds):
         parameterizations = []
-        for index, inst_tuple in enumerate(circuit.data):
-            if inst_tuple[0].is_parameterized():
-                for bind_pos, param in enumerate(inst_tuple[0].params):
+        for index, instruction in enumerate(circuit.data):
+            if instruction.operation.is_parameterized():
+                for bind_pos, param in enumerate(instruction.operation.params):
                     if param in binds:
-                        parameterizations.append([[index, bind_pos], binds[param]])
+                        parameterizations.append([(index, bind_pos), binds[param]])
                     elif isinstance(param, ParameterExpression):
                         # If parameter expression has no unbound parameters
                         # it's already bound and should be skipped
                         if not param.parameters:
                             continue
-                        local_binds = {k: v for k, v in binds.items() if k in param.parameters}
-                        bind_list = [dict(zip(local_binds, t)) for t in zip(*local_binds.values())]
+                        if not binds:
+                            raise AerError("The element of parameter_binds is empty.")
+                        len_vals = len(next(iter(binds.values())))
+                        bind_list = [
+                            {
+                                parameter: binds[parameter][i]
+                                for parameter in param.parameters & binds.keys()
+                            }
+                            for i in range(len_vals)
+                        ]
                         bound_values = [float(param.bind(x)) for x in bind_list]
-                        parameterizations.append([[index, bind_pos], bound_values])
+                        parameterizations.append([(index, bind_pos), bound_values])
         return parameterizations
 
     def _convert_binds(self, circuits, parameter_binds):
