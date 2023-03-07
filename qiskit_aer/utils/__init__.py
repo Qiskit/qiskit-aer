@@ -22,35 +22,23 @@ This module contains utility functions for modifying
 using noise models.
 
 
-Classes
-=======
-
-.. autosummary::
-    :toctree: ../stubs/
-
-    NoiseTransformer
-
-
 Functions
 =========
 
 .. autosummary::
     :toctree: ../stubs/
 
-    transform_noise_model
-    transpile_noise_model
-    transpile_quantum_error
-    remap_noise_model
     insert_noise
     approximate_quantum_error
     approximate_noise_model
+    transform_noise_model
+    transpile_noise_model
+    transpile_quantum_error
 """
 
-from .noise_remapper import remap_noise_model
+from .noise_model_inserter import insert_noise
+from .noise_transformation import approximate_noise_model
+from .noise_transformation import approximate_quantum_error
 from .noise_transformation import transform_noise_model
 from .noise_transformation import transpile_noise_model
 from .noise_transformation import transpile_quantum_error
-from .noise_transformation import NoiseTransformer
-from .noise_transformation import approximate_quantum_error
-from .noise_transformation import approximate_noise_model
-from .noise_model_inserter import insert_noise
