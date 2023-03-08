@@ -25,7 +25,6 @@ from qiskit.quantum_info import Clifford
 from .compatibility import (
     Statevector, DensityMatrix, StabilizerState, Operator, SuperOp)
 
-
 # Available system memory
 SYSTEM_MEMORY_GB = local_hardware_info()['memory']
 
@@ -117,14 +116,25 @@ BASIS_GATES[None] = BASIS_GATES['automatic'] = sorted(
                             BASIS_GATES['tensor_network']))
 
 
-def cpp_execute(controller, qobj):
+def cpp_execute_qobj(controller, qobj):
     """Execute qobj on C++ controller wrapper"""
 
     # Location where we put external libraries that will be
     # loaded at runtime by the simulator extension
     qobj.config.library_dir = LIBRARY_DIR
-
     return controller(qobj)
+
+
+def cpp_execute_circuits(controller, aer_circuits, noise_model, config):
+    """Execute aer circuits on C++ controller wrapper"""
+
+    # Location where we put external libraries that will be
+    # loaded at runtime by the simulator extension
+    config.library_dir = LIBRARY_DIR
+
+    noise_model = noise_model.to_dict(serializable=True) if noise_model else {}
+
+    return controller.execute(aer_circuits, noise_model, config)
 
 
 def available_methods(controller, methods, devices):
@@ -142,7 +152,7 @@ def available_methods(controller, methods, devices):
                                 shots=1,
                                 method=method,
                                 device=device)
-                result = cpp_execute(controller, qobj)
+                result = cpp_execute_qobj(controller, qobj)
                 if result.get('success', False):
                     valid_methods.append(method)
     return tuple(valid_methods)
@@ -161,7 +171,7 @@ def available_devices(controller, devices):
                         shots=1,
                         method="statevector",
                         device=device)
-        result = cpp_execute(controller, qobj)
+        result = cpp_execute_qobj(controller, qobj)
         if result.get('success', False):
             valid_devices.append(device)
     return tuple(valid_devices)
@@ -185,12 +195,33 @@ def add_final_save_instruction(qobj, state):
     return qobj
 
 
+def add_final_save_op(aer_circuits, state):
+    """Add final save state op to all experiments in a qobj."""
+
+    for aer_circuit in aer_circuits:
+        num_qubits = aer_circuit.num_qubits
+        aer_circuit.save_state(list(range(num_qubits)),
+                               f"save_{state}",
+                               "single",
+                               state)
+
+    return aer_circuits
+
+
 def map_legacy_method_options(qobj):
     """Map legacy method names of qasm simulator to aer simulator options"""
     method = getattr(qobj.config, "method", None)
     if method in LEGACY_METHOD_MAP:
         qobj.config.method, qobj.config.device = LEGACY_METHOD_MAP[method]
     return qobj
+
+
+def map_legacy_method_config(config):
+    """Map legacy method names of qasm simulator to aer simulator options"""
+    method = config.method
+    if method in LEGACY_METHOD_MAP:
+        config.method, config.device = LEGACY_METHOD_MAP[method]
+    return config
 
 
 def format_save_type(data, save_type, save_subtype):

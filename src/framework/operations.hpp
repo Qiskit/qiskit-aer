@@ -333,12 +333,25 @@ inline void check_duplicate_qubits(const Op &op) {
 // Generator functions
 //------------------------------------------------------------------------------
 
-inline Op make_unitary(const reg_t &qubits, const cmatrix_t &mat, std::string label = "") {
+inline Op make_initialize(const reg_t &qubits, const std::vector<complex_t> &init_data) {
+  Op op;
+  op.type = OpType::initialize;
+  op.name = "initialize";
+  op.qubits = qubits;
+  op.params = init_data;
+  return op;
+}
+
+inline Op make_unitary(const reg_t &qubits, const cmatrix_t &mat, const int_t conditional = -1, std::string label = "") {
   Op op;
   op.type = OpType::matrix;
   op.name = "unitary";
   op.qubits = qubits;
   op.mats = {mat};
+  if (conditional >= 0) {
+    op.conditional = true;
+    op.conditional_reg = conditional;
+  }
   if (label != "")
     op.string_params = {label};
   return op;
@@ -356,7 +369,20 @@ inline Op make_unitary(const reg_t &qubits, cmatrix_t &&mat, std::string label =
   return op;
 }
 
-inline Op make_diagonal(const reg_t &qubits, cvector_t &&vec, std::string label = "") {
+inline Op make_diagonal(const reg_t &qubits, const cvector_t &vec, const std::string label = "") {
+  Op op;
+  op.type = OpType::diagonal_matrix;
+  op.name = "diagonal";
+  op.qubits = qubits;
+  op.params = vec;
+
+  if (label != "")
+    op.string_params = {label};
+
+  return op;
+}
+
+inline Op make_diagonal(const reg_t &qubits, cvector_t &&vec, const std::string label = "") {
   Op op;
   op.type = OpType::diagonal_matrix;
   op.name = "diagonal";
@@ -369,12 +395,16 @@ inline Op make_diagonal(const reg_t &qubits, cvector_t &&vec, std::string label 
   return op;
 }
 
-inline Op make_superop(const reg_t &qubits, const cmatrix_t &mat) {
+inline Op make_superop(const reg_t &qubits, const cmatrix_t &mat, const int_t conditional = -1) {
   Op op;
   op.type = OpType::superop;
   op.name = "superop";
   op.qubits = qubits;
   op.mats = {mat};
+  if (conditional >= 0) {
+    op.conditional = true;
+    op.conditional_reg = conditional;
+  }
   return op;
 }
 
@@ -388,12 +418,16 @@ inline Op make_superop(const reg_t &qubits, cmatrix_t &&mat) {
   return op;
 }
 
-inline Op make_kraus(const reg_t &qubits, const std::vector<cmatrix_t> &mats) {
+inline Op make_kraus(const reg_t &qubits, const std::vector<cmatrix_t> &mats, const int_t conditional = -1) {
   Op op;
   op.type = OpType::kraus;
   op.name = "kraus";
   op.qubits = qubits;
   op.mats = mats;
+  if (conditional >= 0) {
+    op.conditional = true;
+    op.conditional_reg = conditional;
+  }
   return op;
 }
 
@@ -421,6 +455,71 @@ inline Op make_roerror(const reg_t &memory, std::vector<rvector_t> &&probs) {
   op.name = "roerror";
   op.memory = memory;
   op.probs = std::move(probs);
+  return op;
+}
+
+inline Op make_bfunc(const std::string &mask, const std::string &val, const std::string &relation, const uint_t regidx) {
+  Op op;
+  op.type = OpType::bfunc;
+  op.name = "bfunc";
+
+  op.string_params.resize(2);
+  op.string_params[0] = mask;
+  op.string_params[1] = val;
+
+  // Load single register
+  op.registers.push_back(regidx);
+  
+  // Format hex strings
+  Utils::format_hex_inplace(op.string_params[0]);
+  Utils::format_hex_inplace(op.string_params[1]);
+
+  const stringmap_t<RegComparison> comp_table({
+    {"==", RegComparison::Equal},
+    {"!=", RegComparison::NotEqual},
+    {"<", RegComparison::Less},
+    {"<=", RegComparison::LessEqual},
+    {">", RegComparison::Greater},
+    {">=", RegComparison::GreaterEqual},
+  });
+
+  auto it = comp_table.find(relation);
+  if (it == comp_table.end()) {
+    std::stringstream msg;
+    msg << "Invalid bfunc relation string :\"" << it->first << "\"." << std::endl;
+    throw std::invalid_argument(msg.str());
+  } else {
+    op.bfunc = it->second;
+  }
+
+  return op;
+
+}
+
+Op make_gate(const std::string &name,
+             const reg_t &qubits,
+             const std::vector<complex_t> &params,
+             const std::vector<std::string> &string_params,
+             const int_t conditional,
+             const std::string &label) {
+  Op op;
+  op.type = OpType::gate;
+  op.name = name;
+  op.qubits = qubits;
+  op.params = params;
+
+  if (string_params.size() > 0)
+    op.string_params = string_params;
+  else if  (label != "") 
+    op.string_params = {label};
+  else
+    op.string_params = {op.name};
+
+  if (conditional >= 0) {
+    op.conditional = true;
+    op.conditional_reg = conditional;
+  }
+
   return op;
 }
 
@@ -467,6 +566,7 @@ inline Op make_reset(const reg_t & qubits, uint_t state = 0) {
 
 inline Op make_multiplexer(const reg_t &qubits,
                            const std::vector<cmatrix_t> &mats,
+                           const int_t conditional = -1,
                            std::string label = "") {
 
   // Check matrices are N-qubit
@@ -511,12 +611,221 @@ inline Op make_multiplexer(const reg_t &qubits,
   if (label != "")
     op.string_params = {label};
 
+  if (conditional >= 0) {
+    op.conditional = true;
+    op.conditional_reg = conditional;
+  }
+
   // Validate qubits are unique.
   check_empty_qubits(op);
   check_duplicate_qubits(op);
 
   return op;
 }
+
+inline Op make_save_state(const reg_t &qubits,
+                          const std::string &name,
+                          const std::string &snapshot_type,
+                          const std::string &label) {
+  Op op;
+  op.name = name;
+
+  // Get subtype
+  static const std::unordered_map<std::string, OpType> types {
+    {"save_state", OpType::save_state},
+    {"save_statevector", OpType::save_statevec},
+    {"save_statevector_dict", OpType::save_statevec_dict},
+    {"save_amplitudes", OpType::save_amps},
+    {"save_amplitudes_sq", OpType::save_amps_sq},
+    {"save_clifford", OpType::save_clifford},
+    {"save_probabilities", OpType::save_probs},
+    {"save_probabilities_dict", OpType::save_probs_ket},
+    {"save_matrix_product_state", OpType::save_mps},
+    {"save_unitary", OpType::save_unitary},
+    {"save_superop", OpType::save_superop},
+    {"save_density_matrix", OpType::save_densmat},
+    {"save_stabilizer", OpType::save_stabilizer},
+    {"save_expval", OpType::save_expval},
+    {"save_expval_var", OpType::save_expval_var}
+  };
+
+  auto type_it = types.find(name);
+  if (type_it == types.end()) {
+    throw std::runtime_error("Invalid data type \"" + name +
+                             "\" in save data instruction.");
+  }
+  op.type = type_it->second;
+
+  // Get subtype
+  static const std::unordered_map<std::string, DataSubType> subtypes {
+    {"single", DataSubType::single},
+    {"c_single", DataSubType::c_single},
+    {"average", DataSubType::average},
+    {"c_average", DataSubType::c_average},
+    {"list", DataSubType::list},
+    {"c_list", DataSubType::c_list},
+    {"accum", DataSubType::accum},
+    {"c_accum", DataSubType::c_accum},
+  };
+
+  auto subtype_it = subtypes.find(snapshot_type);
+  if (subtype_it == subtypes.end()) {
+    throw std::runtime_error("Invalid data subtype \"" + snapshot_type +
+                             "\" in save data instruction.");
+  }
+  op.save_type = subtype_it->second;
+ 
+  op.string_params.emplace_back(label);
+
+  op.qubits = qubits;
+
+  return op;
+}
+
+inline Op make_save_amplitudes(const reg_t &qubits,
+                               const std::string &name,
+                               const std::vector<uint_t> &base_type,
+                               const std::string &snapshot_type,
+                               const std::string &label) {
+  auto op = make_save_state(qubits, name, snapshot_type, label);
+  op.int_params = base_type;
+  return op;
+}
+
+inline Op make_save_expval(const reg_t &qubits,
+                           const std::string &name,
+                           const std::vector<std::string> pauli_strings,
+                           const std::vector<double> coeff_reals,
+                           const std::vector<double> coeff_imags,
+                           const std::string &snapshot_type,
+                           const std::string &label) {
+
+  assert(pauli_strings.size() == coeff_reals.size());
+  assert(pauli_strings.size() == coeff_imags.size());
+
+  auto op = make_save_state(qubits, name, snapshot_type, label);
+
+  for (uint_t i = 0; i < pauli_strings.size(); ++i)
+    op.expval_params.emplace_back(pauli_strings[i], coeff_reals[i], coeff_imags[i]);
+
+  if (op.expval_params.empty()) {
+    std::string pauli(op.qubits.size(), 'I');
+    op.expval_params.emplace_back(pauli, 0., 0.);
+  }
+  return op;
+}
+
+template<typename inputdata_t>
+inline Op make_set_vector(const reg_t &qubits, const std::string &name, const inputdata_t &params) {
+  Op op;
+  // Get type
+  static const std::unordered_map<std::string, OpType> types {
+    {"set_statevector", OpType::set_statevec},
+  };
+  auto type_it = types.find(name);
+  if (type_it == types.end()) {
+    throw std::runtime_error("Invalid data type \"" + name +
+                             "\" in set data instruction.");
+  }
+  op.type = type_it->second;
+  op.name = name;
+  op.qubits = qubits;
+  op.params = Parser<inputdata_t>::template get_list_elem<std::vector<complex_t>>(params, 0);
+  return op;
+}
+
+template<typename inputdata_t>
+inline Op make_set_matrix(const reg_t &qubits, const std::string &name, const inputdata_t &params) {
+  Op op;
+  // Get type
+  static const std::unordered_map<std::string, OpType> types {
+    {"set_density_matrix", OpType::set_densmat},
+    {"set_unitary", OpType::set_unitary},
+    {"set_superop", OpType::set_superop}
+  };
+  auto type_it = types.find(name);
+  if (type_it == types.end()) {
+    throw std::runtime_error("Invalid data type \"" + name +
+                             "\" in set data instruction.");
+  }
+  op.type = type_it->second;
+  op.name = name;
+  op.qubits = qubits;
+  op.mats.push_back(Parser<inputdata_t>::template get_list_elem<cmatrix_t>(params, 0));
+  return op;
+}
+
+template<typename inputdata_t>
+inline Op make_set_mps(const reg_t &qubits, const std::string &name, const inputdata_t &params) {
+  Op op;
+  op.type = OpType::set_mps;
+  op.name = name;
+  op.qubits = qubits;
+  op.mps = Parser<inputdata_t>::template get_list_elem<mps_container_t>(params, 0);
+  return op;
+}
+
+template<typename inputdata_t>
+inline Op make_set_clifford(const reg_t &qubits, const std::string &name, const inputdata_t &params) {
+  Op op;
+  op.type = OpType::set_stabilizer;
+  op.name = name;
+  op.qubits = qubits;
+  op.clifford = Parser<inputdata_t>::template get_list_elem<Clifford::Clifford>(params, 0);
+  return op;
+}
+
+inline Op make_jump(const reg_t &qubits, const std::vector<std::string> &params, const int_t conditional) {
+  Op op;
+  op.type = OpType::jump;
+  op.name = "jump";
+  op.qubits = qubits;
+  op.string_params = params;
+  if (op.string_params.empty())
+    throw std::invalid_argument(std::string("Invalid jump (\"params\" field missing)."));
+
+  if (conditional >= 0) {
+    op.conditional = true;
+    op.conditional_reg = conditional;
+  }
+
+  return op;
+}
+
+inline Op make_mark(const reg_t &qubits, const std::vector<std::string> &params) {
+  Op op;
+  op.type = OpType::mark;
+  op.name = "mark";
+  op.qubits = qubits;
+  op.string_params = params;
+  if (op.string_params.empty())
+    throw std::invalid_argument(std::string("Invalid mark (\"params\" field missing)."));
+
+  return op;
+}
+
+inline Op make_measure(const reg_t &qubits, const reg_t &memory, const reg_t &registers) {
+  Op op;
+  op.type = OpType::measure;
+  op.name = "measure";
+  op.qubits = qubits;
+  op.memory = memory;
+  op.registers = registers;
+  return op;
+}
+
+inline Op make_qerror_loc(const reg_t &qubits, const std::string &label, const int_t conditional = -1) {
+  Op op;
+  op.type = OpType::qerror_loc;
+  op.name = label;
+  op.qubits = qubits;
+  if (conditional >= 0) {
+    op.conditional = true;
+    op.conditional_reg = conditional;
+  }
+  return op;
+}
+
 
 //------------------------------------------------------------------------------
 // JSON conversion
@@ -1048,7 +1357,7 @@ Op input_to_op_multiplexer(const inputdata_t& input) {
   Parser<inputdata_t>::get_value(mats, "params", input);
   Parser<inputdata_t>::get_value(label, "label", input);
   // Construct op
-  auto op = make_multiplexer(qubits, mats, label);
+  auto op = make_multiplexer(qubits, mats, -1, label);
   // Conditional
   add_conditional(Allowed::Yes, op, input);
   return op;
