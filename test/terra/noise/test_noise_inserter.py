@@ -91,26 +91,6 @@ class TestNoiseInserter(QiskitAerTestCase):
 
         self.assertEqual(SuperOp(target_circuit), SuperOp(result_circuit))
 
-    def test_nonlocal_quantum_errors(self):
-        qr = QuantumRegister(3, 'qr')
-        circuit = QuantumCircuit(qr)
-        circuit.x(qr[0])
-        circuit.x(qr[2])
-
-        error_x = pauli_error([('Y', 0.25), ('I', 0.75)])
-        noise_model = NoiseModel()
-        with self.assertWarns(DeprecationWarning):
-            noise_model.add_nonlocal_quantum_error(error_x, 'x', [0], [1])
-
-        target_circuit = QuantumCircuit(qr)
-        target_circuit.x(qr[0])
-        target_circuit.append(error_x.to_instruction(), [qr[1]])
-        target_circuit.x(qr[2])
-
-        result_circuit = insert_noise(circuit, noise_model)
-
-        self.assertEqual(SuperOp(target_circuit), SuperOp(result_circuit))
-
     def test_transpiling(self):
         qr = QuantumRegister(3, 'qr')
         circuit = QuantumCircuit(qr)

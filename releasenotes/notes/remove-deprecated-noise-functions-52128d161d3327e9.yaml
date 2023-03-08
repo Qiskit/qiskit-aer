@@ -1,0 +1,72 @@
+---
+upgrade:
+  - |
+    A deprecated method :meth:`add_nonlocal_quantum_error` in :class:`~.NoiseModel` has been
+    removed. No alternative method is available. If you want to add non-local quantum errors,
+    you should write a transpiler pass that inserts your own quantum error into a circuit,
+    and run the pass just before running the circuit on Aer simulator.
+  - |
+    The :meth:`.NoiseModel.from_backend` now has changed not to accept ``BackendProperties``
+    object as a ``backend`` argument. Use newly added :meth:`.NoiseModel.from_backend_properties`
+    method instead.
+  - |
+    A deprecated ``standard_gates`` argument broadly used in several methods and functions
+    (listed below) across :mod:`~.noise` module has been removed.
+
+    * :meth:`NoiseModel.from_backend` and :func:`noise.device.basic_device_gate_errors`
+    * :func:`kraus_error`, :func:`mixed_unitary_error`, :func:`pauli_error` and
+      :func:`depolarizing_error` in :mod:`noise.errors.standard_errors`
+    * :meth:`QuantumError.__init__`
+
+    No alternative means are available because the user should be agnostic about
+    how the simulator represents noises (quantum errors) internally.
+  - |
+    The constructor of :class:`~.QuantumError` has now dropped the support of deprecated
+    json-like input for ``noise_ops`` argument.
+    Use the new styple input for ``noise_ops`` argument instead, for example,
+
+    .. code-block:: python
+
+      from qiskit.circuit.library import IGate, XGate
+      from qiskit_aer.noise import QuantumError
+
+      error = QuantumError([
+          ((IGate(), [1]), 0.9),
+          ((XGate(), [1]), 0.1),
+      ])
+
+      # json-like input is no longer accepted (the following code fails)
+      #  error = QuantumError([
+      #      ([{"name": "I", "qubits": [1]}], 0.9),
+      #      ([{"name": "X", "qubits": [1]}], 0.1),
+      #  ])
+
+    Also it has dropped deprecated arguments:
+
+    * ``number_of_qubits``: Use ``QuantumCircuit`` to define ``noise_ops`` instead.
+    * ``atol``: Use :attr:`QuantumError.atol` attribute instead.
+    * ``standard_gates``: No alternative is available (users should not too much care about
+      internal representation of quantum errors).
+
+  - |
+    The deprecated :mod:`noise.errors.errorutils` module has been entirely removed
+    and no alternatives are available.
+    All functions in the module were helper functions meant to be used
+    only for implementing functions in :mod:`~.noise.errors.standard_errors`
+    (i.e. they should have been provided as private functions)
+    and no longer used in it.
+  - |
+    The deprecated :mod:`utils.noise_remapper` have been entirely removed and no alternatives
+    are available since the C++ code now automatically truncates and remaps noise models
+    if it truncates circuits.
+  - |
+    All deprecated functions (:func:`pauli_operators` and :func:`reset_operators`)
+    and class (:class:`NoiseTransformer`) in :mod:`utils.noise_transformation` module
+    have been removed, and no alternatives are available.
+    They were in fact private functions/class used only for implementing
+    :func:`approximate_quantum_error` and should not have been public.
+deprecations:
+  - |
+    A ``warnings`` argument broadly used in several methods and functions
+    across :mod:`~.noise` module has been deprecated in favor of
+    the use of filtering functions in Python's standard ``warnings`` library.
