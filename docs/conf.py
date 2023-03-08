@@ -56,7 +56,7 @@ rst_prolog = """
 
 html_static_path = ['_static']
 templates_path = ['_templates']
-html_css_files = ['gallery.css','style.css']
+html_css_files = ['style.css']
 
 # -- General configuration ---------------------------------------------------
 
