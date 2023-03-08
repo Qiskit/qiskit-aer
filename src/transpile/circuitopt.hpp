@@ -19,6 +19,7 @@
 #include <algorithm>
 
 #include "framework/opset.hpp"
+#include "framework/config.hpp"
 #include "noise/noise_model.hpp"
 
 
@@ -42,13 +43,13 @@ public:
                                 const Operations::OpSet &opset,
                                 ExperimentResult &result) const = 0;
 
-  virtual void set_config(const json_t &config);
+  virtual void set_config(const Config &config);
 
 protected:
-  json_t config_;
+  Config config_;
 };
 
-void CircuitOptimization::set_config(const json_t& config) {
+void CircuitOptimization::set_config(const Config& config) {
   config_ = config;
 }
 

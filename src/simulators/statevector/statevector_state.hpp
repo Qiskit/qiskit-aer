@@ -22,6 +22,7 @@
 
 #include "framework/json.hpp"
 #include "framework/utils.hpp"
+#include "framework/config.hpp"
 #include "simulators/state_chunk.hpp"
 #include "qubitvector.hpp"
 #ifdef AER_THRUST_SUPPORTED
@@ -107,7 +108,7 @@ public:
 
   // Load the threshold for applying OpenMP parallelization
   // if the controller/engine allows threads for it
-  virtual void set_config(const json_t &config) override;
+  virtual void set_config(const Config &config) override;
 
   // Sample n-measurement outcomes without applying the measure operation
   // to the system state
@@ -506,21 +507,21 @@ size_t State<statevec_t>::required_memory_mb(uint_t num_qubits,
 }
 
 template <class statevec_t>
-void State<statevec_t>::set_config(const json_t &config) {
+void State<statevec_t>::set_config(const Config &config) {
   BaseState::set_config(config);
 
   // Set threshold for truncating states to be saved
-  JSON::get_value(json_chop_threshold_, "zero_threshold", config);
+  json_chop_threshold_ = config.zero_threshold;
   for(int_t i=0;i<BaseState::qregs_.size();i++){
     BaseState::qregs_[i].set_json_chop_threshold(json_chop_threshold_);
   }
 
   // Set OMP threshold for state update functions
-  JSON::get_value(omp_qubit_threshold_, "statevector_parallel_threshold", config);
+  omp_qubit_threshold_ = config.statevector_parallel_threshold;
 
   // Set the sample measure indexing size
-  int index_size;
-  if (JSON::get_value(index_size, "statevector_sample_measure_opt", config)) {
+  if (config.statevector_sample_measure_opt) {
+    int index_size = config.statevector_sample_measure_opt;
     for(int_t i=0;i<BaseState::qregs_.size();i++){
       BaseState::qregs_[i].set_sample_measure_index_size(index_size);
     }

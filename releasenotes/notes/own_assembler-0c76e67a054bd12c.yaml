@@ -1,0 +1,24 @@
+---
+features:
+  - |
+    Aer simulates :class:`~qiskit.circuit.QuantumCircuit` without serialization to
+    :class:`~qiskit.qobj.QasmQobj`. Instead, Aer converts a circuit to
+    a :class:`.AerCircuit` instance that a wrapper of internal circuit structure
+    of Aer C++. With this change, because overheads of serialization is reduced,
+    performance of simulation especially for low-qubit circuts is improved.
+    Note that pulse simualation and DASK-based simulation still use Qobj and
+    :class`.AerJob` does not return Qobj otherwise.
+  - |
+    :class:`AerJob` has a new method :meth:`circuits` that return a list of
+    :class:`~qiskit.circuit.QuantumCircuit` This method returns `None` if Qobj
+    is used for simulation.
+deprecations:
+  - |
+    A method :meth:`qobj` of :class:`AerJob` is deprecated because Using a qobj
+    is deprecated as of qiskit-aer 0.9.0. Once qobj support is removed,  :meth:`qobj`
+    will return always `None`.
+upgrade:
+  - |
+    If a circuit includes gates not in basis gates, previously Aer returns a result
+    with `ERROR` or `PARTIAL COMPLETED` status. From this release, Aer throws an
+    error when :meth:`reesult()` is called.

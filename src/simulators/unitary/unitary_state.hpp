@@ -21,6 +21,7 @@
 #include "simulators/state.hpp"
 #include "framework/json.hpp"
 #include "framework/utils.hpp"
+#include "framework/config.hpp"
 #include "simulators/state_chunk.hpp"
 #include "unitarymatrix.hpp"
 #ifdef AER_THRUST_SUPPORTED
@@ -98,7 +99,7 @@ public:
   // Load the threshold for applying OpenMP parallelization
   // if the controller/engine allows threads for it
   // Config: {"omp_qubit_threshold": 7}
-  virtual void set_config(const json_t &config) override;
+  virtual void set_config(const Config &config) override;
 
   //-----------------------------------------------------------------------
   // Additional methods
@@ -361,15 +362,16 @@ size_t State<unitary_matrix_t>::required_memory_mb(
 }
 
 template <class unitary_matrix_t>
-void State<unitary_matrix_t>::set_config(const json_t &config) 
+void State<unitary_matrix_t>::set_config(const Config &config) 
 {
   BaseState::set_config(config);
 
   // Set OMP threshold for state update functions
-  JSON::get_value(omp_qubit_threshold_, "unitary_parallel_threshold", config);
+  if (config.unitary_parallel_threshold.has_value())
+    omp_qubit_threshold_ = config.unitary_parallel_threshold.value();
 
   // Set threshold for truncating snapshots
-  JSON::get_value(json_chop_threshold_, "zero_threshold", config);
+  json_chop_threshold_ = config.zero_threshold;
 
   for(int_t i=0;i<BaseState::qregs_.size();i++)
     BaseState::qregs_[i].set_json_chop_threshold(json_chop_threshold_);

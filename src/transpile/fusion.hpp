@@ -19,6 +19,7 @@
 
 #include "transpile/circuitopt.hpp"
 #include "framework/avx2_detect.hpp"
+#include "framework/config.hpp"
 #include "simulators/unitary/unitary_state.hpp"
 #include "simulators/superoperator/superoperator_state.hpp"
 
@@ -268,7 +269,7 @@ class Fuser {
 public:
   virtual std::string name() const = 0;
 
-  virtual void set_config(const json_t &config) = 0;
+  virtual void set_config(const Config &config) = 0;
 
   virtual void set_metadata(ExperimentResult &result) const { }; //nop
 
@@ -308,7 +309,7 @@ public:
 
   virtual std::string name() const override { return "cost_base"; };
 
-  virtual void set_config(const json_t &config) override;
+  virtual void set_config(const Config &config) override;
 
   virtual void set_metadata(ExperimentResult &result) const override;
 
@@ -338,11 +339,10 @@ private:
 template<size_t N>
 class NQubitFusion : public Fuser {
 public:
-  NQubitFusion(): opt_name(std::to_string(N) + "_qubits"),
-                  activate_prop_name("fusion_enable." + std::to_string(N) + "_qubits") {
+  NQubitFusion(): opt_name(std::to_string(N) + "_qubits") {
   }
 
-  virtual void set_config(const json_t &config) override;
+  virtual void set_config(const Config &config) override;
 
   virtual std::string name() const override {
     return opt_name;
@@ -359,17 +359,26 @@ public:
 private:
   bool active = true;
   const std::string opt_name;
-  const std::string activate_prop_name;
   uint_t qubit_threshold = 5;
 };
 
 template<size_t N>
-void NQubitFusion<N>::set_config(const json_t &config) {
-  if (JSON::check_key("fusion_enable.n_qubits", config))
-    JSON::get_value(active, "fusion_enable.n_qubits", config);
+void NQubitFusion<N>::set_config(const Config &config) {
+  // For debuging
+  if (config._fusion_enable_n_qubits.has_value())
+    active = config._fusion_enable_n_qubits.value();
 
-  if (JSON::check_key(activate_prop_name, config))
-    JSON::get_value(active, activate_prop_name, config);
+  if (N == 1 && config._fusion_enable_n_qubits_1.has_value())
+    active = config._fusion_enable_n_qubits_1.value();
+  else if (N == 2 && config._fusion_enable_n_qubits_2.has_value())
+    active = config._fusion_enable_n_qubits_2.value();
+  else if (N == 3 && config._fusion_enable_n_qubits_3.has_value())
+    active = config._fusion_enable_n_qubits_3.value();
+  else if (N == 4 && config._fusion_enable_n_qubits_4.has_value())
+    active = config._fusion_enable_n_qubits_4.value();
+  else if (N == 5 && config._fusion_enable_n_qubits_5.has_value())
+    active = config._fusion_enable_n_qubits_5.value();
+
 }
 
 template<size_t N>
@@ -468,7 +477,7 @@ public:
 
   virtual std::string name() const override { return "diagonal"; };
 
-  virtual void set_config(const json_t &config) override;
+  virtual void set_config(const Config &config) override;
 
   virtual bool aggregate_operations(oplist_t& ops,
                                     const int fusion_start,
@@ -486,11 +495,11 @@ private:
   bool active = true;
 };
 
-void DiagonalFusion::set_config(const json_t &config) {
-  if (JSON::check_key("fusion_enable.diagonal", config))
-    JSON::get_value(active, "fusion_enable.diagonal", config);
-  if (JSON::check_key("fusion_min_qubit.diagonal", config))
-    JSON::get_value(min_qubit, "fusion_min_qubit.diagonal", config);
+void DiagonalFusion::set_config(const Config &config) {
+  if (config._fusion_enable_diagonal.has_value())
+    active = config._fusion_enable_diagonal.value();
+  if (config._fusion_min_qubit.has_value())
+    min_qubit = config._fusion_min_qubit.value();
 }
 
 bool DiagonalFusion::is_diagonal_op(const op_t& op) const {
@@ -687,7 +696,7 @@ public:
    */
   Fusion();
   
-  void set_config(const json_t &config) override;
+  void set_config(const Config &config) override;
 
   virtual void set_parallelization(uint_t num) { parallelization_ = num; };
 
@@ -760,33 +769,30 @@ Fusion::Fusion() {
   fusers.push_back(std::make_shared<CostBasedFusion>());
 }
 
-void Fusion::set_config(const json_t &config) {
+void Fusion::set_config(const Config &config) {
 
   CircuitOptimization::set_config(config);
 
-  if (JSON::check_key("fusion_verbose", config_))
-    JSON::get_value(verbose, "fusion_verbose", config_);
+  verbose = config.fusion_verbose;
+  active = config.fusion_enable;
 
-  if (JSON::check_key("fusion_enable", config_))
-    JSON::get_value(active, "fusion_enable", config_);
+  if (config.fusion_max_qubit.has_value())
+    max_qubit = config.fusion_max_qubit.value();
 
-  if (JSON::check_key("fusion_max_qubit", config_))
-    JSON::get_value(max_qubit, "fusion_max_qubit", config_);
-
-  if (JSON::check_key("fusion_threshold", config_))
-    JSON::get_value(threshold, "fusion_threshold", config_);
+  if (config.fusion_threshold.has_value())
+    threshold = config.fusion_threshold.value();
 
   for (std::shared_ptr<Fuser>& fuser: fusers)
     fuser->set_config(config_);
 
-  if (JSON::check_key("fusion_allow_kraus", config))
-    JSON::get_value(allow_kraus, "fusion_allow_kraus", config);
+  if (config.fusion_allow_kraus.has_value())
+    allow_kraus = config.fusion_allow_kraus.value();
 
-  if (JSON::check_key("fusion_allow_superop", config))
-    JSON::get_value(allow_superop, "fusion_allow_superop", config);
+  if (config.fusion_allow_superop.has_value())
+    allow_superop = config.fusion_allow_superop.value();
 
-  if (JSON::check_key("fusion_parallelization_threshold", config_))
-    JSON::get_value(parallel_threshold_, "fusion_parallelization_threshold", config_);
+  if (config.fusion_parallelization_threshold.has_value())
+    parallel_threshold_ = config.fusion_parallelization_threshold.value();
 }
 
 void Fusion::optimize_circuit(Circuit& circ,
@@ -898,19 +904,35 @@ void CostBasedFusion::set_metadata(ExperimentResult &result) const {
   result.metadata.add(cost_factor, "fusion", "cost_factor");
 }
 
-void CostBasedFusion::set_config(const json_t &config) {
+void CostBasedFusion::set_config(const Config &config) {
 
-  if (JSON::check_key("fusion_cost_factor", config))
-    JSON::get_value(cost_factor, "fusion_cost_factor", config);
+  if (config.fusion_cost_factor.has_value())
+    cost_factor = config.fusion_cost_factor.value();
 
-  if (JSON::check_key("fusion_enable.cost_based", config))
-    JSON::get_value(active, "fusion_enable.cost_based", config);
+  if (config._fusion_enable_cost_based.has_value())
+    active = config._fusion_enable_cost_based.value();
 
-  for (int i = 0; i < 64; ++i) {
-    auto prop_name = "fusion_cost." + std::to_string(i + 1);
-    if (JSON::check_key(prop_name, config))
-      JSON::get_value(costs_[i], prop_name, config);
-  }
+  if (config._fusion_cost_1.has_value())
+    costs_[0] = config._fusion_cost_1.value();
+  if (config._fusion_cost_2.has_value())
+    costs_[1] = config._fusion_cost_2.value();
+  if (config._fusion_cost_3.has_value())
+    costs_[2] = config._fusion_cost_3.value();
+  if (config._fusion_cost_4.has_value())
+    costs_[3] = config._fusion_cost_4.value();
+  if (config._fusion_cost_5.has_value())
+    costs_[4] = config._fusion_cost_5.value();
+  if (config._fusion_cost_6.has_value())
+    costs_[5] = config._fusion_cost_6.value();
+  if (config._fusion_cost_7.has_value())
+    costs_[6] = config._fusion_cost_7.value();
+  if (config._fusion_cost_8.has_value())
+    costs_[7] = config._fusion_cost_8.value();
+  if (config._fusion_cost_9.has_value())
+    costs_[8] = config._fusion_cost_9.value();
+  if (config._fusion_cost_10.has_value())
+    costs_[9] = config._fusion_cost_10.value();
+
 }
 
 bool CostBasedFusion::aggregate_operations(oplist_t& ops,

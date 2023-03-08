@@ -21,6 +21,7 @@
 
 #include "framework/json.hpp"
 #include "framework/utils.hpp"
+#include "framework/config.hpp"
 #include "simulators/state.hpp"
 #include "superoperator.hpp"
 #ifdef AER_THRUST_SUPPORTED
@@ -96,7 +97,7 @@ public:
   // Load the threshold for applying OpenMP parallelization
   // if the controller/engine allows threads for it
   // Config: {"omp_qubit_threshold": 3}
-  virtual void set_config(const json_t &config) override;
+  virtual void set_config(const Config &config) override;
 
   virtual bool allocate(uint_t num_qubits,uint_t block_bits,uint_t num_parallel_shots = 1) override;
 
@@ -290,13 +291,13 @@ size_t State<data_t>::required_memory_mb(
   return mem_mb;
 }
 
-template <class data_t> void State<data_t>::set_config(const json_t &config) {
+template <class data_t> void State<data_t>::set_config(const Config &config) {
   // Set OMP threshold for state update functions
-  JSON::get_value(omp_qubit_threshold_, "superoperator_parallel_threshold",
-                  config);
+  if (config.superoperator_parallel_threshold.has_value())
+    omp_qubit_threshold_ = config.superoperator_parallel_threshold.value();
 
   // Set threshold for truncating snapshots
-  JSON::get_value(json_chop_threshold_, "zero_threshold", config);
+  json_chop_threshold_ = config.zero_threshold;
   BaseState::qreg_.set_json_chop_threshold(json_chop_threshold_);
 }
 

@@ -22,8 +22,8 @@ from qiskit.transpiler.target import target_to_backend_properties
 
 from ..version import __version__
 from .aerbackend import AerBackend, AerError
-from .backend_utils import (cpp_execute, available_methods,
-                            available_devices,
+from .backend_utils import (cpp_execute_circuits, cpp_execute_qobj,
+                            available_methods, available_devices,
                             MAX_QUBITS_STATEVECTOR,
                             BASIS_GATES)
 # pylint: disable=import-error, no-name-in-module
@@ -642,7 +642,7 @@ class AerSimulator(AerBackend):
         if noise_model is None or noise_model.is_ideal():
             return display
         pad = ' ' * (len(self.__class__.__name__) + 1)
-        return '{}\n{}noise_model={})'.format(display[:-1], pad, repr(noise_model))
+        return f'{display[:-1]}\n{pad}noise_model={repr(noise_model)})'
 
     def name(self):
         """Format backend name string for simulator"""
@@ -682,7 +682,7 @@ class AerSimulator(AerBackend):
 
             # Customize configuration name
             name = configuration.backend_name
-            configuration.backend_name = 'aer_simulator({})'.format(name)
+            configuration.backend_name = f'aer_simulator({name})'
         else:
             raise TypeError(
                 "The backend argument requires a BackendV2 or BackendV1 object, "
@@ -730,7 +730,13 @@ class AerSimulator(AerBackend):
         config.backend_name = self.name()
         return config
 
-    def _execute(self, qobj):
+    def _execute_circuits(self, aer_circuits, noise_model, config):
+        """Execute circuits on the backend.
+        """
+        ret = cpp_execute_circuits(self._controller, aer_circuits, noise_model, config)
+        return ret
+
+    def _execute_qobj(self, qobj):
         """Execute a qobj on the backend.
 
         Args:
@@ -739,7 +745,7 @@ class AerSimulator(AerBackend):
         Returns:
             dict: return a dictionary of results.
         """
-        return cpp_execute(self._controller, qobj)
+        return cpp_execute_qobj(self._controller, qobj)
 
     def set_option(self, key, value):
         if key == "custom_instructions":
@@ -748,8 +754,8 @@ class AerSimulator(AerBackend):
         if key == "method":
             if (value is not None and value not in self.available_methods()):
                 raise AerError(
-                    "Invalid simulation method {}. Available methods"
-                    " are: {}".format(value, self.available_methods()))
+                    f"Invalid simulation method {value}. Available methods"
+                    f" are: {self.available_methods()}")
             self._set_method_config(value)
         super().set_option(key, value)
         if key in ["method", "noise_model", "basis_gates"]:
