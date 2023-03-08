@@ -20,6 +20,7 @@
 #include "framework/types.hpp"
 #include "framework/creg.hpp"
 #include "framework/results/experiment_result.hpp"
+#include "framework/config.hpp"
 
 #include "noise/noise_model.hpp"
 
@@ -168,8 +169,8 @@ public:
   // Optional: Load config settings
   //-----------------------------------------------------------------------
 
-  // Load any settings for the State class from a config JSON
-  virtual void set_config(const json_t &config);
+  // Load any settings for the State class from a config
+  virtual void set_config(const Config &config);
 
   //-----------------------------------------------------------------------
   // Optional: Add information to metadata 
@@ -260,9 +261,9 @@ protected:
 
 };
 
-void Base::set_config(const json_t &config) 
+void Base::set_config(const Config &config) 
 {
-  JSON::get_value(sim_device_name_, "device", config);
+  sim_device_name_ = config.device;
 }
 
 std::vector<reg_t> Base::sample_measure(const reg_t &qubits,

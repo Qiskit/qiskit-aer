@@ -23,6 +23,7 @@
 #include "framework/json.hpp"
 #include "framework/opset.hpp"
 #include "framework/utils.hpp"
+#include "framework/config.hpp"
 #include "simulators/state_chunk.hpp"
 
 #include "simulators/tensor_network/tensor_net.hpp"
@@ -108,7 +109,7 @@ public:
 
   // Load the threshold for applying OpenMP parallelization
   // if the controller/engine allows threads for it
-  void set_config(const json_t &config) override;
+  void set_config(const Config &config) override;
 
   // Initializes an n-qubit state to the all |0> state
   void initialize_qreg(const uint_t num_qubits) override;
@@ -399,17 +400,13 @@ size_t State<tensor_net_t>::required_memory_mb(uint_t num_qubits,
 }
 
 template <class tensor_net_t>
-void State<tensor_net_t>::set_config(const json_t &config) 
+void State<tensor_net_t>::set_config(const Config &config) 
 {
   // Set threshold for truncating snapshots
-  JSON::get_value(json_chop_threshold_, "zero_threshold", config);
+  json_chop_threshold_ = config.zero_threshold;
 
-  if(JSON::check_key("tensor_network_num_sampling_qubits", config)) {
-    JSON::get_value(num_sampling_qubits_, "tensor_network_num_sampling_qubits", config);
-  }
-  if(JSON::check_key("use_cuTensorNet_autotuning", config)) {
-    JSON::get_value(use_cuTensorNet_autotuning_, "use_cuTensorNet_autotuning", config);
-  }
+  num_sampling_qubits_ = config.tensor_network_num_sampling_qubits;
+  use_cuTensorNet_autotuning_ = config.use_cuTensorNet_autotuning;
 }
 
 

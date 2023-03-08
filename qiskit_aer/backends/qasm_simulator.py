@@ -23,10 +23,13 @@ from qiskit.providers.backend import BackendV2
 from ..version import __version__
 from ..aererror import AerError
 from .aerbackend import AerBackend
-from .backend_utils import (cpp_execute, available_methods,
+from .backend_utils import (cpp_execute_qobj,
+                            cpp_execute_circuits,
+                            available_methods,
                             MAX_QUBITS_STATEVECTOR,
                             LEGACY_METHOD_MAP,
-                            map_legacy_method_options)
+                            map_legacy_method_options,
+                            map_legacy_method_config)
 # pylint: disable=import-error, no-name-in-module
 from .controller_wrappers import aer_controller_execute
 
@@ -392,11 +395,11 @@ class QasmSimulator(AerBackend):
 
         method = getattr(self.options, 'method', None)
         if method not in [None, 'automatic']:
-            display += ",\n{}method='{}'".format(pad, method)
+            display += f",\n{pad}method='{method}'"
 
         noise_model = getattr(self.options, 'noise_model', None)
         if noise_model is not None and not noise_model.is_ideal():
-            display += ',\n{}noise_model={})'.format(pad, repr(noise_model))
+            display += f',\n{pad}noise_model={repr(noise_model)})'
 
         display += ")"
         return display
@@ -468,7 +471,7 @@ class QasmSimulator(AerBackend):
 
         # Customize configuration name
         name = configuration.backend_name
-        configuration.backend_name = 'qasm_simulator({})'.format(name)
+        configuration.backend_name = f'qasm_simulator({name})'
 
         # Use automatic noise model if none is provided
         if 'noise_model' not in options:
@@ -505,7 +508,7 @@ class QasmSimulator(AerBackend):
         """Return the available simulation methods."""
         return copy.copy(self._AVAILABLE_DEVICES)
 
-    def _execute(self, qobj):
+    def _execute_qobj(self, qobj):
         """Execute a qobj on the backend.
 
         Args:
@@ -515,7 +518,13 @@ class QasmSimulator(AerBackend):
             dict: return a dictionary of results.
         """
         qobj = map_legacy_method_options(qobj)
-        return cpp_execute(self._controller, qobj)
+        return cpp_execute_qobj(self._controller, qobj)
+
+    def _execute_circuits(self, aer_circuits, noise_model, config):
+        """Execute circuits on the backend.
+        """
+        config = map_legacy_method_config(config)
+        return cpp_execute_circuits(self._controller, aer_circuits, noise_model, config)
 
     def set_option(self, key, value):
         if key == "custom_instructions":
@@ -527,8 +536,8 @@ class QasmSimulator(AerBackend):
                 self.set_option("device", device)
             if (value is not None and value not in self.available_methods()):
                 raise AerError(
-                    "Invalid simulation method {}. Available methods"
-                    " are: {}".format(value, self.available_methods()))
+                    f"Invalid simulation method {value}. Available methods"
+                    f" are: {self.available_methods()}")
             self._set_method_config(value)
         super().set_option(key, value)
         if key in ["method", "noise_model", "basis_gates"]:

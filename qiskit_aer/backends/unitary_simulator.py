@@ -24,11 +24,15 @@ from qiskit.providers.models import QasmBackendConfiguration
 from ..aererror import AerError
 from ..version import __version__
 from .aerbackend import AerBackend
-from .backend_utils import (cpp_execute, available_devices,
+from .backend_utils import (cpp_execute_qobj,
+                            cpp_execute_circuits,
+                            available_devices,
                             MAX_QUBITS_STATEVECTOR,
                             LEGACY_METHOD_MAP,
                             add_final_save_instruction,
-                            map_legacy_method_options)
+                            map_legacy_method_options,
+                            add_final_save_op,
+                            map_legacy_method_config)
 # pylint: disable=import-error, no-name-in-module
 from .controller_wrappers import aer_controller_execute
 
@@ -251,7 +255,7 @@ class UnitarySimulator(AerBackend):
         """Return the available simulation methods."""
         return copy.copy(self._AVAILABLE_DEVICES)
 
-    def _execute(self, qobj):
+    def _execute_qobj(self, qobj):
         """Execute a qobj on the backend.
 
         Args:
@@ -264,7 +268,14 @@ class UnitarySimulator(AerBackend):
         qobj = copy.deepcopy(qobj)
         qobj = add_final_save_instruction(qobj, "unitary")
         qobj = map_legacy_method_options(qobj)
-        return cpp_execute(self._controller, qobj)
+        return cpp_execute_qobj(self._controller, qobj)
+
+    def _execute_circuits(self, aer_circuits, noise_model, config):
+        """Execute circuits on the backend.
+        """
+        config = map_legacy_method_config(config)
+        aer_circuits = add_final_save_op(aer_circuits, "unitary")
+        return cpp_execute_circuits(self._controller, aer_circuits, noise_model, config)
 
     def _validate(self, qobj):
         """Semantic validations of the qobj which cannot be done via schemas.
@@ -275,15 +286,15 @@ class UnitarySimulator(AerBackend):
         """
         name = self.name()
         if getattr(qobj.config, 'noise_model', None) is not None:
-            raise AerError("{} does not support noise.".format(name))
+            raise AerError(f"{name} does not support noise.")
 
         n_qubits = qobj.config.n_qubits
         max_qubits = self.configuration().n_qubits
         if n_qubits > max_qubits:
             raise AerError(
-                'Number of qubits ({}) is greater than max ({}) for "{}" with {} GB system memory.'
-                .format(n_qubits, max_qubits, name,
-                        int(local_hardware_info()['memory'])))
+                f'Number of qubits ({n_qubits}) is greater than '
+                f'max ({max_qubits}) for "{name}" with '
+                f"{int(local_hardware_info()['memory'])} GB system memory.")
         if qobj.config.shots != 1:
             logger.info('"%s" only supports 1 shot. Setting shots=1.', name)
             qobj.config.shots = 1
@@ -297,5 +308,4 @@ class UnitarySimulator(AerBackend):
             for operation in experiment.instructions:
                 if operation.name in ['measure', 'reset']:
                     raise AerError(
-                        'Unsupported {} instruction {} in circuit {}'.format(
-                            name, operation.name, exp_name))
+                        f'Unsupported {name} instruction {operation.name} in circuit {exp_name}')

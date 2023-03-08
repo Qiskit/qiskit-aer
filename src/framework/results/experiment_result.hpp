@@ -19,6 +19,7 @@
 #include "framework/results/data/metadata.hpp"
 #include "framework/creg.hpp"
 #include "framework/opset.hpp"
+#include "framework/config.hpp"
 
 namespace AER {
 
@@ -53,7 +54,7 @@ public:
   json_t to_json();
 
   // Set the output data config options
-  void set_config(const json_t &config);
+  void set_config(const Config &config);
 
   // Combine stored data
   ExperimentResult& combine(ExperimentResult &&other);
@@ -109,7 +110,7 @@ ExperimentResult& ExperimentResult::combine(ExperimentResult &&other) {
   return *this;
 }
 
-void ExperimentResult::set_config(const json_t &config) {
+void ExperimentResult::set_config(const Config &config) {
 }
 
 json_t ExperimentResult::to_json() {

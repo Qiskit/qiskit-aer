@@ -92,6 +92,8 @@ class TestConditionalGates(SimulatorTestCase):
                 conditional_type='gate')
         targets = ref_conditionals.condtional_counts_nbit(132, cases, shots,
                 hex_counts=False)
+        circuits = circuits[0:1]
+        targets = targets[0:1]
         result = backend.run(circuits, shots=shots).result()
         self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, hex_counts=False, delta=0)

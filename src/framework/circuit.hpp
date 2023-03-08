@@ -19,6 +19,9 @@
 
 #include "framework/operations.hpp"
 #include "framework/opset.hpp"
+#include "framework/config.hpp"
+
+using complex_t = std::complex<double>;
 
 namespace AER {
 
@@ -100,8 +103,150 @@ public:
   // to end of circuit
   void set_params(bool truncation = false);
 
+  // Set metadata from a specified configuration.
+  // If `truncation = false`, some configurations related to qubits will be
+  // overriden because `set_params(false)` sets minimum qubits to simulate
+  // circuits.
+  void set_metadata(const AER::Config &config, bool truncation);
+
   // Set the circuit rng seed to random value
   inline void set_random_seed() {seed = std::random_device()();}
+
+  //-----------------------------------------------------------------------
+  // Op insert helpers
+  //-----------------------------------------------------------------------
+
+  void bfunc(const std::string &mask, const std::string &val, const std::string &relation, const uint_t regidx) {
+    ops.push_back(Operations::make_bfunc(mask, val, relation, regidx));
+  }
+
+  void gate(const std::string &name,
+            const reg_t &qubits,
+            const std::vector<complex_t> &params,
+            const std::vector<std::string> &string_params,
+            const int_t cond_regidx=-1,
+            const std::string label="") {
+    ops.push_back(Operations::make_gate(name, qubits, params, string_params, cond_regidx, label));
+  }
+
+  void diagonal(const reg_t &qubits,
+                const cvector_t &vec,
+                const std::string &label) {
+    ops.push_back(Operations::make_diagonal(qubits, vec, label));
+  }
+
+  void unitary(const reg_t &qubits,
+               const cmatrix_t &mat,
+               const int_t cond_regidx=-1,
+               const std::string label="") {
+    ops.push_back(Operations::make_unitary(qubits, mat, cond_regidx, label));
+  }
+
+  void initialize(const reg_t &qubits,
+                  const std::vector<complex_t> &init_data) {
+    ops.push_back(Operations::make_initialize(qubits, init_data));
+  }
+
+  void roerror(const reg_t &memory,
+               const std::vector<rvector_t> &probabilities) {
+    ops.push_back(Operations::make_roerror(memory, probabilities));
+  }
+
+  void multiplexer(const reg_t &qubits,
+                   const std::vector<cmatrix_t> &mats,
+                   const int_t cond_regidx = -1,
+                   std::string label="") {
+    ops.push_back(Operations::make_multiplexer(qubits, mats, cond_regidx, label));
+  }
+
+  void kraus(const reg_t &qubits,
+             const std::vector<cmatrix_t> &mats,
+             const int_t cond_regidx = -1) {
+    ops.push_back(Operations::make_kraus(qubits, mats, cond_regidx));
+  }
+
+  void superop(const reg_t &qubits,
+               const cmatrix_t &mat,
+               const int_t cond_regidx = -1) {
+    ops.push_back(Operations::make_superop(qubits, mat, cond_regidx));
+  }
+
+  void save_state(const reg_t &qubits,
+                  const std::string &name,
+                  const std::string &snapshot_type,
+                  const std::string &label="") {
+    ops.push_back(Operations::make_save_state(qubits, name, snapshot_type, label));
+  }
+
+  void save_amplitudes(const reg_t &qubits,
+                       const std::string &name,
+                       const std::vector<uint_t> &basis_state,
+                       const std::string &snapshot_type,
+                       const std::string &label="") {
+    ops.push_back(Operations::make_save_amplitudes(qubits, name, basis_state, snapshot_type, label));
+  }
+
+  void save_expval(const reg_t &qubits,
+                   const std::string &name,
+                   const std::vector<std::string> pauli_strings,
+                   const std::vector<double> coeff_reals,
+                   const std::vector<double> coeff_imags,
+                   const std::string &snapshot_type,
+                   const std::string label="") {
+    ops.push_back(Operations::make_save_expval(qubits, name, pauli_strings, coeff_reals, coeff_imags, snapshot_type, label));
+  }
+
+  void set_qerror_loc(const reg_t &qubits,
+                      const std::string &label,
+                      const int_t conditional = -1) {
+    ops.push_back(Operations::make_qerror_loc(qubits, label, conditional));
+  }
+
+  template<typename inputdata_t>
+  void set_statevector(const reg_t &qubits, const inputdata_t &param) {
+    ops.push_back(Operations::make_set_vector(qubits, "set_statevector", param));
+  }
+
+  template<typename inputdata_t>
+  void set_density_matrix(const reg_t &qubits, const inputdata_t &param) {
+    ops.push_back(Operations::make_set_matrix(qubits, "set_density_matrix", param));
+  }
+
+  template<typename inputdata_t>
+  void set_unitary(const reg_t &qubits, const inputdata_t &param) {
+    ops.push_back(Operations::make_set_matrix(qubits, "set_unitary", param));
+  }
+
+  template<typename inputdata_t>
+  void set_superop(const reg_t &qubits, const inputdata_t &param) {
+    ops.push_back(Operations::make_set_matrix(qubits, "set_superop", param));
+  }
+
+  template<typename inputdata_t>
+  void set_matrix_product_state(const reg_t &qubits, const inputdata_t &param) {
+    ops.push_back(Operations::make_set_mps(qubits, "set_matrix_product_state", param));
+  }
+
+  template<typename inputdata_t>
+  void set_clifford(const reg_t &qubits, const inputdata_t &param) {
+    ops.push_back(Operations::make_set_clifford(qubits, "set_clifford", param));
+  }
+
+  void jump(const reg_t &qubits, const std::vector<std::string> &params, const int_t cond_regidx = -1) {
+    ops.push_back(Operations::make_jump(qubits, params, cond_regidx));
+  }
+
+  void mark(const reg_t &qubits, const std::vector<std::string> &params) {
+    ops.push_back(Operations::make_mark(qubits, params));
+  }
+
+  void measure(const reg_t &qubits, const reg_t &memory, const reg_t &registers) {
+    ops.push_back(Operations::make_measure(qubits, memory, registers));
+  }
+
+  void reset(const reg_t &qubits) {
+    ops.push_back(Operations::make_reset(qubits));
+  }
 
 private:
   Operations::OpSet opset_;       // Set of operation types contained in circuit
@@ -152,7 +297,7 @@ Circuit::Circuit(const inputdata_t &circ, bool truncation) : Circuit(circ, json_
 template<typename inputdata_t>
 Circuit::Circuit(const inputdata_t &circ, const json_t &qobj_config, bool truncation) : Circuit() {
   // Get config
-  json_t config = qobj_config;
+  auto config = qobj_config;
   if (Parser<inputdata_t>::check_key("config", circ)) {
     json_t circ_config;
     Parser<inputdata_t>::get_value(circ_config, "config", circ);
@@ -161,11 +306,10 @@ Circuit::Circuit(const inputdata_t &circ, const json_t &qobj_config, bool trunca
     }
   }
   
-  // Load metadata
+  // Set header
   Parser<inputdata_t>::get_value(header, "header", circ);
-  Parser<json_t>::get_value(shots, "shots", config);
   Parser<json_t>::get_value(global_phase_angle, "global_phase", header);
-
+  
   // Load instructions
   if (Parser<inputdata_t>::check_key("instructions", circ) == false) {
     throw std::invalid_argument("Invalid Qobj experiment: no \"instructions\" field.");
@@ -181,11 +325,17 @@ Circuit::Circuit(const inputdata_t &circ, const json_t &qobj_config, bool trunca
     converted_ops.emplace_back(Operations::input_to_op(the_op));
   }
   ops = std::move(converted_ops);
+
   set_params(truncation);
+  set_metadata(config, truncation);
+}
+
+void Circuit::set_metadata(const AER::Config &config, bool truncation) {
+  // Load metadata
+  shots = config.shots;
 
   // Check for specified memory slots
-  uint_t memory_slots = 0;
-  Parser<json_t>::get_value(memory_slots, "memory_slots", config);
+  uint_t memory_slots = config.memory_slots;
   if (memory_slots < num_memory) {
     throw std::invalid_argument("Invalid Qobj experiment: not enough memory slots.");
   }
@@ -193,10 +343,8 @@ Circuit::Circuit(const inputdata_t &circ, const json_t &qobj_config, bool trunca
   num_memory = memory_slots;
 
   // Check for specified n_qubits
-  if (Parser<json_t>::check_key("n_qubits", config)) {
-    // uint_t n_qubits = config["n_qubits"];
-    uint_t n_qubits;
-    Parser<json_t>::get_value(n_qubits, "n_qubits", config);
+  if (config.n_qubits.has_value()) {
+    uint_t n_qubits = config.n_qubits.value();
     if (n_qubits < num_qubits) {
       throw std::invalid_argument("Invalid Qobj experiment: n_qubits < instruction qubits.");
     }

@@ -39,6 +39,7 @@ The output circuit, 2 (noiseless) swap gates are inserted and there is no gate o
 
 #include "transpile/circuitopt.hpp"
 #include "framework/utils.hpp"
+#include "framework/config.hpp"
 
 
 namespace AER {
@@ -54,7 +55,7 @@ public:
                         const opset_t &allowed_opset,
                         ExperimentResult &result) const override;
 
-  void set_config(const json_t &config) override;
+  void set_config(const Config &config) override;
   bool enabled()
   {
     return blocking_enabled_;
@@ -124,30 +125,27 @@ protected:
   void target_qubits(Operations::Op& op, reg_t& targets) const;
 };
 
-void CacheBlocking::set_config(const json_t &config)
+void CacheBlocking::set_config(const Config &config)
 {
   CircuitOptimization::set_config(config);
 
-  if (JSON::check_key("blocking_qubits", config_))
-    JSON::get_value(block_bits_, "blocking_qubits", config_);
+  if (config.blocking_qubits.has_value())
+    block_bits_ = config.blocking_qubits.value();
 
   if(block_bits_ >= 1){
     blocking_enabled_ = true;
   }
 
-  if (JSON::check_key("memory_blocking_bits", config_)){
-    JSON::get_value(memory_blocking_bits_, "memory_blocking_bits", config_);
+  if (config.memory_blocking_bits.has_value()) {
+    memory_blocking_bits_ = config.memory_blocking_bits.value();
     if(memory_blocking_bits_ >= 10){   //blocking qubit should be <=10
       memory_blocking_bits_ = 10;
     }
   }
 
-  std::string method;
-  if (JSON::get_value(method, "method", config)) {
-    if(method.find("density_matrix") != std::string::npos){
-      density_matrix_ = true;
-    }
-  }
+  std::string method = config.method;
+  if(method.find("density_matrix") != std::string::npos)
+    density_matrix_ = true;
 
 }
 
