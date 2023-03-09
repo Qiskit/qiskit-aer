@@ -1,0 +1,8 @@
+---
+upgrade:
+  - |
+    The previously deprecated ``qobj`` argument name of the
+    :class:`~.AerSimulator` and :class:`~.PulseSimulator` classes'
+    :meth:`~.AerSimulator.run` method has now been removed. This argument
+    name was deprecated as part of the Qiskit Aer 0.8.0 release and has
+    been by the ``circuits`` and ``schedules`` argument name respectively.

@@ -1,4 +1,0 @@
----
-features:
-  - |
-    Allow a BLA_VENDOR specified by the user, when this is not the case it defaults to OpenBLAS. Note also, if the specified BLAS library is not found Cmake's setup stops.

@@ -1,0 +1,9 @@
+---
+issues:
+  - |
+    This release of Qiskit Aer is not compatible with the Conan 2.X release
+    series. If you are building Qiskit Aer from source manually ensure that
+    you are using a Conan 1.x release. Compatibility with newer versions
+    of Conan will be fixed in a future release. You can refer to
+    issue `#1730 <https://github.com/Qiskit/qiskit-aer/issues/1730>`__ for
+    more details.

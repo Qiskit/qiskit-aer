@@ -1,4 +1,0 @@
----
-issues:
-  - |
-    Aer isn't compatible with Conan 2.X API (https://github.com/Qiskit/qiskit-aer/issues/1730).
