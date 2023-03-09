@@ -3,7 +3,7 @@
 fixes:
   - |
     Fixed an issue in the matrix product state simulation method (i.e.
-    setting the keyword argument ``method="matrix_product_state" when
+    setting the keyword argument ``method="matrix_product_state"`` when
     initializing an :class:`~.AerSimulator` object) where the simulator
     would incorrectly sort the qubits prior to performing measurment
     potentially resulting in an infinite loop. This has been fixed so

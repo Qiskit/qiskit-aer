@@ -16,11 +16,11 @@ features:
     not see this performance improvement.
   - |
     Added a new method to the :class:`~.AerJob`, :meth:`~.AerJob.circuits`, which
-    returns  a list of :class:`~qiskit.circuit.QuantumCircuit` This method returns
+    returns  a list of :class:`~qiskit.circuit.QuantumCircuit` objects. This method returns
     ``None`` if Qobj is used for simulation.
 deprecations:
   - |
-    The :meth:`~.AerJob,qobj` method of the :class:`AerJob` class is
+    The :meth:`~.AerJob.qobj` method of the :class:`AerJob` class is
     now deprecated and will be removed in a future release. The use of
     the qobj format as input to :meth:`~.AerSimulator.run` has been
     deprecated since qiskit-aer 0.9.0 and in most cases this method
