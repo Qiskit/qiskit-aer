@@ -143,7 +143,7 @@ modindex_common_prefix = ['qiskit_aer']
 
 html_theme = "qiskit_sphinx_theme"
 
-html_theme_path = [".", qiskit_sphinx_theme.get_html_theme_path()]
+html_theme_path = ["."]
 
 html_logo = 'images/logo.png'
 #html_sidebars = {'**': ['globaltoc.html']}
@@ -154,7 +154,6 @@ html_theme_options = {
     'display_version': True,
     'prev_next_buttons_location': 'bottom',
     'style_external_links': True,
-    #'style_nav_header_background': '#212121',
 }
 
 autoclass_content = 'both'
