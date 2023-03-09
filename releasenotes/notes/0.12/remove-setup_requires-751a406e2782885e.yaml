@@ -3,7 +3,7 @@ upgrade:
   - |
     Aer's ``setup.py`` has been updated to no longer attempt to make calls to ``pip`` to
     install build requirements, both manually and via the ``setup_requires`` option in
-    ``setuptools.setup``.  The preferred way to build Aer is to use a PEP 517-compatible
+    ``setuptools.setup``.  The preferred way to build Aer is to use a `PEP 517 <https://peps.python.org/pep-0517/>`__-compatible
     builder such as:
 
     .. code-block:: text

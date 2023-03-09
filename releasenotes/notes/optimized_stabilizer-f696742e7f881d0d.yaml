@@ -1,6 +1,0 @@
----
-upgrade:
-  - |
-    Optimization of stabilizer simulator performance by changing data order.
-    By this change, data access have been improved to use cache memory
-    effectivelly. And also integer bit operations have been improved.

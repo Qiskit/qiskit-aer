@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    Fixed an issue when creating a new :class:`~.AerStatevector` instance
+    from a ``numpy.ndarray`` that had non-contiguous memory. Previously,
+    this would result in unexpected behavior (and a potential error) as
+    the :class:`~.AerStatevector` assumed the input array was contiguous. This
+    has been fixed so that memory layout is checked and the ``numpy.ndarray``
+    will be copied internally as a contiguous array before using it.

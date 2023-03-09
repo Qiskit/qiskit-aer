@@ -1,0 +1,13 @@
+---
+prelude: >
+  The Qiskit Aer 0.12.0 release highlights are:
+
+    * Added a new GPU tensor network simulator based on
+      `cuTensorNet <https://docs.nvidia.com/cuda/cuquantum/cutensornet/index.html>`__
+    * Added a new :class:`~.AerDensityMatrix` class to the :mod:`qiskit_aer.quantum_info` module
+    * Greatly improving the runtime performance of the :class:`~.AerSimulator` and the legacy
+      :class:`~.QasmSimulator`, :class:`~.StatevectorSimulator`, and :class:`~.UnitarySimulator`
+      classes by directly converting the input :class:`~.QuantumCircuit` objects to an internal
+      C++ representation instead of first serializing the circuit to a :class:`~.QasmQobj`. This
+      improvement will be most noticeable for circuits with a small number of qubits or parameterized
+      circuits using the ``parameter_binds`` keyword argument.

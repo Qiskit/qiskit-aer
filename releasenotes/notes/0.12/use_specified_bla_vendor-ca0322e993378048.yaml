@@ -1,0 +1,8 @@
+---
+features:
+  - |
+    The ``BLA_VENDOR`` environment variable can now be specified to use a
+    different BLAS library when building Qiskit Aer from source. By default
+    if this is not specified OpenBLAS will be used by default. If
+    the BLAS library specified in `BLA_VENDOR`` can not be found then the
+    Cmake build process will stop.
