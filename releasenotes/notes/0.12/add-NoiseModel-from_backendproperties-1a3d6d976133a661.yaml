@@ -6,5 +6,5 @@ features:
     from a :class:`~.BackendProperties` object. Similar functionality used
     to be present in the :meth:`.NoiseModel.from_backend` constructor,
     however it was removed since a :class:`~.BackendProperties` object alone
-    doesn't contain sufficient information create a :class:`~.NoiseModel`
+    doesn't contain sufficient information to create a :class:`~.NoiseModel`
     object.
