@@ -1,0 +1,9 @@
+---
+Features:
+  - |
+    The performance of the ``stabilizer`` simulation method (i.e. when setting 
+    the keyword argument ``method="stabilizer"`` when initializing an
+    :class:`~.AerSimulator` instance) has been improved. This
+    was accomplished by changing the internal data order to align data access
+    for improved CPU cache locality and improving the efficiency of integer
+    bit operations.

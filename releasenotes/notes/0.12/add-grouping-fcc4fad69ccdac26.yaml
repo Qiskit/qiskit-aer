@@ -1,0 +1,18 @@
+---
+features:
+  - |
+    Added a new keyword argument, ``abelian_grouping``, to
+    the :class:`~.Estimator`. This argument is used to control whether the
+    :class:`~.Estimator` will group the input observables into qubit-wise
+    commutable observables which reduces the number of circuit executions
+    required to compute the expectation value and improves the runtime
+    performance of the :class:`~.Estimator`. By default this is set to
+    ``True``.
+upgrade:
+  - |
+    The default behavior of the :class:`~.Estimator` primitive will now
+    group the input observable into qubit-wise commutable observables.
+    The grouping reduces the number of circuits to be executed and improves
+    the performance. If you desire the previous behavior you can initialize
+    your :class:`~.Estimator` instance with the keyword argument
+    ``abelian_grouping=False``.

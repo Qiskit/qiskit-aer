@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixed an issue with the :class:`.Sampler` class where it would previously
+    fail if the input :class:`~.QuantumCircuit` contained multiple
+    multiple classical registers.
+    Fixed `#1679 <https://github.com/Qiskit/qiskit-aer/issues/1679>`__

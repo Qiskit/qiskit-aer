@@ -1,0 +1,48 @@
+---
+features:
+  - |
+    The overhead for running simulations with :meth:`~.AerSimulator.run`
+    (for all simulator backend classess) has been greatly reduced. This was
+    accomplished by no longer internally serializing
+    :class:`~qiskit.circuit.QuantumCircuit` objects into
+    :class:`~qiskit.qobj.QasmQobj` and instead the
+    :class:`~qiskit.circuit.QuantumCircuit` object directly to
+    an internal C++  circuit structure used for simulation. This improvement
+    is most noticeable for simulations of circuts with a small number of qubits
+    or parameterized circuits using the ``parameter_binds`` keyword argument
+    of :meth:`~.AerSimulator.run`.
+    Note that pulse simualation (via the now deprecated :class:`~.PulseSimulator`)
+    and DASK-based simulation still use the internal serialization and will
+    not see this performance improvement.
+  - |
+    Added a new method to the :class:`~.AerJob`, :meth:`~.AerJob.circuits`, which
+    returns  a list of :class:`~qiskit.circuit.QuantumCircuit` objects. This method returns
+    ``None`` if Qobj is used for simulation.
+deprecations:
+  - |
+    The :meth:`~.AerJob.qobj` method of the :class:`AerJob` class is
+    now deprecated and will be removed in a future release. The use of
+    the qobj format as input to :meth:`~.AerSimulator.run` has been
+    deprecated since qiskit-aer 0.9.0 and in most cases this method
+    would return ``None`` now anyway. If you'd like to get the input
+    to the ``run()`` method now you can use the :meth:`~.AerJob.circuits`
+    method instead, which will return the :class:`~.QuantumCircuit`
+    objects that were simulated in the job.
+upgrade:
+  - |
+    The behavior of :meth:`~.AerSimulator.run` method has changed when invalid
+    or otherwise unsimulatable :class:`~.QuantumCircuit` objects are passed as
+    an input. Previously, in these cases the :meth:`~.AerSimulator.run` method
+    would return an :class:`~.AerJob` whose :meth:`~.AerJob.result` method would
+    return a :class:`~.Result` with the ``ERROR`` or ``PARTIAL COMPLETED``
+    (depending on whether all the circuit inputs or only some were invalid or not).
+    Starting in this release instead of returning a result object with these statuses
+    an exception will be raised instead. This change was necessary because
+    of the performance improvements by no longer internally serializing the
+    :class:`~.QuantumCircuit` objects to a Qobj before passing it to C++, instead
+    the direct conversion from :class:`~.QuantumCircuit` now errors directly when
+    trying to simulate a circuit Qiskit Aer is unable to execute. If you desire the
+    previous behavior you can build Qiskit Aer in standalone mode and manually
+    serialize your :class:`~.QuantumCircuit` objects to a JSON representation of
+    the :class:`~.QasmQobj` which you then pass to the standalone Aer binary
+    which will retain the previous behavior.

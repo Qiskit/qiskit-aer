@@ -1,0 +1,14 @@
+---
+
+fixes:
+  - |
+    Fixed an issue in the matrix product state simulation method (i.e.
+    setting the keyword argument ``method="matrix_product_state"`` when
+    initializing an :class:`~.AerSimulator` object) where the simulator
+    would incorrectly sort the qubits prior to performing measurment
+    potentially resulting in an infinite loop. This has been fixed so
+    the measurement of the qubits occurs in the order of the current MPS
+    structure and then sorting afterwards as a post-processing step. This also
+    will likely improve the performance of the simulation method and enable
+    more accurate representation of entangled states.
+    Fixed `#1694 <https://github.com/Qiskit/qiskit-aer/issues/1694>`__
