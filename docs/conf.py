@@ -34,29 +34,24 @@ Sphinx documentation builder
 """
 
 import os
+import datetime
 # Set env flag so that we can doc functions that may otherwise not be loaded
 # see for example interactive visualizations in qiskit.visualization.
 os.environ['QISKIT_DOCS'] = 'TRUE'
 
 # -- Project information -----------------------------------------------------
-project = 'Qiskit'
-copyright = '2019, Qiskit Development Team'  # pylint: disable=redefined-builtin
+project = 'Qiskit Aer'
+copyright = f"2017-{datetime.date.today().year}, Qiskit Development Team"  # pylint: disable=redefined-builtin
 author = 'Qiskit Development Team'
 
 import qiskit_sphinx_theme
 
 # The short X.Y version
-version = ''
+version = '0.12.0'
 # The full version, including alpha/beta/rc tags
 release = '0.12.0'
 
-rst_prolog = """
-.. |version| replace:: {0}
-""".format(release)
-
-html_static_path = []
 templates_path = ['_templates']
-html_css_files = []
 
 # -- General configuration ---------------------------------------------------
 
@@ -129,7 +124,7 @@ add_module_names = False
 # (e.g., if this is set to ['foo.'], then foo.bar is shown under B, not F).
 # This can be handy if you document a project that consists of a single
 # package. Works only for the HTML builder currently.
-modindex_common_prefix = ['qiskit_aer']
+modindex_common_prefix = ['qiskit_aer.']
 
 # -- Configuration for extlinks extension ------------------------------------
 # Refer to https://www.sphinx-doc.org/en/master/usage/extensions/extlinks.html
@@ -142,8 +137,6 @@ modindex_common_prefix = ['qiskit_aer']
 #
 
 html_theme = "qiskit_sphinx_theme"
-
-html_theme_path = ["."]
 
 html_logo = 'images/logo.png'
 #html_sidebars = {'**': ['globaltoc.html']}
