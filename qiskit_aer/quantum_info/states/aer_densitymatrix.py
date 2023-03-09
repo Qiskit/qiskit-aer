@@ -46,7 +46,8 @@ class AerDensityMatrix(DensityMatrix):
             dims (int or tuple or list): Optional. The subsystem dimension of
                                          the state (See additional information).
             configs (kwargs): configurations of :class:`AerDensityMatrix`. `_aer_state` and `method`
-            are valid.
+                are valid.
+
         Raises:
             AerError: if input data is not valid.
         Additional Information:
@@ -258,20 +259,6 @@ class AerDensityMatrix(DensityMatrix):
         return aer_state.move_to_ndarray(), aer_state
 
     def reset(self, qargs=None):
-        """Reset state or subsystems to the 0-state.
-        Args:
-            qargs (list or None): subsystems to reset, if None all
-                                  subsystems will be reset to their 0-state
-                                  (Default: None).
-        Returns:
-            AerDensityMatrix: the reset state.
-        Additional Information:
-            If all subsystems are reset this will return the ground state
-            on all subsystems. If only a some subsystems are reset this
-            function will perform evolution by the reset
-            :class:`~qiskit.quantum_info.SuperOp` of the reset subsystems.
-        """
-
         # Normally, DensityMatrix.reset returns DensityMatrix, which should
         # be converted to AerDensityMatrix if necessary.
         density_matrix = super().reset(qargs=qargs)
@@ -281,52 +268,10 @@ class AerDensityMatrix(DensityMatrix):
 
     @classmethod
     def from_label(cls, label):
-        r"""Return a tensor product of Pauli X,Y,Z eigenstates.
-        .. list-table:: Single-qubit state labels
-           :header-rows: 1
-           * - Label
-             - Statevector
-           * - ``"0"``
-             - :math:`\begin{pmatrix} 1 & 0 \\ 0 & 0 \end{pmatrix}`
-           * - ``"1"``
-             - :math:`\begin{pmatrix} 0 & 0 \\ 0 & 1 \end{pmatrix}`
-           * - ``"+"``
-             - :math:`\frac{1}{2}\begin{pmatrix} 1 & 1 \\ 1 & 1 \end{pmatrix}`
-           * - ``"-"``
-             - :math:`\frac{1}{2}\begin{pmatrix} 1 & -1 \\ -1 & 1 \end{pmatrix}`
-           * - ``"r"``
-             - :math:`\frac{1}{2}\begin{pmatrix} 1 & -i \\ i & 1 \end{pmatrix}`
-           * - ``"l"``
-             - :math:`\frac{1}{2}\begin{pmatrix} 1 & i \\ -i & 1 \end{pmatrix}`
-        Args:
-            label (string): a eigenstate string ket label (see table for
-                            allowed values).
-        Returns:
-            Statevector: The N-qubit basis state density matrix.
-        Raises:
-            QiskitError: if the label contains invalid characters, or the length
-                         of the label is larger than an explicitly specified num_qubits.
-        """
         return AerDensityMatrix(AerStatevector.from_label(label))
 
     @staticmethod
     def from_int(i, dims):
-        """Return a computational basis state density matrix.
-        Args:
-            i (int): the basis state element.
-            dims (int or tuple or list): The subsystem dimensions of the statevector
-                                         (See additional information).
-        Returns:
-            DensityMatrix: The computational basis state :math:`|i\\rangle\\!\\langle i|`.
-        Additional Information:
-            The ``dims`` kwarg can be an integer or an iterable of integers.
-            * ``Iterable`` -- the subsystem dimensions are the values in the list
-              with the total number of subsystems given by the length of the list.
-            * ``Int`` -- the integer specifies the total dimension of the
-              state. If it is a power of two the state will be initialized
-              as an N-qubit state. If it is not a power of  two the state
-              will have a single d-dimensional subsystem.
-        """
         size = np.product(dims)
         state = np.zeros((size, size), dtype=complex)
         state[i, i] = 1.0
