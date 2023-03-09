@@ -15,7 +15,7 @@ features:
 
     This method supports both statevector and density matrix simulations.
     Noise simulation can also be done with a density matrix single shot
-    simulation ith density matrix are is not :class:`~.SaveStatevector` operations
+    simulation if there are not any :class:`~.SaveStatevector` operations
     in the circuit.
     
     This new simulation method also supports parallelization with multiple GPUs and
