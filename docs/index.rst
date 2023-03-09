@@ -12,9 +12,9 @@ It is licensed under the Apache 2.0 license and the source code is hosted on Git
 https://github.com/Qiskit/qiskit-aer
 
 
-.. toctree::
-    :maxdepth: 2
-
+.. toctree:: 
+    :hidden: 
+ 
     API Documentation <apidocs/aer>
     Release Notes <release_notes>
 

@@ -7,11 +7,10 @@ cvxpy>=1.0.0,<1.1.15;platform_system != 'Windows' and python_version < '3.11'
 pylint
 pycodestyle
 Sphinx>=1.8.3
-sphinx-rtd-theme>=0.4.0
-sphinx-tabs>=1.1.11
-sphinx-automodapi
 jupyter-sphinx
 reno>=3.4.0
 ddt>=1.2.0,!=1.4.0
 matplotlib>=3.3
 seaborn>=0.9.0
+qiskit_sphinx_theme>=1.10
+
