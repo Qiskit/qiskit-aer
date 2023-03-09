@@ -24,6 +24,7 @@ States
    :toctree: ../stubs/
 
    AerStatevector
+   AerDensityMatrix
 
 """
 
