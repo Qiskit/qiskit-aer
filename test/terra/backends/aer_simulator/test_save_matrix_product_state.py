@@ -15,8 +15,7 @@ AerSimulator Integration Tests for SaveMatrixProductState instruction
 from ddt import ddt
 import numpy as np
 from qiskit import QuantumCircuit, transpile
-from test.terra.backends.simulator_test_case import (
-    SimulatorTestCase, supported_methods)
+from test.terra.backends.simulator_test_case import SimulatorTestCase, supported_methods
 
 
 @ddt
@@ -30,9 +29,15 @@ class TestSaveMatrixProductStateTests(SimulatorTestCase):
 
         # Target mps structure
         target_qreg = []
-        target_qreg.append((np.array([[1, 0]], dtype=complex), np.array([[0, 1]], dtype=complex)))
-        target_qreg.append((np.array([[1], [0]], dtype=complex), np.array([[0], [1]], dtype=complex)))
-        target_qreg.append((np.array([[1]], dtype=complex), np.array([[0]], dtype=complex)))
+        target_qreg.append(
+            (np.array([[1, 0]], dtype=complex), np.array([[0, 1]], dtype=complex))
+        )
+        target_qreg.append(
+            (np.array([[1], [0]], dtype=complex), np.array([[0], [1]], dtype=complex))
+        )
+        target_qreg.append(
+            (np.array([[1]], dtype=complex), np.array([[0]], dtype=complex))
+        )
 
         target_lambda_reg = []
         target_lambda_reg.append(np.array([1 / np.math.sqrt(2)], dtype=float))
@@ -44,13 +49,14 @@ class TestSaveMatrixProductStateTests(SimulatorTestCase):
         circ.cx(0, 1)
 
         # Add save to circuit
-        label = 'mps'
+        label = "mps"
         circ.save_matrix_product_state(label=label)
 
         # Run
         shots = 10
-        result = backend.run(transpile(
-            circ, backend, optimization_level=0), shots=shots).result()
+        result = backend.run(
+            transpile(circ, backend, optimization_level=0), shots=shots
+        ).result()
         self.assertTrue(result.success)
         simdata = result.data(0)
         self.assertIn(label, simdata)

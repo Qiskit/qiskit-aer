@@ -21,7 +21,11 @@ from numpy.testing import assert_allclose
 
 from qiskit.exceptions import QiskitError
 from qiskit.circuit import QuantumCircuit, QuantumRegister
-from qiskit.quantum_info.random import random_unitary, random_density_matrix, random_pauli
+from qiskit.quantum_info.random import (
+    random_unitary,
+    random_density_matrix,
+    random_pauli,
+)
 from qiskit.quantum_info.states import DensityMatrix, Statevector
 from qiskit.circuit.library import QuantumVolume
 from qiskit.quantum_info import Kraus
@@ -43,7 +47,7 @@ class TestAerDensityMatrix(common.QiskitAerTestCase):
     """Tests for AerDensityMatrix class."""
 
     def test_qv(self):
-        """Test generation of Aer's DensityMatrix with QV """
+        """Test generation of Aer's DensityMatrix with QV"""
         circ = QuantumVolume(5, seed=1111)
         state = AerDensityMatrix(circ)
         expected = DensityMatrix(circ)
@@ -53,7 +57,7 @@ class TestAerDensityMatrix(common.QiskitAerTestCase):
             self.assertAlmostEqual(e, s)
 
     def test_sample_randomness(self):
-        """Test randomness of results of sample_counts """
+        """Test randomness of results of sample_counts"""
         circ = QuantumVolume(5, seed=1111)
 
         state = AerDensityMatrix(circ, seed_simulator=1)
@@ -76,7 +80,7 @@ class TestAerDensityMatrix(common.QiskitAerTestCase):
         self.assertNotEqual(counts1, counts2)
 
     def test_sample_with_same_seed(self):
-        """Test randomness of results of sample_counts """
+        """Test randomness of results of sample_counts"""
         circ = QuantumVolume(5, seed=1111)
 
         state = AerDensityMatrix(circ, seed_simulator=1)
@@ -111,12 +115,12 @@ class TestAerDensityMatrix(common.QiskitAerTestCase):
         circ = QuantumVolume(5, seed=1111)
 
         state1 = AerDensityMatrix(circ)
-        self.assertEqual('density_matrix', state1.metadata()['method'])
-        self.assertEqual('CPU', state1.metadata()['device'])
+        self.assertEqual("density_matrix", state1.metadata()["method"])
+        self.assertEqual("CPU", state1.metadata()["device"])
 
-        state2 = AerDensityMatrix(circ, method='density_matrix')
-        self.assertEqual('density_matrix', state2.metadata()['method'])
-        self.assertEqual('CPU', state2.metadata()['device'])
+        state2 = AerDensityMatrix(circ, method="density_matrix")
+        self.assertEqual("density_matrix", state2.metadata()["method"])
+        self.assertEqual("CPU", state2.metadata()["device"])
 
         self.assertEqual(state1, state2)
 
@@ -131,8 +135,8 @@ class TestAerDensityMatrix(common.QiskitAerTestCase):
         dm = AerDensityMatrix(ghz)
         counts = dm.sample_counts(shots=1024)
         self.assertEqual(2, len(counts))
-        self.assertTrue('0000' in counts)
-        self.assertTrue('1111' in counts)
+        self.assertTrue("0000" in counts)
+        self.assertTrue("1111" in counts)
 
     def test_QFT(self):
         """Test each method can process qft"""
@@ -143,14 +147,14 @@ class TestAerDensityMatrix(common.QiskitAerTestCase):
         dm = AerDensityMatrix(qft)
         counts = dm.sample_counts(shots=1024)
         self.assertEqual(1, len(counts))
-        self.assertTrue('0000' in counts)
+        self.assertTrue("0000" in counts)
 
     def test_single_qubit_QV(self):
         """Test single qubit QuantumVolume"""
         state = AerDensityMatrix(QuantumVolume(1))
         counts = state.sample_counts(shots=1024)
         self.assertEqual(1, len(counts))
-        self.assertTrue('0' in counts)
+        self.assertTrue("0" in counts)
 
     def test_evolve(self):
         """Test evolve method for circuits"""
@@ -198,7 +202,7 @@ class TestAerDensityMatrix(common.QiskitAerTestCase):
         circuit = QuantumCircuit(1)
         circuit.h(0)
         circuit.y(0)
-        error = pauli_error([('Y', p_error), ('I', 1 - p_error)])
+        error = pauli_error([("Y", p_error), ("I", 1 - p_error)])
         circuit.append(Kraus(error).to_instruction(), [0])
 
         circuit_no_noise = QuantumCircuit(1)
@@ -208,7 +212,7 @@ class TestAerDensityMatrix(common.QiskitAerTestCase):
         circuit_no_noise.y(0)
         rho1 = AerDensityMatrix.from_label("0").evolve(Operator(circuit_no_noise))
         # (1-p_error)|+><+| + p_error|-><-|
-        target = AerDensityMatrix(rho0.data*(1 - p_error) + rho1.data*p_error)
+        target = AerDensityMatrix(rho0.data * (1 - p_error) + rho1.data * p_error)
 
         psi = AerDensityMatrix.from_instruction(circuit)
         self.assertTrue(psi == target)
@@ -216,6 +220,7 @@ class TestAerDensityMatrix(common.QiskitAerTestCase):
     def test_deepcopy(self):
         """Test deep copy"""
         import copy
+
         circ1 = QuantumVolume(5, seed=1111)
 
         state1 = AerDensityMatrix(circ1)
@@ -228,7 +233,7 @@ class TestAerDensityMatrix(common.QiskitAerTestCase):
         self.assertNotEqual(id(state1._data), id(state2._data))
 
     def test_initialize_with_ndarray(self):
-        """Test ndarray initialization """
+        """Test ndarray initialization"""
         circ = QuantumVolume(5, seed=1111)
         expected = DensityMatrix(circ)
         state = AerDensityMatrix(expected.data)
@@ -238,7 +243,7 @@ class TestAerDensityMatrix(common.QiskitAerTestCase):
             self.assertAlmostEqual(e, s)
 
     def test_initialize_with_terra_statevector(self):
-        """Test Statevector initialization """
+        """Test Statevector initialization"""
         circ = QuantumVolume(5, seed=1111)
         sv = Statevector(circ)
         expected = np.outer(sv, np.conjugate(sv))
@@ -249,7 +254,7 @@ class TestAerDensityMatrix(common.QiskitAerTestCase):
             self.assertAlmostEqual(e, s)
 
     def test_initialize_with_statevector(self):
-        """Test AerStatevector initialization """
+        """Test AerStatevector initialization"""
         circ = QuantumVolume(5, seed=1111)
         sv = AerStatevector(circ)
         expected = np.outer(sv, np.conjugate(sv))
@@ -260,7 +265,7 @@ class TestAerDensityMatrix(common.QiskitAerTestCase):
             self.assertAlmostEqual(e, s)
 
     def test_initialize_with_densitymatrix(self):
-        """Test DensityMatrix initialization """
+        """Test DensityMatrix initialization"""
         circ = QuantumVolume(5, seed=1111)
         expected = DensityMatrix(circ)
         state = AerDensityMatrix(expected)
@@ -492,17 +497,23 @@ class TestAerDensityMatrix(common.QiskitAerTestCase):
             # Test evolve on 1-qubit
             op = op0
             op_full = Operator(np.eye(4)).tensor(op)
-            target = AerDensityMatrix(np.dot(op_full.data, rho).dot(op_full.adjoint().data))
+            target = AerDensityMatrix(
+                np.dot(op_full.data, rho).dot(op_full.adjoint().data)
+            )
             self.assertEqual(state.evolve(op, qargs=[0]), target)
 
             # Evolve on qubit 1
             op_full = Operator(np.eye(2)).tensor(op).tensor(np.eye(2))
-            target = AerDensityMatrix(np.dot(op_full.data, rho).dot(op_full.adjoint().data))
+            target = AerDensityMatrix(
+                np.dot(op_full.data, rho).dot(op_full.adjoint().data)
+            )
             self.assertEqual(state.evolve(op, qargs=[1]), target)
 
             # Evolve on qubit 2
             op_full = op.tensor(np.eye(4))
-            target = AerDensityMatrix(np.dot(op_full.data, rho).dot(op_full.adjoint().data))
+            target = AerDensityMatrix(
+                np.dot(op_full.data, rho).dot(op_full.adjoint().data)
+            )
             self.assertEqual(state.evolve(op, qargs=[2]), target)
 
             # Test evolve on 2-qubits
@@ -510,12 +521,16 @@ class TestAerDensityMatrix(common.QiskitAerTestCase):
 
             # Evolve on qubits [0, 2]
             op_full = op1.tensor(np.eye(2)).tensor(op0)
-            target = AerDensityMatrix(np.dot(op_full.data, rho).dot(op_full.adjoint().data))
+            target = AerDensityMatrix(
+                np.dot(op_full.data, rho).dot(op_full.adjoint().data)
+            )
             self.assertEqual(state.evolve(op, qargs=[0, 2]), target)
 
             # Evolve on qubits [2, 0]
             op_full = op0.tensor(np.eye(2)).tensor(op1)
-            target = AerDensityMatrix(np.dot(op_full.data, rho).dot(op_full.adjoint().data))
+            target = AerDensityMatrix(
+                np.dot(op_full.data, rho).dot(op_full.adjoint().data)
+            )
             self.assertEqual(state.evolve(op, qargs=[2, 0]), target)
 
             # Test evolve on 3-qubits
@@ -523,12 +538,16 @@ class TestAerDensityMatrix(common.QiskitAerTestCase):
 
             # Evolve on qubits [0, 1, 2]
             op_full = op
-            target = AerDensityMatrix(np.dot(op_full.data, rho).dot(op_full.adjoint().data))
+            target = AerDensityMatrix(
+                np.dot(op_full.data, rho).dot(op_full.adjoint().data)
+            )
             self.assertEqual(state.evolve(op, qargs=[0, 1, 2]), target)
 
             # Evolve on qubits [2, 1, 0]
             op_full = op0.tensor(op1).tensor(op2)
-            target = AerDensityMatrix(np.dot(op_full.data, rho).dot(op_full.adjoint().data))
+            target = AerDensityMatrix(
+                np.dot(op_full.data, rho).dot(op_full.adjoint().data)
+            )
             self.assertEqual(state.evolve(op, qargs=[2, 1, 0]), target)
 
     # omit test_evolve_qudit_subsystems since qudit is currently not supported
@@ -696,7 +715,9 @@ class TestAerDensityMatrix(common.QiskitAerTestCase):
     def test_probabilities_ghz(self):
         """Test probabilities method for GHZ state"""
 
-        psi = (AerStatevector.from_label("000") + AerStatevector.from_label("111")) / np.sqrt(2)
+        psi = (
+            AerStatevector.from_label("000") + AerStatevector.from_label("111")
+        ) / np.sqrt(2)
         state = AerDensityMatrix(psi)
 
         # 3-qubit qargs
@@ -786,7 +807,9 @@ class TestAerDensityMatrix(common.QiskitAerTestCase):
     def test_probabilities_dict_ghz(self):
         """Test probabilities_dict method for GHZ state"""
 
-        psi = (AerStatevector.from_label("000") + AerStatevector.from_label("111")) / np.sqrt(2)
+        psi = (
+            AerStatevector.from_label("000") + AerStatevector.from_label("111")
+        ) / np.sqrt(2)
         state = AerDensityMatrix(psi)
 
         # 3-qubit qargs
@@ -848,7 +871,8 @@ class TestAerDensityMatrix(common.QiskitAerTestCase):
         shots = 5000
         threshold = 0.02 * shots
         state = AerDensityMatrix(
-            (AerStatevector.from_label("000") + AerStatevector.from_label("111")) / np.sqrt(2)
+            (AerStatevector.from_label("000") + AerStatevector.from_label("111"))
+            / np.sqrt(2)
         )
         state.seed(100)
 
@@ -920,7 +944,8 @@ class TestAerDensityMatrix(common.QiskitAerTestCase):
 
         shots = 2000
         state = AerDensityMatrix(
-            (AerStatevector.from_label("000") + AerStatevector.from_label("111")) / np.sqrt(2)
+            (AerStatevector.from_label("000") + AerStatevector.from_label("111"))
+            / np.sqrt(2)
         )
         state.seed(100)
 
@@ -1102,8 +1127,9 @@ class TestAerDensityMatrix(common.QiskitAerTestCase):
             self.assertEqual(target, value)
 
         with self.subTest(msg="from_int(15, (4, 4))"):
-            target = AerDensityMatrix([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ,0, 0, 0, 1],
-                                      dims=(4, 4))
+            target = AerDensityMatrix(
+                [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], dims=(4, 4)
+            )
             value = AerDensityMatrix.from_int(15, (4, 4))
             self.assertEqual(target, value)
 
@@ -1325,7 +1351,15 @@ class TestAerDensityMatrix(common.QiskitAerTestCase):
         dm = AerDensityMatrix.from_instruction(qc1)
         with self.subTest(msg="str(density_matrix)"):
             str(dm)
-        for drawtype in ["repr", "text", "latex", "latex_source", "qsphere", "hinton", "bloch"]:
+        for drawtype in [
+            "repr",
+            "text",
+            "latex",
+            "latex_source",
+            "qsphere",
+            "hinton",
+            "bloch",
+        ]:
             with self.subTest(msg=f"draw('{drawtype}')"):
                 dm.draw(drawtype)
 

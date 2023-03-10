@@ -22,6 +22,7 @@ from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 # Deterministic output
 # ==========================================================================
 
+
 def reset_circuits_deterministic(final_measure=True):
     """Reset test circuits with deterministic count output"""
 
@@ -31,7 +32,7 @@ def reset_circuits_deterministic(final_measure=True):
         cr = ClassicalRegister(2)
         regs = (qr, cr)
     else:
-        regs = (qr, )
+        regs = (qr,)
 
     # Reset 0 from |11>
     circuit = QuantumCircuit(*regs)
@@ -77,22 +78,22 @@ def reset_counts_deterministic(shots, hex_counts=True):
     targets = []
     if hex_counts:
         # Reset 0 from |11>
-        targets.append({'0x2': shots})
+        targets.append({"0x2": shots})
         # Reset 1 from |11>
-        targets.append({'0x1': shots})
+        targets.append({"0x1": shots})
         # Reset 0,1 from |11>
-        targets.append({'0x0': shots})
+        targets.append({"0x0": shots})
         # Reset 0,1 from |++>
-        targets.append({'0x0': shots})
+        targets.append({"0x0": shots})
     else:
         # Reset 0 from |11>
-        targets.append({'10': shots})
+        targets.append({"10": shots})
         # Reset 1 from |11>
-        targets.append({'01': shots})
+        targets.append({"01": shots})
         # Reset 0,1 from |11>
-        targets.append({'00': shots})
+        targets.append({"00": shots})
         # Reset 0,1 from |++>
-        targets.append({'00': shots})
+        targets.append({"00": shots})
     return targets
 
 
@@ -114,6 +115,7 @@ def reset_statevector_deterministic():
 # Non-Deterministic output
 # ==========================================================================
 
+
 def reset_circuits_nondeterministic(final_measure=True):
     """Reset test circuits with deterministic count output"""
 
@@ -123,7 +125,7 @@ def reset_circuits_nondeterministic(final_measure=True):
         cr = ClassicalRegister(2)
         regs = (qr, cr)
     else:
-        regs = (qr, )
+        regs = (qr,)
 
     # Reset 0 from |++>
     circuit = QuantumCircuit(*regs)
@@ -151,14 +153,14 @@ def reset_counts_nondeterministic(shots, hex_counts=True):
     targets = []
     if hex_counts:
         # Reset 0 from |++>
-        targets.append({'0x0': shots / 2, '0x2': shots / 2})
+        targets.append({"0x0": shots / 2, "0x2": shots / 2})
         # Reset 1 from |++>
-        targets.append({'0x0': shots / 2, '0x1': shots / 2})
+        targets.append({"0x0": shots / 2, "0x1": shots / 2})
     else:
         # Reset 0 from |++>
-        targets.append({'00': shots / 2, '10': shots / 2})
+        targets.append({"00": shots / 2, "10": shots / 2})
         # Reset 1 from |++>
-        targets.append({'00': shots / 2, '01': shots / 2})
+        targets.append({"00": shots / 2, "01": shots / 2})
     return targets
 
 
@@ -176,6 +178,7 @@ def reset_statevector_nondeterministic():
 # Repeated Resets
 # ==========================================================================
 
+
 def reset_circuits_repeated():
     """Test circuit for repeated measure reset"""
     qr = QuantumRegister(1)
@@ -192,14 +195,15 @@ def reset_circuits_repeated():
 def reset_counts_repeated(shots, hex_counts=True):
     """Sampling optimization counts"""
     if hex_counts:
-        return [{'0x1': shots}]
+        return [{"0x1": shots}]
     else:
-        return [{'01': shots}]
+        return [{"01": shots}]
 
 
 # ==========================================================================
 # Sampling optimization
 # ==========================================================================
+
 
 def reset_circuits_sampling_optimization():
     """Test sampling optimization"""
@@ -220,9 +224,10 @@ def reset_circuits_sampling_optimization():
 def reset_counts_sampling_optimization(shots, hex_counts=True):
     """Sampling optimization counts"""
     if hex_counts:
-        return [{'0x0': shots/2, '0x2': shots/2}]
+        return [{"0x0": shots / 2, "0x2": shots / 2}]
     else:
-        return [{'00': shots/2, '10': shots/2}]
+        return [{"00": shots / 2, "10": shots / 2}]
+
 
 def reset_circuits_with_entangled_and_moving_qubits(final_measure=True):
     """Reset test circuits with entangled and moving qubits count output"""
@@ -233,7 +238,7 @@ def reset_circuits_with_entangled_and_moving_qubits(final_measure=True):
         cr = ClassicalRegister(3)
         regs = (qr, cr)
     else:
-        regs = (qr, )
+        regs = (qr,)
 
     # Reset 0 from |000+111>
     circuit = QuantumCircuit(*regs)
@@ -314,37 +319,38 @@ def reset_circuits_with_entangled_and_moving_qubits(final_measure=True):
 
     return circuits
 
+
 def reset_counts_with_entangled_and_moving_qubits(shots, hex_counts=True):
     """Reset test circuits reference counts."""
     targets = []
     if hex_counts:
         # Reset 0 from |000+111>
-        targets.append({'0x0': shots / 2, '0x6': shots / 2})
+        targets.append({"0x0": shots / 2, "0x6": shots / 2})
         # Reset 1 from |000+111>
-        targets.append({'0x0': shots / 2, '0x5': shots / 2})
+        targets.append({"0x0": shots / 2, "0x5": shots / 2})
         # Reset 2 from |000+111>
-        targets.append({'0x0': shots / 2, '0x3': shots / 2})
+        targets.append({"0x0": shots / 2, "0x3": shots / 2})
         # Reset 0,1 from |000+111>
-        targets.append({'0x0': shots / 2, '0x4': shots / 2})
+        targets.append({"0x0": shots / 2, "0x4": shots / 2})
         # Reset 0,2 from |000+111>
-        targets.append({'0x0': shots / 2, '0x2': shots / 2})
+        targets.append({"0x0": shots / 2, "0x2": shots / 2})
         # Reset 1,2 from |000+111>
-        targets.append({'0x0': shots / 2, '0x1': shots / 2})
+        targets.append({"0x0": shots / 2, "0x1": shots / 2})
         # Reset 0,1,2 from |000+111>
-        targets.append({'0x0': shots})
+        targets.append({"0x0": shots})
     else:
         # Reset 0 from |000+111>
-        targets.append({'000': shots/2, '110': shots/2})
+        targets.append({"000": shots / 2, "110": shots / 2})
         # Reset 1 from |000+111>
-        targets.append({'000': shots/2, '101': shots/2})
+        targets.append({"000": shots / 2, "101": shots / 2})
         # Reset 2 from |000+111>
-        targets.append({'000': shots/2, '011': shots/2})
+        targets.append({"000": shots / 2, "011": shots / 2})
         # Reset 0,1 from |000+111>
-        targets.append({'000': shots / 2, '100': shots / 2})
+        targets.append({"000": shots / 2, "100": shots / 2})
         # Reset 0,2 from |000+111>
-        targets.append({'000': shots / 2, '010': shots / 2})
+        targets.append({"000": shots / 2, "010": shots / 2})
         # Reset 1,2 from |000+111>
-        targets.append({'000': shots / 2, '001': shots / 2})
+        targets.append({"000": shots / 2, "001": shots / 2})
         # Reset 0,1,2 from |000+111>
-        targets.append({'000': shots})
+        targets.append({"000": shots})
     return targets

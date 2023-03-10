@@ -16,7 +16,7 @@
 #define _aer_framework_linalg_matrix_utils_hpp_
 
 #include "framework/linalg/matrix_utils/matrix_defs.hpp"
-#include "framework/linalg/matrix_utils/vmatrix_defs.hpp"
 #include "framework/linalg/matrix_utils/smatrix_defs.hpp"
+#include "framework/linalg/matrix_utils/vmatrix_defs.hpp"
 
 #endif

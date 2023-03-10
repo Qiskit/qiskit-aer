@@ -23,10 +23,15 @@ from qiskit.qobj import QasmQobjInstruction
 from qiskit.result import ProbDistribution
 from qiskit.quantum_info import Clifford
 from .compatibility import (
-    Statevector, DensityMatrix, StabilizerState, Operator, SuperOp)
+    Statevector,
+    DensityMatrix,
+    StabilizerState,
+    Operator,
+    SuperOp,
+)
 
 # Available system memory
-SYSTEM_MEMORY_GB = local_hardware_info()['memory']
+SYSTEM_MEMORY_GB = local_hardware_info()["memory"]
 
 # Max number of qubits for complex double statevector
 # given available system memory
@@ -49,71 +54,370 @@ LEGACY_METHOD_MAP = {
 }
 
 BASIS_GATES = {
-    'statevector': sorted([
-        'u1', 'u2', 'u3', 'u', 'p', 'r', 'rx', 'ry', 'rz', 'id', 'x',
-        'y', 'z', 'h', 's', 'sdg', 'sx', 'sxdg', 't', 'tdg', 'swap', 'cx',
-        'cy', 'cz', 'csx', 'cp', 'cu', 'cu1', 'cu2', 'cu3', 'rxx', 'ryy',
-        'rzz', 'rzx', 'ccx', 'cswap', 'mcx', 'mcy', 'mcz', 'mcsx',
-        'mcp', 'mcphase', 'mcu', 'mcu1', 'mcu2', 'mcu3', 'mcrx', 'mcry', 'mcrz',
-        'mcr', 'mcswap', 'unitary', 'diagonal', 'multiplexer',
-        'initialize', 'delay', 'pauli', 'mcx_gray', 'ecr'
-    ]),
-    'density_matrix': sorted([
-        'u1', 'u2', 'u3', 'u', 'p', 'r', 'rx', 'ry', 'rz', 'id', 'x',
-        'y', 'z', 'h', 's', 'sdg', 'sx', 'sxdg', 't', 'tdg', 'swap', 'cx',
-        'cy', 'cz', 'cp', 'cu1', 'rxx', 'ryy', 'rzz', 'rzx', 'ccx',
-        'unitary', 'diagonal', 'delay', 'pauli', 'ecr',
-    ]),
-    'matrix_product_state': sorted([
-        'u1', 'u2', 'u3', 'u', 'p', 'cp', 'cx', 'cy', 'cz', 'id', 'x', 'y', 'z', 'h', 's',
-        'sdg', 'sx', 'sxdg', 't', 'tdg', 'swap', 'ccx', 'unitary', 'roerror', 'delay', 'pauli',
-        'r', 'rx', 'ry', 'rz', 'rxx', 'ryy', 'rzz', 'rzx', 'csx', 'cswap', 'diagonal',
-        'initialize'
-    ]),
-    'stabilizer': sorted([
-        'id', 'x', 'y', 'z', 'h', 's', 'sdg', 'sx', 'sxdg', 'cx', 'cy', 'cz',
-        'swap', 'delay', 'pauli'
-    ]),
-    'extended_stabilizer': sorted([
-        'cx', 'cz', 'id', 'x', 'y', 'z', 'h', 's', 'sdg', 'sx', 'sxdg',
-        'swap', 'u0', 't', 'tdg', 'u1', 'p', 'ccx', 'ccz', 'delay', 'pauli'
-    ]),
-    'unitary': sorted([
-        'u1', 'u2', 'u3', 'u', 'p', 'r', 'rx', 'ry', 'rz', 'id', 'x',
-        'y', 'z', 'h', 's', 'sdg', 'sx', 'sxdg', 't', 'tdg', 'swap', 'cx',
-        'cy', 'cz', 'csx', 'cp', 'cu', 'cu1', 'cu2', 'cu3', 'rxx', 'ryy',
-        'rzz', 'rzx', 'ccx', 'cswap', 'mcx', 'mcy', 'mcz', 'mcsx',
-        'mcp', 'mcphase', 'mcu', 'mcu1', 'mcu2', 'mcu3', 'mcrx', 'mcry', 'mcrz',
-        'mcr', 'mcswap', 'unitary', 'diagonal', 'multiplexer', 'delay', 'pauli',
-        'ecr',
-    ]),
-    'superop': sorted([
-        'u1', 'u2', 'u3', 'u', 'p', 'r', 'rx', 'ry', 'rz', 'id', 'x',
-        'y', 'z', 'h', 's', 'sdg', 'sx', 'sxdg', 't', 'tdg', 'swap', 'cx',
-        'cy', 'cz', 'cp', 'cu1', 'rxx', 'ryy',
-        'rzz', 'rzx', 'ccx', 'unitary', 'diagonal', 'delay', 'pauli'
-    ]),
-    'tensor_network': sorted([
-        'u1', 'u2', 'u3', 'u', 'p', 'r', 'rx', 'ry', 'rz', 'id', 'x',
-        'y', 'z', 'h', 's', 'sdg', 'sx', 'sxdg', 't', 'tdg', 'swap', 'cx',
-        'cy', 'cz', 'csx', 'cp', 'cu', 'cu1', 'cu2', 'cu3', 'rxx', 'ryy',
-        'rzz', 'rzx', 'ccx', 'cswap', 'mcx', 'mcy', 'mcz', 'mcsx',
-        'mcp', 'mcphase', 'mcu', 'mcu1', 'mcu2', 'mcu3', 'mcrx', 'mcry', 'mcrz',
-        'mcr', 'mcswap', 'unitary', 'diagonal', 'multiplexer',
-        'initialize', 'delay', 'pauli', 'mcx_gray'
-    ])
+    "statevector": sorted(
+        [
+            "u1",
+            "u2",
+            "u3",
+            "u",
+            "p",
+            "r",
+            "rx",
+            "ry",
+            "rz",
+            "id",
+            "x",
+            "y",
+            "z",
+            "h",
+            "s",
+            "sdg",
+            "sx",
+            "sxdg",
+            "t",
+            "tdg",
+            "swap",
+            "cx",
+            "cy",
+            "cz",
+            "csx",
+            "cp",
+            "cu",
+            "cu1",
+            "cu2",
+            "cu3",
+            "rxx",
+            "ryy",
+            "rzz",
+            "rzx",
+            "ccx",
+            "cswap",
+            "mcx",
+            "mcy",
+            "mcz",
+            "mcsx",
+            "mcp",
+            "mcphase",
+            "mcu",
+            "mcu1",
+            "mcu2",
+            "mcu3",
+            "mcrx",
+            "mcry",
+            "mcrz",
+            "mcr",
+            "mcswap",
+            "unitary",
+            "diagonal",
+            "multiplexer",
+            "initialize",
+            "delay",
+            "pauli",
+            "mcx_gray",
+            "ecr",
+        ]
+    ),
+    "density_matrix": sorted(
+        [
+            "u1",
+            "u2",
+            "u3",
+            "u",
+            "p",
+            "r",
+            "rx",
+            "ry",
+            "rz",
+            "id",
+            "x",
+            "y",
+            "z",
+            "h",
+            "s",
+            "sdg",
+            "sx",
+            "sxdg",
+            "t",
+            "tdg",
+            "swap",
+            "cx",
+            "cy",
+            "cz",
+            "cp",
+            "cu1",
+            "rxx",
+            "ryy",
+            "rzz",
+            "rzx",
+            "ccx",
+            "unitary",
+            "diagonal",
+            "delay",
+            "pauli",
+            "ecr",
+        ]
+    ),
+    "matrix_product_state": sorted(
+        [
+            "u1",
+            "u2",
+            "u3",
+            "u",
+            "p",
+            "cp",
+            "cx",
+            "cy",
+            "cz",
+            "id",
+            "x",
+            "y",
+            "z",
+            "h",
+            "s",
+            "sdg",
+            "sx",
+            "sxdg",
+            "t",
+            "tdg",
+            "swap",
+            "ccx",
+            "unitary",
+            "roerror",
+            "delay",
+            "pauli",
+            "r",
+            "rx",
+            "ry",
+            "rz",
+            "rxx",
+            "ryy",
+            "rzz",
+            "rzx",
+            "csx",
+            "cswap",
+            "diagonal",
+            "initialize",
+        ]
+    ),
+    "stabilizer": sorted(
+        [
+            "id",
+            "x",
+            "y",
+            "z",
+            "h",
+            "s",
+            "sdg",
+            "sx",
+            "sxdg",
+            "cx",
+            "cy",
+            "cz",
+            "swap",
+            "delay",
+            "pauli",
+        ]
+    ),
+    "extended_stabilizer": sorted(
+        [
+            "cx",
+            "cz",
+            "id",
+            "x",
+            "y",
+            "z",
+            "h",
+            "s",
+            "sdg",
+            "sx",
+            "sxdg",
+            "swap",
+            "u0",
+            "t",
+            "tdg",
+            "u1",
+            "p",
+            "ccx",
+            "ccz",
+            "delay",
+            "pauli",
+        ]
+    ),
+    "unitary": sorted(
+        [
+            "u1",
+            "u2",
+            "u3",
+            "u",
+            "p",
+            "r",
+            "rx",
+            "ry",
+            "rz",
+            "id",
+            "x",
+            "y",
+            "z",
+            "h",
+            "s",
+            "sdg",
+            "sx",
+            "sxdg",
+            "t",
+            "tdg",
+            "swap",
+            "cx",
+            "cy",
+            "cz",
+            "csx",
+            "cp",
+            "cu",
+            "cu1",
+            "cu2",
+            "cu3",
+            "rxx",
+            "ryy",
+            "rzz",
+            "rzx",
+            "ccx",
+            "cswap",
+            "mcx",
+            "mcy",
+            "mcz",
+            "mcsx",
+            "mcp",
+            "mcphase",
+            "mcu",
+            "mcu1",
+            "mcu2",
+            "mcu3",
+            "mcrx",
+            "mcry",
+            "mcrz",
+            "mcr",
+            "mcswap",
+            "unitary",
+            "diagonal",
+            "multiplexer",
+            "delay",
+            "pauli",
+            "ecr",
+        ]
+    ),
+    "superop": sorted(
+        [
+            "u1",
+            "u2",
+            "u3",
+            "u",
+            "p",
+            "r",
+            "rx",
+            "ry",
+            "rz",
+            "id",
+            "x",
+            "y",
+            "z",
+            "h",
+            "s",
+            "sdg",
+            "sx",
+            "sxdg",
+            "t",
+            "tdg",
+            "swap",
+            "cx",
+            "cy",
+            "cz",
+            "cp",
+            "cu1",
+            "rxx",
+            "ryy",
+            "rzz",
+            "rzx",
+            "ccx",
+            "unitary",
+            "diagonal",
+            "delay",
+            "pauli",
+        ]
+    ),
+    "tensor_network": sorted(
+        [
+            "u1",
+            "u2",
+            "u3",
+            "u",
+            "p",
+            "r",
+            "rx",
+            "ry",
+            "rz",
+            "id",
+            "x",
+            "y",
+            "z",
+            "h",
+            "s",
+            "sdg",
+            "sx",
+            "sxdg",
+            "t",
+            "tdg",
+            "swap",
+            "cx",
+            "cy",
+            "cz",
+            "csx",
+            "cp",
+            "cu",
+            "cu1",
+            "cu2",
+            "cu3",
+            "rxx",
+            "ryy",
+            "rzz",
+            "rzx",
+            "ccx",
+            "cswap",
+            "mcx",
+            "mcy",
+            "mcz",
+            "mcsx",
+            "mcp",
+            "mcphase",
+            "mcu",
+            "mcu1",
+            "mcu2",
+            "mcu3",
+            "mcrx",
+            "mcry",
+            "mcrz",
+            "mcr",
+            "mcswap",
+            "unitary",
+            "diagonal",
+            "multiplexer",
+            "initialize",
+            "delay",
+            "pauli",
+            "mcx_gray",
+        ]
+    ),
 }
 
 # Automatic method basis gates are the union of statevector,
 # density matrix, and stabilizer methods
-BASIS_GATES[None] = BASIS_GATES['automatic'] = sorted(
-    set(BASIS_GATES['statevector']).union(
-        BASIS_GATES['stabilizer']).union(
-            BASIS_GATES['density_matrix']).union(
-                BASIS_GATES['matrix_product_state']).union(
-                    BASIS_GATES['unitary']).union(
-                        BASIS_GATES['superop']).union(
-                            BASIS_GATES['tensor_network']))
+BASIS_GATES[None] = BASIS_GATES["automatic"] = sorted(
+    set(BASIS_GATES["statevector"])
+    .union(BASIS_GATES["stabilizer"])
+    .union(BASIS_GATES["density_matrix"])
+    .union(BASIS_GATES["matrix_product_state"])
+    .union(BASIS_GATES["unitary"])
+    .union(BASIS_GATES["superop"])
+    .union(BASIS_GATES["tensor_network"])
+)
 
 
 def cpp_execute_qobj(controller, qobj):
@@ -147,13 +451,15 @@ def available_methods(controller, methods, devices):
     for device in devices:
         for method in methods:
             if method not in valid_methods:
-                qobj = assemble(dummy_circ,
-                                optimization_level=0,
-                                shots=1,
-                                method=method,
-                                device=device)
+                qobj = assemble(
+                    dummy_circ,
+                    optimization_level=0,
+                    shots=1,
+                    method=method,
+                    device=device,
+                )
                 result = cpp_execute_qobj(controller, qobj)
-                if result.get('success', False):
+                if result.get("success", False):
                     valid_methods.append(method)
     return tuple(valid_methods)
 
@@ -166,13 +472,15 @@ def available_devices(controller, devices):
 
     valid_devices = []
     for device in devices:
-        qobj = assemble(dummy_circ,
-                        optimization_level=0,
-                        shots=1,
-                        method="statevector",
-                        device=device)
+        qobj = assemble(
+            dummy_circ,
+            optimization_level=0,
+            shots=1,
+            method="statevector",
+            device=device,
+        )
         result = cpp_execute_qobj(controller, qobj)
-        if result.get('success', False):
+        if result.get("success", False):
             valid_devices.append(device)
     return tuple(valid_devices)
 
@@ -186,7 +494,8 @@ def add_final_save_instruction(qobj, state):
             name=f"save_{state}",
             qubits=list(range(num_qubits)),
             label=f"{state}",
-            snapshot_type="single")
+            snapshot_type="single",
+        )
 
     for exp in qobj.experiments:
         num_qubits = exp.config.n_qubits
@@ -200,10 +509,9 @@ def add_final_save_op(aer_circuits, state):
 
     for aer_circuit in aer_circuits:
         num_qubits = aer_circuit.num_qubits
-        aer_circuit.save_state(list(range(num_qubits)),
-                               f"save_{state}",
-                               "single",
-                               state)
+        aer_circuit.save_state(
+            list(range(num_qubits)), f"save_{state}", "single", state
+        )
 
     return aer_circuits
 
@@ -241,9 +549,11 @@ def format_save_type(data, save_type, save_subtype):
         return data
 
     if save_subtype in ["list", "c_list"]:
+
         def func(data):
             init_fn = init_fns[save_type]
             return [init_fn(i) for i in data]
+
     else:
         func = init_fns[save_type]
 

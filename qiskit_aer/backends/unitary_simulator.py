@@ -24,15 +24,18 @@ from qiskit.providers.models import QasmBackendConfiguration
 from ..aererror import AerError
 from ..version import __version__
 from .aerbackend import AerBackend
-from .backend_utils import (cpp_execute_qobj,
-                            cpp_execute_circuits,
-                            available_devices,
-                            MAX_QUBITS_STATEVECTOR,
-                            LEGACY_METHOD_MAP,
-                            add_final_save_instruction,
-                            map_legacy_method_options,
-                            add_final_save_op,
-                            map_legacy_method_config)
+from .backend_utils import (
+    cpp_execute_qobj,
+    cpp_execute_circuits,
+    available_devices,
+    MAX_QUBITS_STATEVECTOR,
+    LEGACY_METHOD_MAP,
+    add_final_save_instruction,
+    map_legacy_method_options,
+    add_final_save_op,
+    map_legacy_method_config,
+)
+
 # pylint: disable=import-error, no-name-in-module
 from .controller_wrappers import aer_controller_execute
 
@@ -139,66 +142,123 @@ class UnitarySimulator(AerBackend):
     """
 
     _DEFAULT_CONFIGURATION = {
-        'backend_name': 'unitary_simulator',
-        'backend_version': __version__,
-        'n_qubits': MAX_QUBITS_STATEVECTOR // 2,
-        'url': 'https://github.com/Qiskit/qiskit-aer',
-        'simulator': True,
-        'local': True,
-        'conditional': False,
-        'open_pulse': False,
-        'memory': False,
-        'max_shots': int(1e6),  # Note that this backend will only ever
-                                # perform a single shot. This value is just
-                                # so that the default shot value for execute
-                                # will not raise an error when trying to run
-                                # a simulation
-        'description': 'A C++ unitary circuit simulator',
-        'coupling_map': None,
-        'basis_gates': sorted([
-            'u1', 'u2', 'u3', 'u', 'p', 'r', 'rx', 'ry', 'rz', 'id', 'x',
-            'y', 'z', 'h', 's', 'sdg', 'sx', 'sxdg', 't', 'tdg', 'swap', 'cx',
-            'cy', 'cz', 'csx', 'cu', 'cp', 'cu1', 'cu2', 'cu3', 'rxx', 'ryy',
-            'rzz', 'rzx', 'ccx', 'cswap', 'mcx', 'mcy', 'mcz', 'mcsx',
-            'mcu', 'mcp', 'mcphase', 'mcu1', 'mcu2', 'mcu3', 'mcrx', 'mcry', 'mcrz',
-            'mcr', 'mcswap', 'unitary', 'diagonal', 'multiplexer', 'delay', 'pauli',
-        ]),
-        'custom_instructions': sorted(['save_unitary', 'save_state', 'set_unitary']),
-        'gates': []
+        "backend_name": "unitary_simulator",
+        "backend_version": __version__,
+        "n_qubits": MAX_QUBITS_STATEVECTOR // 2,
+        "url": "https://github.com/Qiskit/qiskit-aer",
+        "simulator": True,
+        "local": True,
+        "conditional": False,
+        "open_pulse": False,
+        "memory": False,
+        "max_shots": int(1e6),  # Note that this backend will only ever
+        # perform a single shot. This value is just
+        # so that the default shot value for execute
+        # will not raise an error when trying to run
+        # a simulation
+        "description": "A C++ unitary circuit simulator",
+        "coupling_map": None,
+        "basis_gates": sorted(
+            [
+                "u1",
+                "u2",
+                "u3",
+                "u",
+                "p",
+                "r",
+                "rx",
+                "ry",
+                "rz",
+                "id",
+                "x",
+                "y",
+                "z",
+                "h",
+                "s",
+                "sdg",
+                "sx",
+                "sxdg",
+                "t",
+                "tdg",
+                "swap",
+                "cx",
+                "cy",
+                "cz",
+                "csx",
+                "cu",
+                "cp",
+                "cu1",
+                "cu2",
+                "cu3",
+                "rxx",
+                "ryy",
+                "rzz",
+                "rzx",
+                "ccx",
+                "cswap",
+                "mcx",
+                "mcy",
+                "mcz",
+                "mcsx",
+                "mcu",
+                "mcp",
+                "mcphase",
+                "mcu1",
+                "mcu2",
+                "mcu3",
+                "mcrx",
+                "mcry",
+                "mcrz",
+                "mcr",
+                "mcswap",
+                "unitary",
+                "diagonal",
+                "multiplexer",
+                "delay",
+                "pauli",
+            ]
+        ),
+        "custom_instructions": sorted(["save_unitary", "save_state", "set_unitary"]),
+        "gates": [],
     }
 
-    _SIMULATION_DEVICES = ('CPU', 'GPU', 'Thrust')
+    _SIMULATION_DEVICES = ("CPU", "GPU", "Thrust")
 
     _AVAILABLE_DEVICES = None
 
-    def __init__(self,
-                 configuration=None,
-                 properties=None,
-                 provider=None,
-                 **backend_options):
+    def __init__(
+        self, configuration=None, properties=None, provider=None, **backend_options
+    ):
 
-        warn('The `UnitarySimulator` backend will be deprecated in the'
-             ' future. It has been superseded by the `AerSimulator`'
-             ' backend. To obtain legacy functionality initialize with'
-             ' `AerSimulator(method="unitary")` and append run circuits'
-             ' with the `save_state` instruction.', PendingDeprecationWarning)
+        warn(
+            "The `UnitarySimulator` backend will be deprecated in the"
+            " future. It has been superseded by the `AerSimulator`"
+            " backend. To obtain legacy functionality initialize with"
+            ' `AerSimulator(method="unitary")` and append run circuits'
+            " with the `save_state` instruction.",
+            PendingDeprecationWarning,
+        )
 
         self._controller = aer_controller_execute()
 
         if UnitarySimulator._AVAILABLE_DEVICES is None:
             UnitarySimulator._AVAILABLE_DEVICES = available_devices(
-                self._controller, UnitarySimulator._SIMULATION_DEVICES)
+                self._controller, UnitarySimulator._SIMULATION_DEVICES
+            )
 
         if configuration is None:
             configuration = QasmBackendConfiguration.from_dict(
-                UnitarySimulator._DEFAULT_CONFIGURATION)
+                UnitarySimulator._DEFAULT_CONFIGURATION
+            )
         else:
             configuration.open_pulse = False
 
-        super().__init__(configuration,
-                         properties=properties,
-                         provider=provider,
-                         backend_options=backend_options)
+        super().__init__(
+            configuration,
+            properties=properties,
+            provider=provider,
+            backend_options=backend_options,
+        )
 
     @classmethod
     def _default_options(cls):
@@ -224,31 +284,37 @@ class UnitarySimulator(AerBackend):
             blocking_qubits=None,
             blocking_enable=False,
             # statevector options
-            statevector_parallel_threshold=14)
+            statevector_parallel_threshold=14,
+        )
 
     def set_option(self, key, value):
         if key == "method":
             # Handle deprecation of method option for device option
-            warn("The method option of the `UnitarySimulator` has been"
-                 " deprecated as of qiskit-aer 0.9.0. To run a GPU statevector"
-                 " simulation use the option `device='GPU'` instead",
-                 DeprecationWarning)
+            warn(
+                "The method option of the `UnitarySimulator` has been"
+                " deprecated as of qiskit-aer 0.9.0. To run a GPU statevector"
+                " simulation use the option `device='GPU'` instead",
+                DeprecationWarning,
+            )
             if value in LEGACY_METHOD_MAP:
                 value, device = LEGACY_METHOD_MAP[value]
                 self.set_option("device", device)
             if value != "unitary":
                 raise AerError(
-                    "only the 'unitary' method is supported for the UnitarySimulator")
+                    "only the 'unitary' method is supported for the UnitarySimulator"
+                )
             return
         super().set_option(key, value)
 
     def available_methods(self):
         """Return the available simulation methods."""
-        warn("The `available_methods` method of the UnitarySimulator"
-             " is deprecated as of qiskit-aer 0.9.0 as this simulator only"
-             " supports a single method. To check if GPU simulation is available"
-             " use the `available_devices` method instead.",
-             DeprecationWarning)
+        warn(
+            "The `available_methods` method of the UnitarySimulator"
+            " is deprecated as of qiskit-aer 0.9.0 as this simulator only"
+            " supports a single method. To check if GPU simulation is available"
+            " use the `available_devices` method instead.",
+            DeprecationWarning,
+        )
         return ("unitary",)
 
     def available_devices(self):
@@ -271,8 +337,7 @@ class UnitarySimulator(AerBackend):
         return cpp_execute_qobj(self._controller, qobj)
 
     def _execute_circuits(self, aer_circuits, noise_model, config):
-        """Execute circuits on the backend.
-        """
+        """Execute circuits on the backend."""
         config = map_legacy_method_config(config)
         aer_circuits = add_final_save_op(aer_circuits, "unitary")
         return cpp_execute_circuits(self._controller, aer_circuits, noise_model, config)
@@ -285,27 +350,31 @@ class UnitarySimulator(AerBackend):
         3. Check number of qubits will fit in local memory.
         """
         name = self.name()
-        if getattr(qobj.config, 'noise_model', None) is not None:
+        if getattr(qobj.config, "noise_model", None) is not None:
             raise AerError(f"{name} does not support noise.")
 
         n_qubits = qobj.config.n_qubits
         max_qubits = self.configuration().n_qubits
         if n_qubits > max_qubits:
             raise AerError(
-                f'Number of qubits ({n_qubits}) is greater than '
+                f"Number of qubits ({n_qubits}) is greater than "
                 f'max ({max_qubits}) for "{name}" with '
-                f"{int(local_hardware_info()['memory'])} GB system memory.")
+                f"{int(local_hardware_info()['memory'])} GB system memory."
+            )
         if qobj.config.shots != 1:
             logger.info('"%s" only supports 1 shot. Setting shots=1.', name)
             qobj.config.shots = 1
         for experiment in qobj.experiments:
             exp_name = experiment.header.name
-            if getattr(experiment.config, 'shots', 1) != 1:
+            if getattr(experiment.config, "shots", 1) != 1:
                 logger.info(
-                    '"%s" only supports 1 shot. '
-                    'Setting shots=1 for circuit "%s".', name, exp_name)
+                    '"%s" only supports 1 shot. ' 'Setting shots=1 for circuit "%s".',
+                    name,
+                    exp_name,
+                )
                 experiment.config.shots = 1
             for operation in experiment.instructions:
-                if operation.name in ['measure', 'reset']:
+                if operation.name in ["measure", "reset"]:
                     raise AerError(
-                        f'Unsupported {name} instruction {operation.name} in circuit {exp_name}')
+                        f"Unsupported {name} instruction {operation.name} in circuit {exp_name}"
+                    )

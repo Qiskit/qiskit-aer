@@ -44,9 +44,11 @@ class TestControllerExecuteWrappers(QiskitAerTestCase):
         circuit = QuantumCircuit(num_qubits)
         circuit.x(list(range(num_qubits)))
         circuit = transpile(circuit, backend)
-        opts = {'max_parallel_threads': 1,
-                'library_dir': LIBRARY_DIR,
-                'noise_model': noise_model}
+        opts = {
+            "max_parallel_threads": 1,
+            "library_dir": LIBRARY_DIR,
+            "noise_model": noise_model,
+        }
         qobj = backend._assemble(circuit, **opts)
         return qobj
 
@@ -57,7 +59,7 @@ class TestControllerExecuteWrappers(QiskitAerTestCase):
 
         self.assertEqual(len(rs), n)
         for r in rs:
-            self.assertTrue(r['success'])
+            self.assertTrue(r["success"])
 
     def test_mappable_qasm(self):
         """Test that the qasm controller can be mapped."""
@@ -67,5 +69,5 @@ class TestControllerExecuteWrappers(QiskitAerTestCase):
         self._map_and_test(cfunc, fqobj)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

@@ -17,8 +17,7 @@ from ddt import ddt
 from qiskit import transpile, QuantumCircuit
 from test.terra.reference import ref_algorithms
 
-from test.terra.backends.simulator_test_case import (
-    SimulatorTestCase, supported_methods)
+from test.terra.backends.simulator_test_case import SimulatorTestCase, supported_methods
 
 
 @ddt
@@ -26,34 +25,48 @@ class TestMetadata(SimulatorTestCase):
     """AerSimulator algorithm tests in the default basis"""
 
     @supported_methods(
-        ['automatic', 'statevector', 'density_matrix',
-         'matrix_product_state', 'extended_stabilizer', 'tensor_network'])
+        [
+            "automatic",
+            "statevector",
+            "density_matrix",
+            "matrix_product_state",
+            "extended_stabilizer",
+            "tensor_network",
+        ]
+    )
     def test_single_circuit_metadata(self, method, device):
         """Test circuits with object metadata."""
         backend = self.backend(method=method, device=device)
         metadata = {1: object}
-        circuit = QuantumCircuit(1, name='circ0', metadata=metadata.copy())
+        circuit = QuantumCircuit(1, name="circ0", metadata=metadata.copy())
         result = backend.run(circuit).result()
         self.assertSuccess(result)
         self.assertEqual(result.results[0].header.metadata, metadata)
         self.assertEqual(circuit.metadata, metadata)
 
     @supported_methods(
-        ['automatic', 'statevector', 'density_matrix',
-         'matrix_product_state', 'extended_stabilizer', 'tensor_network'])
+        [
+            "automatic",
+            "statevector",
+            "density_matrix",
+            "matrix_product_state",
+            "extended_stabilizer",
+            "tensor_network",
+        ]
+    )
     def test_three_circuit_metadata(self, method, device):
         """Test circuits with object metadata."""
         backend = self.backend(method=method, device=device)
 
         metadata0 = {0: object}
-        circuit0 = QuantumCircuit(1, name='circ0', metadata=metadata0.copy())
-        
+        circuit0 = QuantumCircuit(1, name="circ0", metadata=metadata0.copy())
+
         metadata1 = {1: object}
-        circuit1 = QuantumCircuit(1, name='circ1', metadata=metadata1.copy())
+        circuit1 = QuantumCircuit(1, name="circ1", metadata=metadata1.copy())
 
         metadata2 = {2: object}
-        circuit2 = QuantumCircuit(1, name='circ2', metadata=metadata2.copy())
-        
+        circuit2 = QuantumCircuit(1, name="circ2", metadata=metadata2.copy())
+
         result = backend.run([circuit0, circuit1, circuit2]).result()
         self.assertSuccess(result)
         self.assertEqual(len(result.results), 3)
@@ -65,32 +78,38 @@ class TestMetadata(SimulatorTestCase):
         self.assertEqual(circuit2.metadata, metadata2)
 
     @supported_methods(
-        ['automatic', 'statevector', 'density_matrix', 'matrix_product_state', 'tensor_network'])
+        [
+            "automatic",
+            "statevector",
+            "density_matrix",
+            "matrix_product_state",
+            "tensor_network",
+        ]
+    )
     def test_three_parameterized_circuit_metadata(self, method, device):
         """Test circuits with object metadata."""
         backend = self.backend(method=method, device=device)
 
         metadata0 = {0: object}
-        circuit0 = QuantumCircuit(1, name='circ0', metadata=metadata0.copy())
+        circuit0 = QuantumCircuit(1, name="circ0", metadata=metadata0.copy())
         circuit0.ry(0.1, 0)
         circuit0.measure_all()
-        
+
         metadata1 = {1: object}
-        circuit1 = QuantumCircuit(1, name='circ1', metadata=metadata1.copy())
+        circuit1 = QuantumCircuit(1, name="circ1", metadata=metadata1.copy())
         circuit1.ry(0.1, 0)
         circuit1.measure_all()
 
         metadata2 = {2: object}
-        circuit2 = QuantumCircuit(1, name='circ2', metadata=metadata2.copy())
+        circuit2 = QuantumCircuit(1, name="circ2", metadata=metadata2.copy())
         circuit2.ry(0.1, 0)
         circuit2.measure_all()
-        
-        parameterizations=[[[[0, 0], [0, 1]]],
-                           [[[0, 0], [0, 1, 2]]],
-                           []]
-        
-        result = backend.run([circuit0, circuit1, circuit2],
-                             parameterizations=parameterizations).result()
+
+        parameterizations = [[[[0, 0], [0, 1]]], [[[0, 0], [0, 1, 2]]], []]
+
+        result = backend.run(
+            [circuit0, circuit1, circuit2], parameterizations=parameterizations
+        ).result()
         self.assertSuccess(result)
         self.assertEqual(len(result.results), 6)
         self.assertEqual(result.results[0].header.metadata, metadata0)

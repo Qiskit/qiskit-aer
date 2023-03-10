@@ -31,27 +31,27 @@ namespace Linalg {
 // Linear operations
 //----------------------------------------------------------------------------
 template <class T, size_t N, typename = enable_if_numeric_t<T>>
-std::array<T, N>& iadd(std::array<T, N>& lhs, const std::array<T, N>& rhs) {
+std::array<T, N> &iadd(std::array<T, N> &lhs, const std::array<T, N> &rhs) {
   std::transform(lhs.begin(), lhs.end(), rhs.begin(), lhs.begin(),
                  std::plus<T>());
   return lhs;
 }
 
 template <class T, size_t N, typename = enable_if_numeric_t<T>>
-std::array<T, N> add(const std::array<T, N>& lhs, const std::array<T, N>& rhs) {
+std::array<T, N> add(const std::array<T, N> &lhs, const std::array<T, N> &rhs) {
   std::array<T, N> result = lhs;
   return iadd(result, rhs);
 }
 
 template <class T, size_t N, typename = enable_if_numeric_t<T>>
-std::array<T, N>& isub(std::array<T, N>& lhs, const std::array<T, N>& rhs) {
+std::array<T, N> &isub(std::array<T, N> &lhs, const std::array<T, N> &rhs) {
   std::transform(lhs.begin(), lhs.end(), rhs.begin(), lhs.begin(),
                  std::minus<T>());
   return lhs;
 }
 
 template <class T, size_t N, typename = enable_if_numeric_t<T>>
-std::array<T, N> sub(const std::array<T, N>& lhs, const std::array<T, N>& rhs) {
+std::array<T, N> sub(const std::array<T, N> &lhs, const std::array<T, N> &rhs) {
   std::array<T, N> result = lhs;
   return isub(result, rhs);
 }
@@ -61,7 +61,7 @@ std::array<T, N> sub(const std::array<T, N>& lhs, const std::array<T, N>& rhs) {
 //----------------------------------------------------------------------------
 template <class T, size_t N, class Scalar, typename = enable_if_numeric_t<T>,
           typename = enable_if_numeric_t<Scalar>>
-std::array<T, N>& iadd(std::array<T, N>& data, const Scalar& val) {
+std::array<T, N> &iadd(std::array<T, N> &data, const Scalar &val) {
   std::transform(data.begin(), data.end(), data.begin(),
                  std::bind(std::plus<T>(), std::placeholders::_1, val));
   return data;
@@ -69,14 +69,14 @@ std::array<T, N>& iadd(std::array<T, N>& data, const Scalar& val) {
 
 template <class T, size_t N, class Scalar, typename = enable_if_numeric_t<T>,
           typename = enable_if_numeric_t<Scalar>>
-std::array<T, N> add(const std::array<T, N>& data, const Scalar& val) {
+std::array<T, N> add(const std::array<T, N> &data, const Scalar &val) {
   std::array<T, N> result = data;
   return iadd(result, val);
 }
 
 template <class T, size_t N, class Scalar, typename = enable_if_numeric_t<T>,
           typename = enable_if_numeric_t<Scalar>>
-std::array<T, N>& isub(std::array<T, N>& data, const Scalar& val) {
+std::array<T, N> &isub(std::array<T, N> &data, const Scalar &val) {
   std::transform(data.begin(), data.end(), data.begin(),
                  std::bind(std::minus<T>(), std::placeholders::_1, val));
   return data;
@@ -84,7 +84,7 @@ std::array<T, N>& isub(std::array<T, N>& data, const Scalar& val) {
 
 template <class T, size_t N, class Scalar, typename = enable_if_numeric_t<T>,
           typename = enable_if_numeric_t<Scalar>>
-std::array<T, N> sub(const std::array<T, N>& data, const Scalar& val) {
+std::array<T, N> sub(const std::array<T, N> &data, const Scalar &val) {
   std::array<T, N> result = data;
   return isub(result, val);
 }
@@ -94,7 +94,7 @@ std::array<T, N> sub(const std::array<T, N>& data, const Scalar& val) {
 //----------------------------------------------------------------------------
 template <class T, size_t N, class Scalar, typename = enable_if_numeric_t<T>,
           typename = enable_if_numeric_t<Scalar>>
-std::array<T, N>& imul(std::array<T, N>& data, const Scalar& val) {
+std::array<T, N> &imul(std::array<T, N> &data, const Scalar &val) {
   std::transform(data.begin(), data.end(), data.begin(),
                  std::bind(std::multiplies<T>(), std::placeholders::_1, val));
   return data;
@@ -102,14 +102,14 @@ std::array<T, N>& imul(std::array<T, N>& data, const Scalar& val) {
 
 template <class T, size_t N, class Scalar, typename = enable_if_numeric_t<T>,
           typename = enable_if_numeric_t<Scalar>>
-std::array<T, N> mul(const std::array<T, N>& data, const Scalar& val) {
+std::array<T, N> mul(const std::array<T, N> &data, const Scalar &val) {
   std::array<T, N> result = data;
   return imul(result, val);
 }
 
 template <class T, size_t N, class Scalar, typename = enable_if_numeric_t<T>,
           typename = enable_if_numeric_t<Scalar>>
-std::array<T, N>& idiv(std::array<T, N>& data, const Scalar& val) {
+std::array<T, N> &idiv(std::array<T, N> &data, const Scalar &val) {
   std::transform(data.begin(), data.end(), data.begin(),
                  std::bind(std::divides<T>(), std::placeholders::_1, val));
   return data;
@@ -117,14 +117,14 @@ std::array<T, N>& idiv(std::array<T, N>& data, const Scalar& val) {
 
 template <class T, size_t N, class Scalar, typename = enable_if_numeric_t<T>,
           typename = enable_if_numeric_t<Scalar>>
-std::array<T, N> div(const std::array<T, N>& data, const Scalar& val) {
+std::array<T, N> div(const std::array<T, N> &data, const Scalar &val) {
   std::array<T, N> result = data;
   return idiv(result, val);
 }
 
 //------------------------------------------------------------------------------
-}  // end namespace Linalg
+} // end namespace Linalg
 //------------------------------------------------------------------------------
-}  // end namespace AER
+} // end namespace AER
 //------------------------------------------------------------------------------
 #endif

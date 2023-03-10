@@ -34,11 +34,13 @@ def requires_submit(func):
     Returns:
         callable: the decorated function.
     """
+
     @wraps(func)
     def _wrapper(self, *args, **kwargs):
         if self._future is None:
             raise JobError("Job not submitted yet!. You have to .submit() first!")
         return func(self, *args, **kwargs)
+
     return _wrapper
 
 
@@ -51,6 +53,7 @@ def methdispatch(func):
 
     def wrapper(*args, **kw):
         return dispatcher.dispatch(args[2].__class__)(*args, **kw)
+
     wrapper.register = dispatcher.register
     update_wrapper(wrapper, func)
     return wrapper
@@ -99,7 +102,7 @@ def _split_qobj(qobj, max_size, qobj_id, seed):
 
     qobjs = []
     # Check for parameterizations
-    params = getattr(qobj.config, 'parameterizations', None)
+    params = getattr(qobj.config, "parameterizations", None)
 
     for i in range(num_jobs):
         sub_id = qobj_id or str(uuid.uuid4())
@@ -125,16 +128,10 @@ def _check_custom_instruction(experiments, optypes=None):
     # Check via optype list if available
     if optypes is not None:
         # Optypes store class names as strings
-        return any(
-            {"SaveData"}.intersection(optype)
-            for optype in optypes
-        )
+        return any({"SaveData"}.intersection(optype) for optype in optypes)
 
     # Otherwise iterate over instruction names
-    return any(
-        "save_" in inst.name
-        for exp in experiments for inst in exp.instructions
-    )
+    return any("save_" in inst.name for exp in experiments for inst in exp.instructions)
 
 
 def _set_seed(qobj_list, seed):
@@ -169,19 +166,22 @@ def split_qobj(qobj, max_size=None, max_shot_size=None, qobj_id=None):
     Returns:
         List: A list of qobjs.
     """
-    optypes = getattr(qobj.config, 'optypes', None)
+    optypes = getattr(qobj.config, "optypes", None)
     split_qobj_list = []
-    if (max_shot_size is not None and max_shot_size > 0):
+    if max_shot_size is not None and max_shot_size > 0:
         if _check_custom_instruction(qobj.experiments, optypes):
             raise JobError(
                 "`max_shot_size` option cannot be used with circuits"
-                " containing save instructions.")
+                " containing save instructions."
+            )
 
     _seed = getattr(qobj.config, "seed_simulator", 0)
     if hasattr(qobj.config, "noise_model"):
         if _seed and max_size is not None and max_size > 1:
-            raise JobError("cannot support max_job_size > 1 for noise simulation, "
-                           "when seed_simulator is set.")
+            raise JobError(
+                "cannot support max_job_size > 1 for noise simulation, "
+                "when seed_simulator is set."
+            )
 
         if max_shot_size is not None and max_shot_size > 0:
             _qobj = _copy_qobj_for_noise(qobj, max_shot_size, qobj_id)

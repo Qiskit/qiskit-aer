@@ -26,8 +26,7 @@ from test.terra.reference import ref_diagonal_gate
 
 from qiskit import transpile
 from qiskit_aer import StatevectorSimulator, AerError
-from test.terra.backends.simulator_test_case import (
-    SimulatorTestCase, supported_devices)
+from test.terra.backends.simulator_test_case import SimulatorTestCase, supported_devices
 
 
 @ddt
@@ -82,11 +81,10 @@ class TestStatevectorSimulator(SimulatorTestCase):
         # For statevector output we can combine deterministic and non-deterministic
         # count output circuits
         backend = self.backend(device=device)
-        circuits = ref_reset.reset_circuits_nondeterministic(
-            final_measure=False)
+        circuits = ref_reset.reset_circuits_nondeterministic(final_measure=False)
         circuits = transpile(circuits, backend, optimization_level=1)
         result = backend.run(circuits, shots=1).result()
-        targets = ref_reset.reset_statevector_nondeterministic()        
+        targets = ref_reset.reset_statevector_nondeterministic()
         self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
 
@@ -97,8 +95,7 @@ class TestStatevectorSimulator(SimulatorTestCase):
     def test_measure(self, device):
         """Test StatevectorSimulator measure with deterministic counts"""
         backend = self.backend(device=device)
-        circuits = ref_measure.measure_circuits_deterministic(
-            allow_sampling=True)
+        circuits = ref_measure.measure_circuits_deterministic(allow_sampling=True)
         circuits = transpile(circuits, backend, optimization_level=1)
         result = backend.run(circuits, shots=1).result()
         targets = ref_measure.measure_statevector_deterministic()
@@ -112,8 +109,7 @@ class TestStatevectorSimulator(SimulatorTestCase):
     def test_conditional_gate_1bit(self, device):
         """Test conditional gates on 1-bit conditional register."""
         backend = self.backend(device=device)
-        circuits = ref_conditionals.conditional_circuits_1bit(
-            final_measure=False)
+        circuits = ref_conditionals.conditional_circuits_1bit(final_measure=False)
         circuits = transpile(circuits, backend, optimization_level=1)
         result = backend.run(circuits, shots=1).result()
         targets = ref_conditionals.conditional_statevector_1bit()
@@ -125,7 +121,8 @@ class TestStatevectorSimulator(SimulatorTestCase):
         """Test conditional unitaries on 1-bit conditional register."""
         backend = self.backend(device=device)
         circuits = ref_conditionals.conditional_circuits_1bit(
-            final_measure=False, conditional_type='unitary')
+            final_measure=False, conditional_type="unitary"
+        )
         circuits = transpile(circuits, backend, optimization_level=1)
         result = backend.run(circuits, shots=1).result()
         targets = ref_conditionals.conditional_statevector_1bit()
@@ -136,8 +133,7 @@ class TestStatevectorSimulator(SimulatorTestCase):
     def test_conditional_gate_2bit(self, device):
         """Test conditional gates on 2-bit conditional register."""
         backend = self.backend(device=device)
-        circuits = ref_conditionals.conditional_circuits_2bit(
-            final_measure=False)
+        circuits = ref_conditionals.conditional_circuits_2bit(final_measure=False)
         circuits = transpile(circuits, backend, optimization_level=1)
         result = backend.run(circuits, shots=1).result()
         targets = ref_conditionals.conditional_statevector_2bit()
@@ -149,7 +145,8 @@ class TestStatevectorSimulator(SimulatorTestCase):
         """Test conditional unitary on 2-bit conditional register."""
         backend = self.backend(device=device)
         circuits = ref_conditionals.conditional_circuits_2bit(
-            final_measure=False, conditional_type='unitary')
+            final_measure=False, conditional_type="unitary"
+        )
         circuits = transpile(circuits, backend, optimization_level=1)
         result = backend.run(circuits, shots=1).result()
         targets = ref_conditionals.conditional_statevector_2bit()
@@ -161,8 +158,9 @@ class TestStatevectorSimulator(SimulatorTestCase):
         """Test conditional gates on 64-bit conditional register."""
         backend = self.backend(device=device)
         cases = ref_conditionals.conditional_cases_64bit()
-        circuits = ref_conditionals.conditional_circuits_nbit(64, cases,
-            final_measure=False, conditional_type='gate')
+        circuits = ref_conditionals.conditional_circuits_nbit(
+            64, cases, final_measure=False, conditional_type="gate"
+        )
         circuits = transpile(circuits, backend, optimization_level=1)
         result = backend.run(circuits, shots=1).result()
         targets = ref_conditionals.conditional_statevector_nbit(cases)
@@ -174,8 +172,9 @@ class TestStatevectorSimulator(SimulatorTestCase):
         """Test conditional unitary on 64-bit conditional register."""
         backend = self.backend(device=device)
         cases = ref_conditionals.conditional_cases_64bit()
-        circuits = ref_conditionals.conditional_circuits_nbit(64, cases,
-            final_measure=False, conditional_type='unitary')
+        circuits = ref_conditionals.conditional_circuits_nbit(
+            64, cases, final_measure=False, conditional_type="unitary"
+        )
         circuits = transpile(circuits, backend, optimization_level=1)
         result = backend.run(circuits, shots=1).result()
         targets = ref_conditionals.conditional_statevector_nbit(cases)
@@ -187,8 +186,9 @@ class TestStatevectorSimulator(SimulatorTestCase):
         """Test conditional gates on 132-bit conditional register."""
         backend = self.backend(device=device)
         cases = ref_conditionals.conditional_cases_132bit()
-        circuits = ref_conditionals.conditional_circuits_nbit(132, cases,
-            final_measure=False, conditional_type='gate')
+        circuits = ref_conditionals.conditional_circuits_nbit(
+            132, cases, final_measure=False, conditional_type="gate"
+        )
         circuits = transpile(circuits, backend, optimization_level=1)
         result = backend.run(circuits, shots=1).result()
         targets = ref_conditionals.conditional_statevector_nbit(cases)
@@ -200,8 +200,9 @@ class TestStatevectorSimulator(SimulatorTestCase):
         """Test conditional unitary on 132-bit conditional register."""
         backend = self.backend(device=device)
         cases = ref_conditionals.conditional_cases_132bit()
-        circuits = ref_conditionals.conditional_circuits_nbit(132, cases,
-            final_measure=False, conditional_type='unitary')
+        circuits = ref_conditionals.conditional_circuits_nbit(
+            132, cases, final_measure=False, conditional_type="unitary"
+        )
         circuits = transpile(circuits, backend, optimization_level=1)
         result = backend.run(circuits, shots=1).result()
         targets = ref_conditionals.conditional_statevector_nbit(cases)
@@ -216,7 +217,8 @@ class TestStatevectorSimulator(SimulatorTestCase):
         """Test simulation with unitary gate circuit instructions."""
         backend = self.backend(device=device)
         circuits = ref_unitary_gate.unitary_gate_circuits_deterministic(
-            final_measure=False)
+            final_measure=False
+        )
         circuits = transpile(circuits, backend, optimization_level=1)
         result = backend.run(circuits, shots=1).result()
         targets = ref_unitary_gate.unitary_gate_statevector_deterministic()
@@ -228,7 +230,8 @@ class TestStatevectorSimulator(SimulatorTestCase):
         """Test simulation with unitary gate circuit instructions."""
         backend = self.backend(device=device)
         circuits = ref_unitary_gate.unitary_gate_circuits_deterministic(
-            final_measure=False)
+            final_measure=False
+        )
         circuits = transpile(circuits, backend, optimization_level=1)
         result = backend.run(circuits, shots=1).result()
         targets = ref_unitary_gate.unitary_gate_statevector_deterministic()
@@ -240,7 +243,8 @@ class TestStatevectorSimulator(SimulatorTestCase):
         """Test simulation with diagonal gate circuit instructions."""
         backend = self.backend(device=device)
         circuits = ref_diagonal_gate.diagonal_gate_circuits_deterministic(
-            final_measure=False)
+            final_measure=False
+        )
         circuits = transpile(circuits, backend, optimization_level=1)
         result = backend.run(circuits, shots=1).result()
         targets = ref_diagonal_gate.diagonal_gate_statevector_deterministic()
@@ -255,8 +259,7 @@ class TestStatevectorSimulator(SimulatorTestCase):
     def test_qobj_global_phase(self, device):
         """Test qobj global phase."""
         backend = self.backend(device=device)
-        circuits = ref_1q_clifford.h_gate_circuits_nondeterministic(
-            final_measure=False)
+        circuits = ref_1q_clifford.h_gate_circuits_nondeterministic(final_measure=False)
         targets = ref_1q_clifford.h_gate_statevector_nondeterministic()
         for iter, circuit in enumerate(circuits):
             global_phase = (-1) ** iter * (pi / 4)

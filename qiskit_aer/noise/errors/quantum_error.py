@@ -44,8 +44,7 @@ class QuantumError(BaseOperator, TolerancesMixin):
              module.
     """
 
-    def __init__(self,
-                 noise_ops):
+    def __init__(self, noise_ops):
         """
         Create a quantum error for a noise model.
 
@@ -102,8 +101,9 @@ class QuantumError(BaseOperator, TolerancesMixin):
             return
 
         # Single circuit case
-        if not isinstance(noise_ops, Iterable) or \
-                (isinstance(noise_ops, tuple) and isinstance(noise_ops[0], Instruction)):
+        if not isinstance(noise_ops, Iterable) or (
+            isinstance(noise_ops, tuple) and isinstance(noise_ops[0], Instruction)
+        ):
             noise_ops = [(noise_ops, 1.0)]
 
         # Convert zipped object to list (to enable multiple iteration over it)
@@ -180,7 +180,7 @@ class QuantumError(BaseOperator, TolerancesMixin):
                     f"Fail to convert {op.__class__.__name__} to Instruction."
                 ) from err
         if isinstance(op, BaseOperator):
-            if hasattr(op, 'to_instruction'):
+            if hasattr(op, "to_instruction"):
                 try:
                     return cls._to_circuit(op.to_instruction())
                 except QiskitError as err:
@@ -231,7 +231,7 @@ class QuantumError(BaseOperator, TolerancesMixin):
         return hash(self._id)
 
     @property
-    def id(self):   # pylint: disable=invalid-name
+    def id(self):  # pylint: disable=invalid-name
         """Return unique ID string for error"""
         return self._id
 
@@ -273,15 +273,16 @@ class QuantumError(BaseOperator, TolerancesMixin):
                 if isinstance(op, IGate):
                     continue
                 if isinstance(op, PauliGate):
-                    if op.params[0].replace('I', ''):
+                    if op.params[0].replace("I", ""):
                         return False
                 else:
                     # Convert to Kraus and check if identity
                     kmats = Kraus(op).data
                     if len(kmats) > 1:
                         return False
-                    if not is_identity_matrix(kmats[0], ignore_phase=True,
-                                              atol=self.atol, rtol=self.rtol):
+                    if not is_identity_matrix(
+                        kmats[0], ignore_phase=True, atol=self.atol, rtol=self.rtol
+                    ):
                         return False
         return True
 
@@ -289,7 +290,7 @@ class QuantumError(BaseOperator, TolerancesMixin):
         """Convert the QuantumError to a SuperOp quantum channel.
         Required to enable SuperOp(QuantumError)."""
         # Initialize as an empty superoperator of the correct size
-        dim = 2 ** self.num_qubits
+        dim = 2**self.num_qubits
         ret = SuperOp(np.zeros([dim * dim, dim * dim]))
         for circ, prob in zip(self.circuits, self.probabilities):
             component = prob * SuperOp(circ)
@@ -340,7 +341,7 @@ class QuantumError(BaseOperator, TolerancesMixin):
             "id": self.id,
             "operations": [],
             "instructions": instructions,
-            "probabilities": list(self.probabilities)
+            "probabilities": list(self.probabilities),
         }
         return error
 
@@ -349,22 +350,26 @@ class QuantumError(BaseOperator, TolerancesMixin):
             other = QuantumError(other)
         if qargs is not None:
             if self.num_qubits < other.num_qubits:
-                raise QiskitError("Number of qubits of this error must be less than"
-                                  " that of the error to be composed if using 'qargs' argument.")
+                raise QiskitError(
+                    "Number of qubits of this error must be less than"
+                    " that of the error to be composed if using 'qargs' argument."
+                )
             if len(qargs) != other.num_qubits:
-                raise QiskitError("Number of items in 'qargs' argument must be the same as"
-                                  " number of qubits of the error to be composed.")
+                raise QiskitError(
+                    "Number of items in 'qargs' argument must be the same as"
+                    " number of qubits of the error to be composed."
+                )
             if front:
                 raise QiskitError(
                     "QuantumError.compose does not support 'qargs' when 'front=True'."
                 )
 
-        circs = [self._compose_circ(lqc, rqc, qubits=qargs, front=front)
-                 for lqc in self.circuits
-                 for rqc in other.circuits]
-        probs = [lpr * rpr
-                 for lpr in self.probabilities
-                 for rpr in other.probabilities]
+        circs = [
+            self._compose_circ(lqc, rqc, qubits=qargs, front=front)
+            for lqc in self.circuits
+            for rqc in other.circuits
+        ]
+        probs = [lpr * rpr for lpr in self.probabilities for rpr in other.probabilities]
         return QuantumError(zip(circs, probs))
 
     @staticmethod
@@ -389,12 +394,8 @@ class QuantumError(BaseOperator, TolerancesMixin):
         if not isinstance(other, QuantumError):
             other = QuantumError(other)
 
-        circs = [lqc.tensor(rqc)
-                 for lqc in self.circuits
-                 for rqc in other.circuits]
-        probs = [lpr * rpr
-                 for lpr in self.probabilities
-                 for rpr in other.probabilities]
+        circs = [lqc.tensor(rqc) for lqc in self.circuits for rqc in other.circuits]
+        probs = [lpr * rpr for lpr in self.probabilities for rpr in other.probabilities]
         return QuantumError(zip(circs, probs))
 
     def expand(self, other):
@@ -402,7 +403,9 @@ class QuantumError(BaseOperator, TolerancesMixin):
 
     # Overloads
     def __rmul__(self, other):
-        raise NotImplementedError("'QuantumError' does not support scalar multiplication.")
+        raise NotImplementedError(
+            "'QuantumError' does not support scalar multiplication."
+        )
 
     def __truediv__(self, other):
         raise NotImplementedError("'QuantumError' does not support division.")

@@ -28,12 +28,12 @@ class RelaxationNoisePass(LocalNoisePass):
     """Add duration dependent thermal relaxation noise after instructions."""
 
     def __init__(
-            self,
-            t1s: List[float],
-            t2s: List[float],
-            dt: Optional[float] = None,
-            op_types: Optional[Union[type, Sequence[type]]] = None,
-            excited_state_populations: Optional[List[float]] = None,
+        self,
+        t1s: List[float],
+        t2s: List[float],
+        dt: Optional[float] = None,
+        op_types: Optional[Union[type, Sequence[type]]] = None,
+        excited_state_populations: Optional[List[float]] = None,
     ):
         """Initialize RelaxationNoisePass.
 
@@ -55,26 +55,28 @@ class RelaxationNoisePass(LocalNoisePass):
         else:
             self._p1s = np.zeros(len(t1s))
         self._dt = dt
-        super().__init__(self._thermal_relaxation_error, op_types=op_types, method="append")
+        super().__init__(
+            self._thermal_relaxation_error, op_types=op_types, method="append"
+        )
 
-    def _thermal_relaxation_error(
-            self,
-            op: Instruction,
-            qubits: Sequence[int]
-    ):
+    def _thermal_relaxation_error(self, op: Instruction, qubits: Sequence[int]):
         """Return thermal relaxation error on each operand qubit"""
         if not op.duration:
             if op.duration is None:
-                warnings.warn("RelaxationNoisePass ignores instructions without duration,"
-                              " you may need to schedule circuit in advance.", UserWarning)
+                warnings.warn(
+                    "RelaxationNoisePass ignores instructions without duration,"
+                    " you may need to schedule circuit in advance.",
+                    UserWarning,
+                )
             return None
 
         # Convert op duration to seconds
-        if op.unit == 'dt':
+        if op.unit == "dt":
             if self._dt is None:
                 raise NoiseError(
                     "RelaxationNoisePass cannot apply noise to a 'dt' unit duration"
-                    " without a dt time set.")
+                    " without a dt time set."
+                )
             duration = op.duration * self._dt
         else:
             duration = apply_prefix(op.duration, op.unit)

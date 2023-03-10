@@ -24,40 +24,47 @@ class TestSetupRHSDictFreqs(QiskitAerTestCase):
 
     def setUp(self):
         super().setUp()
-        self.default_dict = {'freqs': [1., 2., 3.]}
+        self.default_dict = {"freqs": [1.0, 2.0, 3.0]}
 
         def calculate_channel_frequencies(qubit_lo_freq):
-            return {'D0': qubit_lo_freq[0],
-                    'U0': qubit_lo_freq[0] - qubit_lo_freq[1],
-                    'D1': qubit_lo_freq[1]}
+            return {
+                "D0": qubit_lo_freq[0],
+                "U0": qubit_lo_freq[0] - qubit_lo_freq[1],
+                "D1": qubit_lo_freq[1],
+            }
 
         self.calculate_channel_frequencies = calculate_channel_frequencies
 
     def test_without_override(self):
         """Test maintenance of default values if no frequencies specified in exp."""
 
-        output_dict = setup_rhs_dict_freqs(self.default_dict,
-                                           {},
-                                           self.calculate_channel_frequencies)
+        output_dict = setup_rhs_dict_freqs(
+            self.default_dict, {}, self.calculate_channel_frequencies
+        )
 
-        self.assertAlmostEqual(np.array(output_dict['freqs']),
-                               np.array(self.default_dict['freqs']))
+        self.assertAlmostEqual(
+            np.array(output_dict["freqs"]), np.array(self.default_dict["freqs"])
+        )
 
-        output_dict = setup_rhs_dict_freqs(self.default_dict,
-                                           {'qubit_lo_freq': None},
-                                           self.calculate_channel_frequencies)
+        output_dict = setup_rhs_dict_freqs(
+            self.default_dict,
+            {"qubit_lo_freq": None},
+            self.calculate_channel_frequencies,
+        )
 
-        self.assertAlmostEqual(np.array(output_dict['freqs']),
-                               np.array(self.default_dict['freqs']))
+        self.assertAlmostEqual(
+            np.array(output_dict["freqs"]), np.array(self.default_dict["freqs"])
+        )
 
     def test_with_override(self):
         """Test overriding of default values with qubit_lo_freq in exp."""
 
-        output_dict = setup_rhs_dict_freqs(self.default_dict,
-                                           {'qubit_lo_freq': [5, 11]},
-                                           self.calculate_channel_frequencies)
-        self.assertAlmostEqual(np.array(output_dict['freqs']),
-                               np.array([5, -6, 11]))
+        output_dict = setup_rhs_dict_freqs(
+            self.default_dict,
+            {"qubit_lo_freq": [5, 11]},
+            self.calculate_channel_frequencies,
+        )
+        self.assertAlmostEqual(np.array(output_dict["freqs"]), np.array([5, -6, 11]))
 
     def assertAlmostEqual(self, A, B, tol=10**-15):
         self.assertTrue(np.abs(A - B).max() < tol)

@@ -23,10 +23,8 @@ class SaveState(SaveSingleData):
 
     The format of the saved state depends on the simulation method used.
     """
-    def __init__(self, num_qubits,
-                 label=None,
-                 pershot=False,
-                 conditional=False):
+
+    def __init__(self, num_qubits, label=None, pershot=False, conditional=False):
         """Create new instruction to save the simualtor state.
 
         The format of the saved state depends on the simulation method used.
@@ -49,10 +47,10 @@ class SaveState(SaveSingleData):
             simulation.
         """
         if label is None:
-            label = '_method_'
-        super().__init__('save_state', num_qubits, label,
-                         pershot=pershot,
-                         conditional=conditional)
+            label = "_method_"
+        super().__init__(
+            "save_state", num_qubits, label, pershot=pershot, conditional=conditional
+        )
 
 
 def save_state(self, label=None, pershot=False, conditional=False):
@@ -76,10 +74,9 @@ def save_state(self, label=None, pershot=False, conditional=False):
         This instruction is always defined across all qubits in a circuit.
     """
     qubits = default_qubits(self)
-    instr = SaveState(len(qubits),
-                      label=label,
-                      pershot=pershot,
-                      conditional=conditional)
+    instr = SaveState(
+        len(qubits), label=label, pershot=pershot, conditional=conditional
+    )
     return self.append(instr, qubits)
 
 

@@ -24,6 +24,7 @@ from qiskit_aer.noise.errors.readout_error import ReadoutError
 
 class TestReadoutError(QiskitAerTestCase):
     """Testing ReadoutError class"""
+
     def test_probabilities_normalized_exception(self):
         """Test exception is raised for probabilities greater than 1."""
         probs = [[0.9, 0.2], [0, 1]]
@@ -73,9 +74,9 @@ class TestReadoutError(QiskitAerTestCase):
         # Test circuit: ideal outcome "11"
         probs = [[1, 0], [0, 1]]
         roerror_dict = {
-            'type': 'roerror',
-            'operations': ['measure'],
-            'probabilities': probs
+            "type": "roerror",
+            "operations": ["measure"],
+            "probabilities": probs,
         }
         roerror = ReadoutError(probs)
         self.assertEqual(roerror.number_of_qubits, 1)
@@ -85,12 +86,16 @@ class TestReadoutError(QiskitAerTestCase):
     def test_2qubit(self):
         """Test 2-qubit readout error"""
         # Test circuit: ideal outcome "11"
-        probs = [[0.7, 0.2, 0.1, 0], [0, 0.9, 0.1, 0], [0, 0, 1, 0],
-                 [0.1, 0.1, 0.2, 0.6]]
+        probs = [
+            [0.7, 0.2, 0.1, 0],
+            [0, 0.9, 0.1, 0],
+            [0, 0, 1, 0],
+            [0.1, 0.1, 0.2, 0.6],
+        ]
         roerror_dict = {
-            'type': 'roerror',
-            'operations': ['measure'],
-            'probabilities': probs
+            "type": "roerror",
+            "operations": ["measure"],
+            "probabilities": probs,
         }
         roerror = ReadoutError(probs)
         self.assertEqual(roerror.number_of_qubits, 2)
@@ -103,9 +108,9 @@ class TestReadoutError(QiskitAerTestCase):
         probs1 = [[0.5, 0.5], [0.2, 0.8]]
         probs = np.kron(probs0, probs1).tolist()
         error_dict = {
-            'type': 'roerror',
-            'operations': ['measure'],
-            'probabilities': probs
+            "type": "roerror",
+            "operations": ["measure"],
+            "probabilities": probs,
         }
         error0 = ReadoutError(probs0)
         error1 = ReadoutError(probs1)
@@ -121,9 +126,9 @@ class TestReadoutError(QiskitAerTestCase):
         probs1 = [[0.5, 0.5], [0.2, 0.8]]
         probs = np.kron(probs0, probs1).tolist()
         error_dict = {
-            'type': 'roerror',
-            'operations': ['measure'],
-            'probabilities': probs
+            "type": "roerror",
+            "operations": ["measure"],
+            "probabilities": probs,
         }
         error0 = ReadoutError(probs0)
         error1 = ReadoutError(probs1)
@@ -139,9 +144,9 @@ class TestReadoutError(QiskitAerTestCase):
         probs1 = [[0.5, 0.5], [0.2, 0.8]]
         probs = np.dot(probs1, probs0).tolist()
         error_dict = {
-            'type': 'roerror',
-            'operations': ['measure'],
-            'probabilities': probs
+            "type": "roerror",
+            "operations": ["measure"],
+            "probabilities": probs,
         }
         error0 = ReadoutError(probs0)
         error1 = ReadoutError(probs1)
@@ -162,9 +167,9 @@ class TestReadoutError(QiskitAerTestCase):
         probs1 = [[0.5, 0.5], [0.2, 0.8]]
         probs = np.dot(probs1, probs0).tolist()
         error_dict = {
-            'type': 'roerror',
-            'operations': ['measure'],
-            'probabilities': probs
+            "type": "roerror",
+            "operations": ["measure"],
+            "probabilities": probs,
         }
         error0 = ReadoutError(probs0)
         error1 = ReadoutError(probs1)
@@ -204,5 +209,5 @@ class TestReadoutError(QiskitAerTestCase):
         self.assertTrue(np.allclose(instr2.params, probs2))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

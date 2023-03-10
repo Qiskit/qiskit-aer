@@ -17,7 +17,7 @@
 from ..de.DE_Options import DE_Options
 
 
-class PulseSimOptions():
+class PulseSimOptions:
     """
     Class of options for pulse solver routines.  Options can be specified either as
     arguments to the constructor::
@@ -54,35 +54,39 @@ class PulseSimOptions():
                                         of the evolution.
     """
 
-    def __init__(self,
-                 method='zvode-adams',
-                 atol=1e-8,
-                 rtol=1e-6,
-                 order=12,
-                 nsteps=10**6,
-                 first_step=None,
-                 max_step=None,
-                 min_step=None,
-                 max_dt=10**-3,
-                 num_cpus=0,
-                 norm_tol=1e-3,
-                 norm_steps=5,
-                 progress_bar=True,
-                 shots=1024,
-                 store_final_state=False,
-                 seeds=None,
-                 reuse_seeds=False):
+    def __init__(
+        self,
+        method="zvode-adams",
+        atol=1e-8,
+        rtol=1e-6,
+        order=12,
+        nsteps=10**6,
+        first_step=None,
+        max_step=None,
+        min_step=None,
+        max_dt=10**-3,
+        num_cpus=0,
+        norm_tol=1e-3,
+        norm_steps=5,
+        progress_bar=True,
+        shots=1024,
+        store_final_state=False,
+        seeds=None,
+        reuse_seeds=False,
+    ):
 
         # set DE specific options
-        self.de_options = DE_Options(method=method,
-                                     atol=atol,
-                                     rtol=rtol,
-                                     order=order,
-                                     nsteps=nsteps,
-                                     first_step=first_step,
-                                     max_step=max_step,
-                                     min_step=min_step,
-                                     max_dt=max_dt)
+        self.de_options = DE_Options(
+            method=method,
+            atol=atol,
+            rtol=rtol,
+            order=order,
+            nsteps=nsteps,
+            first_step=first_step,
+            max_step=max_step,
+            min_step=min_step,
+            max_dt=max_dt,
+        )
 
         self.shots = shots
         self.seeds = seeds
@@ -95,23 +99,25 @@ class PulseSimOptions():
 
     def copy(self):
         """Create a copy."""
-        return PulseSimOptions(method=self.de_options.method,
-                               atol=self.de_options.atol,
-                               rtol=self.de_options.rtol,
-                               order=self.de_options.order,
-                               nsteps=self.de_options.nsteps,
-                               first_step=self.de_options.first_step,
-                               max_step=self.de_options.max_step,
-                               min_step=self.de_options.min_step,
-                               max_dt=self.de_options.max_dt,
-                               num_cpus=self.num_cpus,
-                               norm_tol=self.norm_tol,
-                               norm_steps=self.norm_steps,
-                               progress_bar=self.progress_bar,
-                               shots=self.shots,
-                               store_final_state=self.store_final_state,
-                               seeds=self.seeds,
-                               reuse_seeds=self.reuse_seeds)
+        return PulseSimOptions(
+            method=self.de_options.method,
+            atol=self.de_options.atol,
+            rtol=self.de_options.rtol,
+            order=self.de_options.order,
+            nsteps=self.de_options.nsteps,
+            first_step=self.de_options.first_step,
+            max_step=self.de_options.max_step,
+            min_step=self.de_options.min_step,
+            max_dt=self.de_options.max_dt,
+            num_cpus=self.num_cpus,
+            norm_tol=self.norm_tol,
+            norm_steps=self.norm_steps,
+            progress_bar=self.progress_bar,
+            shots=self.shots,
+            store_final_state=self.store_final_state,
+            seeds=self.seeds,
+            reuse_seeds=self.reuse_seeds,
+        )
 
     def __str__(self):
         return str(vars(self))

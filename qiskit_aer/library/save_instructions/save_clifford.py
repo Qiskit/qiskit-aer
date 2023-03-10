@@ -20,6 +20,7 @@ from ..default_qubits import default_qubits
 
 class SaveClifford(SaveSingleData):
     """Save Clifford instruction"""
+
     def __init__(self, num_qubits, label="clifford", pershot=False):
         """Create new instruction to save the stabilizer simulator state as a Clifford.
 
@@ -36,7 +37,7 @@ class SaveClifford(SaveSingleData):
             qubits in a circuit, otherwise an exception will be raised during
             simulation.
         """
-        super().__init__('save_clifford', num_qubits, label, pershot=pershot)
+        super().__init__("save_clifford", num_qubits, label, pershot=pershot)
 
 
 def save_clifford(self, label="clifford", pershot=False):

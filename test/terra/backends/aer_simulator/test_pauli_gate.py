@@ -15,8 +15,7 @@ AerSimulator Integration Tests for circuit library standard gates
 
 from ddt import ddt
 from qiskit.circuit.quantumcircuit import QuantumCircuit
-from test.terra.backends.simulator_test_case import (
-    SimulatorTestCase, supported_methods)
+from test.terra.backends.simulator_test_case import SimulatorTestCase, supported_methods
 
 from qiskit import transpile
 import qiskit.quantum_info as qi
@@ -27,8 +26,19 @@ class TestPauliGate(SimulatorTestCase):
     """Test standard gate library."""
 
     @supported_methods(
-        ["automatic", "stabilizer", "statevector", "density_matrix", "matrix_product_state",
-         "unitary", "superop", "extended_stabilizer", "tensor_network"], ['I', 'X', 'Y', 'Z', 'XY', 'ZXY'])
+        [
+            "automatic",
+            "stabilizer",
+            "statevector",
+            "density_matrix",
+            "matrix_product_state",
+            "unitary",
+            "superop",
+            "extended_stabilizer",
+            "tensor_network",
+        ],
+        ["I", "X", "Y", "Z", "XY", "ZXY"],
+    )
     def test_pauli_gate(self, method, device, pauli):
         """Test multi-qubit Pauli gate."""
         pauli = qi.Pauli(pauli)
@@ -36,20 +46,20 @@ class TestPauliGate(SimulatorTestCase):
         circuit.append(pauli, range(pauli.num_qubits))
 
         backend = self.backend(method=method, device=device)
-        label = 'final'
-        if method == 'density_matrix':
+        label = "final"
+        if method == "density_matrix":
             target = qi.DensityMatrix(circuit)
             circuit.save_density_matrix(label=label)
             fidelity_fn = qi.state_fidelity
-        elif method == 'stabilizer':
+        elif method == "stabilizer":
             target = qi.StabilizerState(qi.Clifford(circuit))
             circuit.save_stabilizer(label=label)
             fidelity_fn = qi.process_fidelity
-        elif method == 'unitary':
+        elif method == "unitary":
             target = qi.Operator(circuit)
             circuit.save_unitary(label=label)
             fidelity_fn = qi.process_fidelity
-        elif method == 'superop':
+        elif method == "superop":
             target = qi.SuperOp(circuit)
             circuit.save_superop(label=label)
             fidelity_fn = qi.process_fidelity
@@ -58,11 +68,12 @@ class TestPauliGate(SimulatorTestCase):
             circuit.save_statevector(label=label)
             fidelity_fn = qi.state_fidelity
 
-        result = backend.run(transpile(
-            circuit, backend, optimization_level=0), shots=1).result()
+        result = backend.run(
+            transpile(circuit, backend, optimization_level=0), shots=1
+        ).result()
 
         # Check results
-        success = getattr(result, 'success', False)
+        success = getattr(result, "success", False)
         self.assertTrue(success, msg="Simulation unexpectedly failed")
         data = result.data(0)
         self.assertIn(label, data)
@@ -70,4 +81,5 @@ class TestPauliGate(SimulatorTestCase):
 
         threshold = 0.9999
         self.assertGreater(
-            fidelity, threshold, msg="Fidelity {fidelity} not > {threshold}")
+            fidelity, threshold, msg="Fidelity {fidelity} not > {threshold}"
+        )

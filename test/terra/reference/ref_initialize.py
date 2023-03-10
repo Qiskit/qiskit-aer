@@ -17,6 +17,7 @@ Test circuits and reference outputs for initialize instruction.
 from numpy import array, sqrt
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 
+
 def initialize_circuits_w_1(init_state, final_measure=True):
     """Initialize test circuits"""
 
@@ -26,7 +27,7 @@ def initialize_circuits_w_1(init_state, final_measure=True):
         cr = ClassicalRegister(3)
         regs = (qr, cr)
     else:
-        regs = (qr, )
+        regs = (qr,)
 
     # Start with |+++> state
     # Initialize qr[i] to |1> for i=0,1,2
@@ -44,6 +45,7 @@ def initialize_circuits_w_1(init_state, final_measure=True):
 
     return circuits
 
+
 def initialize_circuits_w_2(init_state, final_measure=True):
     """Initialize test circuits"""
 
@@ -53,14 +55,14 @@ def initialize_circuits_w_2(init_state, final_measure=True):
         cr = ClassicalRegister(3)
         regs = (qr, cr)
     else:
-        regs = (qr, )
-    
+        regs = (qr,)
+
     # Start with |+++> state
     # Initialize qr[i] to |1> and qr[j] to |0>
     # For [i,j] = [0,1], [1, 0], [0, 2], [2, 0], [1, 2], [2, 1]
     for qubit_i in range(3):
         for qubit_j in range(3):
-            if (qubit_i != qubit_j):
+            if qubit_i != qubit_j:
                 circuit = QuantumCircuit(*regs)
                 circuit.h(qr[0])
                 circuit.h(qr[1])
@@ -84,7 +86,7 @@ def initialize_circuits_1(final_measure=True):
         cr = ClassicalRegister(3)
         regs = (qr, cr)
     else:
-        regs = (qr, )
+        regs = (qr,)
 
     # Start with |+++> state
     # Initialize qr[i] to |1> for i=0,1,2
@@ -105,7 +107,7 @@ def initialize_circuits_1(final_measure=True):
     # For [i,j] = [0,1], [1, 0], [0, 2], [2, 0], [1, 2], [2, 1]
     for qubit_i in range(3):
         for qubit_j in range(3):
-            if (qubit_i != qubit_j):
+            if qubit_i != qubit_j:
                 circuit = QuantumCircuit(*regs)
                 circuit.h(qr[0])
                 circuit.h(qr[1])
@@ -128,8 +130,10 @@ def initialize_circuits_1(final_measure=True):
                     circuit.h(qr[0])
                     circuit.h(qr[1])
                     circuit.h(qr[2])
-                    circuit.initialize([0, 1, 0, 0, 0, -1, 0, 0] / sqrt(2), \
-                                       [qr[qubit_i], qr[qubit_j], qr[qubit_k]])
+                    circuit.initialize(
+                        [0, 1, 0, 0, 0, -1, 0, 0] / sqrt(2),
+                        [qr[qubit_i], qr[qubit_j], qr[qubit_k]],
+                    )
 
                     if final_measure:
                         circuit.barrier(qr)
@@ -138,115 +142,87 @@ def initialize_circuits_1(final_measure=True):
 
     return circuits
 
+
 def initialize_counts_1(shots, hex_counts=True):
     """Initialize test circuits reference counts."""
     targets = []
     if hex_counts:
         # Initialize 0 to |1> from |+++>
-        targets.append({'0x1': shots/4,
-                        '0x3': shots/4,
-                        '0x5': shots/4,
-                        '0x7': shots/4})
+        targets.append(
+            {"0x1": shots / 4, "0x3": shots / 4, "0x5": shots / 4, "0x7": shots / 4}
+        )
         # Initialize 1 to |1> from |+++>
-        targets.append({'0x2': shots/4,
-                        '0x3': shots/4,
-                        '0x6': shots/4,
-                        '0x7': shots/4})
+        targets.append(
+            {"0x2": shots / 4, "0x3": shots / 4, "0x6": shots / 4, "0x7": shots / 4}
+        )
         # Initialize 2 to |1> from |+++>
-        targets.append({'0x4': shots/4,
-                        '0x5': shots/4,
-                        '0x6': shots/4,
-                        '0x7': shots/4})
+        targets.append(
+            {"0x4": shots / 4, "0x5": shots / 4, "0x6": shots / 4, "0x7": shots / 4}
+        )
         # Initialize 0,1 to |01> from |+++>
-        targets.append({'0x1': shots/2,
-                        '0x5': shots/2})
+        targets.append({"0x1": shots / 2, "0x5": shots / 2})
         # Initialize 0,2 to |01> from |+++>
-        targets.append({'0x1': shots/2,
-                        '0x3': shots/2})
+        targets.append({"0x1": shots / 2, "0x3": shots / 2})
         # Initialize 1,0 to |01> from |+++>
-        targets.append({'0x2': shots/2,
-                        '0x6': shots/2})
+        targets.append({"0x2": shots / 2, "0x6": shots / 2})
         # Initialize 1,2 to |01> from |+++>
-        targets.append({'0x2': shots/2,
-                        '0x3': shots/2})
+        targets.append({"0x2": shots / 2, "0x3": shots / 2})
         # Initialize 2,0 to |01> from |+++>
-        targets.append({'0x4': shots/2,
-                        '0x6': shots/2})
+        targets.append({"0x4": shots / 2, "0x6": shots / 2})
         # Initialize 2,1 to |01> from |+++>
-        targets.append({'0x4': shots/2,
-                        '0x5': shots/2})
+        targets.append({"0x4": shots / 2, "0x5": shots / 2})
         # Initialize 0,1,2 to |01-> from |+++>
-        targets.append({'0x1': shots/2,
-                        '0x5': shots/2})
+        targets.append({"0x1": shots / 2, "0x5": shots / 2})
         # Initialize 0,2,1 to |01-> from |+++>
-        targets.append({'0x1': shots/2,
-                        '0x3': shots/2})
+        targets.append({"0x1": shots / 2, "0x3": shots / 2})
         # Initialize 1,0,2 to |01-> from |+++>
-        targets.append({'0x2': shots/2,
-                        '0x6': shots/2})
+        targets.append({"0x2": shots / 2, "0x6": shots / 2})
         # Initialize 1,2,0 to |01-> from |+++>
-        targets.append({'0x2': shots/2,
-                        '0x3': shots/2})
+        targets.append({"0x2": shots / 2, "0x3": shots / 2})
         # Initialize 2,0,1 to |01-> from |+++>
-        targets.append({'0x4': shots/2,
-                        '0x6': shots/2})
+        targets.append({"0x4": shots / 2, "0x6": shots / 2})
         # Initialize 2,1,0 to |01-> from |+++>
-        targets.append({'0x4': shots/2,
-                        '0x5': shots/2})
+        targets.append({"0x4": shots / 2, "0x5": shots / 2})
     else:
         # Initialize 0 to |1> from |+++>
-        targets.append({'001': shots/4,
-                        '011': shots/4,
-                        '101': shots/4,
-                        '111': shots/4})
+        targets.append(
+            {"001": shots / 4, "011": shots / 4, "101": shots / 4, "111": shots / 4}
+        )
         # Initialize 1 to |1> from |+++>
-        targets.append({'010': shots/4,
-                        '011': shots/4,
-                        '110': shots/4,
-                        '111': shots/4})
+        targets.append(
+            {"010": shots / 4, "011": shots / 4, "110": shots / 4, "111": shots / 4}
+        )
         # Initialize 2 to |1> from |+++>
-        targets.append({'100': shots/4,
-                        '101': shots/4,
-                        '110': shots/4,
-                        '111': shots/4})
+        targets.append(
+            {"100": shots / 4, "101": shots / 4, "110": shots / 4, "111": shots / 4}
+        )
         # Initialize 0,1 to |01> from |+++>
-        targets.append({'001': shots/2,
-                        '101': shots/2})
+        targets.append({"001": shots / 2, "101": shots / 2})
         # Initialize 0,2 to |01> from |+++>
-        targets.append({'001': shots/2,
-                        '011': shots/2})
+        targets.append({"001": shots / 2, "011": shots / 2})
         # Initialize 1,0 to |01> from |+++>
-        targets.append({'010': shots/2,
-                        '110': shots/2})
+        targets.append({"010": shots / 2, "110": shots / 2})
         # Initialize 1,2 to |01> from |+++>
-        targets.append({'010': shots/2,
-                        '011': shots/2})
+        targets.append({"010": shots / 2, "011": shots / 2})
         # Initialize 2,0 to |01> from |+++>
-        targets.append({'100': shots/2,
-                        '110': shots/2})
+        targets.append({"100": shots / 2, "110": shots / 2})
         # Initialize 2,1 to |01> from |+++>
-        targets.append({'100': shots/2,
-                        '101': shots/2})
+        targets.append({"100": shots / 2, "101": shots / 2})
         # Initialize 0,1,2 to |01-> from |+++>
-        targets.append({'001': shots/2,
-                        '101': shots/2})
+        targets.append({"001": shots / 2, "101": shots / 2})
         # Initialize 0,2,1 to |01-> from |+++>
-        targets.append({'001': shots/2,
-                        '011': shots/2})
+        targets.append({"001": shots / 2, "011": shots / 2})
         # Initialize 1,0,2 to |01-> from |+++>
-        targets.append({'010': shots/2,
-                        '110': shots/2})
+        targets.append({"010": shots / 2, "110": shots / 2})
         # Initialize 1,2,0 to |01-> from |+++>
-        targets.append({'010': shots/2,
-                        '011': shots/2})
+        targets.append({"010": shots / 2, "011": shots / 2})
         # Initialize 2,0,1 to |01-> from |+++>
-        targets.append({'100': shots/2,
-                        '110': shots/2})
+        targets.append({"100": shots / 2, "110": shots / 2})
         # Initialize 2,1,0 to |01-> from |+++>
-        targets.append({'100': shots/2,
-                        '101': shots/2})
+        targets.append({"100": shots / 2, "101": shots / 2})
 
     return targets
+
 
 def initialize_statevector_1():
     """Initialize test circuits reference counts."""
@@ -255,41 +231,236 @@ def initialize_statevector_1():
 
     # Start with |+++> state
     # Initialize qr[i] to |1> for i=0,1,2
-    targets.append(array([0. +0.j, 0.5+0.j, 0. +0.j, 0.5+0.j, 0. +0.j, 0.5+0.j, 0. +0.j, 0.5+0.j]))
-    targets.append(array([0. +0.j, 0. +0.j, 0.5+0.j, 0.5+0.j, 0. +0.j, 0. +0.j, 0.5+0.j, 0.5+0.j]))
-    targets.append(array([0. +0.j, 0. +0.j, 0. +0.j, 0. +0.j, 0.5+0.j, 0.5+0.j, 0.5+0.j, 0.5+0.j]))
+    targets.append(
+        array(
+            [
+                0.0 + 0.0j,
+                0.5 + 0.0j,
+                0.0 + 0.0j,
+                0.5 + 0.0j,
+                0.0 + 0.0j,
+                0.5 + 0.0j,
+                0.0 + 0.0j,
+                0.5 + 0.0j,
+            ]
+        )
+    )
+    targets.append(
+        array(
+            [
+                0.0 + 0.0j,
+                0.0 + 0.0j,
+                0.5 + 0.0j,
+                0.5 + 0.0j,
+                0.0 + 0.0j,
+                0.0 + 0.0j,
+                0.5 + 0.0j,
+                0.5 + 0.0j,
+            ]
+        )
+    )
+    targets.append(
+        array(
+            [
+                0.0 + 0.0j,
+                0.0 + 0.0j,
+                0.0 + 0.0j,
+                0.0 + 0.0j,
+                0.5 + 0.0j,
+                0.5 + 0.0j,
+                0.5 + 0.0j,
+                0.5 + 0.0j,
+            ]
+        )
+    )
 
     # Start with |+++> state
     # Initialize qr[i] to |1> and qr[j] to |0>
     # For [i,j] = [0,1], [1, 0], [0, 2], [2, 0], [1, 2], [2, 1]
-    targets.append(array([0. + 0.j, 1.0 + 0.j, 0. + 0.j, 0. + 0.j, \
-                          0. + 0.j, 1.0 + 0.j, 0. + 0.j, 0. + 0.j] / sqrt(2)))
-    targets.append(array([0. + 0.j, 1.0 + 0.j, 0. + 0.j, 1.0 + 0.j, \
-                          0. + 0.j, 0. + 0.j, 0. + 0.j, 0. + 0.j] / sqrt(2)))
-    targets.append(array([0. + 0.j, 0. + 0.j, 1.0 + 0.j, 0. + 0.j, \
-                          0. + 0.j, 0. + 0.j, 1.0 + 0.j, 0. + 0.j] / sqrt(2)))
-    targets.append(array([0. + 0.j, 0. + 0.j, 1.0 + 0.j, 1.0 + 0.j, \
-                          0. + 0.j, 0. + 0.j, 0 + 0.j, 0. + 0.j] / sqrt(2)))
-    targets.append(array([0. + 0.j, 0. + 0.j, 0 + 0.j, 0. + 0.j, \
-                          1.0 + 0.j, 0. + 0.j, 1.0 + 0.j, 0. + 0.j] / sqrt(2)))
-    targets.append(array([0. + 0.j, 0. + 0.j, 0 + 0.j, 0. + 0.j, \
-                          1.0 + 0.j, 1.0 + 0.j, 0. + 0.j, 0. + 0.j] / sqrt(2)))
+    targets.append(
+        array(
+            [
+                0.0 + 0.0j,
+                1.0 + 0.0j,
+                0.0 + 0.0j,
+                0.0 + 0.0j,
+                0.0 + 0.0j,
+                1.0 + 0.0j,
+                0.0 + 0.0j,
+                0.0 + 0.0j,
+            ]
+            / sqrt(2)
+        )
+    )
+    targets.append(
+        array(
+            [
+                0.0 + 0.0j,
+                1.0 + 0.0j,
+                0.0 + 0.0j,
+                1.0 + 0.0j,
+                0.0 + 0.0j,
+                0.0 + 0.0j,
+                0.0 + 0.0j,
+                0.0 + 0.0j,
+            ]
+            / sqrt(2)
+        )
+    )
+    targets.append(
+        array(
+            [
+                0.0 + 0.0j,
+                0.0 + 0.0j,
+                1.0 + 0.0j,
+                0.0 + 0.0j,
+                0.0 + 0.0j,
+                0.0 + 0.0j,
+                1.0 + 0.0j,
+                0.0 + 0.0j,
+            ]
+            / sqrt(2)
+        )
+    )
+    targets.append(
+        array(
+            [
+                0.0 + 0.0j,
+                0.0 + 0.0j,
+                1.0 + 0.0j,
+                1.0 + 0.0j,
+                0.0 + 0.0j,
+                0.0 + 0.0j,
+                0 + 0.0j,
+                0.0 + 0.0j,
+            ]
+            / sqrt(2)
+        )
+    )
+    targets.append(
+        array(
+            [
+                0.0 + 0.0j,
+                0.0 + 0.0j,
+                0 + 0.0j,
+                0.0 + 0.0j,
+                1.0 + 0.0j,
+                0.0 + 0.0j,
+                1.0 + 0.0j,
+                0.0 + 0.0j,
+            ]
+            / sqrt(2)
+        )
+    )
+    targets.append(
+        array(
+            [
+                0.0 + 0.0j,
+                0.0 + 0.0j,
+                0 + 0.0j,
+                0.0 + 0.0j,
+                1.0 + 0.0j,
+                1.0 + 0.0j,
+                0.0 + 0.0j,
+                0.0 + 0.0j,
+            ]
+            / sqrt(2)
+        )
+    )
 
     # Start with |+++> state
     # Initialize qr[i] to |1>, qr[j] to |0> and qr[k] to |->
     # For [i,j,k] = [0, 1, 2], [0, 2, 1], [1, 0, 2], [1, 2, 0], [2, 0, 1], [2, 1, 0]
-    targets.append(array([0. + 0.j, 1.0 + 0.j, 0. + 0.j, 0. + 0.j, \
-                          0. + 0.j, -1.0 + 0.j, 0. + 0.j, 0. + 0.j] / sqrt(2)))
-    targets.append(array([0. + 0.j, 1.0 + 0.j, 0. + 0.j, -1.0 + 0.j,
-                          0. + 0.j, 0. + 0.j, 0. + 0.j, 0. + 0.j] / sqrt(2)))
-    targets.append(array([0. + 0.j, 0. + 0.j, 1.0 + 0.j, 0. + 0.j, \
-                          0. + 0.j, 0. + 0.j, -1.0 + 0.j, 0. + 0.j] / sqrt(2)))
-    targets.append(array([0. + 0.j, 0. + 0.j, 1.0 + 0.j, -1.0 + 0.j, \
-                          0. + 0.j, 0. + 0.j, 0. + 0.j, 0. + 0.j] / sqrt(2)))
-    targets.append(array([0. + 0.j, 0. + 0.j, 0. + 0.j, 0. + 0.j, \
-                          1.0 + 0.j, 0. + 0.j, -1.0 + 0.j, 0. + 0.j] / sqrt(2)))
-    targets.append(array([0. + 0.j, 0. + 0.j, 0. + 0.j, 0. + 0.j, \
-                          1.0 + 0.j, -1.0 + 0.j, 0. + 0.j, 0. + 0.j] / sqrt(2)))
+    targets.append(
+        array(
+            [
+                0.0 + 0.0j,
+                1.0 + 0.0j,
+                0.0 + 0.0j,
+                0.0 + 0.0j,
+                0.0 + 0.0j,
+                -1.0 + 0.0j,
+                0.0 + 0.0j,
+                0.0 + 0.0j,
+            ]
+            / sqrt(2)
+        )
+    )
+    targets.append(
+        array(
+            [
+                0.0 + 0.0j,
+                1.0 + 0.0j,
+                0.0 + 0.0j,
+                -1.0 + 0.0j,
+                0.0 + 0.0j,
+                0.0 + 0.0j,
+                0.0 + 0.0j,
+                0.0 + 0.0j,
+            ]
+            / sqrt(2)
+        )
+    )
+    targets.append(
+        array(
+            [
+                0.0 + 0.0j,
+                0.0 + 0.0j,
+                1.0 + 0.0j,
+                0.0 + 0.0j,
+                0.0 + 0.0j,
+                0.0 + 0.0j,
+                -1.0 + 0.0j,
+                0.0 + 0.0j,
+            ]
+            / sqrt(2)
+        )
+    )
+    targets.append(
+        array(
+            [
+                0.0 + 0.0j,
+                0.0 + 0.0j,
+                1.0 + 0.0j,
+                -1.0 + 0.0j,
+                0.0 + 0.0j,
+                0.0 + 0.0j,
+                0.0 + 0.0j,
+                0.0 + 0.0j,
+            ]
+            / sqrt(2)
+        )
+    )
+    targets.append(
+        array(
+            [
+                0.0 + 0.0j,
+                0.0 + 0.0j,
+                0.0 + 0.0j,
+                0.0 + 0.0j,
+                1.0 + 0.0j,
+                0.0 + 0.0j,
+                -1.0 + 0.0j,
+                0.0 + 0.0j,
+            ]
+            / sqrt(2)
+        )
+    )
+    targets.append(
+        array(
+            [
+                0.0 + 0.0j,
+                0.0 + 0.0j,
+                0.0 + 0.0j,
+                0.0 + 0.0j,
+                1.0 + 0.0j,
+                -1.0 + 0.0j,
+                0.0 + 0.0j,
+                0.0 + 0.0j,
+            ]
+            / sqrt(2)
+        )
+    )
 
     return targets
 
@@ -303,7 +474,7 @@ def initialize_circuits_2(final_measure=True):
         cr = ClassicalRegister(2)
         regs = (qr, cr)
     else:
-        regs = (qr, )
+        regs = (qr,)
 
     # Initialize 0 to |1> from |++>
     circuit = QuantumCircuit(*regs)
@@ -331,14 +502,14 @@ def initialize_counts_2(shots, hex_counts=True):
     targets = []
     if hex_counts:
         # Initialize 0 to |1> from |++>
-        targets.append({'0x1': shots / 2, '0x3': shots / 2})
+        targets.append({"0x1": shots / 2, "0x3": shots / 2})
         # Initialize 1 to |1> from |++>
-        targets.append({'0x2': shots / 2, '0x3': shots / 2})
+        targets.append({"0x2": shots / 2, "0x3": shots / 2})
     else:
         # Initialize 0 to |1> from |++>
-        targets.append({'01': shots / 2, '11': shots / 2})
+        targets.append({"01": shots / 2, "11": shots / 2})
         # Initialize 1 to |1> from |++>
-        targets.append({'10': shots / 2, '11': shots / 2})
+        targets.append({"10": shots / 2, "11": shots / 2})
     return targets
 
 
@@ -356,6 +527,7 @@ def initialize_statevector_2():
 # Sampling optimization
 # ==========================================================================
 
+
 def initialize_sampling_optimization():
     """Test sampling optimization"""
     qr = QuantumRegister(2)
@@ -371,12 +543,14 @@ def initialize_sampling_optimization():
 
     return [qc]
 
+
 def initialize_counts_sampling_optimization(shots, hex_counts=True):
     """Sampling optimization counts"""
     if hex_counts:
-        return [{'0x0': shots/2, '0x2': shots/2}]
+        return [{"0x0": shots / 2, "0x2": shots / 2}]
     else:
-        return [{'0x00': shots/2, '0x10': shots/2}]
+        return [{"0x00": shots / 2, "0x10": shots / 2}]
+
 
 def initialize_entangled_qubits(final_measure=True):
     """Initialize test circuits with entangled qubits"""
@@ -387,7 +561,7 @@ def initialize_entangled_qubits(final_measure=True):
         cr = ClassicalRegister(3)
         regs = (qr, cr)
     else:
-        regs = (qr, )
+        regs = (qr,)
 
     # Initialize |000+111> -> |000+110>
     circuit = QuantumCircuit(*regs)
@@ -405,7 +579,7 @@ def initialize_entangled_qubits(final_measure=True):
     circuit.h(0)
     circuit.cx(0, 1)
     circuit.cx(0, 2)
-    circuit.initialize([0,1], [1])
+    circuit.initialize([0, 1], [1])
     if final_measure:
         circuit.barrier(qr)
         circuit.measure(qr, cr)
@@ -416,7 +590,7 @@ def initialize_entangled_qubits(final_measure=True):
     circuit.h(0)
     circuit.cx(0, 1)
     circuit.cx(0, 2)
-    circuit.initialize([1,0], [2])
+    circuit.initialize([1, 0], [2])
     if final_measure:
         circuit.barrier(qr)
         circuit.measure(qr, cr)
@@ -438,7 +612,7 @@ def initialize_entangled_qubits(final_measure=True):
     circuit.h(0)
     circuit.cx(0, 1)
     circuit.cx(0, 2)
-    circuit.initialize([0,0,0,1], [0, 2])
+    circuit.initialize([0, 0, 0, 1], [0, 2])
     if final_measure:
         circuit.barrier(qr)
         circuit.measure(qr, cr)
@@ -449,7 +623,7 @@ def initialize_entangled_qubits(final_measure=True):
     circuit.h(0)
     circuit.cx(0, 1)
     circuit.cx(0, 2)
-    circuit.initialize([0.5,0.5,0.5,0.5], [1, 2])
+    circuit.initialize([0.5, 0.5, 0.5, 0.5], [1, 2])
     if final_measure:
         circuit.barrier(qr)
         circuit.measure(qr, cr)
@@ -468,37 +642,60 @@ def initialize_entangled_qubits(final_measure=True):
 
     return circuits
 
+
 def initialize_counts_entangled_qubits(shots, hex_counts=True):
     """Initialize entangled qubits reference counts."""
     targets = []
     if hex_counts:
         # Initialize |000+111> -> |000+110>
-        targets.append({'0x0': shots / 2, '0x6': shots / 2})
-        # Initialize |000+111> -> |010+111> 
-        targets.append({'0x2': shots / 2, '0x7': shots / 2})
+        targets.append({"0x0": shots / 2, "0x6": shots / 2})
+        # Initialize |000+111> -> |010+111>
+        targets.append({"0x2": shots / 2, "0x7": shots / 2})
         # Initialize |000+111> ->  |000+011>
-        targets.append({'0x0': shots / 2, '0x3': shots / 2})
+        targets.append({"0x0": shots / 2, "0x3": shots / 2})
         # Initialize |000+111> ->  |000+100>
-        targets.append({'0x0': shots / 2, '0x4': shots / 2})
+        targets.append({"0x0": shots / 2, "0x4": shots / 2})
         # Initialize |000+111> ->  |101+111>
-        targets.append({'0x5': shots / 2, '0x7': shots / 2})
+        targets.append({"0x5": shots / 2, "0x7": shots / 2})
         # Initialize |000+111> ->  |000+100+010+110+100+101+011+111>
-        targets.append({'0x0': shots / 8, '0x1': shots / 8, '0x2': shots / 8, '0x3': shots / 8, '0x4': shots / 8, '0x5': shots / 8, '0x6': shots / 8, '0x7': shots / 8})
+        targets.append(
+            {
+                "0x0": shots / 8,
+                "0x1": shots / 8,
+                "0x2": shots / 8,
+                "0x3": shots / 8,
+                "0x4": shots / 8,
+                "0x5": shots / 8,
+                "0x6": shots / 8,
+                "0x7": shots / 8,
+            }
+        )
         # Initialize |000+111> ->  |111>
-        targets.append({'0x7': shots})
+        targets.append({"0x7": shots})
     else:
         # Initialize |000+111> -> |000+110>
-        targets.append({'000': shots/2, '110': shots/2})
+        targets.append({"000": shots / 2, "110": shots / 2})
         # Initialize |000+111> -> |010+110>
-        targets.append({'010': shots/2, '111': shots/2})
+        targets.append({"010": shots / 2, "111": shots / 2})
         # Initialize |000+111> -> |000+110>
-        targets.append({'000': shots/2, '011': shots/2})
+        targets.append({"000": shots / 2, "011": shots / 2})
         # Initialize |000+111> -> |000+110>
-        targets.append({'000': shots / 2, '100': shots / 2})
+        targets.append({"000": shots / 2, "100": shots / 2})
         # Initialize |000+111> -> |101+111>
-        targets.append({'101': shots / 2, '111': shots / 2})
+        targets.append({"101": shots / 2, "111": shots / 2})
         # Initialize |000+111> -> |000+100+010+011+001+101+011+010>
-        targets.append({'000': shots / 8, '001': shots / 8, '010': shots / 8, '011': shots / 8, '100': shots / 8, '101': shots / 8, '110': shots / 8, '111': shots / 8})
+        targets.append(
+            {
+                "000": shots / 8,
+                "001": shots / 8,
+                "010": shots / 8,
+                "011": shots / 8,
+                "100": shots / 8,
+                "101": shots / 8,
+                "110": shots / 8,
+                "111": shots / 8,
+            }
+        )
         # Initialize |000+111> -> |111>
-        targets.append({'111': shots})
+        targets.append({"111": shots})
     return targets

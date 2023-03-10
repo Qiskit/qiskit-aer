@@ -83,7 +83,9 @@ class Estimator(BaseEstimator):
 
         backend_options = {} if backend_options is None else backend_options
         method = (
-            "density_matrix" if approximation and "noise_model" in backend_options else "automatic"
+            "density_matrix"
+            if approximation and "noise_model" in backend_options
+            else "automatic"
         )
         self._backend = AerSimulator(method=method)
         self._backend.set_options(**backend_options)
@@ -144,10 +146,16 @@ class Estimator(BaseEstimator):
                 observable_indices.append(index)
             else:
                 observable_indices.append(len(self._observables))
-                self._observable_ids[_observable_key(observable)] = len(self._observables)
+                self._observable_ids[_observable_key(observable)] = len(
+                    self._observables
+                )
                 self._observables.append(observable)
         job = PrimitiveJob(
-            self._call, circuit_indices, observable_indices, parameter_values, **run_options
+            self._call,
+            circuit_indices,
+            observable_indices,
+            parameter_values,
+            **run_options,
         )
         job.submit()
         return job
@@ -159,7 +167,9 @@ class Estimator(BaseEstimator):
         # Create expectation value experiments.
         if key in self._cache:  # Use a cache
             experiments_dict, obs_maps = self._cache[key]
-            exp_map = self._pre_process_params(circuits, observables, parameter_values, obs_maps)
+            exp_map = self._pre_process_params(
+                circuits, observables, parameter_values, obs_maps
+            )
             experiments, parameter_binds = self._flatten(experiments_dict, exp_map)
             post_processings = self._create_post_processing(
                 circuits, observables, parameter_values, obs_maps, exp_map
@@ -171,7 +181,9 @@ class Estimator(BaseEstimator):
             for circ_ind, obs_ind in zip(circuits, observables):
                 circ_obs_map[circ_ind].append(obs_ind)
             experiments_dict = {}
-            obs_maps = {}  # circ_ind => obs_ind => term_ind (Original Pauli) => basis_ind
+            obs_maps = (
+                {}
+            )  # circ_ind => obs_ind => term_ind (Original Pauli) => basis_ind
             # Group and create measurement circuit
             for circ_ind, obs_indices in circ_obs_map.items():
                 pauli_list = sum(
@@ -190,9 +202,13 @@ class Estimator(BaseEstimator):
                                 break
                 obs_maps[circ_ind] = obs_map
                 bases = [_paulis2basis(pauli_list) for pauli_list in pauli_lists]
-                if len(bases) == 1 and not bases[0].x.any() and not bases[0].z.any():  # identity
+                if (
+                    len(bases) == 1 and not bases[0].x.any() and not bases[0].z.any()
+                ):  # identity
                     break
-                meas_circuits = [self._create_meas_circuit(basis, circ_ind) for basis in bases]
+                meas_circuits = [
+                    self._create_meas_circuit(basis, circ_ind) for basis in bases
+                ]
                 circuit = (
                     self._circuits[circ_ind]
                     if self._skip_transpilation
@@ -201,7 +217,9 @@ class Estimator(BaseEstimator):
                 experiments_dict[circ_ind] = self._combine_circs(circuit, meas_circuits)
             self._cache[key] = experiments_dict, obs_maps
 
-            exp_map = self._pre_process_params(circuits, observables, parameter_values, obs_maps)
+            exp_map = self._pre_process_params(
+                circuits, observables, parameter_values, obs_maps
+            )
 
             # Flatten
             experiments, parameter_binds = self._flatten(experiments_dict, exp_map)
@@ -232,8 +250,12 @@ class Estimator(BaseEstimator):
         return EstimatorResult(np.real_if_close(expectation_values), list(metadata))
 
     def _pre_process_params(self, circuits, observables, parameter_values, obs_maps):
-        exp_map = defaultdict(dict)  # circ_ind => basis_ind => (parameter, parameter_values)
-        for circ_ind, obs_ind, param_val in zip(circuits, observables, parameter_values):
+        exp_map = defaultdict(
+            dict
+        )  # circ_ind => basis_ind => (parameter, parameter_values)
+        for circ_ind, obs_ind, param_val in zip(
+            circuits, observables, parameter_values
+        ):
             self._validate_parameter_length(param_val, circ_ind)
             parameter = self._parameters[circ_ind]
             for basis_ind in obs_maps[circ_ind][obs_ind]:
@@ -296,7 +318,9 @@ class Estimator(BaseEstimator):
         return circs
 
     @staticmethod
-    def _calculate_result_index(circ_ind, obs_ind, term_ind, param_val, obs_maps, exp_map) -> int:
+    def _calculate_result_index(
+        circ_ind, obs_ind, term_ind, param_val, obs_maps, exp_map
+    ) -> int:
         basis_ind = obs_maps[circ_ind][obs_ind][term_ind]
 
         result_index = 0
@@ -314,12 +338,16 @@ class Estimator(BaseEstimator):
         self, circuits, observables, parameter_values, obs_maps, exp_map
     ) -> list[_PostProcessing]:
         post_processings = []
-        for circ_ind, obs_ind, param_val in zip(circuits, observables, parameter_values):
+        for circ_ind, obs_ind, param_val in zip(
+            circuits, observables, parameter_values
+        ):
             result_indices: list[int | None] = []
             paulis = []
             coeffs = []
             observable = self._observables[obs_ind]
-            for term_ind, (pauli, coeff) in enumerate(zip(observable.paulis, observable.coeffs)):
+            for term_ind, (pauli, coeff) in enumerate(
+                zip(observable.paulis, observable.coeffs)
+            ):
                 # Identity
                 if not pauli.x.any() and not pauli.z.any():
                     result_indices.append(None)
@@ -353,7 +381,9 @@ class Estimator(BaseEstimator):
             experiments, experiment_data = self._cache[key]
             for i, j, value in zip(circuits, observables, parameter_values):
                 self._validate_parameter_length(value, i)
-                parameter_binds.append({k: [v] for k, v in zip(self._parameters[i], value)})
+                parameter_binds.append(
+                    {k: [v] for k, v in zip(self._parameters[i], value)}
+                )
         else:
             self._transpile_circuits(circuits)
             experiments = []
@@ -371,9 +401,13 @@ class Estimator(BaseEstimator):
                     circuit.save_expectation_value(observable, self._layouts[i])
                 else:
                     for term_ind, pauli in enumerate(observable.paulis):
-                        circuit.save_expectation_value(pauli, self._layouts[i], label=str(term_ind))
+                        circuit.save_expectation_value(
+                            pauli, self._layouts[i], label=str(term_ind)
+                        )
                 experiments.append(circuit)
-                parameter_binds.append({k: [v] for k, v in zip(self._parameters[i], value)})
+                parameter_binds.append(
+                    {k: [v] for k, v in zip(self._parameters[i], value)}
+                )
             self._cache[key] = (experiments, experiment_data)
         parameter_binds = parameter_binds if any(parameter_binds) else None
         result = self._backend.run(
@@ -382,9 +416,12 @@ class Estimator(BaseEstimator):
 
         # Post processing (calculate expectation values)
         if shots is None:
-            expectation_values = [result.data(i)["expectation_value"] for i in range(len(circuits))]
+            expectation_values = [
+                result.data(i)["expectation_value"] for i in range(len(circuits))
+            ]
             metadata = [
-                {"simulator_metadata": result.results[i].metadata} for i in range(len(experiments))
+                {"simulator_metadata": result.results[i].metadata}
+                for i in range(len(experiments))
             ]
         else:
             expectation_values = []
@@ -459,7 +496,10 @@ def _expval_with_variance(counts) -> tuple[float, float]:
 
 class _PostProcessing:
     def __init__(
-        self, result_indices: list[int], paulis: list[PauliList], coeffs: list[list[float]]
+        self,
+        result_indices: list[int],
+        paulis: list[PauliList],
+        coeffs: list[list[float]],
     ):
         self._result_indices = result_indices
         self._paulis = paulis
@@ -477,10 +517,14 @@ class _PostProcessing:
         combined_expval = 0.0
         combined_var = 0.0
         simulator_metadata = []
-        for c_i, paulis, coeffs in zip(self._result_indices, self._paulis, self._coeffs):
+        for c_i, paulis, coeffs in zip(
+            self._result_indices, self._paulis, self._coeffs
+        ):
             if c_i is None:
                 # Observable is identity
-                expvals, variances = np.array([1], dtype=complex), np.array([0], dtype=complex)
+                expvals, variances = np.array([1], dtype=complex), np.array(
+                    [0], dtype=complex
+                )
                 shots = 0
             else:
                 result = results[c_i]
@@ -511,7 +555,9 @@ def _update_metadata(circuit: QuantumCircuit, metadata: dict) -> QuantumCircuit:
     return circuit
 
 
-def _pauli_expval_with_variance(counts: dict, paulis: PauliList) -> tuple[np.ndarray, np.ndarray]:
+def _pauli_expval_with_variance(
+    counts: dict, paulis: PauliList
+) -> tuple[np.ndarray, np.ndarray]:
     # Diag indices
     size = len(paulis)
     diag_inds = _paulis2inds(paulis)
@@ -534,7 +580,9 @@ def _pauli_expval_with_variance(counts: dict, paulis: PauliList) -> tuple[np.nda
 
 def _paulis2inds(paulis: PauliList) -> list[int]:
     nonid = paulis.z | paulis.x
-    packed_vals = np.packbits(nonid, axis=1, bitorder="little").astype(  # pylint:disable=no-member
+    packed_vals = np.packbits(
+        nonid, axis=1, bitorder="little"
+    ).astype(  # pylint:disable=no-member
         object
     )
     power_uint8 = 1 << (8 * np.arange(packed_vals.shape[1], dtype=object))

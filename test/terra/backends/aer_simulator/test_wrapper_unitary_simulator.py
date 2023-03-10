@@ -22,8 +22,7 @@ from test.terra.reference import ref_diagonal_gate
 
 from qiskit import transpile
 from qiskit_aer import UnitarySimulator, AerError
-from test.terra.backends.simulator_test_case import (
-    SimulatorTestCase, supported_devices)
+from test.terra.backends.simulator_test_case import SimulatorTestCase, supported_devices
 
 
 @ddt
@@ -40,7 +39,8 @@ class TestUnitarySimulator(SimulatorTestCase):
         """Test simulation with unitary gate circuit instructions."""
         backend = self.backend(device=device)
         circuits = ref_unitary_gate.unitary_gate_circuits_deterministic(
-            final_measure=False)
+            final_measure=False
+        )
         circuits = transpile(circuits, backend, optimization_level=1)
         result = backend.run(circuits, shots=1).result()
         targets = ref_unitary_gate.unitary_gate_unitary_deterministic()
@@ -52,7 +52,8 @@ class TestUnitarySimulator(SimulatorTestCase):
         """Test simulation with unitary gate circuit instructions."""
         backend = self.backend(device=device)
         circuits = ref_unitary_gate.unitary_gate_circuits_deterministic(
-            final_measure=False)
+            final_measure=False
+        )
         circuits = transpile(circuits, backend, optimization_level=1)
         result = backend.run(circuits, shots=1).result()
         targets = ref_unitary_gate.unitary_gate_unitary_deterministic()
@@ -64,7 +65,8 @@ class TestUnitarySimulator(SimulatorTestCase):
         """Test simulation with diagonal gate circuit instructions."""
         backend = self.backend(device=device)
         circuits = ref_diagonal_gate.diagonal_gate_circuits_deterministic(
-            final_measure=False)
+            final_measure=False
+        )
         circuits = transpile(circuits, backend, optimization_level=1)
         result = backend.run(circuits, shots=1).result()
         targets = ref_diagonal_gate.diagonal_gate_unitary_deterministic()
@@ -79,8 +81,7 @@ class TestUnitarySimulator(SimulatorTestCase):
     def test_qobj_global_phase(self, device):
         """Test qobj global phase."""
         backend = self.backend(device=device)
-        circuits = ref_1q_clifford.h_gate_circuits_nondeterministic(
-            final_measure=False)
+        circuits = ref_1q_clifford.h_gate_circuits_nondeterministic(final_measure=False)
         circuits = transpile(circuits, backend, optimization_level=1)
         result = backend.run(circuits, shots=1).result()
         targets = ref_1q_clifford.h_gate_unitary_nondeterministic()

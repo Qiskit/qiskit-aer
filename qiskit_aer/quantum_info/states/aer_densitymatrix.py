@@ -53,16 +53,18 @@ class AerDensityMatrix(DensityMatrix):
         Additional Information:
             The ``dims`` kwarg is used to ``AerDensityMatrix`` constructor.
         """
-        if '_aer_state' in configs:
-            self._aer_state = configs.pop('_aer_state')
+        if "_aer_state" in configs:
+            self._aer_state = configs.pop("_aer_state")
         else:
-            if 'method' not in configs:
-                configs['method'] = 'density_matrix'
-            elif configs['method'] != 'density_matrix':
-                method = configs['method']
-                raise AerError(f'Method {method} is not supported')
+            if "method" not in configs:
+                configs["method"] = "density_matrix"
+            elif configs["method"] != "density_matrix":
+                method = configs["method"]
+                raise AerError(f"Method {method} is not supported")
             if isinstance(data, (QuantumCircuit, Instruction)):
-                data, aer_state = AerDensityMatrix._from_instruction(data, None, configs)
+                data, aer_state = AerDensityMatrix._from_instruction(
+                    data, None, configs
+                )
             elif isinstance(data, list):
                 data = self._from_1d_array(np.array(data, dtype=complex))
                 data, aer_state = AerDensityMatrix._from_ndarray(data, configs)
@@ -75,9 +77,10 @@ class AerDensityMatrix(DensityMatrix):
                     dims = data._op_shape._dims_l
                 data = data._data.copy()
             elif isinstance(data, DensityMatrix):
-                data, aer_state = AerDensityMatrix._from_ndarray(np.array(data.data,
-                                                                          dtype=complex), configs)
-            elif hasattr(data, 'to_operator'):
+                data, aer_state = AerDensityMatrix._from_ndarray(
+                    np.array(data.data, dtype=complex), configs
+                )
+            elif hasattr(data, "to_operator"):
                 # If the data object has a 'to_operator' attribute this is given
                 # higher preference than the 'to_matrix' method for initializing
                 # an Operator object.
@@ -85,14 +88,17 @@ class AerDensityMatrix(DensityMatrix):
                 data, aer_state = AerDensityMatrix._from_ndarray(op.data, configs)
                 if dims is None:
                     dims = op.output_dims()
-            elif hasattr(data, 'to_matrix'):
+            elif hasattr(data, "to_matrix"):
                 # If no 'to_operator' attribute exists we next look for a
                 # 'to_matrix' attribute to a matrix that will be cast into
                 # a complex numpy matrix.
                 data, aer_state = AerDensityMatrix._from_ndarray(
-                    np.asarray(data.to_matrix(), dtype=complex), configs)
+                    np.asarray(data.to_matrix(), dtype=complex), configs
+                )
             else:
-                raise AerError(f'Input data is not supported: type={data.__class__}, data={data}')
+                raise AerError(
+                    f"Input data is not supported: type={data.__class__}, data={data}"
+                )
 
             self._aer_state = aer_state
 
@@ -106,7 +112,9 @@ class AerDensityMatrix(DensityMatrix):
         if value is None or isinstance(value, int):
             self._aer_state.set_seed(value)
         else:
-            raise AerError(f'This seed is not supported: type={value.__class__}, value={value}')
+            raise AerError(
+                f"This seed is not supported: type={value.__class__}, value={value}"
+            )
 
     def _last_result(self):
         if self._result is None:
@@ -116,8 +124,8 @@ class AerDensityMatrix(DensityMatrix):
     def metadata(self):
         """Return result metadata of an operation that executed lastly."""
         if self._last_result() is None:
-            raise AerError('AerState was not used and metdata does not exist.')
-        return self._last_result()['metadata']
+            raise AerError("AerState was not used and metdata does not exist.")
+        return self._last_result()["metadata"]
 
     def __copy__(self):
         return copy.deepcopy(self)
@@ -210,7 +218,7 @@ class AerDensityMatrix(DensityMatrix):
 
     @staticmethod
     def _from_ndarray(init_data, configs):
-        aer_state = AerState(method='density_matrix')
+        aer_state = AerState(method="density_matrix")
 
         options = AerSimulator._default_options()
         for config_key, config_value in configs.items():
@@ -218,7 +226,7 @@ class AerDensityMatrix(DensityMatrix):
                 aer_state.configure(config_key, config_value)
 
         if len(init_data) == 0:
-            raise AerError('initial data must be larger than 0')
+            raise AerError("initial data must be larger than 0")
 
         num_qubits = int(np.log2(len(init_data)))
 
@@ -233,12 +241,12 @@ class AerDensityMatrix(DensityMatrix):
 
     @staticmethod
     def _from_instruction(inst, init_data, configs):
-        aer_state = AerState(method='density_matrix')
+        aer_state = AerState(method="density_matrix")
 
         for config_key, config_value in configs.items():
             aer_state.configure(config_key, config_value)
 
-        basis_gates = BASIS_GATES['density_matrix']
+        basis_gates = BASIS_GATES["density_matrix"]
 
         aer_state.allocate_qubits(inst.num_qubits)
         num_qubits = inst.num_qubits
@@ -252,9 +260,13 @@ class AerDensityMatrix(DensityMatrix):
             aer_state.apply_global_phase(inst.global_phase)
 
         if isinstance(inst, QuantumCircuit):
-            AerStatevector._aer_evolve_circuit(aer_state, inst, range(num_qubits), basis_gates)
+            AerStatevector._aer_evolve_circuit(
+                aer_state, inst, range(num_qubits), basis_gates
+            )
         else:
-            AerStatevector._aer_evolve_instruction(aer_state, inst, range(num_qubits), basis_gates)
+            AerStatevector._aer_evolve_instruction(
+                aer_state, inst, range(num_qubits), basis_gates
+            )
 
         return aer_state.move_to_ndarray(), aer_state
 
@@ -294,13 +306,15 @@ class AerDensityMatrix(DensityMatrix):
             rtol = self.rtol
 
         if not is_hermitian_matrix(self.data, atol=atol, rtol=rtol):
-            raise QiskitError('Not a valid density matrix (non-hermitian).')
+            raise QiskitError("Not a valid density matrix (non-hermitian).")
 
         evals, evecs = np.linalg.eig(self.data)
 
         nonzero_evals = evals[abs(evals) > atol]
-        if len(nonzero_evals) != 1 or not np.isclose(nonzero_evals[0], 1, atol=atol, rtol=rtol):
-            raise QiskitError('Density matrix is not a pure state')
+        if len(nonzero_evals) != 1 or not np.isclose(
+            nonzero_evals[0], 1, atol=atol, rtol=rtol
+        ):
+            raise QiskitError("Density matrix is not a pure state")
 
         psi = evecs[:, np.argmax(evals)]  # eigenvectors returned in columns.
         return AerStatevector(psi)

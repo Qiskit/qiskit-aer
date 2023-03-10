@@ -16,10 +16,14 @@
 #define _ITERATORS_HPP
 
 template <typename T>
-struct iterator_extractor { using type = typename T::iterator; };
+struct iterator_extractor {
+  using type = typename T::iterator;
+};
 
 template <typename T>
-struct iterator_extractor<T const> { using type = typename T::const_iterator; };
+struct iterator_extractor<T const> {
+  using type = typename T::const_iterator;
+};
 
 /**
  * Python-like `enumerate()` for C++14 ranged-for
@@ -36,56 +40,50 @@ struct iterator_extractor<T const> { using type = typename T::const_iterator; };
 template <typename T>
 class Indexer {
 public:
-    class _Iterator {
-        using inner_iterator =  typename iterator_extractor<T>::type;
-        using inner_reference = typename std::iterator_traits<inner_iterator>::reference;
-    public:
-        using reference = std::pair<size_t, inner_reference>;
+  class _Iterator {
+    using inner_iterator = typename iterator_extractor<T>::type;
+    using inner_reference =
+        typename std::iterator_traits<inner_iterator>::reference;
 
-        _Iterator(inner_iterator it): _pos(0), _it(it) {}
+  public:
+    using reference = std::pair<size_t, inner_reference>;
 
-        reference operator*() const {
-            return reference(_pos, *_it);
-        }
+    _Iterator(inner_iterator it) : _pos(0), _it(it) {}
 
-        _Iterator& operator++() {
-            ++_pos;
-            ++_it;
-            return *this;
-        }
+    reference operator*() const { return reference(_pos, *_it); }
 
-        _Iterator operator++(int) {
-            _Iterator tmp(*this);
-            ++*this;
-            return tmp;
-        }
-
-        bool operator==(_Iterator const& it) const {
-            return _it == it._it;
-        }
-        bool operator!=(_Iterator const& it) const {
-            return !(*this == it);
-        }
-
-    private:
-        size_t _pos;
-        inner_iterator _it;
-    };
-
-    Indexer(T& t): _container(t) {}
-
-    _Iterator begin() const {
-        return _Iterator(_container.begin());
+    _Iterator &operator++() {
+      ++_pos;
+      ++_it;
+      return *this;
     }
-    _Iterator end() const {
-        return _Iterator(_container.end());
+
+    _Iterator operator++(int) {
+      _Iterator tmp(*this);
+      ++*this;
+      return tmp;
     }
+
+    bool operator==(_Iterator const &it) const { return _it == it._it; }
+    bool operator!=(_Iterator const &it) const { return !(*this == it); }
+
+  private:
+    size_t _pos;
+    inner_iterator _it;
+  };
+
+  Indexer(T &t) : _container(t) {}
+
+  _Iterator begin() const { return _Iterator(_container.begin()); }
+  _Iterator end() const { return _Iterator(_container.end()); }
 
 private:
-    T& _container;
+  T &_container;
 }; // class Indexer
 
 template <typename T>
-Indexer<T> enumerate(T& t) { return Indexer<T>(t); }
+Indexer<T> enumerate(T &t) {
+  return Indexer<T>(t);
+}
 
 #endif

@@ -20,10 +20,10 @@ from ..default_qubits import default_qubits
 
 class SaveStatevector(SaveSingleData):
     """Save statevector"""
-    def __init__(self, num_qubits,
-                 label="statevector",
-                 pershot=False,
-                 conditional=False):
+
+    def __init__(
+        self, num_qubits, label="statevector", pershot=False, conditional=False
+    ):
         """Create new instruction to save the simulator statevector.
 
         Args:
@@ -41,17 +41,21 @@ class SaveStatevector(SaveSingleData):
             qubits in a circuit, otherwise an exception will be raised during
             simulation.
         """
-        super().__init__('save_statevector', num_qubits, label,
-                         pershot=pershot,
-                         conditional=conditional)
+        super().__init__(
+            "save_statevector",
+            num_qubits,
+            label,
+            pershot=pershot,
+            conditional=conditional,
+        )
 
 
 class SaveStatevectorDict(SaveSingleData):
     """Save statevector as ket-form dictionary."""
-    def __init__(self, num_qubits,
-                 label="statevector_dict",
-                 pershot=False,
-                 conditional=False):
+
+    def __init__(
+        self, num_qubits, label="statevector_dict", pershot=False, conditional=False
+    ):
         """Create new instruction to save the simulator statevector as a dict.
 
         Args:
@@ -69,9 +73,13 @@ class SaveStatevectorDict(SaveSingleData):
             qubits in a circuit, otherwise an exception will be raised during
             simulation.
         """
-        super().__init__('save_statevector_dict', num_qubits, label,
-                         pershot=pershot,
-                         conditional=conditional)
+        super().__init__(
+            "save_statevector_dict",
+            num_qubits,
+            label,
+            pershot=pershot,
+            conditional=conditional,
+        )
 
 
 def save_statevector(self, label="statevector", pershot=False, conditional=False):
@@ -93,10 +101,9 @@ def save_statevector(self, label="statevector", pershot=False, conditional=False
         This instruction is always defined across all qubits in a circuit.
     """
     qubits = default_qubits(self)
-    instr = SaveStatevector(len(qubits),
-                            label=label,
-                            pershot=pershot,
-                            conditional=conditional)
+    instr = SaveStatevector(
+        len(qubits), label=label, pershot=pershot, conditional=conditional
+    )
     return self.append(instr, qubits)
 
 
@@ -119,10 +126,9 @@ def save_statevector_dict(self, label="statevector", pershot=False, conditional=
         This instruction is always defined across all qubits in a circuit.
     """
     qubits = default_qubits(self)
-    instr = SaveStatevectorDict(len(qubits),
-                                label=label,
-                                pershot=pershot,
-                                conditional=conditional)
+    instr = SaveStatevectorDict(
+        len(qubits), label=label, pershot=pershot, conditional=conditional
+    )
     return self.append(instr, qubits)
 
 

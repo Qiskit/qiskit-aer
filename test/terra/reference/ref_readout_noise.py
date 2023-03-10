@@ -35,8 +35,8 @@ def readout_error_circuits():
     circuits = []
 
     # Test circuit: ideal bell state for 1-qubit readout errors
-    qr = QuantumRegister(2, 'qr')
-    cr = ClassicalRegister(2, 'cr')
+    qr = QuantumRegister(2, "qr")
+    cr = ClassicalRegister(2, "cr")
     circuit = QuantumCircuit(qr, cr)
     circuit.h(qr[0])
     circuit.cx(qr[0], qr[1])
@@ -51,8 +51,8 @@ def readout_error_circuits():
 
     # 2-qubit correlated readout error circuit
     measure2 = Instruction("measure", 2, 2, [])  # 2-qubit measure
-    qr = QuantumRegister(2, 'qr')
-    cr = ClassicalRegister(2, 'cr')
+    qr = QuantumRegister(2, "qr")
+    cr = ClassicalRegister(2, "cr")
     circuit = QuantumCircuit(qr, cr)
     circuit.h(qr)
     circuit.barrier(qr)
@@ -96,42 +96,40 @@ def readout_error_counts(shots, hex_counts=True):
 
     # 1-qubit readout error on qubit 0
     counts = [
-        ROERROR_1Q[0][0] * shots / 2, ROERROR_1Q[0][1] * shots / 2,
-        ROERROR_1Q[1][0] * shots / 2, ROERROR_1Q[1][1] * shots / 2
+        ROERROR_1Q[0][0] * shots / 2,
+        ROERROR_1Q[0][1] * shots / 2,
+        ROERROR_1Q[1][0] * shots / 2,
+        ROERROR_1Q[1][1] * shots / 2,
     ]
     counts_lists.append(counts)
 
     # 1-qubit readout error on qubit 1
     counts = [
-        ROERROR_1Q[0][0] * shots / 2, ROERROR_1Q[1][0] * shots / 2,
-        ROERROR_1Q[0][1] * shots / 2, ROERROR_1Q[1][1] * shots / 2
+        ROERROR_1Q[0][0] * shots / 2,
+        ROERROR_1Q[1][0] * shots / 2,
+        ROERROR_1Q[0][1] * shots / 2,
+        ROERROR_1Q[1][1] * shots / 2,
     ]
     counts_lists.append(counts)
 
     # 1-qubit readout error on qubit 1
-    p00 = 0.5 * (ROERROR_1Q[0][0]**2 + ROERROR_1Q[1][0]**2)
+    p00 = 0.5 * (ROERROR_1Q[0][0] ** 2 + ROERROR_1Q[1][0] ** 2)
     p01 = 0.5 * (
-        ROERROR_1Q[0][0] * ROERROR_1Q[0][1] + ROERROR_1Q[1][0] * ROERROR_1Q[1][1])
+        ROERROR_1Q[0][0] * ROERROR_1Q[0][1] + ROERROR_1Q[1][0] * ROERROR_1Q[1][1]
+    )
     p10 = 0.5 * (
-        ROERROR_1Q[0][0] * ROERROR_1Q[0][1] + ROERROR_1Q[1][0] * ROERROR_1Q[1][1])
-    p11 = 0.5 * (ROERROR_1Q[0][1]**2 + ROERROR_1Q[1][1]**2)
+        ROERROR_1Q[0][0] * ROERROR_1Q[0][1] + ROERROR_1Q[1][0] * ROERROR_1Q[1][1]
+    )
+    p11 = 0.5 * (ROERROR_1Q[0][1] ** 2 + ROERROR_1Q[1][1] ** 2)
     counts = [p00 * shots, p01 * shots, p10 * shots, p11 * shots]
     counts_lists.append(counts)
 
     # 2-qubit readout error on qubits 0,1
     probs_ideal = [0.25, 0.25, 0.25, 0.25]
-    p00 = sum([
-        ideal * noise[0] for ideal, noise in zip(probs_ideal, ROERROR_2Q)
-    ])
-    p01 = sum([
-        ideal * noise[1] for ideal, noise in zip(probs_ideal, ROERROR_2Q)
-    ])
-    p10 = sum([
-        ideal * noise[2] for ideal, noise in zip(probs_ideal, ROERROR_2Q)
-    ])
-    p11 = sum([
-        ideal * noise[3] for ideal, noise in zip(probs_ideal, ROERROR_2Q)
-    ])
+    p00 = sum([ideal * noise[0] for ideal, noise in zip(probs_ideal, ROERROR_2Q)])
+    p01 = sum([ideal * noise[1] for ideal, noise in zip(probs_ideal, ROERROR_2Q)])
+    p10 = sum([ideal * noise[2] for ideal, noise in zip(probs_ideal, ROERROR_2Q)])
+    p11 = sum([ideal * noise[3] for ideal, noise in zip(probs_ideal, ROERROR_2Q)])
     counts = [p00 * shots, p01 * shots, p10 * shots, p11 * shots]
     counts_lists.append(counts)
 

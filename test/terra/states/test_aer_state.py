@@ -27,6 +27,7 @@ from qiskit_aer.aererror import AerError
 from qiskit_aer.backends.controller_wrappers import AerStateWrapper
 from qiskit_aer.quantum_info.states.aer_state import AerState
 
+
 class TestAerState(common.QiskitAerTestCase):
     """AerState tests"""
 
@@ -36,7 +37,7 @@ class TestAerState(common.QiskitAerTestCase):
 
     def test_move_from_aer_state(self):
         """Test move of aer state to python"""
-        state = AerState(method='statevector')
+        state = AerState(method="statevector")
         state.allocate_qubits(4)
         state.initialize()
         sv = state.move_to_ndarray()
@@ -45,7 +46,7 @@ class TestAerState(common.QiskitAerTestCase):
 
     def test_error_reuse_aer_state(self):
         """Test reuse AerState after move of aer state to python"""
-        state = AerState(method='statevector')
+        state = AerState(method="statevector")
         state.allocate_qubits(4)
         state.initialize()
         sv = state.move_to_ndarray()
@@ -57,61 +58,61 @@ class TestAerState(common.QiskitAerTestCase):
 
     def test_initialize_statevector(self):
         """Test initialization of AerState with statevector"""
-        state1 = AerState(method='statevector')
+        state1 = AerState(method="statevector")
         state1.allocate_qubits(4)
         state1.initialize()
         sv1 = state1.move_to_ndarray()
         state1.close()
 
-        self.assertEqual(sv1[0], complex(1., 0.))
+        self.assertEqual(sv1[0], complex(1.0, 0.0))
         for idx in range(1, len(sv1)):
-            self.assertEqual(sv1[idx], complex(0., 0.))
+            self.assertEqual(sv1[idx], complex(0.0, 0.0))
 
-        sv1[0] = complex(0., 0.)
-        sv1[len(sv1) - 1] = complex(1., 0.)
+        sv1[0] = complex(0.0, 0.0)
+        sv1[len(sv1) - 1] = complex(1.0, 0.0)
 
-        state2 = AerState(method='statevector')
+        state2 = AerState(method="statevector")
         state2.initialize(sv1)
         state2.flush()
         sv2 = state2.move_to_ndarray()
         state2.close()
 
         for idx in range(len(sv2) - 2):
-            self.assertEqual(sv2[idx], complex(0., 0.))
-        self.assertEqual(sv2[len(sv2) - 1], complex(1., 0.))
+            self.assertEqual(sv2[idx], complex(0.0, 0.0))
+        self.assertEqual(sv2[len(sv2) - 1], complex(1.0, 0.0))
 
     def test_initialize_statevector_cache_blocking(self):
         """Test initialization of AerState with statevector"""
-        state1 = AerState(blocking_qubits=2, method='statevector')
+        state1 = AerState(blocking_qubits=2, method="statevector")
         state1.allocate_qubits(4)
         state1.initialize()
         sv1 = state1.move_to_ndarray()
         state1.close()
 
-        self.assertEqual(sv1[0], complex(1., 0.))
+        self.assertEqual(sv1[0], complex(1.0, 0.0))
         for idx in range(1, len(sv1)):
-            self.assertEqual(sv1[idx], complex(0., 0.))
+            self.assertEqual(sv1[idx], complex(0.0, 0.0))
 
-        sv1[0] = complex(0., 0.)
-        sv1[len(sv1) - 1] = complex(1., 0.)
+        sv1[0] = complex(0.0, 0.0)
+        sv1[len(sv1) - 1] = complex(1.0, 0.0)
 
-        state2 = AerState(blocking_qubits=2, method='statevector')
+        state2 = AerState(blocking_qubits=2, method="statevector")
         state2.initialize(sv1)
         state2.flush()
         sv2 = state2.move_to_ndarray()
         state2.close()
 
         for idx in range(len(sv2) - 2):
-            self.assertEqual(sv2[idx], complex(0., 0.))
-        self.assertEqual(sv2[len(sv2) - 1], complex(1., 0.))
+            self.assertEqual(sv2[idx], complex(0.0, 0.0))
+        self.assertEqual(sv2[len(sv2) - 1], complex(1.0, 0.0))
 
     def test_initialize_density_matrix(self):
         """Test initialization of AerState with densitymatrix"""
         target_c = random_density_matrix(2**4, seed=1111).data
-        target_f = np.array(target_c, order='F')
+        target_f = np.array(target_c, order="F")
 
-        state1 = AerState(method='density_matrix')
-        state1.initialize(target_f, True) # copy
+        state1 = AerState(method="density_matrix")
+        state1.initialize(target_f, True)  # copy
         dm1 = state1.move_to_ndarray()
         state1.close()
 
@@ -121,7 +122,7 @@ class TestAerState(common.QiskitAerTestCase):
             for col in range(dm1.shape[1]):
                 self.assertAlmostEqual(target_f[row][col], dm1[row][col])
 
-        state2 = AerState(method='density_matrix')
+        state2 = AerState(method="density_matrix")
         state2.initialize(dm1, False)
         state2.flush()
         dm2 = state2.move_to_ndarray()
@@ -134,8 +135,8 @@ class TestAerState(common.QiskitAerTestCase):
             for col in range(dm1.shape[1]):
                 self.assertAlmostEqual(target_f[row][col], dm2[row][col])
 
-        state3 = AerState(method='density_matrix')
-        state3.initialize(target_c, True) # copy
+        state3 = AerState(method="density_matrix")
+        state3.initialize(target_c, True)  # copy
         dm3 = state3.move_to_ndarray()
         state3.close()
 
@@ -148,13 +149,13 @@ class TestAerState(common.QiskitAerTestCase):
     def test_map_statevector(self):
         """Test initialization of AerState with statevector"""
         init_state = random_statevector(2**5, seed=111)
-        state1 = AerState(method='statevector', seed_simulator=2222)
+        state1 = AerState(method="statevector", seed_simulator=2222)
         state1.allocate_qubits(4)
         state1.initialize(init_state.data, copy=True)
         sample1 = state1.sample_counts()
         sv1 = state1.move_to_ndarray()
 
-        state2 = AerState(method='statevector', seed_simulator=2222)
+        state2 = AerState(method="statevector", seed_simulator=2222)
         state2.initialize(sv1, copy=False)
         sample2 = state2.sample_counts()
         sv2 = state2.move_to_ndarray()
@@ -166,12 +167,12 @@ class TestAerState(common.QiskitAerTestCase):
     def test_map_density_matrix(self):
         """Test initialization of AerState with densitymatrix"""
         init_state = random_statevector(4**4, seed=111).data.reshape(16, 16)
-        state1 = AerState(method='density_matrix', seed_simulator=2222)
+        state1 = AerState(method="density_matrix", seed_simulator=2222)
         state1.initialize(init_state, copy=True)
         sample1 = state1.sample_counts()
         dm1 = state1.move_to_ndarray()
 
-        state2 = AerState(method='density_matrix', seed_simulator=2222)
+        state2 = AerState(method="density_matrix", seed_simulator=2222)
         state2.initialize(dm1, copy=False)
         sample2 = state2.sample_counts()
         dm2 = state2.move_to_ndarray()
@@ -182,37 +183,37 @@ class TestAerState(common.QiskitAerTestCase):
 
     def test_map_statevector_repeated(self):
         """Test initialization of AerState with statevector"""
-        state1 = AerState(method='statevector')
+        state1 = AerState(method="statevector")
         state1.allocate_qubits(4)
         state1.initialize()
         sv1 = state1.move_to_ndarray()
-        sv1[0] = complex(0., 0.)
-        sv1[len(sv1) - 1] = complex(1., 0.)
+        sv1[0] = complex(0.0, 0.0)
+        sv1[len(sv1) - 1] = complex(1.0, 0.0)
         state1.close()
 
         for _ in range(100):
-            state2 = AerState(method='statevector')
+            state2 = AerState(method="statevector")
             state2.initialize(sv1, copy=False)
             sv2 = state2.move_to_ndarray()
             state2.close()
 
             for idx in range(len(sv2) - 2):
-                self.assertEqual(sv2[idx], complex(0., 0.))
-            self.assertEqual(sv2[len(sv2) - 1], complex(1., 0.))
+                self.assertEqual(sv2[idx], complex(0.0, 0.0))
+            self.assertEqual(sv2[len(sv2) - 1], complex(1.0, 0.0))
 
     def test_map_density_matrix_repeated(self):
         """Test initialization of AerState with densitymatrix"""
-        state1 = AerState(method='density_matrix')
+        state1 = AerState(method="density_matrix")
         state1.allocate_qubits(4)
         state1.initialize()
 
         dm1 = state1.move_to_ndarray()
-        dm1[0][0] = complex(0., 0.)
-        dm1[len(dm1) - 1][len(dm1) - 1] = complex(1., 0.)
+        dm1[0][0] = complex(0.0, 0.0)
+        dm1[len(dm1) - 1][len(dm1) - 1] = complex(1.0, 0.0)
         state1.close()
 
         for _ in range(100):
-            state2 = AerState(method='density_matrix')
+            state2 = AerState(method="density_matrix")
             state2.initialize(dm1, copy=False)
             dm2 = state2.move_to_ndarray()
             state2.close()
@@ -220,16 +221,16 @@ class TestAerState(common.QiskitAerTestCase):
             for row in range(dm2.shape[0]):
                 for col in range(dm2.shape[1]):
                     if row == len(dm2) - 1 and col == len(dm2) - 1:
-                        self.assertEqual(dm2[row][col], complex(1., 0.))
+                        self.assertEqual(dm2[row][col], complex(1.0, 0.0))
                     else:
-                        self.assertEqual(dm2[row][col], complex(0., 0.))
+                        self.assertEqual(dm2[row][col], complex(0.0, 0.0))
 
     def test_initialize_with_normal_ndarray(self):
         """Test initialization of AerState with normal ndarray"""
-        sv1 = np.zeros((2 ** 4), dtype=np.complex128)
-        sv1[len(sv1) - 1] = 1.
+        sv1 = np.zeros((2**4), dtype=np.complex128)
+        sv1[len(sv1) - 1] = 1.0
 
-        state1 = AerState(method='statevector')
+        state1 = AerState(method="statevector")
         state1.initialize(sv1)
 
         sv2 = state1.move_to_ndarray()
@@ -241,10 +242,10 @@ class TestAerState(common.QiskitAerTestCase):
 
     def test_initialize_with_normal_ndarray_with_map(self):
         """Test initialization of AerState by mapping a normal ndarray"""
-        sv1 = np.zeros((2 ** 4), dtype=np.complex128)
-        sv1[len(sv1) - 1] = 1.
+        sv1 = np.zeros((2**4), dtype=np.complex128)
+        sv1[len(sv1) - 1] = 1.0
 
-        state1 = AerState(method='statevector')
+        state1 = AerState(method="statevector")
         state1.initialize(sv1, copy=False)
 
         sv2 = state1.move_to_ndarray()
@@ -255,12 +256,12 @@ class TestAerState(common.QiskitAerTestCase):
     def test_initialize_with_non_contiguous_ndarray(self):
         """Test initialization of AerState with not-contiguous statevector"""
 
-        sv1 = np.arange(2 ** 4 * 2, dtype=np.complex128)[::2]
+        sv1 = np.arange(2**4 * 2, dtype=np.complex128)[::2]
         for idx in range(0, len(sv1) - 1):
-            sv1[idx] = complex(0., 0.)
-        sv1[len(sv1) - 1] = complex(1., 0.)
+            sv1[idx] = complex(0.0, 0.0)
+        sv1[len(sv1) - 1] = complex(1.0, 0.0)
 
-        state2 = AerState(method='statevector')
+        state2 = AerState(method="statevector")
         state2.initialize(sv1)
         state2.flush()
         sv2 = state2.move_to_ndarray()
@@ -273,13 +274,13 @@ class TestAerState(common.QiskitAerTestCase):
     def test_initialize_density_matrix_with_non_contiguous_ndarray(self):
         """Test initialization of AerState with not-contiguous density matrix"""
 
-        sv1 = np.arange(4 ** 4 * 2, dtype=np.complex128).reshape(16, 32)[:,::2]
+        sv1 = np.arange(4**4 * 2, dtype=np.complex128).reshape(16, 32)[:, ::2]
         for row in range(len(sv1)):
             for col in range(len(sv1)):
-                sv1[row, col] = complex(0., 0.)
-        sv1[len(sv1)-1, len(sv1)-1] = complex(1., 0.)
+                sv1[row, col] = complex(0.0, 0.0)
+        sv1[len(sv1) - 1, len(sv1) - 1] = complex(1.0, 0.0)
 
-        state2 = AerState(method='density_matrix')
+        state2 = AerState(method="density_matrix")
         state2.initialize(sv1)
         state2.flush()
         sv2 = state2.move_to_ndarray()
@@ -287,8 +288,9 @@ class TestAerState(common.QiskitAerTestCase):
 
         self.assertIsNot(sv1, sv2)
         self.assertEqual(len(sv1), len(sv2))
-        self.assertEqual(sv1[len(sv1)-1, len(sv1)-1], sv2[len(sv2)-1, len(sv2)-1])
-
+        self.assertEqual(
+            sv1[len(sv1) - 1, len(sv1) - 1], sv2[len(sv2) - 1, len(sv2) - 1]
+        )
 
     def test_appply_unitary(self):
         """Test applying a unitary matrix"""
@@ -302,11 +304,11 @@ class TestAerState(common.QiskitAerTestCase):
         circuit.unitary(unitary_3, [3, 4, 0])
         circuit.save_statevector()
 
-        aer_simulator = AerSimulator(method='statevector')
+        aer_simulator = AerSimulator(method="statevector")
         result = aer_simulator.run(circuit).result()
         expected = result.get_statevector(0)
 
-        state = AerState(method='statevector')
+        state = AerState(method="statevector")
         state.allocate_qubits(5)
         state.initialize()
 
@@ -318,11 +320,10 @@ class TestAerState(common.QiskitAerTestCase):
         for i, amp in enumerate(actual):
             self.assertAlmostEqual(expected[i], amp)
 
-
     def test_appply_multiplexer(self):
         """Test applying a multiplexer operation"""
-        class CustomMultiplexer(Gate):
 
+        class CustomMultiplexer(Gate):
             def validate_parameter(self, param):
                 return param
 
@@ -330,8 +331,10 @@ class TestAerState(common.QiskitAerTestCase):
             identity = np.array(np.array([[1, 0], [0, 1]], dtype=complex))
             x_gate = np.array(np.array([[0, 1], [1, 0]], dtype=complex))
             num_qubits = num_control + 1
-            multiplexer = CustomMultiplexer('multiplexer',
-                    num_qubits, (2 ** num_control-1) * [identity] + [x_gate],
+            multiplexer = CustomMultiplexer(
+                "multiplexer",
+                num_qubits,
+                (2**num_control - 1) * [identity] + [x_gate],
             )
             return multiplexer
 
@@ -348,11 +351,11 @@ class TestAerState(common.QiskitAerTestCase):
         circuit.append(multiplexr_3, [3, 4, 0, 1])
         circuit.save_statevector()
 
-        aer_simulator = AerSimulator(method='statevector')
+        aer_simulator = AerSimulator(method="statevector")
         result = aer_simulator.run(circuit).result()
         expected = result.get_statevector(0)
 
-        state = AerState(method='statevector')
+        state = AerState(method="statevector")
         state.allocate_qubits(5)
         state.initialize(init_state.data)
 
@@ -379,11 +382,11 @@ class TestAerState(common.QiskitAerTestCase):
         circuit.diagonal(diag_3, [3, 4, 0])
         circuit.save_statevector()
 
-        aer_simulator = AerSimulator(method='statevector')
+        aer_simulator = AerSimulator(method="statevector")
         result = aer_simulator.run(circuit).result()
         expected = result.get_statevector(0)
 
-        state = AerState(method='statevector')
+        state = AerState(method="statevector")
         state.allocate_qubits(5)
         state.initialize(init_state.data)
 
@@ -395,16 +398,15 @@ class TestAerState(common.QiskitAerTestCase):
         for i, amp in enumerate(actual):
             self.assertAlmostEqual(expected[i], amp)
 
-
     def test_appply_mcx(self):
         """Test applying a mcx gate"""
-        class MCX(Gate):
 
+        class MCX(Gate):
             def validate_parameter(self, param):
                 return param
 
         def mcx(num_control):
-            return MCX('mcx', num_control + 1, [])
+            return MCX("mcx", num_control + 1, [])
 
         init_state = random_statevector(2**5, seed=111)
 
@@ -415,11 +417,11 @@ class TestAerState(common.QiskitAerTestCase):
         circuit.append(mcx(3), [4, 0, 1, 2])
         circuit.save_statevector()
 
-        aer_simulator = AerSimulator(method='statevector')
+        aer_simulator = AerSimulator(method="statevector")
         result = aer_simulator.run(circuit).result()
         expected = result.get_statevector(0)
 
-        state = AerState(method='statevector')
+        state = AerState(method="statevector")
         state.allocate_qubits(5)
         state.initialize(init_state.data)
 
@@ -433,13 +435,13 @@ class TestAerState(common.QiskitAerTestCase):
 
     def test_appply_mcy(self):
         """Test applying a mcy gate"""
-        class MCY(Gate):
 
+        class MCY(Gate):
             def validate_parameter(self, param):
                 return param
 
         def mcy(num_control):
-            return MCY('mcy', num_control + 1, [])
+            return MCY("mcy", num_control + 1, [])
 
         init_state = random_statevector(2**5, seed=111)
 
@@ -450,11 +452,11 @@ class TestAerState(common.QiskitAerTestCase):
         circuit.append(mcy(3), [4, 0, 1, 2])
         circuit.save_statevector()
 
-        aer_simulator = AerSimulator(method='statevector')
+        aer_simulator = AerSimulator(method="statevector")
         result = aer_simulator.run(circuit).result()
         expected = result.get_statevector(0)
 
-        state = AerState(method='statevector')
+        state = AerState(method="statevector")
         state.allocate_qubits(5)
         state.initialize(init_state.data)
 
@@ -468,13 +470,13 @@ class TestAerState(common.QiskitAerTestCase):
 
     def test_appply_mcz(self):
         """Test applying a mcz gate"""
-        class MCZ(Gate):
 
+        class MCZ(Gate):
             def validate_parameter(self, param):
                 return param
 
         def mcz(num_control):
-            return MCZ('mcz', num_control + 1, [])
+            return MCZ("mcz", num_control + 1, [])
 
         init_state = random_statevector(2**5, seed=111)
 
@@ -485,11 +487,11 @@ class TestAerState(common.QiskitAerTestCase):
         circuit.append(mcz(3), [4, 0, 1, 2])
         circuit.save_statevector()
 
-        aer_simulator = AerSimulator(method='statevector')
+        aer_simulator = AerSimulator(method="statevector")
         result = aer_simulator.run(circuit).result()
         expected = result.get_statevector(0)
 
-        state = AerState(method='statevector')
+        state = AerState(method="statevector")
         state.allocate_qubits(5)
         state.initialize(init_state.data)
 
@@ -512,11 +514,11 @@ class TestAerState(common.QiskitAerTestCase):
         circuit.reset([2, 4])
         circuit.save_statevector()
 
-        aer_simulator = AerSimulator(method='statevector', seed_simulator=seed)
+        aer_simulator = AerSimulator(method="statevector", seed_simulator=seed)
         result = aer_simulator.run(circuit).result()
         expected = result.get_statevector(0)
 
-        state = AerState(method='statevector',seed_simulator=seed)
+        state = AerState(method="statevector", seed_simulator=seed)
         state.allocate_qubits(5)
         state.initialize(init_state.data)
 
@@ -537,11 +539,11 @@ class TestAerState(common.QiskitAerTestCase):
         circuit.measure(0, 0)
         circuit.save_statevector()
 
-        aer_simulator = AerSimulator(method='statevector', seed_simulator=seed)
+        aer_simulator = AerSimulator(method="statevector", seed_simulator=seed)
         result = aer_simulator.run(circuit).result()
         expected = result.get_statevector(0)
 
-        state = AerState(method='statevector',seed_simulator=seed)
+        state = AerState(method="statevector", seed_simulator=seed)
         state.allocate_qubits(5)
         state.initialize(init_state.data)
 
@@ -555,7 +557,7 @@ class TestAerState(common.QiskitAerTestCase):
         """Test probability() of outcome"""
         init_state = random_statevector(2**5, seed=111)
 
-        state = AerState(method='statevector')
+        state = AerState(method="statevector")
         state.allocate_qubits(5)
         state.initialize(init_state.data)
 
@@ -568,7 +570,7 @@ class TestAerState(common.QiskitAerTestCase):
         """Test probabilities() of outcome"""
         init_state = random_statevector(2**5, seed=111)
 
-        state = AerState(method='statevector')
+        state = AerState(method="statevector")
         state.allocate_qubits(5)
         state.initialize(init_state.data)
 
@@ -582,7 +584,7 @@ class TestAerState(common.QiskitAerTestCase):
         """Test set_seed"""
         init_state = random_statevector(2**5, seed=111)
 
-        state = AerState(method='statevector',seed_simulator=11111)
+        state = AerState(method="statevector", seed_simulator=11111)
         state.allocate_qubits(5)
         state.initialize(init_state.data)
         sample1 = state.sample_counts()
@@ -598,14 +600,14 @@ class TestAerState(common.QiskitAerTestCase):
         """Test sampling"""
         init_state = random_statevector(2**5, seed=111)
 
-        aer_simulator = AerSimulator(method='statevector')
+        aer_simulator = AerSimulator(method="statevector")
         circuit = QuantumCircuit(5)
         circuit.initialize(init_state.data)
         circuit.measure_all()
         result = aer_simulator.run(circuit, seed_simulator=11111).result()
         expected = result.get_counts(0)
 
-        state = AerState(method='statevector', seed_simulator=11111)
+        state = AerState(method="statevector", seed_simulator=11111)
         state.allocate_qubits(5)
         state.initialize(init_state.data)
         actual = state.sample_counts()
@@ -621,21 +623,21 @@ class TestAerState(common.QiskitAerTestCase):
         unitary_2 = random_unitary(4, seed=2222)
         unitary_3 = random_unitary(8, seed=3333)
 
-        circuit = QuantumCircuit(5, global_phase=np.pi/4)
+        circuit = QuantumCircuit(5, global_phase=np.pi / 4)
         circuit.unitary(unitary_1, [0])
         circuit.unitary(unitary_2, [1, 2])
         circuit.unitary(unitary_3, [3, 4, 0])
         circuit.save_statevector()
 
-        aer_simulator = AerSimulator(method='statevector')
+        aer_simulator = AerSimulator(method="statevector")
         result = aer_simulator.run(circuit).result()
         expected = result.get_statevector(0)
 
-        state = AerState(method='statevector')
+        state = AerState(method="statevector")
         state.allocate_qubits(5)
         state.initialize()
 
-        state.apply_global_phase(np.pi/4)
+        state.apply_global_phase(np.pi / 4)
 
         state.apply_unitary([0], unitary_1)
         state.apply_unitary([1, 2], unitary_2)
@@ -645,5 +647,6 @@ class TestAerState(common.QiskitAerTestCase):
         for i, amp in enumerate(actual):
             self.assertAlmostEqual(expected[i], amp)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     unittest.main()

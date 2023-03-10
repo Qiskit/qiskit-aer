@@ -35,13 +35,19 @@ class TestJobSplitting(SimulatorTestCase):
     def parameterized_circuits():
         """Return ParameterizedQobj for settings."""
         pcirc1, param1 = save_expval_circuit_parameterized(
-            pershot=False, measure=True, snapshot=False,
+            pershot=False,
+            measure=True,
+            snapshot=False,
         )
         circuits2to4 = save_expval_circuits(
-            pauli=True, skip_measure=False, pershot=False,
+            pauli=True,
+            skip_measure=False,
+            pershot=False,
         )
         pcirc2, param2 = save_expval_circuit_parameterized(
-            pershot=False, measure=True, snapshot=False,
+            pershot=False,
+            measure=True,
+            snapshot=False,
         )
         circuits = [pcirc1] + circuits2to4 + [pcirc2]
         params = [param1, [], [], [], param2]
@@ -49,16 +55,16 @@ class TestJobSplitting(SimulatorTestCase):
 
     def split_compare(self, circs, backend, parameterizations=None):
         """Qobj split test"""
-        qobj = assemble(circs,
-                        parameterizations=parameterizations,
-                        qobj_id='testing')
+        qobj = assemble(circs, parameterizations=parameterizations, qobj_id="testing")
         if parameterizations:
-            qobjs = [assemble(c, parameterizations=[p],
-                              qobj_id='testing') for (c, p) in zip(circs, parameterizations)]
+            qobjs = [
+                assemble(c, parameterizations=[p], qobj_id="testing")
+                for (c, p) in zip(circs, parameterizations)
+            ]
         else:
-            qobjs = [assemble(c, qobj_id='testing') for c in circs]
+            qobjs = [assemble(c, qobj_id="testing") for c in circs]
 
-        test_qobjs = split_qobj(qobj, max_size=1, qobj_id='testing')
+        test_qobjs = split_qobj(qobj, max_size=1, qobj_id="testing")
         self.assertEqual(len(test_qobjs[0]), len(qobjs))
         for ref, test in zip(qobjs, test_qobjs[0]):
             self.assertEqual(ref, test)
@@ -69,26 +75,28 @@ class TestJobSplitting(SimulatorTestCase):
         circ.save_statevector()
         circ = transpile(circ, backend)
         qobj = assemble(circ)
-        split_qobj(qobj, max_size=1, max_shot_size=1, qobj_id='testing')
+        split_qobj(qobj, max_size=1, max_shot_size=1, qobj_id="testing")
 
     def test_split(self):
         """Circuits split test"""
         backend = self.backend(max_job_size=1)
-        circs = [random_circuit(num_qubits=2, depth=4, measure=True, seed=i)
-                 for i in range(2)]
+        circs = [
+            random_circuit(num_qubits=2, depth=4, measure=True, seed=i)
+            for i in range(2)
+        ]
         circs = transpile(circs, backend)
         self.split_compare(circs, backend)
-    
+
     def test_parameterized_split(self):
         """Parameterized circuits split test"""
         backend = self.backend(max_job_size=1)
         circs, params = self.parameterized_circuits()
         self.split_compare(circs, backend, parameterizations=params)
-     
+
     def test_custom_instruction_error(self):
         with self.assertRaises(JobError):
             self.add_custom_instruction()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

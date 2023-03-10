@@ -22,6 +22,7 @@ from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 # CX-gate
 # ==========================================================================
 
+
 def cx_gate_circuits_deterministic(final_measure=True):
     """CX-gate test circuits with deterministic counts."""
     circuits = []
@@ -30,7 +31,7 @@ def cx_gate_circuits_deterministic(final_measure=True):
         cr = ClassicalRegister(2)
         regs = (qr, cr)
     else:
-        regs = (qr, )
+        regs = (qr,)
 
     # CX01, |00> state
     circuit = QuantumCircuit(*regs)
@@ -116,38 +117,38 @@ def cx_gate_counts_deterministic(shots, hex_counts=True):
     targets = []
     if hex_counts:
         # CX01, |00> state
-        targets.append({'0x0': shots})  # {"00": shots}
+        targets.append({"0x0": shots})  # {"00": shots}
         # CX10, |00> state
-        targets.append({'0x0': shots})  # {"00": shots}
+        targets.append({"0x0": shots})  # {"00": shots}
         # CX01.(X^I), |10> state
-        targets.append({'0x2': shots})  # {"00": shots}
+        targets.append({"0x2": shots})  # {"00": shots}
         # CX10.(I^X), |01> state
-        targets.append({'0x1': shots})  # {"00": shots}
+        targets.append({"0x1": shots})  # {"00": shots}
         # CX01.(I^X), |11> state
-        targets.append({'0x3': shots})  # {"00": shots}
+        targets.append({"0x3": shots})  # {"00": shots}
         # CX10.(X^I), |11> state
-        targets.append({'0x3': shots})  # {"00": shots}
+        targets.append({"0x3": shots})  # {"00": shots}
         # CX01.(X^X), |01> state
-        targets.append({'0x1': shots})  # {"00": shots}
+        targets.append({"0x1": shots})  # {"00": shots}
         # CX10.(X^X), |10> state
-        targets.append({'0x2': shots})  # {"00": shots}
+        targets.append({"0x2": shots})  # {"00": shots}
     else:
         # CX01, |00> state
-        targets.append({'00': shots})  # {"00": shots}
+        targets.append({"00": shots})  # {"00": shots}
         # CX10, |00> state
-        targets.append({'00': shots})  # {"00": shots}
+        targets.append({"00": shots})  # {"00": shots}
         # CX01.(X^I), |10> state
-        targets.append({'10': shots})  # {"00": shots}
+        targets.append({"10": shots})  # {"00": shots}
         # CX10.(I^X), |01> state
-        targets.append({'01': shots})  # {"00": shots}
+        targets.append({"01": shots})  # {"00": shots}
         # CX01.(I^X), |11> state
-        targets.append({'11': shots})  # {"00": shots}
+        targets.append({"11": shots})  # {"00": shots}
         # CX10.(X^I), |11> state
-        targets.append({'11': shots})  # {"00": shots}
+        targets.append({"11": shots})  # {"00": shots}
         # CX01.(X^X), |01> state
-        targets.append({'01': shots})  # {"00": shots}
+        targets.append({"01": shots})  # {"00": shots}
         # CX10.(X^X), |10> state
-        targets.append({'10': shots})  # {"00": shots}
+        targets.append({"10": shots})  # {"00": shots}
     return targets
 
 
@@ -177,45 +178,21 @@ def cx_gate_unitary_deterministic():
     """CX-gate circuits reference unitaries."""
     targets = []
     # CX01, |00> state
-    targets.append(np.array([[1, 0, 0, 0],
-                             [0, 0, 0, 1],
-                             [0, 0, 1, 0],
-                             [0, 1, 0, 0]]))
+    targets.append(np.array([[1, 0, 0, 0], [0, 0, 0, 1], [0, 0, 1, 0], [0, 1, 0, 0]]))
     # CX10, |00> state
-    targets.append(np.array([[1, 0, 0, 0],
-                             [0, 1, 0, 0],
-                             [0, 0, 0, 1],
-                             [0, 0, 1, 0]]))
+    targets.append(np.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 0, 1], [0, 0, 1, 0]]))
     # CX01.(X^I), |10> state
-    targets.append(np.array([[0, 0, 1, 0],
-                             [0, 1, 0, 0],
-                             [1, 0, 0, 0],
-                             [0, 0, 0, 1]]))
+    targets.append(np.array([[0, 0, 1, 0], [0, 1, 0, 0], [1, 0, 0, 0], [0, 0, 0, 1]]))
     # CX10.(I^X), |01> state
-    targets.append(np.array([[0, 1, 0, 0],
-                             [1, 0, 0, 0],
-                             [0, 0, 1, 0],
-                             [0, 0, 0, 1]]))
+    targets.append(np.array([[0, 1, 0, 0], [1, 0, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]))
     # CX01.(I^X), |11> state
-    targets.append(np.array([[0, 1, 0, 0],
-                             [0, 0, 1, 0],
-                             [0, 0, 0, 1],
-                             [1, 0, 0, 0]]))
+    targets.append(np.array([[0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1], [1, 0, 0, 0]]))
     # CX10.(X^I), |11> state
-    targets.append(np.array([[0, 0, 1, 0],
-                             [0, 0, 0, 1],
-                             [0, 1, 0, 0],
-                             [1, 0, 0, 0]]))
+    targets.append(np.array([[0, 0, 1, 0], [0, 0, 0, 1], [0, 1, 0, 0], [1, 0, 0, 0]]))
     # CX01.(X^X), |01> state
-    targets.append(np.array([[0, 0, 0, 1],
-                             [1, 0, 0, 0],
-                             [0, 1, 0, 0],
-                             [0, 0, 1, 0]]))
+    targets.append(np.array([[0, 0, 0, 1], [1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0]]))
     # CX10.(X^X), |10> state
-    targets.append(np.array([[0, 0, 0, 1],
-                             [0, 0, 1, 0],
-                             [1, 0, 0, 0],
-                             [0, 1, 0, 0]]))
+    targets.append(np.array([[0, 0, 0, 1], [0, 0, 1, 0], [1, 0, 0, 0], [0, 1, 0, 0]]))
     return targets
 
 
@@ -227,7 +204,7 @@ def cx_gate_circuits_nondeterministic(final_measure=True):
         cr = ClassicalRegister(2)
         regs = (qr, cr)
     else:
-        regs = (qr, )
+        regs = (qr,)
 
     # CX01.(I^H), Bell state
     circuit = QuantumCircuit(*regs)
@@ -256,14 +233,14 @@ def cx_gate_counts_nondeterministic(shots, hex_counts=True):
     targets = []
     if hex_counts:
         # CX01.(I^H), Bell state
-        targets.append({'0x0': shots / 2, '0x3': shots / 2})
+        targets.append({"0x0": shots / 2, "0x3": shots / 2})
         # CX10.(I^H), Bell state
-        targets.append({'0x0': shots / 2, '0x3': shots / 2})
+        targets.append({"0x0": shots / 2, "0x3": shots / 2})
     else:
         # CX01.(I^H), Bell state
-        targets.append({'00': shots / 2, '11': shots / 2})
+        targets.append({"00": shots / 2, "11": shots / 2})
         # CX10.(I^H), Bell state
-        targets.append({'00': shots / 2, '11': shots / 2})
+        targets.append({"00": shots / 2, "11": shots / 2})
     return targets
 
 
@@ -281,21 +258,22 @@ def cx_gate_unitary_nondeterministic():
     """CX-gate circuits reference unitaries."""
     targets = []
     # CX01.(I^H), Bell state
-    targets.append(np.array([[1, 1, 0, 0],
-                             [0, 0, 1, -1],
-                             [0, 0, 1, 1],
-                             [1, -1, 0, 0]]) / np.sqrt(2))
+    targets.append(
+        np.array([[1, 1, 0, 0], [0, 0, 1, -1], [0, 0, 1, 1], [1, -1, 0, 0]])
+        / np.sqrt(2)
+    )
     # CX10.(I^H), Bell state
-    targets.append(np.array([[1, 0, 1, 0],
-                             [0, 1, 0, 1],
-                             [0, 1, 0, -1],
-                             [1, 0, -1, 0]]) / np.sqrt(2))
+    targets.append(
+        np.array([[1, 0, 1, 0], [0, 1, 0, 1], [0, 1, 0, -1], [1, 0, -1, 0]])
+        / np.sqrt(2)
+    )
     return targets
 
 
 # ==========================================================================
 # CZ-gate
 # ==========================================================================
+
 
 def cz_gate_circuits_deterministic(final_measure=True):
     """CZ-gate test circuits with deterministic counts."""
@@ -305,7 +283,7 @@ def cz_gate_circuits_deterministic(final_measure=True):
         cr = ClassicalRegister(2)
         regs = (qr, cr)
     else:
-        regs = (qr, )
+        regs = (qr,)
 
     # CZ, |00> state
     circuit = QuantumCircuit(*regs)
@@ -371,26 +349,26 @@ def cz_gate_counts_deterministic(shots, hex_counts=True):
     targets = []
     if hex_counts:
         # CZ, |00> state
-        targets.append({'0x0': shots})
+        targets.append({"0x0": shots})
         # CX10, |00> state
-        targets.append({'0x0': shots})
+        targets.append({"0x0": shots})
         # CX01, |00> state
-        targets.append({'0x0': shots})
+        targets.append({"0x0": shots})
         # (I^H).CZ.(X^H) = CX10.(X^I), |11> state
-        targets.append({'0x3': shots})
+        targets.append({"0x3": shots})
         # (H^I).CZ.(H^X) = CX01.(I^H), |11> state
-        targets.append({'0x3': shots})
+        targets.append({"0x3": shots})
     else:
         # CZ, |00> state
-        targets.append({'00': shots})
+        targets.append({"00": shots})
         # CX10, |00> state
-        targets.append({'00': shots})
+        targets.append({"00": shots})
         # CX01, |00> state
-        targets.append({'00': shots})
+        targets.append({"00": shots})
         # (I^H).CZ.(X^H) = CX10.(X^I), |11> state
-        targets.append({'11': shots})
+        targets.append({"11": shots})
         # (H^I).CZ.(H^X) = CX01.(I^H), |11> state
-        targets.append({'11': shots})
+        targets.append({"11": shots})
     return targets
 
 
@@ -416,25 +394,13 @@ def cz_gate_unitary_deterministic():
     # CZ, |00> state
     targets.append(np.diag([1, 1, 1, -1]))
     # CX10, |00> state
-    targets.append(np.array([[1, 0, 0, 0],
-                             [0, 1, 0, 0],
-                             [0, 0, 0, 1],
-                             [0, 0, 1, 0]]))
+    targets.append(np.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 0, 1], [0, 0, 1, 0]]))
     # CX01, |00> state
-    targets.append(np.array([[1, 0, 0, 0],
-                             [0, 0, 0, 1],
-                             [0, 0, 1, 0],
-                             [0, 1, 0, 0]]))
+    targets.append(np.array([[1, 0, 0, 0], [0, 0, 0, 1], [0, 0, 1, 0], [0, 1, 0, 0]]))
     # (I^H).CZ.(X^H) = CX10.(X^I), |11> state
-    targets.append(np.array([[0, 0, 1, 0],
-                             [0, 0, 0, 1],
-                             [0, 1, 0, 0],
-                             [1, 0, 0, 0]]))
+    targets.append(np.array([[0, 0, 1, 0], [0, 0, 0, 1], [0, 1, 0, 0], [1, 0, 0, 0]]))
     # (H^I).CZ.(H^X) = CX01.(I^X), |11> state
-    targets.append(np.array([[0, 1, 0, 0],
-                             [0, 0, 1, 0],
-                             [0, 0, 0, 1],
-                             [1, 0, 0, 0]]))
+    targets.append(np.array([[0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1], [1, 0, 0, 0]]))
     return targets
 
 
@@ -447,7 +413,7 @@ def cz_gate_circuits_nondeterministic(final_measure=True):
         cr = ClassicalRegister(2)
         regs = (qr, cr)
     else:
-        regs = (qr, )
+        regs = (qr,)
 
     # (I^H).CZ.(H^H) = CX10.(H^I), Bell state
     circuit = QuantumCircuit(*regs)
@@ -478,14 +444,14 @@ def cz_gate_counts_nondeterministic(shots, hex_counts=True):
     targets = []
     if hex_counts:
         # (I^H).CZ.(H^H) = CX10.(H^I), Bell state
-        targets.append({'0x0': shots / 2, '0x3': shots / 2})
+        targets.append({"0x0": shots / 2, "0x3": shots / 2})
         # (H^I).CZ.(H^H) = CX01.(I^H), Bell state
-        targets.append({'0x0': shots / 2, '0x3': shots / 2})
+        targets.append({"0x0": shots / 2, "0x3": shots / 2})
     else:
         # (I^H).CZ.(H^H) = CX10.(H^I), Bell state
-        targets.append({'00': shots / 2, '11': shots / 2})
+        targets.append({"00": shots / 2, "11": shots / 2})
         # (H^I).CZ.(H^H) = CX01.(I^H), Bell state
-        targets.append({'00': shots / 2, '11': shots / 2})
+        targets.append({"00": shots / 2, "11": shots / 2})
     return targets
 
 
@@ -503,21 +469,22 @@ def cz_gate_unitary_nondeterministic():
     """CZ-gate circuits reference unitaries."""
     targets = []
     # (I^H).CZ.(H^H) = CX10.(H^I), Bell state
-    targets.append(np.array([[1, 0, 1, 0],
-                             [0, 1, 0, 1],
-                             [0, 1, 0, -1],
-                             [1, 0, -1, 0]]) / np.sqrt(2))
+    targets.append(
+        np.array([[1, 0, 1, 0], [0, 1, 0, 1], [0, 1, 0, -1], [1, 0, -1, 0]])
+        / np.sqrt(2)
+    )
     # (H^I).CZ.(H^H) = CX01.(I^H), Bell state
-    targets.append(np.array([[1, 1, 0, 0],
-                             [0, 0, 1, -1],
-                             [0, 0, 1, 1],
-                             [1, -1, 0, 0]]) / np.sqrt(2))
+    targets.append(
+        np.array([[1, 1, 0, 0], [0, 0, 1, -1], [0, 0, 1, 1], [1, -1, 0, 0]])
+        / np.sqrt(2)
+    )
     return targets
 
 
 # ==========================================================================
 # SWAP-gate
 # ==========================================================================
+
 
 def swap_gate_circuits_deterministic(final_measure=True):
     """SWAP-gate test circuits with deterministic counts."""
@@ -527,7 +494,7 @@ def swap_gate_circuits_deterministic(final_measure=True):
         cr = ClassicalRegister(2)
         regs = (qr, cr)
     else:
-        regs = (qr, )
+        regs = (qr,)
 
     # Swap(0,1), |00> state
     circuit = QuantumCircuit(*regs)
@@ -554,14 +521,14 @@ def swap_gate_counts_deterministic(shots, hex_counts=True):
     targets = []
     if hex_counts:
         # Swap(0,1), |00> state
-        targets.append({'0x0': shots})
+        targets.append({"0x0": shots})
         # Swap(0,1).(I^X), |10> state
-        targets.append({'0x2': shots})
+        targets.append({"0x2": shots})
     else:
         # Swap(0,1), |00> state
-        targets.append({'00': shots})
+        targets.append({"00": shots})
         # Swap(0,1).(I^X), |10> state
-        targets.append({'10': shots})
+        targets.append({"10": shots})
     return targets
 
 
@@ -579,15 +546,9 @@ def swap_gate_unitary_deterministic():
     """SWAP-gate circuits reference unitaries."""
     targets = []
     # Swap(0,1), |00> state
-    targets.append(np.array([[1, 0, 0, 0],
-                             [0, 0, 1, 0],
-                             [0, 1, 0, 0],
-                             [0, 0, 0, 1]]))
+    targets.append(np.array([[1, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0], [0, 0, 0, 1]]))
     # Swap(0,1).(I^X), |10> state
-    targets.append(np.array([[0, 1, 0, 0],
-                             [0, 0, 0, 1],
-                             [1, 0, 0, 0],
-                             [0, 0, 1, 0]]))
+    targets.append(np.array([[0, 1, 0, 0], [0, 0, 0, 1], [1, 0, 0, 0], [0, 0, 1, 0]]))
     return targets
 
 
@@ -599,7 +560,7 @@ def swap_gate_circuits_nondeterministic(final_measure=True):
         cr = ClassicalRegister(3)
         regs = (qr, cr)
     else:
-        regs = (qr, )
+        regs = (qr,)
     # initial state as |10+>
 
     # Swap(0,1).(X^I^H), Permutation (0,1,2) -> (1,0,2)
@@ -648,19 +609,19 @@ def swap_gate_counts_nondeterministic(shots, hex_counts=True):
     if hex_counts:
         # initial state as |10+>
         # Swap(0,1).(X^I^H), Permutation (0,1,2) -> (1,0,2)
-        targets.append({'0x4': shots / 2, '0x6': shots / 2})
+        targets.append({"0x4": shots / 2, "0x6": shots / 2})
         # Swap(0,2).(X^I^H), # Permutation (0,1,2) -> (2,1,0),
-        targets.append({'0x1': shots / 2, '0x5': shots / 2})
+        targets.append({"0x1": shots / 2, "0x5": shots / 2})
         # Swap(2,0).Swap(0,1).(X^I^H), Permutation (0,1,2) -> (2,0,1)
-        targets.append({'0x1': shots / 2, '0x3': shots / 2})
+        targets.append({"0x1": shots / 2, "0x3": shots / 2})
     else:
         # initial state as |10+>
         # Swap(0,1).(X^I^H), Permutation (0,1,2) -> (1,0,2)
-        targets.append({'100': shots / 2, '110': shots / 2})
+        targets.append({"100": shots / 2, "110": shots / 2})
         # Swap(0,2).(X^I^H), # Permutation (0,1,2) -> (2,1,0),
-        targets.append({'001': shots / 2, '101': shots / 2})
+        targets.append({"001": shots / 2, "101": shots / 2})
         # Swap(2,0).Swap(0,1).(X^I^H), Permutation (0,1,2) -> (2,0,1)
-        targets.append({'001': shots / 2, '011': shots / 2})
+        targets.append({"001": shots / 2, "011": shots / 2})
     return targets
 
 
@@ -682,30 +643,51 @@ def swap_gate_unitary_nondeterministic():
     targets = []
     # initial state as |10+>
     # Swap(0,1).(X^I^H), Permutation (0,1,2) -> (1,0,2)
-    targets.append(np.array([[0, 0, 0, 0, 1, 1, 0, 0],
-                             [0, 0, 0, 0, 0, 0, 1, 1],
-                             [0, 0, 0, 0, 1, -1, 0, 0],
-                             [0, 0, 0, 0, 0, 0, 1, -1],
-                             [1, 1, 0, 0, 0, 0, 0, 0],
-                             [0, 0, 1, 1, 0, 0, 0, 0],
-                             [1, -1, 0, 0, 0, 0, 0, 0],
-                             [0, 0, 1, -1, 0, 0, 0, 0]]) / np.sqrt(2))
+    targets.append(
+        np.array(
+            [
+                [0, 0, 0, 0, 1, 1, 0, 0],
+                [0, 0, 0, 0, 0, 0, 1, 1],
+                [0, 0, 0, 0, 1, -1, 0, 0],
+                [0, 0, 0, 0, 0, 0, 1, -1],
+                [1, 1, 0, 0, 0, 0, 0, 0],
+                [0, 0, 1, 1, 0, 0, 0, 0],
+                [1, -1, 0, 0, 0, 0, 0, 0],
+                [0, 0, 1, -1, 0, 0, 0, 0],
+            ]
+        )
+        / np.sqrt(2)
+    )
     # Swap(0,2).(X^I^H), # Permutation (0,1,2) -> (2,1,0),
-    targets.append(np.array([[0, 0, 0, 0, 1, 1, 0, 0],
-                             [1, 1, 0, 0, 0, 0, 0, 0],
-                             [0, 0, 0, 0, 0, 0, 1, 1],
-                             [0, 0, 1, 1, 0, 0, 0, 0],
-                             [0, 0, 0, 0, 1, -1, 0, 0],
-                             [1, -1, 0, 0, 0, 0, 0, 0],
-                             [0, 0, 0, 0, 0, 0, 1, -1],
-                             [0, 0, 1, -1, 0, 0, 0, 0]]) / np.sqrt(2))
+    targets.append(
+        np.array(
+            [
+                [0, 0, 0, 0, 1, 1, 0, 0],
+                [1, 1, 0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 0, 1, 1],
+                [0, 0, 1, 1, 0, 0, 0, 0],
+                [0, 0, 0, 0, 1, -1, 0, 0],
+                [1, -1, 0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 0, 1, -1],
+                [0, 0, 1, -1, 0, 0, 0, 0],
+            ]
+        )
+        / np.sqrt(2)
+    )
     # Swap(2,0).Swap(0,1).(X^I^H), Permutation (0,1,2) -> (2,0,1)
-    targets.append(np.array([[0, 0, 0, 0, 1, 1, 0, 0],
-                             [0, 0, 0, 0, 1, -1, 0, 0],
-                             [0, 0, 0, 0, 0, 0, 1, 1],
-                             [0, 0, 0, 0, 0, 0, 1, -1],
-                             [1, 1, 0, 0, 0, 0, 0, 0],
-                             [1, -1, 0, 0, 0, 0, 0, 0],
-                             [0, 0, 1, 1, 0, 0, 0, 0],
-                             [0, 0, 1, -1, 0, 0, 0, 0]]) / np.sqrt(2))
+    targets.append(
+        np.array(
+            [
+                [0, 0, 0, 0, 1, 1, 0, 0],
+                [0, 0, 0, 0, 1, -1, 0, 0],
+                [0, 0, 0, 0, 0, 0, 1, 1],
+                [0, 0, 0, 0, 0, 0, 1, -1],
+                [1, 1, 0, 0, 0, 0, 0, 0],
+                [1, -1, 0, 0, 0, 0, 0, 0],
+                [0, 0, 1, 1, 0, 0, 0, 0],
+                [0, 0, 1, -1, 0, 0, 0, 0],
+            ]
+        )
+        / np.sqrt(2)
+    )
     return targets

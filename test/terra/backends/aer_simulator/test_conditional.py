@@ -15,10 +15,7 @@ AerSimulator Integration Tests
 
 from ddt import ddt
 from test.terra.reference import ref_conditionals
-from test.terra.backends.simulator_test_case import (
-    SimulatorTestCase, supported_methods)
-
-
+from test.terra.backends.simulator_test_case import SimulatorTestCase, supported_methods
 
 
 @ddt
@@ -26,8 +23,13 @@ class TestConditionalGates(SimulatorTestCase):
     """AerSimulator conditional tests."""
 
     SUPPORTED_METHODS = [
-        'automatic', 'stabilizer', 'statevector', 'density_matrix',
-        'matrix_product_state', 'extended_stabilizer', 'tensor_network'
+        "automatic",
+        "stabilizer",
+        "statevector",
+        "density_matrix",
+        "matrix_product_state",
+        "extended_stabilizer",
+        "tensor_network",
     ]
 
     # ---------------------------------------------------------------------
@@ -39,7 +41,8 @@ class TestConditionalGates(SimulatorTestCase):
         shots = 100
         backend = self.backend(method=method, device=device)
         circuits = ref_conditionals.conditional_circuits_1bit(
-            final_measure=True, conditional_type='gate')
+            final_measure=True, conditional_type="gate"
+        )
         targets = ref_conditionals.conditional_counts_1bit(shots)
         result = backend.run(circuits, shots=shots).result()
         self.assertSuccess(result)
@@ -52,7 +55,8 @@ class TestConditionalGates(SimulatorTestCase):
         backend = self.backend(method=method, device=device)
         backend.set_options(max_parallel_experiments=0)
         circuits = ref_conditionals.conditional_circuits_2bit(
-            final_measure=True, conditional_type='gate')
+            final_measure=True, conditional_type="gate"
+        )
         targets = ref_conditionals.conditional_counts_2bit(shots)
         result = backend.run(circuits, shots=shots).result()
         self.assertSuccess(result)
@@ -62,18 +66,20 @@ class TestConditionalGates(SimulatorTestCase):
     def test_conditional_gates_64bit(self, method, device):
         """Test conditional gate operations on 64-bit conditional register."""
         shots = 100
-        if 'tensor_network' in method:
+        if "tensor_network" in method:
             shots = 1
         # [value of conditional register, list of condtional values]
         cases = ref_conditionals.conditional_cases_64bit()
         backend = self.backend(method=method, device=device)
         backend.set_options(max_parallel_experiments=0)
-        circuits = ref_conditionals.conditional_circuits_nbit(64, cases,
-                final_measure=True, conditional_type='gate')
+        circuits = ref_conditionals.conditional_circuits_nbit(
+            64, cases, final_measure=True, conditional_type="gate"
+        )
         # not using hex counts because number of leading zeros in results
         # doesn't seem consistent
-        targets = ref_conditionals.condtional_counts_nbit(64, cases, shots,
-                hex_counts=False)
+        targets = ref_conditionals.condtional_counts_nbit(
+            64, cases, shots, hex_counts=False
+        )
 
         result = backend.run(circuits, shots=shots).result()
         self.assertSuccess(result)
@@ -83,15 +89,17 @@ class TestConditionalGates(SimulatorTestCase):
     def test_conditional_gates_132bit(self, method, device):
         """Test conditional gate operations on 132-bit conditional register."""
         shots = 100
-        if 'tensor_network' in method:
+        if "tensor_network" in method:
             shots = 1
         cases = ref_conditionals.conditional_cases_132bit()
         backend = self.backend(method=method, device=device)
         backend.set_options(max_parallel_experiments=0)
-        circuits = ref_conditionals.conditional_circuits_nbit(132, cases, final_measure=True,
-                conditional_type='gate')
-        targets = ref_conditionals.condtional_counts_nbit(132, cases, shots,
-                hex_counts=False)
+        circuits = ref_conditionals.conditional_circuits_nbit(
+            132, cases, final_measure=True, conditional_type="gate"
+        )
+        targets = ref_conditionals.condtional_counts_nbit(
+            132, cases, shots, hex_counts=False
+        )
         circuits = circuits[0:1]
         targets = targets[0:1]
         result = backend.run(circuits, shots=shots).result()
@@ -104,7 +112,11 @@ class TestConditionalUnitary(SimulatorTestCase):
     """AerSimulator conditional unitary tests."""
 
     SUPPORTED_METHODS = [
-        'automatic', 'statevector', 'density_matrix', 'matrix_product_state', 'tensor_network'
+        "automatic",
+        "statevector",
+        "density_matrix",
+        "matrix_product_state",
+        "tensor_network",
     ]
 
     # ---------------------------------------------------------------------
@@ -116,7 +128,8 @@ class TestConditionalUnitary(SimulatorTestCase):
         shots = 100
         backend = self.backend(method=method, device=device)
         circuits = ref_conditionals.conditional_circuits_1bit(
-            final_measure=True, conditional_type='unitary')
+            final_measure=True, conditional_type="unitary"
+        )
         targets = ref_conditionals.conditional_counts_1bit(shots)
         result = backend.run(circuits, shots=shots).result()
         self.assertSuccess(result)
@@ -129,7 +142,8 @@ class TestConditionalUnitary(SimulatorTestCase):
         backend = self.backend(method=method, device=device)
         backend.set_options(max_parallel_experiments=0)
         circuits = ref_conditionals.conditional_circuits_2bit(
-            final_measure=True, conditional_type='unitary')
+            final_measure=True, conditional_type="unitary"
+        )
         targets = ref_conditionals.conditional_counts_2bit(shots)
         result = backend.run(circuits, shots=shots).result()
         self.assertSuccess(result)
@@ -139,15 +153,17 @@ class TestConditionalUnitary(SimulatorTestCase):
     def test_conditional_unitary_64bit(self, method, device):
         """Test conditional unitary operations on 64-bit conditional register."""
         shots = 100
-        if 'tensor_network' in method:
+        if "tensor_network" in method:
             shots = 1
         cases = ref_conditionals.conditional_cases_64bit()
         backend = self.backend(method=method, device=device)
         backend.set_options(max_parallel_experiments=0)
-        circuits = ref_conditionals.conditional_circuits_nbit(64, cases,
-                final_measure=True, conditional_type='unitary')
-        targets = ref_conditionals.condtional_counts_nbit(64, cases, shots,
-                hex_counts=False)
+        circuits = ref_conditionals.conditional_circuits_nbit(
+            64, cases, final_measure=True, conditional_type="unitary"
+        )
+        targets = ref_conditionals.condtional_counts_nbit(
+            64, cases, shots, hex_counts=False
+        )
 
         result = backend.run(circuits, shots=shots).result()
         self.assertSuccess(result)
@@ -157,15 +173,17 @@ class TestConditionalUnitary(SimulatorTestCase):
     def test_conditional_unitary_132bit(self, method, device):
         """Test conditional unitary operations on 132-bit conditional register."""
         shots = 100
-        if 'tensor_network' in method:
+        if "tensor_network" in method:
             shots = 1
         cases = ref_conditionals.conditional_cases_132bit()
         backend = self.backend(method=method, device=device)
         backend.set_options(max_parallel_experiments=0)
-        circuits = ref_conditionals.conditional_circuits_nbit(132, cases, final_measure=True,
-                conditional_type='unitary')
-        targets = ref_conditionals.condtional_counts_nbit(132, cases, shots,
-                hex_counts=False)
+        circuits = ref_conditionals.conditional_circuits_nbit(
+            132, cases, final_measure=True, conditional_type="unitary"
+        )
+        targets = ref_conditionals.condtional_counts_nbit(
+            132, cases, shots, hex_counts=False
+        )
         result = backend.run(circuits, shots=shots).result()
         self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, hex_counts=False, delta=0)
@@ -176,7 +194,11 @@ class TestConditionalKraus(SimulatorTestCase):
     """AerSimulator conditional kraus tests."""
 
     SUPPORTED_METHODS = [
-        'automatic', 'statevector', 'density_matrix', 'matrix_product_state', 'tensor_network'
+        "automatic",
+        "statevector",
+        "density_matrix",
+        "matrix_product_state",
+        "tensor_network",
     ]
 
     # ---------------------------------------------------------------------
@@ -188,7 +210,8 @@ class TestConditionalKraus(SimulatorTestCase):
         shots = 100
         backend = self.backend(method=method, device=device)
         circuits = ref_conditionals.conditional_circuits_1bit(
-            final_measure=True, conditional_type='kraus')
+            final_measure=True, conditional_type="kraus"
+        )
         targets = ref_conditionals.conditional_counts_1bit(shots)
         result = backend.run(circuits, shots=shots).result()
         self.assertSuccess(result)
@@ -201,7 +224,8 @@ class TestConditionalKraus(SimulatorTestCase):
         backend = self.backend(method=method, device=device)
         backend.set_options(max_parallel_experiments=0)
         circuits = ref_conditionals.conditional_circuits_2bit(
-            final_measure=True, conditional_type='kraus')
+            final_measure=True, conditional_type="kraus"
+        )
         targets = ref_conditionals.conditional_counts_2bit(shots)
         result = backend.run(circuits, shots=shots).result()
         self.assertSuccess(result)
@@ -211,15 +235,17 @@ class TestConditionalKraus(SimulatorTestCase):
     def test_conditional_kraus_64bit(self, method, device):
         """Test conditional kraus operations on 64-bit conditional register."""
         shots = 100
-        if 'tensor_network' in method:
+        if "tensor_network" in method:
             shots = 1
         cases = ref_conditionals.conditional_cases_64bit()
         backend = self.backend(method=method, device=device)
         backend.set_options(max_parallel_experiments=0)
-        circuits = ref_conditionals.conditional_circuits_nbit(64, cases,
-                final_measure=True, conditional_type='kraus')
-        targets = ref_conditionals.condtional_counts_nbit(64, cases, shots,
-                hex_counts=False)
+        circuits = ref_conditionals.conditional_circuits_nbit(
+            64, cases, final_measure=True, conditional_type="kraus"
+        )
+        targets = ref_conditionals.condtional_counts_nbit(
+            64, cases, shots, hex_counts=False
+        )
 
         result = backend.run(circuits, shots=shots).result()
         self.assertSuccess(result)
@@ -229,15 +255,17 @@ class TestConditionalKraus(SimulatorTestCase):
     def test_conditional_kraus_132bit(self, method, device):
         """Test conditional kraus operations on 132-bit conditional register."""
         shots = 100
-        if 'tensor_network' in method:
+        if "tensor_network" in method:
             shots = 1
         cases = ref_conditionals.conditional_cases_132bit()
         backend = self.backend(method=method, device=device)
         backend.set_options(max_parallel_experiments=0)
-        circuits = ref_conditionals.conditional_circuits_nbit(132, cases, final_measure=True,
-                conditional_type='kraus')
-        targets = ref_conditionals.condtional_counts_nbit(132, cases, shots,
-                hex_counts=False)
+        circuits = ref_conditionals.conditional_circuits_nbit(
+            132, cases, final_measure=True, conditional_type="kraus"
+        )
+        targets = ref_conditionals.condtional_counts_nbit(
+            132, cases, shots, hex_counts=False
+        )
         result = backend.run(circuits, shots=shots).result()
         self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, hex_counts=False, delta=0)
@@ -247,7 +275,7 @@ class TestConditionalKraus(SimulatorTestCase):
 class TestConditionalSuperOp(SimulatorTestCase):
     """AerSimulator conditional superop tests."""
 
-    SUPPORTED_METHODS = ['automatic', 'density_matrix', 'tensor_network']
+    SUPPORTED_METHODS = ["automatic", "density_matrix", "tensor_network"]
 
     # ---------------------------------------------------------------------
     # Test conditional
@@ -258,7 +286,8 @@ class TestConditionalSuperOp(SimulatorTestCase):
         shots = 100
         backend = self.backend(method=method, device=device)
         circuits = ref_conditionals.conditional_circuits_1bit(
-            final_measure=True, conditional_type='superop')
+            final_measure=True, conditional_type="superop"
+        )
         targets = ref_conditionals.conditional_counts_1bit(shots)
         result = backend.run(circuits, shots=shots).result()
         self.assertSuccess(result)
@@ -271,7 +300,8 @@ class TestConditionalSuperOp(SimulatorTestCase):
         backend = self.backend(method=method, device=device)
         backend.set_options(max_parallel_experiments=0)
         circuits = ref_conditionals.conditional_circuits_2bit(
-            final_measure=True, conditional_type='superop')
+            final_measure=True, conditional_type="superop"
+        )
         targets = ref_conditionals.conditional_counts_2bit(shots)
         result = backend.run(circuits, shots=shots).result()
         self.assertSuccess(result)
@@ -281,15 +311,17 @@ class TestConditionalSuperOp(SimulatorTestCase):
     def test_conditional_superop_64bit(self, method, device):
         """Test conditional superop operations on 64-bit conditional register."""
         shots = 100
-        if 'tensor_network' in method:
+        if "tensor_network" in method:
             shots = 1
         cases = ref_conditionals.conditional_cases_64bit()
         backend = self.backend(method=method, device=device)
         backend.set_options(max_parallel_experiments=0)
-        circuits = ref_conditionals.conditional_circuits_nbit(64, cases,
-                final_measure=True, conditional_type='superop')
-        targets = ref_conditionals.condtional_counts_nbit(64, cases, shots,
-                hex_counts=False)
+        circuits = ref_conditionals.conditional_circuits_nbit(
+            64, cases, final_measure=True, conditional_type="superop"
+        )
+        targets = ref_conditionals.condtional_counts_nbit(
+            64, cases, shots, hex_counts=False
+        )
 
         result = backend.run(circuits, shots=shots).result()
         self.assertSuccess(result)
@@ -299,15 +331,17 @@ class TestConditionalSuperOp(SimulatorTestCase):
     def test_conditional_superop_132bit(self, method, device):
         """Test conditional superop operations on 132-bit conditional register."""
         shots = 100
-        if 'tensor_network' in method:
+        if "tensor_network" in method:
             shots = 1
         cases = ref_conditionals.conditional_cases_132bit()
         backend = self.backend(method=method, device=device)
         backend.set_options(max_parallel_experiments=0)
-        circuits = ref_conditionals.conditional_circuits_nbit(132, cases, final_measure=True,
-                conditional_type='superop')
-        targets = ref_conditionals.condtional_counts_nbit(132, cases, shots,
-                hex_counts=False)
+        circuits = ref_conditionals.conditional_circuits_nbit(
+            132, cases, final_measure=True, conditional_type="superop"
+        )
+        targets = ref_conditionals.condtional_counts_nbit(
+            132, cases, shots, hex_counts=False
+        )
         result = backend.run(circuits, shots=shots).result()
         self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, hex_counts=False, delta=0)

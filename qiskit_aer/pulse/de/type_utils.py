@@ -43,7 +43,9 @@ class StateTypeConverter:
 
         self.inner_type_spec = inner_type_spec
 
-        self.outer_type_spec = self.inner_type_spec if outer_type_spec is None else outer_type_spec
+        self.outer_type_spec = (
+            self.inner_type_spec if outer_type_spec is None else outer_type_spec
+        )
 
     @classmethod
     def from_instances(cls, inner_y, outer_y=None):
@@ -90,27 +92,27 @@ class StateTypeConverter:
         if inner_type_spec is None:
             return cls.from_instances(outer_y)
 
-        inner_type = inner_type_spec.get('type')
+        inner_type = inner_type_spec.get("type")
         if inner_type is None:
             raise Exception("inner_type_spec needs a 'type' key.")
 
-        if inner_type == 'array':
+        if inner_type == "array":
             outer_y_as_array = np.array(outer_y)
 
             # if a specific shape is given attempt to instantiate from a reshaped outer_y
-            shape = inner_type_spec.get('shape')
+            shape = inner_type_spec.get("shape")
             if shape is not None:
                 return cls.from_instances(outer_y_as_array.reshape(shape), outer_y)
 
             # handle the case that ndim == 1 is given
-            ndim = inner_type_spec.get('ndim')
+            ndim = inner_type_spec.get("ndim")
             if ndim == 1:
                 return cls.from_instances(outer_y_as_array.flatten(), outer_y)
 
             # if neither shape nor ndim is given, assume it can be an array of any shape
             return cls.from_instances(outer_y_as_array, outer_y)
 
-        raise Exception('inner_type_spec not a handled type.')
+        raise Exception("inner_type_spec not a handled type.")
 
     def inner_to_outer(self, y):
         """Convert a state of inner type to one of outer type."""
@@ -137,15 +139,16 @@ class StateTypeConverter:
         new_rhs_funcs = {}
 
         # transform standard rhs function
-        rhs = rhs_funcs.get('rhs')
+        rhs = rhs_funcs.get("rhs")
 
         if rhs is not None:
+
             def new_rhs(t, y):
                 outer_y = self.inner_to_outer(y)
                 rhs_val = rhs(t, outer_y)
                 return self.outer_to_inner(rhs_val)
 
-            new_rhs_funcs['rhs'] = new_rhs
+            new_rhs_funcs["rhs"] = new_rhs
 
         return new_rhs_funcs
 
@@ -156,11 +159,11 @@ def convert_state(y, type_spec):
 
     new_y = None
 
-    if type_spec['type'] == 'array':
+    if type_spec["type"] == "array":
         # default array data type to complex
-        new_y = np.array(y, dtype=type_spec.get('dtype', 'complex'))
+        new_y = np.array(y, dtype=type_spec.get("dtype", "complex"))
 
-        shape = type_spec.get('shape')
+        shape = type_spec.get("shape")
         if shape is not None:
             new_y = new_y.reshape(shape)
 
@@ -171,7 +174,7 @@ def type_spec_from_instance(y):
     """Determine type spec from an instance."""
     type_spec = {}
     if isinstance(y, np.ndarray):
-        type_spec['type'] = 'array'
-        type_spec['shape'] = y.shape
+        type_spec["type"] = "array"
+        type_spec["shape"] = y.shape
 
     return type_spec

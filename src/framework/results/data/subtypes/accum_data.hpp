@@ -22,16 +22,17 @@ namespace AER {
 
 template <typename T>
 class AccumData : public SingleData<T> {
-using Base = SingleData<T>;
+  using Base = SingleData<T>;
+
 public:
   // Add data (copy)
-  void add(const T& data);
+  void add(const T &data);
 
   // Add data (move)
-  void add(T&& data);
+  void add(T &&data);
 
   // Combine data (move)
-  void combine(AccumData<T>&& other);
+  void combine(AccumData<T> &&other);
 
   // Clear all stored data
   void clear();
@@ -45,7 +46,7 @@ protected:
 //------------------------------------------------------------------------------
 
 template <typename T>
-void AccumData<T>::add(const T& data) {
+void AccumData<T>::add(const T &data) {
   if (empty_) {
     Base::data_ = data;
     empty_ = false;
@@ -55,7 +56,7 @@ void AccumData<T>::add(const T& data) {
 }
 
 template <typename T>
-void AccumData<T>::add(T&& data) {
+void AccumData<T>::add(T &&data) {
   if (empty_) {
     Base::data_ = std::move(data);
     empty_ = false;
@@ -65,7 +66,7 @@ void AccumData<T>::add(T&& data) {
 }
 
 template <typename T>
-void AccumData<T>::combine(AccumData<T>&& other) {
+void AccumData<T>::combine(AccumData<T> &&other) {
   add(std::move(other.data_));
 }
 
@@ -76,6 +77,6 @@ void AccumData<T>::clear() {
 }
 
 //------------------------------------------------------------------------------
-}  // end namespace AER
+} // end namespace AER
 //------------------------------------------------------------------------------
 #endif

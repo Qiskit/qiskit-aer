@@ -33,15 +33,15 @@ struct Metadata : public DataMap<SingleData, json_t, 1>,
   //----------------------------------------------------------------
   template <typename... Args>
   void add(const json_t &data, const std::string &outer_key,
-           const Args &... inner_keys);
+           const Args &...inner_keys);
 
   template <typename... Args>
   void add(json_t &data, const std::string &outer_key,
-           const Args &... inner_keys);
+           const Args &...inner_keys);
 
   template <typename... Args>
   void add(json_t &&data, const std::string &outer_key,
-           const Args &... inner_keys);
+           const Args &...inner_keys);
 
   //----------------------------------------------------------------
   // Add general metadata
@@ -51,13 +51,13 @@ struct Metadata : public DataMap<SingleData, json_t, 1>,
   //----------------------------------------------------------------
   template <typename T, typename... Args>
   void add(const T &data, const std::string &outer_key,
-           const Args &... inner_keys);
+           const Args &...inner_keys);
 
   template <typename T, typename... Args>
-  void add(T &data, const std::string &outer_key, const Args &... inner_keys);
+  void add(T &data, const std::string &outer_key, const Args &...inner_keys);
 
   template <typename T, typename... Args>
-  void add(T &&data, const std::string &outer_key, const Args &... inner_keys);
+  void add(T &&data, const std::string &outer_key, const Args &...inner_keys);
 
   // Serialize engine data to JSON
   json_t to_json();
@@ -87,7 +87,7 @@ json_t Metadata::to_json() {
 
 template <typename T, typename... Args>
 void Metadata::add(const T &data, const std::string &outer_key,
-                   const Args &... inner_keys) {
+                   const Args &...inner_keys) {
   json_t tmp = data;
   DataMap<SingleData, json_t, sizeof...(Args) + 1>::add(
       std::move(tmp), outer_key, inner_keys...);
@@ -95,7 +95,7 @@ void Metadata::add(const T &data, const std::string &outer_key,
 
 template <typename T, typename... Args>
 void Metadata::add(T &data, const std::string &outer_key,
-                   const Args &... inner_keys) {
+                   const Args &...inner_keys) {
   json_t tmp = data;
   DataMap<SingleData, json_t, sizeof...(Args) + 1>::add(
       std::move(tmp), outer_key, inner_keys...);
@@ -103,7 +103,7 @@ void Metadata::add(T &data, const std::string &outer_key,
 
 template <typename T, typename... Args>
 void Metadata::add(T &&data, const std::string &outer_key,
-                   const Args &... inner_keys) {
+                   const Args &...inner_keys) {
   json_t tmp = data;
   DataMap<SingleData, json_t, sizeof...(Args) + 1>::add(
       std::move(tmp), outer_key, inner_keys...);
@@ -111,21 +111,21 @@ void Metadata::add(T &&data, const std::string &outer_key,
 
 template <typename... Args>
 void Metadata::add(const json_t &data, const std::string &outer_key,
-                   const Args &... inner_keys) {
+                   const Args &...inner_keys) {
   DataMap<SingleData, json_t, sizeof...(Args) + 1>::add(data, outer_key,
                                                         inner_keys...);
 }
 
 template <typename... Args>
 void Metadata::add(json_t &data, const std::string &outer_key,
-                   const Args &... inner_keys) {
+                   const Args &...inner_keys) {
   DataMap<SingleData, json_t, sizeof...(Args) + 1>::add(data, outer_key,
                                                         inner_keys...);
 }
 
 template <typename... Args>
 void Metadata::add(json_t &&data, const std::string &outer_key,
-                   const Args &... inner_keys) {
+                   const Args &...inner_keys) {
   DataMap<SingleData, json_t, sizeof...(Args) + 1>::add(
       std::move(data), outer_key, inner_keys...);
 }

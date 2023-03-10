@@ -129,14 +129,52 @@ class NoiseModel:
         print(noise_model)
 
     """
+
     # Checks for standard 1-3 qubit instructions
-    _1qubit_instructions = set([
-        'u1', 'u2', 'u3', 'u', 'p', 'r', 'rx', 'ry', 'rz', 'id', 'x',
-        'y', 'z', 'h', 's', 'sdg', 'sx', 'sxdg', 't', 'tdg'])
-    _2qubit_instructions = set([
-        'swap', 'cx', 'cy', 'cz', 'csx', 'cp', 'cu', 'cu1', 'cu2', 'cu3', 'rxx',
-        'ryy', 'rzz', 'rzx', 'ecr'])
-    _3qubit_instructions = set(['ccx', 'cswap'])
+    _1qubit_instructions = set(
+        [
+            "u1",
+            "u2",
+            "u3",
+            "u",
+            "p",
+            "r",
+            "rx",
+            "ry",
+            "rz",
+            "id",
+            "x",
+            "y",
+            "z",
+            "h",
+            "s",
+            "sdg",
+            "sx",
+            "sxdg",
+            "t",
+            "tdg",
+        ]
+    )
+    _2qubit_instructions = set(
+        [
+            "swap",
+            "cx",
+            "cy",
+            "cz",
+            "csx",
+            "cp",
+            "cu",
+            "cu1",
+            "cu2",
+            "cu3",
+            "rxx",
+            "ryy",
+            "rzz",
+            "rzx",
+            "ecr",
+        ]
+    )
+    _3qubit_instructions = set(["ccx", "cswap"])
 
     def __init__(self, basis_gates=None):
         """Initialize an empty noise model.
@@ -160,10 +198,11 @@ class NoiseModel:
             # Default basis gates is id, rz, sx, cx so that all standard
             # non-identity instructions can be unrolled to rz, sx, cx,
             # and identities won't be unrolled
-            self._basis_gates = set(['id', 'rz', 'sx', 'cx'])
+            self._basis_gates = set(["id", "rz", "sx", "cx"])
         else:
             self._basis_gates = set(
-                name for name, _ in self._instruction_names_labels(basis_gates))
+                name for name, _ in self._instruction_names_labels(basis_gates)
+            )
         # Store gates with a noise model defined
         self._noise_instructions = set()
         # Store qubits referenced in noise model.
@@ -205,14 +244,17 @@ class NoiseModel:
         return sorted(self._noise_qubits)
 
     @classmethod
-    def from_backend(cls, backend,
-                     gate_error=True,
-                     readout_error=True,
-                     thermal_relaxation=True,
-                     temperature=0,
-                     gate_lengths=None,
-                     gate_length_units='ns',
-                     warnings=None):
+    def from_backend(
+        cls,
+        backend,
+        gate_error=True,
+        readout_error=True,
+        thermal_relaxation=True,
+        temperature=0,
+        gate_lengths=None,
+        gate_length_units="ns",
+        warnings=None,
+    ):
         """Return a noise model derived from a devices backend properties.
 
         This function generates a noise model based on:
@@ -305,9 +347,11 @@ class NoiseModel:
         if warnings is not None:
             warn(
                 '"warnings" argument has been deprecated as of qiskit-aer 0.12.0 '
-                'and will be removed no earlier than 3 months from that release date. '
-                'Use the warnings filter in Python standard library instead.',
-                DeprecationWarning, stacklevel=2)
+                "and will be removed no earlier than 3 months from that release date. "
+                "Use the warnings filter in Python standard library instead.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
         else:
             warnings = True
 
@@ -318,8 +362,11 @@ class NoiseModel:
         target = None
         if backend_interface_version == 2:
             if not warnings:
-                warn("When a BackendV2 is supplied, `warnings`"
-                     " are ignored, and their default values are used.", UserWarning)
+                warn(
+                    "When a BackendV2 is supplied, `warnings`"
+                    " are ignored, and their default values are used.",
+                    UserWarning,
+                )
             properties = None
             basis_gates = backend.operation_names
             target = backend.target
@@ -328,26 +375,37 @@ class NoiseModel:
                 target = copy.deepcopy(target)
                 for op_name, qubits, value in gate_lengths:
                     prop = target[op_name][qubits]
-                    prop.duration = apply_prefix(value, gate_length_units)  # convert to seconds
+                    prop.duration = apply_prefix(
+                        value, gate_length_units
+                    )  # convert to seconds
                     target.update_instruction_properties(op_name, qubits, prop)
             all_qubit_properties = backend.target.qubit_properties
             if not all_qubit_properties:
-                warn(f"Qiskit backend {backend} has no QubitProperties, so the resulting"
-                     " noise model will not include any thermal relaxation errors.", UserWarning)
+                warn(
+                    f"Qiskit backend {backend} has no QubitProperties, so the resulting"
+                    " noise model will not include any thermal relaxation errors.",
+                    UserWarning,
+                )
             dt = backend.dt
         elif backend_interface_version <= 1:
             properties = backend.properties()
             configuration = backend.configuration()
             basis_gates = configuration.basis_gates
-            all_qubit_properties = [QubitProperties(t1=properties.t1(q),
-                                                    t2=properties.t2(q),
-                                                    frequency=properties.frequency(q))
-                                    for q in range(configuration.num_qubits)]
+            all_qubit_properties = [
+                QubitProperties(
+                    t1=properties.t1(q),
+                    t2=properties.t2(q),
+                    frequency=properties.frequency(q),
+                )
+                for q in range(configuration.num_qubits)
+            ]
             dt = getattr(configuration, "dt", 0)
             if not properties:
-                raise NoiseError(f'Qiskit backend {backend} does not have a BackendProperties')
+                raise NoiseError(
+                    f"Qiskit backend {backend} does not have a BackendProperties"
+                )
         else:
-            raise NoiseError(f'{backend} is not a Qiskit backend')
+            raise NoiseError(f"{backend} is not a Qiskit backend")
 
         noise_model = NoiseModel(basis_gates=basis_gates)
 
@@ -359,9 +417,7 @@ class NoiseModel:
         # Add gate errors
         with catch_warnings():
             filterwarnings(
-                "ignore",
-                category=DeprecationWarning,
-                module="qiskit_aer.noise"
+                "ignore", category=DeprecationWarning, module="qiskit_aer.noise"
             )
             gate_errors = basic_device_gate_errors(
                 properties,
@@ -380,20 +436,23 @@ class NoiseModel:
             # Add delay errors via RelaxationNiose pass
             try:
                 excited_state_populations = [
-                    _excited_population(
-                        freq=q.frequency, temperature=temperature
-                    ) for q in all_qubit_properties]
+                    _excited_population(freq=q.frequency, temperature=temperature)
+                    for q in all_qubit_properties
+                ]
             except BackendPropertyError:
                 excited_state_populations = None
             try:
                 t1s = [prop.t1 for prop in all_qubit_properties]
-                t2s = [_truncate_t2_value(prop.t1, prop.t2) for prop in all_qubit_properties]
+                t2s = [
+                    _truncate_t2_value(prop.t1, prop.t2)
+                    for prop in all_qubit_properties
+                ]
                 delay_pass = RelaxationNoisePass(
                     t1s=t1s,
                     t2s=t2s,
                     dt=dt,
                     op_types=Delay,
-                    excited_state_populations=excited_state_populations
+                    excited_state_populations=excited_state_populations,
                 )
                 noise_model._custom_noise_passes.append(delay_pass)
             except BackendPropertyError:
@@ -492,8 +551,12 @@ class NoiseModel:
             try:
                 delay_pass = RelaxationNoisePass(
                     t1s=[backend_properties.t1(q) for q in range(num_qubits)],
-                    t2s=[_truncate_t2_value(backend_properties.t1(
-                        q), backend_properties.t2(q)) for q in range(num_qubits)],
+                    t2s=[
+                        _truncate_t2_value(
+                            backend_properties.t1(q), backend_properties.t2(q)
+                        )
+                        for q in range(num_qubits)
+                    ],
                     dt=dt,
                     op_types=Delay,
                     excited_state_populations=excited_state_populations,
@@ -535,10 +598,10 @@ class NoiseModel:
         # Get default errors
         default_error_ops = []
         for inst in self._default_quantum_errors:
-            default_error_ops.append('{}'.format(inst))
+            default_error_ops.append("{}".format(inst))
         if self._default_readout_error is not None:
-            if 'measure' not in default_error_ops:
-                default_error_ops.append('measure')
+            if "measure" not in default_error_ops:
+                default_error_ops.append("measure")
 
         # Get local errors
         local_error_ops = []
@@ -546,7 +609,7 @@ class NoiseModel:
             for qubits in dic.keys():
                 local_error_ops.append((inst, qubits))
         for qubits in self._local_readout_errors:
-            tmp = ('measure', qubits)
+            tmp = ("measure", qubits)
             if tmp not in local_error_ops:
                 local_error_ops.append(tmp)
 
@@ -554,15 +617,14 @@ class NoiseModel:
         output += "\n  Basis gates: {}".format(self.basis_gates)
         if self._noise_instructions:
             output += "\n  Instructions with noise: {}".format(
-                list(self._noise_instructions))
+                list(self._noise_instructions)
+            )
         if self._noise_qubits:
-            output += "\n  Qubits with noise: {}".format(
-                list(self._noise_qubits))
+            output += "\n  Qubits with noise: {}".format(list(self._noise_qubits))
         if default_error_ops:
             output += "\n  All-qubits errors: {}".format(default_error_ops)
         if local_error_ops:
-            output += "\n  Specific qubit errors: {}".format(
-                local_error_ops)
+            output += "\n  Specific qubit errors: {}".format(local_error_ops)
         return output
 
     def __eq__(self, other):
@@ -571,10 +633,12 @@ class NoiseModel:
         # the same basis_gates
         # the same noise_qubits
         # the same noise_instructions
-        if (not isinstance(other, NoiseModel) or
-                self.basis_gates != other.basis_gates or
-                self.noise_qubits != other.noise_qubits or
-                self.noise_instructions != other.noise_instructions):
+        if (
+            not isinstance(other, NoiseModel)
+            or self.basis_gates != other.basis_gates
+            or self.noise_qubits != other.noise_qubits
+            or self.noise_instructions != other.noise_instructions
+        ):
             return False
         # Check default readout errors is equal
         if not self._readout_errors_equal(other):
@@ -604,9 +668,15 @@ class NoiseModel:
         for name, _ in self._instruction_names_labels(instructions):
             # If the instruction is in the default basis gates for the
             # AerSimulator we add it to the basis gates.
-            if name in BASIS_GATES['automatic']:
-                if name not in ['measure', 'reset', 'initialize',
-                                'kraus', 'superop', 'roerror']:
+            if name in BASIS_GATES["automatic"]:
+                if name not in [
+                    "measure",
+                    "reset",
+                    "initialize",
+                    "kraus",
+                    "superop",
+                    "roerror",
+                ]:
                     self._basis_gates.add(name)
 
     def add_all_qubit_quantum_error(self, error, instructions, warnings=True):
@@ -646,20 +716,23 @@ class NoiseModel:
                 if warnings:
                     logger.warning(
                         "WARNING: all-qubit error already exists for "
-                        "instruction \"%s\", "
-                        "composing with additional error.", label)
+                        'instruction "%s", '
+                        "composing with additional error.",
+                        label,
+                    )
             else:
                 self._default_quantum_errors[label] = error
             # Check if a specific qubit error has been applied for this instruction
             if label in self._local_quantum_errors:
-                local_qubits = self._keys2str(
-                    self._local_quantum_errors[label].keys())
+                local_qubits = self._keys2str(self._local_quantum_errors[label].keys())
                 if warnings:
                     logger.warning(
                         "WARNING: all-qubit error for instruction "
-                        "\"%s\" will not apply to qubits: "
-                        "%s as specific error already exists.", label,
-                        local_qubits)
+                        '"%s" will not apply to qubits: '
+                        "%s as specific error already exists.",
+                        label,
+                        local_qubits,
+                    )
             self._noise_instructions.add(label)
             self.add_basis_gates(name)
 
@@ -691,7 +764,9 @@ class NoiseModel:
         try:
             qubits = tuple(qubits)
         except TypeError as ex:
-            raise NoiseError("Qubits must be convertible to a tuple of integers") from ex
+            raise NoiseError(
+                "Qubits must be convertible to a tuple of integers"
+            ) from ex
         # Check if error is ideal and if so don't add to the noise model
         if error.ideal():
             return
@@ -712,17 +787,21 @@ class NoiseModel:
 
             # Convert qubits list to hashable string
             if error.num_qubits != len(qubits):
-                raise NoiseError("Number of qubits ({}) does not match "
-                                 " the error size ({})".format(
-                                     len(qubits), error.num_qubits))
+                raise NoiseError(
+                    "Number of qubits ({}) does not match "
+                    " the error size ({})".format(len(qubits), error.num_qubits)
+                )
             if qubits in qubit_dict:
                 new_error = qubit_dict[qubits].compose(error)
                 qubit_dict[qubits] = new_error
                 if warnings:
                     logger.warning(
                         "WARNING: quantum error already exists for "
-                        "instruction \"%s\" on qubits %s "
-                        ", appending additional error.", label, qubits)
+                        'instruction "%s" on qubits %s '
+                        ", appending additional error.",
+                        label,
+                        qubits,
+                    )
             else:
                 qubit_dict[qubits] = error
             # Add updated dictionary
@@ -732,9 +811,12 @@ class NoiseModel:
             if label in self._default_quantum_errors:
                 if warnings:
                     logger.warning(
-                        "WARNING: Specific error for instruction \"%s\" "
+                        'WARNING: Specific error for instruction "%s" '
                         "on qubits %s overrides previously defined "
-                        "all-qubit error for these qubits.", label, qubits)
+                        "all-qubit error for these qubits.",
+                        label,
+                        qubits,
+                    )
             self._noise_instructions.add(label)
             self.add_basis_gates(name)
 
@@ -774,7 +856,8 @@ class NoiseModel:
             if warnings:
                 logger.warning(
                     "WARNING: all-qubit readout error already exists, "
-                    "overriding with new readout error.")
+                    "overriding with new readout error."
+                )
         self._default_readout_error = error
 
         # Check if a specific qubit error has been applied for this instruction
@@ -784,7 +867,9 @@ class NoiseModel:
                 logger.warning(
                     "WARNING: The all-qubit readout error will not "
                     "apply to measure of qubits qubits: %s "
-                    "as specific readout errors already exist.", local_qubits)
+                    "as specific readout errors already exist.",
+                    local_qubits,
+                )
         self._noise_instructions.add("measure")
 
     def add_readout_error(self, error, qubits, warnings=True):
@@ -813,7 +898,9 @@ class NoiseModel:
         try:
             qubits = tuple(qubits)
         except TypeError as ex:
-            raise NoiseError("Qubits must be convertible to a tuple of integers") from ex
+            raise NoiseError(
+                "Qubits must be convertible to a tuple of integers"
+            ) from ex
 
         # Check if error is ideal and if so don't add to the noise model
         if error.ideal():
@@ -827,13 +914,16 @@ class NoiseModel:
         if error.number_of_qubits != len(qubits):
             raise NoiseError(
                 "Number of qubits ({}) does not match the readout "
-                "error size ({})".format(len(qubits), error.number_of_qubits))
+                "error size ({})".format(len(qubits), error.number_of_qubits)
+            )
         # Check if we are overriding a previous error
         if qubits in self._local_readout_errors:
             if warnings:
                 logger.warning(
                     "WARNING: readout error already exists for qubits "
-                    "%s, overriding with new readout error.", qubits)
+                    "%s, overriding with new readout error.",
+                    qubits,
+                )
         self._local_readout_errors[qubits] = error
 
         # Check if all-qubit readout error is already defined
@@ -842,7 +932,9 @@ class NoiseModel:
                 logger.warning(
                     "WARNING: Specific readout error on qubits "
                     "%s overrides previously defined "
-                    "all-qubit readout error for these qubits.", qubits)
+                    "all-qubit readout error for these qubits.",
+                    qubits,
+                )
         self._noise_instructions.add("measure")
 
     def to_dict(self, serializable=False):
@@ -903,84 +995,94 @@ class NoiseModel:
         Raises:
             NoiseError: if dict cannot be converted to NoiseModel.
         """
-        warn('from_dict has been deprecated as of qiskit-aer 0.10.0'
-             ' and will be removed no earlier than 3 months from that release date.',
-             DeprecationWarning, stacklevel=2)
+        warn(
+            "from_dict has been deprecated as of qiskit-aer 0.10.0"
+            " and will be removed no earlier than 3 months from that release date.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
 
         def inst_dic_list_to_circuit(dic_list):
-            num_qubits = max([max(dic['qubits']) for dic in dic_list]) + 1
+            num_qubits = max([max(dic["qubits"]) for dic in dic_list]) + 1
             circ = QuantumCircuit(num_qubits)
             for dic in dic_list:
-                if dic['name'] == 'reset':
-                    circ.append(Reset(), qargs=dic['qubits'])
-                elif dic['name'] == 'kraus':
-                    circ.append(Instruction(name='kraus',
-                                            num_qubits=len(dic['qubits']),
-                                            num_clbits=0,
-                                            params=dic['params']),
-                                qargs=dic['qubits'])
-                elif dic['name'] == 'unitary':
-                    circ.append(UnitaryGate(data=dic['params'][0]),
-                                qargs=dic['qubits'])
-                elif dic['name'] == 'pauli':
-                    circ.append(PauliGate(dic['params'][0]),
-                                qargs=dic['qubits'])
+                if dic["name"] == "reset":
+                    circ.append(Reset(), qargs=dic["qubits"])
+                elif dic["name"] == "kraus":
+                    circ.append(
+                        Instruction(
+                            name="kraus",
+                            num_qubits=len(dic["qubits"]),
+                            num_clbits=0,
+                            params=dic["params"],
+                        ),
+                        qargs=dic["qubits"],
+                    )
+                elif dic["name"] == "unitary":
+                    circ.append(UnitaryGate(data=dic["params"][0]), qargs=dic["qubits"])
+                elif dic["name"] == "pauli":
+                    circ.append(PauliGate(dic["params"][0]), qargs=dic["qubits"])
                 else:
                     with catch_warnings():
                         filterwarnings(
                             "ignore",
                             category=DeprecationWarning,
-                            module="qiskit_aer.noise.errors.errorutils"
+                            module="qiskit_aer.noise.errors.errorutils",
                         )
-                        circ.append(UnitaryGate(label=dic['name'],
-                                                data=_standard_gate_unitary(dic['name'])),
-                                    qargs=dic['qubits'])
+                        circ.append(
+                            UnitaryGate(
+                                label=dic["name"],
+                                data=_standard_gate_unitary(dic["name"]),
+                            ),
+                            qargs=dic["qubits"],
+                        )
             return circ
 
         # Return noise model
         noise_model = NoiseModel()
 
         # Get error terms
-        errors = noise_dict.get('errors', [])
+        errors = noise_dict.get("errors", [])
 
         for error in errors:
-            error_type = error['type']
+            error_type = error["type"]
 
             # Add QuantumError
-            if error_type == 'qerror':
-                circuits = [inst_dic_list_to_circuit(dics) for dics in error['instructions']]
-                noise_ops = tuple(zip(circuits, error['probabilities']))
+            if error_type == "qerror":
+                circuits = [
+                    inst_dic_list_to_circuit(dics) for dics in error["instructions"]
+                ]
+                noise_ops = tuple(zip(circuits, error["probabilities"]))
                 qerror = QuantumError(noise_ops)
-                qerror._id = error.get('id', None) or qerror.id
-                instruction_names = error['operations']
-                all_gate_qubits = error.get('gate_qubits', None)
+                qerror._id = error.get("id", None) or qerror.id
+                instruction_names = error["operations"]
+                all_gate_qubits = error.get("gate_qubits", None)
                 if all_gate_qubits is not None:
                     for gate_qubits in all_gate_qubits:
                         # Add local quantum error
                         noise_model.add_quantum_error(
-                            qerror,
-                            instruction_names,
-                            gate_qubits,
-                            warnings=False)
+                            qerror, instruction_names, gate_qubits, warnings=False
+                        )
                 else:
                     # Add all-qubit quantum error
                     noise_model.add_all_qubit_quantum_error(
-                        qerror, instruction_names, warnings=False)
+                        qerror, instruction_names, warnings=False
+                    )
 
             # Add ReadoutError
-            elif error_type == 'roerror':
-                probabilities = error['probabilities']
-                all_gate_qubits = error.get('gate_qubits', None)
+            elif error_type == "roerror":
+                probabilities = error["probabilities"]
+                all_gate_qubits = error.get("gate_qubits", None)
                 roerror = ReadoutError(probabilities)
                 # Add local readout error
                 if all_gate_qubits is not None:
                     for gate_qubits in all_gate_qubits:
                         noise_model.add_readout_error(
-                            roerror, gate_qubits, warnings=False)
+                            roerror, gate_qubits, warnings=False
+                        )
                 # Add all-qubit readout error
                 else:
-                    noise_model.add_all_qubit_readout_error(
-                        roerror, warnings=False)
+                    noise_model.add_all_qubit_readout_error(roerror, warnings=False)
             # Invalid error type
             else:
                 raise NoiseError("Invalid error type: {}".format(error_type))
@@ -996,12 +1098,12 @@ class NoiseModel:
             # as the label
             if isinstance(inst, Instruction):
                 name = inst.name
-                label = getattr(inst, 'label', inst.name)
+                label = getattr(inst, "label", inst.name)
                 names_labels.append((name, label))
             elif isinstance(inst, str):
                 names_labels.append((inst, inst))
             else:
-                raise NoiseError('Invalid instruction type {}'.format(inst))
+                raise NoiseError("Invalid instruction type {}".format(inst))
         return names_labels
 
     def _check_number_of_qubits(self, error, name):
@@ -1017,9 +1119,11 @@ class NoiseModel:
         """
 
         def error_message(gate_qubits):
-            msg = "{} qubit QuantumError".format(error.num_qubits) + \
-                  " cannot be applied to {} qubit".format(gate_qubits) + \
-                  " instruction \"{}\".".format(name)
+            msg = (
+                "{} qubit QuantumError".format(error.num_qubits)
+                + " cannot be applied to {} qubit".format(gate_qubits)
+                + ' instruction "{}".'.format(name)
+            )
             return msg
 
         if name in self._1qubit_instructions and error.num_qubits != 1:
@@ -1041,29 +1145,30 @@ class NoiseModel:
             return False
         # Check local readout errors are equal
         if sorted(self._local_readout_errors.keys()) != sorted(
-                other._local_readout_errors.keys()):
+            other._local_readout_errors.keys()
+        ):
             return False
         for key in self._local_readout_errors:
-            if self._local_readout_errors[key] != other._local_readout_errors[
-                    key]:
+            if self._local_readout_errors[key] != other._local_readout_errors[key]:
                 return False
         return True
 
     def _all_qubit_quantum_errors_equal(self, other):
         """Check two noise models have equal local quantum errors"""
         if sorted(self._default_quantum_errors.keys()) != sorted(
-                other._default_quantum_errors.keys()):
+            other._default_quantum_errors.keys()
+        ):
             return False
         for key in self._default_quantum_errors:
-            if self._default_quantum_errors[
-                    key] != other._default_quantum_errors[key]:
+            if self._default_quantum_errors[key] != other._default_quantum_errors[key]:
                 return False
         return True
 
     def _local_quantum_errors_equal(self, other):
         """Check two noise models have equal local quantum errors"""
         if sorted(self._local_quantum_errors.keys()) != sorted(
-                other._local_quantum_errors.keys()):
+            other._local_quantum_errors.keys()
+        ):
             return False
         for key in self._local_quantum_errors:
             inner_dict1 = self._local_quantum_errors[key]
@@ -1073,8 +1178,7 @@ class NoiseModel:
             for inner_key in inner_dict1:
                 if inner_dict1[inner_key] != inner_dict2[inner_key]:
                     return False
-            if self._local_quantum_errors[key] != other._local_quantum_errors[
-                    key]:
+            if self._local_quantum_errors[key] != other._local_quantum_errors[key]:
                 return False
         return True
 
@@ -1094,50 +1198,66 @@ class NoiseModel:
 def _standard_gate_unitary(name):
     # To be removed with from_dict
     unitary_matrices = {
-        ("id", "I"):
-            np.eye(2, dtype=complex),
-        ("x", "X"):
-            np.array([[0, 1], [1, 0]], dtype=complex),
-        ("y", "Y"):
-            np.array([[0, -1j], [1j, 0]], dtype=complex),
-        ("z", "Z"):
-            np.array([[1, 0], [0, -1]], dtype=complex),
-        ("h", "H"):
-            np.array([[1, 1], [1, -1]], dtype=complex) / np.sqrt(2),
-        ("s", "S"):
-            np.array([[1, 0], [0, 1j]], dtype=complex),
-        ("sdg", "Sdg"):
-            np.array([[1, 0], [0, -1j]], dtype=complex),
-        ("t", "T"):
-            np.array([[1, 0], [0, np.exp(1j * np.pi / 4)]], dtype=complex),
-        ("tdg", "Tdg"):
-            np.array([[1, 0], [0, np.exp(-1j * np.pi / 4)]], dtype=complex),
-        ("cx", "CX", "cx_01"):
-            np.array([[1, 0, 0, 0], [0, 0, 0, 1], [0, 0, 1, 0], [0, 1, 0, 0]], dtype=complex),
-        ("cx_10",):
-            np.array([[1, 0, 0, 0], [0, 0, 0, 1], [0, 0, 1, 0], [0, 1, 0, 0]], dtype=complex),
-        ("cz", "CZ"):
-            np.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, -1]], dtype=complex),
-        ("swap", "SWAP"):
-            np.array([[1, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0], [0, 0, 0, 1]], dtype=complex),
-        ("ccx", "CCX", "ccx_012", "ccx_102"):
-            np.array([[1, 0, 0, 0, 0, 0, 0, 0], [0, 1, 0, 0, 0, 0, 0, 0],
-                      [0, 0, 1, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 1],
-                      [0, 0, 0, 0, 1, 0, 0, 0], [0, 0, 0, 0, 0, 1, 0, 0],
-                      [0, 0, 0, 0, 0, 0, 1, 0], [0, 0, 0, 1, 0, 0, 0, 0]],
-                     dtype=complex),
-        ("ccx_021", "ccx_201"):
-            np.array([[1, 0, 0, 0, 0, 0, 0, 0], [0, 1, 0, 0, 0, 0, 0, 0],
-                      [0, 0, 1, 0, 0, 0, 0, 0], [0, 0, 0, 1, 0, 0, 0, 0],
-                      [0, 0, 0, 0, 1, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 1],
-                      [0, 0, 0, 0, 0, 0, 1, 0], [0, 0, 0, 0, 0, 1, 0, 0]],
-                     dtype=complex),
-        ("ccx_120", "ccx_210"):
-            np.array([[1, 0, 0, 0, 0, 0, 0, 0], [0, 1, 0, 0, 0, 0, 0, 0],
-                      [0, 0, 1, 0, 0, 0, 0, 0], [0, 0, 0, 1, 0, 0, 0, 0],
-                      [0, 0, 0, 0, 1, 0, 0, 0], [0, 0, 0, 0, 0, 1, 0, 0],
-                      [0, 0, 0, 0, 0, 0, 0, 1], [0, 0, 0, 0, 0, 0, 1, 0]],
-                     dtype=complex)
+        ("id", "I"): np.eye(2, dtype=complex),
+        ("x", "X"): np.array([[0, 1], [1, 0]], dtype=complex),
+        ("y", "Y"): np.array([[0, -1j], [1j, 0]], dtype=complex),
+        ("z", "Z"): np.array([[1, 0], [0, -1]], dtype=complex),
+        ("h", "H"): np.array([[1, 1], [1, -1]], dtype=complex) / np.sqrt(2),
+        ("s", "S"): np.array([[1, 0], [0, 1j]], dtype=complex),
+        ("sdg", "Sdg"): np.array([[1, 0], [0, -1j]], dtype=complex),
+        ("t", "T"): np.array([[1, 0], [0, np.exp(1j * np.pi / 4)]], dtype=complex),
+        ("tdg", "Tdg"): np.array([[1, 0], [0, np.exp(-1j * np.pi / 4)]], dtype=complex),
+        ("cx", "CX", "cx_01"): np.array(
+            [[1, 0, 0, 0], [0, 0, 0, 1], [0, 0, 1, 0], [0, 1, 0, 0]], dtype=complex
+        ),
+        ("cx_10",): np.array(
+            [[1, 0, 0, 0], [0, 0, 0, 1], [0, 0, 1, 0], [0, 1, 0, 0]], dtype=complex
+        ),
+        ("cz", "CZ"): np.array(
+            [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, -1]], dtype=complex
+        ),
+        ("swap", "SWAP"): np.array(
+            [[1, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0], [0, 0, 0, 1]], dtype=complex
+        ),
+        ("ccx", "CCX", "ccx_012", "ccx_102"): np.array(
+            [
+                [1, 0, 0, 0, 0, 0, 0, 0],
+                [0, 1, 0, 0, 0, 0, 0, 0],
+                [0, 0, 1, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 0, 0, 1],
+                [0, 0, 0, 0, 1, 0, 0, 0],
+                [0, 0, 0, 0, 0, 1, 0, 0],
+                [0, 0, 0, 0, 0, 0, 1, 0],
+                [0, 0, 0, 1, 0, 0, 0, 0],
+            ],
+            dtype=complex,
+        ),
+        ("ccx_021", "ccx_201"): np.array(
+            [
+                [1, 0, 0, 0, 0, 0, 0, 0],
+                [0, 1, 0, 0, 0, 0, 0, 0],
+                [0, 0, 1, 0, 0, 0, 0, 0],
+                [0, 0, 0, 1, 0, 0, 0, 0],
+                [0, 0, 0, 0, 1, 0, 0, 0],
+                [0, 0, 0, 0, 0, 0, 0, 1],
+                [0, 0, 0, 0, 0, 0, 1, 0],
+                [0, 0, 0, 0, 0, 1, 0, 0],
+            ],
+            dtype=complex,
+        ),
+        ("ccx_120", "ccx_210"): np.array(
+            [
+                [1, 0, 0, 0, 0, 0, 0, 0],
+                [0, 1, 0, 0, 0, 0, 0, 0],
+                [0, 0, 1, 0, 0, 0, 0, 0],
+                [0, 0, 0, 1, 0, 0, 0, 0],
+                [0, 0, 0, 0, 1, 0, 0, 0],
+                [0, 0, 0, 0, 0, 1, 0, 0],
+                [0, 0, 0, 0, 0, 0, 0, 1],
+                [0, 0, 0, 0, 0, 0, 1, 0],
+            ],
+            dtype=complex,
+        ),
     }
 
     return next((value for key, value in unitary_matrices.items() if name in key), None)

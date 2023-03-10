@@ -45,16 +45,18 @@ class DE_Options:
         max_dt (float, 1e-3): Max step size for fixed step solver.
     """
 
-    def __init__(self,
-                 method='zvode-adams',
-                 atol=1e-8,
-                 rtol=1e-6,
-                 order=12,
-                 nsteps=10**6,
-                 first_step=None,
-                 max_step=None,
-                 min_step=None,
-                 max_dt=10**-3):
+    def __init__(
+        self,
+        method="zvode-adams",
+        atol=1e-8,
+        rtol=1e-6,
+        order=12,
+        nsteps=10**6,
+        first_step=None,
+        max_step=None,
+        min_step=None,
+        max_dt=10**-3,
+    ):
 
         self.method = method
         self.atol = atol
@@ -68,15 +70,17 @@ class DE_Options:
 
     def copy(self):
         """Create a copy of the object."""
-        return DE_Options(method=self.method,
-                          atol=self.atol,
-                          rtol=self.rtol,
-                          order=self.order,
-                          nsteps=self.nsteps,
-                          first_step=self.first_step,
-                          max_step=self.max_step,
-                          min_step=self.min_step,
-                          max_dt=self.max_dt)
+        return DE_Options(
+            method=self.method,
+            atol=self.atol,
+            rtol=self.rtol,
+            order=self.order,
+            nsteps=self.nsteps,
+            first_step=self.first_step,
+            max_step=self.max_step,
+            min_step=self.min_step,
+            max_dt=self.max_dt,
+        )
 
     def __str__(self):
         return str(vars(self))

@@ -22,16 +22,20 @@ from qiskit.circuit import QuantumCircuit, Reset
 from qiskit.circuit.library import QFT
 from qiskit.circuit.library.standard_gates import IGate, HGate
 from qiskit.quantum_info.states.densitymatrix import DensityMatrix
-from test.terra.backends.simulator_test_case import (
-    SimulatorTestCase, supported_methods)
+from test.terra.backends.simulator_test_case import SimulatorTestCase, supported_methods
 from test.terra.reference import ref_kraus_noise
 from test.terra.reference import ref_pauli_noise
 from test.terra.reference import ref_readout_noise
 from test.terra.reference import ref_reset_noise
 
 ALL_METHODS = [
-    'automatic', 'stabilizer', 'statevector', 'density_matrix',
-    'matrix_product_state', 'extended_stabilizer', 'tensor_network'
+    "automatic",
+    "stabilizer",
+    "statevector",
+    "density_matrix",
+    "matrix_product_state",
+    "extended_stabilizer",
+    "tensor_network",
 ]
 
 
@@ -44,9 +48,10 @@ class TestNoise(SimulatorTestCase):
         """Test simulation with empty circuit and noise model."""
         backend = self.backend(method=method, device=device)
         noise_model = noise.NoiseModel()
-        noise_model.add_all_qubit_quantum_error(noise.depolarizing_error(0.1, 1), ['x'])
+        noise_model.add_all_qubit_quantum_error(noise.depolarizing_error(0.1, 1), ["x"])
         result = backend.run(
-            QuantumCircuit(), shots=1, noise_model=noise_model).result()
+            QuantumCircuit(), shots=1, noise_model=noise_model
+        ).result()
         self.assertSuccess(result)
 
     @supported_methods(ALL_METHODS)
@@ -60,8 +65,7 @@ class TestNoise(SimulatorTestCase):
         noise_models = ref_readout_noise.readout_error_noise_models()
         targets = ref_readout_noise.readout_error_counts(shots)
 
-        for circuit, noise_model, target in zip(circuits, noise_models,
-                                                targets):
+        for circuit, noise_model, target in zip(circuits, noise_models, targets):
             backend.set_options(noise_model=noise_model)
             result = backend.run(circuit, shots=shots).result()
             self.assertSuccess(result)
@@ -76,16 +80,23 @@ class TestNoise(SimulatorTestCase):
         noise_models = ref_pauli_noise.pauli_gate_error_noise_models()
         targets = ref_pauli_noise.pauli_gate_error_counts(shots)
 
-        for circuit, noise_model, target in zip(circuits, noise_models,
-                                                targets):
+        for circuit, noise_model, target in zip(circuits, noise_models, targets):
             backend.set_options(noise_model=noise_model)
             result = backend.run(circuit, shots=shots).result()
             self.assertSuccess(result)
             self.compare_counts(result, [circuit], [target], delta=0.05 * shots)
 
-    @supported_methods([
-        'automatic', 'stabilizer', 'statevector', 'density_matrix',
-        'matrix_product_state', 'extended_stabilizer', 'tensor_network'])
+    @supported_methods(
+        [
+            "automatic",
+            "stabilizer",
+            "statevector",
+            "density_matrix",
+            "matrix_product_state",
+            "extended_stabilizer",
+            "tensor_network",
+        ]
+    )
     def test_pauli_reset_noise(self, method, device):
         """Test simulation with Pauli reset error noise model."""
         backend = self.backend(method=method, device=device)
@@ -94,8 +105,7 @@ class TestNoise(SimulatorTestCase):
         noise_models = ref_pauli_noise.pauli_reset_error_noise_models()
         targets = ref_pauli_noise.pauli_reset_error_counts(shots)
 
-        for circuit, noise_model, target in zip(circuits, noise_models,
-                                                targets):
+        for circuit, noise_model, target in zip(circuits, noise_models, targets):
             backend.set_options(noise_model=noise_model)
             result = backend.run(circuit, shots=shots).result()
             self.assertSuccess(result)
@@ -110,8 +120,7 @@ class TestNoise(SimulatorTestCase):
         noise_models = ref_pauli_noise.pauli_measure_error_noise_models()
         targets = ref_pauli_noise.pauli_measure_error_counts(shots)
 
-        for circuit, noise_model, target in zip(circuits, noise_models,
-                                                targets):
+        for circuit, noise_model, target in zip(circuits, noise_models, targets):
             backend.set_options(noise_model=noise_model)
             result = backend.run(circuit, shots=shots).result()
             self.assertSuccess(result)
@@ -126,15 +135,21 @@ class TestNoise(SimulatorTestCase):
         noise_models = ref_reset_noise.reset_gate_error_noise_models()
         targets = ref_reset_noise.reset_gate_error_counts(shots)
 
-        for circuit, noise_model, target in zip(circuits, noise_models,
-                                                targets):
+        for circuit, noise_model, target in zip(circuits, noise_models, targets):
             backend.set_options(noise_model=noise_model)
             result = backend.run(circuit, shots=shots).result()
             self.assertSuccess(result)
             self.compare_counts(result, [circuit], [target], delta=0.05 * shots)
 
-    @supported_methods([
-        'automatic', 'statevector', 'density_matrix', 'matrix_product_state', 'tensor_network'])
+    @supported_methods(
+        [
+            "automatic",
+            "statevector",
+            "density_matrix",
+            "matrix_product_state",
+            "tensor_network",
+        ]
+    )
     def test_kraus_gate_noise(self, method, device):
         """Test simulation with Kraus gate error noise model."""
         backend = self.backend(method=method, device=device)
@@ -143,8 +158,7 @@ class TestNoise(SimulatorTestCase):
         noise_models = ref_kraus_noise.kraus_gate_error_noise_models()
         targets = ref_kraus_noise.kraus_gate_error_counts(shots)
 
-        for circuit, noise_model, target in zip(circuits, noise_models,
-                                                targets):
+        for circuit, noise_model, target in zip(circuits, noise_models, targets):
             backend.set_options(noise_model=noise_model)
             result = backend.run(circuit, shots=shots).result()
             self.assertSuccess(result)
@@ -157,8 +171,8 @@ class TestNoise(SimulatorTestCase):
         error1 = noise.amplitude_damping_error(0.2)
         error2 = error1.tensor(error1)
         noise_model = noise.NoiseModel()
-        noise_model.add_all_qubit_quantum_error(error1, ['h'])
-        noise_model.add_all_qubit_quantum_error(error2, ['cp', 'swap'])
+        noise_model.add_all_qubit_quantum_error(error1, ["h"])
+        noise_model.add_all_qubit_quantum_error(error2, ["cp", "swap"])
 
         backend = self.backend(**options, noise_model=noise_model)
         ideal_circuit = transpile(QFT(3), backend)
@@ -179,37 +193,47 @@ class TestNoise(SimulatorTestCase):
         ideal_circuit.measure_all()
         result = backend.run(ideal_circuit, shots=shots).result()
         self.assertSuccess(result)
-        self.compare_counts(result, [ideal_circuit], [ref_target], hex_counts=False, delta=0.1 * shots)
+        self.compare_counts(
+            result, [ideal_circuit], [ref_target], hex_counts=False, delta=0.1 * shots
+        )
 
-    @supported_methods([
-        'automatic', 'statevector', 'density_matrix', 'matrix_product_state', 'tensor_network'])
+    @supported_methods(
+        [
+            "automatic",
+            "statevector",
+            "density_matrix",
+            "matrix_product_state",
+            "tensor_network",
+        ]
+    )
     def test_kraus_gate_noise_on_QFT(self, method, device):
         """Test Kraus noise on a QFT circuit"""
-        self._test_kraus_gate_noise_on_QFT(
-            method=method, device=device)
+        self._test_kraus_gate_noise_on_QFT(method=method, device=device)
 
-    @supported_methods([
-        'statevector', 'density_matrix'])
+    @supported_methods(["statevector", "density_matrix"])
     def test_kraus_gate_noise_on_QFT_cache_blocking(self, method, device):
         """Test Kraus noise on a QFT circuit with caceh blocking"""
         self._test_kraus_gate_noise_on_QFT(
-            method=method, device=device, blocking_qubits=2)
+            method=method, device=device, blocking_qubits=2
+        )
 
     @supported_methods(ALL_METHODS)
     def test_clifford_circuit_noise(self, method, device):
         """Test simulation with mixed Clifford quantum errors in circuit."""
         backend = self.backend(method=method, device=device)
         shots = 1000
-        error1 = noise.QuantumError([
-            ([(IGate(), [0])], 0.8),
-            ([(Reset(), [0])], 0.1),
-            ([(HGate(), [0])], 0.1)])
+        error1 = noise.QuantumError(
+            [([(IGate(), [0])], 0.8), ([(Reset(), [0])], 0.1), ([(HGate(), [0])], 0.1)]
+        )
 
-        error2 = noise.QuantumError([
-            ([(IGate(), [0])], 0.75),
-            ([(Reset(), [0])], 0.1),
-            ([(Reset(), [1])], 0.1),
-            ([(Reset(), [0]), (Reset(), [1])], 0.05)])
+        error2 = noise.QuantumError(
+            [
+                ([(IGate(), [0])], 0.75),
+                ([(Reset(), [0])], 0.1),
+                ([(Reset(), [1])], 0.1),
+                ([(Reset(), [0]), (Reset(), [1])], 0.05),
+            ]
+        )
 
         qc = QuantumCircuit(2)
         qc.h(0)
@@ -225,7 +249,7 @@ class TestNoise(SimulatorTestCase):
         probs = {key: val / shots for key, val in result.get_counts(0).items()}
         self.assertDictAlmostEqual(target_probs, probs, delta=0.1)
 
-    @supported_methods(['automatic', 'statevector', 'density_matrix', 'tensor_network'])
+    @supported_methods(["automatic", "statevector", "density_matrix", "tensor_network"])
     def test_kraus_circuit_noise(self, method, device):
         """Test simulation with Kraus quantum errors in circuit."""
         backend = self.backend(method=method, device=device)
@@ -268,7 +292,9 @@ class TestNoise(SimulatorTestCase):
 
         result = backend.run([qc0, qc1], shots=shots).result()
         self.assertSuccess(result)
-        probs = [{key: val / shots for key, val in result.get_counts(i).items()}
-                 for i in range(2)]
+        probs = [
+            {key: val / shots for key, val in result.get_counts(i).items()}
+            for i in range(2)
+        ]
         self.assertDictAlmostEqual(target_probs0, probs[0], delta=0.1)
         self.assertDictAlmostEqual(target_probs1, probs[1], delta=0.1)

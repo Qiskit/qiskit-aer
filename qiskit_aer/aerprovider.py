@@ -37,26 +37,28 @@ class AerProvider(Provider):
             devices = AerSimulator().available_devices()
             backends = []
             for method in methods:
-                name = 'aer_simulator'
-                if method not in [None, 'automatic']:
-                    name += f'_{method}'
-                device_name = 'CPU'
+                name = "aer_simulator"
+                if method not in [None, "automatic"]:
+                    name += f"_{method}"
+                device_name = "CPU"
                 backends.append((name, AerSimulator, method, device_name))
 
                 # Add GPU device backends
-                if method in ['statevector', 'density_matrix', 'unitary']:
+                if method in ["statevector", "density_matrix", "unitary"]:
                     for device in devices:
-                        if device != 'CPU':
-                            new_name = f'{name}_{device}'.lower()
+                        if device != "CPU":
+                            new_name = f"{name}_{device}".lower()
                             device_name = device
-                            backends.append((new_name, AerSimulator, method, device_name))
+                            backends.append(
+                                (new_name, AerSimulator, method, device_name)
+                            )
 
             # Add legacy backend names
             backends += [
-                ('qasm_simulator', QasmSimulator, None, None),
-                ('statevector_simulator', StatevectorSimulator, None, None),
-                ('unitary_simulator', UnitarySimulator, None, None),
-                ('pulse_simulator', PulseSimulator, None, None)
+                ("qasm_simulator", QasmSimulator, None, None),
+                ("statevector_simulator", StatevectorSimulator, None, None),
+                ("unitary_simulator", UnitarySimulator, None, None),
+                ("pulse_simulator", PulseSimulator, None, None),
             ]
             AerProvider._BACKENDS = backends
 
@@ -77,14 +79,14 @@ class AerProvider(Provider):
         # are set they will only last as long as that backend object exists
         backends = []
         for backend_name, backend_cls, method, device in self._BACKENDS:
-            opts = {'provider': self}
+            opts = {"provider": self}
             if method is not None:
-                opts['method'] = method
+                opts["method"] = method
             if device is not None:
-                opts['device'] = device
+                opts["device"] = device
             if name is None or backend_name == name:
                 backends.append(backend_cls(**opts))
         return filter_backends(backends, filters=filters)
 
     def __str__(self):
-        return 'AerProvider'
+        return "AerProvider"

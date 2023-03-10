@@ -21,12 +21,10 @@ from ..default_qubits import default_qubits
 
 class SaveAmplitudes(SaveSingleData):
     """Save complex statevector amplitudes."""
-    def __init__(self,
-                 num_qubits,
-                 params,
-                 label="amplitudes",
-                 pershot=False,
-                 conditional=False):
+
+    def __init__(
+        self, num_qubits, params, label="amplitudes", pershot=False, conditional=False
+    ):
         """Instruction to save complex statevector amplitudes.
 
         Args:
@@ -44,21 +42,28 @@ class SaveAmplitudes(SaveSingleData):
             ExtensionError: if params is invalid for the specified number of qubits.
         """
         params = _format_amplitude_params(params, num_qubits)
-        super().__init__("save_amplitudes", num_qubits, label,
-                         pershot=pershot,
-                         conditional=conditional,
-                         params=params)
+        super().__init__(
+            "save_amplitudes",
+            num_qubits,
+            label,
+            pershot=pershot,
+            conditional=conditional,
+            params=params,
+        )
 
 
 class SaveAmplitudesSquared(SaveAverageData):
     """Save squared statevector amplitudes (probabilities)."""
-    def __init__(self,
-                 num_qubits,
-                 params,
-                 label="amplitudes_squared",
-                 unnormalized=False,
-                 pershot=False,
-                 conditional=False):
+
+    def __init__(
+        self,
+        num_qubits,
+        params,
+        label="amplitudes_squared",
+        unnormalized=False,
+        pershot=False,
+        conditional=False,
+    ):
         """Instruction to save squared statevector amplitudes (probabilities).
 
         Args:
@@ -78,13 +83,15 @@ class SaveAmplitudesSquared(SaveAverageData):
             ExtensionError: if params is invalid for the specified number of qubits.
         """
         params = _format_amplitude_params(params, num_qubits)
-        super().__init__("save_amplitudes_sq",
-                         num_qubits,
-                         label,
-                         unnormalized=unnormalized,
-                         pershot=pershot,
-                         conditional=conditional,
-                         params=params)
+        super().__init__(
+            "save_amplitudes_sq",
+            num_qubits,
+            label,
+            unnormalized=unnormalized,
+            pershot=pershot,
+            conditional=conditional,
+            params=params,
+        )
 
 
 def save_amplitudes(self, params, label="amplitudes", pershot=False, conditional=False):
@@ -107,15 +114,20 @@ def save_amplitudes(self, params, label="amplitudes", pershot=False, conditional
         ExtensionError: if params is invalid for the specified number of qubits.
     """
     qubits = default_qubits(self)
-    instr = SaveAmplitudes(len(qubits), params, label=label,
-                           pershot=pershot, conditional=conditional)
+    instr = SaveAmplitudes(
+        len(qubits), params, label=label, pershot=pershot, conditional=conditional
+    )
     return self.append(instr, qubits)
 
 
-def save_amplitudes_squared(self, params, label="amplitudes_squared",
-                            unnormalized=False,
-                            pershot=False,
-                            conditional=False):
+def save_amplitudes_squared(
+    self,
+    params,
+    label="amplitudes_squared",
+    unnormalized=False,
+    pershot=False,
+    conditional=False,
+):
     """Save squared statevector amplitudes (probabilities).
 
     Args:
@@ -137,23 +149,28 @@ def save_amplitudes_squared(self, params, label="amplitudes_squared",
         ExtensionError: if params is invalid for the specified number of qubits.
     """
     qubits = default_qubits(self)
-    instr = SaveAmplitudesSquared(len(qubits), params, label=label,
-                                  unnormalized=unnormalized,
-                                  pershot=pershot,
-                                  conditional=conditional)
+    instr = SaveAmplitudesSquared(
+        len(qubits),
+        params,
+        label=label,
+        unnormalized=unnormalized,
+        pershot=pershot,
+        conditional=conditional,
+    )
     return self.append(instr, qubits)
 
 
 def _format_amplitude_params(params, num_qubits=None):
     """Format amplitude params as a interger list."""
     if isinstance(params[0], str):
-        if params[0].find('0x') == 0:
+        if params[0].find("0x") == 0:
             params = [int(i, 16) for i in params]
         else:
             params = [int(i, 2) for i in params]
-    if num_qubits and max(params) >= 2 ** num_qubits:
+    if num_qubits and max(params) >= 2**num_qubits:
         raise ExtensionError(
-            "Param values contain a state larger than the number of qubits")
+            "Param values contain a state larger than the number of qubits"
+        )
     return params
 
 

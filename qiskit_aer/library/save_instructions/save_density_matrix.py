@@ -20,12 +20,15 @@ from ..default_qubits import default_qubits
 
 class SaveDensityMatrix(SaveAverageData):
     """Save a reduced density matrix."""
-    def __init__(self,
-                 num_qubits,
-                 label="density_matrix",
-                 unnormalized=False,
-                 pershot=False,
-                 conditional=False):
+
+    def __init__(
+        self,
+        num_qubits,
+        label="density_matrix",
+        unnormalized=False,
+        pershot=False,
+        conditional=False,
+    ):
         """Create new instruction to save the simulator reduced density matrix.
 
         Args:
@@ -41,18 +44,24 @@ class SaveDensityMatrix(SaveAverageData):
                                 conditional on the current classical register
                                 values [Default: False].
         """
-        super().__init__("save_density_matrix", num_qubits, label,
-                         unnormalized=unnormalized,
-                         pershot=pershot,
-                         conditional=conditional)
+        super().__init__(
+            "save_density_matrix",
+            num_qubits,
+            label,
+            unnormalized=unnormalized,
+            pershot=pershot,
+            conditional=conditional,
+        )
 
 
-def save_density_matrix(self,
-                        qubits=None,
-                        label="density_matrix",
-                        unnormalized=False,
-                        pershot=False,
-                        conditional=False):
+def save_density_matrix(
+    self,
+    qubits=None,
+    label="density_matrix",
+    unnormalized=False,
+    pershot=False,
+    conditional=False,
+):
     """Save the current simulator quantum state as a density matrix.
 
     Args:
@@ -74,11 +83,13 @@ def save_density_matrix(self,
         QuantumCircuit: with attached instruction.
     """
     qubits = default_qubits(self, qubits=qubits)
-    instr = SaveDensityMatrix(len(qubits),
-                              label=label,
-                              unnormalized=unnormalized,
-                              pershot=pershot,
-                              conditional=conditional)
+    instr = SaveDensityMatrix(
+        len(qubits),
+        label=label,
+        unnormalized=unnormalized,
+        pershot=pershot,
+        conditional=conditional,
+    )
     return self.append(instr, qubits)
 
 

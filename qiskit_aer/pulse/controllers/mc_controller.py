@@ -29,13 +29,13 @@ from scipy.linalg.blas import get_blas_funcs
 from qiskit.tools.parallel import parallel_map, CPU_COUNT
 from .pulse_sim_options import PulseSimOptions
 from .pulse_de_solver import setup_de_solver
-from .pulse_utils import (occ_probabilities, write_shots_memory, spmv, cy_expect_psi)
+from .pulse_utils import occ_probabilities, write_shots_memory, spmv, cy_expect_psi
 
 dznrm2 = get_blas_funcs("znrm2", dtype=np.float64)
 
 
 def run_monte_carlo_experiments(pulse_sim_desc, pulse_de_model, solver_options=None):
-    """ Runs monte carlo experiments for a given op_system
+    """Runs monte carlo experiments for a given op_system
 
     Parameters:
         pulse_sim_desc (PulseSimDescription): description of pulse simulation
@@ -64,9 +64,9 @@ def run_monte_carlo_experiments(pulse_sim_desc, pulse_de_model, solver_options=N
     seed = pulse_sim_desc.seed or np.random.randint(np.iinfo(np.int32).max - 1)
     prng = np.random.RandomState(seed)
     for exp in pulse_sim_desc.experiments:
-        exp['seed'] = prng.randint(np.iinfo(np.int32).max - 1)
+        exp["seed"] = prng.randint(np.iinfo(np.int32).max - 1)
 
-    map_kwargs = {'num_processes': solver_options.num_cpus}
+    map_kwargs = {"num_processes": solver_options.num_cpus}
 
     exp_results = []
     exp_times = []
@@ -76,16 +76,20 @@ def run_monte_carlo_experiments(pulse_sim_desc, pulse_de_model, solver_options=N
 
     for exp in pulse_sim_desc.experiments:
         start = time.time()
-        rng = np.random.RandomState(exp['seed'])
+        rng = np.random.RandomState(exp["seed"])
         seeds = rng.randint(np.iinfo(np.int32).max - 1, size=pulse_sim_desc.shots)
-        exp_res = parallel_map(monte_carlo_evolution,
-                               seeds,
-                               task_args=(exp,
-                                          y0,
-                                          pulse_sim_desc,
-                                          pulse_de_model,
-                                          solver_options, ),
-                               **map_kwargs)
+        exp_res = parallel_map(
+            monte_carlo_evolution,
+            seeds,
+            task_args=(
+                exp,
+                y0,
+                pulse_sim_desc,
+                pulse_de_model,
+                solver_options,
+            ),
+            **map_kwargs
+        )
 
         # exp_results is a list for each shot
         # so transform back to an array of shots
@@ -100,13 +104,10 @@ def run_monte_carlo_experiments(pulse_sim_desc, pulse_de_model, solver_options=N
     return exp_results, exp_times
 
 
-def monte_carlo_evolution(seed,
-                          exp,
-                          y0,
-                          pulse_sim_desc,
-                          pulse_de_model,
-                          solver_options=None):
-    """ Performs a single monte carlo run for the given op_system, experiment, and seed
+def monte_carlo_evolution(
+    seed, exp, y0, pulse_sim_desc, pulse_de_model, solver_options=None
+):
+    """Performs a single monte carlo run for the given op_system, experiment, and seed
 
     Parameters:
         seed (int): seed for random number generation
@@ -126,12 +127,12 @@ def monte_carlo_evolution(seed,
     solver_options = PulseSimOptions() if solver_options is None else solver_options
 
     rng = np.random.RandomState(seed)
-    tlist = exp['tlist']
+    tlist = exp["tlist"]
     # Init memory
     memory = np.zeros((1, pulse_sim_desc.memory_slots), dtype=np.uint8)
 
     # Get number of acquire
-    num_acq = len(exp['acquire'])
+    num_acq = len(exp["acquire"])
     acq_idx = 0
 
     collapse_times = []
@@ -167,18 +168,19 @@ def monte_carlo_evolution(seed,
                 t_final = ODE.t
                 while ii < solver_options.norm_steps:
                     ii += 1
-                    t_guess = t_prev + \
-                        log(norm2_prev / rand_vals[0]) / \
-                        log(norm2_prev / norm2_psi) * (t_final - t_prev)
+                    t_guess = t_prev + log(norm2_prev / rand_vals[0]) / log(
+                        norm2_prev / norm2_psi
+                    ) * (t_final - t_prev)
                     ODE.y = y_prev
                     ODE.t = t_prev
                     ODE.integrate(t_guess, step=0)
                     if not ODE.successful():
-                        raise Exception(
-                            "Integration failed after adjusting step size!")
-                    norm2_guess = dznrm2(ODE.y)**2
-                    if (abs(rand_vals[0] - norm2_guess) <
-                            solver_options.norm_tol * rand_vals[0]):
+                        raise Exception("Integration failed after adjusting step size!")
+                    norm2_guess = dznrm2(ODE.y) ** 2
+                    if (
+                        abs(rand_vals[0] - norm2_guess)
+                        < solver_options.norm_tol * rand_vals[0]
+                    ):
                         break
 
                     if norm2_guess < rand_vals[0]:
@@ -191,9 +193,11 @@ def monte_carlo_evolution(seed,
                         y_prev = ODE.y
                         norm2_prev = norm2_guess
                 if ii > solver_options.norm_steps:
-                    raise Exception("Norm tolerance not reached. " +
-                                    "Increase accuracy of ODE solver or " +
-                                    "Options.norm_steps.")
+                    raise Exception(
+                        "Norm tolerance not reached. "
+                        + "Increase accuracy of ODE solver or "
+                        + "Options.norm_steps."
+                    )
 
                 collapse_times.append(ODE.t)
                 # all constant collapse operators.
@@ -214,11 +218,13 @@ def monte_carlo_evolution(seed,
         out_psi = ODE.y / dznrm2(ODE.y)
 
         for aind in range(acq_idx, num_acq):
-            if exp['acquire'][aind][0] == stop_time:
-                current_acq = exp['acquire'][aind]
+            if exp["acquire"][aind][0] == stop_time:
+                current_acq = exp["acquire"][aind]
                 qubits = current_acq[1]
                 memory_slots = current_acq[2]
-                probs = occ_probabilities(qubits, out_psi, pulse_sim_desc.measurement_ops)
+                probs = occ_probabilities(
+                    qubits, out_psi, pulse_sim_desc.measurement_ops
+                )
                 rand_vals = rng.rand(memory_slots.shape[0])
                 write_shots_memory(memory, memory_slots, probs, rand_vals)
                 acq_idx += 1

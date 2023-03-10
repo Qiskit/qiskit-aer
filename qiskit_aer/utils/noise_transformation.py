@@ -35,8 +35,13 @@ import numpy as np
 
 from qiskit.circuit import Reset
 from qiskit.circuit.library.standard_gates import (
-    IGate, XGate, YGate, ZGate,
-    HGate, SGate, SdgGate,
+    IGate,
+    XGate,
+    YGate,
+    ZGate,
+    HGate,
+    SGate,
+    SdgGate,
 )
 from qiskit.compiler import transpile
 from qiskit.exceptions import MissingOptionalLibraryError
@@ -126,16 +131,16 @@ def transpile_noise_model(noise_model: NoiseModel, **transpile_kwargs) -> NoiseM
     Raises:
         NoiseError: if the transformation failed.
     """
+
     def func(error):
         return transpile_quantum_error(error, **transpile_kwargs)
 
     return transform_noise_model(noise_model, func)
 
 
-def approximate_quantum_error(error, *,
-                              operator_string=None,
-                              operator_dict=None,
-                              operator_list=None):
+def approximate_quantum_error(
+    error, *, operator_string=None, operator_dict=None, operator_list=None
+):
     r"""
     Return a ``QuantumError`` object that approximates an error
     as a mixture of specified operators (channels).
@@ -182,30 +187,40 @@ def approximate_quantum_error(error, *,
         raise NoiseError(f"Invalid input error type: {error.__class__.__name__}")
 
     if error.num_qubits > 2:
-        raise NoiseError("Only 1-qubit and 2-qubit noises can be converted, "
-                         f"{error.num_qubits}-qubit noise found in model")
+        raise NoiseError(
+            "Only 1-qubit and 2-qubit noises can be converted, "
+            f"{error.num_qubits}-qubit noise found in model"
+        )
 
     if operator_string is not None:
         valid_operator_strings = _PRESET_OPERATOR_TABLE.keys()
         operator_string = operator_string.lower()
         if operator_string not in valid_operator_strings:
-            raise NoiseError(f"{operator_string} is not a valid operator_string. "
-                             f"It must be one of {valid_operator_strings}")
+            raise NoiseError(
+                f"{operator_string} is not a valid operator_string. "
+                f"It must be one of {valid_operator_strings}"
+            )
         try:
             operator_list = _PRESET_OPERATOR_TABLE[operator_string][error.num_qubits]
         except KeyError as err:
-            raise NoiseError(f"Preset '{operator_string}' operators do not support the "
-                             f"approximation of errors with {error.num_qubits} qubits") from err
+            raise NoiseError(
+                f"Preset '{operator_string}' operators do not support the "
+                f"approximation of errors with {error.num_qubits} qubits"
+            ) from err
     if operator_dict is not None:
         _, operator_list = zip(*operator_dict.items())
     if operator_list is not None:
         if not isinstance(operator_list, Sequence):
             raise NoiseError(f"operator_list is not a sequence: {operator_list}")
         try:
-            channel_list = [op if isinstance(op, QuantumChannel) else QuantumError([(op, 1)])
-                            for op in operator_list]  # preserve operator_list
+            channel_list = [
+                op if isinstance(op, QuantumChannel) else QuantumError([(op, 1)])
+                for op in operator_list
+            ]  # preserve operator_list
         except NoiseError as err:
-            raise NoiseError(f"Invalid type found in operator list: {operator_list}") from err
+            raise NoiseError(
+                f"Invalid type found in operator list: {operator_list}"
+            ) from err
 
         probabilities = _transform_by_operator_list(channel_list, error)[1:]
         identity_prob = np.round(1 - sum(probabilities), 9)
@@ -221,10 +236,9 @@ def approximate_quantum_error(error, *,
     )
 
 
-def approximate_noise_model(model, *,
-                            operator_string=None,
-                            operator_dict=None,
-                            operator_list=None):
+def approximate_noise_model(
+    model, *, operator_string=None, operator_dict=None, operator_list=None
+):
     """
     Replace all noises in a noise model with ones approximated
     by a mixture of operators (channels).
@@ -257,13 +271,15 @@ def approximate_noise_model(model, *,
         its possible values are ``'pauli'``, ``'reset'``, ``'clifford'``.
         The ``'clifford'`` does not support 2-qubit errors.
     """
+
     def approximate(noise):
         return approximate_quantum_error(
             noise,
             operator_string=operator_string,
             operator_dict=operator_dict,
-            operator_list=operator_list
+            operator_list=operator_list,
         )
+
     return transform_noise_model(model, approximate)
 
 
@@ -281,12 +297,12 @@ _RESET_Q1 = [[(IGate(), [1])], _RESET_Q1_TO_0, _RESET_Q1_TO_1]
 _RESET_Q0Q1 = [op_q0 + op_q1 for op_q0 in _RESET_Q0 for op_q1 in _RESET_Q1]
 # clifford operators
 _CLIFFORD_GATES = [
-    (IGate(), ),
-    (SGate(), ),
-    (SdgGate(), ),
-    (ZGate(), ),
+    (IGate(),),
+    (SGate(),),
+    (SdgGate(),),
+    (ZGate(),),
     # u2 gates
-    (HGate(), ),
+    (HGate(),),
     (HGate(), ZGate()),
     (ZGate(), HGate()),
     (HGate(), SGate()),
@@ -303,10 +319,10 @@ _CLIFFORD_GATES = [
     (SdgGate(), HGate(), ZGate()),
     (ZGate(), HGate(), ZGate()),
     # u3 gates
-    (XGate(), ),
-    (YGate(), ),
+    (XGate(),),
+    (YGate(),),
     (SGate(), XGate()),
-    (SdgGate(), XGate())
+    (SdgGate(), XGate()),
 ]
 # preset operator table
 _PRESET_OPERATOR_TABLE = {
@@ -320,12 +336,14 @@ _PRESET_OPERATOR_TABLE = {
     },
     "clifford": {
         1: [[(gate, [0]) for gate in _CLIFFORD_GATES[j]] for j in range(1, 24)],
-    }
+    },
 }
 
 
-def _transform_by_operator_list(basis_ops: Sequence[Union[QuantumChannel, QuantumError]],
-                                target: Union[QuantumChannel, QuantumError]) -> List[float]:
+def _transform_by_operator_list(
+    basis_ops: Sequence[Union[QuantumChannel, QuantumError]],
+    target: Union[QuantumChannel, QuantumError],
+) -> List[float]:
     r"""
     Transform (or approximate) the target quantum channel into a mixture of
     basis operators (channels) and return the mixing probabilities.
@@ -395,13 +413,13 @@ def _transform_by_operator_list(basis_ops: Sequence[Union[QuantumChannel, Quantu
             name="Transformation/Approximation of noise",
             pip_install="pip install cvxpy",
             msg="CVXPY is required to solve an optimization problem of"
-                " approximating a noise channel."
+            " approximating a noise channel.",
         ) from err
     # create quadratic program
     x = cvxpy.Variable(n)
     prob = cvxpy.Problem(
         cvxpy.Minimize(cvxpy.quad_form(x, A) + b.T @ x),
-        constraints=[cvxpy.sum(x) <= 1, x >= 0, source_fids.T @ x <= target_fid]
+        constraints=[cvxpy.sum(x) <= 1, x >= 0, source_fids.T @ x <= target_fid],
     )
     # solve quadratic program
     prob.solve()

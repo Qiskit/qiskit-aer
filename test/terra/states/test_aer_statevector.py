@@ -32,7 +32,10 @@ from qiskit.quantum_info import Kraus
 from qiskit.quantum_info.operators.operator import Operator
 from qiskit.quantum_info.operators.symplectic import Pauli, SparsePauliOp
 from qiskit.quantum_info.operators.predicates import matrix_equal
-from qiskit.visualization.state_visualization import numbers_to_latex_terms, state_to_latex
+from qiskit.visualization.state_visualization import (
+    numbers_to_latex_terms,
+    state_to_latex,
+)
 from qiskit.circuit.library import QFT, HGate
 
 from test.terra import common
@@ -45,12 +48,13 @@ from qiskit.quantum_info.operators.predicates import ATOL_DEFAULT, RTOL_DEFAULT
 
 logger = logging.getLogger(__name__)
 
+
 @ddt
 class TestAerStatevector(common.QiskitAerTestCase):
     """AerState tests"""
 
     def test_qv(self):
-        """Test generation of Aer's StateVector with QV """
+        """Test generation of Aer's StateVector with QV"""
         circ = QuantumVolume(5, seed=1111)
         state = AerStatevector(circ)
         expected = Statevector(circ)
@@ -59,7 +63,7 @@ class TestAerStatevector(common.QiskitAerTestCase):
             self.assertAlmostEqual(e, s)
 
     def test_sample_randomness(self):
-        """Test randomness of results of sample_counts """
+        """Test randomness of results of sample_counts"""
         circ = QuantumVolume(5, seed=1111)
 
         state = AerStatevector(circ, seed_simulator=1)
@@ -82,7 +86,7 @@ class TestAerStatevector(common.QiskitAerTestCase):
         self.assertNotEqual(counts1, counts2)
 
     def test_sample_with_same_seed(self):
-        """Test randomness of results of sample_counts """
+        """Test randomness of results of sample_counts"""
         circ = QuantumVolume(5, seed=1111)
 
         state = AerStatevector(circ, seed_simulator=1)
@@ -117,12 +121,12 @@ class TestAerStatevector(common.QiskitAerTestCase):
         circ = QuantumVolume(5, seed=1111)
         state1 = AerStatevector(circ)
 
-        self.assertEqual('statevector', state1.metadata()['method'])
-        self.assertEqual('CPU', state1.metadata()['device'])
+        self.assertEqual("statevector", state1.metadata()["method"])
+        self.assertEqual("CPU", state1.metadata()["device"])
 
-        state2 = AerStatevector(circ, method='matrix_product_state')
-        self.assertEqual('matrix_product_state', state2.metadata()['method'])
-        self.assertEqual('CPU', state2.metadata()['device'])
+        state2 = AerStatevector(circ, method="matrix_product_state")
+        self.assertEqual("matrix_product_state", state2.metadata()["method"])
+        self.assertEqual("CPU", state2.metadata()["device"])
 
         self.assertEqual(state1, state2)
 
@@ -138,8 +142,8 @@ class TestAerStatevector(common.QiskitAerTestCase):
             sv = AerStatevector(ghz, method=method)
             counts = sv.sample_counts(shots=1024)
             self.assertEqual(2, len(counts))
-            self.assertTrue('0000' in counts)
-            self.assertTrue('1111' in counts)
+            self.assertTrue("0000" in counts)
+            self.assertTrue("1111" in counts)
 
     def test_QFT(self):
         """Test each method can process qft"""
@@ -151,14 +155,14 @@ class TestAerStatevector(common.QiskitAerTestCase):
             sv = AerStatevector(qft, method=method)
             counts = sv.sample_counts(shots=1024)
             self.assertEqual(1, len(counts))
-            self.assertTrue('0000' in counts)
+            self.assertTrue("0000" in counts)
 
     def test_single_qubit_QV(self):
         """Test single qubit QuantumVolume"""
         state = AerStatevector(QuantumVolume(1))
         counts = state.sample_counts(shots=1024)
         self.assertEqual(1, len(counts))
-        self.assertTrue('0' in counts)
+        self.assertTrue("0" in counts)
 
     def test_evolve(self):
         """Test method and device properties"""
@@ -287,7 +291,7 @@ class TestAerStatevector(common.QiskitAerTestCase):
         # Test diagonal
         circuit = QuantumCircuit(3)
         circuit.h(range(3))
-        diagonal = [ 1.0, 1.0, 1.0, -1.0, 1.0, 1.0, 1.0, -1.0 ]
+        diagonal = [1.0, 1.0, 1.0, -1.0, 1.0, 1.0, 1.0, -1.0]
         circuit.diagonal(diagonal, list(range(3)))
         target = AerStatevector.from_label("000").evolve(Operator(circuit))
         psi = AerStatevector.from_instruction(circuit)
@@ -307,7 +311,7 @@ class TestAerStatevector(common.QiskitAerTestCase):
         circuit.h(0)
         circuit.y(0)
         p_error = 0.5
-        error = pauli_error([('Y', p_error), ('I', 1 - p_error)])
+        error = pauli_error([("Y", p_error), ("I", 1 - p_error)])
         circuit.append(Kraus(error).to_instruction(), [0])
 
         circuit_no_noise = QuantumCircuit(1)
@@ -319,12 +323,15 @@ class TestAerStatevector(common.QiskitAerTestCase):
 
         for i in range(100):
             psi = AerStatevector(circuit, seed_simulator=i)
-            self.assertTrue(same_1qubit_statevectors_up_to_global_phase(psi, target0) or \
-                            same_1qubit_statevectors_up_to_global_phase(psi, target1))
+            self.assertTrue(
+                same_1qubit_statevectors_up_to_global_phase(psi, target0)
+                or same_1qubit_statevectors_up_to_global_phase(psi, target1)
+            )
 
     def test_deepcopy(self):
         """Test deep copy"""
         import copy
+
         circ1 = QuantumVolume(5, seed=1111)
 
         state1 = AerStatevector(circ1)
@@ -335,9 +342,8 @@ class TestAerStatevector(common.QiskitAerTestCase):
 
         self.assertNotEqual(id(state1._data), id(state2._data))
 
-
     def test_initialize_with_ndarray(self):
-        """Test ndarray initialization """
+        """Test ndarray initialization"""
         circ = QuantumVolume(5, seed=1111)
         expected = Statevector(circ)
         state = AerStatevector(expected.data)
@@ -346,17 +352,19 @@ class TestAerStatevector(common.QiskitAerTestCase):
             self.assertAlmostEqual(e, s)
 
     def test_initialize_with_non_contiguous_ndarray(self):
-        """Test ndarray initialization """
+        """Test ndarray initialization"""
 
         for n_qubits in [2, 4, 8, 16]:
             u = random_unitary(n_qubits, seed=1111).data
             vec = u[0, :]
             state = AerStatevector(vec)
 
-            self.assertTrue(np.allclose(state, vec, rtol=RTOL_DEFAULT, atol=ATOL_DEFAULT))
+            self.assertTrue(
+                np.allclose(state, vec, rtol=RTOL_DEFAULT, atol=ATOL_DEFAULT)
+            )
 
     def test_initialize_with_terra_statevector(self):
-        """Test Statevector initialization """
+        """Test Statevector initialization"""
         circ = QuantumVolume(5, seed=1111)
         expected = Statevector(circ)
         state = AerStatevector(expected)
@@ -365,7 +373,7 @@ class TestAerStatevector(common.QiskitAerTestCase):
             self.assertAlmostEqual(e, s)
 
     def test_initialize_with_aer_statevector(self):
-        """Test AerStatevector initialization """
+        """Test AerStatevector initialization"""
         circ = QuantumVolume(5, seed=1111)
         expected = AerStatevector(circ)
         state = AerStatevector(expected)
@@ -407,7 +415,9 @@ class TestAerStatevector(common.QiskitAerTestCase):
 
         self.assertEqual(state.dim, 8)
         self.assertEqual(state.dims(), (2, 2, 2))
-        self.assertTrue(all(state.data == np.array([0, 1, 0, 0, 0, 0, 0, 0], dtype=complex)))
+        self.assertTrue(
+            all(state.data == np.array([0, 1, 0, 0, 0, 0, 0, 0], dtype=complex))
+        )
         self.assertEqual(state.num_qubits, 3)
 
     def test_init_array_except(self):
@@ -787,7 +797,9 @@ class TestAerStatevector(common.QiskitAerTestCase):
     def test_probabilities_ghz(self):
         """Test probabilities method for GHZ state"""
 
-        state = (AerStatevector.from_label("000") + AerStatevector.from_label("111")) / np.sqrt(2)
+        state = (
+            AerStatevector.from_label("000") + AerStatevector.from_label("111")
+        ) / np.sqrt(2)
 
         # 3-qubit qargs
         target = np.array([0.5, 0, 0, 0, 0, 0, 0, 0.5])
@@ -875,7 +887,9 @@ class TestAerStatevector(common.QiskitAerTestCase):
     def test_probabilities_dict_ghz(self):
         """Test probabilities_dict method for GHZ state"""
 
-        state = (AerStatevector.from_label("000") + AerStatevector.from_label("111")) / np.sqrt(2)
+        state = (
+            AerStatevector.from_label("000") + AerStatevector.from_label("111")
+        ) / np.sqrt(2)
 
         # 3-qubit qargs
         target = {"000": 0.5, "111": 0.5}
@@ -934,7 +948,9 @@ class TestAerStatevector(common.QiskitAerTestCase):
 
         shots = 2000
         threshold = 0.02 * shots
-        state = (AerStatevector.from_label("000") + AerStatevector.from_label("111")) / np.sqrt(2)
+        state = (
+            AerStatevector.from_label("000") + AerStatevector.from_label("111")
+        ) / np.sqrt(2)
         state.seed(100)
 
         # 3-qubit qargs
@@ -999,7 +1015,9 @@ class TestAerStatevector(common.QiskitAerTestCase):
         """Test sample_memory method for GHZ state"""
 
         shots = 5000
-        state = (AerStatevector.from_label("000") + AerStatevector.from_label("111")) / np.sqrt(2)
+        state = (
+            AerStatevector.from_label("000") + AerStatevector.from_label("111")
+        ) / np.sqrt(2)
         state.seed(100)
 
         # 3-qubit qargs
@@ -1086,13 +1104,19 @@ class TestAerStatevector(common.QiskitAerTestCase):
         with self.subTest(msg="reset [0]"):
             psi = state.copy()
             value = psi.reset([0])
-            targets = [AerStatevector(np.array([1, 0, 0, 0])), AerStatevector(np.array([0, 0, 1, 0]))]
+            targets = [
+                AerStatevector(np.array([1, 0, 0, 0])),
+                AerStatevector(np.array([0, 0, 1, 0])),
+            ]
             self.assertIn(value, targets)
 
         with self.subTest(msg="reset [0]"):
             psi = state.copy()
             value = psi.reset([1])
-            targets = [AerStatevector(np.array([1, 0, 0, 0])), AerStatevector(np.array([0, 1, 0, 0]))]
+            targets = [
+                AerStatevector(np.array([1, 0, 0, 0])),
+                AerStatevector(np.array([0, 1, 0, 0])),
+            ]
             self.assertIn(value, targets)
 
     def test_measure_2qubit(self):
@@ -1352,7 +1376,15 @@ class TestAerStatevector(common.QiskitAerTestCase):
         sv = AerStatevector.from_instruction(qc1)
         with self.subTest(msg="str(statevector)"):
             str(sv)
-        for drawtype in ["repr", "text", "latex", "latex_source", "qsphere", "hinton", "bloch"]:
+        for drawtype in [
+            "repr",
+            "text",
+            "latex",
+            "latex_source",
+            "qsphere",
+            "hinton",
+            "bloch",
+        ]:
             with self.subTest(msg=f"draw('{drawtype}')"):
                 sv.draw(drawtype)
         with self.subTest(msg=" draw('latex', convention='vector')"):
@@ -1390,7 +1422,10 @@ class TestAerStatevector(common.QiskitAerTestCase):
             ([1e-16 + 1j], ["i"]),
             ([-1 + 1e-16 * 1j], ["-"]),
             ([-1, -1 - 1j], ["-", "+(-1 - i)"]),
-            ([np.sqrt(2) / 2, np.sqrt(2) / 2], ["\\frac{\\sqrt{2}}{2}", "+\\frac{\\sqrt{2}}{2}"]),
+            (
+                [np.sqrt(2) / 2, np.sqrt(2) / 2],
+                ["\\frac{\\sqrt{2}}{2}", "+\\frac{\\sqrt{2}}{2}"],
+            ),
             ([1 + np.sqrt(2)], ["(1 + \\sqrt{2})"]),
         ]
         with self.assertWarns(DeprecationWarning):
@@ -1411,5 +1446,6 @@ class TestAerStatevector(common.QiskitAerTestCase):
         with self.assertRaises(Exception):
             empty_sv = AerStatevector([])
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     unittest.main()

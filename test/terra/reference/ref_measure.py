@@ -23,6 +23,7 @@ from qiskit.circuit import Instruction
 # Single-qubit measurements with deterministic output
 # ==========================================================================
 
+
 def measure_circuits_deterministic(allow_sampling=True):
     """Measure test circuits with deterministic count output."""
 
@@ -102,26 +103,26 @@ def measure_counts_deterministic(shots, hex_counts=True):
     targets = []
     if hex_counts:
         # Measure |00> state
-        targets.append({'0x0': shots})
+        targets.append({"0x0": shots})
         # Measure |01> state
-        targets.append({'0x1': shots})
+        targets.append({"0x1": shots})
         # Measure |10> state
-        targets.append({'0x2': shots})
+        targets.append({"0x2": shots})
         # Measure |11> state
-        targets.append({'0x3': shots})
+        targets.append({"0x3": shots})
         # Measure a single qubit (qubit 1) in |1> state
-        targets.append({'0x1': shots})
+        targets.append({"0x1": shots})
     else:
         # Measure |00> state
-        targets.append({'00': shots})
+        targets.append({"00": shots})
         # Measure |01> state
-        targets.append({'01': shots})
+        targets.append({"01": shots})
         # Measure |10> state
-        targets.append({'10': shots})
+        targets.append({"10": shots})
         # Measure |11> state
-        targets.append({'11': shots})
+        targets.append({"11": shots})
         # Measure a single qubit (qubit 1) in |1> state
-        targets.append({'0x1': shots})
+        targets.append({"0x1": shots})
 
     return targets
 
@@ -131,22 +132,22 @@ def measure_memory_deterministic(shots, hex_counts=True):
     targets = []
     if hex_counts:
         # Measure |00> state
-        targets.append(shots * ['0x0'])
+        targets.append(shots * ["0x0"])
         # Measure |01> state
-        targets.append(shots * ['0x1'])
+        targets.append(shots * ["0x1"])
         # Measure |10> state
-        targets.append(shots * ['0x2'])
+        targets.append(shots * ["0x2"])
         # Measure |11> state
-        targets.append(shots * ['0x3'])
+        targets.append(shots * ["0x3"])
     else:
         # Measure |00> state
-        targets.append(shots * ['00'])
+        targets.append(shots * ["00"])
         # Measure |01> state
-        targets.append(shots * ['01'])
+        targets.append(shots * ["01"])
         # Measure |10> state
-        targets.append(shots * ['10'])
+        targets.append(shots * ["10"])
         # Measure |11> state
-        targets.append(shots * ['11'])
+        targets.append(shots * ["11"])
     return targets
 
 
@@ -164,12 +165,14 @@ def measure_statevector_deterministic():
     targets.append(array([0, 0, 0, 1]))
     return targets
 
+
 # ==========================================================================
 # Single-qubit measurements with non-deterministic output
 # ==========================================================================
 
+
 def measure_circuits_nondeterministic(allow_sampling=True):
-    """"Measure test circuits with non-deterministic count output."""
+    """ "Measure test circuits with non-deterministic count output."""
 
     circuits = []
     qr = QuantumRegister(2)
@@ -196,18 +199,21 @@ def measure_counts_nondeterministic(shots, hex_counts=True):
     targets = []
     if hex_counts:
         # Measure |++> state
-        targets.append({'0x0': shots / 4, '0x1': shots / 4,
-                        '0x2': shots / 4, '0x3': shots / 4})
+        targets.append(
+            {"0x0": shots / 4, "0x1": shots / 4, "0x2": shots / 4, "0x3": shots / 4}
+        )
     else:
         # Measure |++> state
-        targets.append({'00': shots / 4, '01': shots / 4,
-                        '10': shots / 4, '11': shots / 4})
+        targets.append(
+            {"00": shots / 4, "01": shots / 4, "10": shots / 4, "11": shots / 4}
+        )
     return targets
 
 
 # ==========================================================================
 # Multi-qubit measurements with deterministic output
 # ==========================================================================
+
 
 def multiqubit_measure_circuits_deterministic(allow_sampling=True):
     """Multi-qubit measure test circuits with deterministic count output."""
@@ -270,18 +276,18 @@ def multiqubit_measure_counts_deterministic(shots, hex_counts=True):
     targets = []
     if hex_counts:
         # 2-qubit measure |10>
-        targets.append({'0x2': shots})
+        targets.append({"0x2": shots})
         # 3-qubit measure |101>
-        targets.append({'0x5': shots})
+        targets.append({"0x5": shots})
         # 4-qubit measure |1010>
-        targets.append({'0xa': shots})
+        targets.append({"0xa": shots})
     else:
         # 2-qubit measure |10>
-        targets.append({'10': shots})
+        targets.append({"10": shots})
         # 3-qubit measure |101>
-        targets.append({'101': shots})
+        targets.append({"101": shots})
         # 4-qubit measure |1010>
-        targets.append({'1010': shots})
+        targets.append({"1010": shots})
     return targets
 
 
@@ -291,18 +297,18 @@ def multiqubit_measure_memory_deterministic(shots, hex_counts=True):
     targets = []
     if hex_counts:
         # 2-qubit measure |10>
-        targets.append(shots * ['0x2'])
+        targets.append(shots * ["0x2"])
         # 3-qubit measure |101>
-        targets.append(shots * ['0x5'])
+        targets.append(shots * ["0x5"])
         # 4-qubit measure |1010>
-        targets.append(shots * ['0xa'])
+        targets.append(shots * ["0xa"])
     else:
         # 2-qubit measure |10>
-        targets.append(shots * ['10'])
+        targets.append(shots * ["10"])
         # 3-qubit measure |101>
-        targets.append(shots * ['101'])
+        targets.append(shots * ["101"])
         # 4-qubit measure |1010>
-        targets.append(shots * ['1010'])
+        targets.append(shots * ["1010"])
     return targets
 
 
@@ -322,6 +328,7 @@ def multiqubit_measure_statevector_deterministic():
 # ==========================================================================
 # Multi-qubit measurements with non-deterministic output
 # ==========================================================================
+
 
 def multiqubit_measure_circuits_nondeterministic(allow_sampling=True):
     """Multi-qubit measure test circuits with non-deterministic count output."""
@@ -370,16 +377,20 @@ def multiqubit_measure_counts_nondeterministic(shots, hex_counts=True):
     targets = []
     if hex_counts:
         # 2-qubit measure |++>
-        targets.append({'0x0': shots / 4, '0x1': shots / 4,
-                        '0x2': shots / 4, '0x3': shots / 4})    
+        targets.append(
+            {"0x0": shots / 4, "0x1": shots / 4, "0x2": shots / 4, "0x3": shots / 4}
+        )
         # 3-qubit measure |0++>
-        targets.append({'0x0': shots / 4, '0x1': shots / 4,
-                        '0x2': shots / 4, '0x3': shots / 4})
+        targets.append(
+            {"0x0": shots / 4, "0x1": shots / 4, "0x2": shots / 4, "0x3": shots / 4}
+        )
     else:
         # 2-qubit measure |++>
-        targets.append({'00': shots / 4, '01': shots / 4,
-                        '10': shots / 4, '11': shots / 4})
+        targets.append(
+            {"00": shots / 4, "01": shots / 4, "10": shots / 4, "11": shots / 4}
+        )
         # 3-qubit measure |0++>
-        targets.append({'000': shots / 4, '001': shots / 4,
-                        '010': shots / 4, '011': shots / 4})
+        targets.append(
+            {"000": shots / 4, "001": shots / 4, "010": shots / 4, "011": shots / 4}
+        )
     return targets

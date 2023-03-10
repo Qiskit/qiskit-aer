@@ -15,12 +15,15 @@ AerSimulator Integration Tests
 from ddt import ddt
 from test.terra.reference import ref_non_clifford
 from qiskit import transpile
-from test.terra.backends.simulator_test_case import (
-    SimulatorTestCase, supported_methods)
+from test.terra.backends.simulator_test_case import SimulatorTestCase, supported_methods
 
 SUPPORTED_METHODS = [
-    'automatic', 'statevector', 'density_matrix',
-    'matrix_product_state', 'extended_stabilizer', 'tensor_network'
+    "automatic",
+    "statevector",
+    "density_matrix",
+    "matrix_product_state",
+    "extended_stabilizer",
+    "tensor_network",
 ]
 
 
@@ -36,8 +39,7 @@ class TestNonCliffords(SimulatorTestCase):
         """Test t-gate circuits compiling to backend default basis_gates."""
         backend = self.backend(method=method, device=device)
         shots = 100
-        circuits = ref_non_clifford.t_gate_circuits_deterministic(
-            final_measure=True)
+        circuits = ref_non_clifford.t_gate_circuits_deterministic(final_measure=True)
         circuits = transpile(circuits, backend, optimization_level=0)
         result = backend.run(circuits, shots=shots).result()
         targets = ref_non_clifford.t_gate_counts_deterministic(shots)
@@ -48,11 +50,10 @@ class TestNonCliffords(SimulatorTestCase):
     def test_t_gate_nondeterministic_default_basis_gates(self, method, device):
         """Test t-gate circuits compiling to backend default basis_gates."""
         backend = self.backend(
-            method=method, device=device,
-            extended_stabilizer_metropolis_mixing_time=50)
+            method=method, device=device, extended_stabilizer_metropolis_mixing_time=50
+        )
         shots = 500
-        circuits = ref_non_clifford.t_gate_circuits_nondeterministic(
-            final_measure=True)
+        circuits = ref_non_clifford.t_gate_circuits_nondeterministic(final_measure=True)
         circuits = transpile(circuits, backend, optimization_level=0)
         result = backend.run(circuits, shots=shots).result()
         targets = ref_non_clifford.t_gate_counts_nondeterministic(shots)
@@ -67,8 +68,7 @@ class TestNonCliffords(SimulatorTestCase):
         """Test tdg-gate circuits compiling to backend default basis_gates."""
         backend = self.backend(method=method, device=device)
         shots = 100
-        circuits = ref_non_clifford.tdg_gate_circuits_deterministic(
-            final_measure=True)
+        circuits = ref_non_clifford.tdg_gate_circuits_deterministic(final_measure=True)
         circuits = transpile(circuits, backend, optimization_level=0)
         result = backend.run(circuits, shots=shots).result()
         targets = ref_non_clifford.tdg_gate_counts_deterministic(shots)
@@ -79,11 +79,12 @@ class TestNonCliffords(SimulatorTestCase):
     def test_tdg_gate_nondeterministic_default_basis_gates(self, method, device):
         """Test tdg-gate circuits compiling to backend default basis_gates."""
         backend = self.backend(
-            method=method, device=device,
-            extended_stabilizer_metropolis_mixing_time=50)
+            method=method, device=device, extended_stabilizer_metropolis_mixing_time=50
+        )
         shots = 500
         circuits = ref_non_clifford.tdg_gate_circuits_nondeterministic(
-            final_measure=True)
+            final_measure=True
+        )
         circuits = transpile(circuits, backend, optimization_level=0)
         result = backend.run(circuits, shots=shots).result()
         targets = ref_non_clifford.tdg_gate_counts_nondeterministic(shots)
@@ -97,11 +98,10 @@ class TestNonCliffords(SimulatorTestCase):
     def test_ccx_gate_deterministic_default_basis_gates(self, method, device):
         """Test ccx-gate circuits compiling to backend default basis_gates."""
         backend = self.backend(
-            method=method, device=device,
-            extended_stabilizer_metropolis_mixing_time=100)
+            method=method, device=device, extended_stabilizer_metropolis_mixing_time=100
+        )
         shots = 100
-        circuits = ref_non_clifford.ccx_gate_circuits_deterministic(
-            final_measure=True)
+        circuits = ref_non_clifford.ccx_gate_circuits_deterministic(final_measure=True)
         circuits = transpile(circuits, backend, optimization_level=0)
         result = backend.run(circuits, shots=shots).result()
         targets = ref_non_clifford.ccx_gate_counts_deterministic(shots)
@@ -112,11 +112,12 @@ class TestNonCliffords(SimulatorTestCase):
     def test_ccx_gate_nondeterministic_default_basis_gates(self, method, device):
         """Test ccx-gate circuits compiling to backend default basis_gates."""
         backend = self.backend(
-            method=method, device=device,
-            extended_stabilizer_metropolis_mixing_time=100)
+            method=method, device=device, extended_stabilizer_metropolis_mixing_time=100
+        )
         shots = 500
         circuits = ref_non_clifford.ccx_gate_circuits_nondeterministic(
-            final_measure=True)
+            final_measure=True
+        )
         circuits = transpile(circuits, backend, optimization_level=0)
         result = backend.run(circuits, shots=shots).result()
         targets = ref_non_clifford.ccx_gate_counts_nondeterministic(shots)

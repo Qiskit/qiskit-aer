@@ -27,6 +27,7 @@ class ReadoutError:
     """
     Readout error class for Qiskit Aer noise model.
     """
+
     # pylint: disable=invalid-name
     _ATOL_DEFAULT = ATOL_DEFAULT
     _RTOL_DEFAULT = RTOL_DEFAULT
@@ -73,8 +74,13 @@ class ReadoutError:
         self._check_probabilities(probabilities, atol)
         self._probabilities = np.array(probabilities, dtype=float)
         self._number_of_qubits = int(np.log2(self._probabilities.shape[0]))
-        if self._probabilities.shape != (2**self._number_of_qubits, 2**self._number_of_qubits):
-            raise NoiseError("Input readout error probabilities is not a 2^N by 2^N matrix.")
+        if self._probabilities.shape != (
+            2**self._number_of_qubits,
+            2**self._number_of_qubits,
+        ):
+            raise NoiseError(
+                "Input readout error probabilities is not a 2^N by 2^N matrix."
+            )
 
     def __repr__(self):
         """Display ReadoutError."""
@@ -82,8 +88,10 @@ class ReadoutError:
 
     def __str__(self):
         """Print error information."""
-        output = "ReadoutError on {} qubits.".format(self._number_of_qubits) + \
-                 " Assignment probabilities:"
+        output = (
+            "ReadoutError on {} qubits.".format(self._number_of_qubits)
+            + " Assignment probabilities:"
+        )
         for j, vec in enumerate(self._probabilities):
             output += "\n P(j|{0}) =  {1}".format(j, vec)
         return output
@@ -94,8 +102,9 @@ class ReadoutError:
             return False
         if self.number_of_qubits != other.number_of_qubits:
             return False
-        return np.allclose(self._probabilities, other._probabilities,
-                           atol=self.atol, rtol=self.rtol)
+        return np.allclose(
+            self._probabilities, other._probabilities, atol=self.atol, rtol=self.rtol
+        )
 
     def copy(self):
         """Make a copy of current ReadoutError."""
@@ -127,24 +136,22 @@ class ReadoutError:
     def set_atol(cls, value):
         """Set the class default absolute tolerance parameter for float comparisons."""
         if value < 0:
-            raise NoiseError(
-                "Invalid atol ({}) must be non-negative.".format(value))
+            raise NoiseError("Invalid atol ({}) must be non-negative.".format(value))
         if value > cls._MAX_TOL:
             raise NoiseError(
-                "Invalid atol ({}) must be less than {}.".format(
-                    value, cls._MAX_TOL))
+                "Invalid atol ({}) must be less than {}.".format(value, cls._MAX_TOL)
+            )
         cls._ATOL_DEFAULT = value
 
     @classmethod
     def set_rtol(cls, value):
         """Set the class default relative tolerance parameter for float comparisons."""
         if value < 0:
-            raise NoiseError(
-                "Invalid rtol ({}) must be non-negative.".format(value))
+            raise NoiseError("Invalid rtol ({}) must be non-negative.".format(value))
         if value > cls._MAX_TOL:
             raise NoiseError(
-                "Invalid rtol ({}) must be less than {}.".format(
-                    value, cls._MAX_TOL))
+                "Invalid rtol ({}) must be less than {}.".format(value, cls._MAX_TOL)
+            )
         cls._RTOL_DEFAULT = value
 
     def ideal(self):
@@ -164,7 +171,7 @@ class ReadoutError:
         error = {
             "type": "roerror",
             "operations": ["measure"],
-            "probabilities": self._probabilities.tolist()
+            "probabilities": self._probabilities.tolist(),
         }
         return error
 
@@ -256,28 +263,35 @@ class ReadoutError:
     def _check_probabilities(probabilities, threshold):
         """Check probabilities are valid."""
         # probabilities parameter can be a list or a numpy.ndarray
-        if (isinstance(probabilities, list) and not probabilities) or \
-           (isinstance(probabilities, np.ndarray) and probabilities.size == 0):
+        if (isinstance(probabilities, list) and not probabilities) or (
+            isinstance(probabilities, np.ndarray) and probabilities.size == 0
+        ):
             raise NoiseError("Input probabilities: empty.")
         num_outcomes = len(probabilities[0])
         num_qubits = int(np.log2(num_outcomes))
         if 2**num_qubits != num_outcomes:
-            raise NoiseError("Invalid probabilities: length "
-                             "{} != 2**{}".format(num_outcomes, num_qubits))
+            raise NoiseError(
+                "Invalid probabilities: length "
+                "{} != 2**{}".format(num_outcomes, num_qubits)
+            )
         if len(probabilities) != num_outcomes:
             raise NoiseError("Invalid probabilities.")
         for vec in probabilities:
             arr = np.array(vec)
             if len(arr) != num_outcomes:
                 raise NoiseError(
-                    "Invalid probabilities: vectors are different lengths.")
+                    "Invalid probabilities: vectors are different lengths."
+                )
             if abs(sum(arr) - 1) > threshold:
-                raise NoiseError("Invalid probabilities: sum({})= {} "
-                                 "is not 1.".format(vec, sum(arr)))
+                raise NoiseError(
+                    "Invalid probabilities: sum({})= {} "
+                    "is not 1.".format(vec, sum(arr))
+                )
             if arr[arr < 0].size > 0:
                 raise NoiseError(
                     "Invalid probabilities: {} "
-                    "contains a negative probability.".format(vec))
+                    "contains a negative probability.".format(vec)
+                )
 
     def _matmul(self, other, left_multiply=False):
         """Return the composition readout error.
@@ -336,7 +350,8 @@ class ReadoutError:
 
     def __rmul__(self, other):
         raise NotImplementedError(
-            "'ReadoutError' does not support scalar multiplication.")
+            "'ReadoutError' does not support scalar multiplication."
+        )
 
     def __truediv__(self, other):
         raise NotImplementedError("'ReadoutError' does not support division.")
@@ -345,8 +360,7 @@ class ReadoutError:
         raise NotImplementedError("'ReadoutError' does not support addition.")
 
     def __sub__(self, other):
-        raise NotImplementedError(
-            "'ReadoutError' does not support subtraction.")
+        raise NotImplementedError("'ReadoutError' does not support subtraction.")
 
     def __neg__(self):
         raise NotImplementedError("'ReadoutError' does not support negation.")

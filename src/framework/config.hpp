@@ -15,9 +15,9 @@
 #ifndef _aer_framework_config_hpp_
 #define _aer_framework_config_hpp_
 
-#include <string>
-#include <optional>
 #include "types.hpp"
+#include <optional>
+#include <string>
 
 namespace AER {
 
@@ -33,26 +33,22 @@ struct optional {
     return val;
   }
 
-  void value(const T& input) {
+  void value(const T &input) {
     exist = true;
     val = input;
   }
 
-  void clear() {
-    exist = false;
-  }
+  void clear() { exist = false; }
 
-  // operator bool() const { 
+  // operator bool() const {
   //   return exist;
   // }
 
-  bool has_value() const {
-    return exist;
-  }
+  bool has_value() const { return exist; }
 };
 
 template <typename T>
-bool get_value(optional<T> &var, const std::string& key, const json_t &js) {
+bool get_value(optional<T> &var, const std::string &key, const json_t &js) {
   if (JSON::check_key(key, js)) {
     var.value(js[key].get<T>());
     return true;
@@ -63,7 +59,7 @@ bool get_value(optional<T> &var, const std::string& key, const json_t &js) {
 }
 
 template <typename T>
-bool get_value(T &var, const std::string& key, const json_t &js) {
+bool get_value(T &var, const std::string &key, const json_t &js) {
   return JSON::get_value(var, key, js);
 }
 
@@ -74,7 +70,7 @@ struct Config {
   uint_t shots = 1024;
   std::string method = "automatic";
   std::string device = "CPU";
-  std::string precision ="double";
+  std::string precision = "double";
   // executor=None,
   // max_job_size=None,
   // max_shot_size=None,
@@ -85,8 +81,8 @@ struct Config {
   optional<uint_t> max_parallel_experiments;
   optional<uint_t> max_parallel_shots;
   optional<uint_t> max_memory_mb;
-  bool fusion_enable=true;
-  bool fusion_verbose=false;
+  bool fusion_enable = true;
+  bool fusion_verbose = false;
   optional<uint_t> fusion_max_qubit;
   optional<uint_t> fusion_threshold;
   optional<bool> accept_distributed_results;
@@ -173,7 +169,7 @@ struct Config {
     shots = 1024;
     method = "automatic";
     device = "CPU";
-    precision ="double";
+    precision = "double";
     // executor=None,
     // max_job_size=None,
     // max_shot_size=None,
@@ -184,8 +180,8 @@ struct Config {
     max_parallel_experiments.clear();
     max_parallel_shots.clear();
     max_memory_mb.clear();
-    fusion_enable=true;
-    fusion_verbose=false;
+    fusion_enable = true;
+    fusion_verbose = false;
     fusion_max_qubit.clear();
     fusion_threshold.clear();
     accept_distributed_results.clear();
@@ -266,7 +262,7 @@ struct Config {
     extended_stabilizer_norm_estimation_default_samples.clear();
   }
 
-  void merge(const Config& other) {
+  void merge(const Config &other) {
     shots = other.shots;
     method = other.method;
     device = other.device;
@@ -277,44 +273,69 @@ struct Config {
     enable_truncation = other.enable_truncation;
     zero_threshold = other.zero_threshold;
     validation_threshold = other.validation_threshold;
-    if (other.max_parallel_threads.has_value()) max_parallel_threads.value(other.max_parallel_threads.value());
-    if (other.max_parallel_experiments.has_value()) max_parallel_experiments.value(other.max_parallel_experiments.value());
-    if (other.max_parallel_shots.has_value()) max_parallel_shots.value(other.max_parallel_shots.value());
-    if (other.max_memory_mb.has_value()) max_memory_mb.value(other.max_memory_mb.value());
+    if (other.max_parallel_threads.has_value())
+      max_parallel_threads.value(other.max_parallel_threads.value());
+    if (other.max_parallel_experiments.has_value())
+      max_parallel_experiments.value(other.max_parallel_experiments.value());
+    if (other.max_parallel_shots.has_value())
+      max_parallel_shots.value(other.max_parallel_shots.value());
+    if (other.max_memory_mb.has_value())
+      max_memory_mb.value(other.max_memory_mb.value());
     fusion_enable = other.fusion_enable;
     fusion_verbose = other.fusion_verbose;
-    if (other.fusion_max_qubit.has_value()) fusion_max_qubit.value(other.fusion_max_qubit.value());
-    if (other.fusion_threshold.has_value()) fusion_threshold.value(other.fusion_threshold.value());
-    if (other.accept_distributed_results.has_value()) accept_distributed_results.value(other.accept_distributed_results.value());
-    if (other.memory.has_value()) memory.value(other.memory.value());
+    if (other.fusion_max_qubit.has_value())
+      fusion_max_qubit.value(other.fusion_max_qubit.value());
+    if (other.fusion_threshold.has_value())
+      fusion_threshold.value(other.fusion_threshold.value());
+    if (other.accept_distributed_results.has_value())
+      accept_distributed_results.value(
+          other.accept_distributed_results.value());
+    if (other.memory.has_value())
+      memory.value(other.memory.value());
     // noise_model=None,
-    if (other.seed_simulator.has_value()) seed_simulator.value(other.seed_simulator.value());
+    if (other.seed_simulator.has_value())
+      seed_simulator.value(other.seed_simulator.value());
     // # cuStateVec (cuQuantum) option
-    if (other.cuStateVec_enable.has_value()) cuStateVec_enable.value(other.cuStateVec_enable.value());
+    if (other.cuStateVec_enable.has_value())
+      cuStateVec_enable.value(other.cuStateVec_enable.value());
     // # cache blocking for multi-GPUs/MPI options
-    if (other.blocking_qubits.has_value()) blocking_qubits.value(other.blocking_qubits.value());
+    if (other.blocking_qubits.has_value())
+      blocking_qubits.value(other.blocking_qubits.value());
     blocking_enable = other.blocking_enable;
-    if (other.chunk_swap_buffer_qubits.has_value()) chunk_swap_buffer_qubits.value(other.chunk_swap_buffer_qubits.value());
+    if (other.chunk_swap_buffer_qubits.has_value())
+      chunk_swap_buffer_qubits.value(other.chunk_swap_buffer_qubits.value());
     // # multi-shots optimization options (GPU only)
     batched_shots_gpu = other.batched_shots_gpu;
     batched_shots_gpu_max_qubits = other.batched_shots_gpu_max_qubits;
-    if (other.num_threads_per_device.has_value()) num_threads_per_device.value(other.num_threads_per_device.value());
+    if (other.num_threads_per_device.has_value())
+      num_threads_per_device.value(other.num_threads_per_device.value());
     // # statevector options
     statevector_parallel_threshold = other.statevector_parallel_threshold;
     statevector_sample_measure_opt = other.statevector_sample_measure_opt;
     // # stabilizer options
-    stabilizer_max_snapshot_probabilities = other.stabilizer_max_snapshot_probabilities;
+    stabilizer_max_snapshot_probabilities =
+        other.stabilizer_max_snapshot_probabilities;
     // # extended stabilizer options
-    extended_stabilizer_sampling_method = other.extended_stabilizer_sampling_method;
-    extended_stabilizer_metropolis_mixing_time = other.extended_stabilizer_metropolis_mixing_time;
-    extended_stabilizer_approximation_error = other.extended_stabilizer_approximation_error;
-    extended_stabilizer_norm_estimation_samples = other.extended_stabilizer_norm_estimation_samples;
-    extended_stabilizer_norm_estimation_repetitions = other.extended_stabilizer_norm_estimation_repetitions;
-    extended_stabilizer_parallel_threshold = other.extended_stabilizer_parallel_threshold;
-    extended_stabilizer_probabilities_snapshot_samples = other.extended_stabilizer_probabilities_snapshot_samples;
+    extended_stabilizer_sampling_method =
+        other.extended_stabilizer_sampling_method;
+    extended_stabilizer_metropolis_mixing_time =
+        other.extended_stabilizer_metropolis_mixing_time;
+    extended_stabilizer_approximation_error =
+        other.extended_stabilizer_approximation_error;
+    extended_stabilizer_norm_estimation_samples =
+        other.extended_stabilizer_norm_estimation_samples;
+    extended_stabilizer_norm_estimation_repetitions =
+        other.extended_stabilizer_norm_estimation_repetitions;
+    extended_stabilizer_parallel_threshold =
+        other.extended_stabilizer_parallel_threshold;
+    extended_stabilizer_probabilities_snapshot_samples =
+        other.extended_stabilizer_probabilities_snapshot_samples;
     // # MPS options
-    matrix_product_state_truncation_threshold = other.matrix_product_state_truncation_threshold;
-    if (other.matrix_product_state_max_bond_dimension.has_value()) matrix_product_state_max_bond_dimension.value(other.matrix_product_state_max_bond_dimension.value());
+    matrix_product_state_truncation_threshold =
+        other.matrix_product_state_truncation_threshold;
+    if (other.matrix_product_state_max_bond_dimension.has_value())
+      matrix_product_state_max_bond_dimension.value(
+          other.matrix_product_state_max_bond_dimension.value());
     mps_sample_measure_algorithm = other.mps_sample_measure_algorithm;
     mps_log_data = other.mps_log_data;
     mps_swap_direction = other.mps_swap_direction;
@@ -322,40 +343,66 @@ struct Config {
     mps_parallel_threshold = other.mps_parallel_threshold;
     mps_omp_threads = other.mps_omp_threads;
     // # tensor network options
-    tensor_network_num_sampling_qubits = other.tensor_network_num_sampling_qubits;
+    tensor_network_num_sampling_qubits =
+        other.tensor_network_num_sampling_qubits;
     use_cuTensorNet_autotuning = other.use_cuTensorNet_autotuning;
     // system configurations
     param_table = other.param_table;
     library_dir = other.library_dir;
-    if (other.n_qubits.has_value()) n_qubits.value(other.n_qubits.value());
+    if (other.n_qubits.has_value())
+      n_qubits.value(other.n_qubits.value());
     global_phase = other.global_phase;
     memory_slots = other.memory_slots;
-    if (other._parallel_experiments.has_value()) _parallel_experiments.value(other._parallel_experiments.value());
-    if (other._parallel_shots.has_value()) _parallel_shots.value(other._parallel_shots.value());
-    if (other._parallel_state_update.has_value()) _parallel_state_update.value(other._parallel_state_update.value());
-    if (other._parallel_experiments.has_value()) _parallel_experiments.value(other._parallel_experiments.value());
-    if (other.fusion_allow_kraus.has_value()) fusion_allow_kraus.value(other.fusion_allow_kraus.value());
-    if (other.fusion_allow_superop.has_value()) fusion_allow_superop.value(other.fusion_allow_superop.value());
-    if (other.fusion_parallelization_threshold.has_value()) fusion_parallelization_threshold.value(other.fusion_parallelization_threshold.value());
-    if (other._fusion_enable_n_qubits.has_value()) _fusion_enable_n_qubits.value(other._fusion_enable_n_qubits.value());
-    if (other._fusion_enable_n_qubits_1.has_value()) _fusion_enable_n_qubits_1.value(other._fusion_enable_n_qubits_1.value());
-    if (other._fusion_enable_n_qubits_2.has_value()) _fusion_enable_n_qubits_2.value(other._fusion_enable_n_qubits_2.value());
-    if (other._fusion_enable_n_qubits_3.has_value()) _fusion_enable_n_qubits_3.value(other._fusion_enable_n_qubits_3.value());
-    if (other._fusion_enable_n_qubits_4.has_value()) _fusion_enable_n_qubits_4.value(other._fusion_enable_n_qubits_4.value());
-    if (other._fusion_enable_n_qubits_5.has_value()) _fusion_enable_n_qubits_5.value(other._fusion_enable_n_qubits_5.value());
-    if (other._fusion_enable_diagonal.has_value()) _fusion_enable_diagonal.value(other._fusion_enable_diagonal.value());
-    if (other._fusion_min_qubit.has_value()) _fusion_min_qubit.value(other._fusion_min_qubit.value());
-    if (other.fusion_cost_factor.has_value()) fusion_cost_factor.value(other.fusion_cost_factor.value());
+    if (other._parallel_experiments.has_value())
+      _parallel_experiments.value(other._parallel_experiments.value());
+    if (other._parallel_shots.has_value())
+      _parallel_shots.value(other._parallel_shots.value());
+    if (other._parallel_state_update.has_value())
+      _parallel_state_update.value(other._parallel_state_update.value());
+    if (other._parallel_experiments.has_value())
+      _parallel_experiments.value(other._parallel_experiments.value());
+    if (other.fusion_allow_kraus.has_value())
+      fusion_allow_kraus.value(other.fusion_allow_kraus.value());
+    if (other.fusion_allow_superop.has_value())
+      fusion_allow_superop.value(other.fusion_allow_superop.value());
+    if (other.fusion_parallelization_threshold.has_value())
+      fusion_parallelization_threshold.value(
+          other.fusion_parallelization_threshold.value());
+    if (other._fusion_enable_n_qubits.has_value())
+      _fusion_enable_n_qubits.value(other._fusion_enable_n_qubits.value());
+    if (other._fusion_enable_n_qubits_1.has_value())
+      _fusion_enable_n_qubits_1.value(other._fusion_enable_n_qubits_1.value());
+    if (other._fusion_enable_n_qubits_2.has_value())
+      _fusion_enable_n_qubits_2.value(other._fusion_enable_n_qubits_2.value());
+    if (other._fusion_enable_n_qubits_3.has_value())
+      _fusion_enable_n_qubits_3.value(other._fusion_enable_n_qubits_3.value());
+    if (other._fusion_enable_n_qubits_4.has_value())
+      _fusion_enable_n_qubits_4.value(other._fusion_enable_n_qubits_4.value());
+    if (other._fusion_enable_n_qubits_5.has_value())
+      _fusion_enable_n_qubits_5.value(other._fusion_enable_n_qubits_5.value());
+    if (other._fusion_enable_diagonal.has_value())
+      _fusion_enable_diagonal.value(other._fusion_enable_diagonal.value());
+    if (other._fusion_min_qubit.has_value())
+      _fusion_min_qubit.value(other._fusion_min_qubit.value());
+    if (other.fusion_cost_factor.has_value())
+      fusion_cost_factor.value(other.fusion_cost_factor.value());
 
-    if (other.superoperator_parallel_threshold.has_value()) superoperator_parallel_threshold.value(other.superoperator_parallel_threshold.value());
-    if (other.unitary_parallel_threshold.has_value()) unitary_parallel_threshold.value(other.unitary_parallel_threshold.value());
-    if (other.memory_blocking_bits.has_value()) memory_blocking_bits.value(other.memory_blocking_bits.value());
-    if (other.extended_stabilizer_norm_estimation_default_samples.has_value()) extended_stabilizer_norm_estimation_default_samples.value(other.extended_stabilizer_norm_estimation_default_samples.value());
+    if (other.superoperator_parallel_threshold.has_value())
+      superoperator_parallel_threshold.value(
+          other.superoperator_parallel_threshold.value());
+    if (other.unitary_parallel_threshold.has_value())
+      unitary_parallel_threshold.value(
+          other.unitary_parallel_threshold.value());
+    if (other.memory_blocking_bits.has_value())
+      memory_blocking_bits.value(other.memory_blocking_bits.value());
+    if (other.extended_stabilizer_norm_estimation_default_samples.has_value())
+      extended_stabilizer_norm_estimation_default_samples.value(
+          other.extended_stabilizer_norm_estimation_default_samples.value());
   }
 };
 
 // Json conversion function
-inline void from_json(const json_t& js, Config &config) {
+inline void from_json(const json_t &js, Config &config) {
   get_value(config.shots, "shots", js);
   get_value(config.method, "method", js);
   get_value(config.device, "device", js);
@@ -374,7 +421,8 @@ inline void from_json(const json_t& js, Config &config) {
   get_value(config.fusion_verbose, "fusion_verbose", js);
   get_value(config.fusion_max_qubit, "fusion_max_qubit", js);
   get_value(config.fusion_threshold, "fusion_threshold", js);
-  get_value(config.accept_distributed_results, "accept_distributed_results", js);
+  get_value(config.accept_distributed_results, "accept_distributed_results",
+            js);
   get_value(config.memory, "memory", js);
   // noise_model=None,
   get_value(config.seed_simulator, "seed_simulator", js);
@@ -386,33 +434,49 @@ inline void from_json(const json_t& js, Config &config) {
   get_value(config.chunk_swap_buffer_qubits, "chunk_swap_buffer_qubits", js);
   // # multi-shots optimization options (GPU only)
   get_value(config.batched_shots_gpu, "batched_shots_gpu", js);
-  get_value(config.batched_shots_gpu_max_qubits, "batched_shots_gpu_max_qubits", js);
+  get_value(config.batched_shots_gpu_max_qubits, "batched_shots_gpu_max_qubits",
+            js);
   get_value(config.num_threads_per_device, "num_threads_per_device", js);
   // # statevector options
-  get_value(config.statevector_parallel_threshold, "statevector_parallel_threshold", js);
-  get_value(config.statevector_sample_measure_opt, "statevector_sample_measure_opt", js);
+  get_value(config.statevector_parallel_threshold,
+            "statevector_parallel_threshold", js);
+  get_value(config.statevector_sample_measure_opt,
+            "statevector_sample_measure_opt", js);
   // # stabilizer options
-  get_value(config.stabilizer_max_snapshot_probabilities, "stabilizer_max_snapshot_probabilities", js);
+  get_value(config.stabilizer_max_snapshot_probabilities,
+            "stabilizer_max_snapshot_probabilities", js);
   // # extended stabilizer options
-  get_value(config.extended_stabilizer_sampling_method, "extended_stabilizer_sampling_method", js);
-  get_value(config.extended_stabilizer_metropolis_mixing_time, "extended_stabilizer_metropolis_mixing_time", js);
-  get_value(config.extended_stabilizer_approximation_error, "extended_stabilizer_approximation_error", js);
-  get_value(config.extended_stabilizer_norm_estimation_samples, "extended_stabilizer_norm_estimation_samples", js);
-  get_value(config.extended_stabilizer_norm_estimation_repetitions, "extended_stabilizer_norm_estimation_repetitions", js);
-  get_value(config.extended_stabilizer_parallel_threshold, "extended_stabilizer_parallel_threshold", js);
-  get_value(config.extended_stabilizer_probabilities_snapshot_samples, "extended_stabilizer_probabilities_snapshot_samples", js);
+  get_value(config.extended_stabilizer_sampling_method,
+            "extended_stabilizer_sampling_method", js);
+  get_value(config.extended_stabilizer_metropolis_mixing_time,
+            "extended_stabilizer_metropolis_mixing_time", js);
+  get_value(config.extended_stabilizer_approximation_error,
+            "extended_stabilizer_approximation_error", js);
+  get_value(config.extended_stabilizer_norm_estimation_samples,
+            "extended_stabilizer_norm_estimation_samples", js);
+  get_value(config.extended_stabilizer_norm_estimation_repetitions,
+            "extended_stabilizer_norm_estimation_repetitions", js);
+  get_value(config.extended_stabilizer_parallel_threshold,
+            "extended_stabilizer_parallel_threshold", js);
+  get_value(config.extended_stabilizer_probabilities_snapshot_samples,
+            "extended_stabilizer_probabilities_snapshot_samples", js);
   // # MPS options
-  get_value(config.matrix_product_state_truncation_threshold, "matrix_product_state_truncation_threshold", js);
-  get_value(config.matrix_product_state_max_bond_dimension, "matrix_product_state_max_bond_dimension", js);
-  get_value(config.mps_sample_measure_algorithm, "mps_sample_measure_algorithm", js);
+  get_value(config.matrix_product_state_truncation_threshold,
+            "matrix_product_state_truncation_threshold", js);
+  get_value(config.matrix_product_state_max_bond_dimension,
+            "matrix_product_state_max_bond_dimension", js);
+  get_value(config.mps_sample_measure_algorithm, "mps_sample_measure_algorithm",
+            js);
   get_value(config.mps_log_data, "mps_log_data", js);
   get_value(config.mps_swap_direction, "mps_swap_direction", js);
   get_value(config.chop_threshold, "chop_threshold", js);
   get_value(config.mps_parallel_threshold, "mps_parallel_threshold", js);
   get_value(config.mps_omp_threads, "mps_omp_threads", js);
   // # tensor network options
-  get_value(config.tensor_network_num_sampling_qubits, "tensor_network_num_sampling_qubits", js);
-  get_value(config.use_cuTensorNet_autotuning, "use_cuTensorNet_autotuning", js);
+  get_value(config.tensor_network_num_sampling_qubits,
+            "tensor_network_num_sampling_qubits", js);
+  get_value(config.use_cuTensorNet_autotuning, "use_cuTensorNet_autotuning",
+            js);
   // system configurations
   get_value(config.param_table, "parameterizations", js);
   get_value(config.library_dir, "library_dir", js);
@@ -425,7 +489,8 @@ inline void from_json(const json_t& js, Config &config) {
 
   get_value(config.fusion_allow_kraus, "fusion_allow_kraus", js);
   get_value(config.fusion_allow_superop, "fusion_allow_superop", js);
-  get_value(config.fusion_parallelization_threshold, "fusion_parallelization_threshold", js);
+  get_value(config.fusion_parallelization_threshold,
+            "fusion_parallelization_threshold", js);
   get_value(config._fusion_enable_n_qubits, "_fusion_enable_n_qubits", js);
   get_value(config._fusion_enable_n_qubits_1, "_fusion_enable_n_qubits_1", js);
   get_value(config._fusion_enable_n_qubits_2, "_fusion_enable_n_qubits_2", js);
@@ -436,12 +501,15 @@ inline void from_json(const json_t& js, Config &config) {
   get_value(config._fusion_min_qubit, "_fusion_min_qubit", js);
   get_value(config.fusion_cost_factor, "fusion_cost_factor", js);
 
-  get_value(config.superoperator_parallel_threshold, "superoperator_parallel_threshold", js);
-  get_value(config.unitary_parallel_threshold, "unitary_parallel_threshold", js);
+  get_value(config.superoperator_parallel_threshold,
+            "superoperator_parallel_threshold", js);
+  get_value(config.unitary_parallel_threshold, "unitary_parallel_threshold",
+            js);
   get_value(config.memory_blocking_bits, "memory_blocking_bits", js);
-  get_value(config.extended_stabilizer_norm_estimation_default_samples, "extended_stabilizer_norm_estimation_default_samples", js);
+  get_value(config.extended_stabilizer_norm_estimation_default_samples,
+            "extended_stabilizer_norm_estimation_default_samples", js);
 }
 
-}
+} // namespace AER
 
 #endif

@@ -42,12 +42,17 @@ def insert_noise(circuits, noise_model, transpile=False):
     default_errors = noise_model._default_quantum_errors
     for circuit in circuits:
         if transpile:
-            transpiled_circuit = qiskit.compiler.transpile(circuit,
-                                                           basis_gates=noise_model.basis_gates)
+            transpiled_circuit = qiskit.compiler.transpile(
+                circuit, basis_gates=noise_model.basis_gates
+            )
         else:
             transpiled_circuit = circuit
-        qubit_indices = {bit: index for index, bit in enumerate(transpiled_circuit.qubits)}
-        result_circuit = transpiled_circuit.copy(name=transpiled_circuit.name + '_with_noise')
+        qubit_indices = {
+            bit: index for index, bit in enumerate(transpiled_circuit.qubits)
+        }
+        result_circuit = transpiled_circuit.copy(
+            name=transpiled_circuit.name + "_with_noise"
+        )
         result_circuit.data = []
         for inst, qargs, cargs in transpiled_circuit.data:
             result_circuit.data.append((inst, qargs, cargs))

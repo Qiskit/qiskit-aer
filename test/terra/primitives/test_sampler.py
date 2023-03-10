@@ -111,7 +111,9 @@ class TestSampler(QiskitAerTestCase):
         qc.measure(2, 2)
 
         sampler = Sampler(backend_options={"seed_simulator": 15})
-        result = sampler.run([qc] * 4, [[0, 0], [0, 0], [np.pi / 2, 0], [0, np.pi / 2]]).result()
+        result = sampler.run(
+            [qc] * 4, [[0, 0], [0, 0], [np.pi / 2, 0], [0, np.pi / 2]]
+        ).result()
         self.assertIsInstance(result, SamplerResult)
         self.assertEqual(len(result.quasi_dists), 4)
 
@@ -122,10 +124,14 @@ class TestSampler(QiskitAerTestCase):
         self.assertDictAlmostEqual(result.quasi_dists[1], {4: 1})
 
         # qc({x: pi/2, y: 0})
-        self.assertDictAlmostEqual(result.quasi_dists[2], {4: 0.4990234375, 5: 0.5009765625})
+        self.assertDictAlmostEqual(
+            result.quasi_dists[2], {4: 0.4990234375, 5: 0.5009765625}
+        )
 
         # qc({x: 0, y: pi/2})
-        self.assertDictAlmostEqual(result.quasi_dists[3], {4: 0.4814453125, 6: 0.5185546875})
+        self.assertDictAlmostEqual(
+            result.quasi_dists[3], {4: 0.4814453125, 6: 0.5185546875}
+        )
 
     def test_sampler_reverse_meas_order(self):
         """test for sampler with reverse measurement order"""
@@ -154,10 +160,14 @@ class TestSampler(QiskitAerTestCase):
         self.assertDictAlmostEqual(result.quasi_dists[1], {1: 1})
 
         # qc({x: pi/2, y: 0})
-        self.assertDictAlmostEqual(result.quasi_dists[2], {1: 0.4990234375, 5: 0.5009765625})
+        self.assertDictAlmostEqual(
+            result.quasi_dists[2], {1: 0.4990234375, 5: 0.5009765625}
+        )
 
         # qc({x: 0, y: pi/2})
-        self.assertDictAlmostEqual(result.quasi_dists[3], {1: 0.4814453125, 3: 0.5185546875})
+        self.assertDictAlmostEqual(
+            result.quasi_dists[3], {1: 0.4814453125, 3: 0.5185546875}
+        )
 
     def test_1qubit(self):
         """test for 1-qubit cases"""

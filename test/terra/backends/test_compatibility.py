@@ -258,11 +258,11 @@ class TestResultCompatibility(QiskitAerTestCase):
         cliff_dict = clifford.to_dict()
         compat = cqi.StabilizerState(clifford)
         with self.assertWarns(DeprecationWarning):
-            stabs = compat['stabilizer']
-        self.assertEqual(stabs, cliff_dict['stabilizer'])
+            stabs = compat["stabilizer"]
+        self.assertEqual(stabs, cliff_dict["stabilizer"])
         with self.assertWarns(DeprecationWarning):
-            destabs = compat['destabilizer']
-        self.assertEqual(destabs, cliff_dict['destabilizer'])
+            destabs = compat["destabilizer"]
+        self.assertEqual(destabs, cliff_dict["destabilizer"])
 
     def test_stabilizer_copy(self):
         clifford = qi.random_clifford(4, seed=10)

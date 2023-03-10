@@ -45,7 +45,7 @@ class ODE_Method(ABC):
         rhs (dict): rhs-related functions as values Currently supports key 'rhs'.
     """
 
-    method_spec = {'inner_state_spec': {'type': 'array'}}
+    method_spec = {"inner_state_spec": {"type": "array"}}
 
     def __init__(self, t0=None, y0=None, rhs=None, options=None):
 
@@ -110,14 +110,14 @@ class ODE_Method(ABC):
         self.set_y(new_y)
 
     def set_y(self, new_y, reset=True):
-        """Method for logic of setting internal state of solver with more control
-        """
+        """Method for logic of setting internal state of solver with more control"""
 
         # instantiate internal StateTypeConverter based on the provided new_y and the
         # general type required internally by the solver
-        type_spec = self.method_spec.get('inner_state_spec')
-        self._state_type_converter = \
+        type_spec = self.method_spec.get("inner_state_spec")
+        self._state_type_converter = (
             StateTypeConverter.from_outer_instance_inner_type_spec(new_y, type_spec)
+        )
 
         # set internal state
         self._y = self._state_type_converter.outer_to_inner(new_y)
@@ -138,13 +138,15 @@ class ODE_Method(ABC):
         """
 
         if rhs is None:
-            rhs = {'rhs': None}
+            rhs = {"rhs": None}
 
         if callable(rhs):
-            rhs = {'rhs': rhs}
+            rhs = {"rhs": rhs}
 
-        if 'rhs' not in rhs:
-            raise Exception('ODE_Method requires at minimum a specification of an rhs function.')
+        if "rhs" not in rhs:
+            raise Exception(
+                "ODE_Method requires at minimum a specification of an rhs function."
+            )
 
         # transform rhs function into a function that accepts/returns inner state type
         self.rhs = self._state_type_converter.transform_rhs_funcs(rhs)
@@ -198,26 +200,29 @@ class ScipyODE(ODE_Method):
           do not handle complex types
     """
 
-    method_spec = {'inner_state_spec': {'type': 'array', 'ndim': 1}}
+    method_spec = {"inner_state_spec": {"type": "array", "ndim": 1}}
 
     def integrate(self, tf, **kwargs):
-        """Integrate up to a time tf.
-        """
+        """Integrate up to a time tf."""
         t0 = self.t
         y0 = self._y
-        rhs = self.rhs.get('rhs')
+        rhs = self.rhs.get("rhs")
 
         # solve problem and silence warnings for options that don't apply to a given method
         kept_warnings = []
         with warnings.catch_warnings(record=True) as ws:
-            results = solve_ivp(rhs, (t0, tf), y0,
-                                method=self.options.method,
-                                atol=self.options.atol,
-                                rtol=self.options.rtol,
-                                max_step=self.options.max_step,
-                                min_step=self.options.min_step,
-                                first_step=self.options.first_step,
-                                **kwargs)
+            results = solve_ivp(
+                rhs,
+                (t0, tf),
+                y0,
+                method=self.options.method,
+                atol=self.options.atol,
+                rtol=self.options.rtol,
+                max_step=self.options.max_step,
+                min_step=self.options.min_step,
+                first_step=self.options.first_step,
+                **kwargs
+            )
 
             # update the internal state
             self._y = results.y[:, -1]
@@ -225,7 +230,7 @@ class ScipyODE(ODE_Method):
 
             # discard warnings for arguments with no effect
             for w in ws:
-                if 'The following arguments have no effect' not in str(w.message):
+                if "The following arguments have no effect" not in str(w.message):
                     kept_warnings.append(w)
 
         # display warnings we don't want to silence
@@ -236,10 +241,10 @@ class ScipyODE(ODE_Method):
         # establish method
         if options is None:
             options = DE_Options()
-            options.method = 'RK45'
+            options.method = "RK45"
         else:
             options = options.copy()
-            if 'scipy-' in options.method:
+            if "scipy-" in options.method:
                 options.method = options.method[6:]
 
         self.options = options
@@ -256,13 +261,15 @@ class QiskitZVODE(ODE_Method):
         - Internally this
     """
 
-    method_spec = {'inner_state_spec': {'type': 'array', 'ndim': 1}}
+    method_spec = {"inner_state_spec": {"type": "array", "ndim": 1}}
 
     def __init__(self, t0=None, y0=None, rhs=None, options=None):
 
         # all de specification arguments are necessary to instantiate scipy ode object
         if (t0 is None) or (y0 is None) or (rhs is None):
-            raise Exception('QiskitZVODE solver requires t0, y0, and rhs at instantiation.')
+            raise Exception(
+                "QiskitZVODE solver requires t0, y0, and rhs at instantiation."
+            )
 
         # initialize internal attribute for storing scipy ode object
         self._ODE = None
@@ -280,11 +287,11 @@ class QiskitZVODE(ODE_Method):
         self._reset_method()
 
     def set_y(self, new_y, reset=True):
-        """Method for logic of setting internal state of solver with more control
-        """
-        type_spec = self.method_spec.get('inner_state_spec')
-        self._state_type_converter = \
+        """Method for logic of setting internal state of solver with more control"""
+        type_spec = self.method_spec.get("inner_state_spec")
+        self._state_type_converter = (
             StateTypeConverter.from_outer_instance_inner_type_spec(new_y, type_spec)
+        )
 
         self._y = self._state_type_converter.outer_to_inner(new_y)
 
@@ -297,27 +304,30 @@ class QiskitZVODE(ODE_Method):
         """This set_rhs function fully instantiates the scipy ode object behind the scenes."""
 
         if rhs is None:
-            rhs = {'rhs': None}
+            rhs = {"rhs": None}
 
         if callable(rhs):
-            rhs = {'rhs': rhs}
+            rhs = {"rhs": rhs}
 
-        if 'rhs' not in rhs:
-            raise Exception('ODE_Method requires at minimum a specification of an rhs function.')
+        if "rhs" not in rhs:
+            raise Exception(
+                "ODE_Method requires at minimum a specification of an rhs function."
+            )
 
         self.rhs = self._state_type_converter.transform_rhs_funcs(rhs)
 
-        self._ODE = ode(self.rhs['rhs'])
+        self._ODE = ode(self.rhs["rhs"])
 
-        self._ODE._integrator = qiskit_zvode(method=self.options.method,
-                                             order=self.options.order,
-                                             atol=self.options.atol,
-                                             rtol=self.options.rtol,
-                                             nsteps=self.options.nsteps,
-                                             first_step=self.options.first_step,
-                                             min_step=self.options.min_step,
-                                             max_step=self.options.max_step
-                                             )
+        self._ODE._integrator = qiskit_zvode(
+            method=self.options.method,
+            order=self.options.order,
+            atol=self.options.atol,
+            rtol=self.options.rtol,
+            nsteps=self.options.nsteps,
+            first_step=self.options.first_step,
+            min_step=self.options.min_step,
+            max_step=self.options.max_step,
+        )
 
         # Forces complex ODE solving
         if not self._ODE._y:
@@ -339,7 +349,7 @@ class QiskitZVODE(ODE_Method):
                                       single step of the solver
         """
 
-        step = kwargs.get('step', False)
+        step = kwargs.get("step", False)
 
         self._ODE.integrate(tf, step=step)
 
@@ -359,10 +369,10 @@ class QiskitZVODE(ODE_Method):
     def set_options(self, options):
         # establish method
         if options is None:
-            options = DE_Options(method='adams')
+            options = DE_Options(method="adams")
         else:
             options = options.copy()
-            if 'zvode-' in options.method:
+            if "zvode-" in options.method:
                 options.method = options.method[6:]
 
         # handle None-type defaults
@@ -383,6 +393,7 @@ class qiskit_zvode(zvode):
     it always stops at a given time in tlist;
     by default, it over shoots the time.
     """
+
     def step(self, *args):
         itask = self.call_args[2]
         self.rwork[0] = args[4]
@@ -399,8 +410,7 @@ class RK4(ODE_Method):
     """
 
     def integrate(self, tf, **kwargs):
-        """Integrate up to a time tf.
-        """
+        """Integrate up to a time tf."""
 
         delta_t = tf - self.t
         steps = int((delta_t // self._max_dt) + 1)
@@ -409,11 +419,10 @@ class RK4(ODE_Method):
             self._integration_step(h)
 
     def _integration_step(self, h):
-        """Integration step for RK4
-        """
+        """Integration step for RK4"""
         y0 = self._y
         t0 = self._t
-        rhs = self.rhs.get('rhs')
+        rhs = self.rhs.get("rhs")
 
         k1 = rhs(t0, y0)
         t_mid = t0 + (h / 2)
@@ -421,7 +430,7 @@ class RK4(ODE_Method):
         k3 = rhs(t_mid, y0 + (h * k2 / 2))
         t_end = t0 + h
         k4 = rhs(t_end, y0 + h * k3)
-        self._y = y0 + (1. / 6) * h * (k1 + (2 * k2) + (2 * k3) + k4)
+        self._y = y0 + (1.0 / 6) * h * (k1 + (2 * k2) + (2 * k3) + k4)
         self._t = t_end
 
     def set_options(self, options):
@@ -438,14 +447,12 @@ def method_from_string(method_str):
         method: instance of an ODE_Method object
     """
 
-    if 'scipy-' in method_str:
+    if "scipy-" in method_str:
         return ScipyODE
 
-    if 'zvode-' in method_str:
+    if "zvode-" in method_str:
         return QiskitZVODE
 
-    method_dict = {'RK4': RK4,
-                   'scipy': ScipyODE,
-                   'zvode': QiskitZVODE}
+    method_dict = {"RK4": RK4, "scipy": ScipyODE, "zvode": QiskitZVODE}
 
     return method_dict.get(method_str)

@@ -30,7 +30,7 @@ def _forward_attr(attr):
     # Pass Iterable magic methods on to the Numpy array.  We can't pass
     # `__getitem__` (and consequently `__setitem__`, `__delitem__`) on because
     # `Statevector` implements them itself.
-    if attr[:2] == '__' or attr in ['_data', '_op_shape']:
+    if attr[:2] == "__" or attr in ["_data", "_op_shape"]:
         return False
     return True
 
@@ -60,9 +60,9 @@ class Statevector(qi.Statevector):
 
     def __eq__(self, other):
         return (
-            isinstance(self, type(other)) and
-            self._op_shape == other._op_shape and
-            np.allclose(self.data, other.data, rtol=self.rtol, atol=self.atol)
+            isinstance(self, type(other))
+            and self._op_shape == other._op_shape
+            and np.allclose(self.data, other.data, rtol=self.rtol, atol=self.atol)
         )
 
     def __bool__(self):
@@ -103,9 +103,9 @@ class DensityMatrix(qi.DensityMatrix):
 
     def __eq__(self, other):
         return (
-            isinstance(self, type(other)) and
-            self._op_shape == other._op_shape and
-            np.allclose(self.data, other.data, rtol=self.rtol, atol=self.atol)
+            isinstance(self, type(other))
+            and self._op_shape == other._op_shape
+            and np.allclose(self.data, other.data, rtol=self.rtol, atol=self.atol)
         )
 
     def __len__(self):
@@ -144,9 +144,9 @@ class Operator(qi.Operator):
 
     def __eq__(self, other):
         return (
-            isinstance(self, type(other)) and
-            self._op_shape == other._op_shape and
-            np.allclose(self.data, other.data, rtol=self.rtol, atol=self.atol)
+            isinstance(self, type(other))
+            and self._op_shape == other._op_shape
+            and np.allclose(self.data, other.data, rtol=self.rtol, atol=self.atol)
         )
 
     def __bool__(self):
@@ -190,9 +190,9 @@ class SuperOp(qi.SuperOp):
 
     def __eq__(self, other):
         return (
-            isinstance(self, type(other)) and
-            self._op_shape == other._op_shape and
-            np.allclose(self.data, other.data, rtol=self.rtol, atol=self.atol)
+            isinstance(self, type(other))
+            and self._op_shape == other._op_shape
+            and np.allclose(self.data, other.data, rtol=self.rtol, atol=self.atol)
         )
 
     def __bool__(self):
@@ -253,7 +253,9 @@ class StabilizerState(qi.StabilizerState):
                 " Accessing dict items is deprecated and will result in an"
                 " error in a future release. Use the `.clifford.to_dict()` methods to access "
                 " the stored Clifford operator and convert to a dictionary.",
-                DeprecationWarning, stacklevel=2)
+                DeprecationWarning,
+                stacklevel=2,
+            )
             return self._data.to_dict()[item]
         raise TypeError("'StabilizerState object is not subscriptable'")
 
@@ -282,4 +284,6 @@ class StabilizerState(qi.StabilizerState):
         raise NotImplementedError(f"{type(self)} does not support addition")
 
     def _multiply(self, other):
-        raise NotImplementedError(f"{type(self)} does not support scalar multiplication")
+        raise NotImplementedError(
+            f"{type(self)} does not support scalar multiplication"
+        )

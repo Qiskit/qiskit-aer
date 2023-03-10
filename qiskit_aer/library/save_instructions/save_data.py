@@ -23,12 +23,20 @@ class SaveData(Instruction):
     """Pragma Instruction to save simulator data."""
 
     _directive = True
-    _allowed_subtypes = set([
-        'single', 'c_single', 'list', 'c_list',
-        'average', 'c_average', 'accum', 'c_accum'
-    ])
+    _allowed_subtypes = set(
+        [
+            "single",
+            "c_single",
+            "list",
+            "c_list",
+            "average",
+            "c_average",
+            "accum",
+            "c_accum",
+        ]
+    )
 
-    def __init__(self, name, num_qubits, label, subtype='single', params=None):
+    def __init__(self, name, num_qubits, label, subtype="single", params=None):
         """Create new save data instruction.
 
         Args:
@@ -47,12 +55,12 @@ class SaveData(Instruction):
             'c_average', 'accum', 'c_accum'.
         """
         if subtype not in self._allowed_subtypes:
-            raise ExtensionError(
-                "Invalid data subtype for SaveData instruction.")
+            raise ExtensionError("Invalid data subtype for SaveData instruction.")
 
         if not isinstance(label, str):
             raise ExtensionError(
-                f"Invalid label for save data instruction, {label} must be a string.")
+                f"Invalid label for save data instruction, {label} must be a string."
+            )
 
         if params is None:
             params = {}
@@ -78,14 +86,17 @@ class SaveData(Instruction):
 
 class SaveAverageData(SaveData):
     """Save averageble data"""
-    def __init__(self,
-                 name,
-                 num_qubits,
-                 label,
-                 unnormalized=False,
-                 pershot=False,
-                 conditional=False,
-                 params=None):
+
+    def __init__(
+        self,
+        name,
+        num_qubits,
+        label,
+        unnormalized=False,
+        pershot=False,
+        conditional=False,
+        params=None,
+    ):
         """Create new save data instruction.
 
         Args:
@@ -105,26 +116,22 @@ class SaveAverageData(SaveData):
                                    [Default: None].
         """
         if pershot:
-            subtype = 'list'
+            subtype = "list"
         elif unnormalized:
-            subtype = 'accum'
+            subtype = "accum"
         else:
-            subtype = 'average'
+            subtype = "average"
         if conditional:
-            subtype = 'c_' + subtype
+            subtype = "c_" + subtype
         super().__init__(name, num_qubits, label, subtype=subtype, params=params)
 
 
 class SaveSingleData(SaveData):
     """Save non-averagable single data type."""
 
-    def __init__(self,
-                 name,
-                 num_qubits,
-                 label,
-                 pershot=False,
-                 conditional=False,
-                 params=None):
+    def __init__(
+        self, name, num_qubits, label, pershot=False, conditional=False, params=None
+    ):
         """Create new save data instruction.
 
         Args:
@@ -139,7 +146,7 @@ class SaveSingleData(SaveData):
             params (list or None): Optional, the parameters for instruction
                                    [Default: None].
         """
-        subtype = 'list' if pershot else 'single'
+        subtype = "list" if pershot else "single"
         if conditional:
-            subtype = 'c_' + subtype
+            subtype = "c_" + subtype
         super().__init__(name, num_qubits, label, subtype=subtype, params=params)

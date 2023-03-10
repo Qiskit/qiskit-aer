@@ -22,10 +22,15 @@ from qiskit.transpiler.target import target_to_backend_properties
 
 from ..version import __version__
 from .aerbackend import AerBackend, AerError
-from .backend_utils import (cpp_execute_circuits, cpp_execute_qobj,
-                            available_methods, available_devices,
-                            MAX_QUBITS_STATEVECTOR,
-                            BASIS_GATES)
+from .backend_utils import (
+    cpp_execute_circuits,
+    cpp_execute_qobj,
+    available_methods,
+    available_devices,
+    MAX_QUBITS_STATEVECTOR,
+    BASIS_GATES,
+)
+
 # pylint: disable=import-error, no-name-in-module
 from .controller_wrappers import aer_controller_execute
 
@@ -448,137 +453,236 @@ class AerSimulator(AerBackend):
     _BASIS_GATES = BASIS_GATES
 
     _CUSTOM_INSTR = {
-        'statevector': sorted([
-            'quantum_channel', 'qerror_loc', 'roerror', 'kraus',
-            'save_expval', 'save_expval_var',
-            'save_probabilities', 'save_probabilities_dict',
-            'save_amplitudes', 'save_amplitudes_sq',
-            'save_density_matrix', 'save_state', 'save_statevector',
-            'save_statevector_dict', 'set_statevector',
-            'if_else', 'for_loop', 'while_loop', 'break_loop', 'continue_loop',
-        ]),
-        'density_matrix': sorted([
-            'quantum_channel', 'qerror_loc', 'roerror', 'kraus', 'superop',
-            'save_state', 'save_expval', 'save_expval_var',
-            'save_probabilities', 'save_probabilities_dict',
-            'save_density_matrix', 'save_amplitudes_sq', 'set_density_matrix',
-            'if_else', 'for_loop', 'while_loop', 'break_loop', 'continue_loop',
-        ]),
-        'matrix_product_state': sorted([
-            'quantum_channel', 'qerror_loc', 'roerror', 'kraus',
-            'save_expval', 'save_expval_var',
-            'save_probabilities', 'save_probabilities_dict',
-            'save_state', 'save_matrix_product_state', 'save_statevector',
-            'save_density_matrix', 'save_amplitudes', 'save_amplitudes_sq',
-            'set_matrix_product_state',
-            'if_else', 'for_loop', 'while_loop', 'break_loop', 'continue_loop',
-        ]),
-        'stabilizer': sorted([
-            'quantum_channel', 'qerror_loc', 'roerror',
-            'save_expval', 'save_expval_var',
-            'save_probabilities', 'save_probabilities_dict',
-            'save_amplitudes_sq', 'save_state', 'save_clifford',
-            'save_stabilizer', 'set_stabilizer',
-            'if_else', 'for_loop', 'while_loop', 'break_loop', 'continue_loop',
-        ]),
-        'extended_stabilizer': sorted([
-            'quantum_channel', 'qerror_loc', 'roerror', 'save_statevector',
-        ]),
-        'unitary': sorted([
-            'save_state', 'save_unitary', 'set_unitary',
-        ]),
-        'superop': sorted([
-            'quantum_channel', 'qerror_loc', 'kraus', 'superop', 'save_state',
-            'save_superop', 'set_superop',
-        ]),
-        'tensor_network': sorted([
-            'quantum_channel', 'qerror_loc', 'roerror', 'kraus', 'superop',
-            'save_state', 'save_expval', 'save_expval_var',
-            'save_probabilities', 'save_probabilities_dict',
-            'save_density_matrix', 'save_amplitudes', 'save_amplitudes_sq',
-            'save_statevector', 'save_statevector_dict',
-            'set_statevector', 'set_density_matrix'
-        ])
+        "statevector": sorted(
+            [
+                "quantum_channel",
+                "qerror_loc",
+                "roerror",
+                "kraus",
+                "save_expval",
+                "save_expval_var",
+                "save_probabilities",
+                "save_probabilities_dict",
+                "save_amplitudes",
+                "save_amplitudes_sq",
+                "save_density_matrix",
+                "save_state",
+                "save_statevector",
+                "save_statevector_dict",
+                "set_statevector",
+                "if_else",
+                "for_loop",
+                "while_loop",
+                "break_loop",
+                "continue_loop",
+            ]
+        ),
+        "density_matrix": sorted(
+            [
+                "quantum_channel",
+                "qerror_loc",
+                "roerror",
+                "kraus",
+                "superop",
+                "save_state",
+                "save_expval",
+                "save_expval_var",
+                "save_probabilities",
+                "save_probabilities_dict",
+                "save_density_matrix",
+                "save_amplitudes_sq",
+                "set_density_matrix",
+                "if_else",
+                "for_loop",
+                "while_loop",
+                "break_loop",
+                "continue_loop",
+            ]
+        ),
+        "matrix_product_state": sorted(
+            [
+                "quantum_channel",
+                "qerror_loc",
+                "roerror",
+                "kraus",
+                "save_expval",
+                "save_expval_var",
+                "save_probabilities",
+                "save_probabilities_dict",
+                "save_state",
+                "save_matrix_product_state",
+                "save_statevector",
+                "save_density_matrix",
+                "save_amplitudes",
+                "save_amplitudes_sq",
+                "set_matrix_product_state",
+                "if_else",
+                "for_loop",
+                "while_loop",
+                "break_loop",
+                "continue_loop",
+            ]
+        ),
+        "stabilizer": sorted(
+            [
+                "quantum_channel",
+                "qerror_loc",
+                "roerror",
+                "save_expval",
+                "save_expval_var",
+                "save_probabilities",
+                "save_probabilities_dict",
+                "save_amplitudes_sq",
+                "save_state",
+                "save_clifford",
+                "save_stabilizer",
+                "set_stabilizer",
+                "if_else",
+                "for_loop",
+                "while_loop",
+                "break_loop",
+                "continue_loop",
+            ]
+        ),
+        "extended_stabilizer": sorted(
+            [
+                "quantum_channel",
+                "qerror_loc",
+                "roerror",
+                "save_statevector",
+            ]
+        ),
+        "unitary": sorted(
+            [
+                "save_state",
+                "save_unitary",
+                "set_unitary",
+            ]
+        ),
+        "superop": sorted(
+            [
+                "quantum_channel",
+                "qerror_loc",
+                "kraus",
+                "superop",
+                "save_state",
+                "save_superop",
+                "set_superop",
+            ]
+        ),
+        "tensor_network": sorted(
+            [
+                "quantum_channel",
+                "qerror_loc",
+                "roerror",
+                "kraus",
+                "superop",
+                "save_state",
+                "save_expval",
+                "save_expval_var",
+                "save_probabilities",
+                "save_probabilities_dict",
+                "save_density_matrix",
+                "save_amplitudes",
+                "save_amplitudes_sq",
+                "save_statevector",
+                "save_statevector_dict",
+                "set_statevector",
+                "set_density_matrix",
+            ]
+        ),
     }
 
     # Automatic method custom instructions are the union of statevector,
     # density matrix, and stabilizer methods
-    _CUSTOM_INSTR[None] = _CUSTOM_INSTR['automatic'] = sorted(
-        set(_CUSTOM_INSTR['statevector']).union(
-            _CUSTOM_INSTR['stabilizer']).union(
-                _CUSTOM_INSTR['density_matrix']).union(
-                    _CUSTOM_INSTR['matrix_product_state']).union(
-                        _CUSTOM_INSTR['unitary']).union(
-                            _CUSTOM_INSTR['superop']).union(
-                                _CUSTOM_INSTR['tensor_network']))
+    _CUSTOM_INSTR[None] = _CUSTOM_INSTR["automatic"] = sorted(
+        set(_CUSTOM_INSTR["statevector"])
+        .union(_CUSTOM_INSTR["stabilizer"])
+        .union(_CUSTOM_INSTR["density_matrix"])
+        .union(_CUSTOM_INSTR["matrix_product_state"])
+        .union(_CUSTOM_INSTR["unitary"])
+        .union(_CUSTOM_INSTR["superop"])
+        .union(_CUSTOM_INSTR["tensor_network"])
+    )
 
     _DEFAULT_CONFIGURATION = {
-        'backend_name': 'aer_simulator',
-        'backend_version': __version__,
-        'n_qubits': MAX_QUBITS_STATEVECTOR,
-        'url': 'https://github.com/Qiskit/qiskit-aer',
-        'simulator': True,
-        'local': True,
-        'conditional': True,
-        'open_pulse': False,
-        'memory': True,
-        'max_shots': int(1e6),
-        'description': 'A C++ QasmQobj simulator with noise',
-        'coupling_map': None,
-        'basis_gates': BASIS_GATES['automatic'],
-        'custom_instructions': _CUSTOM_INSTR['automatic'],
-        'gates': []
+        "backend_name": "aer_simulator",
+        "backend_version": __version__,
+        "n_qubits": MAX_QUBITS_STATEVECTOR,
+        "url": "https://github.com/Qiskit/qiskit-aer",
+        "simulator": True,
+        "local": True,
+        "conditional": True,
+        "open_pulse": False,
+        "memory": True,
+        "max_shots": int(1e6),
+        "description": "A C++ QasmQobj simulator with noise",
+        "coupling_map": None,
+        "basis_gates": BASIS_GATES["automatic"],
+        "custom_instructions": _CUSTOM_INSTR["automatic"],
+        "gates": [],
     }
 
     _SIMULATION_METHODS = [
-        'automatic', 'statevector', 'density_matrix',
-        'stabilizer', 'matrix_product_state', 'extended_stabilizer',
-        'unitary', 'superop', 'tensor_network'
+        "automatic",
+        "statevector",
+        "density_matrix",
+        "stabilizer",
+        "matrix_product_state",
+        "extended_stabilizer",
+        "unitary",
+        "superop",
+        "tensor_network",
     ]
 
     _AVAILABLE_METHODS = None
 
-    _SIMULATION_DEVICES = ('CPU', 'GPU', 'Thrust')
+    _SIMULATION_DEVICES = ("CPU", "GPU", "Thrust")
 
     _AVAILABLE_DEVICES = None
 
-    def __init__(self,
-                 configuration=None,
-                 properties=None,
-                 provider=None,
-                 **backend_options):
+    def __init__(
+        self, configuration=None, properties=None, provider=None, **backend_options
+    ):
 
         self._controller = aer_controller_execute()
 
         # Update available methods and devices for class
         if AerSimulator._AVAILABLE_DEVICES is None:
             AerSimulator._AVAILABLE_DEVICES = available_devices(
-                self._controller, AerSimulator._SIMULATION_DEVICES)
+                self._controller, AerSimulator._SIMULATION_DEVICES
+            )
         if AerSimulator._AVAILABLE_METHODS is None:
             AerSimulator._AVAILABLE_METHODS = available_methods(
-                self._controller, AerSimulator._SIMULATION_METHODS, AerSimulator._AVAILABLE_DEVICES)
+                self._controller,
+                AerSimulator._SIMULATION_METHODS,
+                AerSimulator._AVAILABLE_DEVICES,
+            )
 
         # Default configuration
         if configuration is None:
             configuration = QasmBackendConfiguration.from_dict(
-                AerSimulator._DEFAULT_CONFIGURATION)
+                AerSimulator._DEFAULT_CONFIGURATION
+            )
 
         # Cache basis gates since computing the intersection
         # of noise model, method, and config gates is expensive.
-        self._cached_basis_gates = self._BASIS_GATES['automatic']
+        self._cached_basis_gates = self._BASIS_GATES["automatic"]
 
-        super().__init__(configuration,
-                         properties=properties,
-                         provider=provider,
-                         backend_options=backend_options)
+        super().__init__(
+            configuration,
+            properties=properties,
+            provider=provider,
+            backend_options=backend_options,
+        )
 
     @classmethod
     def _default_options(cls):
         return Options(
             # Global options
             shots=1024,
-            method='automatic',
-            device='CPU',
+            method="automatic",
+            device="CPU",
             precision="double",
             executor=None,
             max_job_size=None,
@@ -614,7 +718,7 @@ class AerSimulator(AerBackend):
             # stabilizer options
             stabilizer_max_snapshot_probabilities=32,
             # extended stabilizer options
-            extended_stabilizer_sampling_method='resampled_metropolis',
+            extended_stabilizer_sampling_method="resampled_metropolis",
             extended_stabilizer_metropolis_mixing_time=5000,
             extended_stabilizer_approximation_error=0.05,
             extended_stabilizer_norm_estimation_samples=100,
@@ -624,35 +728,35 @@ class AerSimulator(AerBackend):
             # MPS options
             matrix_product_state_truncation_threshold=1e-16,
             matrix_product_state_max_bond_dimension=None,
-            mps_sample_measure_algorithm='mps_heuristic',
+            mps_sample_measure_algorithm="mps_heuristic",
             mps_log_data=False,
-            mps_swap_direction='mps_swap_left',
+            mps_swap_direction="mps_swap_left",
             chop_threshold=1e-8,
             mps_parallel_threshold=14,
             mps_omp_threads=1,
             # tensor network options
             tensor_network_num_sampling_qubits=10,
-            use_cuTensorNet_autotuning=False
+            use_cuTensorNet_autotuning=False,
         )
 
     def __repr__(self):
         """String representation of an AerSimulator."""
         display = super().__repr__()
-        noise_model = getattr(self.options, 'noise_model', None)
+        noise_model = getattr(self.options, "noise_model", None)
         if noise_model is None or noise_model.is_ideal():
             return display
-        pad = ' ' * (len(self.__class__.__name__) + 1)
-        return f'{display[:-1]}\n{pad}noise_model={repr(noise_model)})'
+        pad = " " * (len(self.__class__.__name__) + 1)
+        return f"{display[:-1]}\n{pad}noise_model={repr(noise_model)})"
 
     def name(self):
         """Format backend name string for simulator"""
         name = self._configuration.backend_name
-        method = getattr(self.options, 'method', None)
-        if method not in [None, 'automatic']:
-            name += f'_{method}'
-        device = getattr(self.options, 'device', None)
-        if device not in [None, 'CPU']:
-            name += f'_{device}'.lower()
+        method = getattr(self.options, "method", None)
+        if method not in [None, "automatic"]:
+            name += f"_{method}"
+        device = getattr(self.options, "device", None)
+        if device not in [None, "CPU"]:
+            name += f"_{device}".lower()
         return name
 
     @classmethod
@@ -682,26 +786,24 @@ class AerSimulator(AerBackend):
 
             # Customize configuration name
             name = configuration.backend_name
-            configuration.backend_name = f'aer_simulator({name})'
+            configuration.backend_name = f"aer_simulator({name})"
         else:
             raise TypeError(
                 "The backend argument requires a BackendV2 or BackendV1 object, "
                 f"not a {type(backend)} object"
             )
         # Use automatic noise model if none is provided
-        if 'noise_model' not in options:
+        if "noise_model" not in options:
             # pylint: disable=import-outside-toplevel
             # Avoid cyclic import
             from ..noise.noise_model import NoiseModel
 
             noise_model = NoiseModel.from_backend(backend)
             if not noise_model.is_ideal():
-                options['noise_model'] = noise_model
+                options["noise_model"] = noise_model
 
         # Initialize simulator
-        sim = cls(configuration=configuration,
-                  properties=properties,
-                  **options)
+        sim = cls(configuration=configuration, properties=properties, **options)
         return sim
 
     def available_methods(self):
@@ -724,15 +826,15 @@ class AerSimulator(AerBackend):
         # Update basis gates based on custom options, config, method,
         # and noise model
         config.custom_instructions = self._CUSTOM_INSTR[
-            getattr(self.options, 'method', 'automatic')]
+            getattr(self.options, "method", "automatic")
+        ]
         config.basis_gates = self._cached_basis_gates + config.custom_instructions
         # Update simulator name
         config.backend_name = self.name()
         return config
 
     def _execute_circuits(self, aer_circuits, noise_model, config):
-        """Execute circuits on the backend.
-        """
+        """Execute circuits on the backend."""
         ret = cpp_execute_circuits(self._controller, aer_circuits, noise_model, config)
         return ret
 
@@ -752,10 +854,11 @@ class AerSimulator(AerBackend):
             self._set_configuration_option(key, value)
             return
         if key == "method":
-            if (value is not None and value not in self.available_methods()):
+            if value is not None and value not in self.available_methods():
                 raise AerError(
                     f"Invalid simulation method {value}. Available methods"
-                    f" are: {self.available_methods()}")
+                    f" are: {self.available_methods()}"
+                )
             self._set_method_config(value)
         super().set_option(key, value)
         if key in ["method", "noise_model", "basis_gates"]:
@@ -777,8 +880,9 @@ class AerSimulator(AerBackend):
             if no_data:
                 logger.warning(
                     'No measure or save instruction in circuit "%s": '
-                    'results will be empty.',
-                    experiment.header.name)
+                    "results will be empty.",
+                    experiment.header.name,
+                )
 
     def _basis_gates(self):
         """Return simualtor basis gates.
@@ -788,21 +892,20 @@ class AerSimulator(AerBackend):
         and method supported basis gates.
         """
         # Use option value for basis gates if set
-        if 'basis_gates' in self._options_configuration:
-            return self._options_configuration['basis_gates']
+        if "basis_gates" in self._options_configuration:
+            return self._options_configuration["basis_gates"]
 
         # Compute intersection with method basis gates
-        method = getattr(self._options, 'method', 'automatic')
+        method = getattr(self._options, "method", "automatic")
         method_gates = self._BASIS_GATES[method]
         config_gates = self._configuration.basis_gates
         if config_gates:
-            basis_gates = set(config_gates).intersection(
-                method_gates)
+            basis_gates = set(config_gates).intersection(method_gates)
         else:
             basis_gates = method_gates
 
         # Compute intersection with noise model basis gates
-        noise_model = getattr(self.options, 'noise_model', None)
+        noise_model = getattr(self.options, "noise_model", None)
         if noise_model:
             noise_gates = noise_model.basis_gates
             basis_gates = basis_gates.intersection(noise_gates)
@@ -814,36 +917,39 @@ class AerSimulator(AerBackend):
                 "The intersection of configuration basis gates (%s), "
                 "simulation method basis gates (%s), and "
                 "noise model basis gates (%s) is empty",
-                config_gates, method_gates, noise_gates)
+                config_gates,
+                method_gates,
+                noise_gates,
+            )
         return sorted(basis_gates)
 
     def _set_method_config(self, method=None):
         """Set non-basis gate options when setting method"""
         # Update configuration description and number of qubits
-        if method == 'statevector':
-            description = 'A C++ statevector simulator with noise'
+        if method == "statevector":
+            description = "A C++ statevector simulator with noise"
             n_qubits = MAX_QUBITS_STATEVECTOR
-        elif method == 'density_matrix':
-            description = 'A C++ density matrix simulator with noise'
+        elif method == "density_matrix":
+            description = "A C++ density matrix simulator with noise"
             n_qubits = MAX_QUBITS_STATEVECTOR // 2
-        elif method == 'unitary':
-            description = 'A C++ unitary matrix simulator'
+        elif method == "unitary":
+            description = "A C++ unitary matrix simulator"
             n_qubits = MAX_QUBITS_STATEVECTOR // 2
-        elif method == 'superop':
-            description = 'A C++ superop matrix simulator with noise'
+        elif method == "superop":
+            description = "A C++ superop matrix simulator with noise"
             n_qubits = MAX_QUBITS_STATEVECTOR // 4
-        elif method == 'matrix_product_state':
-            description = 'A C++ matrix product state simulator with noise'
+        elif method == "matrix_product_state":
+            description = "A C++ matrix product state simulator with noise"
             n_qubits = 63  # TODO: not sure what to put here?
-        elif method == 'stabilizer':
-            description = 'A C++ Clifford stabilizer simulator with noise'
+        elif method == "stabilizer":
+            description = "A C++ Clifford stabilizer simulator with noise"
             n_qubits = 10000  # TODO: estimate from memory
-        elif method == 'extended_stabilizer':
-            description = 'A C++ Clifford+T extended stabilizer simulator with noise'
+        elif method == "extended_stabilizer":
+            description = "A C++ Clifford+T extended stabilizer simulator with noise"
             n_qubits = 63  # TODO: estimate from memory
         else:
             # Clear options to default
             description = None
             n_qubits = None
-        self._set_configuration_option('description', description)
-        self._set_configuration_option('n_qubits', n_qubits)
+        self._set_configuration_option("description", description)
+        self._set_configuration_option("n_qubits", n_qubits)
