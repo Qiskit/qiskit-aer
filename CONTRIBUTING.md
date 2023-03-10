@@ -197,7 +197,9 @@ first tool is [black](https://github.com/psf/black) which is a Python code forma
 tool that will automatically update the code formatting to a consistent style.
 The second tool is [pylint](https://www.pylint.org/) which is a code linter
 which does a deeper analysis of the Python code to find both style issues and
-potential bugs and other common issues in Python.
+potential bugs and other common issues in Python. The thir tool is
+[clang-format](https://clang.llvm.org/docs/ClangFormat.html) which is a
+C++ code formatting tool that will automatically update codes with a consitent style.
 
 You can check that your local modifications conform to the style rules
 by running `tox -elint` which will run `black`, `pylint` and `clang-format`
