@@ -242,7 +242,6 @@ class StatevectorSimulator(AerBackend):
     def __init__(
         self, configuration=None, properties=None, provider=None, **backend_options
     ):
-
         warn(
             "The `StatevectorSimulator` backend will be deprecated in the"
             " future. It has been superseded by the `AerSimulator`"

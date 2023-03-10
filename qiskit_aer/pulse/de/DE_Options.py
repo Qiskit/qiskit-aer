@@ -57,7 +57,6 @@ class DE_Options:
         min_step=None,
         max_dt=10**-3,
     ):
-
         self.method = method
         self.atol = atol
         self.rtol = rtol

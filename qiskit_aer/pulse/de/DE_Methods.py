@@ -48,7 +48,6 @@ class ODE_Method(ABC):
     method_spec = {"inner_state_spec": {"type": "array"}}
 
     def __init__(self, t0=None, y0=None, rhs=None, options=None):
-
         # set_options is first as options may influence the behaviour of other functions
         self.set_options(options)
 
@@ -264,7 +263,6 @@ class QiskitZVODE(ODE_Method):
     method_spec = {"inner_state_spec": {"type": "array", "ndim": 1}}
 
     def __init__(self, t0=None, y0=None, rhs=None, options=None):
-
         # all de specification arguments are necessary to instantiate scipy ode object
         if (t0 is None) or (y0 is None) or (rhs is None):
             raise Exception(

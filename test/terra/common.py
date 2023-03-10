@@ -398,7 +398,6 @@ def generate_random_circuit(n_qubits, n_gates, gate_types):
     circuit = QuantumCircuit(qr, cr)
 
     for _ in repeat(None, n_gates):
-
         # Choose the next gate
         op_name = choice(gate_types)
         if op_name == "id":

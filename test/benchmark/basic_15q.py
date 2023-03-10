@@ -63,7 +63,6 @@ class BasicChangeCircuits(BasicSimulatorBenchmarkSuite):
         measure_counts=DEFAULT_MEASUREMENT_COUNTS,
         noise_model_names=DEFAULT_NOISE_MODELS,
     ):
-
         super().__init__(
             "basic_change_circuits",
             apps,

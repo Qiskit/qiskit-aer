@@ -749,7 +749,6 @@ class TestDuffingModelGenerators(QiskitAerTestCase):
             self.assertEqual(str1, str2)
 
     def _operator_array_from_str(self, dim, op_str_list):
-
         op = get_oper(op_str_list[0], dim)
         for c in op_str_list[1:]:
             op = op.tensor(get_oper(c, dim))

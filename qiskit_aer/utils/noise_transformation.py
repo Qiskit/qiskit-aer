@@ -227,7 +227,7 @@ def approximate_quantum_error(
         if identity_prob < 0 or identity_prob > 1:
             raise NoiseError(f"Channel probabilities sum to {1 - identity_prob}")
         noise_ops = [((IGate(), [0]), identity_prob)]
-        for (operator, probability) in zip(operator_list, probabilities):
+        for operator, probability in zip(operator_list, probabilities):
             noise_ops.append((operator, probability))
         return QuantumError(noise_ops)
 

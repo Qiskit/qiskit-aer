@@ -30,7 +30,6 @@ class DigestedPulseQobj:
     """Container class for information extracted from PulseQobj."""
 
     def __init__(self):
-
         # ####################################
         # Some "Simulation description"
         # ####################################
@@ -448,7 +447,6 @@ def experiment_to_structs(
         else:
             # measurements
             if inst["name"] == "acquire":
-
                 # Better way??
                 qlist2 = []
                 mlist2 = []

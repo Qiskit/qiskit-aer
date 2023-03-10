@@ -27,7 +27,6 @@ from qiskit.chemistry.drivers import PySCFDriver, UnitsType
 
 class UCCSDBenchmarkSuite:
     def __init__(self, name="uccsd_benchmark"):
-
         self.mol_strings = {
             "H2": ("H .0 .0 .0; H .0 .0 0.735", 2),  # qubits: 2
             "LiH": ("H .0 .0 .0; Li .0 .0 2.5", 10),  # qubits: 10

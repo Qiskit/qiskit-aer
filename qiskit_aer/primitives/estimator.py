@@ -108,7 +108,6 @@ class Estimator(BaseEstimator):
         parameter_values: Sequence[Sequence[float]],
         **run_options,
     ) -> EstimatorResult:
-
         seed = run_options.pop("seed", None)
         if seed is not None:
             run_options.setdefault("seed_simulator", seed)
@@ -127,7 +126,6 @@ class Estimator(BaseEstimator):
         parameter_values: Sequence[Sequence[float]],
         **run_options,
     ) -> PrimitiveJob:
-
         circuit_indices: list = []
         for circuit in circuits:
             index = self._circuit_ids.get(_circuit_key(circuit))

@@ -16,6 +16,7 @@
 #define _aer_framework_pybind_casts_hpp_
 
 #include "../simulators/stabilizer/clifford.hpp"
+#include <pybind11/numpy.h>
 
 namespace py = pybind11;
 

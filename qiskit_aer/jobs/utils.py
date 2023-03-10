@@ -60,7 +60,6 @@ def methdispatch(func):
 
 
 def _copy_qobj_for_noise(qobj, max_shot_size, qobj_id):
-
     num_shot_jobs, shot_mod = divmod(qobj.config.shots, max_shot_size)
     qobj_list = []
 
@@ -135,7 +134,6 @@ def _check_custom_instruction(experiments, optypes=None):
 
 
 def _set_seed(qobj_list, seed):
-
     # set seed number to each qobj
     seed_shift = 256
 

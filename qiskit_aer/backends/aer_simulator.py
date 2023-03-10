@@ -644,7 +644,6 @@ class AerSimulator(AerBackend):
     def __init__(
         self, configuration=None, properties=None, provider=None, **backend_options
     ):
-
         self._controller = aer_controller_execute()
 
         # Update available methods and devices for class

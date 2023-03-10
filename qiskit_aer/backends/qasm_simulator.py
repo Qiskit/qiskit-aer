@@ -435,7 +435,6 @@ class QasmSimulator(AerBackend):
     def __init__(
         self, configuration=None, properties=None, provider=None, **backend_options
     ):
-
         warn(
             "The `QasmSimulator` backend will be deprecated in the"
             " future. It has been superseded by the `AerSimulator`"

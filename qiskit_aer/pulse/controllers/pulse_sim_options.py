@@ -74,7 +74,6 @@ class PulseSimOptions:
         seeds=None,
         reuse_seeds=False,
     ):
-
         # set DE specific options
         self.de_options = DE_Options(
             method=method,

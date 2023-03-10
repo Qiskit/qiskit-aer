@@ -282,7 +282,8 @@ def _basic_device_target_gate_errors(
 
 def _device_depolarizing_error(qubits, error_param, relax_error=None):
     """Construct a depolarizing_error for device.
-    If un-physical parameters are supplied, they are truncated to the theoretical bound values."""
+    If un-physical parameters are supplied, they are truncated to the theoretical bound values.
+    """
 
     # We now deduce the depolarizing channel error parameter in the
     # presence of T1/T2 thermal relaxation. We assume the gate error

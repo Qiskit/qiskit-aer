@@ -91,7 +91,6 @@ def simulate_system(
 
     # if all channel freqs are 0 simulate using matrix exponentiation
     if all(channel_freqs == 0):
-
         yf = y0
         for t_idx in range(len(channel_samples)):
             yf = expm(generator(drift, control_ops, channel_samples[t_idx]) * dt) @ yf

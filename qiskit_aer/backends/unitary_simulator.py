@@ -229,7 +229,6 @@ class UnitarySimulator(AerBackend):
     def __init__(
         self, configuration=None, properties=None, provider=None, **backend_options
     ):
-
         warn(
             "The `UnitarySimulator` backend will be deprecated in the"
             " future. It has been superseded by the `AerSimulator`"

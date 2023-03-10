@@ -384,7 +384,6 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         # do the same thing as test_x_gate, but scale dt and all frequency parameters
         # define test case for a single scaling
         def scale_test(scale):
-
             # qubit frequency and drive frequency
             omega_0 = 1.0 / scale
             omega_d = omega_0
@@ -464,7 +463,6 @@ class TestPulseSimulator(common.QiskitAerTestCase):
 
         for i in range(num_tests):
             with self.subTest(i=i):
-
                 # set up simulator
                 with self.assertWarns(DeprecationWarning):
                     pulse_sim = PulseSimulator(

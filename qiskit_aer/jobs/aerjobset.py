@@ -248,7 +248,7 @@ class AerJobSet(Job):
         _merge_result_list = []
 
         for _result in result_list[1:]:
-            for (_master_result, _sub_result) in zip(
+            for _master_result, _sub_result in zip(
                 master_result.results, _result.results
             ):
                 _merge_result_list.append(self._merge_exp(_master_result, _sub_result))

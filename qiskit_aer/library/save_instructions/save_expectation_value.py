@@ -136,7 +136,6 @@ class SaveExpectationValueVariance(SaveAverageData):
 
 
 def _expval_params(operator, variance=False):
-
     # Convert O to SparsePauliOp representation
     if isinstance(operator, Pauli):
         operator = SparsePauliOp(operator)

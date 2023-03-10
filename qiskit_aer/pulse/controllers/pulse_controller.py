@@ -193,7 +193,6 @@ def pulse_controller(qobj):
     pulse_sim_desc.measurement_ops = [None] * n_qubits
 
     for exp in pulse_sim_desc.experiments:
-
         # Add in measurement operators
         # Not sure if this will work for multiple measurements
         # Note: the extraction of multiple measurements works, but the simulation routines
@@ -257,7 +256,6 @@ def format_exp_results(exp_results, exp_times, pulse_sim_desc):
     # format the data into the proper output
     all_results = []
     for idx_exp, exp in enumerate(pulse_sim_desc.experiments):
-
         m_lev = pulse_sim_desc.meas_level
         m_ret = pulse_sim_desc.meas_return
 
@@ -305,9 +303,7 @@ def format_exp_results(exp_results, exp_times, pulse_sim_desc):
 
         # meas_level 1 returns the <n>
         elif m_lev == 1:
-
             if m_ret == "avg":
-
                 memory = [np.mean(memory, 0)]
 
             # convert into the right [real, complex] pair form for json

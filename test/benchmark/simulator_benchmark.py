@@ -26,7 +26,6 @@ SIMULATOR = AerSimulator()
 
 
 class SimulatorBenchmarkSuite(CircuitLibraryCircuits):
-
     RUNTIME_STATEVECTOR_CPU = "statevector"
     RUNTIME_STATEVECTOR_GPU = "statevector_gpu"
     RUNTIME_MPS_CPU = "matrix_product_state"

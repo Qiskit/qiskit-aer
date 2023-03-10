@@ -1717,7 +1717,6 @@ def cu3_gate_unitary_deterministic():
 
 
 def cu3_gate_statevector_deterministic():
-
     init_state = np.array([1, 0, 0, 0])
     targets = [mat.dot(init_state) for mat in cu3_gate_unitary_deterministic()]
 
