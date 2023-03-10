@@ -347,18 +347,18 @@ const stringmap_t<Gates> State<statevec_t>::gateset_(
      {"p", Gates::mcp},       // Parameterized phase gate
      {"sx", Gates::mcsx},     // Sqrt(X) gate
      {"sxdg", Gates::mcsxdg}, // Inverse Sqrt(X) gate
-     // 1-qubit rotation Gates
+     /* 1-qubit rotation Gates */
      {"r", Gates::mcr},   // R rotation gate
      {"rx", Gates::mcrx}, // Pauli-X rotation gate
      {"ry", Gates::mcry}, // Pauli-Y rotation gate
      {"rz", Gates::mcrz}, // Pauli-Z rotation gate
-     // Waltz Gates
+     /* Waltz Gates */
      {"u1", Gates::mcp},  // zero-X90 pulse waltz gate
      {"u2", Gates::mcu2}, // single-X90 pulse waltz gate
      {"u3", Gates::mcu3}, // two X90 pulse waltz gate
      {"u", Gates::mcu3},  // two X90 pulse waltz gate
      {"U", Gates::mcu3},  // two X90 pulse waltz gate
-     // 2-qubit gates
+     /* 2-qubit gates */
      {"CX", Gates::mcx},       // Controlled-X gate (CNOT)
      {"cx", Gates::mcx},       // Controlled-X gate (CNOT)
      {"cy", Gates::mcy},       // Controlled-Y gate
@@ -377,10 +377,10 @@ const stringmap_t<Gates> State<statevec_t>::gateset_(
      {"csx", Gates::mcsx},     // Controlled-Sqrt(X) gate
      {"csxdg", Gates::mcsxdg}, // Controlled-Sqrt(X)dg gate
      {"ecr", Gates::ecr},      // ECR Gate
-     // 3-qubit gates
+     /* 3-qubit gates */
      {"ccx", Gates::mcx},      // Controlled-CX gate (Toffoli)
      {"cswap", Gates::mcswap}, // Controlled SWAP gate (Fredkin)
-     // Multi-qubit controlled gates
+     /* Multi-qubit controlled gates */
      {"mcx", Gates::mcx},       // Multi-controlled-X gate
      {"mcy", Gates::mcy},       // Multi-controlled-Y gate
      {"mcz", Gates::mcz},       // Multi-controlled-Z gate

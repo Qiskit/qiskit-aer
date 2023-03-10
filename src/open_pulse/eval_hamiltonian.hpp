@@ -15,6 +15,8 @@
 #ifndef _EVAL_HAMILTONIAN_HPP
 #define _EVAL_HAMILTONIAN_HPP
 
+#include "framework/types.hpp"
+#include "iterators.hpp"
 #include "misc/warnings.hpp"
 #include <complex>
 #include <string>
@@ -42,10 +44,10 @@ struct hash<ParserValues> {
 } // namespace std
 
 // TODO: Document
-complex_t evaluate_hamiltonian_expression(
+AER::complex_t evaluate_hamiltonian_expression(
     const std::string &expr_string, const std::vector<double> &vars,
     const std::vector<std::string> &vars_names,
-    const std::unordered_map<std::string, complex_t> &chan_values) {
+    const std::unordered_map<std::string, AER::complex_t> &chan_values) {
 
   static std::unordered_map<std::string, std::unique_ptr<ParserValues>>
       parser_expr;
@@ -75,7 +77,7 @@ complex_t evaluate_hamiltonian_expression(
   // std::cout << "Getting parser " << std::hex << parser << "\n";
 
   auto maybe_update_value = [parser](const std::string &var_name,
-                                     const complex_t &var_value) {
+                                     const AER::complex_t &var_value) {
     if (parser->var_values.find(var_name) == parser->var_values.end()) {
       parser->var_values.emplace(var_name,
                                  std::make_unique<mup::Value>(var_value));
@@ -93,7 +95,7 @@ complex_t evaluate_hamiltonian_expression(
 
   for (const auto &idx_var : enumerate(vars)) {
     size_t index = idx_var.first;
-    auto var_value = static_cast<complex_t>(idx_var.second);
+    auto var_value = static_cast<AER::complex_t>(idx_var.second);
     maybe_update_value(vars_names[index], var_value);
   }
 

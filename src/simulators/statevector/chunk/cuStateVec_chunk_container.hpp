@@ -29,11 +29,11 @@ namespace Chunk {
 template <typename data_t>
 class cuStateVecChunkContainer : public DeviceChunkContainer<data_t> {
 protected:
-  custatevecHandle_t
-      custatevec_handle_; // cuStatevec handle for this chunk container
+  custatevecHandle_t custatevec_handle_; // cuStatevec handle
+                                         // for this chunk container
   uint_t custatevec_chunk_total_qubits_; // total qubits of statevector passed
                                          // to ApplyMatrix
-  uint_t custatevec_chunk_count_; // number of counts for all chunks
+  uint_t custatevec_chunk_count_;        // number of counts for all chunks
 
   custatevecDeviceMemHandler_t custatevec_mem_handler_;
   cudaMemPool_t memory_pool_;

@@ -62,7 +62,7 @@ protected:
   int32_t mode_index_;                                   // index of modes
   std::vector<std::shared_ptr<Tensor<data_t>>> tensors_; // list of tensors
   std::vector<std::shared_ptr<Tensor<data_t>>> qubits_;  // tail tensor for
-                                                        // qubits
+                                                         // qubits
   std::vector<std::shared_ptr<Tensor<data_t>>>
       qubits_sp_;                        // tail tensor for super qubits
   std::vector<int32_t> modes_qubits_;    // tail mode index for qubits

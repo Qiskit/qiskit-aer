@@ -556,9 +556,11 @@ void MPS_Tensor::contract_2_dimensions(const MPS_Tensor &left_gamma,
                                          (omp_threads > 1))                    \
     num_threads(omp_threads)
 #endif
-  for (int_t l_row = 0; l_row < left_rows; l_row++)
-    for (int_t r_col = 0; r_col < right_columns; r_col++)
+  for (int_t l_row = 0; l_row < left_rows; l_row++) {
+    for (int_t r_col = 0; r_col < right_columns; r_col++) {
       result(l_row, r_col) = 0;
+    }
+  }
 
 #ifdef _WIN32
 #pragma omp parallel for if ((omp_limit > MATRIX_OMP_THRESHOLD) &&             \
@@ -568,24 +570,23 @@ void MPS_Tensor::contract_2_dimensions(const MPS_Tensor &left_gamma,
                                          (omp_threads > 1))                    \
     num_threads(omp_threads)
 #endif
-  for (int_t l_row = 0; l_row < left_rows; l_row++)
+  for (int_t l_row = 0; l_row < left_rows; l_row++) {
     for (int_t r_col = 0; r_col < right_columns; r_col++) {
-
       for (int_t size = 0; size < left_size; size++)
         for (int_t index = 0; index < left_columns; index++) {
           result(l_row, r_col) += left_gamma.data_[size](l_row, index) *
                                   right_gamma.data_[size](index, r_col);
         }
     }
+  }
 }
 //---------------------------------------------------------------
 // function name: Decompose
-// Description: Decompose a tensor into two Gamma tensors and the Lambda between
-// 				them. Usually used after applying a 2-qubit
-// gate. Parameters: MPS_Tensor &temp - the tensor to decompose.
-//			   MPS_Tensor &left_gamma, &right_gamma , rvector_t &lambda
-//-
-// 			   tensors for the result.
+// Description: Decompose a tensor into two Gamma tensors and the
+//        Lambda between them. Usually used after applying a 2-qubit gate.
+// Parameters: MPS_Tensor &temp - the tensor to decompose.
+//			       MPS_Tensor &left_gamma, &right_gamma
+//             rvector_t &lambda - tensors for the result.
 // Returns: none.
 //---------------------------------------------------------------
 double MPS_Tensor::Decompose(MPS_Tensor &temp, MPS_Tensor &left_gamma,

@@ -989,7 +989,7 @@ Result Controller::execute(std::vector<Circuit> &circuits,
     const int NUM_RESULTS = result.results.size();
     // following looks very similar but we have to separate them to avoid omp
     // nested loops that causes performance degradation (DO NOT use if statement
-    //in #pragma omp)
+    // in #pragma omp)
     if (parallel_experiments_ == 1) {
       for (int j = 0; j < NUM_RESULTS; ++j) {
         set_parallelization_circuit(circuits[j], noise_model, methods[j]);

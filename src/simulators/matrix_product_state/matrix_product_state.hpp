@@ -274,14 +274,14 @@ const stringmap_t<Gates>
                      {"rx", Gates::rx},     // Pauli-X rotation gate
                      {"ry", Gates::ry},     // Pauli-Y rotation gate
                      {"rz", Gates::rz},     // Pauli-Z rotation gate
-                     // Waltz Gates
+                     /* Waltz Gates */
                      {"p", Gates::u1},  // zero-X90 pulse waltz gate
                      {"u1", Gates::u1}, // zero-X90 pulse waltz gate
                      {"u2", Gates::u2}, // single-X90 pulse waltz gate
                      {"u3", Gates::u3}, // two X90 pulse waltz gate
                      {"u", Gates::u3},  // two X90 pulse waltz gate
                      {"U", Gates::u3},  // two X90 pulse waltz gate
-                     // Two-qubit gates
+                     /* Two-qubit gates */
                      {"CX", Gates::cx},   // Controlled-X gate (CNOT)
                      {"cx", Gates::cx},   // Controlled-X gate (CNOT)
                      {"cy", Gates::cy},   // Controlled-Y gate
@@ -294,10 +294,10 @@ const stringmap_t<Gates>
                      {"ryy", Gates::ryy},   // Pauli-YY rotation gate
                      {"rzz", Gates::rzz},   // Pauli-ZZ rotation gate
                      {"rzx", Gates::rzx},   // Pauli-ZX rotation gate
-                     // Three-qubit gates
+                     /* Three-qubit gates */
                      {"ccx", Gates::ccx}, // Controlled-CX gate (Toffoli)
                      {"cswap", Gates::cswap},
-                     // Pauli
+                     /* Pauli */
                      {"pauli", Gates::pauli}});
 
 //=========================================================================

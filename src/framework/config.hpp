@@ -15,6 +15,7 @@
 #ifndef _aer_framework_config_hpp_
 #define _aer_framework_config_hpp_
 
+#include "json.hpp"
 #include "types.hpp"
 #include <optional>
 #include <string>
