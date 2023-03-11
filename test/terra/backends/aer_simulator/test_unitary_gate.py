@@ -45,9 +45,7 @@ class TestUnitaryGates(SimulatorTestCase):
         """Test simulation with unitary gate circuit instructions."""
         backend = self.backend(method=method, device=device)
         shots = 100
-        circuits = ref_unitary_gate.unitary_gate_circuits_deterministic(
-            final_measure=True
-        )
+        circuits = ref_unitary_gate.unitary_gate_circuits_deterministic(final_measure=True)
         targets = ref_unitary_gate.unitary_gate_counts_deterministic(shots)
         circuits = transpile(circuits, backend)
         result = backend.run(circuits, shots=shots).result()
@@ -99,9 +97,7 @@ class TestUnitaryGates(SimulatorTestCase):
         """Test simulation with unitary gate circuit instructions."""
         backend = self.backend(method=method, device=device)
         shots = 100
-        circuits = ref_diagonal_gate.diagonal_gate_circuits_deterministic(
-            final_measure=True
-        )
+        circuits = ref_diagonal_gate.diagonal_gate_circuits_deterministic(final_measure=True)
         targets = ref_diagonal_gate.diagonal_gate_counts_deterministic(shots)
         circuits = transpile(circuits, backend)
         result = backend.run(circuits, shots=shots).result()

@@ -41,9 +41,7 @@ class TestSaveProbabilities(SimulatorTestCase):
 
         label = "probs"
         circ.save_probabilities(qubits, label=label)
-        result = backend.run(
-            transpile(circ, backend, optimization_level=0), shots=1
-        ).result()
+        result = backend.run(transpile(circ, backend, optimization_level=0), shots=1).result()
         self.assertTrue(result.success)
         simdata = result.data(0)
         self.assertIn(label, simdata)
@@ -66,9 +64,7 @@ class TestSaveProbabilities(SimulatorTestCase):
         # Snapshot circuit
         label = "probs"
         circ.save_probabilities_dict(qubits, label=label)
-        result = backend.run(
-            transpile(circ, backend, optimization_level=0), shots=1
-        ).result()
+        result = backend.run(transpile(circ, backend, optimization_level=0), shots=1).result()
         self.assertTrue(result.success)
         simdata = result.data(0)
         self.assertIn(label, simdata)
@@ -109,20 +105,12 @@ class TestSaveProbabilities(SimulatorTestCase):
     def test_save_probabilities_cache_blocking(self, method, device, qubits):
         """Test save probabilities instruction"""
         self._test_save_probabilities(
-            qubits,
-            method=method,
-            device=device,
-            blocking_qubits=2,
-            max_parallel_threads=1,
+            qubits, method=method, device=device, blocking_qubits=2, max_parallel_threads=1
         )
 
     @supported_methods(["statevector", "density_matrix"], [[0, 1], [1, 0], [0], [1]])
     def test_save_probabilities_dict_cache_blocking(self, method, device, qubits):
         """Test save probabilities dict instruction"""
         self._test_save_probabilities_dict(
-            qubits,
-            method=method,
-            device=device,
-            blocking_qubits=2,
-            max_parallel_threads=1,
+            qubits, method=method, device=device, blocking_qubits=2, max_parallel_threads=1
         )

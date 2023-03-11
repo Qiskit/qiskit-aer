@@ -131,8 +131,7 @@ def initialize_circuits_1(final_measure=True):
                     circuit.h(qr[1])
                     circuit.h(qr[2])
                     circuit.initialize(
-                        [0, 1, 0, 0, 0, -1, 0, 0] / sqrt(2),
-                        [qr[qubit_i], qr[qubit_j], qr[qubit_k]],
+                        [0, 1, 0, 0, 0, -1, 0, 0] / sqrt(2), [qr[qubit_i], qr[qubit_j], qr[qubit_k]]
                     )
 
                     if final_measure:
@@ -148,17 +147,11 @@ def initialize_counts_1(shots, hex_counts=True):
     targets = []
     if hex_counts:
         # Initialize 0 to |1> from |+++>
-        targets.append(
-            {"0x1": shots / 4, "0x3": shots / 4, "0x5": shots / 4, "0x7": shots / 4}
-        )
+        targets.append({"0x1": shots / 4, "0x3": shots / 4, "0x5": shots / 4, "0x7": shots / 4})
         # Initialize 1 to |1> from |+++>
-        targets.append(
-            {"0x2": shots / 4, "0x3": shots / 4, "0x6": shots / 4, "0x7": shots / 4}
-        )
+        targets.append({"0x2": shots / 4, "0x3": shots / 4, "0x6": shots / 4, "0x7": shots / 4})
         # Initialize 2 to |1> from |+++>
-        targets.append(
-            {"0x4": shots / 4, "0x5": shots / 4, "0x6": shots / 4, "0x7": shots / 4}
-        )
+        targets.append({"0x4": shots / 4, "0x5": shots / 4, "0x6": shots / 4, "0x7": shots / 4})
         # Initialize 0,1 to |01> from |+++>
         targets.append({"0x1": shots / 2, "0x5": shots / 2})
         # Initialize 0,2 to |01> from |+++>
@@ -185,17 +178,11 @@ def initialize_counts_1(shots, hex_counts=True):
         targets.append({"0x4": shots / 2, "0x5": shots / 2})
     else:
         # Initialize 0 to |1> from |+++>
-        targets.append(
-            {"001": shots / 4, "011": shots / 4, "101": shots / 4, "111": shots / 4}
-        )
+        targets.append({"001": shots / 4, "011": shots / 4, "101": shots / 4, "111": shots / 4})
         # Initialize 1 to |1> from |+++>
-        targets.append(
-            {"010": shots / 4, "011": shots / 4, "110": shots / 4, "111": shots / 4}
-        )
+        targets.append({"010": shots / 4, "011": shots / 4, "110": shots / 4, "111": shots / 4})
         # Initialize 2 to |1> from |+++>
-        targets.append(
-            {"100": shots / 4, "101": shots / 4, "110": shots / 4, "111": shots / 4}
-        )
+        targets.append({"100": shots / 4, "101": shots / 4, "110": shots / 4, "111": shots / 4})
         # Initialize 0,1 to |01> from |+++>
         targets.append({"001": shots / 2, "101": shots / 2})
         # Initialize 0,2 to |01> from |+++>

@@ -48,9 +48,5 @@ class BasicSimulatorBenchmarkSuite(SimulatorBenchmarkSuite):
             self.RUNTIME_STATEVECTOR_GPU, app, measure, measure_count, noise_name, qubit
         )
 
-    def track_matrix_product_state(
-        self, app, measure, measure_count, noise_name, qubit
-    ):
-        return self._run(
-            self.RUNTIME_MPS_CPU, app, measure, measure_count, noise_name, qubit
-        )
+    def track_matrix_product_state(self, app, measure, measure_count, noise_name, qubit):
+        return self._run(self.RUNTIME_MPS_CPU, app, measure, measure_count, noise_name, qubit)

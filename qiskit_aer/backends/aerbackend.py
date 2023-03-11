@@ -43,12 +43,7 @@ class AerBackend(Backend, ABC):
     """Qiskit Aer Backend class."""
 
     def __init__(
-        self,
-        configuration,
-        properties=None,
-        defaults=None,
-        backend_options=None,
-        provider=None,
+        self, configuration, properties=None, defaults=None, backend_options=None, provider=None
     ):
         """Aer class for backends.
 
@@ -113,9 +108,7 @@ class AerBackend(Backend, ABC):
     def _convert_binds(self, circuits, parameter_binds):
         if isinstance(circuits, QuantumCircuit):
             if len(parameter_binds) > 1:
-                raise AerError(
-                    "More than 1 parameter table provided for a single circuit"
-                )
+                raise AerError("More than 1 parameter table provided for a single circuit")
 
             return [self._convert_circuit_binds(circuits, parameter_binds[0])]
         elif len(parameter_binds) != len(circuits):
@@ -217,9 +210,7 @@ class AerBackend(Backend, ABC):
                 # This path remains for DASK execution to split a qobj insttance
                 # into sub-qobj instances. This will be replaced with _run_circuits path
                 # in the near releases
-                return self._run_qobj(
-                    circuits, validate, parameter_binds, **run_options
-                )
+                return self._run_qobj(circuits, validate, parameter_binds, **run_options)
             else:
                 return self._run_circuits(circuits, parameter_binds, **run_options)
         elif not only_circuits and only_pulse:
@@ -231,17 +222,14 @@ class AerBackend(Backend, ABC):
             )
         else:
             raise TypeError(
-                "bad input to run() function;"
-                "circuits must be either circuits or schedules"
+                "bad input to run() function;" "circuits must be either circuits or schedules"
             )
 
     def _run_circuits(self, circuits, parameter_binds, **run_options):
         """Run circuits by generating native circuits."""
         circuits, noise_model = self._compile(circuits, **run_options)
         if parameter_binds:
-            run_options["parameterizations"] = self._convert_binds(
-                circuits, parameter_binds
-            )
+            run_options["parameterizations"] = self._convert_binds(circuits, parameter_binds)
         config = generate_aer_config(circuits, self.options, **run_options)
 
         # Submit job
@@ -288,16 +276,10 @@ class AerBackend(Backend, ABC):
         # Submit job
         job_id = str(uuid.uuid4())
         if isinstance(experiments, list):
-            aer_job = AerJobSet(
-                self, job_id, self._execute_qobj_job, experiments, executor
-            )
+            aer_job = AerJobSet(self, job_id, self._execute_qobj_job, experiments, executor)
         else:
             aer_job = AerJob(
-                self,
-                job_id,
-                self._execute_qobj_job,
-                qobj=experiments,
-                executor=executor,
+                self, job_id, self._execute_qobj_job, qobj=experiments, executor=executor
             )
         aer_job.submit()
 
@@ -436,9 +418,7 @@ class AerBackend(Backend, ABC):
             return self._format_results(output)
         return output
 
-    def _execute_circuits_job(
-        self, circuits, noise_model, config, job_id="", format_result=True
-    ):
+    def _execute_circuits_job(self, circuits, noise_model, config, job_id="", format_result=True):
         """Run a job"""
         # Start timer
         start = time.time()
@@ -508,9 +488,7 @@ class AerBackend(Backend, ABC):
             save_subtypes = metadata.get("result_subtypes", {})
             for key, val in data.items():
                 if key in save_types:
-                    data[key] = format_save_type(
-                        val, save_types[key], save_subtypes[key]
-                    )
+                    data[key] = format_save_type(val, save_types[key], save_subtypes[key])
         return Result.from_dict(output)
 
     def _compile(self, circuits, **run_options):
@@ -583,22 +561,16 @@ class AerBackend(Backend, ABC):
         # This avoids unnecessarily copying the noise model for circuits
         # that do not contain a quantum error
         updated_noise = False
-        noise_model = run_options.get(
-            "noise_model", getattr(self.options, "noise_model", None)
-        )
+        noise_model = run_options.get("noise_model", getattr(self.options, "noise_model", None))
 
         # Add custom pass noise only to QuantumCircuit objects that contain delay
         # instructions since this is the only instruction handled by the noise pass
         # at present
-        if noise_model and all(
-            isinstance(circ, QuantumCircuit) for circ in run_circuits
-        ):
+        if noise_model and all(isinstance(circ, QuantumCircuit) for circ in run_circuits):
             npm = noise_model._pass_manager()
             if npm is not None:
                 # Get indicies of circuits that need noise transpiling
-                transpile_idxs = [
-                    idx for idx, optype in enumerate(optypes) if Delay in optype
-                ]
+                transpile_idxs = [idx for idx, optype in enumerate(optypes) if Delay in optype]
 
                 # Transpile only the required circuits
                 transpiled_circuits = npm.run([run_circuits[i] for i in transpile_idxs])

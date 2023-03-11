@@ -21,11 +21,7 @@ from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.circuit.library import QuantumVolume, QFT, RealAmplitudes
 from qiskit.compiler import transpile
 from qiskit_aer.noise import NoiseModel
-from qiskit_aer.noise.errors import (
-    ReadoutError,
-    depolarizing_error,
-    amplitude_damping_error,
-)
+from qiskit_aer.noise.errors import ReadoutError, depolarizing_error, amplitude_damping_error
 from test.terra.backends.simulator_test_case import SimulatorTestCase, supported_methods
 
 
@@ -62,9 +58,7 @@ class TestGateFusion(SimulatorTestCase):
         ]
         noise.add_all_qubit_readout_error(ReadoutError(readout))
         for gate, (num_qubits, gate_error) in params.items():
-            noise.add_all_qubit_quantum_error(
-                depolarizing_error(gate_error, num_qubits), gate
-            )
+            noise.add_all_qubit_quantum_error(depolarizing_error(gate_error, num_qubits), gate)
             return noise
 
     def noise_model_kraus(self):
@@ -78,14 +72,10 @@ class TestGateFusion(SimulatorTestCase):
         ]
         noise.add_all_qubit_readout_error(ReadoutError(readout))
         for gate, (num_qubits, gate_error) in params.items():
-            noise.add_all_qubit_quantum_error(
-                amplitude_damping_error(gate_error, num_qubits), gate
-            )
+            noise.add_all_qubit_quantum_error(amplitude_damping_error(gate_error, num_qubits), gate)
             return noise
 
-    def fusion_options(
-        self, enabled=None, threshold=None, verbose=None, parallelization=None
-    ):
+    def fusion_options(self, enabled=None, threshold=None, verbose=None, parallelization=None):
         """Return default backend_options dict."""
         backend_options = {}
         if enabled is not None:
@@ -116,9 +106,7 @@ class TestGateFusion(SimulatorTestCase):
         circuit.measure_all()
 
         with self.subTest(msg="at threshold"):
-            backend.set_options(
-                **self.fusion_options(enabled=True, threshold=num_qubits)
-            )
+            backend.set_options(**self.fusion_options(enabled=True, threshold=num_qubits))
             result = backend.run(circuit, shots=shots).result()
             self.assertSuccess(result)
             meta = self.fusion_metadata(result)
@@ -126,9 +114,7 @@ class TestGateFusion(SimulatorTestCase):
             self.assertFalse(meta.get("applied"))
 
         with self.subTest(msg="below threshold"):
-            backend.set_options(
-                **self.fusion_options(enabled=True, threshold=num_qubits + 1)
-            )
+            backend.set_options(**self.fusion_options(enabled=True, threshold=num_qubits + 1))
             result = backend.run(circuit, shots=shots).result()
             self.assertSuccess(result)
             meta = self.fusion_metadata(result)
@@ -136,9 +122,7 @@ class TestGateFusion(SimulatorTestCase):
             self.assertFalse(meta.get("applied"))
 
         with self.subTest(msg="above threshold"):
-            backend.set_options(
-                **self.fusion_options(enabled=True, threshold=num_qubits - 1)
-            )
+            backend.set_options(**self.fusion_options(enabled=True, threshold=num_qubits - 1))
             result = backend.run(circuit, shots=shots).result()
             self.assertSuccess(result)
             meta = self.fusion_metadata(result)
@@ -177,14 +161,10 @@ class TestGateFusion(SimulatorTestCase):
         """Test Fusion with verbose option"""
         shots = 100
         backend = self.backend(method="statevector")
-        circuit = transpile(
-            self.create_statevector_circuit(), backend, optimization_level=0
-        )
+        circuit = transpile(self.create_statevector_circuit(), backend, optimization_level=0)
 
         with self.subTest(msg="verbose enabled"):
-            backend.set_options(
-                **self.fusion_options(enabled=True, verbose=True, threshold=1)
-            )
+            backend.set_options(**self.fusion_options(enabled=True, verbose=True, threshold=1))
             result = backend.run(circuit, shots=shots).result()
             # Assert fusion applied succesfully
             self.assertSuccess(result)
@@ -194,9 +174,7 @@ class TestGateFusion(SimulatorTestCase):
             self.assertIn("output_ops", meta)
 
         with self.subTest(msg="verbose disabled"):
-            backend.set_options(
-                **self.fusion_options(enabled=True, verbose=False, threshold=1)
-            )
+            backend.set_options(**self.fusion_options(enabled=True, verbose=False, threshold=1))
             result = backend.run(circuit, shots=shots).result()
             # Assert fusion applied succesfully
             self.assertSuccess(result)
@@ -254,14 +232,9 @@ class TestGateFusion(SimulatorTestCase):
         shots = 100
         fusion_options = self.fusion_options(enabled=True, threshold=1)
         backend = self.backend(
-            method=method,
-            device=device,
-            noise_model=self.noise_model_kraus(),
-            **fusion_options
+            method=method, device=device, noise_model=self.noise_model_kraus(), **fusion_options
         )
-        circuit = transpile(
-            self.create_statevector_circuit(), backend, optimization_level=0
-        )
+        circuit = transpile(self.create_statevector_circuit(), backend, optimization_level=0)
         result = backend.run(circuit, shots=shots).result()
         meta = self.fusion_metadata(result)
         if method == "density_matrix":
@@ -269,9 +242,7 @@ class TestGateFusion(SimulatorTestCase):
         else:
             target_method = "kraus"
         self.assertSuccess(result)
-        self.assertTrue(
-            meta.get("applied", False), msg="fusion should have been applied."
-        )
+        self.assertTrue(meta.get("applied", False), msg="fusion should have been applied.")
         self.assertEqual(meta.get("method", None), target_method)
 
     @supported_methods(["statevector", "density_matrix"])
@@ -280,14 +251,9 @@ class TestGateFusion(SimulatorTestCase):
         shots = 100
         fusion_options = self.fusion_options(enabled=True, threshold=1)
         backend = self.backend(
-            method=method,
-            device=device,
-            noise_model=self.noise_model_depol(),
-            **fusion_options
+            method=method, device=device, noise_model=self.noise_model_depol(), **fusion_options
         )
-        circuit = transpile(
-            self.create_statevector_circuit(), backend, optimization_level=0
-        )
+        circuit = transpile(self.create_statevector_circuit(), backend, optimization_level=0)
         result = backend.run(circuit, shots=shots).result()
         meta = self.fusion_metadata(result)
         if method == "density_matrix":
@@ -295,9 +261,7 @@ class TestGateFusion(SimulatorTestCase):
         else:
             target_method = "unitary"
         self.assertSuccess(result)
-        self.assertTrue(
-            meta.get("applied", False), msg="fusion should have been applied."
-        )
+        self.assertTrue(meta.get("applied", False), msg="fusion should have been applied.")
         self.assertEqual(meta.get("method", None), target_method)
 
     def test_control_fusion(self):
@@ -318,9 +282,7 @@ class TestGateFusion(SimulatorTestCase):
             self.assertTrue(meta.get("applied", False))
 
         with self.subTest(msg="fusion disabled"):
-            backend_options = backend_options = self.fusion_options(
-                enabled=False, threshold=1
-            )
+            backend_options = backend_options = self.fusion_options(enabled=False, threshold=1)
             result = backend.run(circuit, shots=shots, **backend_options).result()
             meta = self.fusion_metadata(result)
 
@@ -425,9 +387,7 @@ class TestGateFusion(SimulatorTestCase):
         depth = 2
         backend = self.backend(method="statevector")
         circuit = transpile(
-            QuantumVolume(num_qubits, depth, seed=0),
-            backend=backend,
-            optimization_level=0,
+            QuantumVolume(num_qubits, depth, seed=0), backend=backend, optimization_level=0
         )
         circuit.measure_all()
 
@@ -487,21 +447,15 @@ class TestGateFusion(SimulatorTestCase):
 
         backend = self.backend(method="statevector")
         circuit = transpile(
-            QuantumVolume(num_qubits, depth, seed=0),
-            backend=backend,
-            optimization_level=0,
+            QuantumVolume(num_qubits, depth, seed=0), backend=backend, optimization_level=0
         )
         circuit.measure_all()
 
-        options_serial = self.fusion_options(
-            enabled=True, threshold=1, parallelization=1
-        )
+        options_serial = self.fusion_options(enabled=True, threshold=1, parallelization=1)
         result_serial = backend.run(circuit, shots=shots, **options_serial).result()
         meta_serial = self.fusion_metadata(result_serial)
 
-        options_parallel = self.fusion_options(
-            enabled=True, threshold=1, parallelization=2
-        )
+        options_parallel = self.fusion_options(enabled=True, threshold=1, parallelization=2)
         result_parallel = backend.run(circuit, shots=shots, **options_parallel).result()
         meta_parallel = self.fusion_metadata(result_parallel)
 
@@ -523,9 +477,7 @@ class TestGateFusion(SimulatorTestCase):
         reps = 3
         backend = self.backend(method="statevector")
 
-        circuit = RealAmplitudes(
-            num_qubits=num_qubits, entanglement="linear", reps=reps
-        )
+        circuit = RealAmplitudes(num_qubits=num_qubits, entanglement="linear", reps=reps)
         circuit.measure_all()
 
         np.random.seed(12345)
@@ -533,9 +485,7 @@ class TestGateFusion(SimulatorTestCase):
         for param in circuit.parameters:
             param_binds[param] = np.random.random()
 
-        circuit = transpile(
-            circuit.bind_parameters(param_binds), backend, optimization_level=0
-        )
+        circuit = transpile(circuit.bind_parameters(param_binds), backend, optimization_level=0)
 
         backend_options = self.fusion_options(enabled=True, threshold=1)
         backend_options["fusion_verbose"] = True
@@ -629,7 +579,7 @@ class TestGateFusion(SimulatorTestCase):
                 "fusion_enable.n_qubits": False,
             },
             fusion_parallelization_threshold=3,
-            max_parallel_threads=thread
+            max_parallel_threads=thread,
         ).result()
         actual = result.get_statevector(0)
 

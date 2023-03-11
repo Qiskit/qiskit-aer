@@ -147,9 +147,7 @@ class TestCliffords(SimulatorTestCase):
         backend = self.backend(method=method, device=device, seed_simulator=self.SEED)
         shots = 4000
         """Test sdg-gate circuits"""
-        circuits = ref_1q_clifford.sdg_gate_circuits_nondeterministic(
-            final_measure=True
-        )
+        circuits = ref_1q_clifford.sdg_gate_circuits_nondeterministic(final_measure=True)
         targets = ref_1q_clifford.sdg_gate_counts_nondeterministic(shots)
         result = backend.run(circuits, shots=shots).result()
         self.assertSuccess(result)
@@ -224,9 +222,7 @@ class TestCliffords(SimulatorTestCase):
         """Test swap-gate circuits"""
         backend = self.backend(method=method, device=device, seed_simulator=self.SEED)
         shots = 4000
-        circuits = ref_2q_clifford.swap_gate_circuits_nondeterministic(
-            final_measure=True
-        )
+        circuits = ref_2q_clifford.swap_gate_circuits_nondeterministic(final_measure=True)
         targets = ref_2q_clifford.swap_gate_counts_nondeterministic(shots)
         result = backend.run(circuits, shots=shots).result()
         self.assertSuccess(result)

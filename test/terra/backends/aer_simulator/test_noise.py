@@ -49,9 +49,7 @@ class TestNoise(SimulatorTestCase):
         backend = self.backend(method=method, device=device)
         noise_model = noise.NoiseModel()
         noise_model.add_all_qubit_quantum_error(noise.depolarizing_error(0.1, 1), ["x"])
-        result = backend.run(
-            QuantumCircuit(), shots=1, noise_model=noise_model
-        ).result()
+        result = backend.run(QuantumCircuit(), shots=1, noise_model=noise_model).result()
         self.assertSuccess(result)
 
     @supported_methods(ALL_METHODS)
@@ -142,13 +140,7 @@ class TestNoise(SimulatorTestCase):
             self.compare_counts(result, [circuit], [target], delta=0.05 * shots)
 
     @supported_methods(
-        [
-            "automatic",
-            "statevector",
-            "density_matrix",
-            "matrix_product_state",
-            "tensor_network",
-        ]
+        ["automatic", "statevector", "density_matrix", "matrix_product_state", "tensor_network"]
     )
     def test_kraus_gate_noise(self, method, device):
         """Test simulation with Kraus gate error noise model."""
@@ -198,13 +190,7 @@ class TestNoise(SimulatorTestCase):
         )
 
     @supported_methods(
-        [
-            "automatic",
-            "statevector",
-            "density_matrix",
-            "matrix_product_state",
-            "tensor_network",
-        ]
+        ["automatic", "statevector", "density_matrix", "matrix_product_state", "tensor_network"]
     )
     def test_kraus_gate_noise_on_QFT(self, method, device):
         """Test Kraus noise on a QFT circuit"""
@@ -213,9 +199,7 @@ class TestNoise(SimulatorTestCase):
     @supported_methods(["statevector", "density_matrix"])
     def test_kraus_gate_noise_on_QFT_cache_blocking(self, method, device):
         """Test Kraus noise on a QFT circuit with caceh blocking"""
-        self._test_kraus_gate_noise_on_QFT(
-            method=method, device=device, blocking_qubits=2
-        )
+        self._test_kraus_gate_noise_on_QFT(method=method, device=device, blocking_qubits=2)
 
     @supported_methods(ALL_METHODS)
     def test_clifford_circuit_noise(self, method, device):
@@ -292,9 +276,6 @@ class TestNoise(SimulatorTestCase):
 
         result = backend.run([qc0, qc1], shots=shots).result()
         self.assertSuccess(result)
-        probs = [
-            {key: val / shots for key, val in result.get_counts(i).items()}
-            for i in range(2)
-        ]
+        probs = [{key: val / shots for key, val in result.get_counts(i).items()} for i in range(2)]
         self.assertDictAlmostEqual(target_probs0, probs[0], delta=0.1)
         self.assertDictAlmostEqual(target_probs1, probs[1], delta=0.1)

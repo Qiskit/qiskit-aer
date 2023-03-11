@@ -20,9 +20,7 @@ from qiskit import QuantumCircuit, transpile
 
 
 def statevec_as_dict(data):
-    return {
-        hex(int(key, 2)): val for key, val in qi.Statevector(data).to_dict().items()
-    }
+    return {hex(int(key, 2)): val for key, val in qi.Statevector(data).to_dict().items()}
 
 
 @ddt
@@ -50,9 +48,7 @@ class TestSaveStatevectorDict(SimulatorTestCase):
         circ.save_statevector_dict(label)
 
         # Run
-        result = backend.run(
-            transpile(circ, backend, optimization_level=0), shots=1
-        ).result()
+        result = backend.run(transpile(circ, backend, optimization_level=0), shots=1).result()
         self.assertTrue(result.success)
         simdata = result.data(0)
         self.assertIn(label, simdata)
@@ -75,15 +71,10 @@ class TestSaveStatevectorDict(SimulatorTestCase):
         circ.save_statevector_dict(label, conditional=True)
 
         # Target statevector
-        target = {
-            "0x0": statevec_as_dict([1, 0, 0, 0]),
-            "0x3": statevec_as_dict([0, 0, 0, -1j]),
-        }
+        target = {"0x0": statevec_as_dict([1, 0, 0, 0]), "0x3": statevec_as_dict([0, 0, 0, -1j])}
 
         # Run
-        result = backend.run(
-            transpile(circ, backend, optimization_level=0), shots=1
-        ).result()
+        result = backend.run(transpile(circ, backend, optimization_level=0), shots=1).result()
         self.assertTrue(result.success)
         simdata = result.data(0)
         self.assertIn(label, simdata)
@@ -113,9 +104,7 @@ class TestSaveStatevectorDict(SimulatorTestCase):
 
         # Run
         shots = 10
-        result = backend.run(
-            transpile(circ, backend, optimization_level=0), shots=shots
-        ).result()
+        result = backend.run(transpile(circ, backend, optimization_level=0), shots=shots).result()
         self.assertTrue(result.success)
         simdata = result.data(0)
         self.assertIn(label, simdata)
@@ -147,9 +136,7 @@ class TestSaveStatevectorDict(SimulatorTestCase):
 
         # Run
         shots = 10
-        result = backend.run(
-            transpile(circ, backend, optimization_level=0), shots=shots
-        ).result()
+        result = backend.run(transpile(circ, backend, optimization_level=0), shots=shots).result()
         self.assertTrue(result.success)
         simdata = result.data(0)
         self.assertIn(label, simdata)

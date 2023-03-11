@@ -288,9 +288,7 @@ class TestAerState(common.QiskitAerTestCase):
 
         self.assertIsNot(sv1, sv2)
         self.assertEqual(len(sv1), len(sv2))
-        self.assertEqual(
-            sv1[len(sv1) - 1, len(sv1) - 1], sv2[len(sv2) - 1, len(sv2) - 1]
-        )
+        self.assertEqual(sv1[len(sv1) - 1, len(sv1) - 1], sv2[len(sv2) - 1, len(sv2) - 1])
 
     def test_appply_unitary(self):
         """Test applying a unitary matrix"""

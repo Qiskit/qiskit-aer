@@ -22,13 +22,7 @@ from qiskit.compiler import assemble
 from qiskit.qobj import QasmQobjInstruction
 from qiskit.result import ProbDistribution
 from qiskit.quantum_info import Clifford
-from .compatibility import (
-    Statevector,
-    DensityMatrix,
-    StabilizerState,
-    Operator,
-    SuperOp,
-)
+from .compatibility import Statevector, DensityMatrix, StabilizerState, Operator, SuperOp
 
 # Available system memory
 SYSTEM_MEMORY_GB = local_hardware_info()["memory"]
@@ -452,11 +446,7 @@ def available_methods(controller, methods, devices):
         for method in methods:
             if method not in valid_methods:
                 qobj = assemble(
-                    dummy_circ,
-                    optimization_level=0,
-                    shots=1,
-                    method=method,
-                    device=device,
+                    dummy_circ, optimization_level=0, shots=1, method=method, device=device
                 )
                 result = cpp_execute_qobj(controller, qobj)
                 if result.get("success", False):
@@ -473,11 +463,7 @@ def available_devices(controller, devices):
     valid_devices = []
     for device in devices:
         qobj = assemble(
-            dummy_circ,
-            optimization_level=0,
-            shots=1,
-            method="statevector",
-            device=device,
+            dummy_circ, optimization_level=0, shots=1, method="statevector", device=device
         )
         result = cpp_execute_qobj(controller, qobj)
         if result.get("success", False):
@@ -509,9 +495,7 @@ def add_final_save_op(aer_circuits, state):
 
     for aer_circuit in aer_circuits:
         num_qubits = aer_circuit.num_qubits
-        aer_circuit.save_state(
-            list(range(num_qubits)), f"save_{state}", "single", state
-        )
+        aer_circuit.save_state(list(range(num_qubits)), f"save_{state}", "single", state)
 
     return aer_circuits
 

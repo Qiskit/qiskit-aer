@@ -67,9 +67,7 @@ class TestRelaxationNoisePass(QiskitAerTestCase):
         qc.measure([0, 1], [0, 1])
 
         durations = [("h", None, 10), ("cx", None, 50), ("measure", None, 200)]
-        sched_circ = transpile(
-            qc, scheduling_method="alap", instruction_durations=durations
-        )
+        sched_circ = transpile(qc, scheduling_method="alap", instruction_durations=durations)
 
         noise_pass = RelaxationNoisePass(t1s=[0.10, 0.11], t2s=[0.20, 0.21], dt=0.01)
         noisy_circ = noise_pass(sched_circ)
@@ -90,9 +88,7 @@ class TestRelaxationNoisePass(QiskitAerTestCase):
 
     def test_raise_if_supplied_invalid_ops(self):
         with self.assertRaises(TranspilerError):
-            RelaxationNoisePass(
-                t1s=[1], t2s=[1], dt=1, op_types="delay"
-            )  # str is invalid
+            RelaxationNoisePass(t1s=[1], t2s=[1], dt=1, op_types="delay")  # str is invalid
 
     def test_ops_types(self):
         """Test adding noises only to delays in a scheduled circuit."""
@@ -106,9 +102,7 @@ class TestRelaxationNoisePass(QiskitAerTestCase):
         qc.measure([0, 1], [0, 1])
 
         durations = [("h", None, 10), ("cx", None, 50), ("measure", None, 200)]
-        sched_circ = transpile(
-            qc, scheduling_method="alap", instruction_durations=durations
-        )
+        sched_circ = transpile(qc, scheduling_method="alap", instruction_durations=durations)
 
         noise_pass = RelaxationNoisePass(t1s=t1s, t2s=t2s, dt=dt, op_types=Delay)
         noisy_circ = noise_pass(sched_circ)
@@ -116,9 +110,7 @@ class TestRelaxationNoisePass(QiskitAerTestCase):
         expected = QuantumCircuit(2, 2)
         expected.h(0)
         expected.delay(10, 1)
-        expected.append(
-            thermal_relaxation_error(t1s[1], t2s[1], 10 * dt).to_instruction(), [1]
-        )
+        expected.append(thermal_relaxation_error(t1s[1], t2s[1], 10 * dt).to_instruction(), [1])
         expected.cx(0, 1)
         expected.measure([0, 1], [0, 1])
 

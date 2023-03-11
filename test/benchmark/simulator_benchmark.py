@@ -45,11 +45,7 @@ class SimulatorBenchmarkSuite(CircuitLibraryCircuits):
         RUNTIME_UNITARY_MATRIX_CPU,
     ]
 
-    RUNTIME_GPU = [
-        RUNTIME_STATEVECTOR_GPU,
-        RUNTIME_DENSITY_MATRIX_GPU,
-        RUNTIME_UNITARY_MATRIX_GPU,
-    ]
+    RUNTIME_GPU = [RUNTIME_STATEVECTOR_GPU, RUNTIME_DENSITY_MATRIX_GPU, RUNTIME_UNITARY_MATRIX_GPU]
 
     DEFAULT_RUNTIME = [
         RUNTIME_STATEVECTOR_CPU,
@@ -102,13 +98,7 @@ class SimulatorBenchmarkSuite(CircuitLibraryCircuits):
             self.noise_model_names,
             self.qubits,
         )
-        self.param_names = [
-            "application",
-            "measure_method",
-            "measure_counts",
-            "noise",
-            "qubit",
-        ]
+        self.param_names = ["application", "measure_method", "measure_counts", "noise", "qubit"]
 
         all_simulators = [SIMULATOR]
 
@@ -145,9 +135,7 @@ class SimulatorBenchmarkSuite(CircuitLibraryCircuits):
 
         if self.RUNTIME_MPS_CPU in runtime_names:
             self.simulators[self.RUNTIME_MPS_CPU] = SIMULATOR
-            self.backend_options_list[self.RUNTIME_MPS_CPU] = {
-                "method": self.RUNTIME_MPS_CPU
-            }
+            self.backend_options_list[self.RUNTIME_MPS_CPU] = {"method": self.RUNTIME_MPS_CPU}
             self.backend_qubits[self.RUNTIME_MPS_CPU] = self.qubits
 
         if self.RUNTIME_DENSITY_MATRIX_CPU in runtime_names:
@@ -180,10 +168,7 @@ class SimulatorBenchmarkSuite(CircuitLibraryCircuits):
             from numpy.random import default_rng
 
             rng = default_rng(1)
-            paulis = [
-                "".join(s)
-                for s in rng.choice(["I", "X", "Y", "Z"], size=(num_terms, qubit))
-            ]
+            paulis = ["".join(s) for s in rng.choice(["I", "X", "Y", "Z"], size=(num_terms, qubit))]
             pauli_op = [(1 / num_terms, pauli) for pauli in paulis]
             circuit.snapshot_expectation_value("expval", pauli_op, range(qubit))
 
@@ -316,24 +301,17 @@ class SimulatorBenchmarkSuite(CircuitLibraryCircuits):
         qobj = self.gen_qobj(runtime, app, measure, measure_count, qubit)
         if qobj is None:
             raise ValueError(
-                "no qobj: measure={0}:{1}, qubit={2}".format(
-                    measure, measure_count, qubit
-                )
+                "no qobj: measure={0}:{1}, qubit={2}".format(measure, measure_count, qubit)
             )
 
         start = time()
-        result = simulator.run(
-            qobj, noise_model=noise_model, **backend_options
-        ).result()
+        result = simulator.run(qobj, noise_model=noise_model, **backend_options).result()
         if result.status != "COMPLETED":
             try:
                 reason = None
                 ret_dict = result.to_dict()
                 if "results" in ret_dict:
-                    if (
-                        len(ret_dict["results"]) > 0
-                        and "status" in ret_dict["results"][0]
-                    ):
+                    if len(ret_dict["results"]) > 0 and "status" in ret_dict["results"][0]:
                         reason = ret_dict["results"][0]["status"]
                 if reason is None and "status" in ret_dict:
                     reason = ret_dict["status"]
@@ -348,9 +326,7 @@ class SimulatorBenchmarkSuite(CircuitLibraryCircuits):
         import timeout_decorator
 
         @timeout_decorator.timeout(self.timeout)
-        def run_with_timeout(
-            suite, runtime, app, measure, measure_count, noise_name, qubit
-        ):
+        def run_with_timeout(suite, runtime, app, measure, measure_count, noise_name, qubit):
             start = time()
             return eval("suite.track_{0}".format(runtime))(
                 app, measure, measure_count, noise_name, qubit
@@ -361,9 +337,7 @@ class SimulatorBenchmarkSuite(CircuitLibraryCircuits):
             for runtime in self.runtime_names:
                 for app in self.apps:
                     repeats = None if app not in self.app2rep else self.app2rep[app]
-                    app_name = (
-                        app if repeats is None else "{0}:{1}".format(app, repeats)
-                    )
+                    app_name = app if repeats is None else "{0}:{1}".format(app, repeats)
                     for qubit in self.qubits:
                         for measure in self.measures:
                             for measure_count in self.measure_counts:

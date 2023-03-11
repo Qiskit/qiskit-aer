@@ -50,20 +50,10 @@ class NoiseSimulatorBenchmarkSuite(SimulatorBenchmarkSuite):
 
     def track_density_matrix(self, app, measure, measure_count, noise_name, qubit):
         return self._run(
-            self.RUNTIME_DENSITY_MATRIX_CPU,
-            app,
-            measure,
-            measure_count,
-            noise_name,
-            qubit,
+            self.RUNTIME_DENSITY_MATRIX_CPU, app, measure, measure_count, noise_name, qubit
         )
 
     def track_density_matrix_gpu(self, app, measure, measure_count, noise_name, qubit):
         return self._run(
-            self.RUNTIME_DENSITY_MATRIX_GPU,
-            app,
-            measure,
-            measure_count,
-            noise_name,
-            qubit,
+            self.RUNTIME_DENSITY_MATRIX_GPU, app, measure, measure_count, noise_name, qubit
         )

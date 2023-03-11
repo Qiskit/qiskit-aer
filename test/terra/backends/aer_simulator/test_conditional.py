@@ -77,9 +77,7 @@ class TestConditionalGates(SimulatorTestCase):
         )
         # not using hex counts because number of leading zeros in results
         # doesn't seem consistent
-        targets = ref_conditionals.condtional_counts_nbit(
-            64, cases, shots, hex_counts=False
-        )
+        targets = ref_conditionals.condtional_counts_nbit(64, cases, shots, hex_counts=False)
 
         result = backend.run(circuits, shots=shots).result()
         self.assertSuccess(result)
@@ -97,9 +95,7 @@ class TestConditionalGates(SimulatorTestCase):
         circuits = ref_conditionals.conditional_circuits_nbit(
             132, cases, final_measure=True, conditional_type="gate"
         )
-        targets = ref_conditionals.condtional_counts_nbit(
-            132, cases, shots, hex_counts=False
-        )
+        targets = ref_conditionals.condtional_counts_nbit(132, cases, shots, hex_counts=False)
         circuits = circuits[0:1]
         targets = targets[0:1]
         result = backend.run(circuits, shots=shots).result()
@@ -161,9 +157,7 @@ class TestConditionalUnitary(SimulatorTestCase):
         circuits = ref_conditionals.conditional_circuits_nbit(
             64, cases, final_measure=True, conditional_type="unitary"
         )
-        targets = ref_conditionals.condtional_counts_nbit(
-            64, cases, shots, hex_counts=False
-        )
+        targets = ref_conditionals.condtional_counts_nbit(64, cases, shots, hex_counts=False)
 
         result = backend.run(circuits, shots=shots).result()
         self.assertSuccess(result)
@@ -181,9 +175,7 @@ class TestConditionalUnitary(SimulatorTestCase):
         circuits = ref_conditionals.conditional_circuits_nbit(
             132, cases, final_measure=True, conditional_type="unitary"
         )
-        targets = ref_conditionals.condtional_counts_nbit(
-            132, cases, shots, hex_counts=False
-        )
+        targets = ref_conditionals.condtional_counts_nbit(132, cases, shots, hex_counts=False)
         result = backend.run(circuits, shots=shots).result()
         self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, hex_counts=False, delta=0)
@@ -243,9 +235,7 @@ class TestConditionalKraus(SimulatorTestCase):
         circuits = ref_conditionals.conditional_circuits_nbit(
             64, cases, final_measure=True, conditional_type="kraus"
         )
-        targets = ref_conditionals.condtional_counts_nbit(
-            64, cases, shots, hex_counts=False
-        )
+        targets = ref_conditionals.condtional_counts_nbit(64, cases, shots, hex_counts=False)
 
         result = backend.run(circuits, shots=shots).result()
         self.assertSuccess(result)
@@ -263,9 +253,7 @@ class TestConditionalKraus(SimulatorTestCase):
         circuits = ref_conditionals.conditional_circuits_nbit(
             132, cases, final_measure=True, conditional_type="kraus"
         )
-        targets = ref_conditionals.condtional_counts_nbit(
-            132, cases, shots, hex_counts=False
-        )
+        targets = ref_conditionals.condtional_counts_nbit(132, cases, shots, hex_counts=False)
         result = backend.run(circuits, shots=shots).result()
         self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, hex_counts=False, delta=0)
@@ -319,9 +307,7 @@ class TestConditionalSuperOp(SimulatorTestCase):
         circuits = ref_conditionals.conditional_circuits_nbit(
             64, cases, final_measure=True, conditional_type="superop"
         )
-        targets = ref_conditionals.condtional_counts_nbit(
-            64, cases, shots, hex_counts=False
-        )
+        targets = ref_conditionals.condtional_counts_nbit(64, cases, shots, hex_counts=False)
 
         result = backend.run(circuits, shots=shots).result()
         self.assertSuccess(result)
@@ -339,9 +325,7 @@ class TestConditionalSuperOp(SimulatorTestCase):
         circuits = ref_conditionals.conditional_circuits_nbit(
             132, cases, final_measure=True, conditional_type="superop"
         )
-        targets = ref_conditionals.condtional_counts_nbit(
-            132, cases, shots, hex_counts=False
-        )
+        targets = ref_conditionals.condtional_counts_nbit(132, cases, shots, hex_counts=False)
         result = backend.run(circuits, shots=shots).result()
         self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, hex_counts=False, delta=0)

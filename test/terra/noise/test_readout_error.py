@@ -73,11 +73,7 @@ class TestReadoutError(QiskitAerTestCase):
 
         # Test circuit: ideal outcome "11"
         probs = [[1, 0], [0, 1]]
-        roerror_dict = {
-            "type": "roerror",
-            "operations": ["measure"],
-            "probabilities": probs,
-        }
+        roerror_dict = {"type": "roerror", "operations": ["measure"], "probabilities": probs}
         roerror = ReadoutError(probs)
         self.assertEqual(roerror.number_of_qubits, 1)
         self.assertEqual(roerror.probabilities.tolist(), probs)
@@ -86,17 +82,8 @@ class TestReadoutError(QiskitAerTestCase):
     def test_2qubit(self):
         """Test 2-qubit readout error"""
         # Test circuit: ideal outcome "11"
-        probs = [
-            [0.7, 0.2, 0.1, 0],
-            [0, 0.9, 0.1, 0],
-            [0, 0, 1, 0],
-            [0.1, 0.1, 0.2, 0.6],
-        ]
-        roerror_dict = {
-            "type": "roerror",
-            "operations": ["measure"],
-            "probabilities": probs,
-        }
+        probs = [[0.7, 0.2, 0.1, 0], [0, 0.9, 0.1, 0], [0, 0, 1, 0], [0.1, 0.1, 0.2, 0.6]]
+        roerror_dict = {"type": "roerror", "operations": ["measure"], "probabilities": probs}
         roerror = ReadoutError(probs)
         self.assertEqual(roerror.number_of_qubits, 2)
         self.assertEqual(roerror.probabilities.tolist(), probs)
@@ -107,11 +94,7 @@ class TestReadoutError(QiskitAerTestCase):
         probs0 = [[0.9, 0.1], [0.4, 0.6]]
         probs1 = [[0.5, 0.5], [0.2, 0.8]]
         probs = np.kron(probs0, probs1).tolist()
-        error_dict = {
-            "type": "roerror",
-            "operations": ["measure"],
-            "probabilities": probs,
-        }
+        error_dict = {"type": "roerror", "operations": ["measure"], "probabilities": probs}
         error0 = ReadoutError(probs0)
         error1 = ReadoutError(probs1)
         error = error0.tensor(error1)
@@ -125,11 +108,7 @@ class TestReadoutError(QiskitAerTestCase):
         probs0 = [[0.9, 0.1], [0.4, 0.6]]
         probs1 = [[0.5, 0.5], [0.2, 0.8]]
         probs = np.kron(probs0, probs1).tolist()
-        error_dict = {
-            "type": "roerror",
-            "operations": ["measure"],
-            "probabilities": probs,
-        }
+        error_dict = {"type": "roerror", "operations": ["measure"], "probabilities": probs}
         error0 = ReadoutError(probs0)
         error1 = ReadoutError(probs1)
         error = error1.expand(error0)
@@ -143,11 +122,7 @@ class TestReadoutError(QiskitAerTestCase):
         probs0 = [[0.9, 0.1], [0.4, 0.6]]
         probs1 = [[0.5, 0.5], [0.2, 0.8]]
         probs = np.dot(probs1, probs0).tolist()
-        error_dict = {
-            "type": "roerror",
-            "operations": ["measure"],
-            "probabilities": probs,
-        }
+        error_dict = {"type": "roerror", "operations": ["measure"], "probabilities": probs}
         error0 = ReadoutError(probs0)
         error1 = ReadoutError(probs1)
         # compose method
@@ -166,11 +141,7 @@ class TestReadoutError(QiskitAerTestCase):
         probs0 = [[0.9, 0.1], [0.4, 0.6]]
         probs1 = [[0.5, 0.5], [0.2, 0.8]]
         probs = np.dot(probs1, probs0).tolist()
-        error_dict = {
-            "type": "roerror",
-            "operations": ["measure"],
-            "probabilities": probs,
-        }
+        error_dict = {"type": "roerror", "operations": ["measure"], "probabilities": probs}
         error0 = ReadoutError(probs0)
         error1 = ReadoutError(probs1)
         # dot method

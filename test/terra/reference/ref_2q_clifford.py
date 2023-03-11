@@ -259,13 +259,11 @@ def cx_gate_unitary_nondeterministic():
     targets = []
     # CX01.(I^H), Bell state
     targets.append(
-        np.array([[1, 1, 0, 0], [0, 0, 1, -1], [0, 0, 1, 1], [1, -1, 0, 0]])
-        / np.sqrt(2)
+        np.array([[1, 1, 0, 0], [0, 0, 1, -1], [0, 0, 1, 1], [1, -1, 0, 0]]) / np.sqrt(2)
     )
     # CX10.(I^H), Bell state
     targets.append(
-        np.array([[1, 0, 1, 0], [0, 1, 0, 1], [0, 1, 0, -1], [1, 0, -1, 0]])
-        / np.sqrt(2)
+        np.array([[1, 0, 1, 0], [0, 1, 0, 1], [0, 1, 0, -1], [1, 0, -1, 0]]) / np.sqrt(2)
     )
     return targets
 
@@ -470,13 +468,11 @@ def cz_gate_unitary_nondeterministic():
     targets = []
     # (I^H).CZ.(H^H) = CX10.(H^I), Bell state
     targets.append(
-        np.array([[1, 0, 1, 0], [0, 1, 0, 1], [0, 1, 0, -1], [1, 0, -1, 0]])
-        / np.sqrt(2)
+        np.array([[1, 0, 1, 0], [0, 1, 0, 1], [0, 1, 0, -1], [1, 0, -1, 0]]) / np.sqrt(2)
     )
     # (H^I).CZ.(H^H) = CX01.(I^H), Bell state
     targets.append(
-        np.array([[1, 1, 0, 0], [0, 0, 1, -1], [0, 0, 1, 1], [1, -1, 0, 0]])
-        / np.sqrt(2)
+        np.array([[1, 1, 0, 0], [0, 0, 1, -1], [0, 0, 1, 1], [1, -1, 0, 0]]) / np.sqrt(2)
     )
     return targets
 

@@ -55,9 +55,7 @@ class RelaxationNoisePass(LocalNoisePass):
         else:
             self._p1s = np.zeros(len(t1s))
         self._dt = dt
-        super().__init__(
-            self._thermal_relaxation_error, op_types=op_types, method="append"
-        )
+        super().__init__(self._thermal_relaxation_error, op_types=op_types, method="append")
 
     def _thermal_relaxation_error(self, op: Instruction, qubits: Sequence[int]):
         """Return thermal relaxation error on each operand qubit"""

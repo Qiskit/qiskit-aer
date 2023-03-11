@@ -114,12 +114,8 @@ def readout_error_counts(shots, hex_counts=True):
 
     # 1-qubit readout error on qubit 1
     p00 = 0.5 * (ROERROR_1Q[0][0] ** 2 + ROERROR_1Q[1][0] ** 2)
-    p01 = 0.5 * (
-        ROERROR_1Q[0][0] * ROERROR_1Q[0][1] + ROERROR_1Q[1][0] * ROERROR_1Q[1][1]
-    )
-    p10 = 0.5 * (
-        ROERROR_1Q[0][0] * ROERROR_1Q[0][1] + ROERROR_1Q[1][0] * ROERROR_1Q[1][1]
-    )
+    p01 = 0.5 * (ROERROR_1Q[0][0] * ROERROR_1Q[0][1] + ROERROR_1Q[1][0] * ROERROR_1Q[1][1])
+    p10 = 0.5 * (ROERROR_1Q[0][0] * ROERROR_1Q[0][1] + ROERROR_1Q[1][0] * ROERROR_1Q[1][1])
     p11 = 0.5 * (ROERROR_1Q[0][1] ** 2 + ROERROR_1Q[1][1] ** 2)
     counts = [p00 * shots, p01 * shots, p10 * shots, p11 * shots]
     counts_lists.append(counts)

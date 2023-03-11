@@ -135,9 +135,7 @@ class AerJob(Job):
         elif self._future.cancelled():
             _status = JobStatus.CANCELLED
         elif self._future.done():
-            _status = (
-                JobStatus.DONE if self._future.exception() is None else JobStatus.ERROR
-            )
+            _status = JobStatus.DONE if self._future.exception() is None else JobStatus.ERROR
         else:
             # Note: There is an undocumented Future state: PENDING, that seems to show up when
             # the job is enqueued, waiting for someone to pick it up. We need to deal with this

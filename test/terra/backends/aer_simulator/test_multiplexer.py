@@ -28,9 +28,7 @@ class TestMultiplexer(SimulatorTestCase):
         """Test multiplxer cx-gate circuits compiling to backend default basis_gates."""
         backend = self.backend()
         shots = 100
-        circuits = ref_multiplexer.multiplexer_cx_gate_circuits_deterministic(
-            final_measure=True
-        )
+        circuits = ref_multiplexer.multiplexer_cx_gate_circuits_deterministic(final_measure=True)
         targets = ref_multiplexer.multiplexer_cx_gate_counts_deterministic(shots)
         result = backend.run(circuits, shots=shots).result()
         self.assertSuccess(result)
@@ -40,9 +38,7 @@ class TestMultiplexer(SimulatorTestCase):
         """Test multiplexer cx-gate circuits compiling to backend default basis_gates."""
         backend = self.backend()
         shots = 4000
-        circuits = ref_multiplexer.multiplexer_cx_gate_circuits_nondeterministic(
-            final_measure=True
-        )
+        circuits = ref_multiplexer.multiplexer_cx_gate_circuits_nondeterministic(final_measure=True)
         targets = ref_multiplexer.multiplexer_cx_gate_counts_nondeterministic(shots)
         result = backend.run(circuits, shots=shots).result()
         self.assertSuccess(result)
@@ -55,9 +51,7 @@ class TestMultiplexer(SimulatorTestCase):
         """Test multiplexer-gate gate circuits"""
         backend = self.backend()
         shots = 100
-        circuits = ref_multiplexer.multiplexer_ccx_gate_circuits_deterministic(
-            final_measure=True
-        )
+        circuits = ref_multiplexer.multiplexer_ccx_gate_circuits_deterministic(final_measure=True)
         targets = ref_multiplexer.multiplexer_ccx_gate_counts_deterministic(shots)
         result = backend.run(circuits, shots=shots).result()
         self.assertSuccess(result)
@@ -84,10 +78,7 @@ class TestMultiplexer(SimulatorTestCase):
         result = backend.run(circuits, shots=shots).result()
         counts = [result.get_counts(circuit) for circuit in circuits]
         target_results = backend.run(target_circuits, shots=shots).result()
-        targets = [
-            target_results.get_counts(target_circuit)
-            for target_circuit in target_circuits
-        ]
+        targets = [target_results.get_counts(target_circuit) for target_circuit in target_circuits]
         self.assertSuccess(result)
         for actual, target in zip(counts, targets):
             self.assertDictAlmostEqual(actual, target, delta=0.05 * shots)

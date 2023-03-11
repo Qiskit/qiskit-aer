@@ -88,9 +88,7 @@ def mixed_unitary_error(noise_ops):
     instructions_probs = []
     num_qubits = int(np.log2(noise_ops[0][0].shape[0]))
     if noise_ops[0][0].shape != (2**num_qubits, 2**num_qubits):
-        raise NoiseError(
-            "A unitary matrix in input noise_ops is not a multi-qubit matrix."
-        )
+        raise NoiseError("A unitary matrix in input noise_ops is not a multi-qubit matrix.")
     for unitary, prob in noise_ops:
         # Check unitary
         if unitary.shape != noise_ops[0][0].shape:
@@ -207,9 +205,7 @@ def depolarizing_error(param, num_qubits):
     num_terms = 4**num_qubits
     max_param = num_terms / (num_terms - 1)
     if param < 0 or param > max_param:
-        raise NoiseError(
-            "Depolarizing parameter must be in between 0 " "and {}.".format(max_param)
-        )
+        raise NoiseError("Depolarizing parameter must be in between 0 " "and {}.".format(max_param))
 
     # Rescale completely depolarizing channel error probs
     # with the identity component removed
@@ -219,10 +215,7 @@ def depolarizing_error(param, num_qubits):
 
     # Generate pauli strings. The order doesn't matter as long
     # as the all identity string is first.
-    paulis = [
-        Pauli("".join(tup))
-        for tup in it.product(["I", "X", "Y", "Z"], repeat=num_qubits)
-    ]
+    paulis = [Pauli("".join(tup)) for tup in it.product(["I", "X", "Y", "Z"], repeat=num_qubits)]
     return QuantumError(zip(paulis, probs))
 
 
@@ -290,13 +283,11 @@ def thermal_relaxation_error(t1, t2, time, excited_state_population=0):
     """
     if excited_state_population < 0:
         raise NoiseError(
-            "Invalid excited state population "
-            "({} < 0).".format(excited_state_population)
+            "Invalid excited state population " "({} < 0).".format(excited_state_population)
         )
     if excited_state_population > 1:
         raise NoiseError(
-            "Invalid excited state population "
-            "({} > 1).".format(excited_state_population)
+            "Invalid excited state population " "({} > 1).".format(excited_state_population)
         )
     if time < 0:
         raise NoiseError("Invalid gate_time ({} < 0)".format(time))
@@ -305,9 +296,7 @@ def thermal_relaxation_error(t1, t2, time, excited_state_population=0):
     if t2 <= 0:
         raise NoiseError("Invalid T_2 relaxation time parameter: T_2 <= 0.")
     if t2 - 2 * t1 > 0:
-        raise NoiseError(
-            "Invalid T_2 relaxation time parameter: T_2 greater than 2 * T_1."
-        )
+        raise NoiseError("Invalid T_2 relaxation time parameter: T_2 greater than 2 * T_1.")
 
     # T1 relaxation rate
     if t1 == np.inf:
@@ -401,13 +390,9 @@ def phase_amplitude_damping_error(
     """
 
     if param_amp < 0:
-        raise NoiseError(
-            "Invalid amplitude damping to |0> parameter " "({} < 0)".format(param_amp)
-        )
+        raise NoiseError("Invalid amplitude damping to |0> parameter " "({} < 0)".format(param_amp))
     if param_phase < 0:
-        raise NoiseError(
-            "Invalid phase damping parameter " "({} < 0)".format(param_phase)
-        )
+        raise NoiseError("Invalid phase damping parameter " "({} < 0)".format(param_phase))
     if param_phase + param_amp > 1:
         raise NoiseError(
             "Invalid amplitude and phase damping parameters "
@@ -415,13 +400,11 @@ def phase_amplitude_damping_error(
         )
     if excited_state_population < 0:
         raise NoiseError(
-            "Invalid excited state population "
-            "({} < 0).".format(excited_state_population)
+            "Invalid excited state population " "({} < 0).".format(excited_state_population)
         )
     if excited_state_population > 1:
         raise NoiseError(
-            "Invalid excited state population "
-            "({} > 1).".format(excited_state_population)
+            "Invalid excited state population " "({} > 1).".format(excited_state_population)
         )
     c0 = np.sqrt(1 - excited_state_population)
     c1 = np.sqrt(excited_state_population)
@@ -439,9 +422,7 @@ def phase_amplitude_damping_error(
     return kraus_error(noise_ops, canonical_kraus=canonical_kraus)
 
 
-def amplitude_damping_error(
-    param_amp, excited_state_population=0, canonical_kraus=True
-):
+def amplitude_damping_error(param_amp, excited_state_population=0, canonical_kraus=True):
     r"""
     Return a single-qubit generalized amplitude damping quantum error channel.
 

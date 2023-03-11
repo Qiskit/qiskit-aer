@@ -641,9 +641,7 @@ class AerSimulator(AerBackend):
 
     _AVAILABLE_DEVICES = None
 
-    def __init__(
-        self, configuration=None, properties=None, provider=None, **backend_options
-    ):
+    def __init__(self, configuration=None, properties=None, provider=None, **backend_options):
         self._controller = aer_controller_execute()
 
         # Update available methods and devices for class
@@ -653,26 +651,19 @@ class AerSimulator(AerBackend):
             )
         if AerSimulator._AVAILABLE_METHODS is None:
             AerSimulator._AVAILABLE_METHODS = available_methods(
-                self._controller,
-                AerSimulator._SIMULATION_METHODS,
-                AerSimulator._AVAILABLE_DEVICES,
+                self._controller, AerSimulator._SIMULATION_METHODS, AerSimulator._AVAILABLE_DEVICES
             )
 
         # Default configuration
         if configuration is None:
-            configuration = QasmBackendConfiguration.from_dict(
-                AerSimulator._DEFAULT_CONFIGURATION
-            )
+            configuration = QasmBackendConfiguration.from_dict(AerSimulator._DEFAULT_CONFIGURATION)
 
         # Cache basis gates since computing the intersection
         # of noise model, method, and config gates is expensive.
         self._cached_basis_gates = self._BASIS_GATES["automatic"]
 
         super().__init__(
-            configuration,
-            properties=properties,
-            provider=provider,
-            backend_options=backend_options,
+            configuration, properties=properties, provider=provider, backend_options=backend_options
         )
 
     @classmethod
@@ -878,8 +869,7 @@ class AerSimulator(AerBackend):
                     break
             if no_data:
                 logger.warning(
-                    'No measure or save instruction in circuit "%s": '
-                    "results will be empty.",
+                    'No measure or save instruction in circuit "%s": ' "results will be empty.",
                     experiment.header.name,
                 )
 

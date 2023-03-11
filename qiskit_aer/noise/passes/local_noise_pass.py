@@ -109,9 +109,7 @@ class LocalNoisePass(TransformationPass):
                 continue
 
             if isinstance(new_op, ReadoutError):
-                raise TranspilerError(
-                    "Insertions of ReadoutError is not yet supported."
-                )
+                raise TranspilerError("Insertions of ReadoutError is not yet supported.")
 
             # Initialize new node dag
             new_dag = DAGCircuit()
@@ -120,9 +118,7 @@ class LocalNoisePass(TransformationPass):
 
             # If appending re-apply original op node first
             if self._method == "append":
-                new_dag.apply_operation_back(
-                    node.op, qargs=node.qargs, cargs=node.cargs
-                )
+                new_dag.apply_operation_back(node.op, qargs=node.qargs, cargs=node.cargs)
 
             # If the new op is not a QuantumCircuit or Instruction, attempt
             # to conver to an Instruction
@@ -148,20 +144,14 @@ class LocalNoisePass(TransformationPass):
             if isinstance(new_op, QuantumCircuit):
                 # If the new op is a quantum circuit, compose its DAG with the new dag
                 # so that it is unrolled rather than added as an opaque instruction
-                new_dag.compose(
-                    circuit_to_dag(new_op), qubits=node.qargs
-                )  # never touch clbits
+                new_dag.compose(circuit_to_dag(new_op), qubits=node.qargs)  # never touch clbits
             else:
                 # Otherwise append the instruction returned by the function
-                new_dag.apply_operation_back(
-                    new_op, qargs=node.qargs
-                )  # never touch cargs
+                new_dag.apply_operation_back(new_op, qargs=node.qargs)  # never touch cargs
 
             # If prepending reapply original op node last
             if self._method == "prepend":
-                new_dag.apply_operation_back(
-                    node.op, qargs=node.qargs, cargs=node.cargs
-                )
+                new_dag.apply_operation_back(node.op, qargs=node.qargs, cargs=node.cargs)
 
             dag.substitute_node_with_dag(node, new_dag)
 

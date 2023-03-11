@@ -89,12 +89,7 @@ class SaveProbabilitiesDict(SaveAverageData):
 
 
 def save_probabilities(
-    self,
-    qubits=None,
-    label="probabilities",
-    unnormalized=False,
-    pershot=False,
-    conditional=False,
+    self, qubits=None, label="probabilities", unnormalized=False, pershot=False, conditional=False
 ):
     """Save measurement outcome probabilities vector.
 
@@ -126,12 +121,7 @@ def save_probabilities(
 
 
 def save_probabilities_dict(
-    self,
-    qubits=None,
-    label="probabilities",
-    unnormalized=False,
-    pershot=False,
-    conditional=False,
+    self, qubits=None, label="probabilities", unnormalized=False, pershot=False, conditional=False
 ):
     """Save measurement outcome probabilities vector.
 

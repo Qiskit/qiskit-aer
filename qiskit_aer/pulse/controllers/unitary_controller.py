@@ -110,13 +110,11 @@ def run_unitary_experiments(pulse_sim_desc, pulse_de_model, solver_options=None)
             pulse_de_model,
             solver_options,
         ),
-        **map_kwargs
+        **map_kwargs,
     )
     end = time.time()
     exp_times = (
-        np.ones(len(pulse_sim_desc.experiments))
-        * (end - start)
-        / len(pulse_sim_desc.experiments)
+        np.ones(len(pulse_sim_desc.experiments)) * (end - start) / len(pulse_sim_desc.experiments)
     )
 
     return exp_results, exp_times

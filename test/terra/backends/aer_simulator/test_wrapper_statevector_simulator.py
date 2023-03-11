@@ -216,9 +216,7 @@ class TestStatevectorSimulator(SimulatorTestCase):
     def test_unitary_gate(self, device):
         """Test simulation with unitary gate circuit instructions."""
         backend = self.backend(device=device)
-        circuits = ref_unitary_gate.unitary_gate_circuits_deterministic(
-            final_measure=False
-        )
+        circuits = ref_unitary_gate.unitary_gate_circuits_deterministic(final_measure=False)
         circuits = transpile(circuits, backend, optimization_level=1)
         result = backend.run(circuits, shots=1).result()
         targets = ref_unitary_gate.unitary_gate_statevector_deterministic()
@@ -229,9 +227,7 @@ class TestStatevectorSimulator(SimulatorTestCase):
     def test_unitary_gate_circuit_run(self, device):
         """Test simulation with unitary gate circuit instructions."""
         backend = self.backend(device=device)
-        circuits = ref_unitary_gate.unitary_gate_circuits_deterministic(
-            final_measure=False
-        )
+        circuits = ref_unitary_gate.unitary_gate_circuits_deterministic(final_measure=False)
         circuits = transpile(circuits, backend, optimization_level=1)
         result = backend.run(circuits, shots=1).result()
         targets = ref_unitary_gate.unitary_gate_statevector_deterministic()
@@ -242,9 +238,7 @@ class TestStatevectorSimulator(SimulatorTestCase):
     def test_diagonal_gate(self, device):
         """Test simulation with diagonal gate circuit instructions."""
         backend = self.backend(device=device)
-        circuits = ref_diagonal_gate.diagonal_gate_circuits_deterministic(
-            final_measure=False
-        )
+        circuits = ref_diagonal_gate.diagonal_gate_circuits_deterministic(final_measure=False)
         circuits = transpile(circuits, backend, optimization_level=1)
         result = backend.run(circuits, shots=1).result()
         targets = ref_diagonal_gate.diagonal_gate_statevector_deterministic()

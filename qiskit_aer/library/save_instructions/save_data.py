@@ -24,16 +24,7 @@ class SaveData(Instruction):
 
     _directive = True
     _allowed_subtypes = set(
-        [
-            "single",
-            "c_single",
-            "list",
-            "c_list",
-            "average",
-            "c_average",
-            "accum",
-            "c_accum",
-        ]
+        ["single", "c_single", "list", "c_list", "average", "c_average", "accum", "c_accum"]
     )
 
     def __init__(self, name, num_qubits, label, subtype="single", params=None):
@@ -129,9 +120,7 @@ class SaveAverageData(SaveData):
 class SaveSingleData(SaveData):
     """Save non-averagable single data type."""
 
-    def __init__(
-        self, name, num_qubits, label, pershot=False, conditional=False, params=None
-    ):
+    def __init__(self, name, num_qubits, label, pershot=False, conditional=False, params=None):
         """Create new save data instruction.
 
         Args:

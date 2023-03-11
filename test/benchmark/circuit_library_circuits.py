@@ -51,9 +51,7 @@ class CircuitLibraryCircuits:
         return self.transpile(RealAmplitudes(qubit, reps=repeats))
 
     def real_amplitudes_linear(self, qubit, repeats):
-        return self.transpile(
-            RealAmplitudes(qubit, reps=repeats, entanglement="linear")
-        )
+        return self.transpile(RealAmplitudes(qubit, reps=repeats, entanglement="linear"))
 
     def efficient_su2(self, qubit, repeats):
         return self.transpile(EfficientSU2(qubit).decompose())
@@ -65,9 +63,7 @@ class CircuitLibraryCircuits:
         return self.transpile(ExcitationPreserving(qubit, reps=repeats).decompose())
 
     def excitation_preserving_linear(self, qubit, repeats):
-        return self.transpile(
-            ExcitationPreserving(qubit, reps=repeats, entanglement="linear")
-        )
+        return self.transpile(ExcitationPreserving(qubit, reps=repeats, entanglement="linear"))
 
     def fourier_checking(self, qubit, repeats):
         if qubit > 20:
@@ -114,6 +110,5 @@ class CircuitLibraryCircuits:
         if qubit < 5:
             raise ValueError("qubit is too small: {0}".format(qubit))
         return self._repeat(
-            PhaseEstimation(2, QuantumVolume(qubit - 2).decompose()).decompose(),
-            repeats,
+            PhaseEstimation(2, QuantumVolume(qubit - 2).decompose()).decompose(), repeats
         )

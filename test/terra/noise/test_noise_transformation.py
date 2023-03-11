@@ -45,13 +45,7 @@ except ImportError:
 class TestNoiseTransformer(QiskitAerTestCase):
     def setUp(self):
         super().setUp()
-        self.ops = {
-            "X": XGate(),
-            "Y": YGate(),
-            "Z": ZGate(),
-            "H": HGate(),
-            "S": SGate(),
-        }
+        self.ops = {"X": XGate(), "Y": YGate(), "Z": ZGate(), "H": HGate(), "S": SGate()}
 
     def assertNoiseModelsAlmostEqual(self, lhs, rhs, places=3):
         self.assertNoiseDictsAlmostEqual(
@@ -74,12 +68,8 @@ class TestNoiseTransformer(QiskitAerTestCase):
     def assertNoiseDictsAlmostEqual(self, lhs, rhs, places=3):
         keys = set(lhs.keys()).union(set(rhs.keys()))
         for key in keys:
-            self.assertTrue(
-                key in lhs.keys(), msg="Key {} is missing from lhs".format(key)
-            )
-            self.assertTrue(
-                key in rhs.keys(), msg="Key {} is missing from rhs".format(key)
-            )
+            self.assertTrue(key in lhs.keys(), msg="Key {} is missing from lhs".format(key))
+            self.assertTrue(key in rhs.keys(), msg="Key {} is missing from rhs".format(key))
             if isinstance(lhs[key], dict):
                 self.assertNoiseDictsAlmostEqual(lhs[key], rhs[key], places=places)
             else:
@@ -96,17 +86,13 @@ class TestNoiseTransformer(QiskitAerTestCase):
             self.assertAlmostEqual(
                 lhs.get(key),
                 rhs.get(key),
-                msg="Not almost equal for key {}: {} !~ {}".format(
-                    key, lhs.get(key), rhs.get(key)
-                ),
+                msg="Not almost equal for key {}: {} !~ {}".format(key, lhs.get(key), rhs.get(key)),
                 places=places,
             )
 
     def assertListAlmostEqual(self, lhs, rhs, places=None):
         self.assertEqual(
-            len(lhs),
-            len(rhs),
-            msg="List lengths differ: {} != {}".format(len(lhs), len(rhs)),
+            len(lhs), len(rhs), msg="List lengths differ: {} != {}".format(len(lhs), len(rhs))
         )
         for i in range(len(lhs)):
             if isinstance(lhs[i], numpy.ndarray) and isinstance(rhs[i], numpy.ndarray):
@@ -115,9 +101,7 @@ class TestNoiseTransformer(QiskitAerTestCase):
                 self.assertAlmostEqual(lhs[i], rhs[i], places=places)
 
     def assertMatricesAlmostEqual(self, lhs, rhs, places=None):
-        self.assertEqual(
-            lhs.shape, rhs.shape, "Marix shapes differ: {} vs {}".format(lhs, rhs)
-        )
+        self.assertEqual(lhs.shape, rhs.shape, "Marix shapes differ: {} vs {}".format(lhs, rhs))
         n, m = lhs.shape
         for x in range(n):
             for y in range(m):
@@ -136,12 +120,8 @@ class TestNoiseTransformer(QiskitAerTestCase):
         p = 0.22
         theta = numpy.pi / 5
         E0 = numpy.sqrt(1 - p) * numpy.array(numpy.eye(2))
-        E1 = numpy.sqrt(p) * (
-            numpy.cos(theta) * numpy.array(X) + numpy.sin(theta) * numpy.array(Y)
-        )
-        results = approximate_quantum_error(
-            Kraus([E0, E1]), operator_dict={"X": X, "Y": Y, "Z": Z}
-        )
+        E1 = numpy.sqrt(p) * (numpy.cos(theta) * numpy.array(X) + numpy.sin(theta) * numpy.array(Y))
+        results = approximate_quantum_error(Kraus([E0, E1]), operator_dict={"X": X, "Y": Y, "Z": Z})
         expected_results = pauli_error(
             [
                 ("X", p * numpy.cos(theta) * numpy.cos(theta)),
@@ -182,22 +162,14 @@ class TestNoiseTransformer(QiskitAerTestCase):
         p = 0.34
         theta = numpy.pi / 7
         E0 = numpy.sqrt(1 - p) * numpy.array(numpy.eye(2))
-        E1 = numpy.sqrt(p) * (
-            numpy.cos(theta) * numpy.array(X) + numpy.sin(theta) * numpy.array(Y)
-        )
+        E1 = numpy.sqrt(p) * (numpy.cos(theta) * numpy.array(X) + numpy.sin(theta) * numpy.array(Y))
 
         results_dict = approximate_quantum_error(
             Kraus([E0, E1]), operator_dict={"X": X, "Y": Y, "Z": Z}
         )
-        results_string = approximate_quantum_error(
-            Kraus([E0, E1]), operator_string="pauli"
-        )
-        results_list = approximate_quantum_error(
-            Kraus([E0, E1]), operator_list=[X, Y, Z]
-        )
-        results_tuple = approximate_quantum_error(
-            Kraus([E0, E1]), operator_list=(X, Y, Z)
-        )
+        results_string = approximate_quantum_error(Kraus([E0, E1]), operator_string="pauli")
+        results_list = approximate_quantum_error(Kraus([E0, E1]), operator_list=[X, Y, Z])
+        results_tuple = approximate_quantum_error(Kraus([E0, E1]), operator_list=(X, Y, Z))
 
         self.assertErrorsAlmostEqual(results_dict, results_string)
         self.assertErrorsAlmostEqual(results_string, results_list)
@@ -260,16 +232,10 @@ class TestNoiseTransformer(QiskitAerTestCase):
         error_2 = QuantumError([([(Kraus([A0, A1]), [1]), (IGate(), [0])], 1)])
 
         expected_results_1 = QuantumError(
-            [
-                ([(IGate(), [0]), (IGate(), [1])], 1 - p),
-                ([(Reset(), [0]), (IGate(), [1])], p),
-            ]
+            [([(IGate(), [0]), (IGate(), [1])], 1 - p), ([(Reset(), [0]), (IGate(), [1])], p)]
         )
         expected_results_2 = QuantumError(
-            [
-                ([(IGate(), [1]), (IGate(), [0])], 1 - p),
-                ([(Reset(), [1]), (IGate(), [0])], p),
-            ]
+            [([(IGate(), [1]), (IGate(), [0])], 1 - p), ([(Reset(), [1]), (IGate(), [0])], p)]
         )
 
         results_1 = approximate_quantum_error(error_1, operator_string="reset")
@@ -282,9 +248,7 @@ class TestNoiseTransformer(QiskitAerTestCase):
         x_p = 0.1
         y_p = 0.2
         z_p = 0.3
-        error = pauli_error(
-            [("X", x_p), ("Y", y_p), ("Z", z_p), ("I", 1 - (x_p + y_p + z_p))]
-        )
+        error = pauli_error([("X", x_p), ("Y", y_p), ("Z", z_p), ("I", 1 - (x_p + y_p + z_p))])
         results = approximate_quantum_error(error, operator_string="clifford")
         self.assertErrorsAlmostEqual(error, results, places=1)
 
@@ -292,9 +256,7 @@ class TestNoiseTransformer(QiskitAerTestCase):
         gamma = 0.23
         error = amplitude_damping_error(gamma)
         # kraus error is legit, transform_channel_operators are not
-        with self.assertRaisesRegex(
-            TypeError, "takes 1 positional argument but 2 were given"
-        ):
+        with self.assertRaisesRegex(TypeError, "takes 1 positional argument but 2 were given"):
             approximate_quantum_error(error, 7)
         with self.assertRaises(NoiseError):
             approximate_quantum_error(error, operator_string="seven")

@@ -69,9 +69,7 @@ if __name__ == "__main__":
     shots = 4000
     circuits = grovers_circuit(final_measure=True, allow_sampling=True)
     if os.getenv("USE_MPI", False):
-        qobj = assemble(
-            transpile(circuits), shots=shots, blocking_enable=True, blocking_qubits=2
-        )
+        qobj = assemble(transpile(circuits), shots=shots, blocking_enable=True, blocking_qubits=2)
     else:
         qobj = assemble(transpile(circuits), shots=shots)
     with open("qobj.json", "wt") as fp:

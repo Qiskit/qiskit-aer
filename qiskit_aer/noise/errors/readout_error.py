@@ -74,13 +74,8 @@ class ReadoutError:
         self._check_probabilities(probabilities, atol)
         self._probabilities = np.array(probabilities, dtype=float)
         self._number_of_qubits = int(np.log2(self._probabilities.shape[0]))
-        if self._probabilities.shape != (
-            2**self._number_of_qubits,
-            2**self._number_of_qubits,
-        ):
-            raise NoiseError(
-                "Input readout error probabilities is not a 2^N by 2^N matrix."
-            )
+        if self._probabilities.shape != (2**self._number_of_qubits, 2**self._number_of_qubits):
+            raise NoiseError("Input readout error probabilities is not a 2^N by 2^N matrix.")
 
     def __repr__(self):
         """Display ReadoutError."""
@@ -138,9 +133,7 @@ class ReadoutError:
         if value < 0:
             raise NoiseError("Invalid atol ({}) must be non-negative.".format(value))
         if value > cls._MAX_TOL:
-            raise NoiseError(
-                "Invalid atol ({}) must be less than {}.".format(value, cls._MAX_TOL)
-            )
+            raise NoiseError("Invalid atol ({}) must be less than {}.".format(value, cls._MAX_TOL))
         cls._ATOL_DEFAULT = value
 
     @classmethod
@@ -149,9 +142,7 @@ class ReadoutError:
         if value < 0:
             raise NoiseError("Invalid rtol ({}) must be non-negative.".format(value))
         if value > cls._MAX_TOL:
-            raise NoiseError(
-                "Invalid rtol ({}) must be less than {}.".format(value, cls._MAX_TOL)
-            )
+            raise NoiseError("Invalid rtol ({}) must be less than {}.".format(value, cls._MAX_TOL))
         cls._RTOL_DEFAULT = value
 
     def ideal(self):
@@ -271,26 +262,21 @@ class ReadoutError:
         num_qubits = int(np.log2(num_outcomes))
         if 2**num_qubits != num_outcomes:
             raise NoiseError(
-                "Invalid probabilities: length "
-                "{} != 2**{}".format(num_outcomes, num_qubits)
+                "Invalid probabilities: length " "{} != 2**{}".format(num_outcomes, num_qubits)
             )
         if len(probabilities) != num_outcomes:
             raise NoiseError("Invalid probabilities.")
         for vec in probabilities:
             arr = np.array(vec)
             if len(arr) != num_outcomes:
-                raise NoiseError(
-                    "Invalid probabilities: vectors are different lengths."
-                )
+                raise NoiseError("Invalid probabilities: vectors are different lengths.")
             if abs(sum(arr) - 1) > threshold:
                 raise NoiseError(
-                    "Invalid probabilities: sum({})= {} "
-                    "is not 1.".format(vec, sum(arr))
+                    "Invalid probabilities: sum({})= {} " "is not 1.".format(vec, sum(arr))
                 )
             if arr[arr < 0].size > 0:
                 raise NoiseError(
-                    "Invalid probabilities: {} "
-                    "contains a negative probability.".format(vec)
+                    "Invalid probabilities: {} " "contains a negative probability.".format(vec)
                 )
 
     def _matmul(self, other, left_multiply=False):
@@ -349,9 +335,7 @@ class ReadoutError:
         return self.tensor(other)
 
     def __rmul__(self, other):
-        raise NotImplementedError(
-            "'ReadoutError' does not support scalar multiplication."
-        )
+        raise NotImplementedError("'ReadoutError' does not support scalar multiplication.")
 
     def __truediv__(self, other):
         raise NotImplementedError("'ReadoutError' does not support division.")

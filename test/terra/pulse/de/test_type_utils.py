@@ -91,9 +91,7 @@ class TestTypeUtils(QiskitAerTestCase):
         inner_type_spec = {"type": "array", "ndim": 1}
         outer_y = np.array([[1, 2], [3, 4]])
 
-        converter = StateTypeConverter.from_outer_instance_inner_type_spec(
-            outer_y, inner_type_spec
-        )
+        converter = StateTypeConverter.from_outer_instance_inner_type_spec(outer_y, inner_type_spec)
 
         self.assertEqual(converter.inner_type_spec, {"type": "array", "shape": (4,)})
         self.assertEqual(converter.outer_type_spec, {"type": "array", "shape": (2, 2)})
@@ -102,9 +100,7 @@ class TestTypeUtils(QiskitAerTestCase):
         inner_type_spec = {"type": "array"}
         outer_y = np.array([[1, 2], [3, 4]])
 
-        converter = StateTypeConverter.from_outer_instance_inner_type_spec(
-            outer_y, inner_type_spec
-        )
+        converter = StateTypeConverter.from_outer_instance_inner_type_spec(outer_y, inner_type_spec)
 
         self.assertEqual(converter.inner_type_spec, {"type": "array", "shape": (2, 2)})
         self.assertEqual(converter.outer_type_spec, {"type": "array", "shape": (2, 2)})

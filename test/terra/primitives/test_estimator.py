@@ -95,11 +95,7 @@ class TestEstimator(QiskitAerTestCase):
         """test for evaluate"""
         est = Estimator(abelian_grouping=abelian_grouping)
         result = est.run(
-            self.ansatz,
-            self.observable,
-            parameter_values=[[0, 1, 1, 2, 3, 5]],
-            seed=15,
-            shots=8192,
+            self.ansatz, self.observable, parameter_values=[[0, 1, 1, 2, 3, 5]], seed=15, shots=8192
         ).result()
         self.assertIsInstance(result, EstimatorResult)
         np.testing.assert_allclose(result.values, [self.expval], rtol=0.02)
@@ -115,9 +111,7 @@ class TestEstimator(QiskitAerTestCase):
             seed=15,
         ).result()
         self.assertIsInstance(result, EstimatorResult)
-        np.testing.assert_allclose(
-            result.values, [self.expval, self.expval_rev], rtol=0.02
-        )
+        np.testing.assert_allclose(result.values, [self.expval, self.expval_rev], rtol=0.02)
 
     @data(True, False)
     def test_evaluate_no_params(self, abelian_grouping):
@@ -250,9 +244,7 @@ class TestEstimator(QiskitAerTestCase):
             np.testing.assert_allclose(result.values, target.values)
 
         with self.subTest("list of ndarray"):
-            result = estimator.run(
-                [qc] * k, [op] * k, params_list_array, seed=15
-            ).result()
+            result = estimator.run([qc] * k, [op] * k, params_list_array, seed=15).result()
             self.assertEqual(len(result.metadata), k)
             np.testing.assert_allclose(result.values, target.values)
 
@@ -263,11 +255,7 @@ class TestEstimator(QiskitAerTestCase):
         # The purpose of this test is to make sure the results remain the same.
         est = Estimator(approximation=True, abelian_grouping=abelian_grouping)
         result = est.run(
-            self.ansatz,
-            self.observable,
-            parameter_values=[[0, 1, 1, 2, 3, 5]],
-            shots=1024,
-            seed=15,
+            self.ansatz, self.observable, parameter_values=[[0, 1, 1, 2, 3, 5]], shots=1024, seed=15
         ).result()
         self.assertIsInstance(result, EstimatorResult)
         np.testing.assert_allclose(result.values, [-1.3088991960117797])
@@ -276,11 +264,7 @@ class TestEstimator(QiskitAerTestCase):
         """test with shots option."""
         est = Estimator(approximation=False, abelian_grouping=False)
         result = est.run(
-            self.ansatz,
-            self.observable,
-            parameter_values=[[0, 1, 1, 2, 3, 5]],
-            shots=1024,
-            seed=15,
+            self.ansatz, self.observable, parameter_values=[[0, 1, 1, 2, 3, 5]], shots=1024, seed=15
         ).result()
         self.assertIsInstance(result, EstimatorResult)
         np.testing.assert_allclose(result.values, [-1.2895828299114598])

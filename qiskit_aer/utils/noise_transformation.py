@@ -218,9 +218,7 @@ def approximate_quantum_error(
                 for op in operator_list
             ]  # preserve operator_list
         except NoiseError as err:
-            raise NoiseError(
-                f"Invalid type found in operator list: {operator_list}"
-            ) from err
+            raise NoiseError(f"Invalid type found in operator list: {operator_list}") from err
 
         probabilities = _transform_by_operator_list(channel_list, error)[1:]
         identity_prob = np.round(1 - sum(probabilities), 9)
@@ -231,14 +229,10 @@ def approximate_quantum_error(
             noise_ops.append((operator, probability))
         return QuantumError(noise_ops)
 
-    raise NoiseError(
-        "Quantum error approximation failed - no approximating operators detected"
-    )
+    raise NoiseError("Quantum error approximation failed - no approximating operators detected")
 
 
-def approximate_noise_model(
-    model, *, operator_string=None, operator_dict=None, operator_list=None
-):
+def approximate_noise_model(model, *, operator_string=None, operator_dict=None, operator_list=None):
     """
     Replace all noises in a noise model with ones approximated
     by a mixture of operators (channels).

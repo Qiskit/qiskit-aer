@@ -75,9 +75,7 @@ class TestQuantumError(QiskitAerTestCase):
         mixed_gates = QuantumError([((IGate(), [0]), 0.6), ((XGate(), [1]), 0.4)])
         self.assertEqual(mixed_gates.size, 2)
 
-        mixed_ops = QuantumError(
-            [(IGate(), 0.7), (Pauli("Z"), 0.3)]  # Gate
-        )  # Operator
+        mixed_ops = QuantumError([(IGate(), 0.7), (Pauli("Z"), 0.3)])  # Gate  # Operator
         self.assertEqual(mixed_ops.size, 2)
         mixed_ops = QuantumError(
             [(IGate(), 0.7), ((Reset(), [1]), 0.3)]  # Instruction
@@ -90,9 +88,7 @@ class TestQuantumError(QiskitAerTestCase):
             QuantumError(Measure())  # instruction with clbits
 
         with self.assertRaises(NoiseError):
-            QuantumError(
-                [Reset(), XGate()]
-            )  # list of instructions expecting default qubits
+            QuantumError([Reset(), XGate()])  # list of instructions expecting default qubits
 
         with self.assertRaises(NoiseError):
             QuantumError([(Reset(), [0]), XGate()])  # partially supplied

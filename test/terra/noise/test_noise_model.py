@@ -69,9 +69,7 @@ class TestNoiseModel(QiskitAerTestCase):
         noise_model.add_all_qubit_quantum_error(error, "id")
         # Execute
         target = {"0x0": 3 * shots / 4, "0x1": shots / 4}
-        circuit = transpile(
-            circuit, basis_gates=noise_model.basis_gates, optimization_level=0
-        )
+        circuit = transpile(circuit, basis_gates=noise_model.basis_gates, optimization_level=0)
         result = backend.run(circuit, shots=shots, noise_model=noise_model).result()
         self.assertSuccess(result)
         self.compare_counts(result, [circuit], [target], delta=0.05 * shots)
@@ -262,11 +260,7 @@ class TestNoiseModel(QiskitAerTestCase):
 
     def test_noise_model_from_invalid_t2_backend(self):
         """Test if silently truncate invalid T2 values when creating a noise model from backend"""
-        from qiskit.providers.models.backendproperties import (
-            BackendProperties,
-            Gate,
-            Nduv,
-        )
+        from qiskit.providers.models.backendproperties import BackendProperties, Gate, Nduv
         import datetime
 
         t1_ns, invalid_t2_ns = 75_1000, 200_1000
@@ -284,21 +278,9 @@ class TestNoiseModel(QiskitAerTestCase):
                     basis_gates=["u3"],
                     qubits=[
                         [
-                            Nduv(
-                                date=mock_time, name="T1", unit="µs", value=t1_ns / 1000
-                            ),
-                            Nduv(
-                                date=mock_time,
-                                name="T2",
-                                unit="µs",
-                                value=invalid_t2_ns / 1000,
-                            ),
-                            Nduv(
-                                date=mock_time,
-                                name="frequency",
-                                unit="MHz",
-                                value=frequency,
-                            ),
+                            Nduv(date=mock_time, name="T1", unit="µs", value=t1_ns / 1000),
+                            Nduv(date=mock_time, name="T2", unit="µs", value=invalid_t2_ns / 1000),
+                            Nduv(date=mock_time, name="frequency", unit="MHz", value=frequency),
                         ],
                     ],
                     gates=[
@@ -307,17 +289,9 @@ class TestNoiseModel(QiskitAerTestCase):
                             name="u3_0",
                             qubits=[0],
                             parameters=[
+                                Nduv(date=mock_time, name="gate_error", unit="", value=0.001),
                                 Nduv(
-                                    date=mock_time,
-                                    name="gate_error",
-                                    unit="",
-                                    value=0.001,
-                                ),
-                                Nduv(
-                                    date=mock_time,
-                                    name="gate_length",
-                                    unit="ns",
-                                    value=u3_time_ns,
+                                    date=mock_time, name="gate_length", unit="ns", value=u3_time_ns
                                 ),
                             ],
                         ),

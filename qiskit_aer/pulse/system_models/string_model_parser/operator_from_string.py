@@ -43,9 +43,7 @@ def gen_oper(opname, index, h_osc, h_qub, states=None):
             if opname == "X":
                 opr_tmp = op_gen.get_oper("A", dim) + op_gen.get_oper("C", dim)
             elif opname == "Y":
-                opr_tmp = -1j * op_gen.get_oper("A", dim) + 1j * op_gen.get_oper(
-                    "C", dim
-                )
+                opr_tmp = -1j * op_gen.get_oper("A", dim) + 1j * op_gen.get_oper("C", dim)
             else:
                 opr_tmp = op_gen.get_oper("I", dim) - 2 * op_gen.get_oper("N", dim)
 

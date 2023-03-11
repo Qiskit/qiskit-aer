@@ -80,10 +80,7 @@ class TestJobSplitting(SimulatorTestCase):
     def test_split(self):
         """Circuits split test"""
         backend = self.backend(max_job_size=1)
-        circs = [
-            random_circuit(num_qubits=2, depth=4, measure=True, seed=i)
-            for i in range(2)
-        ]
+        circs = [random_circuit(num_qubits=2, depth=4, measure=True, seed=i) for i in range(2)]
         circs = transpile(circs, backend)
         self.split_compare(circs, backend)
 

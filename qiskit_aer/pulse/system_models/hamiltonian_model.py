@@ -101,9 +101,7 @@ class HamiltonianModel:
             # force keys in hamiltonian['qub'] to be ints
             qub_dict = {int(key): val for key, val in hamiltonian["qub"].items()}
 
-            subsystem_dims = {
-                int(qubit): qub_dict[int(qubit)] for qubit in subsystem_list
-            }
+            subsystem_dims = {int(qubit): qub_dict[int(qubit)] for qubit in subsystem_list}
         else:
             subsystem_dims = {}
 
@@ -140,9 +138,7 @@ class HamiltonianModel:
         min_eval = np.min(self._evals)
         for q_idx in self._subsystem_dims.keys():
             single_excite = _first_excited_state(q_idx, self._subsystem_dims)
-            dressed_eval = _eval_for_max_espace_overlap(
-                single_excite, self._evals, self._estates
-            )
+            dressed_eval = _eval_for_max_espace_overlap(single_excite, self._evals, self._estates)
             qubit_lo_freq[q_idx] = (dressed_eval - min_eval) / (2 * np.pi)
 
         return qubit_lo_freq
@@ -159,9 +155,7 @@ class HamiltonianModel:
             chan_idx = [i for i, letter in enumerate(ham_str) if letter in ["D", "U"]]
             for ch in chan_idx:
                 if (ch + 1) == len(ham_str) or not ham_str[ch + 1].isdigit():
-                    raise Exception(
-                        "Channel name must include" + "an integer labeling the qubit."
-                    )
+                    raise Exception("Channel name must include" + "an integer labeling the qubit.")
             for kk in chan_idx:
                 done = False
                 offset = 0
@@ -249,9 +243,7 @@ def _hamiltonian_pre_parse_exceptions(hamiltonian):
         raise AerError("Hamiltonian dict requires a non-empty 'h_str' entry.")
 
     if hamiltonian.get("qub", {}) == {}:
-        raise AerError(
-            "Hamiltonian dict requires non-empty 'qub' entry with subsystem dimensions."
-        )
+        raise AerError("Hamiltonian dict requires non-empty 'qub' entry with subsystem dimensions.")
 
     if hamiltonian.get("osc", {}) != {}:
         raise AerError("Oscillator-type systems are not supported.")

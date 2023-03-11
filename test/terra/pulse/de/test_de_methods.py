@@ -81,9 +81,7 @@ class TestDE_Methods(QiskitAerTestCase):
     def test_QiskitZVODE_instantiation_error(self):
         """Test option handling for QiskitZVODE solver."""
 
-        expected_message = (
-            "QiskitZVODE solver requires t0, y0, and rhs at instantiation."
-        )
+        expected_message = "QiskitZVODE solver requires t0, y0, and rhs at instantiation."
 
         options = DE_Options(method="zvode-adams")
         try:

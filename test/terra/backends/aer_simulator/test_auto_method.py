@@ -65,9 +65,7 @@ class TestSimulationMethod(SimulatorTestCase):
         noise_probs = [0.5, 0.5]
         error = QuantumError(zip(noise_circs, noise_probs))
         noise_model = NoiseModel()
-        noise_model.add_all_qubit_quantum_error(
-            error, ["id", "x", "y", "z", "h", "s", "sdg"]
-        )
+        noise_model.add_all_qubit_quantum_error(error, ["id", "x", "y", "z", "h", "s", "sdg"])
         backend = self.backend(noise_model=noise_model)
 
         # Test circuits
@@ -116,9 +114,7 @@ class TestSimulationMethod(SimulatorTestCase):
         # Noise Model
         error = amplitude_damping_error(0.5)
         noise_model = NoiseModel()
-        noise_model.add_all_qubit_quantum_error(
-            error, ["id", "x", "y", "z", "h", "s", "sdg"]
-        )
+        noise_model.add_all_qubit_quantum_error(error, ["id", "x", "y", "z", "h", "s", "sdg"])
         backend = self.backend(noise_model=noise_model)
 
         # Test circuits
@@ -148,9 +144,7 @@ class TestSimulationMethod(SimulatorTestCase):
         noise_probs = [0.5, 0.5]
         error = QuantumError(zip(noise_circs, noise_probs))
         noise_model = NoiseModel()
-        noise_model.add_all_qubit_quantum_error(
-            error, ["id", "x", "y", "z", "h", "s", "sdg"]
-        )
+        noise_model.add_all_qubit_quantum_error(error, ["id", "x", "y", "z", "h", "s", "sdg"])
         backend = self.backend(noise_model=noise_model)
 
         # Test circuits
@@ -197,9 +191,7 @@ class TestSimulationMethod(SimulatorTestCase):
         # Noise Model
         error = amplitude_damping_error(0.5)
         noise_model = NoiseModel()
-        noise_model.add_all_qubit_quantum_error(
-            error, ["id", "x", "y", "z", "h", "s", "sdg"]
-        )
+        noise_model.add_all_qubit_quantum_error(error, ["id", "x", "y", "z", "h", "s", "sdg"])
         backend = self.backend(noise_model=noise_model)
 
         # Test circuits

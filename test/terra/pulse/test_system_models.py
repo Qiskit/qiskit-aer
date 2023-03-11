@@ -33,13 +33,9 @@ class BaseTestPulseSystemModel(QiskitAerTestCase):
         self._default_qubit_lo_freq = [4.9, 5.0]
         self._u_channel_lo = []
         self._u_channel_lo.append([UchannelLO(0, 1.0 + 0.0j)])
-        self._u_channel_lo.append(
-            [UchannelLO(0, -1.0 + 0.0j), UchannelLO(1, 1.0 + 0.0j)]
-        )
+        self._u_channel_lo.append([UchannelLO(0, -1.0 + 0.0j), UchannelLO(1, 1.0 + 0.0j)])
 
-    def _simple_system_model(
-        self, v0=5.0, v1=5.1, j=0.01, r=0.02, alpha0=-0.33, alpha1=-0.33
-    ):
+    def _simple_system_model(self, v0=5.0, v1=5.1, j=0.01, r=0.02, alpha0=-0.33, alpha1=-0.33):
         hamiltonian = {}
         hamiltonian["h_str"] = [
             "np.pi*(2*v0-alpha0)*O0",
@@ -146,9 +142,7 @@ class TestPulseSystemModel(BaseTestPulseSystemModel):
         test_model = PulseSystemModel.from_backend(backend)
         qubit_lo_from_hamiltonian = test_model.hamiltonian.get_qubit_lo_from_drift()
         freqs = test_model.calculate_channel_frequencies(qubit_lo_from_hamiltonian)
-        expected = getattr(backend.configuration(), "hamiltonian")["vars"]["wq0"] / (
-            2 * np.pi
-        )
+        expected = getattr(backend.configuration(), "hamiltonian")["vars"]["wq0"] / (2 * np.pi)
         self.assertAlmostEqual(freqs["D0"], expected, places=5)
 
     def _compute_u_lo_freqs(self, qubit_lo_freq):
@@ -220,9 +214,7 @@ class TestHamiltonianModel(QiskitAerTestCase):
         self.assertEqual(len(channel_labels0), 2)
 
         qubit_lo_freq0 = ham_model0.get_qubit_lo_from_drift()
-        expected_freq0 = np.array(
-            [(np.pi * (2 * v0 - alpha0) + np.pi * alpha0) / (2 * np.pi)]
-        )
+        expected_freq0 = np.array([(np.pi * (2 * v0 - alpha0) + np.pi * alpha0) / (2 * np.pi)])
         self.assertAlmostEqual(norm(qubit_lo_freq0 - expected_freq0), 0)
 
         # restrict to qubit 1 and verify some properties
@@ -243,9 +235,7 @@ class TestHamiltonianModel(QiskitAerTestCase):
         self.assertEqual(len(channel_labels1), 2)
 
         qubit_lo_freq1 = ham_model1.get_qubit_lo_from_drift()
-        expected_freq1 = np.array(
-            [0, (np.pi * (2 * v1 - alpha1) + np.pi * alpha1) / (2 * np.pi)]
-        )
+        expected_freq1 = np.array([0, (np.pi * (2 * v1 - alpha1) + np.pi * alpha1) / (2 * np.pi)])
         self.assertAlmostEqual(norm(qubit_lo_freq1 - expected_freq1), 0)
 
     def test_eigen_sorting(self):
@@ -316,9 +306,7 @@ class TestHamiltonianModel(QiskitAerTestCase):
     def test_empty_qub_exception(self):
         """Test exception raising for empty qub"""
 
-        message = (
-            "Hamiltonian dict requires non-empty 'qub' entry with subsystem dimensions."
-        )
+        message = "Hamiltonian dict requires non-empty 'qub' entry with subsystem dimensions."
 
         ham_dict = {"h_str": "X0"}
         self.assert_hamiltonian_parse_exception(ham_dict, message)

@@ -48,9 +48,7 @@ class SaveState(SaveSingleData):
         """
         if label is None:
             label = "_method_"
-        super().__init__(
-            "save_state", num_qubits, label, pershot=pershot, conditional=conditional
-        )
+        super().__init__("save_state", num_qubits, label, pershot=pershot, conditional=conditional)
 
 
 def save_state(self, label=None, pershot=False, conditional=False):
@@ -74,9 +72,7 @@ def save_state(self, label=None, pershot=False, conditional=False):
         This instruction is always defined across all qubits in a circuit.
     """
     qubits = default_qubits(self)
-    instr = SaveState(
-        len(qubits), label=label, pershot=pershot, conditional=conditional
-    )
+    instr = SaveState(len(qubits), label=label, pershot=pershot, conditional=conditional)
     return self.append(instr, qubits)
 
 

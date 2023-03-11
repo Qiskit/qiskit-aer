@@ -40,17 +40,13 @@ class TestChunkSimulators(SimulatorTestCase):
         num_qubits = 4
         depth = 10
         circuit = transpile(
-            QuantumVolume(num_qubits, depth, seed=0),
-            backend=backend,
-            optimization_level=0,
+            QuantumVolume(num_qubits, depth, seed=0), backend=backend, optimization_level=0
         )
         circuit.measure_all()
 
         result = backend.run(circuit, shots=shots, memory=True).result()
         counts = result.get_counts(circuit)
-        result_no_chunk = backend_no_chunk.run(
-            circuit, shots=shots, memory=True
-        ).result()
+        result_no_chunk = backend_no_chunk.run(circuit, shots=shots, memory=True).result()
         counts_no_chunk = result_no_chunk.get_counts(circuit)
 
         self.assertEqual(counts_no_chunk, counts)
@@ -73,17 +69,13 @@ class TestChunkSimulators(SimulatorTestCase):
         num_qubits = 8
         depth = 10
         circuit = transpile(
-            QuantumVolume(num_qubits, depth, seed=0),
-            backend=backend,
-            optimization_level=0,
+            QuantumVolume(num_qubits, depth, seed=0), backend=backend, optimization_level=0
         )
         circuit.measure_all()
 
         result = backend.run(circuit, shots=shots, memory=True).result()
         counts = result.get_counts(circuit)
-        result_no_chunk = backend_no_chunk.run(
-            circuit, shots=shots, memory=True
-        ).result()
+        result_no_chunk = backend_no_chunk.run(circuit, shots=shots, memory=True).result()
         counts_no_chunk = result_no_chunk.get_counts(circuit)
 
         self.assertEqual(counts_no_chunk, counts)
@@ -109,9 +101,7 @@ class TestChunkSimulators(SimulatorTestCase):
 
         result = backend.run(circuit, shots=shots, memory=True).result()
         counts = result.get_counts(circuit)
-        result_no_chunk = backend_no_chunk.run(
-            circuit, shots=shots, memory=True
-        ).result()
+        result_no_chunk = backend_no_chunk.run(circuit, shots=shots, memory=True).result()
         counts_no_chunk = result_no_chunk.get_counts(circuit)
 
         self.assertEqual(counts_no_chunk, counts)
@@ -137,9 +127,7 @@ class TestChunkSimulators(SimulatorTestCase):
 
         result = backend.run(circuit, shots=shots, memory=True).result()
         counts = result.get_counts(circuit)
-        result_no_chunk = backend_no_chunk.run(
-            circuit, shots=shots, memory=True
-        ).result()
+        result_no_chunk = backend_no_chunk.run(circuit, shots=shots, memory=True).result()
         counts_no_chunk = result_no_chunk.get_counts(circuit)
 
         self.assertEqual(counts_no_chunk, counts)
@@ -171,9 +159,7 @@ class TestChunkSimulators(SimulatorTestCase):
 
         result = backend.run(circuit, shots=shots, memory=True).result()
         counts = result.get_counts(circuit)
-        result_no_chunk = backend_no_chunk.run(
-            circuit, shots=shots, memory=True
-        ).result()
+        result_no_chunk = backend_no_chunk.run(circuit, shots=shots, memory=True).result()
         counts_no_chunk = result_no_chunk.get_counts(circuit)
 
         self.assertEqual(counts_no_chunk, counts)

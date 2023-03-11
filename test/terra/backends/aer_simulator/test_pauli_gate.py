@@ -68,9 +68,7 @@ class TestPauliGate(SimulatorTestCase):
             circuit.save_statevector(label=label)
             fidelity_fn = qi.state_fidelity
 
-        result = backend.run(
-            transpile(circuit, backend, optimization_level=0), shots=1
-        ).result()
+        result = backend.run(transpile(circuit, backend, optimization_level=0), shots=1).result()
 
         # Check results
         success = getattr(result, "success", False)
@@ -80,6 +78,4 @@ class TestPauliGate(SimulatorTestCase):
         fidelity = fidelity_fn(target, data[label])
 
         threshold = 0.9999
-        self.assertGreater(
-            fidelity, threshold, msg="Fidelity {fidelity} not > {threshold}"
-        )
+        self.assertGreater(fidelity, threshold, msg="Fidelity {fidelity} not > {threshold}")

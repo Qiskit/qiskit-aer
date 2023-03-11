@@ -239,9 +239,7 @@ class StatevectorSimulator(AerBackend):
 
     _AVAILABLE_DEVICES = None
 
-    def __init__(
-        self, configuration=None, properties=None, provider=None, **backend_options
-    ):
+    def __init__(self, configuration=None, properties=None, provider=None, **backend_options):
         warn(
             "The `StatevectorSimulator` backend will be deprecated in the"
             " future. It has been superseded by the `AerSimulator`"
@@ -266,10 +264,7 @@ class StatevectorSimulator(AerBackend):
             configuration.open_pulse = False
 
         super().__init__(
-            configuration,
-            properties=properties,
-            provider=provider,
-            backend_options=backend_options,
+            configuration, properties=properties, provider=provider, backend_options=backend_options
         )
 
     @classmethod

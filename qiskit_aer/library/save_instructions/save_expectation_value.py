@@ -204,11 +204,7 @@ def save_expectation_value(
         the quantum circuit.
     """
     instr = SaveExpectationValue(
-        operator,
-        label=label,
-        unnormalized=unnormalized,
-        pershot=pershot,
-        conditional=conditional,
+        operator, label=label, unnormalized=unnormalized, pershot=pershot, conditional=conditional
     )
     return self.append(instr, qubits)
 
@@ -249,11 +245,7 @@ def save_expectation_value_variance(
         instruction to the quantum circuit.
     """
     instr = SaveExpectationValueVariance(
-        operator,
-        label=label,
-        unnormalized=unnormalized,
-        pershot=pershot,
-        conditional=conditional,
+        operator, label=label, unnormalized=unnormalized, pershot=pershot, conditional=conditional
     )
     return self.append(instr, qubits)
 

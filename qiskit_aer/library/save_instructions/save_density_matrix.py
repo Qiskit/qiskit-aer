@@ -55,12 +55,7 @@ class SaveDensityMatrix(SaveAverageData):
 
 
 def save_density_matrix(
-    self,
-    qubits=None,
-    label="density_matrix",
-    unnormalized=False,
-    pershot=False,
-    conditional=False,
+    self, qubits=None, label="density_matrix", unnormalized=False, pershot=False, conditional=False
 ):
     """Save the current simulator quantum state as a density matrix.
 

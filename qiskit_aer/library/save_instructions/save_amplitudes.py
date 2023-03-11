@@ -22,9 +22,7 @@ from ..default_qubits import default_qubits
 class SaveAmplitudes(SaveSingleData):
     """Save complex statevector amplitudes."""
 
-    def __init__(
-        self, num_qubits, params, label="amplitudes", pershot=False, conditional=False
-    ):
+    def __init__(self, num_qubits, params, label="amplitudes", pershot=False, conditional=False):
         """Instruction to save complex statevector amplitudes.
 
         Args:
@@ -121,12 +119,7 @@ def save_amplitudes(self, params, label="amplitudes", pershot=False, conditional
 
 
 def save_amplitudes_squared(
-    self,
-    params,
-    label="amplitudes_squared",
-    unnormalized=False,
-    pershot=False,
-    conditional=False,
+    self, params, label="amplitudes_squared", unnormalized=False, pershot=False, conditional=False
 ):
     """Save squared statevector amplitudes (probabilities).
 
@@ -168,9 +161,7 @@ def _format_amplitude_params(params, num_qubits=None):
         else:
             params = [int(i, 2) for i in params]
     if num_qubits and max(params) >= 2**num_qubits:
-        raise ExtensionError(
-            "Param values contain a state larger than the number of qubits"
-        )
+        raise ExtensionError("Param values contain a state larger than the number of qubits")
     return params
 
 

@@ -88,9 +88,7 @@ class TestReset(SimulatorTestCase):
         backend = self.backend(method=method, device=device)
         # count output circuits
         shots = 1000
-        circuits = ref_reset.reset_circuits_with_entangled_and_moving_qubits(
-            final_measure=True
-        )
+        circuits = ref_reset.reset_circuits_with_entangled_and_moving_qubits(final_measure=True)
         targets = ref_reset.reset_counts_with_entangled_and_moving_qubits(shots)
         result = backend.run(circuits, shots=shots).result()
         self.assertSuccess(result)

@@ -74,9 +74,7 @@ class TestNoise(QiskitAerTestCase):
         """Test construction of mixed unitary error"""
         unitaries = [np.diag([1, -1]), np.eye(2)]
         probs = [0.3, 0.7]
-        error = mixed_unitary_error(
-            [(unitaries[0], probs[0]), (unitaries[1], probs[1])]
-        )
+        error = mixed_unitary_error([(unitaries[0], probs[0]), (unitaries[1], probs[1])])
         for i in [0, 1]:
             op, p = error.error_term(i)
             self.assertEqual(p, probs[i])
@@ -100,16 +98,12 @@ class TestNoise(QiskitAerTestCase):
         probs = [0.4, 0.3, 0.2, 0.1]
         actual = pauli_error(zip(paulis, probs))
 
-        expected = QuantumError(
-            [(IGate(), 0.4), (XGate(), 0.3), (YGate(), 0.2), (ZGate(), 0.1)]
-        )
+        expected = QuantumError([(IGate(), 0.4), (XGate(), 0.3), (YGate(), 0.2), (ZGate(), 0.1)])
         for i in range(actual.size):
             circ, prob = actual.error_term(i)
             expected_circ, expected_prob = expected.error_term(i)
             self.assertEqual(circ, expected_circ, msg=f"Incorrect {i}-th circuit")
-            self.assertAlmostEqual(
-                prob, expected_prob, msg=f"Incorrect {i}-th probability"
-            )
+            self.assertAlmostEqual(prob, expected_prob, msg=f"Incorrect {i}-th probability")
 
     def test_pauli_error_1q_gate_from_pauli(self):
         """Test single-qubit pauli error as gate qobj from Pauli obj"""
@@ -117,16 +111,12 @@ class TestNoise(QiskitAerTestCase):
         probs = [0.4, 0.3, 0.2, 0.1]
         actual = pauli_error(zip(paulis, probs))
 
-        expected = QuantumError(
-            [(IGate(), 0.4), (XGate(), 0.3), (YGate(), 0.2), (ZGate(), 0.1)]
-        )
+        expected = QuantumError([(IGate(), 0.4), (XGate(), 0.3), (YGate(), 0.2), (ZGate(), 0.1)])
         for i in range(actual.size):
             circ, prob = actual.error_term(i)
             expected_circ, expected_prob = expected.error_term(i)
             self.assertEqual(circ, expected_circ, msg=f"Incorrect {i}-th circuit")
-            self.assertAlmostEqual(
-                prob, expected_prob, msg=f"Incorrect {i}-th probability"
-            )
+            self.assertAlmostEqual(prob, expected_prob, msg=f"Incorrect {i}-th probability")
 
     def test_pauli_error_2q_gate_from_string(self):
         """Test two-qubit pauli error as gate qobj from string label"""
@@ -141,9 +131,7 @@ class TestNoise(QiskitAerTestCase):
             circ, prob = actual.error_term(i)
             expected_circ, expected_prob = expected.error_term(i)
             self.assertEqual(circ, expected_circ, msg=f"Incorrect {i}-th circuit")
-            self.assertAlmostEqual(
-                prob, expected_prob, msg=f"Incorrect {i}-th probability"
-            )
+            self.assertAlmostEqual(prob, expected_prob, msg=f"Incorrect {i}-th probability")
 
     def test_pauli_error_2q_gate_from_pauli(self):
         """Test two-qubit pauli error as gate qobj from Pauli obj"""
@@ -158,9 +146,7 @@ class TestNoise(QiskitAerTestCase):
             circ, prob = actual.error_term(i)
             expected_circ, expected_prob = expected.error_term(i)
             self.assertEqual(circ, expected_circ, msg=f"Incorrect {i}-th circuit")
-            self.assertAlmostEqual(
-                prob, expected_prob, msg=f"Incorrect {i}-th probability"
-            )
+            self.assertAlmostEqual(prob, expected_prob, msg=f"Incorrect {i}-th probability")
 
     def test_depolarizing_error_ideal(self):
         """Test depolarizing error with p=0 (ideal) as gate qobj"""
@@ -192,9 +178,7 @@ class TestNoise(QiskitAerTestCase):
             circ, prob = actual.error_term(i)
             expected_circ, expected_prob = expected.error_term(i)
             self.assertEqual(circ, expected_circ, msg=f"Incorrect {i}-th circuit")
-            self.assertAlmostEqual(
-                prob, expected_prob, msg=f"Incorrect {i}-th probability"
-            )
+            self.assertAlmostEqual(prob, expected_prob, msg=f"Incorrect {i}-th probability")
 
     def test_depolarizing_error_2q_gate(self):
         """Test 2-qubit depolarizing error as gate qobj"""
@@ -225,9 +209,7 @@ class TestNoise(QiskitAerTestCase):
             circ, prob = actual.error_term(i)
             expected_circ, expected_prob = expected.error_term(i)
             self.assertEqual(circ, expected_circ, msg=f"Incorrect {i}-th circuit")
-            self.assertAlmostEqual(
-                prob, expected_prob, msg=f"Incorrect {i}-th probability"
-            )
+            self.assertAlmostEqual(prob, expected_prob, msg=f"Incorrect {i}-th probability")
 
     def test_amplitude_damping_error_raises_invalid_amp_param(self):
         """Test phase and amplitude damping error raises for invalid amp_param"""
@@ -261,9 +243,7 @@ class TestNoise(QiskitAerTestCase):
         circ, p = error.error_term(0)
         self.assertEqual(p, 1, msg="Kraus probability")
         self.assertEqual(circ[0][1], [circ.qubits[0]])
-        self.assertEqual(
-            len(circ[0][0].params), 6, msg="Incorrect number of kraus matrices"
-        )
+        self.assertEqual(len(circ[0][0].params), 6, msg="Incorrect number of kraus matrices")
 
     def test_phase_amplitude_damping_error_canonical(self):
         """Test phase maplitude damping channel has correct number of ops"""
@@ -271,70 +251,50 @@ class TestNoise(QiskitAerTestCase):
         circ, p = error.error_term(0)
         self.assertEqual(p, 1, msg="Kraus probability")
         self.assertEqual(circ[0][1], [circ.qubits[0]])
-        self.assertEqual(
-            len(circ[0][0].params), 4, msg="Incorrect number of kraus matrices"
-        )
+        self.assertEqual(len(circ[0][0].params), 4, msg="Incorrect number of kraus matrices")
 
     def test_amplitude_damping_error_ideal_canonical(self):
         """Test amplitude damping error with param=0 and canonical kraus"""
-        error = amplitude_damping_error(
-            0, excited_state_population=0.5, canonical_kraus=True
-        )
+        error = amplitude_damping_error(0, excited_state_population=0.5, canonical_kraus=True)
         circ, p = error.error_term(0)
         self.assertEqual(p, 1, msg="ideal probability")
         self.assertTrue(error.ideal(), msg="ideal circuit")
 
     def test_amplitude_damping_error_full_0state_canonical(self):
         """Test amplitude damping error with param=1 and canonical kraus"""
-        error = amplitude_damping_error(
-            1, excited_state_population=0, canonical_kraus=True
-        )
+        error = amplitude_damping_error(1, excited_state_population=0, canonical_kraus=True)
         targets = [np.diag([1, 0]), np.array([[0, 1], [0, 0]])]
         circ, p = error.error_term(0)
         self.assertEqual(p, 1, msg="Kraus probability")
         self.assertEqual(circ[0][1], [circ.qubits[0]])
-        self.assertTrue(
-            np.allclose(circ[0][0].params, targets), msg="Incorrect kraus matrices"
-        )
+        self.assertTrue(np.allclose(circ[0][0].params, targets), msg="Incorrect kraus matrices")
 
     def test_amplitude_damping_error_full_1state_canonical(self):
         """Test amplitude damping error with param=1 and canonical kraus"""
-        error = amplitude_damping_error(
-            1, excited_state_population=1, canonical_kraus=True
-        )
+        error = amplitude_damping_error(1, excited_state_population=1, canonical_kraus=True)
         targets = [np.array([[0, 0], [1, 0]]), np.diag([0, 1])]
         circ, p = error.error_term(0)
         self.assertEqual(p, 1, msg="Kraus probability")
         self.assertEqual(circ[0][1], [circ.qubits[0]])
-        self.assertTrue(
-            np.allclose(circ[0][0].params, targets), msg="Incorrect kraus matrices"
-        )
+        self.assertTrue(np.allclose(circ[0][0].params, targets), msg="Incorrect kraus matrices")
 
     def test_amplitude_damping_error_full_0state_noncanonical(self):
         """Test amplitude damping error with param=1 and canonical kraus"""
-        error = amplitude_damping_error(
-            1, excited_state_population=0, canonical_kraus=False
-        )
+        error = amplitude_damping_error(1, excited_state_population=0, canonical_kraus=False)
         targets = [np.diag([1, 0]), np.array([[0, 1], [0, 0]])]
         circ, p = error.error_term(0)
         self.assertEqual(p, 1, msg="Kraus probability")
         self.assertEqual(circ[0][1], [circ.qubits[0]])
-        self.assertTrue(
-            np.allclose(circ[0][0].params, targets), msg="Incorrect kraus matrices"
-        )
+        self.assertTrue(np.allclose(circ[0][0].params, targets), msg="Incorrect kraus matrices")
 
     def test_amplitude_damping_error_full_1state_noncanonical(self):
         """Test amplitude damping error with param=1 and canonical kraus"""
-        error = amplitude_damping_error(
-            1, excited_state_population=1, canonical_kraus=False
-        )
+        error = amplitude_damping_error(1, excited_state_population=1, canonical_kraus=False)
         targets = [np.diag([0, 1]), np.array([[0, 0], [1, 0]])]
         circ, p = error.error_term(0)
         self.assertEqual(p, 1, msg="Kraus probability")
         self.assertEqual(circ[0][1], [circ.qubits[0]])
-        self.assertTrue(
-            np.allclose(circ[0][0].params, targets), msg="Incorrect kraus matrices"
-        )
+        self.assertTrue(np.allclose(circ[0][0].params, targets), msg="Incorrect kraus matrices")
 
     def test_phase_damping_error_ideal(self):
         """Test phase damping error with param=0 (ideal)"""
@@ -350,9 +310,7 @@ class TestNoise(QiskitAerTestCase):
         targets = [np.diag([1, 0]), np.diag([0, 1])]
         self.assertEqual(p, 1, msg="Kraus probability")
         self.assertEqual(circ[0][1], [circ.qubits[0]])
-        self.assertTrue(
-            np.allclose(circ[0][0].params, targets), msg="Incorrect kraus matrices"
-        )
+        self.assertTrue(np.allclose(circ[0][0].params, targets), msg="Incorrect kraus matrices")
 
     def test_phase_damping_error_full_noncanonical(self):
         """Test phase damping error with param=1 and non-canonical kraus"""
@@ -361,9 +319,7 @@ class TestNoise(QiskitAerTestCase):
         targets = [np.diag([1, 0]), np.diag([0, 1])]
         self.assertEqual(p, 1, msg="Kraus probability")
         self.assertEqual(circ[0][1], [circ.qubits[0]])
-        self.assertTrue(
-            np.allclose(circ[0][0].params, targets), msg="Incorrect kraus matrices"
-        )
+        self.assertTrue(np.allclose(circ[0][0].params, targets), msg="Incorrect kraus matrices")
 
     def test_phase_damping_error_canonical(self):
         """Test phase damping error with canonical kraus"""
@@ -378,8 +334,7 @@ class TestNoise(QiskitAerTestCase):
         self.assertEqual(circ[0][1], [circ.qubits[0]])
         for actual, expected in zip(circ[0][0].params, targets):
             self.assertTrue(
-                np.allclose(actual / actual[0][0], expected),
-                msg="Incorrect kraus matrix",
+                np.allclose(actual / actual[0][0], expected), msg="Incorrect kraus matrix"
             )
 
     def test_phase_damping_error_noncanonical(self):
@@ -393,9 +348,7 @@ class TestNoise(QiskitAerTestCase):
         ]
         self.assertEqual(p, 1, msg="Kraus probability")
         self.assertEqual(circ[0][1], [circ.qubits[0]])
-        self.assertTrue(
-            np.allclose(circ[0][0].params, targets), msg="Incorrect kraus matrices"
-        )
+        self.assertTrue(np.allclose(circ[0][0].params, targets), msg="Incorrect kraus matrices")
 
     def test_thermal_relaxation_error_raises_invalid_t2(self):
         """Test raises error for invalid t2 parameters"""
@@ -444,9 +397,7 @@ class TestNoise(QiskitAerTestCase):
             circ, prob = actual.error_term(i)
             expected_circ, expected_prob = expected.error_term(i)
             self.assertEqual(circ, expected_circ, msg=f"Incorrect {i}-th circuit")
-            self.assertAlmostEqual(
-                prob, expected_prob, msg=f"Incorrect {i}-th probability"
-            )
+            self.assertAlmostEqual(prob, expected_prob, msg=f"Incorrect {i}-th probability")
 
     def test_thermal_relaxation_error_t1_equal_t2_1state(self):
         """Test qobj instructions return for t1=t2"""
@@ -461,9 +412,7 @@ class TestNoise(QiskitAerTestCase):
             circ, prob = actual.error_term(i)
             expected_circ, expected_prob = expected.error_term(i)
             self.assertEqual(circ, expected_circ, msg=f"Incorrect {i}-th circuit")
-            self.assertAlmostEqual(
-                prob, expected_prob, msg=f"Incorrect {i}-th probability"
-            )
+            self.assertAlmostEqual(prob, expected_prob, msg=f"Incorrect {i}-th probability")
 
     def test_thermal_relaxation_error_gate(self):
         """Test qobj instructions return for t2 < t1"""
@@ -485,9 +434,7 @@ class TestNoise(QiskitAerTestCase):
             circ, prob = actual.error_term(i)
             expected_circ, expected_prob = expected.error_term(i)
             self.assertEqual(circ, expected_circ, msg=f"Incorrect {i}-th circuit")
-            self.assertAlmostEqual(
-                prob, expected_prob, msg=f"Incorrect {i}-th probability"
-            )
+            self.assertAlmostEqual(prob, expected_prob, msg=f"Incorrect {i}-th probability")
 
     def test_thermal_relaxation_error_kraus(self):
         """Test non-kraus instructions return for t2 < t1"""

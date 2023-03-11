@@ -81,9 +81,7 @@ class AerStatevector(Statevector):
                     np.array(data.data, dtype=complex), configs
                 )
             else:
-                raise AerError(
-                    f"Input data is not supported: type={data.__class__}, data={data}"
-                )
+                raise AerError(f"Input data is not supported: type={data.__class__}, data={data}")
 
             self._aer_state = aer_state
 
@@ -97,9 +95,7 @@ class AerStatevector(Statevector):
         if value is None or isinstance(value, int):
             self._aer_state.set_seed(value)
         else:
-            raise AerError(
-                f"This seed is not supported: type={value.__class__}, value={value}"
-            )
+            raise AerError(f"This seed is not supported: type={value.__class__}, value={value}")
 
     def _last_result(self):
         if self._result is None:
@@ -192,13 +188,9 @@ class AerStatevector(Statevector):
             aer_state.apply_global_phase(inst.global_phase)
 
         if isinstance(inst, QuantumCircuit):
-            AerStatevector._aer_evolve_circuit(
-                aer_state, inst, range(num_qubits), basis_gates
-            )
+            AerStatevector._aer_evolve_circuit(aer_state, inst, range(num_qubits), basis_gates)
         else:
-            AerStatevector._aer_evolve_instruction(
-                aer_state, inst, range(num_qubits), basis_gates
-            )
+            AerStatevector._aer_evolve_instruction(aer_state, inst, range(num_qubits), basis_gates)
 
         return aer_state.move_to_ndarray(), aer_state
 
@@ -248,9 +240,7 @@ class AerStatevector(Statevector):
             elif inst.name == "diagonal":
                 aer_state.apply_diagonal(qubits, inst.params)
             elif inst.name == "cu":
-                aer_state.apply_cu(
-                    qubits[0], qubits[1], params[0], params[1], params[2], params[3]
-                )
+                aer_state.apply_cu(qubits[0], qubits[1], params[0], params[1], params[2], params[3])
             elif inst.name == "mcu":
                 aer_state.apply_mcu(
                     qubits[0 : len(qubits) - 1],
@@ -261,17 +251,11 @@ class AerStatevector(Statevector):
                     params[3],
                 )
             elif inst.name in "mcx":
-                aer_state.apply_mcx(
-                    qubits[0 : len(qubits) - 1], qubits[len(qubits) - 1]
-                )
+                aer_state.apply_mcx(qubits[0 : len(qubits) - 1], qubits[len(qubits) - 1])
             elif inst.name in "mcy":
-                aer_state.apply_mcy(
-                    qubits[0 : len(qubits) - 1], qubits[len(qubits) - 1]
-                )
+                aer_state.apply_mcy(qubits[0 : len(qubits) - 1], qubits[len(qubits) - 1])
             elif inst.name in "mcz":
-                aer_state.apply_mcz(
-                    qubits[0 : len(qubits) - 1], qubits[len(qubits) - 1]
-                )
+                aer_state.apply_mcz(qubits[0 : len(qubits) - 1], qubits[len(qubits) - 1])
             elif inst.name == "id":
                 pass
             else:
@@ -289,9 +273,7 @@ class AerStatevector(Statevector):
             definition = inst.definition
             if definition is inst or definition is None:
                 raise AerError("cannot decompose " + inst.name)
-            AerStatevector._aer_evolve_circuit(
-                aer_state, definition, qubits, basis_gates
-            )
+            AerStatevector._aer_evolve_circuit(aer_state, definition, qubits, basis_gates)
 
     @classmethod
     def from_label(cls, label):

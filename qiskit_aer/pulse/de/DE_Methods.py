@@ -114,8 +114,8 @@ class ODE_Method(ABC):
         # instantiate internal StateTypeConverter based on the provided new_y and the
         # general type required internally by the solver
         type_spec = self.method_spec.get("inner_state_spec")
-        self._state_type_converter = (
-            StateTypeConverter.from_outer_instance_inner_type_spec(new_y, type_spec)
+        self._state_type_converter = StateTypeConverter.from_outer_instance_inner_type_spec(
+            new_y, type_spec
         )
 
         # set internal state
@@ -143,9 +143,7 @@ class ODE_Method(ABC):
             rhs = {"rhs": rhs}
 
         if "rhs" not in rhs:
-            raise Exception(
-                "ODE_Method requires at minimum a specification of an rhs function."
-            )
+            raise Exception("ODE_Method requires at minimum a specification of an rhs function.")
 
         # transform rhs function into a function that accepts/returns inner state type
         self.rhs = self._state_type_converter.transform_rhs_funcs(rhs)
@@ -220,7 +218,7 @@ class ScipyODE(ODE_Method):
                 max_step=self.options.max_step,
                 min_step=self.options.min_step,
                 first_step=self.options.first_step,
-                **kwargs
+                **kwargs,
             )
 
             # update the internal state
@@ -265,9 +263,7 @@ class QiskitZVODE(ODE_Method):
     def __init__(self, t0=None, y0=None, rhs=None, options=None):
         # all de specification arguments are necessary to instantiate scipy ode object
         if (t0 is None) or (y0 is None) or (rhs is None):
-            raise Exception(
-                "QiskitZVODE solver requires t0, y0, and rhs at instantiation."
-            )
+            raise Exception("QiskitZVODE solver requires t0, y0, and rhs at instantiation.")
 
         # initialize internal attribute for storing scipy ode object
         self._ODE = None
@@ -287,8 +283,8 @@ class QiskitZVODE(ODE_Method):
     def set_y(self, new_y, reset=True):
         """Method for logic of setting internal state of solver with more control"""
         type_spec = self.method_spec.get("inner_state_spec")
-        self._state_type_converter = (
-            StateTypeConverter.from_outer_instance_inner_type_spec(new_y, type_spec)
+        self._state_type_converter = StateTypeConverter.from_outer_instance_inner_type_spec(
+            new_y, type_spec
         )
 
         self._y = self._state_type_converter.outer_to_inner(new_y)
@@ -308,9 +304,7 @@ class QiskitZVODE(ODE_Method):
             rhs = {"rhs": rhs}
 
         if "rhs" not in rhs:
-            raise Exception(
-                "ODE_Method requires at minimum a specification of an rhs function."
-            )
+            raise Exception("ODE_Method requires at minimum a specification of an rhs function.")
 
         self.rhs = self._state_type_converter.transform_rhs_funcs(rhs)
 

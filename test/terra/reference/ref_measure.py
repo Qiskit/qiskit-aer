@@ -199,14 +199,10 @@ def measure_counts_nondeterministic(shots, hex_counts=True):
     targets = []
     if hex_counts:
         # Measure |++> state
-        targets.append(
-            {"0x0": shots / 4, "0x1": shots / 4, "0x2": shots / 4, "0x3": shots / 4}
-        )
+        targets.append({"0x0": shots / 4, "0x1": shots / 4, "0x2": shots / 4, "0x3": shots / 4})
     else:
         # Measure |++> state
-        targets.append(
-            {"00": shots / 4, "01": shots / 4, "10": shots / 4, "11": shots / 4}
-        )
+        targets.append({"00": shots / 4, "01": shots / 4, "10": shots / 4, "11": shots / 4})
     return targets
 
 
@@ -377,20 +373,12 @@ def multiqubit_measure_counts_nondeterministic(shots, hex_counts=True):
     targets = []
     if hex_counts:
         # 2-qubit measure |++>
-        targets.append(
-            {"0x0": shots / 4, "0x1": shots / 4, "0x2": shots / 4, "0x3": shots / 4}
-        )
+        targets.append({"0x0": shots / 4, "0x1": shots / 4, "0x2": shots / 4, "0x3": shots / 4})
         # 3-qubit measure |0++>
-        targets.append(
-            {"0x0": shots / 4, "0x1": shots / 4, "0x2": shots / 4, "0x3": shots / 4}
-        )
+        targets.append({"0x0": shots / 4, "0x1": shots / 4, "0x2": shots / 4, "0x3": shots / 4})
     else:
         # 2-qubit measure |++>
-        targets.append(
-            {"00": shots / 4, "01": shots / 4, "10": shots / 4, "11": shots / 4}
-        )
+        targets.append({"00": shots / 4, "01": shots / 4, "10": shots / 4, "11": shots / 4})
         # 3-qubit measure |0++>
-        targets.append(
-            {"000": shots / 4, "001": shots / 4, "010": shots / 4, "011": shots / 4}
-        )
+        targets.append({"000": shots / 4, "001": shots / 4, "010": shots / 4, "011": shots / 4})
     return targets

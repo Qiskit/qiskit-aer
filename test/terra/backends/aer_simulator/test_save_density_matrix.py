@@ -25,13 +25,7 @@ class QasmSaveDensityMatrixTests(SimulatorTestCase):
     """Test SaveDensityMatrix instruction."""
 
     @supported_methods(
-        [
-            "automatic",
-            "statevector",
-            "density_matrix",
-            "matrix_product_state",
-            "tensor_network",
-        ]
+        ["automatic", "statevector", "density_matrix", "matrix_product_state", "tensor_network"]
     )
     def test_save_density_matrix(self, method, device):
         """Test save density matrix for instruction"""
@@ -52,9 +46,7 @@ class QasmSaveDensityMatrixTests(SimulatorTestCase):
         circ.save_density_matrix(label=label)
 
         # Run
-        result = backend.run(
-            transpile(circ, backend, optimization_level=0), shots=1
-        ).result()
+        result = backend.run(transpile(circ, backend, optimization_level=0), shots=1).result()
         self.assertTrue(result.success)
         simdata = result.data(0)
         self.assertIn(label, simdata)
@@ -62,13 +54,7 @@ class QasmSaveDensityMatrixTests(SimulatorTestCase):
         self.assertEqual(value, target)
 
     @supported_methods(
-        [
-            "automatic",
-            "statevector",
-            "density_matrix",
-            "matrix_product_state",
-            "tensor_network",
-        ]
+        ["automatic", "statevector", "density_matrix", "matrix_product_state", "tensor_network"]
     )
     def test_save_density_matrix_conditional(self, method, device):
         """Test conditional save density matrix instruction"""
@@ -90,9 +76,7 @@ class QasmSaveDensityMatrixTests(SimulatorTestCase):
         }
 
         # Run
-        result = backend.run(
-            transpile(circ, backend, optimization_level=0), shots=1
-        ).result()
+        result = backend.run(transpile(circ, backend, optimization_level=0), shots=1).result()
         self.assertTrue(result.success)
         simdata = result.data(0)
         self.assertIn(label, simdata)
@@ -101,13 +85,7 @@ class QasmSaveDensityMatrixTests(SimulatorTestCase):
             self.assertEqual(qi.DensityMatrix(state), target[key])
 
     @supported_methods(
-        [
-            "automatic",
-            "statevector",
-            "density_matrix",
-            "matrix_product_state",
-            "tensor_network",
-        ]
+        ["automatic", "statevector", "density_matrix", "matrix_product_state", "tensor_network"]
     )
     def test_save_density_matrix_pershot(self, method, device):
         """Test pershot save density matrix instruction"""
@@ -129,9 +107,7 @@ class QasmSaveDensityMatrixTests(SimulatorTestCase):
 
         # Run
         shots = 10
-        result = backend.run(
-            transpile(circ, backend, optimization_level=0), shots=shots
-        ).result()
+        result = backend.run(transpile(circ, backend, optimization_level=0), shots=shots).result()
         self.assertTrue(result.success)
         simdata = result.data(0)
         self.assertIn(label, simdata)
@@ -140,13 +116,7 @@ class QasmSaveDensityMatrixTests(SimulatorTestCase):
             self.assertEqual(qi.DensityMatrix(state), target)
 
     @supported_methods(
-        [
-            "automatic",
-            "statevector",
-            "density_matrix",
-            "matrix_product_state",
-            "tensor_network",
-        ]
+        ["automatic", "statevector", "density_matrix", "matrix_product_state", "tensor_network"]
     )
     def test_save_density_matrix_pershot_conditional(self, method, device):
         """Test pershot conditional save density matrix instruction"""
@@ -169,9 +139,7 @@ class QasmSaveDensityMatrixTests(SimulatorTestCase):
 
         # Run
         shots = 10
-        result = backend.run(
-            transpile(circ, backend, optimization_level=0), shots=shots
-        ).result()
+        result = backend.run(transpile(circ, backend, optimization_level=0), shots=shots).result()
         self.assertTrue(result.success)
         simdata = result.data(0)
         self.assertIn(label, simdata)
@@ -202,9 +170,7 @@ class QasmSaveDensityMatrixTests(SimulatorTestCase):
         circ.save_density_matrix(label=label)
 
         # Run
-        result = backend.run(
-            transpile(circ, backend, optimization_level=0), shots=1
-        ).result()
+        result = backend.run(transpile(circ, backend, optimization_level=0), shots=1).result()
         self.assertTrue(result.success)
         simdata = result.data(0)
         self.assertIn(label, simdata)

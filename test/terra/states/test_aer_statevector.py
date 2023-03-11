@@ -32,10 +32,7 @@ from qiskit.quantum_info import Kraus
 from qiskit.quantum_info.operators.operator import Operator
 from qiskit.quantum_info.operators.symplectic import Pauli, SparsePauliOp
 from qiskit.quantum_info.operators.predicates import matrix_equal
-from qiskit.visualization.state_visualization import (
-    numbers_to_latex_terms,
-    state_to_latex,
-)
+from qiskit.visualization.state_visualization import numbers_to_latex_terms, state_to_latex
 from qiskit.circuit.library import QFT, HGate
 
 from test.terra import common
@@ -359,9 +356,7 @@ class TestAerStatevector(common.QiskitAerTestCase):
             vec = u[0, :]
             state = AerStatevector(vec)
 
-            self.assertTrue(
-                np.allclose(state, vec, rtol=RTOL_DEFAULT, atol=ATOL_DEFAULT)
-            )
+            self.assertTrue(np.allclose(state, vec, rtol=RTOL_DEFAULT, atol=ATOL_DEFAULT))
 
     def test_initialize_with_terra_statevector(self):
         """Test Statevector initialization"""
@@ -415,9 +410,7 @@ class TestAerStatevector(common.QiskitAerTestCase):
 
         self.assertEqual(state.dim, 8)
         self.assertEqual(state.dims(), (2, 2, 2))
-        self.assertTrue(
-            all(state.data == np.array([0, 1, 0, 0, 0, 0, 0, 0], dtype=complex))
-        )
+        self.assertTrue(all(state.data == np.array([0, 1, 0, 0, 0, 0, 0, 0], dtype=complex)))
         self.assertEqual(state.num_qubits, 3)
 
     def test_init_array_except(self):
@@ -797,9 +790,7 @@ class TestAerStatevector(common.QiskitAerTestCase):
     def test_probabilities_ghz(self):
         """Test probabilities method for GHZ state"""
 
-        state = (
-            AerStatevector.from_label("000") + AerStatevector.from_label("111")
-        ) / np.sqrt(2)
+        state = (AerStatevector.from_label("000") + AerStatevector.from_label("111")) / np.sqrt(2)
 
         # 3-qubit qargs
         target = np.array([0.5, 0, 0, 0, 0, 0, 0, 0.5])
@@ -887,9 +878,7 @@ class TestAerStatevector(common.QiskitAerTestCase):
     def test_probabilities_dict_ghz(self):
         """Test probabilities_dict method for GHZ state"""
 
-        state = (
-            AerStatevector.from_label("000") + AerStatevector.from_label("111")
-        ) / np.sqrt(2)
+        state = (AerStatevector.from_label("000") + AerStatevector.from_label("111")) / np.sqrt(2)
 
         # 3-qubit qargs
         target = {"000": 0.5, "111": 0.5}
@@ -948,9 +937,7 @@ class TestAerStatevector(common.QiskitAerTestCase):
 
         shots = 2000
         threshold = 0.02 * shots
-        state = (
-            AerStatevector.from_label("000") + AerStatevector.from_label("111")
-        ) / np.sqrt(2)
+        state = (AerStatevector.from_label("000") + AerStatevector.from_label("111")) / np.sqrt(2)
         state.seed(100)
 
         # 3-qubit qargs
@@ -1009,9 +996,7 @@ class TestAerStatevector(common.QiskitAerTestCase):
         """Test sample_memory method for GHZ state"""
 
         shots = 5000
-        state = (
-            AerStatevector.from_label("000") + AerStatevector.from_label("111")
-        ) / np.sqrt(2)
+        state = (AerStatevector.from_label("000") + AerStatevector.from_label("111")) / np.sqrt(2)
         state.seed(100)
 
         # 3-qubit qargs
@@ -1364,15 +1349,7 @@ class TestAerStatevector(common.QiskitAerTestCase):
         sv = AerStatevector.from_instruction(qc1)
         with self.subTest(msg="str(statevector)"):
             str(sv)
-        for drawtype in [
-            "repr",
-            "text",
-            "latex",
-            "latex_source",
-            "qsphere",
-            "hinton",
-            "bloch",
-        ]:
+        for drawtype in ["repr", "text", "latex", "latex_source", "qsphere", "hinton", "bloch"]:
             with self.subTest(msg=f"draw('{drawtype}')"):
                 sv.draw(drawtype)
         with self.subTest(msg=" draw('latex', convention='vector')"):
@@ -1410,10 +1387,7 @@ class TestAerStatevector(common.QiskitAerTestCase):
             ([1e-16 + 1j], ["i"]),
             ([-1 + 1e-16 * 1j], ["-"]),
             ([-1, -1 - 1j], ["-", "+(-1 - i)"]),
-            (
-                [np.sqrt(2) / 2, np.sqrt(2) / 2],
-                ["\\frac{\\sqrt{2}}{2}", "+\\frac{\\sqrt{2}}{2}"],
-            ),
+            ([np.sqrt(2) / 2, np.sqrt(2) / 2], ["\\frac{\\sqrt{2}}{2}", "+\\frac{\\sqrt{2}}{2}"]),
             ([1 + np.sqrt(2)], ["(1 + \\sqrt{2})"]),
         ]
         with self.assertWarns(DeprecationWarning):

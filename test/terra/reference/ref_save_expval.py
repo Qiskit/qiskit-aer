@@ -217,14 +217,10 @@ def save_expval_final_statevecs():
     statevec = Statevector.from_label("+1")
     statevecs.append(statevec)
     # State |00> + |11>
-    statevec = (Statevector.from_label("00") + Statevector.from_label("11")) / np.sqrt(
-        2
-    )
+    statevec = (Statevector.from_label("00") + Statevector.from_label("11")) / np.sqrt(2)
     statevecs.append(statevec)
     # State |10> -i|01>
-    statevec = (
-        Statevector.from_label("10") - 1j * Statevector.from_label("01")
-    ) / np.sqrt(2)
+    statevec = (Statevector.from_label("10") - 1j * Statevector.from_label("01")) / np.sqrt(2)
     statevecs.append(statevec)
     return statevecs
 
@@ -254,9 +250,7 @@ def save_expval_post_meas_values():
                 if not np.isclose(vec.data.dot(statevec.data), 0):
                     # If outcome is non-zero compute expectation value
                     # with post-selected outcome state
-                    inner_dict[hex(int(j, 2))] = vec.data.conj().dot(
-                        vec.evolve(mat, qubits).data
-                    )
+                    inner_dict[hex(int(j, 2))] = vec.data.conj().dot(vec.evolve(mat, qubits).data)
             values[label] = inner_dict
         targets.append(values)
     return targets
@@ -365,8 +359,7 @@ def save_expval_circuit_parameterized(
         ]
     ).tolist()
     parameterizations = [
-        [list(index), params]
-        for (index, params) in zip(plus_one_params.keys(), param_mat)
+        [list(index), params] for (index, params) in zip(plus_one_params.keys(), param_mat)
     ]
 
     return circuit, parameterizations

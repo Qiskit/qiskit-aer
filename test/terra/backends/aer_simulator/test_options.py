@@ -144,8 +144,7 @@ class TestOptions(SimulatorTestCase):
         noise_gates = ["id", "sx", "x", "cx"]
         noise_model = NoiseModel(basis_gates=noise_gates)
         target_gates = (
-            sorted(set(config.basis_gates).intersection(noise_gates))
-            + config.custom_instructions
+            sorted(set(config.basis_gates).intersection(noise_gates)) + config.custom_instructions
         )
 
         sim = self.backend(method=method, noise_model=noise_model)
@@ -219,15 +218,9 @@ class TestOptions(SimulatorTestCase):
         """Test MPS options"""
         shots = 4000
         method = "matrix_product_state"
-        backend_swap_left = self.backend(
-            method=method, mps_swap_direction="mps_swap_left"
-        )
-        backend_swap_right = self.backend(
-            method=method, mps_swap_direction="mps_swap_right"
-        )
-        backend_approx = self.backend(
-            method=method, matrix_product_state_max_bond_dimension=8
-        )
+        backend_swap_left = self.backend(method=method, mps_swap_direction="mps_swap_left")
+        backend_swap_right = self.backend(method=method, mps_swap_direction="mps_swap_right")
+        backend_approx = self.backend(method=method, matrix_product_state_max_bond_dimension=8)
         # The test must be large enough and entangled enough so that
         # approximation actually truncates something
         n = 10
@@ -288,6 +281,4 @@ class TestOptions(SimulatorTestCase):
         self.assertTrue(
             "Required memory: {}".format(2 ** (n - 20) * 16) in result.results[0].status
         )
-        self.assertTrue(
-            "max memory: {}".format(max_memory_mb) in result.results[0].status
-        )
+        self.assertTrue("max memory: {}".format(max_memory_mb) in result.results[0].status)

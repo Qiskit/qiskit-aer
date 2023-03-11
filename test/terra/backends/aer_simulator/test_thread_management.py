@@ -31,11 +31,7 @@ class TestThreadManagement(SimulatorTestCase):
     """AerSimulator thread tests."""
 
     def backend_options_parallel(
-        self,
-        total_threads=None,
-        state_threads=None,
-        shot_threads=None,
-        exp_threads=None,
+        self, total_threads=None, state_threads=None, shot_threads=None, exp_threads=None
     ):
         """Backend options with thread manangement."""
         opts = {}
@@ -101,9 +97,7 @@ class TestThreadManagement(SimulatorTestCase):
         result = backend.run(circuit, shots=100).result()
         max_mem_result = result.metadata.get("max_memory_mb")
         self.assertGreaterEqual(
-            max_mem_result,
-            int(system_memory / 2),
-            msg="Default 'max_memory_mb' is too small.",
+            max_mem_result, int(system_memory / 2), msg="Default 'max_memory_mb' is too small."
         )
         self.assertLessEqual(
             max_mem_result, system_memory, msg="Default 'max_memory_mb' is too large."
@@ -112,18 +106,14 @@ class TestThreadManagement(SimulatorTestCase):
     def test_custom_memory_settings(self):
         """test max memory configuration"""
         max_mem_target = 128
-        backend = self.backend(
-            max_memory_mb=max_mem_target, **self.backend_options_parallel()
-        )
+        backend = self.backend(max_memory_mb=max_mem_target, **self.backend_options_parallel())
 
         circuit = transpile(QuantumVolume(4, 1, seed=0), backend)
         circuit.measure_all()
         result = backend.run(circuit, shots=100).result()
         max_mem_result = result.metadata.get("max_memory_mb")
         self.assertEqual(
-            max_mem_result,
-            max_mem_target,
-            msg="Custom 'max_memory_mb' is not being set correctly.",
+            max_mem_result, max_mem_target, msg="Custom 'max_memory_mb' is not being set correctly."
         )
 
     def available_threads(self):
@@ -184,9 +174,7 @@ class TestThreadManagement(SimulatorTestCase):
         # Test single circuit, with measure in middle, no noise
         # Parallel experiments should always be 1
         # parallel shots should be greater than 1
-        result = backend.run(
-            self.measure_in_middle_circuit(1), shots=10 * max_threads
-        ).result()
+        result = backend.run(self.measure_in_middle_circuit(1), shots=10 * max_threads).result()
         for threads in self.threads_used(result):
             target = {
                 "experiments": 1,
@@ -206,9 +194,7 @@ class TestThreadManagement(SimulatorTestCase):
         # Test multiple circuit, no noise
         # Parallel experiments always be 1
         # parallel shots should always be 1
-        result = backend.run(
-            max_threads * [self.dummy_circuit(1)], shots=10 * max_threads
-        ).result()
+        result = backend.run(max_threads * [self.dummy_circuit(1)], shots=10 * max_threads).result()
         for threads in self.threads_used(result):
             target = {
                 "experiments": 1,
@@ -309,9 +295,7 @@ class TestThreadManagement(SimulatorTestCase):
             # Test single circuit, with noise
             # Parallel experiments should always be 1
             # parallel shots should be greater than 1
-            backend = self.backend(
-                noise_model=self.dummy_noise_model(), **parallel_opts
-            )
+            backend = self.backend(noise_model=self.dummy_noise_model(), **parallel_opts)
             circuits = self.dummy_circuit(1)
             result = backend.run(circuits, shots=shots).result()
             for threads in self.threads_used(result):
@@ -359,9 +343,7 @@ class TestThreadManagement(SimulatorTestCase):
             # Test multiple circuits, with noise
             # Parallel experiments always be greater than 1
             # parallel shots should always be 1
-            backend = self.backend(
-                noise_model=self.dummy_noise_model(), **parallel_opts
-            )
+            backend = self.backend(noise_model=self.dummy_noise_model(), **parallel_opts)
             circuits = max_threads * [self.dummy_circuit(1)]
             result = backend.run(circuits, shots=shots).result()
             for threads in self.threads_used(result):
@@ -419,9 +401,7 @@ class TestThreadManagement(SimulatorTestCase):
 
         # Test multiple circuit, no noise
         # Parallel experiments should take priority
-        result = backend.run(
-            max_threads * [self.dummy_circuit(1)], shots=10 * max_threads
-        ).result()
+        result = backend.run(max_threads * [self.dummy_circuit(1)], shots=10 * max_threads).result()
         for threads in self.threads_used(result):
             target = {
                 "experiments": max_threads,
@@ -486,7 +466,7 @@ class TestThreadManagement(SimulatorTestCase):
         backend = self.backend(
             method="statevector",
             max_memory_mb=1,
-            **self.backend_options_parallel(exp_threads=max_threads)
+            **self.backend_options_parallel(exp_threads=max_threads),
         )
 
         # Test multiple circuits, with memory limitation
@@ -510,15 +490,11 @@ class TestThreadManagement(SimulatorTestCase):
         """Test parallel shot thread assignment"""
 
         max_threads = self.available_threads()
-        backend = self.backend(
-            **self.backend_options_parallel(shot_threads=max_threads)
-        )
+        backend = self.backend(**self.backend_options_parallel(shot_threads=max_threads))
 
         # Test single circuit
         # Parallel experiments and shots should always be 1
-        result = backend.run(
-            max_threads * [self.dummy_circuit(1)], shots=10 * max_threads
-        ).result()
+        result = backend.run(max_threads * [self.dummy_circuit(1)], shots=10 * max_threads).result()
         for threads in self.threads_used(result):
             target = {
                 "experiments": 1,
@@ -534,15 +510,11 @@ class TestThreadManagement(SimulatorTestCase):
         """Test parallel shot thread assignment"""
 
         max_threads = self.available_threads()
-        backend = self.backend(
-            **self.backend_options_parallel(shot_threads=max_threads)
-        )
+        backend = self.backend(**self.backend_options_parallel(shot_threads=max_threads))
 
         # Test multiple circuit, no noise
         # Parallel experiments and shots should always be 1
-        result = backend.run(
-            max_threads * [self.dummy_circuit(1)], shots=10 * max_threads
-        ).result()
+        result = backend.run(max_threads * [self.dummy_circuit(1)], shots=10 * max_threads).result()
         for threads in self.threads_used(result):
             target = {
                 "experiments": 1,
@@ -560,14 +532,12 @@ class TestThreadManagement(SimulatorTestCase):
         max_threads = self.available_threads()
         backend = self.backend(
             noise_model=self.dummy_noise_model(),
-            **self.backend_options_parallel(shot_threads=max_threads)
+            **self.backend_options_parallel(shot_threads=max_threads),
         )
 
         # Test multiple circuits, with noise
         # Parallel shots should take priority
-        result = backend.run(
-            max_threads * [self.dummy_circuit(1)], shots=10 * max_threads
-        ).result()
+        result = backend.run(max_threads * [self.dummy_circuit(1)], shots=10 * max_threads).result()
         for threads in self.threads_used(result):
             target = {
                 "experiments": 1,
@@ -585,7 +555,7 @@ class TestThreadManagement(SimulatorTestCase):
         max_threads = self.available_threads()
         backend = self.backend(
             noise_model=self.dummy_noise_model(),
-            **self.backend_options_parallel(shot_threads=max_threads)
+            **self.backend_options_parallel(shot_threads=max_threads),
         )
 
         # Test multiple circuit, with measure in middle, no noise
@@ -633,25 +603,19 @@ class TestThreadManagement(SimulatorTestCase):
         """test disabling parallel shots because max_parallel_shots is 1"""
         backend = self.backend(
             noise_model=self.dummy_noise_model(),
-            **self.backend_options_parallel(shot_threads=1, exp_threads=1)
+            **self.backend_options_parallel(shot_threads=1, exp_threads=1),
         )
         # Test circuit
         shots = multiprocessing.cpu_count()
         circuit = QuantumVolume(16, 1, seed=0)
         circuit.measure_all()
 
-        run_opts = {
-            "_parallel_experiments": 2,
-            "_parallel_shots": 3,
-            "_parallel_state_update": 4,
-        }
+        run_opts = {"_parallel_experiments": 2, "_parallel_shots": 3, "_parallel_state_update": 4}
 
         result = self.backend(circuit, shots=shots, **run_opts).result()
         if result.metadata["omp_enabled"]:
             self.assertEqual(
-                result.metadata["parallel_experiments"],
-                2,
-                msg="parallel_experiments should be 2",
+                result.metadata["parallel_experiments"], 2, msg="parallel_experiments should be 2"
             )
             self.assertEqual(
                 result.to_dict()["results"][0]["metadata"]["parallel_shots"],

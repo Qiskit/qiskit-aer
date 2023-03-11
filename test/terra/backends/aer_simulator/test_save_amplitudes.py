@@ -54,9 +54,7 @@ class TestSaveAmplitudes(SimulatorTestCase):
             circ.save_amplitudes(params, label=label)
 
         # Run
-        result = backend.run(
-            transpile(circ, backend, optimization_level=0), shots=1
-        ).result()
+        result = backend.run(transpile(circ, backend, optimization_level=0), shots=1).result()
         self.assertTrue(result.success)
         simdata = result.data(0)
         self.assertIn(label, simdata)
@@ -64,21 +62,14 @@ class TestSaveAmplitudes(SimulatorTestCase):
         self.assertTrue(np.allclose(value, target))
 
     @supported_methods(
-        ["automatic", "statevector", "matrix_product_state", "tensor_network"],
-        AMPLITUDES,
+        ["automatic", "statevector", "matrix_product_state", "tensor_network"], AMPLITUDES
     )
     def test_save_amplitudes(self, method, device, params):
         """Test save_amplitudes instruction"""
         self._test_save_amplitudes(QFT(3), params, False, method=method, device=device)
 
     @supported_methods(
-        [
-            "automatic",
-            "statevector",
-            "matrix_product_state",
-            "density_matrix",
-            "tensor_network",
-        ],
+        ["automatic", "statevector", "matrix_product_state", "density_matrix", "tensor_network"],
         AMPLITUDES,
     )
     def test_save_amplitudes_squared(self, method, device, params):

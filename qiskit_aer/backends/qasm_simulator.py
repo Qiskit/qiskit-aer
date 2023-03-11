@@ -432,9 +432,7 @@ class QasmSimulator(AerBackend):
 
     _AVAILABLE_DEVICES = None
 
-    def __init__(
-        self, configuration=None, properties=None, provider=None, **backend_options
-    ):
+    def __init__(self, configuration=None, properties=None, provider=None, **backend_options):
         warn(
             "The `QasmSimulator` backend will be deprecated in the"
             " future. It has been superseded by the `AerSimulator`"
@@ -454,9 +452,7 @@ class QasmSimulator(AerBackend):
 
         # Default configuration
         if configuration is None:
-            configuration = QasmBackendConfiguration.from_dict(
-                QasmSimulator._DEFAULT_CONFIGURATION
-            )
+            configuration = QasmBackendConfiguration.from_dict(QasmSimulator._DEFAULT_CONFIGURATION)
         else:
             configuration.open_pulse = False
 
@@ -465,10 +461,7 @@ class QasmSimulator(AerBackend):
         self._cached_basis_gates = self._DEFAULT_BASIS_GATES
 
         super().__init__(
-            configuration,
-            properties=properties,
-            provider=provider,
-            backend_options=backend_options,
+            configuration, properties=properties, provider=provider, backend_options=backend_options
         )
 
     def __repr__(self):
@@ -542,9 +535,7 @@ class QasmSimulator(AerBackend):
     def from_backend(cls, backend, **options):
         """Initialize simulator from backend."""
         if isinstance(backend, BackendV2):
-            raise AerError(
-                "QasmSimulator.from_backend does not currently support V2 Backends."
-            )
+            raise AerError("QasmSimulator.from_backend does not currently support V2 Backends.")
         # pylint: disable=import-outside-toplevel
         # Avoid cyclic import
         from ..noise.noise_model import NoiseModel
@@ -644,8 +635,7 @@ class QasmSimulator(AerBackend):
                 # Print warning if clbits but no measure
                 if no_measure:
                     logger.warning(
-                        'No measurements in circuit "%s": '
-                        "count data will return all zeros.",
+                        'No measurements in circuit "%s": ' "count data will return all zeros.",
                         experiment.header.name,
                     )
 
@@ -920,9 +910,7 @@ class QasmSimulator(AerBackend):
                 ]
             )
         if method == "extended_stabilizer":
-            return sorted(
-                ["quantum_channel", "qerror_loc", "roerror", "save_statevector"]
-            )
+            return sorted(["quantum_channel", "qerror_loc", "roerror", "save_statevector"])
         return QasmSimulator._DEFAULT_CUSTOM_INSTR
 
     def _set_method_config(self, method=None):

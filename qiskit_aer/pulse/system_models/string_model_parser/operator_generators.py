@@ -80,9 +80,7 @@ def project(dim, states):
     if ket in range(dim) and bra in range(dim):
         return gen_operator.basis(dim, ket) * gen_operator.basis(dim, bra).adjoint()
     else:
-        raise Exception(
-            "States are specified on the outside of Hilbert space %s" % states
-        )
+        raise Exception("States are specified on the outside of Hilbert space %s" % states)
 
 
 def tensor(list_qobj):

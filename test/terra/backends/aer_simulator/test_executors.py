@@ -84,9 +84,7 @@ class TestDaskExecutor(CBFixture):
     def setUpClass(cls):
         super().setUpClass()
         if DASK:
-            cls._test_executor = Client(
-                address=LocalCluster(n_workers=1, processes=True)
-            )
+            cls._test_executor = Client(address=LocalCluster(n_workers=1, processes=True))
 
     def setUp(self):
         super().setUp()
@@ -100,19 +98,14 @@ class TestDaskExecutor(CBFixture):
         backend = self.backend(method=method, device=device, max_job_size=max_job_size)
         result, circuits, targets = run_random_circuits(backend, shots=shots)
         self.assertSuccess(result)
-        self.compare_counts(
-            result, circuits, targets, hex_counts=False, delta=0.05 * shots
-        )
+        self.compare_counts(result, circuits, targets, hex_counts=False, delta=0.05 * shots)
 
     @supported_methods(["statevector"], [None, 1, 1, 1], [None, 100, 500, 1000])
     def test_noise_circuits_job(self, method, device, max_job_size, max_shot_size):
         """Test random circuits with custom executor."""
         shots = 4000
         backend = self.backend(
-            method=method,
-            device=device,
-            max_job_size=max_job_size,
-            max_shot_size=max_shot_size,
+            method=method, device=device, max_job_size=max_job_size, max_shot_size=max_shot_size
         )
 
         circuits = ref_kraus_noise.kraus_gate_error_circuits()
@@ -152,19 +145,14 @@ class TestThreadPoolExecutor(CBFixture):
         backend = self.backend(method=method, device=device, max_job_size=max_job_size)
         result, circuits, targets = run_random_circuits(backend, shots=shots)
         self.assertSuccess(result)
-        self.compare_counts(
-            result, circuits, targets, hex_counts=False, delta=0.05 * shots
-        )
+        self.compare_counts(result, circuits, targets, hex_counts=False, delta=0.05 * shots)
 
     @supported_methods(["statevector"], [None, 1, 1, 1], [None, 100, 500, 1000])
     def test_noise_circuits_job(self, method, device, max_job_size, max_shot_size):
         """Test random circuits with custom executor."""
         shots = 4000
         backend = self.backend(
-            method=method,
-            device=device,
-            max_job_size=max_job_size,
-            max_shot_size=max_shot_size,
+            method=method, device=device, max_job_size=max_job_size, max_shot_size=max_shot_size
         )
 
         circuits = ref_kraus_noise.kraus_gate_error_circuits()

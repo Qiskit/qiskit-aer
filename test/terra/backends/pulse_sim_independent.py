@@ -67,9 +67,7 @@ def generator_in_frame(drift, control_ops, chan_vals, diag_frame, t):
     return np.diag(U_inv) @ G @ np.diag(U)
 
 
-def simulate_system(
-    y0, drift, control_ops, channel_freqs, channel_samples, dt, diag_frame
-):
+def simulate_system(y0, drift, control_ops, channel_freqs, channel_samples, dt, diag_frame):
     """Simulate the DE y' = G(t) @ y, where G(t) = drift + a0(t) * A0 + ... + ak(t) Ak, where
     control_ops = [A0, ..., Ak], and the aj(t) are the values of the signals specified
     by channel_freqs, channel_samples, and dt
@@ -125,9 +123,7 @@ def simulate_1q_model(y0, q_freq, r, drive_freqs, drive_samples, dt):
 
     frame_op = -1j * 2 * np.pi * drive_freqs[0] * np.array([1.0, -1.0]) / 2
 
-    return simulate_system(
-        y0, drift, control_ops, drive_freqs, drive_samples, dt, frame_op
-    )
+    return simulate_system(y0, drift, control_ops, drive_freqs, drive_samples, dt, frame_op)
 
 
 def simulate_2q_exchange_model(y0, q_freqs, r, j, drive_freqs, drive_samples, dt):
@@ -151,14 +147,10 @@ def simulate_2q_exchange_model(y0, q_freqs, r, j, drive_freqs, drive_samples, dt
 
     control_ops = -1j * 2 * np.pi * r * np.array([IX, XI]) / 2
 
-    return simulate_system(
-        y0, drift, control_ops, drive_freqs, drive_samples, dt, drift_diag
-    )
+    return simulate_system(y0, drift, control_ops, drive_freqs, drive_samples, dt, drift_diag)
 
 
-def simulate_3d_oscillator_model(
-    y0, osc_freq, anharm, r, drive_freqs, drive_samples, dt
-):
+def simulate_3d_oscillator_model(y0, osc_freq, anharm, r, drive_freqs, drive_samples, dt):
     """Simulate a basic duffing odscillator model truncated at 3 dimensions, with
         H(t) = 2 pi osc_freq[0] a^\dagger a + 2 pi anharm (a^\dagger a)(a^dagger a - 1)
                + 2 pi r D(t) (a + a^\dagger)
@@ -174,6 +166,4 @@ def simulate_3d_oscillator_model(
     osc_X = np.array([[0.0, 1.0, 0.0], [1.0, 0.0, np.sqrt(2)], [0.0, np.sqrt(2), 0.0]])
     control_ops = -1j * np.array([2 * np.pi * r * osc_X])
 
-    return simulate_system(
-        y0, drift, control_ops, drive_freqs, drive_samples, dt, drift_diag
-    )
+    return simulate_system(y0, drift, control_ops, drive_freqs, drive_samples, dt, drift_diag)

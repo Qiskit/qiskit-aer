@@ -68,9 +68,7 @@ def get_version_info():
     full_version = VERSION
 
     if not os.path.exists(
-        os.path.join(
-            os.path.dirname(os.path.dirname(os.path.dirname(ROOT_DIR))), ".git"
-        )
+        os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(ROOT_DIR))), ".git")
     ):
         return full_version
     try:

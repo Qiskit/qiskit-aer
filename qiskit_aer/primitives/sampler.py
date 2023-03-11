@@ -118,9 +118,7 @@ class Sampler(BaseSampler):
                     {f"{k:0{num_qubits}b}": v for k, v in probabilities.items()}
                 )
                 quasis.append(quasi_dist)
-                metadata.append(
-                    {"shots": None, "simulator_metadata": result.results[i].metadata}
-                )
+                metadata.append({"shots": None, "simulator_metadata": result.results[i].metadata})
             else:
                 counts = result.get_counts(i)
                 shots = sum(counts.values())
@@ -130,9 +128,7 @@ class Sampler(BaseSampler):
                         shots=shots,
                     )
                 )
-                metadata.append(
-                    {"shots": shots, "simulator_metadata": result.results[i].metadata}
-                )
+                metadata.append({"shots": shots, "simulator_metadata": result.results[i].metadata})
 
         return SamplerResult(quasis, metadata)
 
@@ -183,9 +179,7 @@ class Sampler(BaseSampler):
 
     def _transpile(self, circuit_indices: Sequence[int], is_shots_none: bool):
         to_handle = [
-            i
-            for i in set(circuit_indices)
-            if (i, is_shots_none) not in self._transpiled_circuits
+            i for i in set(circuit_indices) if (i, is_shots_none) not in self._transpiled_circuits
         ]
         if to_handle:
             circuits = (self._circuits[i] for i in to_handle)

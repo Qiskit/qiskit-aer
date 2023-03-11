@@ -19,9 +19,7 @@ from test.terra.common import QiskitAerTestCase
 from qiskit_aer.pulse.system_models.pulse_system_model import PulseSystemModel
 from qiskit_aer.pulse.system_models.hamiltonian_model import HamiltonianModel
 from qiskit_aer.pulse.system_models import duffing_model_generators as model_gen
-from qiskit_aer.pulse.system_models.string_model_parser.operator_generators import (
-    get_oper,
-)
+from qiskit_aer.pulse.system_models.string_model_parser.operator_generators import get_oper
 from qiskit.providers.models.backendconfiguration import UchannelLO
 from qiskit.quantum_info.operators.operator import Operator
 
@@ -40,16 +38,9 @@ class TestDuffingModelGenerators(QiskitAerTestCase):
         dt = 1.3
 
         system_model = model_gen.duffing_system_model(
-            dim_oscillators,
-            oscillator_freqs,
-            anharm_freqs,
-            drive_strengths,
-            coupling_dict,
-            dt,
+            dim_oscillators, oscillator_freqs, anharm_freqs, drive_strengths, coupling_dict, dt
         )
-        cr_idx_dict = {
-            label: idx for idx, label in enumerate(system_model.control_channel_labels)
-        }
+        cr_idx_dict = {label: idx for idx, label in enumerate(system_model.control_channel_labels)}
 
         # check basic parameters
         self.assertEqual(system_model.subsystem_list, [0, 1])
@@ -61,16 +52,13 @@ class TestDuffingModelGenerators(QiskitAerTestCase):
 
         # check u_channel_lo is correct
         self.assertEqual(
-            system_model.u_channel_lo,
-            [[UchannelLO(1, 1.0 + 0.0j)], [UchannelLO(0, 1.0 + 0.0j)]],
+            system_model.u_channel_lo, [[UchannelLO(1, 1.0 + 0.0j)], [UchannelLO(0, 1.0 + 0.0j)]]
         )
 
         # check consistency of system_model.u_channel_lo with cr_idx_dict
         # this should in principle be redundant with the above two checks
         for q_pair, idx in cr_idx_dict.items():
-            self.assertEqual(
-                system_model.u_channel_lo[idx], [UchannelLO(q_pair[1], 1.0 + 0.0j)]
-            )
+            self.assertEqual(system_model.u_channel_lo[idx], [UchannelLO(q_pair[1], 1.0 + 0.0j)])
 
         # check correct hamiltonian
         ham_model = system_model.hamiltonian
@@ -96,9 +84,9 @@ class TestDuffingModelGenerators(QiskitAerTestCase):
         OO1 = O1 & O1
         X0 = self._operator_array_from_str(2, ["I", "X"])
         X1 = self._operator_array_from_str(2, ["X", "I"])
-        exchange = self._operator_array_from_str(
-            2, ["Sm", "Sp"]
-        ) + self._operator_array_from_str(2, ["Sp", "Sm"])
+        exchange = self._operator_array_from_str(2, ["Sm", "Sp"]) + self._operator_array_from_str(
+            2, ["Sp", "Sm"]
+        )
         expected_terms = [
             ("np.pi*(2*v0-alpha0)", O0),
             ("np.pi*(2*v1-alpha1)", O1),
@@ -137,16 +125,9 @@ class TestDuffingModelGenerators(QiskitAerTestCase):
         dt = 1.3
 
         system_model = model_gen.duffing_system_model(
-            dim_oscillators,
-            oscillator_freqs,
-            anharm_freqs,
-            drive_strengths,
-            coupling_dict,
-            dt,
+            dim_oscillators, oscillator_freqs, anharm_freqs, drive_strengths, coupling_dict, dt
         )
-        cr_idx_dict = {
-            label: idx for idx, label in enumerate(system_model.control_channel_labels)
-        }
+        cr_idx_dict = {label: idx for idx, label in enumerate(system_model.control_channel_labels)}
 
         # check basic parameters
         self.assertEqual(system_model.subsystem_list, [0, 1, 2])
@@ -170,9 +151,7 @@ class TestDuffingModelGenerators(QiskitAerTestCase):
         # check consistency of system_model.u_channel_lo with cr_idx_dict
         # this should in principle be redundant with the above two checks
         for q_pair, idx in cr_idx_dict.items():
-            self.assertEqual(
-                system_model.u_channel_lo[idx], [UchannelLO(q_pair[1], 1.0 + 0.0j)]
-            )
+            self.assertEqual(system_model.u_channel_lo[idx], [UchannelLO(q_pair[1], 1.0 + 0.0j)])
 
         # check correct hamiltonian
         ham_model = system_model.hamiltonian
@@ -204,15 +183,15 @@ class TestDuffingModelGenerators(QiskitAerTestCase):
         OO0 = O0 & O0
         OO1 = O1 & O1
         OO2 = O2 & O2
-        X0 = self._operator_array_from_str(
-            3, ["I", "I", "A"]
-        ) + self._operator_array_from_str(3, ["I", "I", "C"])
-        X1 = self._operator_array_from_str(
-            3, ["I", "A", "I"]
-        ) + self._operator_array_from_str(3, ["I", "C", "I"])
-        X2 = self._operator_array_from_str(
-            3, ["A", "I", "I"]
-        ) + self._operator_array_from_str(3, ["C", "I", "I"])
+        X0 = self._operator_array_from_str(3, ["I", "I", "A"]) + self._operator_array_from_str(
+            3, ["I", "I", "C"]
+        )
+        X1 = self._operator_array_from_str(3, ["I", "A", "I"]) + self._operator_array_from_str(
+            3, ["I", "C", "I"]
+        )
+        X2 = self._operator_array_from_str(3, ["A", "I", "I"]) + self._operator_array_from_str(
+            3, ["C", "I", "I"]
+        )
         exchange01 = self._operator_array_from_str(
             3, ["I", "Sm", "Sp"]
         ) + self._operator_array_from_str(3, ["I", "Sp", "Sm"])
@@ -259,26 +238,13 @@ class TestDuffingModelGenerators(QiskitAerTestCase):
         oscillator_freqs = [5.0, 5.1, 5.2, 5.3]
         anharm_freqs = [-0.33, -0.33, -0.32, -0.31]
         drive_strengths = [1.1, 1.2, 1.3, 1.4]
-        coupling_dict = {
-            (0, 2): 0.03,
-            (1, 0): 0.02,
-            (0, 3): 0.14,
-            (3, 1): 0.18,
-            (1, 2): 0.33,
-        }
+        coupling_dict = {(0, 2): 0.03, (1, 0): 0.02, (0, 3): 0.14, (3, 1): 0.18, (1, 2): 0.33}
         dt = 1.3
 
         system_model = model_gen.duffing_system_model(
-            dim_oscillators,
-            oscillator_freqs,
-            anharm_freqs,
-            drive_strengths,
-            coupling_dict,
-            dt,
+            dim_oscillators, oscillator_freqs, anharm_freqs, drive_strengths, coupling_dict, dt
         )
-        cr_idx_dict = {
-            label: idx for idx, label in enumerate(system_model.control_channel_labels)
-        }
+        cr_idx_dict = {label: idx for idx, label in enumerate(system_model.control_channel_labels)}
 
         # check basic parameters
         self.assertEqual(system_model.subsystem_list, [0, 1, 2, 3])
@@ -322,9 +288,7 @@ class TestDuffingModelGenerators(QiskitAerTestCase):
         # check consistency of system_model.u_channel_lo with cr_idx_dict
         # this should in principle be redundant with the above two checks
         for q_pair, idx in cr_idx_dict.items():
-            self.assertEqual(
-                system_model.u_channel_lo[idx], [UchannelLO(q_pair[1], 1.0 + 0.0j)]
-            )
+            self.assertEqual(system_model.u_channel_lo[idx], [UchannelLO(q_pair[1], 1.0 + 0.0j)])
 
         # check correct hamiltonian
         ham_model = system_model.hamiltonian
@@ -351,22 +315,7 @@ class TestDuffingModelGenerators(QiskitAerTestCase):
         self.assertEqual(ham_model._subsystem_dims, {0: 2, 1: 2, 2: 2, 3: 2})
         self._compare_str_lists(
             list(ham_model._channels),
-            [
-                "D0",
-                "D1",
-                "D3",
-                "D4",
-                "U0",
-                "U1",
-                "U2",
-                "U3",
-                "U4",
-                "U5",
-                "U6",
-                "U7",
-                "U8",
-                "U9",
-            ],
+            ["D0", "D1", "D3", "D4", "U0", "U1", "U2", "U3", "U4", "U5", "U6", "U7", "U8", "U9"],
         )
 
         # check that Hamiltonian terms have been imported correctly
@@ -380,18 +329,18 @@ class TestDuffingModelGenerators(QiskitAerTestCase):
         OO1 = O1 & O1
         OO2 = O2 & O2
         OO3 = O3 & O3
-        X0 = self._operator_array_from_str(
-            2, ["I", "I", "I", "A"]
-        ) + self._operator_array_from_str(2, ["I", "I", "I", "C"])
-        X1 = self._operator_array_from_str(
-            2, ["I", "I", "A", "I"]
-        ) + self._operator_array_from_str(2, ["I", "I", "C", "I"])
-        X2 = self._operator_array_from_str(
-            2, ["I", "A", "I", "I"]
-        ) + self._operator_array_from_str(2, ["I", "C", "I", "I"])
-        X3 = self._operator_array_from_str(
-            2, ["A", "I", "I", "I"]
-        ) + self._operator_array_from_str(2, ["C", "I", "I", "I"])
+        X0 = self._operator_array_from_str(2, ["I", "I", "I", "A"]) + self._operator_array_from_str(
+            2, ["I", "I", "I", "C"]
+        )
+        X1 = self._operator_array_from_str(2, ["I", "I", "A", "I"]) + self._operator_array_from_str(
+            2, ["I", "I", "C", "I"]
+        )
+        X2 = self._operator_array_from_str(2, ["I", "A", "I", "I"]) + self._operator_array_from_str(
+            2, ["I", "C", "I", "I"]
+        )
+        X3 = self._operator_array_from_str(2, ["A", "I", "I", "I"]) + self._operator_array_from_str(
+            2, ["C", "I", "I", "I"]
+        )
         exchange01 = self._operator_array_from_str(
             2, ["I", "I", "Sm", "Sp"]
         ) + self._operator_array_from_str(2, ["I", "I", "Sp", "Sm"])
@@ -584,12 +533,7 @@ class TestDuffingModelGenerators(QiskitAerTestCase):
         dt = 1.3
 
         system_model = model_gen.duffing_system_model(
-            dim_oscillators,
-            oscillator_freqs,
-            anharm_freqs,
-            drive_strengths,
-            coupling_dict,
-            dt,
+            dim_oscillators, oscillator_freqs, anharm_freqs, drive_strengths, coupling_dict, dt
         )
 
         channel_freqs = system_model.calculate_channel_frequencies([5.0, 5.1])
@@ -629,22 +573,14 @@ class TestDuffingModelGenerators(QiskitAerTestCase):
         )
         self.assertEqual(
             model_gen._single_duffing_drift_terms(
-                freq_symbols=["v0", "v1"],
-                anharm_symbols=["a0", "a1"],
-                system_list=[2, 3],
+                freq_symbols=["v0", "v1"], anharm_symbols=["a0", "a1"], system_list=[2, 3]
             ),
-            [
-                "np.pi*(2*v0-a0)*O2",
-                "np.pi*(2*v1-a1)*O3",
-                "np.pi*a0*O2*O2",
-                "np.pi*a1*O3*O3",
-            ],
+            ["np.pi*(2*v0-a0)*O2", "np.pi*(2*v1-a1)*O3", "np.pi*a0*O2*O2", "np.pi*a1*O3*O3"],
         )
 
         # drive terms
         self.assertEqual(
-            model_gen._drive_terms(drive_symbols="r", system_list=0),
-            ["2*np.pi*r*X0||D0"],
+            model_gen._drive_terms(drive_symbols="r", system_list=0), ["2*np.pi*r*X0||D0"]
         )
         self.assertEqual(
             model_gen._drive_terms(drive_symbols=["r0", "r1"], system_list=[1, 2]),
@@ -666,16 +602,12 @@ class TestDuffingModelGenerators(QiskitAerTestCase):
         driven_indices = 0
         u_channel_indices = [1]
         expected = ["2*np.pi*r*X0||U1"]
-        self.assertEqual(
-            model_gen._cr_terms(symbols, driven_indices, u_channel_indices), expected
-        )
+        self.assertEqual(model_gen._cr_terms(symbols, driven_indices, u_channel_indices), expected)
         symbols = ["r", "s"]
         driven_indices = [0, 3]
         u_channel_indices = [1, 1]
         expected = ["2*np.pi*r*X0||U1", "2*np.pi*s*X3||U1"]
-        self.assertEqual(
-            model_gen._cr_terms(symbols, driven_indices, u_channel_indices), expected
-        )
+        self.assertEqual(model_gen._cr_terms(symbols, driven_indices, u_channel_indices), expected)
 
     def test_str_list_generator(self):
         """Test _str_list_generator"""
@@ -684,15 +616,12 @@ class TestDuffingModelGenerators(QiskitAerTestCase):
         template = "First: {0}"
         self.assertEqual(model_gen._str_list_generator(template, "a"), ["First: a"])
         self.assertEqual(
-            model_gen._str_list_generator(template, ["a1", "a2"]),
-            ["First: a1", "First: a2"],
+            model_gen._str_list_generator(template, ["a1", "a2"]), ["First: a1", "First: a2"]
         )
 
         # test multiple arguments
         template = "First: {0}, Second: {1}"
-        self.assertEqual(
-            model_gen._str_list_generator(template, "a", "b"), ["First: a, Second: b"]
-        )
+        self.assertEqual(model_gen._str_list_generator(template, "a", "b"), ["First: a, Second: b"])
         self.assertEqual(
             model_gen._str_list_generator(template, ["a1", "a2"], ["b1", "b2"]),
             ["First: a1, Second: b1", "First: a2, Second: b2"],
@@ -715,8 +644,7 @@ class TestDuffingModelGenerators(QiskitAerTestCase):
         self.assertEqual(len(coupling_graph.graph), 3)
         self.assertEqual(coupling_graph.sorted_graph, [(0, 1), (1, 2), (2, 3)])
         self.assertEqual(
-            coupling_graph.sorted_two_way_graph,
-            [(0, 1), (1, 0), (1, 2), (2, 1), (2, 3), (3, 2)],
+            coupling_graph.sorted_two_way_graph, [(0, 1), (1, 0), (1, 2), (2, 1), (2, 3), (3, 2)]
         )
         self.assertEqual(
             coupling_graph.two_way_graph_dict,

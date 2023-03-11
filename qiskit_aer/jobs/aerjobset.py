@@ -79,9 +79,7 @@ class AerJobSet(Job):
             RuntimeError: If the jobs were already submitted.
         """
         if self._futures:
-            raise RuntimeError(
-                "The jobs for this managed job set have already been submitted."
-            )
+            raise RuntimeError("The jobs for this managed job set have already been submitted.")
 
         self._future = True
         worker_id = 0
@@ -100,9 +98,7 @@ class AerJobSet(Job):
             self._combined_result.append(_worker_id_list)
 
     @requires_submit
-    def status(
-        self, worker: Union[None, int, Iterable[int]]
-    ) -> Union[JobStatus, List[JobStatus]]:
+    def status(self, worker: Union[None, int, Iterable[int]]) -> Union[JobStatus, List[JobStatus]]:
         """Return the status of each job in this set.
 
         Args
@@ -220,18 +216,12 @@ class AerJobSet(Job):
             result = aer_job.result(timeout=timeout)
             if result is None or not result.success:
                 if result:
-                    logger.warning(
-                        "AerJobSet %s Error: %s", aer_job.name(), result.header
-                    )
+                    logger.warning("AerJobSet %s Error: %s", aer_job.name(), result.header)
                 else:
-                    logger.warning(
-                        "AerJobSet %s did not return a result", aer_job.name()
-                    )
+                    logger.warning("AerJobSet %s did not return a result", aer_job.name())
         except JobError:
             raise JobError(
-                "Timeout while waiting for the results of experiment {}".format(
-                    aer_job.name()
-                )
+                "Timeout while waiting for the results of experiment {}".format(aer_job.name())
             )
 
         if timeout:
@@ -248,9 +238,7 @@ class AerJobSet(Job):
         _merge_result_list = []
 
         for _result in result_list[1:]:
-            for _master_result, _sub_result in zip(
-                master_result.results, _result.results
-            ):
+            for _master_result, _sub_result in zip(master_result.results, _result.results):
                 _merge_result_list.append(self._merge_exp(_master_result, _sub_result))
         master_result.results = _merge_result_list
         return master_result
@@ -278,9 +266,7 @@ class AerJobSet(Job):
             master_result = None
 
             for _result in each_result.results:
-                if not hasattr(_result.data, "counts") and not hasattr(
-                    _result.data, "memory"
-                ):
+                if not hasattr(_result.data, "counts") and not hasattr(_result.data, "memory"):
                     raise JobError("Results do not include counts or memory data")
                 meta_data = getattr(_result.header, "metadata", None)
                 if meta_data and "id" in meta_data:
@@ -347,9 +333,7 @@ class AerJobSet(Job):
 
         for each_result in results:
             if each_result is not None:
-                combined_result["results"].extend(
-                    x.to_dict() for x in each_result.results
-                )
+                combined_result["results"].extend(x.to_dict() for x in each_result.results)
 
         if self._end_time is None:
             self._end_time = datetime.datetime.now()
@@ -370,9 +354,7 @@ class AerJobSet(Job):
             aer_job.cancel()
 
     @requires_submit
-    def job(
-        self, experiment: Union[str, QuantumCircuit, Schedule]
-    ) -> Tuple[AerJob, int]:
+    def job(self, experiment: Union[str, QuantumCircuit, Schedule]) -> Tuple[AerJob, int]:
         """Retrieve the job used to submit the specified experiment and its index.
 
         Args:
@@ -393,9 +375,7 @@ class AerJobSet(Job):
         return self.worker_job(worker_index)
 
     @requires_submit
-    def worker(
-        self, experiment: Union[str, QuantumCircuit, Schedule]
-    ) -> Union[int, List[int]]:
+    def worker(self, experiment: Union[str, QuantumCircuit, Schedule]) -> Union[int, List[int]]:
         """Retrieve the index of job.
 
         Args:
@@ -429,9 +409,7 @@ class AerJobSet(Job):
         raise JobError("Unable to find the job for experiment {}.".format(experiment))
 
     @requires_submit
-    def worker_job(
-        self, worker: Union[None, int, Iterable[int]]
-    ) -> Union[AerJob, List[AerJob]]:
+    def worker_job(self, worker: Union[None, int, Iterable[int]]) -> Union[AerJob, List[AerJob]]:
         """Retrieve the job specified with job's id
 
         Args:

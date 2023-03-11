@@ -65,9 +65,8 @@ class QiskitAerTestCase(FullQiskitTestCase):
         # is set.
         if os.getenv("LOG_LEVEL"):
             # Set up formatter.
-            log_fmt = (
-                "{}.%(funcName)s:%(levelname)s:%(asctime)s:"
-                " %(message)s".format(cls.__name__)
+            log_fmt = "{}.%(funcName)s:%(levelname)s:%(asctime)s:" " %(message)s".format(
+                cls.__name__
             )
             formatter = logging.Formatter(log_fmt)
 
@@ -111,9 +110,7 @@ class QiskitAerTestCase(FullQiskitTestCase):
         self.assertFalse(success, msg=msg)
 
     @staticmethod
-    def gate_circuits(
-        gate_cls, num_angles=0, has_ctrl_qubits=False, rng=None, basis_states=None
-    ):
+    def gate_circuits(gate_cls, num_angles=0, has_ctrl_qubits=False, rng=None, basis_states=None):
         """
         Construct circuits from a gate class.
         Example of basis_states: ['010, '100'].
@@ -134,9 +131,7 @@ class QiskitAerTestCase(FullQiskitTestCase):
         gate = gate_cls(*params)
 
         if basis_states is None:
-            basis_states = [
-                bin(i)[2:].zfill(gate.num_qubits) for i in range(1 << gate.num_qubits)
-            ]
+            basis_states = [bin(i)[2:].zfill(gate.num_qubits) for i in range(1 << gate.num_qubits)]
 
         circs = []
         qubit_permutation = list(rng.permutation(gate.num_qubits))
@@ -188,17 +183,11 @@ class QiskitAerTestCase(FullQiskitTestCase):
             with self.subTest(msg=test_msg):
                 msg = " {} != {}".format(output, target)
                 delta = matrix_equal(
-                    output.data,
-                    target.data,
-                    ignore_phase=ignore_phase,
-                    atol=atol,
-                    rtol=rtol,
+                    output.data, target.data, ignore_phase=ignore_phase, atol=atol, rtol=rtol
                 )
                 self.assertTrue(delta, msg=msg)
 
-    def compare_unitary(
-        self, result, circuits, targets, ignore_phase=False, atol=1e-8, rtol=1e-5
-    ):
+    def compare_unitary(self, result, circuits, targets, ignore_phase=False, atol=1e-8, rtol=1e-5):
         """Compare final unitary matrices to targets."""
         for pos, test_case in enumerate(zip(circuits, targets)):
             circuit, target = test_case
@@ -208,11 +197,7 @@ class QiskitAerTestCase(FullQiskitTestCase):
             with self.subTest(msg=test_msg):
                 msg = test_msg + " {} != {}".format(output.data, target.data)
                 delta = matrix_equal(
-                    output.data,
-                    target.data,
-                    ignore_phase=ignore_phase,
-                    atol=atol,
-                    rtol=rtol,
+                    output.data, target.data, ignore_phase=ignore_phase, atol=atol, rtol=rtol
                 )
                 self.assertTrue(delta, msg=msg)
 

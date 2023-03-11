@@ -44,11 +44,7 @@ class UCCSDBenchmarkSuite:
         )
 
         def cb_create_solver(
-            num_particles,
-            num_orbitals,
-            qubit_mapping,
-            two_qubit_reduction,
-            z2_symmetries,
+            num_particles, num_orbitals, qubit_mapping, two_qubit_reduction, z2_symmetries
         ):
             initial_state = HartreeFock(
                 num_orbitals,

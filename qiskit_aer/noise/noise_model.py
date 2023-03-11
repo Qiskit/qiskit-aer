@@ -200,9 +200,7 @@ class NoiseModel:
             # and identities won't be unrolled
             self._basis_gates = set(["id", "rz", "sx", "cx"])
         else:
-            self._basis_gates = set(
-                name for name, _ in self._instruction_names_labels(basis_gates)
-            )
+            self._basis_gates = set(name for name, _ in self._instruction_names_labels(basis_gates))
         # Store gates with a noise model defined
         self._noise_instructions = set()
         # Store qubits referenced in noise model.
@@ -375,9 +373,7 @@ class NoiseModel:
                 target = copy.deepcopy(target)
                 for op_name, qubits, value in gate_lengths:
                     prop = target[op_name][qubits]
-                    prop.duration = apply_prefix(
-                        value, gate_length_units
-                    )  # convert to seconds
+                    prop.duration = apply_prefix(value, gate_length_units)  # convert to seconds
                     target.update_instruction_properties(op_name, qubits, prop)
             all_qubit_properties = backend.target.qubit_properties
             if not all_qubit_properties:
@@ -393,17 +389,13 @@ class NoiseModel:
             basis_gates = configuration.basis_gates
             all_qubit_properties = [
                 QubitProperties(
-                    t1=properties.t1(q),
-                    t2=properties.t2(q),
-                    frequency=properties.frequency(q),
+                    t1=properties.t1(q), t2=properties.t2(q), frequency=properties.frequency(q)
                 )
                 for q in range(configuration.num_qubits)
             ]
             dt = getattr(configuration, "dt", 0)
             if not properties:
-                raise NoiseError(
-                    f"Qiskit backend {backend} does not have a BackendProperties"
-                )
+                raise NoiseError(f"Qiskit backend {backend} does not have a BackendProperties")
         else:
             raise NoiseError(f"{backend} is not a Qiskit backend")
 
@@ -416,9 +408,7 @@ class NoiseModel:
 
         # Add gate errors
         with catch_warnings():
-            filterwarnings(
-                "ignore", category=DeprecationWarning, module="qiskit_aer.noise"
-            )
+            filterwarnings("ignore", category=DeprecationWarning, module="qiskit_aer.noise")
             gate_errors = basic_device_gate_errors(
                 properties,
                 gate_error=gate_error,
@@ -443,10 +433,7 @@ class NoiseModel:
                 excited_state_populations = None
             try:
                 t1s = [prop.t1 for prop in all_qubit_properties]
-                t2s = [
-                    _truncate_t2_value(prop.t1, prop.t2)
-                    for prop in all_qubit_properties
-                ]
+                t2s = [_truncate_t2_value(prop.t1, prop.t2) for prop in all_qubit_properties]
                 delay_pass = RelaxationNoisePass(
                     t1s=t1s,
                     t2s=t2s,
@@ -511,8 +498,7 @@ class NoiseModel:
         """
         if not isinstance(backend_properties, BackendProperties):
             raise NoiseError(
-                "{} is not a Qiskit backend or"
-                " BackendProperties".format(backend_properties)
+                "{} is not a Qiskit backend or" " BackendProperties".format(backend_properties)
             )
         basis_gates = set()
         for prop in backend_properties.gates:
@@ -552,9 +538,7 @@ class NoiseModel:
                 delay_pass = RelaxationNoisePass(
                     t1s=[backend_properties.t1(q) for q in range(num_qubits)],
                     t2s=[
-                        _truncate_t2_value(
-                            backend_properties.t1(q), backend_properties.t2(q)
-                        )
+                        _truncate_t2_value(backend_properties.t1(q), backend_properties.t2(q))
                         for q in range(num_qubits)
                     ],
                     dt=dt,
@@ -616,9 +600,7 @@ class NoiseModel:
         output = "NoiseModel:"
         output += "\n  Basis gates: {}".format(self.basis_gates)
         if self._noise_instructions:
-            output += "\n  Instructions with noise: {}".format(
-                list(self._noise_instructions)
-            )
+            output += "\n  Instructions with noise: {}".format(list(self._noise_instructions))
         if self._noise_qubits:
             output += "\n  Qubits with noise: {}".format(list(self._noise_qubits))
         if default_error_ops:
@@ -669,14 +651,7 @@ class NoiseModel:
             # If the instruction is in the default basis gates for the
             # AerSimulator we add it to the basis gates.
             if name in BASIS_GATES["automatic"]:
-                if name not in [
-                    "measure",
-                    "reset",
-                    "initialize",
-                    "kraus",
-                    "superop",
-                    "roerror",
-                ]:
+                if name not in ["measure", "reset", "initialize", "kraus", "superop", "roerror"]:
                     self._basis_gates.add(name)
 
     def add_all_qubit_quantum_error(self, error, instructions, warnings=True):
@@ -764,9 +739,7 @@ class NoiseModel:
         try:
             qubits = tuple(qubits)
         except TypeError as ex:
-            raise NoiseError(
-                "Qubits must be convertible to a tuple of integers"
-            ) from ex
+            raise NoiseError("Qubits must be convertible to a tuple of integers") from ex
         # Check if error is ideal and if so don't add to the noise model
         if error.ideal():
             return
@@ -849,9 +822,7 @@ class NoiseModel:
 
         # Check number of qubits is correct for standard instructions
         if error.number_of_qubits != 1:
-            raise NoiseError(
-                "All-qubit readout errors must defined as single-qubit errors."
-            )
+            raise NoiseError("All-qubit readout errors must defined as single-qubit errors.")
         if self._default_readout_error is not None:
             if warnings:
                 logger.warning(
@@ -898,9 +869,7 @@ class NoiseModel:
         try:
             qubits = tuple(qubits)
         except TypeError as ex:
-            raise NoiseError(
-                "Qubits must be convertible to a tuple of integers"
-            ) from ex
+            raise NoiseError("Qubits must be convertible to a tuple of integers") from ex
 
         # Check if error is ideal and if so don't add to the noise model
         if error.ideal():
@@ -1031,8 +1000,7 @@ class NoiseModel:
                         )
                         circ.append(
                             UnitaryGate(
-                                label=dic["name"],
-                                data=_standard_gate_unitary(dic["name"]),
+                                label=dic["name"], data=_standard_gate_unitary(dic["name"])
                             ),
                             qargs=dic["qubits"],
                         )
@@ -1049,9 +1017,7 @@ class NoiseModel:
 
             # Add QuantumError
             if error_type == "qerror":
-                circuits = [
-                    inst_dic_list_to_circuit(dics) for dics in error["instructions"]
-                ]
+                circuits = [inst_dic_list_to_circuit(dics) for dics in error["instructions"]]
                 noise_ops = tuple(zip(circuits, error["probabilities"]))
                 qerror = QuantumError(noise_ops)
                 qerror._id = error.get("id", None) or qerror.id
@@ -1077,9 +1043,7 @@ class NoiseModel:
                 # Add local readout error
                 if all_gate_qubits is not None:
                     for gate_qubits in all_gate_qubits:
-                        noise_model.add_readout_error(
-                            roerror, gate_qubits, warnings=False
-                        )
+                        noise_model.add_readout_error(roerror, gate_qubits, warnings=False)
                 # Add all-qubit readout error
                 else:
                     noise_model.add_all_qubit_readout_error(roerror, warnings=False)
@@ -1144,9 +1108,7 @@ class NoiseModel:
         if self._default_readout_error != other._default_readout_error:
             return False
         # Check local readout errors are equal
-        if sorted(self._local_readout_errors.keys()) != sorted(
-            other._local_readout_errors.keys()
-        ):
+        if sorted(self._local_readout_errors.keys()) != sorted(other._local_readout_errors.keys()):
             return False
         for key in self._local_readout_errors:
             if self._local_readout_errors[key] != other._local_readout_errors[key]:
@@ -1166,9 +1128,7 @@ class NoiseModel:
 
     def _local_quantum_errors_equal(self, other):
         """Check two noise models have equal local quantum errors"""
-        if sorted(self._local_quantum_errors.keys()) != sorted(
-            other._local_quantum_errors.keys()
-        ):
+        if sorted(self._local_quantum_errors.keys()) != sorted(other._local_quantum_errors.keys()):
             return False
         for key in self._local_quantum_errors:
             inner_dict1 = self._local_quantum_errors[key]

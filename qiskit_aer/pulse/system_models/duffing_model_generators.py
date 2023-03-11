@@ -148,9 +148,7 @@ def duffing_system_model(
             edge_strength = coupling_dict.get((edge[1], edge[0]))
         coupling_strengths.append(edge_strength)
 
-    coupling_symbols = _str_list_generator(
-        coupling_symbol + "{0}{1}", *zip(*sorted_coupling_edges)
-    )
+    coupling_symbols = _str_list_generator(coupling_symbol + "{0}{1}", *zip(*sorted_coupling_edges))
     cr_idx_dict = coupling_graph.two_way_graph_dict
 
     hamiltonian_dict = _duffing_hamiltonian_dict(
@@ -234,25 +232,19 @@ def _duffing_hamiltonian_dict(
     """
 
     # single oscillator terms
-    hamiltonian_str = _single_duffing_drift_terms(
-        freq_symbols, anharm_symbols, oscillators
-    )
+    hamiltonian_str = _single_duffing_drift_terms(freq_symbols, anharm_symbols, oscillators)
     hamiltonian_str += _drive_terms(drive_symbols, oscillators)
 
     # exchange terms
     if len(ordered_coupling_edges) > 0:
-        hamiltonian_str += _exchange_coupling_terms(
-            coupling_symbols, ordered_coupling_edges
-        )
+        hamiltonian_str += _exchange_coupling_terms(coupling_symbols, ordered_coupling_edges)
 
     # cr terms
     if len(cr_idx_dict) > 0:
         driven_system_indices = [key[0] for key in cr_idx_dict.keys()]
         cr_drive_symbols = [drive_symbols[idx] for idx in driven_system_indices]
         cr_channel_idx = cr_idx_dict.values()
-        hamiltonian_str += _cr_terms(
-            cr_drive_symbols, driven_system_indices, cr_channel_idx
-        )
+        hamiltonian_str += _cr_terms(cr_drive_symbols, driven_system_indices, cr_channel_idx)
 
     # construct vars dictionary
     var_dict = {}
@@ -265,9 +257,7 @@ def _duffing_hamiltonian_dict(
         for symbol, strength in zip(coupling_symbols, coupling_strengths):
             var_dict[symbol] = strength
 
-    dim_dict = {
-        str(oscillator): dim for oscillator, dim in zip(oscillators, oscillator_dims)
-    }
+    dim_dict = {str(oscillator): dim for oscillator, dim in zip(oscillators, oscillator_dims)}
 
     return {"h_str": hamiltonian_str, "vars": var_dict, "qub": dim_dict}
 
@@ -311,9 +301,7 @@ def _single_duffing_drift_terms(freq_symbols, anharm_symbols, system_list):
     harm_terms = _str_list_generator(
         "np.pi*(2*{0}-{1})*O{2}", freq_symbols, anharm_symbols, system_list
     )
-    anharm_terms = _str_list_generator(
-        "np.pi*{0}*O{1}*O{1}", anharm_symbols, system_list
-    )
+    anharm_terms = _str_list_generator("np.pi*{0}*O{1}*O{1}", anharm_symbols, system_list)
 
     return harm_terms + anharm_terms
 
@@ -360,10 +348,7 @@ def _cr_terms(drive_symbols, driven_system_indices, u_channel_indices):
     """
 
     return _str_list_generator(
-        "2*np.pi*{0}*X{1}||U{2}",
-        drive_symbols,
-        driven_system_indices,
-        u_channel_indices,
+        "2*np.pi*{0}*X{1}||U{2}", drive_symbols, driven_system_indices, u_channel_indices
     )
 
 
@@ -465,8 +450,7 @@ class CouplingGraph:
 
         # create the dictionary version
         self.two_way_graph_dict = {
-            self.sorted_two_way_graph[k]: k
-            for k in range(len(self.sorted_two_way_graph))
+            self.sorted_two_way_graph[k]: k for k in range(len(self.sorted_two_way_graph))
         }
 
     def sorted_edge_index(self, edge):

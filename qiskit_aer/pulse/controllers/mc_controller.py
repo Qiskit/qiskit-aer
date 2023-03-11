@@ -88,7 +88,7 @@ def run_monte_carlo_experiments(pulse_sim_desc, pulse_de_model, solver_options=N
                 pulse_de_model,
                 solver_options,
             ),
-            **map_kwargs
+            **map_kwargs,
         )
 
         # exp_results is a list for each shot
@@ -104,9 +104,7 @@ def run_monte_carlo_experiments(pulse_sim_desc, pulse_de_model, solver_options=N
     return exp_results, exp_times
 
 
-def monte_carlo_evolution(
-    seed, exp, y0, pulse_sim_desc, pulse_de_model, solver_options=None
-):
+def monte_carlo_evolution(seed, exp, y0, pulse_sim_desc, pulse_de_model, solver_options=None):
     """Performs a single monte carlo run for the given op_system, experiment, and seed
 
     Parameters:
@@ -177,10 +175,7 @@ def monte_carlo_evolution(
                     if not ODE.successful():
                         raise Exception("Integration failed after adjusting step size!")
                     norm2_guess = dznrm2(ODE.y) ** 2
-                    if (
-                        abs(rand_vals[0] - norm2_guess)
-                        < solver_options.norm_tol * rand_vals[0]
-                    ):
+                    if abs(rand_vals[0] - norm2_guess) < solver_options.norm_tol * rand_vals[0]:
                         break
 
                     if norm2_guess < rand_vals[0]:
@@ -222,9 +217,7 @@ def monte_carlo_evolution(
                 current_acq = exp["acquire"][aind]
                 qubits = current_acq[1]
                 memory_slots = current_acq[2]
-                probs = occ_probabilities(
-                    qubits, out_psi, pulse_sim_desc.measurement_ops
-                )
+                probs = occ_probabilities(qubits, out_psi, pulse_sim_desc.measurement_ops)
                 rand_vals = rng.rand(memory_slots.shape[0])
                 write_shots_memory(memory, memory_slots, probs, rand_vals)
                 acq_idx += 1

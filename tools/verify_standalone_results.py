@@ -12,9 +12,7 @@ import sys
 from qiskit.result import Result
 
 
-def assertDictAlmostEqual(
-    dict1, dict2, delta=None, msg=None, places=None, default_value=0
-):
+def assertDictAlmostEqual(dict1, dict2, delta=None, msg=None, places=None, default_value=0):
     """Assert two dictionaries with numeric values are almost equal.
 
     Fail if the two dictionaries are unequal as determined by
@@ -113,11 +111,6 @@ if __name__ == "__main__":
     if os.getenv("USE_MPI", False):
         assert result.metadata["num_mpi_processes"] > 1
     shots = result.results[0].shots
-    targets = {
-        "0x0": 5 * shots / 8,
-        "0x1": shots / 8,
-        "0x2": shots / 8,
-        "0x3": shots / 8,
-    }
+    targets = {"0x0": 5 * shots / 8, "0x1": shots / 8, "0x2": shots / 8, "0x3": shots / 8}
     compare_counts(result, targets, delta=0.05 * shots)
     print("Input result JSON is valid!")

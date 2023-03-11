@@ -33,9 +33,7 @@ def unitary_gate_circuits_deterministic(final_measure=True):
     else:
         regs = (qr,)
     y_mat = np.array([[0, -1j], [1j, 0]], dtype=complex)
-    cx_mat = np.array(
-        [[1, 0, 0, 0], [0, 0, 0, 1], [0, 0, 1, 0], [0, 1, 0, 0]], dtype=complex
-    )
+    cx_mat = np.array([[1, 0, 0, 0], [0, 0, 0, 1], [0, 0, 1, 0], [0, 1, 0, 0]], dtype=complex)
 
     # CX01, |00> state
     circuit = QuantumCircuit(*regs)
@@ -149,21 +147,13 @@ def unitary_gate_unitary_deterministic():
     # CX10, |00> state
     targets.append(np.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 0, 1], [0, 0, 1, 0]]))
     # CX01.(Y^I), |10> state
-    targets.append(
-        np.array([[0, 0, -1j, 0], [0, 1j, 0, 0], [1j, 0, 0, 0], [0, 0, 0, -1j]])
-    )
+    targets.append(np.array([[0, 0, -1j, 0], [0, 1j, 0, 0], [1j, 0, 0, 0], [0, 0, 0, -1j]]))
     # CX10.(I^Y), |01> state
-    targets.append(
-        np.array([[0, -1j, 0, 0], [1j, 0, 0, 0], [0, 0, 1j, 0], [0, 0, 0, -1j]])
-    )
+    targets.append(np.array([[0, -1j, 0, 0], [1j, 0, 0, 0], [0, 0, 1j, 0], [0, 0, 0, -1j]]))
     # CX01.(I^Y), |11> state
-    targets.append(
-        np.array([[0, -1j, 0, 0], [0, 0, 1j, 0], [0, 0, 0, -1j], [1j, 0, 0, 0]])
-    )
+    targets.append(np.array([[0, -1j, 0, 0], [0, 0, 1j, 0], [0, 0, 0, -1j], [1j, 0, 0, 0]]))
     # CX10.(Y^I), |11> state
-    targets.append(
-        np.array([[0, 0, -1j, 0], [0, 0, 0, -1j], [0, 1j, 0, 0], [1j, 0, 0, 0]])
-    )
+    targets.append(np.array([[0, 0, -1j, 0], [0, 0, 0, -1j], [0, 1j, 0, 0], [1j, 0, 0, 0]]))
     return targets
 
 

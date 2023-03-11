@@ -19,12 +19,7 @@ from test.terra.reference import ref_initialize
 import numpy as np
 from test.terra.backends.simulator_test_case import SimulatorTestCase, supported_methods
 
-SUPPORTED_METHODS = [
-    "automatic",
-    "statevector",
-    "matrix_product_state",
-    "tensor_network",
-]
+SUPPORTED_METHODS = ["automatic", "statevector", "matrix_product_state", "tensor_network"]
 
 
 @ddt

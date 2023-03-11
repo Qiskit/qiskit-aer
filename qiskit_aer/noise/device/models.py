@@ -195,9 +195,7 @@ def basic_device_gate_errors(
         relax_time = gate_length
         # Override with custom value
         if name in custom_times:
-            filtered = [
-                val for q, val in custom_times[name] if q is None or q == qubits
-            ]
+            filtered = [val for q, val in custom_times[name] if q is None or q == qubits]
             if filtered:
                 # get first value
                 relax_time = filtered[0]
@@ -282,8 +280,7 @@ def _basic_device_target_gate_errors(
 
 def _device_depolarizing_error(qubits, error_param, relax_error=None):
     """Construct a depolarizing_error for device.
-    If un-physical parameters are supplied, they are truncated to the theoretical bound values.
-    """
+    If un-physical parameters are supplied, they are truncated to the theoretical bound values."""
 
     # We now deduce the depolarizing channel error parameter in the
     # presence of T1/T2 thermal relaxation. We assume the gate error

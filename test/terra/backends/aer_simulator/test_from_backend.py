@@ -38,12 +38,8 @@ class TestAlgorithms(SimulatorTestCase):
         sim_backend = AerSimulator.from_backend(backend)
         tqc = transpile(self.qc, backend)
         self.assertEqual(
-            backend.run(tqc, shots=1024, seed_simulator=12345678942)
-            .result()
-            .get_counts(),
-            sim_backend.run(tqc, shots=1024, seed_simulator=12345678942)
-            .result()
-            .get_counts(),
+            backend.run(tqc, shots=1024, seed_simulator=12345678942).result().get_counts(),
+            sim_backend.run(tqc, shots=1024, seed_simulator=12345678942).result().get_counts(),
         )
 
     def test_backend_v2(self):
@@ -52,11 +48,7 @@ class TestAlgorithms(SimulatorTestCase):
         sim_backend = AerSimulator.from_backend(backend)
         tqc = transpile(self.qc, backend)
         self.assertDictAlmostEqual(
-            backend.run(tqc, shots=1024, seed_simulator=12345678942)
-            .result()
-            .get_counts(),
-            sim_backend.run(tqc, shots=1024, seed_simulator=12345678942)
-            .result()
-            .get_counts(),
+            backend.run(tqc, shots=1024, seed_simulator=12345678942).result().get_counts(),
+            sim_backend.run(tqc, shots=1024, seed_simulator=12345678942).result().get_counts(),
             delta=100,
         )

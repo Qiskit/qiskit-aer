@@ -107,9 +107,7 @@ class HamiltonianParser:
 
     def _expand_sum(self):
         """Takes a string-based Hamiltonian list and expands the _SUM action items out."""
-        sum_str = re.compile(
-            r"_SUM\[(?P<itr>[a-z]),(?P<l>[a-z\d{}+-]+),(?P<u>[a-z\d{}+-]+),"
-        )
+        sum_str = re.compile(r"_SUM\[(?P<itr>[a-z]),(?P<l>[a-z\d{}+-]+),(?P<u>[a-z\d{}+-]+),")
         brk_str = re.compile(r"]")
 
         ham_list = copy.copy(self.h_str)
@@ -143,9 +141,7 @@ class HamiltonianParser:
                     pattern = {}
                     for p in re.finditer(r"\{(?P<op_str>[a-z0-9*/+-]+)\}", trg_s):
                         if p.group() not in pattern:
-                            sub = parse_binop(
-                                p.group("op_str"), operands={itr: str(kk)}
-                            )
+                            sub = parse_binop(p.group("op_str"), operands={itr: str(kk)})
                             if sub.isdecimal():
                                 pattern[p.group()] = sub
                             else:
@@ -153,9 +149,7 @@ class HamiltonianParser:
                     for key, val in pattern.items():
                         trg_s = trg_s.replace(key, val)
                     _temp.append(
-                        "".join(
-                            [ham[: p_sums[0].start()], trg_s, ham[p_brks[ii].end() :]]
-                        )
+                        "".join([ham[: p_sums[0].start()], trg_s, ham[p_brks[ii].end() :]])
                     )
                 ham_list.extend(_temp)
 
@@ -225,9 +219,7 @@ class HamiltonianParser:
                         token_list = token_list[ii + 1 :]
                         break
             else:
-                raise Exception(
-                    "Invalid order of operators and coefficients in %s" % op_str
-                )
+                raise Exception("Invalid order of operators and coefficients in %s" % op_str)
 
         return coef, token_list
 

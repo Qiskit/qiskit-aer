@@ -226,9 +226,7 @@ class UnitarySimulator(AerBackend):
 
     _AVAILABLE_DEVICES = None
 
-    def __init__(
-        self, configuration=None, properties=None, provider=None, **backend_options
-    ):
+    def __init__(self, configuration=None, properties=None, provider=None, **backend_options):
         warn(
             "The `UnitarySimulator` backend will be deprecated in the"
             " future. It has been superseded by the `AerSimulator`"
@@ -253,10 +251,7 @@ class UnitarySimulator(AerBackend):
             configuration.open_pulse = False
 
         super().__init__(
-            configuration,
-            properties=properties,
-            provider=provider,
-            backend_options=backend_options,
+            configuration, properties=properties, provider=provider, backend_options=backend_options
         )
 
     @classmethod
@@ -299,9 +294,7 @@ class UnitarySimulator(AerBackend):
                 value, device = LEGACY_METHOD_MAP[value]
                 self.set_option("device", device)
             if value != "unitary":
-                raise AerError(
-                    "only the 'unitary' method is supported for the UnitarySimulator"
-                )
+                raise AerError("only the 'unitary' method is supported for the UnitarySimulator")
             return
         super().set_option(key, value)
 

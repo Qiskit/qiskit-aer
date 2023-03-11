@@ -284,6 +284,4 @@ class StabilizerState(qi.StabilizerState):
         raise NotImplementedError(f"{type(self)} does not support addition")
 
     def _multiply(self, other):
-        raise NotImplementedError(
-            f"{type(self)} does not support scalar multiplication"
-        )
+        raise NotImplementedError(f"{type(self)} does not support scalar multiplication")

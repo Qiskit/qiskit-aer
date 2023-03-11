@@ -54,9 +54,7 @@ class TestVariousCircuit(SimulatorTestCase):
         shots = 1000
         result = backend.run(circuit, shots=shots).result()
         self.assertSuccess(result)
-        self.compare_counts(
-            result, [circuit], [{"0x0": 500, "0x7": 500}], delta=0.05 * shots
-        )
+        self.compare_counts(result, [circuit], [{"0x0": 500, "0x7": 500}], delta=0.05 * shots)
 
     @supported_methods(
         [
@@ -89,9 +87,7 @@ class TestVariousCircuit(SimulatorTestCase):
         shots = 1000
         result = backend.run(circuit, shots=shots).result()
         self.assertSuccess(result)
-        self.compare_counts(
-            result, [circuit], [{"0x0": 500, "0x7": 500}], delta=0.05 * shots
-        )
+        self.compare_counts(result, [circuit], [{"0x0": 500, "0x7": 500}], delta=0.05 * shots)
 
     @supported_methods(
         [
@@ -127,9 +123,7 @@ class TestVariousCircuit(SimulatorTestCase):
         shots = 1000
         result = backend.run(circuit, shots=shots).result()
         self.assertSuccess(result)
-        self.compare_counts(
-            result, [circuit], [{"0x0": 500, "0x7": 500}], delta=0.05 * shots
-        )
+        self.compare_counts(result, [circuit], [{"0x0": 500, "0x7": 500}], delta=0.05 * shots)
 
         qubits0 = QuantumRegister(1)
         clbits1 = ClassicalRegister(1)
@@ -147,9 +141,7 @@ class TestVariousCircuit(SimulatorTestCase):
         circuit.cx(qubits0[0], qubits1[0])
         circuit.cx(qubits1[0], qubits2[0])
 
-        for qubits, clbits in zip(
-            [qubits0, qubits1, qubits2], [clbits1, clbits2, clbits3]
-        ):
+        for qubits, clbits in zip([qubits0, qubits1, qubits2], [clbits1, clbits2, clbits3]):
             for q, c in zip(qubits, clbits):
                 circuit.measure(q, c)
 
@@ -158,9 +150,7 @@ class TestVariousCircuit(SimulatorTestCase):
         shots = 1000
         result = backend.run(circuit, shots=shots).result()
         self.assertSuccess(result)
-        self.compare_counts(
-            result, [circuit], [{"0x0": 500, "0x7": 500}], delta=0.05 * shots
-        )
+        self.compare_counts(result, [circuit], [{"0x0": 500, "0x7": 500}], delta=0.05 * shots)
 
     def test_partial_result_a_single_invalid_circuit(self):
         """Test a partial result is returned with a job with a valid and invalid circuit."""

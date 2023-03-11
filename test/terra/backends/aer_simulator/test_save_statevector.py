@@ -51,9 +51,7 @@ class TestSaveStatevector(SimulatorTestCase):
         circ.save_statevector(label=label)
 
         # Run
-        result = backend.run(
-            transpile(circ, backend, optimization_level=0), shots=1
-        ).result()
+        result = backend.run(transpile(circ, backend, optimization_level=0), shots=1).result()
         self.assertTrue(result.success)
         simdata = result.data(0)
         self.assertIn(label, simdata)
@@ -85,15 +83,10 @@ class TestSaveStatevector(SimulatorTestCase):
         circ.save_statevector(label=label, conditional=True)
 
         # Target statevector
-        target = {
-            "0x0": qi.Statevector([1, 0, 0, 0]),
-            "0x3": qi.Statevector([0, 0, 0, -1j]),
-        }
+        target = {"0x0": qi.Statevector([1, 0, 0, 0]), "0x3": qi.Statevector([0, 0, 0, -1j])}
 
         # Run
-        result = backend.run(
-            transpile(circ, backend, optimization_level=0), shots=1
-        ).result()
+        result = backend.run(transpile(circ, backend, optimization_level=0), shots=1).result()
         self.assertTrue(result.success)
         simdata = result.data(0)
         self.assertIn(label, simdata)
@@ -130,9 +123,7 @@ class TestSaveStatevector(SimulatorTestCase):
 
         # Run
         shots = 10
-        result = backend.run(
-            transpile(circ, backend, optimization_level=0), shots=shots
-        ).result()
+        result = backend.run(transpile(circ, backend, optimization_level=0), shots=shots).result()
         self.assertTrue(result.success)
         simdata = result.data(0)
         self.assertIn(label, simdata)
@@ -172,9 +163,7 @@ class TestSaveStatevector(SimulatorTestCase):
 
         # Run
         shots = 10
-        result = backend.run(
-            transpile(circ, backend, optimization_level=0), shots=shots
-        ).result()
+        result = backend.run(transpile(circ, backend, optimization_level=0), shots=shots).result()
         self.assertTrue(result.success)
         simdata = result.data(0)
         self.assertIn(label, simdata)
@@ -206,9 +195,7 @@ class TestSaveStatevector(SimulatorTestCase):
         circ.save_statevector(label=label)
 
         # Run
-        result = backend.run(
-            transpile(circ, backend, optimization_level=0), shots=1
-        ).result()
+        result = backend.run(transpile(circ, backend, optimization_level=0), shots=1).result()
         self.assertTrue(result.success)
         simdata = result.data(0)
         self.assertIn(label, simdata)

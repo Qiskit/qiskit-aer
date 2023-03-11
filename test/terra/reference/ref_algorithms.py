@@ -77,14 +77,10 @@ def grovers_counts(shots, hex_counts=True):
     targets = []
     if hex_counts:
         # 6-qubit grovers
-        targets.append(
-            {"0x0": 5 * shots / 8, "0x1": shots / 8, "0x2": shots / 8, "0x3": shots / 8}
-        )
+        targets.append({"0x0": 5 * shots / 8, "0x1": shots / 8, "0x2": shots / 8, "0x3": shots / 8})
     else:
         # 6-qubit grovers
-        targets.append(
-            {"00": 5 * shots / 8, "01": shots / 8, "10": shots / 8, "11": shots / 8}
-        )
+        targets.append({"00": 5 * shots / 8, "01": shots / 8, "10": shots / 8, "11": shots / 8})
     return targets
 
 
@@ -122,17 +118,10 @@ def teleport_counts(shots, hex_counts=True):
     targets = []
     if hex_counts:
         # Classical 3-qubit teleport
-        targets.append(
-            {"0x0": shots / 4, "0x1": shots / 4, "0x2": shots / 4, "0x3": shots / 4}
-        )
+        targets.append({"0x0": shots / 4, "0x1": shots / 4, "0x2": shots / 4, "0x3": shots / 4})
     else:
         # Classical 3-qubit teleport
         targets.append(
-            {
-                "0 0 0": shots / 4,
-                "0 0 1": shots / 4,
-                "0 1 0": shots / 4,
-                "0 1 1": shots / 4,
-            }
+            {"0 0 0": shots / 4, "0 0 1": shots / 4, "0 1 0": shots / 4, "0 1 1": shots / 4}
         )
     return targets

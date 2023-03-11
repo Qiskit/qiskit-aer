@@ -157,10 +157,7 @@ class TestGates(SimulatorTestCase):
 
         gate_cls, num_angles, has_ctrl_qubits = gates_dict[gate]
         circuits = self.gate_circuits(
-            gate_cls,
-            num_angles=num_angles,
-            has_ctrl_qubits=has_ctrl_qubits,
-            rng=self.RNG,
+            gate_cls, num_angles=num_angles, has_ctrl_qubits=has_ctrl_qubits, rng=self.RNG
         )
 
         label = "final"
@@ -257,9 +254,7 @@ class TestGates(SimulatorTestCase):
             max_parallel_threads=1,
         )
 
-    @supported_methods(
-        ["automatic", "statevector", "unitary", "tensor_network"], MC_GATES_DICT
-    )
+    @supported_methods(["automatic", "statevector", "unitary", "tensor_network"], MC_GATES_DICT)
     def test_multictrl_gate(self, method, device, gate):
         """Test multi-controlled standard gates."""
         self._test_gate(gate, MC_GATES_DICT, method=method, device=device)

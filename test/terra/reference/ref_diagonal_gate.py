@@ -38,12 +38,7 @@ def diagonal_gate_circuits_deterministic(final_measure=True):
     # 4 x Swap |00> <--> |10> states
     arg = [1, -1]
     for qubit in [0, 1]:
-        for diag in [
-            arg,
-            np.array(arg),
-            np.array(arg, dtype=float),
-            np.array(arg, dtype=complex),
-        ]:
+        for diag in [arg, np.array(arg), np.array(arg, dtype=float), np.array(arg, dtype=complex)]:
             circuit = QuantumCircuit(*regs)
             circuit.h(qubit)
             circuit.diagonal(list(diag), [qubit])
@@ -55,12 +50,7 @@ def diagonal_gate_circuits_deterministic(final_measure=True):
 
     # 4 x Swap |00> <--> |11> states
     arg = [1, -1, -1, 1]
-    for diag in [
-        arg,
-        np.array(arg),
-        np.array(arg, dtype=float),
-        np.array(arg, dtype=complex),
-    ]:
+    for diag in [arg, np.array(arg), np.array(arg, dtype=float), np.array(arg, dtype=complex)]:
         circuit = QuantumCircuit(*regs)
         circuit.h(qr)
         circuit.diagonal(list(diag), qr)
@@ -71,9 +61,7 @@ def diagonal_gate_circuits_deterministic(final_measure=True):
         circuits.append(circuit)
 
     # CS01.XX, exp(-1j * np.pi/k)|11> state
-    for diag in [
-        np.array([1, 1, 1, np.exp(-1j * np.pi / k)]) for k in [10, 100, 1000, 10000]
-    ]:
+    for diag in [np.array([1, 1, 1, np.exp(-1j * np.pi / k)]) for k in [10, 100, 1000, 10000]]:
         circuit = QuantumCircuit(*regs)
         circuit.x(qr)
         circuit.diagonal(list(diag), qr)
@@ -119,9 +107,7 @@ def diagonal_gate_statevector_deterministic():
     # Swap |00> <--> |11> states
     targets += 4 * [np.array([0, 0, 0, 1])]
     # CS01.XX, exp(-1j * np.pi/k)|11> state
-    targets += [
-        np.array([0, 0, 0, np.exp(-1j * np.pi / k)]) for k in [10, 100, 1000, 10000]
-    ]
+    targets += [np.array([0, 0, 0, np.exp(-1j * np.pi / k)]) for k in [10, 100, 1000, 10000]]
     return targets
 
 
@@ -137,14 +123,7 @@ def diagonal_gate_unitary_deterministic():
     targets += 4 * [np.array([[0, 0, 0, 1], [0, 0, 1, 0], [0, 1, 0, 0], [1, 0, 0, 0]])]
     # CS01.XX, 1j|11> state
     targets += [
-        np.array(
-            [
-                [0, 0, 0, 1],
-                [0, 0, 1, 0],
-                [0, 1, 0, 0],
-                [np.exp(-1j * np.pi / k), 0, 0, 0],
-            ]
-        )
+        np.array([[0, 0, 0, 1], [0, 0, 1, 0], [0, 1, 0, 0], [np.exp(-1j * np.pi / k), 0, 0, 0]])
         for k in [10, 100, 1000, 10000]
     ]
     return targets

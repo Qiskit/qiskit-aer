@@ -16,15 +16,7 @@ from qiskit.quantum_info import Operator, Statevector
 from qiskit.quantum_info.operators.predicates import matrix_equal
 
 from qiskit_aer.pulse.system_models.duffing_model_generators import duffing_system_model
-from qiskit.pulse import (
-    Schedule,
-    Play,
-    Acquire,
-    Waveform,
-    DriveChannel,
-    AcquireChannel,
-    MemorySlot,
-)
+from qiskit.pulse import Schedule, Play, Acquire, Waveform, DriveChannel, AcquireChannel, MemorySlot
 
 from qiskit_aer import AerSimulator
 from qiskit_aer import QasmSimulator
@@ -61,12 +53,7 @@ def assertAlmostEqual(first, second, places=None, msg=None, delta=None):
         if diff <= delta:
             return
 
-        standardMsg = "%s != %s within %s delta (%s difference)" % (
-            first,
-            second,
-            delta,
-            diff,
-        )
+        standardMsg = "%s != %s within %s delta (%s difference)" % (first, second, delta, diff)
     else:
         if places is None:
             places = 7
@@ -74,12 +61,7 @@ def assertAlmostEqual(first, second, places=None, msg=None, delta=None):
         if round(diff, places) == 0:
             return
 
-        standardMsg = "%s != %s within %r places (%s difference)" % (
-            first,
-            second,
-            places,
-            diff,
-        )
+        standardMsg = "%s != %s within %r places (%s difference)" % (first, second, places, diff)
     raise Exception(standardMsg)
 
 
@@ -133,9 +115,7 @@ def grovers_circuit(final_measure=True, allow_sampling=True):
     return circuits
 
 
-def assertDictAlmostEqual(
-    dict1, dict2, delta=None, msg=None, places=None, default_value=0
-):
+def assertDictAlmostEqual(dict1, dict2, delta=None, msg=None, places=None, default_value=0):
     """Assert two dictionaries with numeric values are almost equal.
 
     Fail if the two dictionaries are unequal as determined by
@@ -360,9 +340,7 @@ def cx_gate_unitary_deterministic():
     return targets
 
 
-def compare_statevector(
-    result, circuits, targets, ignore_phase=False, atol=1e-8, rtol=1e-5
-):
+def compare_statevector(result, circuits, targets, ignore_phase=False, atol=1e-8, rtol=1e-5):
     """Compare final statevectors to targets."""
     for pos, test_case in enumerate(zip(circuits, targets)):
         circuit, target = test_case
@@ -373,15 +351,11 @@ def compare_statevector(
         )
         if equiv:
             return
-        msg = "Circuit ({}/{}): {} != {}".format(
-            pos + 1, len(circuits), output.data, target.data
-        )
+        msg = "Circuit ({}/{}): {} != {}".format(pos + 1, len(circuits), output.data, target.data)
         raise Exception(msg)
 
 
-def compare_unitary(
-    result, circuits, targets, ignore_phase=False, atol=1e-8, rtol=1e-5
-):
+def compare_unitary(result, circuits, targets, ignore_phase=False, atol=1e-8, rtol=1e-5):
     """Compare final unitary matrices to targets."""
     for pos, test_case in enumerate(zip(circuits, targets)):
         circuit, target = test_case
@@ -392,9 +366,7 @@ def compare_unitary(
         )
         if equiv:
             return
-        msg = "Circuit ({}/{}): {} != {}".format(
-            pos + 1, len(circuits), output.data, target.data
-        )
+        msg = "Circuit ({}/{}): {} != {}".format(pos + 1, len(circuits), output.data, target.data)
         raise Exception(msg)
 
 
@@ -426,9 +398,7 @@ if __name__ == "__main__":
     # Run Aer simulator
     shots = 4000
     circuits = grovers_circuit(final_measure=True, allow_sampling=True)
-    targets = [
-        {"0x0": 5 * shots / 8, "0x1": shots / 8, "0x2": shots / 8, "0x3": shots / 8}
-    ]
+    targets = [{"0x0": 5 * shots / 8, "0x1": shots / 8, "0x2": shots / 8, "0x3": shots / 8}]
     simulator = AerSimulator()
     result = simulator.run(transpile(circuits, simulator), shots=shots).result()
     assert result.status == "COMPLETED"

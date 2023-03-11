@@ -82,9 +82,7 @@ class TestNonCliffords(SimulatorTestCase):
             method=method, device=device, extended_stabilizer_metropolis_mixing_time=50
         )
         shots = 500
-        circuits = ref_non_clifford.tdg_gate_circuits_nondeterministic(
-            final_measure=True
-        )
+        circuits = ref_non_clifford.tdg_gate_circuits_nondeterministic(final_measure=True)
         circuits = transpile(circuits, backend, optimization_level=0)
         result = backend.run(circuits, shots=shots).result()
         targets = ref_non_clifford.tdg_gate_counts_nondeterministic(shots)
@@ -115,9 +113,7 @@ class TestNonCliffords(SimulatorTestCase):
             method=method, device=device, extended_stabilizer_metropolis_mixing_time=100
         )
         shots = 500
-        circuits = ref_non_clifford.ccx_gate_circuits_nondeterministic(
-            final_measure=True
-        )
+        circuits = ref_non_clifford.ccx_gate_circuits_nondeterministic(final_measure=True)
         circuits = transpile(circuits, backend, optimization_level=0)
         result = backend.run(circuits, shots=shots).result()
         targets = ref_non_clifford.ccx_gate_counts_nondeterministic(shots)

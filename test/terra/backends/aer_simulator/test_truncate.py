@@ -61,9 +61,7 @@ class TestTruncateQubits(SimulatorTestCase):
 
         result = backend.run(circuit, shots=1).result()
         metadata = result.results[0].metadata
-        self.assertEqual(
-            metadata["num_qubits"], 2, msg="wrong number of truncated qubits."
-        )
+        self.assertEqual(metadata["num_qubits"], 2, msg="wrong number of truncated qubits.")
         self.assertEqual(
             metadata["active_input_qubits"], [10, 20], msg="incorrect truncated qubits."
         )
@@ -84,9 +82,7 @@ class TestTruncateQubits(SimulatorTestCase):
         ]
         noise_model = NoiseModel.from_backend(self.device_backend())
         backend = self.backend(noise_model=noise_model)
-        circuit = transpile(
-            self.create_circuit_for_truncate(), backend, coupling_map=coupling_map
-        )
+        circuit = transpile(self.create_circuit_for_truncate(), backend, coupling_map=coupling_map)
 
         result = backend.run(circuit, shots=1).result()
         metadata = result.results[0].metadata
@@ -120,9 +116,7 @@ class TestTruncateQubits(SimulatorTestCase):
         ]
         noise_model = NoiseModel.from_backend(self.device_backend())
         backend = self.backend(noise_model=noise_model, enable_truncation=False)
-        circuit = transpile(
-            self.create_circuit_for_truncate(), backend, coupling_map=coupling_map
-        )
+        circuit = transpile(self.create_circuit_for_truncate(), backend, coupling_map=coupling_map)
 
         result = backend.run(circuit, shots=100).result()
         metadata = result.results[0].metadata

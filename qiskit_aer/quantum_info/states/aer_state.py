@@ -100,23 +100,17 @@ class AerState:
 
     def _allocated(self):
         if self._state != _STATE.INITIALIZING:
-            raise AerError(
-                "unexpected state transition: {self._state}->{_STATE.ALLOCATED}"
-            )
+            raise AerError("unexpected state transition: {self._state}->{_STATE.ALLOCATED}")
         self._state = _STATE.ALLOCATED
 
     def _mapped(self):
         if self._state != _STATE.INITIALIZING:
-            raise AerError(
-                "unexpected state transition: {self._state}->{_STATE.MAPPED}"
-            )
+            raise AerError("unexpected state transition: {self._state}->{_STATE.MAPPED}")
         self._state = _STATE.MAPPED
 
     def _released(self):
         if self._state != _STATE.MAPPED:
-            raise AerError(
-                "unexpected state transition: {self._state}->{_STATE.RELEASED}"
-            )
+            raise AerError("unexpected state transition: {self._state}->{_STATE.RELEASED}")
         self._state = _STATE.RELEASED
 
     def _moved(self):
@@ -126,9 +120,7 @@ class AerState:
 
     def _closed(self):
         if self._state not in (_STATE.MOVED, _STATE.MAPPED, _STATE.RELEASED):
-            raise AerError(
-                "unexpected state transition: {self._state}->{_STATE.CLOSED}"
-            )
+            raise AerError("unexpected state transition: {self._state}->{_STATE.CLOSED}")
         self._state = _STATE.CLOSED
 
     def configure(self, key, value):
@@ -180,9 +172,7 @@ class AerState:
         elif self._method == "density_matrix":
             if data.shape != (len(data), len(data)):
                 raise AerError("shape of init data must be a pair of power of two")
-            init = self._native_state.initialize_density_matrix(
-                num_of_qubits, data, copy
-            )
+            init = self._native_state.initialize_density_matrix(num_of_qubits, data, copy)
 
         if init:
             if not copy:
@@ -452,9 +442,7 @@ class AerState:
         self._assert_in_allocated_qubits(control_qubit)
         self._assert_in_allocated_qubits(target_qubit)
         # update state
-        self._native_state.apply_cu(
-            [control_qubit, target_qubit], theta, phi, lamb, gamma
-        )
+        self._native_state.apply_cu([control_qubit, target_qubit], theta, phi, lamb, gamma)
 
     def apply_mcu(self, control_qubits, target_qubit, theta, phi, lamb, gamma):
         """apply a mcu operation."""
@@ -462,9 +450,7 @@ class AerState:
         self._assert_in_allocated_qubits(control_qubits)
         self._assert_in_allocated_qubits(target_qubit)
         # update state
-        self._native_state.apply_mcu(
-            control_qubits + [target_qubit], theta, phi, lamb, gamma
-        )
+        self._native_state.apply_mcu(control_qubits + [target_qubit], theta, phi, lamb, gamma)
 
     def apply_mcswap(self, control_qubits, qubit0, qubit1):
         """apply a mcswap operation."""

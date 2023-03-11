@@ -90,9 +90,7 @@ def digest_pulse_qobj(qobj, channels, dt, qubit_list):
 
     # extract schedule_los
     if qobj_config.get("schedule_los") is not None:
-        for exp, schedule_lo in zip(
-            qobj_dict["experiments"], qobj_config["schedule_los"]
-        ):
+        for exp, schedule_lo in zip(qobj_dict["experiments"], qobj_config["schedule_los"]):
             if exp.get("config") is None:
                 exp["config"] = {}
 
@@ -126,9 +124,7 @@ def digest_pulse_qobj(qobj, channels, dt, qubit_list):
     # set qubit_lo_freq as given in qobj
     if "qubit_lo_freq" in qobj_config and qobj_config["qubit_lo_freq"] != [np.inf]:
         # qobj frequencies are divided by 1e9, so multiply back
-        digested_qobj.qubit_lo_freq = [
-            freq * 1e9 for freq in qobj_config["qubit_lo_freq"]
-        ]
+        digested_qobj.qubit_lo_freq = [freq * 1e9 for freq in qobj_config["qubit_lo_freq"]]
 
     # build pulse arrays from qobj
     pulses, pulses_idx, pulse_dict = build_pulse_arrays(
@@ -142,9 +138,7 @@ def digest_pulse_qobj(qobj, channels, dt, qubit_list):
     experiments = []
 
     for exp in qobj_dict["experiments"]:
-        exp_struct = experiment_to_structs(
-            exp, channels, pulses_idx, pulse_dict, dt, qubit_list
-        )
+        exp_struct = experiment_to_structs(exp, channels, pulses_idx, pulse_dict, dt, qubit_list)
         experiments.append(exp_struct)
 
     digested_qobj.experiments = experiments
@@ -163,9 +157,7 @@ def _unsupported_errors(qobj_dict):
     """
 
     # Warnings that don't stop execution
-    warning_str = (
-        "{} are an untested feature, and therefore may not behave as expected."
-    )
+    warning_str = "{} are an untested feature, and therefore may not behave as expected."
     if _contains_pv_instruction(qobj_dict["experiments"]):
         raise AerError(warning_str.format("PersistentValue instructions"))
 
@@ -176,9 +168,7 @@ def _unsupported_errors(qobj_dict):
 
     error_str = """Schedules contain {}, are not supported by PulseSimulator."""
     if _contains_frequency_instruction(qobj_dict["experiments"]):
-        raise AerError(
-            error_str.format("shift frequency and/or set frequency instructions")
-        )
+        raise AerError(error_str.format("shift frequency and/or set frequency instructions"))
 
     required_str = "{} are required for simulation, and none were specified."
     if not _contains_acquire_instruction(qobj_dict["experiments"]):
@@ -279,10 +269,7 @@ def build_pulse_arrays(experiments, pulse_library):
     for exp in experiments:
         for pulse in exp["instructions"]:
             if pulse["name"] == "pv":
-                if (
-                    pulse["val"] not in [pval[1] for pval in pv_pulses]
-                    and pulse["val"] != 0
-                ):
+                if pulse["val"] not in [pval[1] for pval in pv_pulses] and pulse["val"] != 0:
                     pv_pulses.append((pulse["val"], idx))
                     idx += 1
                     total_pulse_length += 1
@@ -297,9 +284,7 @@ def build_pulse_arrays(experiments, pulse_library):
     for _, pulse in enumerate(pulse_library):
         stop = pulses_idx[ind - 1] + len(pulse["samples"])
         pulses_idx[ind] = stop
-        oplist_to_array(
-            format_pulse_samples(pulse["samples"]), pulses, pulses_idx[ind - 1]
-        )
+        oplist_to_array(format_pulse_samples(pulse["samples"]), pulses, pulses_idx[ind - 1])
         ind += 1
 
     for pv in pv_pulses:
@@ -333,9 +318,7 @@ def format_pulse_samples(pulse_samples):
     return [[samp.real, samp.imag] for samp in new_samples]
 
 
-def experiment_to_structs(
-    experiment, ham_chans, pulse_inds, pulse_to_int, dt, qubit_list=None
-):
+def experiment_to_structs(experiment, ham_chans, pulse_inds, pulse_to_int, dt, qubit_list=None):
     """Converts an experiment to a better formatted structure
 
     Args:
@@ -387,9 +370,7 @@ def experiment_to_structs(
         if "ch" in inst.keys() and inst["ch"][0] in ["d", "u"]:
             chan_name = inst["ch"].upper()
             if chan_name not in ham_chans.keys():
-                raise ValueError(
-                    "Channel {} is not in Hamiltonian model".format(inst["ch"])
-                )
+                raise ValueError("Channel {} is not in Hamiltonian model".format(inst["ch"]))
 
             # If last pulse on channel was a PV then need to set
             # its final time to be start time of current pulse
@@ -409,9 +390,7 @@ def experiment_to_structs(
                     if pv[0] == inst["val"]:
                         index = pv[1]
                         break
-                structs["channels"][chan_name][0].extend(
-                    [inst["t0"] * dt, None, index, cond]
-                )
+                structs["channels"][chan_name][0].extend([inst["t0"] * dt, None, index, cond])
                 pv_needs_tf[ham_chans[chan_name]] = 1
 
             # ShiftPhase instructions
@@ -427,9 +406,7 @@ def experiment_to_structs(
 
             # SetPhase instruction
             elif inst["name"] == "setp":
-                structs["channels"][chan_name][1].extend(
-                    [inst["t0"] * dt, inst["phase"], cond]
-                )
+                structs["channels"][chan_name][1].extend([inst["t0"] * dt, inst["phase"], cond])
             # Delay instruction
             elif inst["name"] == "delay":
                 pass  # nothing to be done in this case
@@ -523,12 +500,8 @@ def experiment_to_structs(
 
     # Convert lists to numpy arrays
     for key in structs["channels"].keys():
-        structs["channels"][key][0] = np.asarray(
-            structs["channels"][key][0], dtype=float
-        )
-        structs["channels"][key][1] = np.asarray(
-            structs["channels"][key][1], dtype=float
-        )
+        structs["channels"][key][0] = np.asarray(structs["channels"][key][0], dtype=float)
+        structs["channels"][key][1] = np.asarray(structs["channels"][key][1], dtype=float)
 
     structs["tlist"] = np.asarray([0] + structs["tlist"], dtype=float)
 

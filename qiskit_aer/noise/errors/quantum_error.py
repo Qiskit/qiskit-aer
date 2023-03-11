@@ -403,9 +403,7 @@ class QuantumError(BaseOperator, TolerancesMixin):
 
     # Overloads
     def __rmul__(self, other):
-        raise NotImplementedError(
-            "'QuantumError' does not support scalar multiplication."
-        )
+        raise NotImplementedError("'QuantumError' does not support scalar multiplication.")
 
     def __truediv__(self, other):
         raise NotImplementedError("'QuantumError' does not support division.")

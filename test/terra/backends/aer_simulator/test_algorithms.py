@@ -28,9 +28,7 @@ class TestAlgorithms(SimulatorTestCase):
         shots = 2000
         backend = self.backend(**options)
 
-        circuits = ref_algorithms.grovers_circuit(
-            final_measure=True, allow_sampling=True
-        )
+        circuits = ref_algorithms.grovers_circuit(final_measure=True, allow_sampling=True)
 
         targets = ref_algorithms.grovers_counts(shots)
         circuits = transpile(circuits, backend)
@@ -97,16 +95,12 @@ class TestAlgorithms(SimulatorTestCase):
     @supported_methods(["statevector", "density_matrix"])
     def test_grovers_cache_blocking(self, method, device):
         """Test grovers circuits execute."""
-        self._test_grovers(
-            method=method, device=device, blocking_qubits=2, max_parallel_threads=1
-        )
+        self._test_grovers(method=method, device=device, blocking_qubits=2, max_parallel_threads=1)
 
     @supported_methods(["statevector", "density_matrix"])
     def test_teleport_cache_blocking(self, method, device):
         """Test teleport circuits."""
-        self._test_teleport(
-            method=method, device=device, blocking_qubits=2, max_parallel_threads=1
-        )
+        self._test_teleport(method=method, device=device, blocking_qubits=2, max_parallel_threads=1)
 
     def test_extended_stabilizer_sparse_output_probs(self):
         """
@@ -137,6 +131,4 @@ class TestAlgorithms(SimulatorTestCase):
         }
         result = backend.run(circ, shots=shots).result()
         self.assertSuccess(result)
-        self.compare_counts(
-            result, [circ], [target], hex_counts=False, delta=0.1 * shots
-        )
+        self.compare_counts(result, [circ], [target], hex_counts=False, delta=0.1 * shots)

@@ -62,9 +62,7 @@ class AerDensityMatrix(DensityMatrix):
                 method = configs["method"]
                 raise AerError(f"Method {method} is not supported")
             if isinstance(data, (QuantumCircuit, Instruction)):
-                data, aer_state = AerDensityMatrix._from_instruction(
-                    data, None, configs
-                )
+                data, aer_state = AerDensityMatrix._from_instruction(data, None, configs)
             elif isinstance(data, list):
                 data = self._from_1d_array(np.array(data, dtype=complex))
                 data, aer_state = AerDensityMatrix._from_ndarray(data, configs)
@@ -96,9 +94,7 @@ class AerDensityMatrix(DensityMatrix):
                     np.asarray(data.to_matrix(), dtype=complex), configs
                 )
             else:
-                raise AerError(
-                    f"Input data is not supported: type={data.__class__}, data={data}"
-                )
+                raise AerError(f"Input data is not supported: type={data.__class__}, data={data}")
 
             self._aer_state = aer_state
 
@@ -112,9 +108,7 @@ class AerDensityMatrix(DensityMatrix):
         if value is None or isinstance(value, int):
             self._aer_state.set_seed(value)
         else:
-            raise AerError(
-                f"This seed is not supported: type={value.__class__}, value={value}"
-            )
+            raise AerError(f"This seed is not supported: type={value.__class__}, value={value}")
 
     def _last_result(self):
         if self._result is None:
@@ -260,13 +254,9 @@ class AerDensityMatrix(DensityMatrix):
             aer_state.apply_global_phase(inst.global_phase)
 
         if isinstance(inst, QuantumCircuit):
-            AerStatevector._aer_evolve_circuit(
-                aer_state, inst, range(num_qubits), basis_gates
-            )
+            AerStatevector._aer_evolve_circuit(aer_state, inst, range(num_qubits), basis_gates)
         else:
-            AerStatevector._aer_evolve_instruction(
-                aer_state, inst, range(num_qubits), basis_gates
-            )
+            AerStatevector._aer_evolve_instruction(aer_state, inst, range(num_qubits), basis_gates)
 
         return aer_state.move_to_ndarray(), aer_state
 
@@ -311,9 +301,7 @@ class AerDensityMatrix(DensityMatrix):
         evals, evecs = np.linalg.eig(self.data)
 
         nonzero_evals = evals[abs(evals) > atol]
-        if len(nonzero_evals) != 1 or not np.isclose(
-            nonzero_evals[0], 1, atol=atol, rtol=rtol
-        ):
+        if len(nonzero_evals) != 1 or not np.isclose(nonzero_evals[0], 1, atol=atol, rtol=rtol):
             raise QiskitError("Density matrix is not a pure state")
 
         psi = evecs[:, np.argmax(evals)]  # eigenvectors returned in columns.

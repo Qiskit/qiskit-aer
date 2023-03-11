@@ -157,12 +157,7 @@ class PulseSimulator(AerBackend):
     """
 
     def __init__(
-        self,
-        configuration=None,
-        properties=None,
-        defaults=None,
-        provider=None,
-        **backend_options
+        self, configuration=None, properties=None, defaults=None, provider=None, **backend_options
     ):
         warn(
             "The Pulse simulator backend in Qiskit Aer is deprecated and will "
@@ -182,11 +177,7 @@ class PulseSimulator(AerBackend):
 
         if defaults is None:
             defaults = PulseDefaults(
-                qubit_freq_est=[inf],
-                meas_freq_est=[inf],
-                buffer=0,
-                cmd_def=[],
-                pulse_library=[],
+                qubit_freq_est=[inf], meas_freq_est=[inf], buffer=0, cmd_def=[], pulse_library=[]
             )
 
         super().__init__(
@@ -201,9 +192,7 @@ class PulseSimulator(AerBackend):
         subsystem_list = backend_options.get("subsystem_list", None)
         if backend_options.get("system_model") is None:
             if hasattr(configuration, "hamiltonian"):
-                system_model = PulseSystemModel.from_config(
-                    configuration, subsystem_list
-                )
+                system_model = PulseSystemModel.from_config(configuration, subsystem_list)
                 self._set_system_model(system_model)
 
     @classmethod
@@ -266,9 +255,7 @@ class PulseSimulator(AerBackend):
     def from_backend(cls, backend, **options):
         """Initialize simulator from backend."""
         if isinstance(backend, BackendV2):
-            raise AerError(
-                "PulseSimulator.from_backend does not currently support V2 Backends."
-            )
+            raise AerError("PulseSimulator.from_backend does not currently support V2 Backends.")
         configuration = copy.copy(backend.configuration())
         defaults = copy.copy(backend.defaults())
         properties = copy.copy(backend.properties())
@@ -283,7 +270,7 @@ class PulseSimulator(AerBackend):
             defaults=defaults,
             backend_name=backend_name,
             description=description,
-            **options
+            **options,
         )
         return sim
 
@@ -319,9 +306,7 @@ class PulseSimulator(AerBackend):
         if key == "hamiltonian":
             # if option is hamiltonian, set in configuration and reconstruct pulse system model
             subsystem_list = getattr(self._options.get, "subsystem_list", None)
-            system_model = PulseSystemModel.from_config(
-                self.configuration(), subsystem_list
-            )
+            system_model = PulseSystemModel.from_config(self.configuration(), subsystem_list)
             super().set_option("system_model", system_model)
             self._set_configuration_option(key, value)
             return
@@ -346,9 +331,7 @@ class PulseSimulator(AerBackend):
     def _set_system_model(self, system_model):
         """Set system model option"""
         self._set_configuration_option("dt", getattr(system_model, "dt", []))
-        self._set_configuration_option(
-            "u_channel_lo", getattr(system_model, "u_channel_lo", [])
-        )
+        self._set_configuration_option("u_channel_lo", getattr(system_model, "u_channel_lo", []))
         super().set_option("system_model", system_model)
 
     def _validate(self, qobj):
@@ -374,8 +357,7 @@ class PulseSimulator(AerBackend):
 
             if num_acquires == 0:
                 raise AerError(
-                    "PulseSimulator requires at least one Acquire "
-                    "instruction per schedule."
+                    "PulseSimulator requires at least one Acquire " "instruction per schedule."
                 )
 
     @staticmethod

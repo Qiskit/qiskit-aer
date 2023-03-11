@@ -74,9 +74,7 @@ class TestSaveState(SimulatorTestCase):
         circ.append(target_instr, range(num_qubits))
 
         # Run
-        result = backend.run(
-            transpile(circ, backend, optimization_level=0), shots=1
-        ).result()
+        result = backend.run(transpile(circ, backend, optimization_level=0), shots=1).result()
         self.assertTrue(result.success)
         simdata = result.data(0)
         self.assertIn(label, simdata)
@@ -115,9 +113,7 @@ class TestSaveState(SimulatorTestCase):
         circ.append(target_instr, range(num_qubits))
 
         # Run
-        result = backend.run(
-            transpile(circ, backend, optimization_level=0), shots=1
-        ).result()
+        result = backend.run(transpile(circ, backend, optimization_level=0), shots=1).result()
         self.assertTrue(result.success)
         simdata = result.data(0)
         self.assertIn(method, simdata)

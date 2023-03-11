@@ -80,9 +80,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         qc.measure_all()
         tqc = transpile(qc, pulse_sim)
         result = pulse_sim.run(tqc, shots=1024).result()
-        self.assertDictAlmostEqual(
-            result.get_counts(0), {"0": 512, "1": 512}, delta=128
-        )
+        self.assertDictAlmostEqual(result.get_counts(0), {"0": 512, "1": 512}, delta=128)
 
     def test_multiple_circuit_conversion(self):
         with self.assertWarns(DeprecationWarning):
@@ -97,9 +95,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         counts = result.get_counts()
         self.assertEqual(5, len(counts))
         for i in range(5):
-            self.assertDictAlmostEqual(
-                result.get_counts(i), {"0": 512, "1": 512}, delta=128
-            )
+            self.assertDictAlmostEqual(result.get_counts(i), {"0": 512, "1": 512}, delta=128)
 
     # ---------------------------------------------------------------------
     # Test single qubit gates
@@ -124,11 +120,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         with self.assertWarns(DeprecationWarning):
             pulse_sim = PulseSimulator(system_model=self._system_model_1Q(omega_0, r))
         pulse_sim.set_options(
-            meas_level=2,
-            meas_return="single",
-            meas_map=[[0]],
-            qubit_lo_freq=[omega_d],
-            shots=256,
+            meas_level=2, meas_return="single", meas_map=[[0]], qubit_lo_freq=[omega_d], shots=256
         )
         # set up constant pulse for doing a pi pulse
         sched = self._1Q_constant_sched(total_samples)
@@ -141,9 +133,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         indep_yf = simulate_1q_model(y0, omega_0, r, np.array([omega_0]), samples, 1.0)
 
         # approximate analytic solution
-        phases = np.exp(
-            -1j * 2 * np.pi * omega_0 * total_samples * np.array([1.0, -1.0]) / 2
-        )
+        phases = np.exp(-1j * 2 * np.pi * omega_0 * total_samples * np.array([1.0, -1.0]) / 2)
         approx_yf = phases * np.array([0.0, -1j])
 
         # test final state
@@ -176,11 +166,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         with self.assertWarns(DeprecationWarning):
             pulse_sim = PulseSimulator(system_model=self._system_model_1Q(omega_0, r))
         pulse_sim.set_options(
-            meas_level=2,
-            meas_return="single",
-            meas_map=[[0]],
-            qubit_lo_freq=[omega_d],
-            shots=1,
+            meas_level=2, meas_return="single", meas_map=[[0]], qubit_lo_freq=[omega_d], shots=1
         )
         # set up constant pulse for doing a pi pulse
         sched = self._1Q_constant_sched(total_samples)
@@ -213,11 +199,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         with self.assertWarns(DeprecationWarning):
             pulse_sim = PulseSimulator(system_model=self._system_model_1Q(omega_0, r))
         pulse_sim.set_options(
-            meas_level=2,
-            meas_return="single",
-            meas_map=[[0]],
-            qubit_lo_freq=[omega_d],
-            shots=256,
+            meas_level=2, meas_return="single", meas_map=[[0]], qubit_lo_freq=[omega_d], shots=256
         )
         # set up constant pulse for doing a pi pulse
         schedule = self._1Q_constant_sched(total_samples)
@@ -230,9 +212,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         indep_yf = simulate_1q_model(y0, omega_0, r, np.array([omega_d]), samples, 1.0)
 
         # approximate analytic solution
-        phases = np.exp(
-            -1j * 2 * np.pi * omega_0 * total_samples * np.array([1.0, -1.0]) / 2
-        )
+        phases = np.exp(-1j * 2 * np.pi * omega_0 * total_samples * np.array([1.0, -1.0]) / 2)
         approx_yf = phases * (expm(-1j * (np.pi / 4) * self.X) @ y0)
 
         # test final state
@@ -264,11 +244,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         with self.assertWarns(DeprecationWarning):
             pulse_sim = PulseSimulator(system_model=self._system_model_1Q(omega_0, r))
         pulse_sim.set_options(
-            meas_level=2,
-            meas_return="single",
-            meas_map=[[0]],
-            qubit_lo_freq=[omega_d],
-            shots=256,
+            meas_level=2, meas_return="single", meas_map=[[0]], qubit_lo_freq=[omega_d], shots=256
         )
         # set up constant pulse for doing a pi pulse
         sched = self._1Q_constant_sched(total_samples, amp=1j)
@@ -281,9 +257,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         indep_yf = simulate_1q_model(y0, omega_0, r, np.array([omega_d]), samples, 1.0)
 
         # approximate analytic solution
-        phases = np.exp(
-            -1j * 2 * np.pi * omega_0 * total_samples * np.array([1.0, -1.0]) / 2
-        )
+        phases = np.exp(-1j * 2 * np.pi * omega_0 * total_samples * np.array([1.0, -1.0]) / 2)
         approx_yf = phases * (expm(-1j * (np.pi / 4) * self.Y) @ y0)
 
         # test final state
@@ -319,11 +293,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
                 system_model=self._system_model_1Q(omega_0, r), noise_model=noise_model
             )
         pulse_sim.set_options(
-            meas_level=2,
-            meas_return="single",
-            meas_map=[[0]],
-            qubit_lo_freq=[omega_d],
-            shots=10,
+            meas_level=2, meas_return="single", meas_map=[[0]], qubit_lo_freq=[omega_d], shots=10
         )
 
         # set up constant pulse for doing a pi pulse
@@ -356,18 +326,12 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         with self.assertWarns(DeprecationWarning):
             pulse_sim = PulseSimulator(system_model=self._system_model_1Q(omega_0, r))
         pulse_sim.set_options(
-            meas_level=2,
-            meas_return="single",
-            meas_map=[[0]],
-            qubit_lo_freq=[omega_d],
-            shots=256,
+            meas_level=2, meas_return="single", meas_map=[[0]], qubit_lo_freq=[omega_d], shots=256
         )
 
         # set up constant pulse for doing a pi pulse
         schedule = self._1Q_constant_sched(total_samples)
-        result = pulse_sim.run(
-            [schedule, schedule], initial_state=y0, seed=seed
-        ).result()
+        result = pulse_sim.run([schedule, schedule], initial_state=y0, seed=seed).result()
 
         # test results, checking both runs in parallel
         counts = result.get_counts()
@@ -399,9 +363,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
             # set up simulator
             system_model = self._system_model_1Q(omega_0, r)
             with self.assertWarns(DeprecationWarning):
-                pulse_sim = PulseSimulator(
-                    system_model=self._system_model_1Q(omega_0, r)
-                )
+                pulse_sim = PulseSimulator(system_model=self._system_model_1Q(omega_0, r))
             pulse_sim.set_options(dt=scale)
             pulse_sim.set_options(
                 meas_level=2,
@@ -420,20 +382,14 @@ class TestPulseSimulator(common.QiskitAerTestCase):
             # set up and run independent simulation
             samples = np.ones((total_samples, 1))
 
-            indep_yf = simulate_1q_model(
-                y0, omega_0, r, np.array([omega_0]), samples, scale
-            )
+            indep_yf = simulate_1q_model(y0, omega_0, r, np.array([omega_0]), samples, scale)
 
             # approximate analytic solution
-            phases = np.exp(
-                -1j * 2 * np.pi * omega_0 * total_samples * np.array([1.0, -1.0]) / 2
-            )
+            phases = np.exp(-1j * 2 * np.pi * omega_0 * total_samples * np.array([1.0, -1.0]) / 2)
             approx_yf = phases * np.array([0.0, -1j])
 
             # test final state
-            self.assertGreaterEqual(
-                state_fidelity(pulse_sim_yf, indep_yf), 1 - 10**-5
-            )
+            self.assertGreaterEqual(state_fidelity(pulse_sim_yf, indep_yf), 1 - 10**-5)
             self.assertGreaterEqual(state_fidelity(pulse_sim_yf, approx_yf), 0.99)
 
             counts = result.get_counts()
@@ -476,9 +432,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
                     shots=1,
                 )
 
-                schedule = self._1Q_constant_sched(
-                    total_samples, amp=np.exp(-1j * phase_vals[i])
-                )
+                schedule = self._1Q_constant_sched(total_samples, amp=np.exp(-1j * phase_vals[i]))
                 result = pulse_sim.run(schedule, initial_state=y0, seed=seed).result()
                 pulse_sim_yf = result.get_statevector()
 
@@ -491,13 +445,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
 
                 # approximate analytic solution
                 phases = np.exp(
-                    -1j
-                    * 2
-                    * np.pi
-                    * omega_d_vals[i]
-                    * total_samples
-                    * np.array([1.0, -1.0])
-                    / 2
+                    -1j * 2 * np.pi * omega_d_vals[i] * total_samples * np.array([1.0, -1.0]) / 2
                 )
                 detuning = omega_0 - omega_d_vals[i]
                 amp = np.exp(-1j * phase_vals[i])
@@ -512,9 +460,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
                 approx_yf = phases * (expm(-1j * rwa_ham * total_samples) @ y0)
 
                 # test final state
-                self.assertGreaterEqual(
-                    state_fidelity(pulse_sim_yf, indep_yf), 1 - 10**-5
-                )
+                self.assertGreaterEqual(state_fidelity(pulse_sim_yf, indep_yf), 1 - 10**-5)
                 self.assertGreaterEqual(state_fidelity(pulse_sim_yf, approx_yf), 0.99)
 
     def test_3d_oscillator(self):
@@ -533,11 +479,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         with self.assertWarns(DeprecationWarning):
             pulse_sim = PulseSimulator(system_model=system_model)
         pulse_sim.set_options(
-            meas_level=2,
-            meas_return="single",
-            meas_map=[[0]],
-            qubit_lo_freq=[freq],
-            shots=1,
+            meas_level=2, meas_return="single", meas_map=[[0]], qubit_lo_freq=[freq], shots=1
         )
 
         schedule = self._1Q_constant_sched(total_samples)
@@ -547,9 +489,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         # set up and run independent simulation
         y0 = np.array([1.0, 0.0, 0.0])
         samples = np.ones((total_samples, 1))
-        indep_yf = simulate_3d_oscillator_model(
-            y0, freq, anharm, r, np.array([freq]), samples, 1.0
-        )
+        indep_yf = simulate_3d_oscillator_model(y0, freq, anharm, r, np.array([freq]), samples, 1.0)
 
         # test final state
         self.assertGreaterEqual(state_fidelity(pulse_sim_yf, indep_yf), 1 - 10**-5)
@@ -562,11 +502,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         system_model = self._system_model_3d_oscillator(freq, anharm, r)
         pulse_sim.set_options(system_model=system_model)
         pulse_sim.set_options(
-            meas_level=2,
-            meas_return="single",
-            meas_map=[[0]],
-            qubit_lo_freq=[freq],
-            shots=1,
+            meas_level=2, meas_return="single", meas_map=[[0]], qubit_lo_freq=[freq], shots=1
         )
 
         schedule = self._1Q_constant_sched(total_samples)
@@ -574,9 +510,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         pulse_sim_yf = result.get_statevector()
 
         samples = np.ones((total_samples, 1))
-        indep_yf = simulate_3d_oscillator_model(
-            y0, freq, anharm, r, np.array([freq]), samples, 1.0
-        )
+        indep_yf = simulate_3d_oscillator_model(y0, freq, anharm, r, np.array([freq]), samples, 1.0)
 
         # test final state
         self.assertGreaterEqual(state_fidelity(pulse_sim_yf, indep_yf), 1 - 10**-5)
@@ -640,9 +574,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         with self.assertWarns(DeprecationWarning):
             pulse_sim = PulseSimulator(system_model=system_model)
 
-        schedule = self._3Q_constant_sched(
-            total_samples, u_idx=0, subsystem_list=subsystem_list
-        )
+        schedule = self._3Q_constant_sched(total_samples, u_idx=0, subsystem_list=subsystem_list)
 
         result = pulse_sim.run(
             [schedule],
@@ -683,9 +615,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
 
         y0 = np.kron(np.array([1.0, 0.0]), np.array([0.0, 1.0]))
         pulse_sim.set_options(system_model=system_model)
-        schedule = self._3Q_constant_sched(
-            total_samples, u_idx=1, subsystem_list=subsystem_list
-        )
+        schedule = self._3Q_constant_sched(total_samples, u_idx=1, subsystem_list=subsystem_list)
         result = pulse_sim.run(
             [schedule],
             meas_level=2,
@@ -732,21 +662,14 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         dt = 1.0
 
         system_model = PulseSystemModel(
-            hamiltonian=ham_model,
-            u_channel_lo=u_channel_lo,
-            subsystem_list=subsystem_list,
-            dt=dt,
+            hamiltonian=ham_model, u_channel_lo=u_channel_lo, subsystem_list=subsystem_list, dt=dt
         )
         with self.assertWarns(DeprecationWarning):
             pulse_sim = PulseSimulator(
                 system_model=system_model, initial_state=np.array([1.0, 0.0]), seed=9000
             )
         pulse_sim.set_options(
-            meas_level=2,
-            meas_return="single",
-            meas_map=[[0]],
-            qubit_lo_freq=[1.0],
-            shots=256,
+            meas_level=2, meas_return="single", meas_map=[[0]], qubit_lo_freq=[1.0], shots=256
         )
 
         # set up schedule and qobj
@@ -780,15 +703,9 @@ class TestPulseSimulator(common.QiskitAerTestCase):
 
         y0 = np.array([1.0, 0.0])
         with self.assertWarns(DeprecationWarning):
-            pulse_sim = PulseSimulator(
-                system_model=system_model, initial_state=y0, seed=9000
-            )
+            pulse_sim = PulseSimulator(system_model=system_model, initial_state=y0, seed=9000)
         pulse_sim.set_options(
-            meas_level=1,
-            meas_return="single",
-            meas_map=[[0]],
-            qubit_lo_freq=[1.0],
-            shots=shots,
+            meas_level=1, meas_return="single", meas_map=[[0]], qubit_lo_freq=[1.0], shots=shots
         )
         result = pulse_sim.run(schedule).result()
         pulse_sim_yf = result.get_statevector()
@@ -839,11 +756,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         with self.assertWarns(DeprecationWarning):
             pulse_sim = PulseSimulator(system_model=self._system_model_1Q(omega_0, r))
         pulse_sim.set_options(
-            meas_level=2,
-            meas_return="single",
-            meas_map=[[0]],
-            qubit_lo_freq=[omega_d],
-            shots=1,
+            meas_level=2, meas_return="single", meas_map=[[0]], qubit_lo_freq=[omega_d], shots=1
         )
 
         for gauss_sigma in gauss_sigmas:
@@ -855,22 +768,16 @@ class TestPulseSimulator(common.QiskitAerTestCase):
                 # construct schedule
                 schedule = Schedule()
                 schedule |= Play(drive_pulse, DriveChannel(0))
-                schedule |= (
-                    Acquire(1, AcquireChannel(0), MemorySlot(0)) << schedule.duration
-                )
+                schedule |= Acquire(1, AcquireChannel(0), MemorySlot(0)) << schedule.duration
 
                 result = pulse_sim.run(schedule, initial_state=y0, seed=seed).result()
                 pulse_sim_yf = result.get_statevector()
 
                 # run independent simulation
-                yf = simulate_1q_model(
-                    y0, omega_0, r, np.array([omega_d]), gaussian_samples, 1.0
-                )
+                yf = simulate_1q_model(y0, omega_0, r, np.array([omega_d]), gaussian_samples, 1.0)
 
                 # Check fidelity of statevectors
-                self.assertGreaterEqual(
-                    state_fidelity(pulse_sim_yf, yf), 1 - (10**-5)
-                )
+                self.assertGreaterEqual(state_fidelity(pulse_sim_yf, yf), 1 - (10**-5))
 
     def test_2Q_exchange(self):
         r"""Test a more complicated 2q simulation"""
@@ -901,10 +808,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         dt = 1.0
 
         system_model = PulseSystemModel(
-            hamiltonian=ham_model,
-            u_channel_lo=u_channel_lo,
-            subsystem_list=subsystem_list,
-            dt=dt,
+            hamiltonian=ham_model, u_channel_lo=u_channel_lo, subsystem_list=subsystem_list, dt=dt
         )
 
         # try some random schedule
@@ -913,26 +817,14 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         schedule += Play(drive_pulse, DriveChannel(0))
         schedule |= Play(drive_pulse, DriveChannel(1)) << 2 * total_samples
 
-        schedule |= (
-            Acquire(total_samples, AcquireChannel(0), MemorySlot(0))
-            << 3 * total_samples
-        )
-        schedule |= (
-            Acquire(total_samples, AcquireChannel(1), MemorySlot(1))
-            << 3 * total_samples
-        )
+        schedule |= Acquire(total_samples, AcquireChannel(0), MemorySlot(0)) << 3 * total_samples
+        schedule |= Acquire(total_samples, AcquireChannel(1), MemorySlot(1)) << 3 * total_samples
 
         y0 = np.array([1.0, 0.0, 0.0, 0.0])
         with self.assertWarns(DeprecationWarning):
-            pulse_sim = PulseSimulator(
-                system_model=system_model, initial_state=y0, seed=9000
-            )
+            pulse_sim = PulseSimulator(system_model=system_model, initial_state=y0, seed=9000)
         pulse_sim.set_options(
-            meas_level=2,
-            meas_return="single",
-            meas_map=[[0]],
-            qubit_lo_freq=q_freqs,
-            shots=1000,
+            meas_level=2, meas_return="single", meas_map=[[0]], qubit_lo_freq=q_freqs, shots=1000
         )
         result = pulse_sim.run(schedule).result()
         pulse_sim_yf = result.get_statevector()
@@ -962,10 +854,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         dt = 1.0
 
         system_model = PulseSystemModel(
-            hamiltonian=ham_model,
-            u_channel_lo=u_channel_lo,
-            subsystem_list=subsystem_list,
-            dt=dt,
+            hamiltonian=ham_model, u_channel_lo=u_channel_lo, subsystem_list=subsystem_list, dt=dt
         )
 
         # construct a schedule that should result in a unitary -Z if delays are correctly handled
@@ -985,8 +874,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         # Result of schedule should be the unitary -1j*Z, so check rotation of an X eigenstate
         with self.assertWarns(DeprecationWarning):
             pulse_sim = PulseSimulator(
-                system_model=system_model,
-                initial_state=np.array([1.0, 1.0]) / np.sqrt(2),
+                system_model=system_model, initial_state=np.array([1.0, 1.0]) / np.sqrt(2)
             )
         pulse_sim.set_options(
             meas_return="single", meas_map=[[0]], qubit_lo_freq=[0.0, 0.0], shots=1
@@ -997,9 +885,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         statevector = results.get_statevector()
         expected_vector = np.array([-1j, 1j]) / np.sqrt(2)
 
-        self.assertGreaterEqual(
-            state_fidelity(statevector, expected_vector), 1 - (10**-5)
-        )
+        self.assertGreaterEqual(state_fidelity(statevector, expected_vector), 1 - (10**-5))
 
         # verify validity of simulation when no delays included
         sched = Schedule()
@@ -1013,14 +899,10 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         results = pulse_sim.run(sched).result()
 
         statevector = results.get_statevector()
-        U = expm(1j * np.pi * self.Y / 4) @ expm(
-            -1j * np.pi * (self.Y / 4 + self.X / 2)
-        )
+        U = expm(1j * np.pi * self.Y / 4) @ expm(-1j * np.pi * (self.Y / 4 + self.X / 2))
         expected_vector = U @ np.array([1.0, 1.0]) / np.sqrt(2)
 
-        self.assertGreaterEqual(
-            state_fidelity(statevector, expected_vector), 1 - (10**-5)
-        )
+        self.assertGreaterEqual(state_fidelity(statevector, expected_vector), 1 - (10**-5))
 
     def test_shift_phase(self):
         """Test ShiftPhase command."""
@@ -1051,11 +933,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         with self.assertWarns(DeprecationWarning):
             pulse_sim = PulseSimulator(system_model=system_model, initial_state=y0)
         pulse_sim.set_options(
-            meas_level=2,
-            meas_return="single",
-            meas_map=[[0]],
-            qubit_lo_freq=[omega_0],
-            shots=1,
+            meas_level=2, meas_return="single", meas_map=[[0]], qubit_lo_freq=[omega_0], shots=1
         )
         results = pulse_sim.run(sched).result()
         pulse_sim_yf = results.get_statevector()
@@ -1119,11 +997,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         with self.assertWarns(DeprecationWarning):
             pulse_sim = PulseSimulator(system_model=system_model, initial_state=y0)
         pulse_sim.set_options(
-            meas_level=2,
-            meas_return="single",
-            meas_map=[[0]],
-            qubit_lo_freq=[omega_0],
-            shots=1,
+            meas_level=2, meas_return="single", meas_map=[[0]], qubit_lo_freq=[omega_0], shots=1
         )
         results = pulse_sim.run(sched).result()
         pulse_sim_yf = results.get_statevector()
@@ -1158,11 +1032,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         with self.assertWarns(DeprecationWarning):
             pulse_sim = PulseSimulator(system_model=system_model, initial_state=y0)
         pulse_sim.set_options(
-            meas_level=2,
-            meas_return="single",
-            meas_map=[[0]],
-            qubit_lo_freq=[omega_0],
-            shots=1,
+            meas_level=2, meas_return="single", meas_map=[[0]], qubit_lo_freq=[omega_0], shots=1
         )
         results = pulse_sim.run(sched).result()
         pulse_sim_yf = results.get_statevector()
@@ -1194,10 +1064,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         schedule |= Play(drive_pulse, DriveChannel(0))
         schedule += ShiftFrequency(5.0, DriveChannel(0))
         schedule += Play(drive_pulse, DriveChannel(0))
-        schedule += (
-            Acquire(total_samples, AcquireChannel(0), MemorySlot(0))
-            << schedule.duration
-        )
+        schedule += Acquire(total_samples, AcquireChannel(0), MemorySlot(0)) << schedule.duration
 
         with self.assertRaises(AerError):
             res = pulse_sim.run(schedule).result()
@@ -1208,10 +1075,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         schedule |= Play(drive_pulse, DriveChannel(0))
         schedule += SetFrequency(5.0, DriveChannel(0))
         schedule += Play(drive_pulse, DriveChannel(0))
-        schedule += (
-            Acquire(total_samples, AcquireChannel(0), MemorySlot(0))
-            << schedule.duration
-        )
+        schedule += Acquire(total_samples, AcquireChannel(0), MemorySlot(0)) << schedule.duration
 
         with self.assertRaises(AerError):
             res = pulse_sim.run(schedule).result()
@@ -1281,27 +1145,16 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         dt = 1.0
 
         system_model = PulseSystemModel(
-            hamiltonian=ham_model,
-            u_channel_lo=u_channel_lo,
-            subsystem_list=subsystem_list,
-            dt=dt,
+            hamiltonian=ham_model, u_channel_lo=u_channel_lo, subsystem_list=subsystem_list, dt=dt
         )
 
         schedule = Schedule()
-        schedule |= (
-            Acquire(total_samples, AcquireChannel(0), MemorySlot(0))
-            << 3 * total_samples
-        )
-        schedule |= (
-            Acquire(total_samples, AcquireChannel(1), MemorySlot(1))
-            << 3 * total_samples
-        )
+        schedule |= Acquire(total_samples, AcquireChannel(0), MemorySlot(0)) << 3 * total_samples
+        schedule |= Acquire(total_samples, AcquireChannel(1), MemorySlot(1)) << 3 * total_samples
 
         y0 = np.array([1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]) / np.sqrt(2)
         with self.assertWarns(DeprecationWarning):
-            pulse_sim = PulseSimulator(
-                system_model=system_model, initial_state=y0, seed=50
-            )
+            pulse_sim = PulseSimulator(system_model=system_model, initial_state=y0, seed=50)
         pulse_sim.set_options(
             meas_level=2,
             meas_return="single",
@@ -1337,10 +1190,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         dt = 1.0
 
         return PulseSystemModel(
-            hamiltonian=ham_model,
-            u_channel_lo=u_channel_lo,
-            subsystem_list=subsystem_list,
-            dt=dt,
+            hamiltonian=ham_model, u_channel_lo=u_channel_lo, subsystem_list=subsystem_list, dt=dt
         )
 
     def _1Q_constant_sched(self, total_samples, amp=1.0):
@@ -1358,10 +1208,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         drive_pulse = Waveform(amp * np.ones(total_samples))
         schedule = Schedule()
         schedule |= Play(drive_pulse, DriveChannel(0))
-        schedule |= (
-            Acquire(total_samples, AcquireChannel(0), MemorySlot(0))
-            << schedule.duration
-        )
+        schedule |= Acquire(total_samples, AcquireChannel(0), MemorySlot(0)) << schedule.duration
 
         return schedule
 
@@ -1388,10 +1235,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         dt = 1.0
 
         return PulseSystemModel(
-            hamiltonian=ham_model,
-            u_channel_lo=u_channel_lo,
-            subsystem_list=subsystem_list,
-            dt=dt,
+            hamiltonian=ham_model, u_channel_lo=u_channel_lo, subsystem_list=subsystem_list, dt=dt
         )
 
     def _2Q_constant_sched(self, total_samples, amp=1.0, u_idx=0):
@@ -1410,12 +1254,8 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         drive_pulse = Waveform(amp * np.ones(total_samples))
         schedule = Schedule()
         schedule |= Play(drive_pulse, ControlChannel(u_idx))
-        schedule |= (
-            Acquire(total_samples, AcquireChannel(0), MemorySlot(0)) << total_samples
-        )
-        schedule |= (
-            Acquire(total_samples, AcquireChannel(1), MemorySlot(1)) << total_samples
-        )
+        schedule |= Acquire(total_samples, AcquireChannel(0), MemorySlot(0)) << total_samples
+        schedule |= Acquire(total_samples, AcquireChannel(1), MemorySlot(1)) << total_samples
 
         return schedule
 
@@ -1432,30 +1272,20 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         """
 
         hamiltonian = {}
-        hamiltonian["h_str"] = [
-            "2*np.pi*j*0.25*(Z0*X2)||U0",
-            "2*np.pi*j*0.25*(Z1*X2)||U1",
-        ]
+        hamiltonian["h_str"] = ["2*np.pi*j*0.25*(Z0*X2)||U0", "2*np.pi*j*0.25*(Z1*X2)||U1"]
         hamiltonian["vars"] = {"j": j}
         hamiltonian["qub"] = {"0": 2, "1": 2, "2": 2}
-        ham_model = HamiltonianModel.from_dict(
-            hamiltonian, subsystem_list=subsystem_list
-        )
+        ham_model = HamiltonianModel.from_dict(hamiltonian, subsystem_list=subsystem_list)
 
         # set the U0 to have frequency of drive channel 0
         u_channel_lo = [[UchannelLO(0, 1.0 + 0.0j)], [UchannelLO(0, 1.0 + 0.0j)]]
         dt = 1.0
 
         return PulseSystemModel(
-            hamiltonian=ham_model,
-            u_channel_lo=u_channel_lo,
-            subsystem_list=subsystem_list,
-            dt=dt,
+            hamiltonian=ham_model, u_channel_lo=u_channel_lo, subsystem_list=subsystem_list, dt=dt
         )
 
-    def _3Q_constant_sched(
-        self, total_samples, amp=1.0, u_idx=0, subsystem_list=[0, 2]
-    ):
+    def _3Q_constant_sched(self, total_samples, amp=1.0, u_idx=0, subsystem_list=[0, 2]):
         """Creates a runnable schedule for the 3Q system after the system is restricted to
         2 qubits.
 
@@ -1475,8 +1305,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         schedule |= Play(drive_pulse, ControlChannel(u_idx))
         for idx in subsystem_list:
             schedule |= (
-                Acquire(total_samples, AcquireChannel(idx), MemorySlot(idx))
-                << total_samples
+                Acquire(total_samples, AcquireChannel(idx), MemorySlot(idx)) << total_samples
             )
 
         return schedule
@@ -1493,11 +1322,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
             PulseSystemModel: model for oscillator system
         """
         hamiltonian = {}
-        hamiltonian["h_str"] = [
-            "np.pi*(2*v-alpha)*O0",
-            "np.pi*alpha*O0*O0",
-            "2*np.pi*r*X0||D0",
-        ]
+        hamiltonian["h_str"] = ["np.pi*(2*v-alpha)*O0", "np.pi*alpha*O0*O0", "2*np.pi*r*X0||D0"]
         hamiltonian["vars"] = {"v": freq, "alpha": anharm, "r": r}
         hamiltonian["qub"] = {"0": 3}
         ham_model = HamiltonianModel.from_dict(hamiltonian)
@@ -1507,10 +1332,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         dt = 1.0
 
         return PulseSystemModel(
-            hamiltonian=ham_model,
-            u_channel_lo=u_channel_lo,
-            subsystem_list=subsystem_list,
-            dt=dt,
+            hamiltonian=ham_model, u_channel_lo=u_channel_lo, subsystem_list=subsystem_list, dt=dt
         )
 
 

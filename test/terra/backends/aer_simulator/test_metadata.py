@@ -78,13 +78,7 @@ class TestMetadata(SimulatorTestCase):
         self.assertEqual(circuit2.metadata, metadata2)
 
     @supported_methods(
-        [
-            "automatic",
-            "statevector",
-            "density_matrix",
-            "matrix_product_state",
-            "tensor_network",
-        ]
+        ["automatic", "statevector", "density_matrix", "matrix_product_state", "tensor_network"]
     )
     def test_three_parameterized_circuit_metadata(self, method, device):
         """Test circuits with object metadata."""

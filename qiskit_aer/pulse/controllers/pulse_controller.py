@@ -108,9 +108,7 @@ def pulse_controller(qobj):
     # ###############################
     # ### Parse qobj_config settings
     # ###############################
-    digested_qobj = digest_pulse_qobj(
-        qobj, pulse_de_model.channels, system_model.dt, qubit_list
-    )
+    digested_qobj = digest_pulse_qobj(qobj, pulse_de_model.channels, system_model.dt, qubit_list)
 
     # extract simulation-description level qobj content
     pulse_sim_desc.shots = digested_qobj.shots
@@ -145,12 +143,8 @@ def pulse_controller(qobj):
                 "so it is being automatically determined from the drift Hamiltonian."
             )
 
-    pulse_de_model.freqs = system_model.calculate_channel_frequencies(
-        qubit_lo_freq=qubit_lo_freq
-    )
-    pulse_de_model.calculate_channel_frequencies = (
-        system_model.calculate_channel_frequencies
-    )
+    pulse_de_model.freqs = system_model.calculate_channel_frequencies(qubit_lo_freq=qubit_lo_freq)
+    pulse_de_model.calculate_channel_frequencies = system_model.calculate_channel_frequencies
 
     # ###############################
     # ### Parse backend_options
@@ -207,11 +201,7 @@ def pulse_controller(qobj):
                         pulse_sim_desc.measurement_ops[
                             qubit_list.index(jj)
                         ] = op_gen.qubit_occ_oper_dressed(
-                            jj,
-                            estates,
-                            h_osc=dim_osc,
-                            h_qub=dim_qub,
-                            level=q_level_meas,
+                            jj, estates, h_osc=dim_osc, h_qub=dim_qub, level=q_level_meas
                         )
 
         if not exp["can_sample"]:
@@ -225,13 +215,9 @@ def pulse_controller(qobj):
     pulse_sim_desc.measurement_ops = meas_ops_reduced
 
     run_experiments = (
-        run_unitary_experiments
-        if pulse_sim_desc.can_sample
-        else run_monte_carlo_experiments
+        run_unitary_experiments if pulse_sim_desc.can_sample else run_monte_carlo_experiments
     )
-    exp_results, exp_times = run_experiments(
-        pulse_sim_desc, pulse_de_model, solver_options
-    )
+    exp_results, exp_times = run_experiments(pulse_sim_desc, pulse_de_model, solver_options)
 
     output = {
         "results": format_exp_results(exp_results, exp_times, pulse_sim_desc),
@@ -311,9 +297,7 @@ def format_exp_results(exp_results, exp_times, pulse_sim_desc):
             for mem_shot in memory:
                 results["data"]["memory"].append([])
                 for mem_slot in mem_shot:
-                    results["data"]["memory"][-1].append(
-                        [np.real(mem_slot), np.imag(mem_slot)]
-                    )
+                    results["data"]["memory"][-1].append([np.real(mem_slot), np.imag(mem_slot)])
 
             if m_ret == "avg":
                 results["data"]["memory"] = results["data"]["memory"][0]
@@ -333,9 +317,7 @@ def _unsupported_warnings(noise_model):
     """
 
     # Warnings that don't stop execution
-    warning_str = (
-        "{} are an untested feature, and therefore may not behave as expected."
-    )
+    warning_str = "{} are an untested feature, and therefore may not behave as expected."
     if noise_model is not None:
         warn(warning_str.format("Noise models"))
 
@@ -452,12 +434,8 @@ class PulseInternalDEModel:
         # Init register
         register = np.ones(self.n_registers, dtype=np.uint8)
 
-        rhs_dict = setup_rhs_dict_freqs(
-            self._rhs_dict, exp, self.calculate_channel_frequencies
-        )
-        ode_rhs_obj = get_ode_rhs_functor(
-            rhs_dict, exp, self.system, channels, register
-        )
+        rhs_dict = setup_rhs_dict_freqs(self._rhs_dict, exp, self.calculate_channel_frequencies)
+        ode_rhs_obj = get_ode_rhs_functor(rhs_dict, exp, self.system, channels, register)
 
         def rhs(t, y):
             return ode_rhs_obj(t, y)

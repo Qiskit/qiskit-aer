@@ -172,13 +172,9 @@ def t_gate_unitary_nondeterministic():
     """T-gate circuits reference unitaries."""
     targets = []
     # T.H
-    targets.append(
-        np.array([[1 / np.sqrt(2), 1 / np.sqrt(2)], [0.5 + 0.5j, -0.5 - 0.5j]])
-    )
+    targets.append(np.array([[1 / np.sqrt(2), 1 / np.sqrt(2)], [0.5 + 0.5j, -0.5 - 0.5j]]))
     # X.T.H
-    targets.append(
-        np.array([[0.5 + 0.5j, -0.5 - 0.5j], [1 / np.sqrt(2), 1 / np.sqrt(2)]])
-    )
+    targets.append(np.array([[0.5 + 0.5j, -0.5 - 0.5j], [1 / np.sqrt(2), 1 / np.sqrt(2)]]))
     # H.T.T.H = H.S.H
     targets.append(np.array([[1 + 1j, 1 - 1j], [1 - 1j, 1 + 1j]]) / 2)
     return targets
@@ -345,13 +341,9 @@ def tdg_gate_unitary_nondeterministic():
     """Tdg-gate circuits reference unitaries."""
     targets = []
     # Tdg.H
-    targets.append(
-        np.array([[1 / np.sqrt(2), 1 / np.sqrt(2)], [0.5 - 0.5j, -0.5 + 0.5j]])
-    )
+    targets.append(np.array([[1 / np.sqrt(2), 1 / np.sqrt(2)], [0.5 - 0.5j, -0.5 + 0.5j]]))
     # X.Tdg.H
-    targets.append(
-        np.array([[0.5 - 0.5j, -0.5 + 0.5j], [1 / np.sqrt(2), 1 / np.sqrt(2)]])
-    )
+    targets.append(np.array([[0.5 - 0.5j, -0.5 + 0.5j], [1 / np.sqrt(2), 1 / np.sqrt(2)]]))
     # H.Tdg.Tdg.H = H.Sdg.H
     targets.append(np.array([[1 - 1j, 1 + 1j], [1 + 1j, 1 - 1j]]) / 2)
     return targets
@@ -1459,10 +1451,7 @@ def cu1_gate_counts_nondeterministic(shots, hex_counts=True):
         targets.append({"0x0": shots})
         # H^X.CU1(pi/4,0,1).H^X
         targets.append(
-            {
-                "0x0": shots * (0.25 * (2 + np.sqrt(2))),
-                "0x2": shots * (0.25 * (2 - np.sqrt(2))),
-            }
+            {"0x0": shots * (0.25 * (2 + np.sqrt(2))), "0x2": shots * (0.25 * (2 - np.sqrt(2)))}
         )
         # H^X.CU1(pi/2,0,1).H^X
         targets.append({"0x0": shots * 0.5, "0x2": shots * 0.5})
@@ -1472,21 +1461,11 @@ def cu1_gate_counts_nondeterministic(shots, hex_counts=True):
         targets.append({"0x0": shots})
         # H^H.CU1(pi/2,0,1).H^H
         targets.append(
-            {
-                "0x0": shots * 0.625,
-                "0x1": shots * 0.125,
-                "0x2": shots * 0.125,
-                "0x3": shots * 0.125,
-            }
+            {"0x0": shots * 0.625, "0x1": shots * 0.125, "0x2": shots * 0.125, "0x3": shots * 0.125}
         )
         # H^H.CU1(pi,0,1).H^H
         targets.append(
-            {
-                "0x0": shots * 0.25,
-                "0x1": shots * 0.25,
-                "0x2": shots * 0.25,
-                "0x3": shots * 0.25,
-            }
+            {"0x0": shots * 0.25, "0x1": shots * 0.25, "0x2": shots * 0.25, "0x3": shots * 0.25}
         )
     else:
         # H^X.CU1(0,0,1).H^X
@@ -1503,21 +1482,11 @@ def cu1_gate_counts_nondeterministic(shots, hex_counts=True):
         targets.append({"00": shots})
         # H^H.CU1(pi/2,0,1).H^H
         targets.append(
-            {
-                "00": shots * 0.5125,
-                "01": shots * 0.125,
-                "10": shots * 0.125,
-                "11": shots * 0.125,
-            }
+            {"00": shots * 0.5125, "01": shots * 0.125, "10": shots * 0.125, "11": shots * 0.125}
         )
         # H^H.CU1(pi,0,1).H^H
         targets.append(
-            {
-                "00": shots * 0.25,
-                "01": shots * 0.25,
-                "10": shots * 0.25,
-                "11": shots * 0.25,
-            }
+            {"00": shots * 0.25, "01": shots * 0.25, "10": shots * 0.25, "11": shots * 0.25}
         )
     return targets
 
@@ -1597,13 +1566,10 @@ def cu1_gate_unitary_nondeterministic():
     # H^H.CU1(pi/2,0,1).H^H
     targets.append(
         (0.75 + 0.25j) * np.eye(4)
-        + (0.25 - 0.25j)
-        * np.array([[0, 1, 1, -1], [1, 0, -1, 1], [1, -1, 0, 1], [-1, 1, 1, 0]])
+        + (0.25 - 0.25j) * np.array([[0, 1, 1, -1], [1, 0, -1, 1], [1, -1, 0, 1], [-1, 1, 1, 0]])
     )
     # H^H.CU1(pi,0,1).H^H
-    targets.append(
-        0.5 * np.array([[1, 1, 1, -1], [1, 1, -1, 1], [1, -1, 1, 1], [-1, 1, 1, 1]])
-    )
+    targets.append(0.5 * np.array([[1, 1, 1, -1], [1, 1, -1, 1], [1, -1, 1, 1], [-1, 1, 1, 1]]))
     return targets
 
 
@@ -1706,9 +1672,7 @@ def cu3_gate_unitary_deterministic():
     )
 
     # I^X.CRX(pi).I^X
-    targets.append(
-        np.array([[0, 0, -1j, 0], [0, 1, 0, 0], [-1j, 0, 0, 0], [0, 0, 0, 1]])
-    )
+    targets.append(np.array([[0, 0, -1j, 0], [0, 1, 0, 0], [-1j, 0, 0, 0], [0, 0, 0, 1]]))
 
     # I^X.CRY(pi).I^X
     targets.append(np.array([[0, 0, -1, 0], [0, 1, 0, 0], [1, 0, 0, 0], [0, 0, 0, 1]]))

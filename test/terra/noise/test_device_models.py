@@ -35,14 +35,10 @@ class TestDeviceNoiseModel(QiskitAerTestCase):
 
     def test_basic_device_gate_errors_from_target_and_properties(self):
         """Test if the device same gate errors are produced both from target and properties"""
-        errors_from_properties = basic_device_gate_errors(
-            properties=FakeNairobi().properties()
-        )
+        errors_from_properties = basic_device_gate_errors(properties=FakeNairobi().properties())
         errors_from_target = basic_device_gate_errors(target=FakeNairobiV2().target)
         self.assertEqual(len(errors_from_properties), len(errors_from_target))
-        for err_properties, err_target in zip(
-            errors_from_properties, errors_from_target
-        ):
+        for err_properties, err_target in zip(errors_from_properties, errors_from_target):
             name1, qargs1, err1 = err_properties
             name2, qargs2, err2 = err_target
             self.assertEqual(name1, name2)
