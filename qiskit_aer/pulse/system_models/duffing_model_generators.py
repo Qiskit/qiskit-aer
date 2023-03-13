@@ -22,12 +22,9 @@ from .hamiltonian_model import HamiltonianModel
 from .pulse_system_model import PulseSystemModel
 
 
-def duffing_system_model(dim_oscillators,
-                         oscillator_freqs,
-                         anharm_freqs,
-                         drive_strengths,
-                         coupling_dict,
-                         dt):
+def duffing_system_model(
+    dim_oscillators, oscillator_freqs, anharm_freqs, drive_strengths, coupling_dict, dt
+):
     r"""Returns a :class:`PulseSystemModel` representing a physical model for a
     collection of Duffing oscillators.
 
@@ -120,25 +117,27 @@ def duffing_system_model(dim_oscillators,
     """
 
     # set symbols for string generation
-    freq_symbol = 'v'
-    anharm_symbol = 'alpha'
-    drive_symbol = 'r'
-    coupling_symbol = 'j'
+    freq_symbol = "v"
+    anharm_symbol = "alpha"
+    drive_symbol = "r"
+    coupling_symbol = "j"
     coupling_edges = coupling_dict.keys()
 
     # construct coupling graph, and raise warning if coupling_edges contains duplicate edges
     coupling_graph = CouplingGraph(coupling_edges)
     if len(coupling_graph.graph) < len(coupling_edges):
-        warn('Warning: The coupling_dict contains diplicate edges, and the second appearance of \
-              the same edge will be ignored.')
+        warn(
+            "Warning: The coupling_dict contains diplicate edges, and the second appearance of \
+              the same edge will be ignored."
+        )
 
     # construct the HamiltonianModel
     num_oscillators = len(oscillator_freqs)
     oscillators = list(range(num_oscillators))
     oscillator_dims = [dim_oscillators] * num_oscillators
-    freq_symbols = _str_list_generator(freq_symbol + '{0}', oscillators)
-    anharm_symbols = _str_list_generator(anharm_symbol + '{0}', oscillators)
-    drive_symbols = _str_list_generator(drive_symbol + '{0}', oscillators)
+    freq_symbols = _str_list_generator(freq_symbol + "{0}", oscillators)
+    anharm_symbols = _str_list_generator(anharm_symbol + "{0}", oscillators)
+    drive_symbols = _str_list_generator(drive_symbol + "{0}", oscillators)
     sorted_coupling_edges = coupling_graph.sorted_graph
     # populate coupling strengths in sorted order (vertex indices are now also sorted within edges,
     # so this needs to be accounted for when retrieving weights from coupling_dict)
@@ -149,21 +148,23 @@ def duffing_system_model(dim_oscillators,
             edge_strength = coupling_dict.get((edge[1], edge[0]))
         coupling_strengths.append(edge_strength)
 
-    coupling_symbols = _str_list_generator(coupling_symbol + '{0}{1}', *zip(*sorted_coupling_edges))
+    coupling_symbols = _str_list_generator(coupling_symbol + "{0}{1}", *zip(*sorted_coupling_edges))
     cr_idx_dict = coupling_graph.two_way_graph_dict
 
-    hamiltonian_dict = _duffing_hamiltonian_dict(oscillators=oscillators,
-                                                 oscillator_dims=oscillator_dims,
-                                                 oscillator_freqs=oscillator_freqs,
-                                                 freq_symbols=freq_symbols,
-                                                 anharm_freqs=anharm_freqs,
-                                                 anharm_symbols=anharm_symbols,
-                                                 drive_strengths=drive_strengths,
-                                                 drive_symbols=drive_symbols,
-                                                 ordered_coupling_edges=sorted_coupling_edges,
-                                                 coupling_strengths=coupling_strengths,
-                                                 coupling_symbols=coupling_symbols,
-                                                 cr_idx_dict=cr_idx_dict)
+    hamiltonian_dict = _duffing_hamiltonian_dict(
+        oscillators=oscillators,
+        oscillator_dims=oscillator_dims,
+        oscillator_freqs=oscillator_freqs,
+        freq_symbols=freq_symbols,
+        anharm_freqs=anharm_freqs,
+        anharm_symbols=anharm_symbols,
+        drive_strengths=drive_strengths,
+        drive_symbols=drive_symbols,
+        ordered_coupling_edges=sorted_coupling_edges,
+        coupling_strengths=coupling_strengths,
+        coupling_symbols=coupling_symbols,
+        cr_idx_dict=cr_idx_dict,
+    )
 
     hamiltonian_model = HamiltonianModel.from_dict(hamiltonian_dict)
 
@@ -171,28 +172,32 @@ def duffing_system_model(dim_oscillators,
     u_channel_lo = _cr_lo_list(cr_idx_dict)
 
     # construct and return the PulseSystemModel
-    return PulseSystemModel(hamiltonian=hamiltonian_model,
-                            u_channel_lo=u_channel_lo,
-                            control_channel_labels=coupling_graph.sorted_two_way_graph,
-                            subsystem_list=oscillators,
-                            dt=dt)
+    return PulseSystemModel(
+        hamiltonian=hamiltonian_model,
+        u_channel_lo=u_channel_lo,
+        control_channel_labels=coupling_graph.sorted_two_way_graph,
+        subsystem_list=oscillators,
+        dt=dt,
+    )
 
 
 # Helper functions for creating pieces necessary to construct oscillator system models
 
 
-def _duffing_hamiltonian_dict(oscillators,
-                              oscillator_dims,
-                              oscillator_freqs,
-                              freq_symbols,
-                              anharm_freqs,
-                              anharm_symbols,
-                              drive_strengths,
-                              drive_symbols,
-                              ordered_coupling_edges,
-                              coupling_strengths,
-                              coupling_symbols,
-                              cr_idx_dict):
+def _duffing_hamiltonian_dict(
+    oscillators,
+    oscillator_dims,
+    oscillator_freqs,
+    freq_symbols,
+    anharm_freqs,
+    anharm_symbols,
+    drive_strengths,
+    drive_symbols,
+    ordered_coupling_edges,
+    coupling_strengths,
+    coupling_symbols,
+    cr_idx_dict,
+):
     """Creates a hamiltonian string dict for a duffing oscillator model
 
     Note, this function makes the following assumptions:
@@ -254,7 +259,7 @@ def _duffing_hamiltonian_dict(oscillators,
 
     dim_dict = {str(oscillator): dim for oscillator, dim in zip(oscillators, oscillator_dims)}
 
-    return {'h_str': hamiltonian_str, 'vars': var_dict, 'qub': dim_dict}
+    return {"h_str": hamiltonian_str, "vars": var_dict, "qub": dim_dict}
 
 
 def _cr_lo_list(cr_idx_dict):
@@ -293,13 +298,10 @@ def _single_duffing_drift_terms(freq_symbols, anharm_symbols, system_list):
         list: drift term strings
     """
 
-    harm_terms = _str_list_generator('np.pi*(2*{0}-{1})*O{2}',
-                                     freq_symbols,
-                                     anharm_symbols,
-                                     system_list)
-    anharm_terms = _str_list_generator('np.pi*{0}*O{1}*O{1}',
-                                       anharm_symbols,
-                                       system_list)
+    harm_terms = _str_list_generator(
+        "np.pi*(2*{0}-{1})*O{2}", freq_symbols, anharm_symbols, system_list
+    )
+    anharm_terms = _str_list_generator("np.pi*{0}*O{1}*O{1}", anharm_symbols, system_list)
 
     return harm_terms + anharm_terms
 
@@ -314,9 +316,7 @@ def _drive_terms(drive_symbols, system_list):
         list: drive term strings
     """
 
-    return _str_list_generator('2*np.pi*{0}*X{1}||D{1}',
-                               drive_symbols,
-                               system_list)
+    return _str_list_generator("2*np.pi*{0}*X{1}||D{1}", drive_symbols, system_list)
 
 
 def _exchange_coupling_terms(coupling_symbols, ordered_edges):
@@ -331,10 +331,9 @@ def _exchange_coupling_terms(coupling_symbols, ordered_edges):
 
     idx1_list, idx2_list = zip(*list(ordered_edges))
 
-    return _str_list_generator('2*np.pi*{0}*(Sp{1}*Sm{2}+Sm{1}*Sp{2})',
-                               coupling_symbols,
-                               idx1_list,
-                               idx2_list)
+    return _str_list_generator(
+        "2*np.pi*{0}*(Sp{1}*Sm{2}+Sm{1}*Sp{2})", coupling_symbols, idx1_list, idx2_list
+    )
 
 
 def _cr_terms(drive_symbols, driven_system_indices, u_channel_indices):
@@ -348,10 +347,9 @@ def _cr_terms(drive_symbols, driven_system_indices, u_channel_indices):
         list: cr term strings
     """
 
-    return _str_list_generator('2*np.pi*{0}*X{1}||U{2}',
-                               drive_symbols,
-                               driven_system_indices,
-                               u_channel_indices)
+    return _str_list_generator(
+        "2*np.pi*{0}*X{1}||U{2}", drive_symbols, driven_system_indices, u_channel_indices
+    )
 
 
 def _str_list_generator(str_template, *args):
@@ -451,8 +449,9 @@ class CouplingGraph:
         self.sorted_two_way_graph = two_way_graph_list
 
         # create the dictionary version
-        self.two_way_graph_dict = {self.sorted_two_way_graph[k]: k
-                                   for k in range(len(self.sorted_two_way_graph))}
+        self.two_way_graph_dict = {
+            self.sorted_two_way_graph[k]: k for k in range(len(self.sorted_two_way_graph))
+        }
 
     def sorted_edge_index(self, edge):
         """Given an edge, returns the index in self.sorted_graph. Order in edge does not matter.

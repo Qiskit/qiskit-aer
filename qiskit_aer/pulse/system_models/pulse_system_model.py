@@ -22,7 +22,7 @@ from ...aererror import AerError
 from .hamiltonian_model import HamiltonianModel
 
 
-class PulseSystemModel():
+class PulseSystemModel:
     r"""Physical model object for pulse simulator.
 
     This class contains model information required by the
@@ -51,12 +51,15 @@ class PulseSystemModel():
 
         system_model = PulseSystemModel.from_backend(armonk_backend)
     """
-    def __init__(self,
-                 hamiltonian=None,
-                 u_channel_lo=None,
-                 control_channel_labels=None,
-                 subsystem_list=None,
-                 dt=None):
+
+    def __init__(
+        self,
+        hamiltonian=None,
+        u_channel_lo=None,
+        control_channel_labels=None,
+        subsystem_list=None,
+        dt=None,
+    ):
         """Initialize a PulseSystemModel.
 
         Args:
@@ -101,7 +104,7 @@ class PulseSystemModel():
         config = backend.configuration()
 
         if not config.open_pulse:
-            raise AerError('{} is not an open pulse backend'.format(backend))
+            raise AerError("{} is not an open pulse backend".format(backend))
 
         return cls.from_config(config, subsystem_list)
 
@@ -114,8 +117,8 @@ class PulseSystemModel():
         subsystem_list = subsystem_list or list(range(configuration.n_qubits))
         ham_string = configuration.hamiltonian
         hamiltonian = HamiltonianModel.from_dict(ham_string, subsystem_list)
-        u_channel_lo = getattr(configuration, 'u_channel_lo', None)
-        dt = getattr(configuration, 'dt', None)
+        u_channel_lo = getattr(configuration, "u_channel_lo", None)
+        dt = getattr(configuration, "dt", None)
 
         control_channel_labels = [None] * len(u_channel_lo)
         # populate control_channel_dict
@@ -126,12 +129,12 @@ class PulseSystemModel():
                 # find drive index
                 drive_idx = None
                 while drive_idx is None:
-                    u_str_label = 'U{0}'.format(str(u_idx))
-                    for h_term_str in ham_string['h_str']:
+                    u_str_label = "U{0}".format(str(u_idx))
+                    for h_term_str in ham_string["h_str"]:
                         # check if this string corresponds to this u channel
                         if u_str_label in h_term_str:
                             # get index of X operator drive term
-                            x_idx = h_term_str.find('X')
+                            x_idx = h_term_str.find("X")
                             # if 'X' is found, and is not at the end of the string, drive_idx
                             # is the subsequent character
                             if x_idx != -1 and x_idx + 1 < len(h_term_str):
@@ -139,23 +142,25 @@ class PulseSystemModel():
 
                 if drive_idx is not None:
                     # construct string for u channel
-                    u_string = ''
+                    u_string = ""
                     for u_term_dict in u_lo:
-                        scale = getattr(u_term_dict, 'scale', [1.0, 0])
-                        q_idx = getattr(u_term_dict, 'q')
+                        scale = getattr(u_term_dict, "scale", [1.0, 0])
+                        q_idx = getattr(u_term_dict, "q")
                         if len(u_string) > 0:
-                            u_string += ' + '
+                            u_string += " + "
                         if isinstance(scale, complex):
-                            u_string += str(scale) + 'q' + str(q_idx)
+                            u_string += str(scale) + "q" + str(q_idx)
                         else:
-                            u_string += str(scale[0] + scale[1] * 1j) + 'q' + str(q_idx)
-                    control_channel_labels[u_idx] = {'driven_q': drive_idx, 'freq': u_string}
+                            u_string += str(scale[0] + scale[1] * 1j) + "q" + str(q_idx)
+                    control_channel_labels[u_idx] = {"driven_q": drive_idx, "freq": u_string}
 
-        return cls(hamiltonian=hamiltonian,
-                   u_channel_lo=u_channel_lo,
-                   control_channel_labels=control_channel_labels,
-                   subsystem_list=subsystem_list,
-                   dt=dt)
+        return cls(
+            hamiltonian=hamiltonian,
+            u_channel_lo=u_channel_lo,
+            control_channel_labels=control_channel_labels,
+            subsystem_list=subsystem_list,
+            dt=dt,
+        )
 
     def control_channel_index(self, label):
         """Return the index of the control channel with identifying label.
@@ -167,7 +172,7 @@ class PulseSystemModel():
             int or None: index of the ControlChannel
         """
         if label not in self.control_channel_labels:
-            warn('There is no listed ControlChannel matching the provided label.')
+            warn("There is no listed ControlChannel matching the provided label.")
             return None
         else:
             return self.control_channel_labels.index(label)
@@ -195,9 +200,9 @@ class PulseSystemModel():
         freqs = OrderedDict()
         for key in self.hamiltonian._channels:
             chidx = int(key[1:])
-            if key[0] == 'D':
+            if key[0] == "D":
                 freqs[key] = qubit_lo_freq[chidx]
-            elif key[0] == 'U':
+            elif key[0] == "U":
                 freqs[key] = 0
                 for u_lo_idx in self.u_channel_lo[chidx]:
                     if u_lo_idx.q < len(qubit_lo_freq):

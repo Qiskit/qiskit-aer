@@ -22,14 +22,12 @@ namespace Transpile {
 
 class ReduceBarrier : public CircuitOptimization {
 public:
-  void optimize_circuit(Circuit& circ,
-                        Noise::NoiseModel& noise,
+  void optimize_circuit(Circuit &circ, Noise::NoiseModel &noise,
                         const opset_t &opset,
                         ExperimentResult &result) const override;
 };
 
-void ReduceBarrier::optimize_circuit(Circuit& circ,
-                                     Noise::NoiseModel& noise,
+void ReduceBarrier::optimize_circuit(Circuit &circ, Noise::NoiseModel &noise,
                                      const opset_t &allowed_opset,
                                      ExperimentResult &result) const {
   // Position of first sampling op
@@ -54,14 +52,12 @@ void ReduceBarrier::optimize_circuit(Circuit& circ,
 
 class Debug : public CircuitOptimization {
 public:
-  void optimize_circuit(Circuit& circ,
-                        Noise::NoiseModel& noise,
+  void optimize_circuit(Circuit &circ, Noise::NoiseModel &noise,
                         const opset_t &opset,
                         ExperimentResult &result) const override;
 };
 
-void Debug::optimize_circuit(Circuit& circ,
-                             Noise::NoiseModel& noise,
+void Debug::optimize_circuit(Circuit &circ, Noise::NoiseModel &noise,
                              const opset_t &allowed_opset,
                              ExperimentResult &result) const {
 
@@ -71,7 +67,6 @@ void Debug::optimize_circuit(Circuit& circ,
     ++it;
   }
 }
-
 
 //-------------------------------------------------------------------------
 } // end namespace Transpile

@@ -35,30 +35,31 @@ def add_conditional_x(circuit, qreg, creg, val, conditional_type):
     """
     # X-gate matrix
     x_mat = np.array([[0, 1], [1, 0]], dtype=complex)
-    x_superop = Instruction('superop', 1, 0, [np.kron(x_mat, x_mat)])
-    x_kraus = Instruction('kraus', 1, 0, [x_mat])
+    x_superop = Instruction("superop", 1, 0, [np.kron(x_mat, x_mat)])
+    x_kraus = Instruction("kraus", 1, 0, [x_mat])
 
-    if conditional_type == 'unitary':
+    if conditional_type == "unitary":
         circuit.unitary(x_mat, [qreg]).c_if(creg, val)
-    elif conditional_type == 'kraus':
+    elif conditional_type == "kraus":
         circuit.append(x_kraus, [qreg]).c_if(creg, val)
-    elif conditional_type == 'superop':
+    elif conditional_type == "superop":
         circuit.append(x_superop, [qreg]).c_if(creg, val)
     else:
         circuit.x(qreg).c_if(creg, val)
+
 
 # ==========================================================================
 # Conditionals on 1-bit register
 # ==========================================================================
 
 
-def conditional_circuits_1bit(final_measure=True, conditional_type='gate'):
+def conditional_circuits_1bit(final_measure=True, conditional_type="gate"):
     """Conditional gates on single bit classical register."""
     circuits = []
     qr = QuantumRegister(1)
-    cond = ClassicalRegister(1, 'cond')
+    cond = ClassicalRegister(1, "cond")
     if final_measure:
-        cr = ClassicalRegister(1, 'meas')
+        cr = ClassicalRegister(1, "meas")
         regs = (qr, cr, cond)
     else:
         regs = (qr, cond)
@@ -113,22 +114,22 @@ def conditional_counts_1bit(shots, hex_counts=True):
     targets = []
     if hex_counts:
         # Conditional on 0 (cond = 0), result "0 1"
-        targets.append({'0x1': shots})
+        targets.append({"0x1": shots})
         # Conditional on 0 (cond = 1), result "1 0"
-        targets.append({'0x2': shots})
+        targets.append({"0x2": shots})
         # Conditional on 1 (cond = 0), # result "0 0"
-        targets.append({'0x0': shots})
+        targets.append({"0x0": shots})
         # Conditional on 1 (cond = 1), # result "1 1"
-        targets.append({'0x3': shots})
+        targets.append({"0x3": shots})
     else:
         # Conditional on 0 (cond = 0), result "0 1"
-        targets.append({'0 1': shots})
+        targets.append({"0 1": shots})
         # Conditional on 0 (cond = 1), result "1 0"
-        targets.append({'1 0': shots})
+        targets.append({"1 0": shots})
         # Conditional on 1 (cond = 0), # result "0 0"
-        targets.append({'0 0': shots})
+        targets.append({"0 0": shots})
         # Conditional on 1 (cond = 1), # result "1 1"
-        targets.append({'1 1': shots})
+        targets.append({"1 1": shots})
     return targets
 
 
@@ -150,13 +151,14 @@ def conditional_statevector_1bit():
 # Conditionals on 2-bit register
 # ==========================================================================
 
-def conditional_circuits_2bit(final_measure=True, conditional_type='gate'):
+
+def conditional_circuits_2bit(final_measure=True, conditional_type="gate"):
     """Conditional test circuits on 2-bit classical register."""
     circuits = []
     qr = QuantumRegister(1)
-    cond = ClassicalRegister(2, 'cond')
+    cond = ClassicalRegister(2, "cond")
     if final_measure:
-        cr = ClassicalRegister(1, 'meas')
+        cr = ClassicalRegister(1, "meas")
         regs = (qr, cr, cond)
     else:
         regs = (qr, cond)
@@ -343,77 +345,75 @@ def conditional_circuits_2bit(final_measure=True, conditional_type='gate'):
     return circuits
 
 
-
-
 def conditional_counts_2bit(shots, hex_counts=True):
     """2-bit conditional circuits reference counts."""
     targets = []
     if hex_counts:
         # Conditional on 00 (cr = 00), result "00 1"
-        targets.append({'0x1': shots})
+        targets.append({"0x1": shots})
         # Conditional on 00 (cr = 01), result "01 0"
-        targets.append({'0x2': shots})
+        targets.append({"0x2": shots})
         # Conditional on 00 (cr = 10), result "10 0"
-        targets.append({'0x4': shots})
+        targets.append({"0x4": shots})
         # Conditional on 00 (cr = 11), result "11 0"
-        targets.append({'0x6': shots})
+        targets.append({"0x6": shots})
         # Conditional on 01 (cr = 00), result "00 0"
-        targets.append({'0x0': shots})
+        targets.append({"0x0": shots})
         # Conditional on 01 (cr = 01), result "01 1"
-        targets.append({'0x3': shots})
+        targets.append({"0x3": shots})
         # Conditional on 01 (cr = 10), result "10 0"
-        targets.append({'0x4': shots})
+        targets.append({"0x4": shots})
         # Conditional on 01 (cr = 11), result "11 0"
-        targets.append({'0x6': shots})
+        targets.append({"0x6": shots})
         # Conditional on 10 (cr = 00), result "00 0"
-        targets.append({'0x0': shots})
+        targets.append({"0x0": shots})
         # Conditional on 10 (cr = 01), result "01 0"
-        targets.append({'0x2': shots})
+        targets.append({"0x2": shots})
         # Conditional on 10 (cr = 10), result "10 1"
-        targets.append({'0x5': shots})
+        targets.append({"0x5": shots})
         # Conditional on 10 (cr = 11), result "11 0"
-        targets.append({'0x6': shots})
+        targets.append({"0x6": shots})
         # Conditional on 11 (cr = 00), result "00 0"
-        targets.append({'0x0': shots})
+        targets.append({"0x0": shots})
         # Conditional on 11 (cr = 01), result "01 0"
-        targets.append({'0x2': shots})
+        targets.append({"0x2": shots})
         # Conditional on 11 (cr = 10), result "10 0"
-        targets.append({'0x4': shots})
+        targets.append({"0x4": shots})
         # Conditional on 11 (cr = 11), result "11 1"
-        targets.append({'0x7': shots})
+        targets.append({"0x7": shots})
     else:
         # Conditional on 00 (cr = 00), result "00 1"
-        targets.append({'00 1': shots})
+        targets.append({"00 1": shots})
         # Conditional on 00 (cr = 01), result "01 0"
-        targets.append({'01 0': shots})
+        targets.append({"01 0": shots})
         # Conditional on 00 (cr = 10), result "10 0"
-        targets.append({'10 0': shots})
+        targets.append({"10 0": shots})
         # Conditional on 00 (cr = 11), result "11 0"
-        targets.append({'11 0': shots})
+        targets.append({"11 0": shots})
         # Conditional on 01 (cr = 00), result "00 0"
-        targets.append({'00 0': shots})
+        targets.append({"00 0": shots})
         # Conditional on 01 (cr = 01), result "01 1"
-        targets.append({'01 1': shots})
+        targets.append({"01 1": shots})
         # Conditional on 01 (cr = 10), result "10 0"
-        targets.append({'10 0': shots})
+        targets.append({"10 0": shots})
         # Conditional on 01 (cr = 11), result "11 0"
-        targets.append({'11 0': shots})
+        targets.append({"11 0": shots})
         # Conditional on 10 (cr = 00), result "00 0"
-        targets.append({'00 0': shots})
+        targets.append({"00 0": shots})
         # Conditional on 10 (cr = 01), result "01 0"
-        targets.append({'01 0': shots})
+        targets.append({"01 0": shots})
         # Conditional on 10 (cr = 10), result "10 1"
-        targets.append({'10 0': shots})
+        targets.append({"10 0": shots})
         # Conditional on 10 (cr = 11), result "11 0"
-        targets.append({'11 0': shots})
+        targets.append({"11 0": shots})
         # Conditional on 11 (cr = 00), result "00 0"
-        targets.append({'00 0': shots})
+        targets.append({"00 0": shots})
         # Conditional on 11 (cr = 01), result "01 0"
-        targets.append({'01 0': shots})
+        targets.append({"01 0": shots})
         # Conditional on 11 (cr = 10), result "10 0"
-        targets.append({'10 0': shots})
+        targets.append({"10 0": shots})
         # Conditional on 11 (cr = 11), result "11 1"
-        targets.append({'11 1': shots})
+        targets.append({"11 1": shots})
     return targets
 
 
@@ -461,32 +461,32 @@ def conditional_statevector_2bit():
 # Conditionals on large (>= 64) registers
 # ==========================================================================
 
+
 def conditional_cases_64bit():
     """Test cases for conditional on 64-bit registers."""
     # [value of conditional register, list of condtional values]
     return [
-                (0,       [0, 1, 2**63]),
-                (1,       [1, 2**63]),
-                (2**32,   [2**32, 0, 2**31]),
-                (2**32-1, [2**32-1, 0, 0xffffffff00000000]),
-                (2**64-1, [2**64-1, 0]),
-                (2337843, [2337843, 0]),
-            ]
+        (0, [0, 1, 2**63]),
+        (1, [1, 2**63]),
+        (2**32, [2**32, 0, 2**31]),
+        (2**32 - 1, [2**32 - 1, 0, 0xFFFFFFFF00000000]),
+        (2**64 - 1, [2**64 - 1, 0]),
+        (2337843, [2337843, 0]),
+    ]
 
 
 def conditional_cases_132bit():
     """Test cases for conditional on 132-bit registers."""
     # [value of conditional register, list of condtional values]
     return [
-                (0,     [0, 1]),
-                (1,     [1, 0, 2**131]),
-                (2**131, [2**131, 1]),
-                (2**132-1, [2**132-1, 0, 1]),
-        ]
+        (0, [0, 1]),
+        (1, [1, 0, 2**131]),
+        (2**131, [2**131, 1]),
+        (2**132 - 1, [2**132 - 1, 0, 1]),
+    ]
 
 
-def conditional_circuits_nbit(n, cases, final_measure=True,
-        conditional_type='gate'):
+def conditional_circuits_nbit(n, cases, final_measure=True, conditional_type="gate"):
     """Conditional gates on n bit classical register.
     Args:
         n(int):       width of conditional register
@@ -501,10 +501,10 @@ def conditional_circuits_nbit(n, cases, final_measure=True,
                       repectively.
     """
     circuits = []
-    qr   = QuantumRegister(1)
-    cond = ClassicalRegister(n, 'cond')
+    qr = QuantumRegister(1)
+    cond = ClassicalRegister(n, "cond")
     if final_measure:
-        cr = ClassicalRegister(1, 'meas')
+        cr = ClassicalRegister(1, "meas")
         regs = (qr, cr, cond)
     else:
         regs = (qr, cond)
@@ -520,8 +520,8 @@ def conditional_circuits_nbit(n, cases, final_measure=True,
             # encode reg_val into conditional register
             circuit.x(qr)
             for i, c in enumerate(bin_reg_val):
-                if c == '1':
-                    circuit.measure(qr[0], cond[str_n-i-1])
+                if c == "1":
+                    circuit.measure(qr[0], cond[str_n - i - 1])
             circuit.x(qr)
 
             # apply x to qr[0] if cond register has value cond_val
@@ -539,9 +539,9 @@ def condtional_counts_nbit(n, cases, shots, hex_counts=True):
         for cond_val in cond_vals:
             cr = 1 if reg_val == cond_val else 0
             if hex_counts:
-                key = '{:#x}'.format(reg_val * 2 + cr)
+                key = "{:#x}".format(reg_val * 2 + cr)
             else:
-                key = '{} {}'.format(bin(reg_val)[2:].zfill(n), str(cr))
+                key = "{} {}".format(bin(reg_val)[2:].zfill(n), str(cr))
             targets.append({key: shots})
     return targets
 

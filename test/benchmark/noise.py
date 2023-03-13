@@ -16,32 +16,44 @@ from qiskit.circuit.library import IntegerComparator, WeightedAdder, QuadraticFo
 
 from benchmark.simulator_benchmark import SimulatorBenchmarkSuite
 
-class NoiseSimulatorBenchmarkSuite(SimulatorBenchmarkSuite):
 
-    def __init__(self,
-                 name = 'noise',
-                 apps = [],
-                 qubits = [],
-                 runtime_names = [],
-                 measures = [],
-                 measure_counts = [],
-                 noise_model_names = []):
-        super().__init__(name,
-                          apps, 
-                          qubits=qubits, 
-                          runtime_names=runtime_names, 
-                          measures=measures, 
-                          measure_counts=measure_counts, 
-                          noise_model_names=noise_model_names)
+class NoiseSimulatorBenchmarkSuite(SimulatorBenchmarkSuite):
+    def __init__(
+        self,
+        name="noise",
+        apps=[],
+        qubits=[],
+        runtime_names=[],
+        measures=[],
+        measure_counts=[],
+        noise_model_names=[],
+    ):
+        super().__init__(
+            name,
+            apps,
+            qubits=qubits,
+            runtime_names=runtime_names,
+            measures=measures,
+            measure_counts=measure_counts,
+            noise_model_names=noise_model_names,
+        )
 
     def track_statevector(self, app, measure, measure_count, noise_name, qubit):
-        return self._run(self.RUNTIME_STATEVECTOR_CPU, app, measure, measure_count, noise_name, qubit)
+        return self._run(
+            self.RUNTIME_STATEVECTOR_CPU, app, measure, measure_count, noise_name, qubit
+        )
 
     def track_statevector_gpu(self, app, measure, measure_count, noise_name, qubit):
-        return self._run(self.RUNTIME_STATEVECTOR_GPU, app, measure, measure_count, noise_name, qubit)
+        return self._run(
+            self.RUNTIME_STATEVECTOR_GPU, app, measure, measure_count, noise_name, qubit
+        )
 
     def track_density_matrix(self, app, measure, measure_count, noise_name, qubit):
-        return self._run(self.RUNTIME_DENSITY_MATRIX_CPU, app, measure, measure_count, noise_name, qubit)
-        
+        return self._run(
+            self.RUNTIME_DENSITY_MATRIX_CPU, app, measure, measure_count, noise_name, qubit
+        )
+
     def track_density_matrix_gpu(self, app, measure, measure_count, noise_name, qubit):
-        return self._run(self.RUNTIME_DENSITY_MATRIX_GPU, app, measure, measure_count, noise_name, qubit)
+        return self._run(
+            self.RUNTIME_DENSITY_MATRIX_GPU, app, measure, measure_count, noise_name, qubit
+        )

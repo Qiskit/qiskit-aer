@@ -64,7 +64,7 @@ def sigmax():
     Returns:
         Operator: Operator representation for sigma x.
     """
-    return Operator.from_label('X')
+    return Operator.from_label("X")
 
 
 def sigmay():
@@ -72,7 +72,7 @@ def sigmay():
     Returns:
         Operator: Operator representation for sigma y.
     """
-    return Operator.from_label('Y')
+    return Operator.from_label("Y")
 
 
 def sigmaz():
@@ -80,7 +80,7 @@ def sigmaz():
     Returns:
         Operator: Operator representation for sigma z.
     """
-    return Operator.from_label('Z')
+    return Operator.from_label("Z")
 
 
 def identity(dim):

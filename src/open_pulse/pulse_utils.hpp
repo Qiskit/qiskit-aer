@@ -15,20 +15,17 @@
 #ifndef PULSE_UTILS_H
 #define PULSE_UTILS_H
 
-#include <pybind11/pybind11.h>
-#include <pybind11/numpy.h>
 #include "types.hpp"
+#include <pybind11/numpy.h>
+#include <pybind11/pybind11.h>
 
 namespace py = pybind11;
 
-py::object expect_psi_csr(py::array_t<complex_t> data,
-                          py::array_t<int> ind,
-                          py::array_t<int> ptr,
-                          py::array_t<complex_t> vec,
+py::object expect_psi_csr(py::array_t<complex_t> data, py::array_t<int> ind,
+                          py::array_t<int> ptr, py::array_t<complex_t> vec,
                           bool isherm);
 
-py::object expect_psi(py::array_t<complex_t> data,
-                      py::array_t<complex_t> vec,
+py::object expect_psi(py::array_t<complex_t> data, py::array_t<complex_t> vec,
                       bool isherm);
 
 //============================================================================
@@ -54,7 +51,6 @@ void write_shots_memory(py::array_t<unsigned char> mem,
                         py::array_t<double> probs,
                         py::array_t<double> rand_vals);
 
-
 //============================================================================
 // Takes a list of complex numbers represented by a list
 // of pairs of floats, and inserts them into a complex NumPy
@@ -66,7 +62,6 @@ void write_shots_memory(py::array_t<unsigned char> mem,
 // start_idx (int): The starting index at which to insert elements.
 //============================================================================
 void oplist_to_array(py::list A, py::array_t<complex_t> B, int start_idx);
-
 
 //============================================================================
 // Sparse matrix, dense vector multiplication.
@@ -90,11 +85,10 @@ void oplist_to_array(py::list A, py::array_t<complex_t> B, int start_idx);
 //         Returns dense array.
 //============================================================================
 py::array_t<complex_t> spmv_csr(py::array_t<complex_t> data,
-                                py::array_t<int> ind,
-                                py::array_t<int> ptr,
+                                py::array_t<int> ind, py::array_t<int> ptr,
                                 py::array_t<complex_t> vec);
 
 py::array_t<complex_t> spmv(py::array_t<complex_t> data,
                             py::array_t<complex_t> vec);
 
-#endif //PULSE_UTILS_H
+#endif // PULSE_UTILS_H

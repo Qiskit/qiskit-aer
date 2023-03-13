@@ -16,63 +16,59 @@
 #define _aer_controller_avx2_detect_hpp_
 
 #include <array>
-#include <vector>
 #include <bitset>
+#include <vector>
 
 #include "misc/common_macros.hpp"
 #if defined(_MSC_VER)
-    #include <intrin.h>
+#include <intrin.h>
 #elif defined(GNUC_AVX2)
-    #include <cpuid.h>
+#include <cpuid.h>
 #endif
 
-
 namespace {
-inline void ccpuid(int cpu_info[4], int function_id){
+inline void ccpuid(int cpu_info[4], int function_id) {
 #if defined(_MSC_VER)
   __cpuid(cpu_info, function_id);
 #elif defined(GNUC_AVX2)
-  __cpuid(function_id,
-    cpu_info[0],
-    cpu_info[1],
-    cpu_info[2],
-    cpu_info[3]);
+  __cpuid(function_id, cpu_info[0], cpu_info[1], cpu_info[2], cpu_info[3]);
 #else // We don't support this platform intrinsics
   cpu_info[0] = cpu_info[1] = cpu_info[2] = cpu_info[3] = 0;
 #endif
 }
 
-inline void cpuidex(int cpu_info[4], int function_id, int subfunction_id){
+inline void cpuidex(int cpu_info[4], int function_id, int subfunction_id) {
 #if defined(_MSC_VER)
   __cpuidex(cpu_info, function_id, subfunction_id);
 #elif defined(GNUC_AVX2)
-  __cpuid_count(function_id, subfunction_id, cpu_info[0], cpu_info[1], cpu_info[2], cpu_info[3]);
+  __cpuid_count(function_id, subfunction_id, cpu_info[0], cpu_info[1],
+                cpu_info[2], cpu_info[3]);
 #else // We don't support this platform intrinsics
-   cpu_info[0] = cpu_info[1] = cpu_info[2] = cpu_info[3] = 0;
+  cpu_info[0] = cpu_info[1] = cpu_info[2] = cpu_info[3] = 0;
 #endif
 }
-}
+} // namespace
 
 namespace AER {
 
-inline bool is_avx2_supported(){
+inline bool is_avx2_supported() {
 #if defined(GNUC_AVX2) || defined(_MSC_VER)
   static bool cached = false;
   static bool is_supported = false;
-  if(cached)
+  if (cached)
     return is_supported;
 
   std::array<int, 4> cpui;
   ccpuid(cpui.data(), 0);
   auto num_ids = cpui[0];
-  if(num_ids < 7){
+  if (num_ids < 7) {
     cached = true;
     is_supported = false;
     return false;
   }
 
   std::vector<std::array<int, 4>> data;
-  for (int i = 0; i <= num_ids; ++i){
+  for (int i = 0; i <= num_ids; ++i) {
     cpuidex(cpui.data(), i, 0);
     data.push_back(cpui);
   }
@@ -87,11 +83,9 @@ inline bool is_avx2_supported(){
   is_supported = is_fma_supported && is_avx2_supported;
   return is_supported;
 #else
-    return false;
+  return false;
 #endif
 }
 // end namespace AER
-}
+} // namespace AER
 #endif
-
-

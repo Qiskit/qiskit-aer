@@ -15,7 +15,6 @@
 #ifndef _qv_unitary_matrix_hpp_
 #define _qv_unitary_matrix_hpp_
 
-
 #include "framework/utils.hpp"
 #include "simulators/statevector/qubitvector.hpp"
 namespace AER {
@@ -42,11 +41,11 @@ public:
   // Constructors and Destructor
   //-----------------------------------------------------------------------
 
-  UnitaryMatrix() : UnitaryMatrix(0) {};
+  UnitaryMatrix() : UnitaryMatrix(0){};
   explicit UnitaryMatrix(size_t num_qubits);
-  UnitaryMatrix(const UnitaryMatrix& obj){}
-  UnitaryMatrix &operator=(const UnitaryMatrix& obj) = delete;
-  UnitaryMatrix &operator=(UnitaryMatrix&& obj);
+  UnitaryMatrix(const UnitaryMatrix &obj) {}
+  UnitaryMatrix &operator=(const UnitaryMatrix &obj) = delete;
+  UnitaryMatrix &operator=(UnitaryMatrix &&obj);
 
   //-----------------------------------------------------------------------
   // Utility functions
@@ -56,10 +55,10 @@ public:
   void set_num_qubits(size_t num_qubits);
 
   // Return the number of rows in the matrix
-  size_t num_rows() const {return rows_;}
+  size_t num_rows() const { return rows_; }
 
   // Returns the number of qubits for the current vector
-  virtual uint_t num_qubits() const override { return num_qubits_;}
+  virtual uint_t num_qubits() const override { return num_qubits_; }
 
   // Copy the internal data array to a complex matrix
   matrix<std::complex<data_t>> copy_to_matrix() const;
@@ -84,12 +83,13 @@ public:
   // Move semantics
   void initialize_from_matrix(matrix<std::complex<data_t>> &&mat);
 
-  virtual void move_from_vector(AER::Vector<std::complex<data_t>> &&vec) override;
+  virtual void
+  move_from_vector(AER::Vector<std::complex<data_t>> &&vec) override;
 
   //-----------------------------------------------------------------------
   // Identity checking
   //-----------------------------------------------------------------------
-  
+
   // Return pair (True, theta) if the current matrix is equal to
   // exp(i * theta) * identity matrix. Otherwise return (False, 0).
   // The phase is returned as a parameter between -Pi and Pi.
@@ -101,10 +101,9 @@ public:
   }
 
   // Get the threshold for verify_identity
-  double get_check_identity_threshold() {return identity_threshold_;}
+  double get_check_identity_threshold() { return identity_threshold_; }
 
 protected:
-
   //-----------------------------------------------------------------------
   // Protected data members
   //-----------------------------------------------------------------------
@@ -114,7 +113,7 @@ protected:
   //-----------------------------------------------------------------------
   // Additional config settings
   //-----------------------------------------------------------------------
-  
+
   double identity_threshold_ = 1e-10; // Threshold for verifying if the
                                       // internal matrix is identity up to
                                       // global phase
@@ -141,43 +140,48 @@ json_t UnitaryMatrix<data_t>::json() const {
   // Initialize empty matrix
   const json_t ZERO = std::complex<double>(0.0, 0.0);
   json_t js = json_t(nrows, json_t(nrows, ZERO));
-  
+
   if (BaseVector::json_chop_threshold_ > 0) {
-    #pragma omp parallel if (BaseVector::num_qubits_ > BaseVector::omp_threshold_ && BaseVector::omp_threads_ > 1) num_threads(BaseVector::omp_threads_)
+#pragma omp parallel if (BaseVector::num_qubits_ >                             \
+                             BaseVector::omp_threshold_ &&                     \
+                         BaseVector::omp_threads_ > 1)                         \
+    num_threads(BaseVector::omp_threads_)
     {
-    #ifdef _WIN32
-      #pragma omp for
-    #else
-      #pragma omp for collapse(2)
-    #endif
-    for (int_t i=0; i < nrows; i++)
-      for (int_t j=0; j < nrows; j++) {
-        const auto val = BaseVector::data_[i + nrows * j];
-        if (std::abs(val.real()) > BaseVector::json_chop_threshold_)
-          js[i][j][0] = val.real();
-        if (std::abs(val.imag()) > BaseVector::json_chop_threshold_)
-          js[i][j][1] = val.imag();
-      }
+#ifdef _WIN32
+#pragma omp for
+#else
+#pragma omp for collapse(2)
+#endif
+      for (int_t i = 0; i < nrows; i++)
+        for (int_t j = 0; j < nrows; j++) {
+          const auto val = BaseVector::data_[i + nrows * j];
+          if (std::abs(val.real()) > BaseVector::json_chop_threshold_)
+            js[i][j][0] = val.real();
+          if (std::abs(val.imag()) > BaseVector::json_chop_threshold_)
+            js[i][j][1] = val.imag();
+        }
     }
   } else {
-    #pragma omp parallel if (BaseVector::num_qubits_ > BaseVector::omp_threshold_ && BaseVector::omp_threads_ > 1) num_threads(BaseVector::omp_threads_)
+#pragma omp parallel if (BaseVector::num_qubits_ >                             \
+                             BaseVector::omp_threshold_ &&                     \
+                         BaseVector::omp_threads_ > 1)                         \
+    num_threads(BaseVector::omp_threads_)
     {
-    #ifdef _WIN32
-      #pragma omp for
-    #else
-      #pragma omp for collapse(2)
-    #endif
-    for (int_t i=0; i < nrows; i++)
-      for (int_t j=0; j < nrows; j++) {
-        const auto val = BaseVector::data_[i + nrows * j];
-        js[i][j][0] = val.real();
-        js[i][j][1] = val.imag();
-      }
+#ifdef _WIN32
+#pragma omp for
+#else
+#pragma omp for collapse(2)
+#endif
+      for (int_t i = 0; i < nrows; i++)
+        for (int_t j = 0; j < nrows; j++) {
+          const auto val = BaseVector::data_[i + nrows * j];
+          js[i][j][0] = val.real();
+          js[i][j][1] = val.imag();
+        }
     }
   }
   return js;
 }
-
 
 //------------------------------------------------------------------------------
 // Constructors & Destructor
@@ -189,11 +193,12 @@ UnitaryMatrix<data_t>::UnitaryMatrix(size_t num_qubits) {
 }
 
 template <typename data_t>
-UnitaryMatrix<data_t>& UnitaryMatrix<data_t>::operator=(UnitaryMatrix<data_t>&& obj) {
+UnitaryMatrix<data_t> &
+UnitaryMatrix<data_t>::operator=(UnitaryMatrix<data_t> &&obj) {
   num_qubits_ = obj.num_qubits_;
   rows_ = obj.rows_;
   identity_threshold_ = obj.identity_threshold_;
-  BaseVector::operator = (std::move(obj));
+  BaseVector::operator=(std::move(obj));
   return *this;
 };
 
@@ -203,12 +208,14 @@ UnitaryMatrix<data_t>& UnitaryMatrix<data_t>::operator=(UnitaryMatrix<data_t>&& 
 
 template <class data_t>
 matrix<std::complex<data_t>> UnitaryMatrix<data_t>::copy_to_matrix() const {
-  return matrix<std::complex<data_t>>::copy_from_buffer(rows_, rows_, BaseVector::data_);
+  return matrix<std::complex<data_t>>::copy_from_buffer(rows_, rows_,
+                                                        BaseVector::data_);
 }
 
 template <class data_t>
 matrix<std::complex<data_t>> UnitaryMatrix<data_t>::move_to_matrix() {
-  const auto ret = matrix<std::complex<data_t>>::move_from_buffer(rows_, rows_, BaseVector::data_);
+  const auto ret = matrix<std::complex<data_t>>::move_from_buffer(
+      rows_, rows_, BaseVector::data_);
   BaseVector::data_ = nullptr;
   return ret;
 }
@@ -222,8 +229,11 @@ void UnitaryMatrix<data_t>::initialize() {
   // Zero the underlying vector
   BaseVector::zero();
   // Set to be identity matrix
-  const int_t nrows = rows_;    // end for k loop
- #pragma omp parallel if (BaseVector::num_qubits_ > BaseVector::omp_threshold_ && BaseVector::omp_threads_ > 1) num_threads(BaseVector::omp_threads_)
+  const int_t nrows = rows_; // end for k loop
+#pragma omp parallel if (BaseVector::num_qubits_ >                             \
+                             BaseVector::omp_threshold_ &&                     \
+                         BaseVector::omp_threads_ > 1)                         \
+    num_threads(BaseVector::omp_threads_)
   for (int_t k = 0; k < nrows; ++k) {
     BaseVector::data_[k * (nrows + 1)] = 1.0;
   }
@@ -231,46 +241,53 @@ void UnitaryMatrix<data_t>::initialize() {
 
 template <class data_t>
 template <typename T>
-void UnitaryMatrix<data_t>::initialize_from_matrix(const matrix<std::complex<T>> &mat) {
-  const int_t nrows = rows_;    // end for k loop
+void UnitaryMatrix<data_t>::initialize_from_matrix(
+    const matrix<std::complex<T>> &mat) {
+  const int_t nrows = rows_; // end for k loop
   if (nrows != static_cast<int_t>(mat.GetRows()) ||
       nrows != static_cast<int_t>(mat.GetColumns())) {
     throw std::runtime_error(
-      "UnitaryMatrix::initialize input matrix is incorrect shape (" +
-      std::to_string(nrows) + "," + std::to_string(nrows) + ")!=(" +
-      std::to_string(mat.GetRows()) + "," + std::to_string(mat.GetColumns()) + ")."
-    );
+        "UnitaryMatrix::initialize input matrix is incorrect shape (" +
+        std::to_string(nrows) + "," + std::to_string(nrows) + ")!=(" +
+        std::to_string(mat.GetRows()) + "," + std::to_string(mat.GetColumns()) +
+        ").");
   }
 
-#pragma omp parallel if (BaseVector::num_qubits_ > BaseVector::omp_threshold_ && BaseVector::omp_threads_ > 1) num_threads(BaseVector::omp_threads_)
+#pragma omp parallel if (BaseVector::num_qubits_ >                             \
+                             BaseVector::omp_threshold_ &&                     \
+                         BaseVector::omp_threads_ > 1)                         \
+    num_threads(BaseVector::omp_threads_)
   for (int_t row = 0; row < nrows; ++row)
-    for  (int_t col = 0; col < nrows; ++col) {
+    for (int_t col = 0; col < nrows; ++col) {
       BaseVector::data_[row + nrows * col] = mat(row, col);
     }
 }
 
 template <class data_t>
-void UnitaryMatrix<data_t>::initialize_from_matrix(matrix<std::complex<data_t>> &&mat) {
-  const int_t nrows = rows_;    // end for k loop
+void UnitaryMatrix<data_t>::initialize_from_matrix(
+    matrix<std::complex<data_t>> &&mat) {
+  const int_t nrows = rows_; // end for k loop
   if (nrows != static_cast<int_t>(mat.GetRows()) ||
       nrows != static_cast<int_t>(mat.GetColumns())) {
     throw std::runtime_error(
-      "UnitaryMatrix::initialize input matrix is incorrect shape (" +
-      std::to_string(nrows) + "," + std::to_string(nrows) + ")!=(" +
-      std::to_string(mat.GetRows()) + "," + std::to_string(mat.GetColumns()) + ")."
-    );
+        "UnitaryMatrix::initialize input matrix is incorrect shape (" +
+        std::to_string(nrows) + "," + std::to_string(nrows) + ")!=(" +
+        std::to_string(mat.GetRows()) + "," + std::to_string(mat.GetColumns()) +
+        ").");
   }
   BaseVector::free_mem();
   BaseVector::data_ = mat.move_to_buffer();
 }
 
 template <class data_t>
-void UnitaryMatrix<data_t>::move_from_vector(AER::Vector<std::complex<data_t>> &&vec) {
+void UnitaryMatrix<data_t>::move_from_vector(
+    AER::Vector<std::complex<data_t>> &&vec) {
   num_qubits_ = std::log2(vec.size()) / 2;
   if ((1ULL << (num_qubits_ * 2)) != vec.size()) {
-    std::string error = "UnitaryMatrix::move_from_vector input vector is incorrect length (" +
-                        std::to_string((1ULL << (num_qubits_ * 2))) + "!=" +
-                        std::to_string(vec.size()) + ")";
+    std::string error =
+        "UnitaryMatrix::move_from_vector input vector is incorrect length (" +
+        std::to_string((1ULL << (num_qubits_ * 2))) +
+        "!=" + std::to_string(vec.size()) + ")";
     throw std::runtime_error(error);
   }
   rows_ = 1ULL << num_qubits_;
@@ -295,14 +312,13 @@ std::complex<double> UnitaryMatrix<data_t>::trace() const {
 #pragma omp parallel reduction(+:val_re, val_im) if (BaseVector::num_qubits_ > BaseVector::omp_threshold_ && BaseVector::omp_threads_ > 1) num_threads(BaseVector::omp_threads_)
   {
 #pragma omp for
-  for (int_t k = 0; k < NROWS; ++k) {
-    val_re += std::real(BaseVector::data_[k * DIAG]);
-    val_im += std::imag(BaseVector::data_[k * DIAG]);
-  }
+    for (int_t k = 0; k < NROWS; ++k) {
+      val_re += std::real(BaseVector::data_[k * DIAG]);
+      val_im += std::imag(BaseVector::data_[k * DIAG]);
+    }
   }
   return std::complex<double>(val_re, val_im);
 }
-
 
 //------------------------------------------------------------------------------
 // Check Identity
@@ -313,7 +329,7 @@ std::pair<bool, double> UnitaryMatrix<data_t>::check_identity() const {
   // To check if identity we first check we check that:
   // 1. U(0, 0) = exp(i * theta)
   // 2. U(i, i) = U(0, 0)
-  // 3. U(i, j) = 0 for j != i 
+  // 3. U(i, j) = 0 for j != i
   auto failed = std::make_pair(false, 0.0);
 
   // Check condition 1.
@@ -325,10 +341,10 @@ std::pair<bool, double> UnitaryMatrix<data_t>::check_identity() const {
 
   // Check conditions 2 and 3
   double delta = 0.;
-  for (size_t i=0; i < rows_; i++) {
-    for (size_t j=0; j < rows_; j++) {
-      auto val = (i==j) ? std::norm(BaseVector::data_[i + rows_ * j] - u00)
-                        : std::norm(BaseVector::data_[i + rows_ * j]);
+  for (size_t i = 0; i < rows_; i++) {
+    for (size_t j = 0; j < rows_; j++) {
+      auto val = (i == j) ? std::norm(BaseVector::data_[i + rows_ * j] - u00)
+                          : std::norm(BaseVector::data_[i + rows_ * j]);
       if (val > identity_threshold_) {
         return failed; // fail fast if single entry differs
       } else
@@ -350,7 +366,8 @@ std::pair<bool, double> UnitaryMatrix<data_t>::check_identity() const {
 
 // ostream overload for templated qubitvector
 template <class data_t>
-inline std::ostream &operator<<(std::ostream &out, const AER::QV::UnitaryMatrix<data_t>&m) {
+inline std::ostream &operator<<(std::ostream &out,
+                                const AER::QV::UnitaryMatrix<data_t> &m) {
   out << m.copy_to_matrix();
   return out;
 }

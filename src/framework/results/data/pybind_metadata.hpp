@@ -21,10 +21,10 @@
 namespace AerToPy {
 
 // Move an ExperimentResult metdata object to a Python dict
-template <> py::object to_python(AER::Metadata &&metadata);
+template <>
+py::object to_python(AER::Metadata &&metadata);
 
-} //end namespace AerToPy
-
+} // end namespace AerToPy
 
 //============================================================================
 // Implementations
@@ -33,9 +33,15 @@ template <> py::object to_python(AER::Metadata &&metadata);
 template <>
 py::object AerToPy::to_python(AER::Metadata &&metadata) {
   py::dict pydata;
-  add_to_python(pydata, static_cast<AER::DataMap<AER::SingleData, json_t, 1>&&>(metadata));
-  add_to_python(pydata, static_cast<AER::DataMap<AER::SingleData, json_t, 2>&&>(metadata));
-  add_to_python(pydata, static_cast<AER::DataMap<AER::SingleData, json_t, 3>&&>(metadata));
+  add_to_python(
+      pydata,
+      static_cast<AER::DataMap<AER::SingleData, json_t, 1> &&>(metadata));
+  add_to_python(
+      pydata,
+      static_cast<AER::DataMap<AER::SingleData, json_t, 2> &&>(metadata));
+  add_to_python(
+      pydata,
+      static_cast<AER::DataMap<AER::SingleData, json_t, 3> &&>(metadata));
   return std::move(pydata);
 }
 

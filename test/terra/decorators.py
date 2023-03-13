@@ -22,7 +22,7 @@ from qiskit import QuantumCircuit, execute
 from qiskit_aer import AerProvider, AerSimulator
 
 # Backwards compatibility for Terra <= 0.13
-if not hasattr(QuantumCircuit, 'i'):
+if not hasattr(QuantumCircuit, "i"):
     QuantumCircuit.i = QuantumCircuit.iden
 
 
@@ -63,9 +63,9 @@ def requires_omp(test_item):
     """
     # Run dummy circuit to check OpenMP status
     result = AerSimulator().run(QuantumCircuit(1)).result()
-    omp_enabled = result.metadata.get('omp_enabled', False)
+    omp_enabled = result.metadata.get("omp_enabled", False)
     skip = not omp_enabled
-    reason = 'OpenMP not available, skipping test'
+    reason = "OpenMP not available, skipping test"
     return unittest.skipIf(skip, reason)(test_item)
 
 
@@ -79,7 +79,7 @@ def requires_multiprocessing(test_item):
         callable: the decorated function.
     """
     skip = multiprocessing.cpu_count() <= 1
-    reason = 'Multicore CPU not available, skipping test'
+    reason = "Multicore CPU not available, skipping test"
     return unittest.skipIf(skip, reason)(test_item)
 
 

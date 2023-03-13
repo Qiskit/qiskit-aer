@@ -23,9 +23,19 @@ from qiskit import QuantumCircuit, transpile, schedule
 from qiskit.providers.fake_provider import FakeArmonk, FakeAthens
 
 from qiskit_aer.backends import PulseSimulator
-from qiskit.pulse import (Schedule, Play, ShiftPhase, SetPhase, Delay, Acquire,
-                          Waveform, DriveChannel, ControlChannel,
-                          AcquireChannel, MemorySlot)
+from qiskit.pulse import (
+    Schedule,
+    Play,
+    ShiftPhase,
+    SetPhase,
+    Delay,
+    Acquire,
+    Waveform,
+    DriveChannel,
+    ControlChannel,
+    AcquireChannel,
+    MemorySlot,
+)
 from qiskit_aer.aererror import AerError
 
 from qiskit_aer.pulse.system_models.pulse_system_model import PulseSystemModel
@@ -48,16 +58,16 @@ class TestConfigPulseSimulator(common.QiskitAerTestCase):
         backend_dict = athens_backend.configuration().to_dict()
         sim_dict = athens_sim.configuration().to_dict()
         for key in sim_dict:
-            if key == 'backend_name':
-                self.assertEqual(sim_dict[key], 'pulse_simulator(fake_athens)')
-            elif key == 'description':
-                desc = 'A Pulse-based simulator configured from the backend: fake_athens'
+            if key == "backend_name":
+                self.assertEqual(sim_dict[key], "pulse_simulator(fake_athens)")
+            elif key == "description":
+                desc = "A Pulse-based simulator configured from the backend: fake_athens"
                 self.assertEqual(sim_dict[key], desc)
-            elif key == 'simulator':
+            elif key == "simulator":
                 self.assertTrue(sim_dict[key])
-            elif key == 'local':
+            elif key == "local":
                 self.assertTrue(sim_dict[key])
-            elif key == 'parametric_pulses':
+            elif key == "parametric_pulses":
                 self.assertEqual(sim_dict[key], [])
             else:
                 self.assertEqual(sim_dict[key], backend_dict[key])
@@ -65,12 +75,14 @@ class TestConfigPulseSimulator(common.QiskitAerTestCase):
         backend_dict = athens_backend.defaults().to_dict()
         sim_dict = athens_sim.defaults().to_dict()
         for key in sim_dict:
-            if key == 'pulse_library':
+            if key == "pulse_library":
                 # need to compare pulse libraries directly due to containing dictionaries
                 for idx, entry in enumerate(sim_dict[key]):
                     for entry_key in entry:
-                        if entry_key == 'samples':
-                            self.assertTrue(np.array_equal(entry[entry_key], backend_dict[key][idx][entry_key]))
+                        if entry_key == "samples":
+                            self.assertTrue(
+                                np.array_equal(entry[entry_key], backend_dict[key][idx][entry_key])
+                            )
                         else:
                             self.assertTrue(entry[entry_key] == backend_dict[key][idx][entry_key])
             else:
@@ -110,7 +122,7 @@ class TestConfigPulseSimulator(common.QiskitAerTestCase):
         self.assertTrue(sim_attr == set_attr and model_attr == set_attr)
 
         # dt
-        set_attr = 5.
+        set_attr = 5.0
         athens_sim.set_options(dt=set_attr)
         sim_attr = athens_sim.configuration().dt
         model_attr = athens_sim._system_model.dt
@@ -140,7 +152,7 @@ class TestConfigPulseSimulator(common.QiskitAerTestCase):
             backend = PulseSimulator.from_backend(fake_backend)
 
         # reset parametric_pulses option
-        backend.set_option('parametric_pulses', fake_backend.configuration().parametric_pulses)
+        backend.set_option("parametric_pulses", fake_backend.configuration().parametric_pulses)
 
         qc = QuantumCircuit(2)
         qc.x(0)
@@ -163,10 +175,10 @@ class TestConfigPulseSimulator(common.QiskitAerTestCase):
             # Cause all warnings to always be triggered.
             warnings.simplefilter("always")
 
-            athens_sim.set_options(meas_levels=[0,1,2])
+            athens_sim.set_options(meas_levels=[0, 1, 2])
 
             self.assertEqual(len(w), 1)
-            self.assertTrue('Measurement level 0 not supported' in str(w[-1].message))
+            self.assertTrue("Measurement level 0 not supported" in str(w[-1].message))
             self.assertEqual(athens_sim.configuration().meas_levels, [1, 2])
 
         self.assertTrue(athens_sim.configuration().meas_levels == [1, 2])
@@ -190,12 +202,13 @@ class TestConfigPulseSimulator(common.QiskitAerTestCase):
             # Cause all warnings to always be triggered.
             warnings.simplefilter("always")
 
-            armonk_sim = PulseSimulator.from_backend(backend=armonk_backend,
-                                                     system_model=system_model)
+            armonk_sim = PulseSimulator.from_backend(
+                backend=armonk_backend, system_model=system_model
+            )
 
             self.assertEqual(len(w), 2)
-            self.assertTrue('will be removed in a future release' in str(w[0].message))
-            self.assertTrue('inconsistencies' in str(w[-1].message))
+            self.assertTrue("will be removed in a future release" in str(w[0].message))
+            self.assertTrue("inconsistencies" in str(w[-1].message))
 
         # check that system model properties have been imported
         self.assertEqual(armonk_sim.configuration().dt, system_model.dt)
@@ -219,7 +232,7 @@ class TestConfigPulseSimulator(common.QiskitAerTestCase):
             test_sim = PulseSimulator(system_model=system_model)
 
             self.assertEqual(len(w), 1)
-            self.assertTrue('will be removed in a future release' in str(w[0].message))
+            self.assertTrue("will be removed in a future release" in str(w[0].message))
 
         # check that system model properties have been imported
         self.assertEqual(test_sim.configuration().dt, system_model.dt)
@@ -263,7 +276,7 @@ class TestConfigPulseSimulator(common.QiskitAerTestCase):
             armonk_sim = test_sim.set_options(system_model=system_model)
 
             self.assertEqual(len(w), 1)
-            self.assertTrue('inconsistencies' in str(w[-1].message))
+            self.assertTrue("inconsistencies" in str(w[-1].message))
 
         self.assertEqual(test_sim.configuration().dt, system_model.dt)
         self.assertEqual(test_sim.configuration().u_channel_lo, system_model.u_channel_lo)
@@ -276,8 +289,8 @@ class TestConfigPulseSimulator(common.QiskitAerTestCase):
         test_sim.set_options(
             meas_level=2,
             qubit_lo_freq=test_sim.defaults().qubit_freq_est,
-            meas_return='single',
-            shots=256
+            meas_return="single",
+            shots=256,
         )
 
         # check that too many acquires results in an error
@@ -285,14 +298,14 @@ class TestConfigPulseSimulator(common.QiskitAerTestCase):
         try:
             test_sim.run(sched, validate=True).result()
         except AerError as error:
-            self.assertTrue('does not support multiple Acquire' in error.message)
+            self.assertTrue("does not support multiple Acquire" in error.message)
 
         # check that no acquires results in an error
         sched = self._1Q_schedule(num_acquires=0)
         try:
             test_sim.run(sched, validate=True).result()
         except AerError as error:
-            self.assertTrue('requires at least one Acquire' in error.message)
+            self.assertTrue("requires at least one Acquire" in error.message)
 
     def test_run_simulation_from_backend(self):
         """Construct from a backend and run a simulation."""
@@ -302,20 +315,18 @@ class TestConfigPulseSimulator(common.QiskitAerTestCase):
         freq_est = 4.97e9
         drive_est = 6.35e7
         armonk_backend.defaults().qubit_freq_est = [freq_est]
-        armonk_backend.configuration().hamiltonian['h_str']= ['wq0*0.5*(I0-Z0)', 'omegad0*X0||D0']
-        armonk_backend.configuration().hamiltonian['vars'] = {'wq0': 2 * np.pi * freq_est,
-                                                              'omegad0': drive_est}
-        armonk_backend.configuration().hamiltonian['qub'] = {'0': 2}
+        armonk_backend.configuration().hamiltonian["h_str"] = ["wq0*0.5*(I0-Z0)", "omegad0*X0||D0"]
+        armonk_backend.configuration().hamiltonian["vars"] = {
+            "wq0": 2 * np.pi * freq_est,
+            "omegad0": drive_est,
+        }
+        armonk_backend.configuration().hamiltonian["qub"] = {"0": 2}
         dt = 2.2222222222222221e-10
         armonk_backend.configuration().dt = dt
 
         with self.assertWarns(DeprecationWarning):
             armonk_sim = PulseSimulator.from_backend(armonk_backend)
-        armonk_sim.set_options(
-            meas_level=2,
-            meas_return='single',
-            shots=1
-        )
+        armonk_sim.set_options(meas_level=2, meas_return="single", shots=1)
 
         total_samples = 250
         amp = np.pi / (drive_est * dt * total_samples)
@@ -324,11 +335,11 @@ class TestConfigPulseSimulator(common.QiskitAerTestCase):
         # run and verify that a pi pulse had been done
         result = armonk_sim.run(sched).result()
         final_vec = result.get_statevector()
-        probabilities = np.abs(final_vec)**2
+        probabilities = np.abs(final_vec) ** 2
         self.assertTrue(probabilities[0] < 1e-5)
         self.assertTrue(probabilities[1] > 1 - 1e-5)
 
-    def _system_model_1Q(self, omega_0=5., r=0.02):
+    def _system_model_1Q(self, omega_0=5.0, r=0.02):
         """Constructs a standard model for a 1 qubit system.
 
         Args:
@@ -340,23 +351,20 @@ class TestConfigPulseSimulator(common.QiskitAerTestCase):
         """
 
         hamiltonian = {}
-        hamiltonian['h_str'] = [
-            '2*np.pi*omega0*0.5*Z0', '2*np.pi*r*0.5*X0||D0'
-        ]
-        hamiltonian['vars'] = {'omega0': omega_0, 'r': r}
-        hamiltonian['qub'] = {'0': 2}
+        hamiltonian["h_str"] = ["2*np.pi*omega0*0.5*Z0", "2*np.pi*r*0.5*X0||D0"]
+        hamiltonian["vars"] = {"omega0": omega_0, "r": r}
+        hamiltonian["qub"] = {"0": 2}
         ham_model = HamiltonianModel.from_dict(hamiltonian)
 
         u_channel_lo = []
         subsystem_list = [0]
-        dt = 1.
+        dt = 1.0
 
-        return PulseSystemModel(hamiltonian=ham_model,
-                                u_channel_lo=u_channel_lo,
-                                subsystem_list=subsystem_list,
-                                dt=dt)
+        return PulseSystemModel(
+            hamiltonian=ham_model, u_channel_lo=u_channel_lo, subsystem_list=subsystem_list, dt=dt
+        )
 
-    def _1Q_schedule(self, total_samples=100, amp=1., num_acquires=1):
+    def _1Q_schedule(self, total_samples=100, amp=1.0, num_acquires=1):
         """Creates a schedule for a single qubit.
 
         Args:
@@ -371,10 +379,11 @@ class TestConfigPulseSimulator(common.QiskitAerTestCase):
         schedule = Schedule()
         schedule |= Play(Waveform(amp * np.ones(total_samples)), DriveChannel(0))
         for _ in range(num_acquires):
-            schedule |= Acquire(total_samples, AcquireChannel(0),
-                                MemorySlot(0)) << schedule.duration
+            schedule |= (
+                Acquire(total_samples, AcquireChannel(0), MemorySlot(0)) << schedule.duration
+            )
         return schedule
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

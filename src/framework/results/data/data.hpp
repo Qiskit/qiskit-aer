@@ -16,22 +16,22 @@
 #define _aer_framework_results_data_hpp_
 
 // Data primatives
-#include "framework/results/data/subtypes/data_map.hpp"
 #include "framework/results/data/subtypes/accum_data.hpp"
 #include "framework/results/data/subtypes/average_data.hpp"
+#include "framework/results/data/subtypes/data_map.hpp"
 #include "framework/results/data/subtypes/list_data.hpp"
 #include "framework/results/data/subtypes/single_data.hpp"
 
 // Data Containers
-#include "framework/results/data/mixins/data_creg.hpp"
-#include "framework/results/data/mixins/data_rvalue.hpp"
-#include "framework/results/data/mixins/data_rvector.hpp"
-#include "framework/results/data/mixins/data_rdict.hpp"
-#include "framework/results/data/mixins/data_cmatrix.hpp"
-#include "framework/results/data/mixins/data_cvector.hpp"
 #include "framework/results/data/mixins/data_cdict.hpp"
+#include "framework/results/data/mixins/data_cmatrix.hpp"
+#include "framework/results/data/mixins/data_creg.hpp"
+#include "framework/results/data/mixins/data_cvector.hpp"
 #include "framework/results/data/mixins/data_json.hpp"
 #include "framework/results/data/mixins/data_mps.hpp"
+#include "framework/results/data/mixins/data_rdict.hpp"
+#include "framework/results/data/mixins/data_rvalue.hpp"
+#include "framework/results/data/mixins/data_rvector.hpp"
 
 namespace AER {
 
@@ -65,60 +65,60 @@ struct Data : public DataCreg,
   //----------------------------------------------------------------
   template <class T, typename... Args>
   void add_single(const T &data, const std::string &outer_key,
-                  const Args &... inner_keys);
+                  const Args &...inner_keys);
 
   template <class T, typename... Args>
   void add_single(T &data, const std::string &outer_key,
-                  const Args &... inner_keys);
+                  const Args &...inner_keys);
 
   template <class T, typename... Args>
   void add_single(T &&data, const std::string &outer_key,
-                  const Args &... inner_keys);
+                  const Args &...inner_keys);
 
   //----------------------------------------------------------------
   // Add list data
   //----------------------------------------------------------------
   template <class T, typename... Args>
   void add_list(const T &data, const std::string &outer_key,
-                const Args &... inner_keys);
+                const Args &...inner_keys);
 
   template <class T, typename... Args>
   void add_list(T &data, const std::string &outer_key,
-                const Args &... inner_keys);
+                const Args &...inner_keys);
 
   template <class T, typename... Args>
   void add_list(T &&data, const std::string &outer_key,
-                const Args &... inner_keys);
+                const Args &...inner_keys);
 
   //----------------------------------------------------------------
   // Add accum data
   //----------------------------------------------------------------
   template <class T, typename... Args>
   void add_accum(const T &data, const std::string &outer_key,
-                 const Args &... inner_keys);
+                 const Args &...inner_keys);
 
   template <class T, typename... Args>
   void add_accum(T &data, const std::string &outer_key,
-                 const Args &... inner_keys);
+                 const Args &...inner_keys);
 
   template <class T, typename... Args>
   void add_accum(T &&data, const std::string &outer_key,
-                 const Args &... inner_keys);
+                 const Args &...inner_keys);
 
   //----------------------------------------------------------------
   // Add average data
   //----------------------------------------------------------------
   template <class T, typename... Args>
   void add_average(const T &data, const std::string &outer_key,
-                   const Args &... inner_keys);
+                   const Args &...inner_keys);
 
   template <class T, typename... Args>
   void add_average(T &data, const std::string &outer_key,
-                   const Args &... inner_keys);
+                   const Args &...inner_keys);
 
   template <class T, typename... Args>
   void add_average(T &&data, const std::string &outer_key,
-                   const Args &... inner_keys);
+                   const Args &...inner_keys);
 
   //----------------------------------------------------------------
   // Utility and config
@@ -162,87 +162,86 @@ json_t Data::to_json() {
   return result;
 }
 
-
 template <class T, typename... Args>
 void Data::add_single(const T &data, const std::string &outer_key,
-                      const Args &... inner_keys) {
+                      const Args &...inner_keys) {
   DataMap<SingleData, T, sizeof...(Args) + 1>::add(data, outer_key,
                                                    inner_keys...);
 }
 
 template <class T, typename... Args>
 void Data::add_single(T &data, const std::string &outer_key,
-                      const Args &... inner_keys) {
+                      const Args &...inner_keys) {
   DataMap<SingleData, T, sizeof...(Args) + 1>::add(data, outer_key,
                                                    inner_keys...);
 }
 
 template <class T, typename... Args>
 void Data::add_single(T &&data, const std::string &outer_key,
-                      const Args &... inner_keys) {
+                      const Args &...inner_keys) {
   DataMap<SingleData, T, sizeof...(Args) + 1>::add(std::move(data), outer_key,
                                                    inner_keys...);
 }
 
 template <class T, typename... Args>
 void Data::add_list(const T &data, const std::string &outer_key,
-                    const Args &... inner_keys) {
+                    const Args &...inner_keys) {
   DataMap<ListData, T, sizeof...(Args) + 1>::add(data, outer_key,
                                                  inner_keys...);
 }
 
 template <class T, typename... Args>
 void Data::add_list(T &data, const std::string &outer_key,
-                    const Args &... inner_keys) {
+                    const Args &...inner_keys) {
   DataMap<ListData, T, sizeof...(Args) + 1>::add(data, outer_key,
                                                  inner_keys...);
 }
 
 template <class T, typename... Args>
 void Data::add_list(T &&data, const std::string &outer_key,
-                    const Args &... inner_keys) {
+                    const Args &...inner_keys) {
   DataMap<ListData, T, sizeof...(Args) + 1>::add(std::move(data), outer_key,
                                                  inner_keys...);
 }
 
 template <class T, typename... Args>
 void Data::add_accum(const T &data, const std::string &outer_key,
-                     const Args &... inner_keys) {
+                     const Args &...inner_keys) {
   DataMap<AccumData, T, sizeof...(Args) + 1>::add(data, outer_key,
                                                   inner_keys...);
 }
 
 template <class T, typename... Args>
 void Data::add_accum(T &data, const std::string &outer_key,
-                     const Args &... inner_keys) {
+                     const Args &...inner_keys) {
   DataMap<AccumData, T, sizeof...(Args) + 1>::add(data, outer_key,
                                                   inner_keys...);
 }
 
 template <class T, typename... Args>
 void Data::add_accum(T &&data, const std::string &outer_key,
-                     const Args &... inner_keys) {
+                     const Args &...inner_keys) {
   DataMap<AccumData, T, sizeof...(Args) + 1>::add(std::move(data), outer_key,
                                                   inner_keys...);
 }
 
 template <class T, typename... Args>
 void Data::add_average(const T &data, const std::string &outer_key,
-                       const Args &... inner_keys) {
+                       const Args &...inner_keys) {
   DataMap<AverageData, T, sizeof...(Args) + 1>::add(data, outer_key,
                                                     inner_keys...);
 }
 
 template <class T, typename... Args>
 void Data::add_average(T &data, const std::string &outer_key,
-                       const Args &... inner_keys) {
+                       const Args &...inner_keys) {
   DataMap<AverageData, T, sizeof...(Args) + 1>::add(data, outer_key,
                                                     inner_keys...);
 }
 
 template <class T, typename... Args>
 void Data::add_average(T &&data, const std::string &outer_key,
-                       const Args &... inner_keys) {
+                       const Args &...inner_keys) {
   DataMap<AverageData, T, sizeof...(Args) + 1>::add(std::move(data), outer_key,
                                                     inner_keys...);
 }

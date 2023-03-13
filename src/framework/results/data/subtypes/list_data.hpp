@@ -23,38 +23,38 @@ namespace AER {
 
 template <typename T>
 class ListData : public SingleData<std::vector<T>> {
-using Base = SingleData<std::vector<T>>;
+  using Base = SingleData<std::vector<T>>;
+
 public:
   // Add data (copy)
-  void add(const T& data);
+  void add(const T &data);
 
   // Add data (move)
-  void add(T&& data);
+  void add(T &&data);
 
   // Add data
-  void combine(ListData<T>&& other);
+  void combine(ListData<T> &&other);
 
   // Combine with another data object
   void clear();
 };
-
 
 //------------------------------------------------------------------------------
 // Implementation
 //------------------------------------------------------------------------------
 
 template <typename T>
-void ListData<T>::add(const T& data) {
+void ListData<T>::add(const T &data) {
   Base::data_.push_back(data);
 }
 
 template <typename T>
-void ListData<T>::add(T&& data) {
+void ListData<T>::add(T &&data) {
   Base::data_.push_back(std::move(data));
 }
 
 template <typename T>
-void ListData<T>::combine(ListData<T>&& other) {
+void ListData<T>::combine(ListData<T> &&other) {
   Base::data_.insert(Base::data_.end(),
                      std::make_move_iterator(other.data_.begin()),
                      std::make_move_iterator(other.data_.end()));
@@ -66,6 +66,6 @@ void ListData<T>::clear() {
 }
 
 //------------------------------------------------------------------------------
-}  // end namespace AER
+} // end namespace AER
 //------------------------------------------------------------------------------
 #endif

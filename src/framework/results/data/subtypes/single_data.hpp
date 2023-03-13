@@ -23,16 +23,16 @@ template <typename T>
 class SingleData {
 public:
   // Access data
-  T& value() { return data_; }
+  T &value() { return data_; }
 
   // Add data (copy)
-  void add(const T& data);
+  void add(const T &data);
 
   // Add data (move)
-  void add(T&& data);
+  void add(T &&data);
 
   // Combine with another data object
-  void combine(SingleData<T>&& other);
+  void combine(SingleData<T> &&other);
 
   // Clear all stored data
   void clear();
@@ -49,17 +49,17 @@ protected:
 //------------------------------------------------------------------------------
 
 template <typename T>
-void SingleData<T>::add(const T& data) {
+void SingleData<T>::add(const T &data) {
   data_ = data;
 }
 
 template <typename T>
-void SingleData<T>::add(T&& data) {
+void SingleData<T>::add(T &&data) {
   data_ = std::move(data);
 }
 
 template <typename T>
-void SingleData<T>::combine(SingleData<T>&& other) {
+void SingleData<T>::combine(SingleData<T> &&other) {
   data_ = std::move(other.data_);
 }
 
@@ -75,6 +75,6 @@ json_t SingleData<T>::to_json() {
 }
 
 //------------------------------------------------------------------------------
-}  // end namespace AER
+} // end namespace AER
 //------------------------------------------------------------------------------
 #endif
