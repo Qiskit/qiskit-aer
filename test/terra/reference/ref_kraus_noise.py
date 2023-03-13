@@ -21,7 +21,7 @@ from qiskit_aer.noise import NoiseModel
 from qiskit_aer.noise.errors.standard_errors import amplitude_damping_error
 
 # Backwards compatibility for Terra <= 0.13
-if not hasattr(QuantumCircuit, 'i'):
+if not hasattr(QuantumCircuit, "i"):
     QuantumCircuit.i = QuantumCircuit.iden
 
 
@@ -29,13 +29,14 @@ if not hasattr(QuantumCircuit, 'i'):
 # Amplitude damping error
 # ==========================================================================
 
+
 def kraus_gate_error_circuits():
     """Kraus gate error noise model circuits"""
     circuits = []
 
     # Repeated amplitude damping to diagonal state
-    qr = QuantumRegister(1, 'qr')
-    cr = ClassicalRegister(1, 'cr')
+    qr = QuantumRegister(1, "qr")
+    cr = ClassicalRegister(1, "cr")
     circuit = QuantumCircuit(qr, cr)
     circuit.x(qr)  # prepare + state
     for _ in range(30):
@@ -48,6 +49,7 @@ def kraus_gate_error_circuits():
 
     return circuits
 
+
 def kraus_gate_error_noise_models():
     """Kraus gate error noise models"""
     noise_models = []
@@ -55,7 +57,7 @@ def kraus_gate_error_noise_models():
     # Amplitude damping error on "id"
     error = amplitude_damping_error(0.75, 0.25)
     noise_model = NoiseModel()
-    noise_model.add_all_qubit_quantum_error(error, 'id')
+    noise_model.add_all_qubit_quantum_error(error, "id")
     noise_models.append(noise_model)
 
     return noise_models

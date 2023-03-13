@@ -22,10 +22,10 @@
 #include <vector>
 
 #include "framework/json.hpp"
-#include "framework/matrix.hpp"
-#include "framework/linalg/vector.hpp"
-#include "framework/types.hpp"
 #include "framework/linalg/enable_if_numeric.hpp"
+#include "framework/linalg/vector.hpp"
+#include "framework/matrix.hpp"
+#include "framework/types.hpp"
 
 namespace AER {
 namespace Linalg {
@@ -39,14 +39,14 @@ namespace Linalg {
 
 // Return entrywise square of a vector
 template <class T, size_t N, typename = enable_if_numeric_t<T>>
-std::array<T, N> square(const std::array<T, N>& data) {
+std::array<T, N> square(const std::array<T, N> &data) {
   std::array<T, N> result = data;
   return isquare(result);
 }
 
 // Return inplace entrywise square of a vector
 template <class T, size_t N, typename = enable_if_numeric_t<T>>
-std::array<T, N>& isquare(std::array<T, N>& data) {
+std::array<T, N> &isquare(std::array<T, N> &data) {
   std::transform(data.begin(), data.end(), data.begin(), data.begin(),
                  std::multiplies<T>());
   return data;
@@ -58,17 +58,17 @@ std::array<T, N>& isquare(std::array<T, N>& data) {
 
 // Return entrywise square of a vector
 template <class T, typename = enable_if_numeric_t<T>>
-std::vector<T> square(const std::vector<T>& data) {
+std::vector<T> square(const std::vector<T> &data) {
   std::vector<T> result;
   result.reserve(data.size());
-  std::transform(data.begin(), data.end(), data.begin(), std::back_inserter(result),
-                 std::multiplies<T>());
+  std::transform(data.begin(), data.end(), data.begin(),
+                 std::back_inserter(result), std::multiplies<T>());
   return result;
 }
 
 // Return inplace entrywise square of a vector
 template <class T, typename = enable_if_numeric_t<T>>
-std::vector<T>& isquare(std::vector<T>& data) {
+std::vector<T> &isquare(std::vector<T> &data) {
   std::transform(data.begin(), data.end(), data.begin(), data.begin(),
                  std::multiplies<T>());
   return data;
@@ -78,18 +78,20 @@ std::vector<T>& isquare(std::vector<T>& data) {
 // Entrywise square of std::map
 //----------------------------------------------------------------------------
 
-template <class T1, class T2, class T3, class T4, typename = enable_if_numeric_t<T2>>
-std::map<T1, T2, T3, T4> square(const std::map<T1, T2, T3, T4>& data) {
+template <class T1, class T2, class T3, class T4,
+          typename = enable_if_numeric_t<T2>>
+std::map<T1, T2, T3, T4> square(const std::map<T1, T2, T3, T4> &data) {
   std::map<T1, T2, T3, T4> result;
-  for (const auto& pair : data) {
+  for (const auto &pair : data) {
     result[pair.first] = pair.second * pair.second;
   }
   return result;
 }
 
-template <class T1, class T2, class T3, class T4, typename = enable_if_numeric_t<T2>>
-std::map<T1, T2, T3, T4>& isquare(std::map<T1, T2, T3, T4>& data) {
-  for (auto& pair : data) {
+template <class T1, class T2, class T3, class T4,
+          typename = enable_if_numeric_t<T2>>
+std::map<T1, T2, T3, T4> &isquare(std::map<T1, T2, T3, T4> &data) {
+  for (auto &pair : data) {
     pair.second *= pair.second;
   }
   return data;
@@ -99,19 +101,22 @@ std::map<T1, T2, T3, T4>& isquare(std::map<T1, T2, T3, T4>& data) {
 // Entrywise square of std::unordered_map
 //----------------------------------------------------------------------------
 
-template <class T1, class T2, class T3, class T4, class T5, typename = enable_if_numeric_t<T2>>
-std::unordered_map<T1, T2, T3, T4, T5> square(
-    const std::unordered_map<T1, T2, T3, T4, T5>& data) {
+template <class T1, class T2, class T3, class T4, class T5,
+          typename = enable_if_numeric_t<T2>>
+std::unordered_map<T1, T2, T3, T4, T5>
+square(const std::unordered_map<T1, T2, T3, T4, T5> &data) {
   std::unordered_map<T1, T2, T3, T4, T5> result;
-  for (const auto& pair : data) {
+  for (const auto &pair : data) {
     result[pair.first] = pair.second * pair.second;
   }
   return result;
 }
 
-template <class T1, class T2, class T3, class T4, class T5, typename = enable_if_numeric_t<T2>>
-std::unordered_map<T1, T2, T3, T4, T5>& isquare(std::unordered_map<T1, T2, T3, T4, T5>& data) {
-  for (auto& pair : data) {
+template <class T1, class T2, class T3, class T4, class T5,
+          typename = enable_if_numeric_t<T2>>
+std::unordered_map<T1, T2, T3, T4, T5> &
+isquare(std::unordered_map<T1, T2, T3, T4, T5> &data) {
+  for (auto &pair : data) {
     pair.second *= pair.second;
   }
   return data;
@@ -122,7 +127,7 @@ std::unordered_map<T1, T2, T3, T4, T5>& isquare(std::unordered_map<T1, T2, T3, T
 //----------------------------------------------------------------------------
 
 template <class T, typename = enable_if_numeric_t<T>>
-matrix<T>& isquare(matrix<T>& data) {
+matrix<T> &isquare(matrix<T> &data) {
   for (size_t j = 0; j < data.size(); j++) {
     data[j] *= data[j];
   }
@@ -130,7 +135,7 @@ matrix<T>& isquare(matrix<T>& data) {
 }
 
 template <class T, typename = enable_if_numeric_t<T>>
-matrix<T> square(const matrix<T>& data) {
+matrix<T> square(const matrix<T> &data) {
   matrix<T> result = data;
   return isquare(result);
 }
@@ -140,16 +145,17 @@ matrix<T> square(const matrix<T>& data) {
 //----------------------------------------------------------------------------
 
 template <class T, typename = enable_if_numeric_t<T>>
-Vector<T>& isquare(Vector<T>& vec) {
-  std::for_each(vec.data(), vec.data() + vec.size(), [](T&val) { val *= val; });
+Vector<T> &isquare(Vector<T> &vec) {
+  std::for_each(vec.data(), vec.data() + vec.size(),
+                [](T &val) { val *= val; });
   return vec;
 }
 
 template <class T, typename = enable_if_numeric_t<T>>
-Vector<T> square(const Vector<T>& vec) {
+Vector<T> square(const Vector<T> &vec) {
   Vector<T> ret(vec.size(), false);
   std::transform(vec.data(), vec.data() + vec.size(), ret.data(),
-                 [](const T&val) { return val * val; });
+                 [](const T &val) { return val * val; });
   return ret;
 }
 
@@ -157,7 +163,7 @@ Vector<T> square(const Vector<T>& vec) {
 // Entrywise square of JSON
 //----------------------------------------------------------------------------
 
-inline json_t& isquare(json_t& data) {
+inline json_t &isquare(json_t &data) {
   // Terminating case
   if (data.is_number()) {
     double val = data;
@@ -170,7 +176,7 @@ inline json_t& isquare(json_t& data) {
       isquare(data[pos]);
     }
     return data;
-  } 
+  }
   if (data.is_object()) {
     for (auto it = data.begin(); it != data.end(); ++it) {
       isquare(data[it.key()]);
@@ -180,7 +186,7 @@ inline json_t& isquare(json_t& data) {
   throw std::invalid_argument("Input JSONs cannot be squared.");
 }
 
-inline json_t square(const json_t& data) {
+inline json_t square(const json_t &data) {
   json_t result = data;
   return isquare(result);
 }
@@ -190,19 +196,19 @@ inline json_t square(const json_t& data) {
 //----------------------------------------------------------------------------
 
 template <class T>
-T square(const T& data) {
+T square(const T &data) {
   return data * data;
 }
 
 template <class T>
-T& isquare(T& data) {
+T &isquare(T &data) {
   data *= data;
   return data;
 }
 
 //------------------------------------------------------------------------------
-}  // end namespace Linalg
+} // end namespace Linalg
 //------------------------------------------------------------------------------
-}  // end namespace AER
+} // end namespace AER
 //------------------------------------------------------------------------------
 #endif

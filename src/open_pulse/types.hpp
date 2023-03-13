@@ -20,8 +20,8 @@
 using complex_t = std::complex<double>;
 
 struct TermExpression {
-    TermExpression(const std::string& term) : term(term) {}
-    std::string term;
+  TermExpression(const std::string &term) : term(term) {}
+  std::string term;
 };
 
 #endif // _TEST_TYPES_HPP

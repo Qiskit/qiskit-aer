@@ -20,10 +20,8 @@ from ..default_qubits import default_qubits
 
 class SaveMatrixProductState(SaveSingleData):
     """Save matrix product state instruction"""
-    def __init__(self, num_qubits,
-                 label="matrix_product_state",
-                 pershot=False,
-                 conditional=False):
+
+    def __init__(self, num_qubits, label="matrix_product_state", pershot=False, conditional=False):
         """Create new instruction to save the matrix product state.
 
         Args:
@@ -40,11 +38,9 @@ class SaveMatrixProductState(SaveSingleData):
             qubits in a circuit, otherwise an exception will be raised during
             simulation.
         """
-        super().__init__('save_matrix_product_state',
-                         num_qubits,
-                         label,
-                         pershot=pershot,
-                         conditional=conditional)
+        super().__init__(
+            "save_matrix_product_state", num_qubits, label, pershot=pershot, conditional=conditional
+        )
 
 
 def save_matrix_product_state(self, label="matrix_product_state", pershot=False, conditional=False):
@@ -66,10 +62,9 @@ def save_matrix_product_state(self, label="matrix_product_state", pershot=False,
         This instruction is always defined across all qubits in a circuit.
     """
     qubits = default_qubits(self)
-    instr = SaveMatrixProductState(len(qubits),
-                                   label=label,
-                                   pershot=pershot,
-                                   conditional=conditional)
+    instr = SaveMatrixProductState(
+        len(qubits), label=label, pershot=pershot, conditional=conditional
+    )
     return self.append(instr, qubits)
 
 

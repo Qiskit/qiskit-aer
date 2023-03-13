@@ -34,12 +34,12 @@ class SimulatorTestCase(QiskitAerTestCase):
         """Return AerSimulator backend using current class options"""
         sim_options = self.OPTIONS.copy()
         for key, val in options.items():
-            if 'device' == key and 'cuStateVec' in val:
-                sim_options['device'] = 'GPU'
-                sim_options['cuStateVec_enable'] = True
-            elif 'device' == key and 'batch' in val:
-                sim_options['device'] = 'GPU'
-                sim_options['batched_shots_gpu'] = True
+            if "device" == key and "cuStateVec" in val:
+                sim_options["device"] = "GPU"
+                sim_options["cuStateVec_enable"] = True
+            elif "device" == key and "batch" in val:
+                sim_options["device"] = "GPU"
+                sim_options["batched_shots_gpu"] = True
             else:
                 sim_options[key] = val
         return self.BACKEND(**sim_options)
@@ -78,48 +78,49 @@ def _method_device(methods):
     if not methods:
         methods = available_methods
     available_devices = AerSimulator().available_devices()
-    #add special test device for cuStateVec if available
+    # add special test device for cuStateVec if available
     cuStateVec = check_cuStateVec(available_devices)
 
-    gpu_methods = ['statevector', 'density_matrix', 'unitary', 'tensor_network']
+    gpu_methods = ["statevector", "density_matrix", "unitary", "tensor_network"]
     data_args = []
     for method in methods:
         if method in available_methods:
             if method in gpu_methods:
-                if 'tensor_network' == method:
+                if "tensor_network" == method:
                     for device in available_devices:
-                        if device == 'GPU':
-                            data_args.append((method, 'GPU'))
+                        if device == "GPU":
+                            data_args.append((method, "GPU"))
                 else:
                     for device in available_devices:
                         data_args.append((method, device))
-                        if device == 'GPU':
-                            #add batched optimization test for GPU
-                            data_args.append((method, 'GPU_batch'))
-                    #add test cases for cuStateVec if available using special device = 'GPU_cuStateVec'
+                        if device == "GPU":
+                            # add batched optimization test for GPU
+                            data_args.append((method, "GPU_batch"))
+                    # add test cases for cuStateVec if available using special device = 'GPU_cuStateVec'
                     #'GPU_cuStateVec' is used only inside tests not available in Aer
-                    #and this is converted to "device='GPU'" and option "cuStateVec_enalbe = True" is added
-                    if cuStateVec and 'tensor_network' != method:
-                        data_args.append((method, 'GPU_cuStateVec'))
+                    # and this is converted to "device='GPU'" and option "cuStateVec_enalbe = True" is added
+                    if cuStateVec and "tensor_network" != method:
+                        data_args.append((method, "GPU_cuStateVec"))
             else:
-                data_args.append((method, 'CPU'))
+                data_args.append((method, "CPU"))
     return data_args
+
 
 def check_cuStateVec(devices):
     """Return if the system supports cuStateVec or not"""
-    if 'GPU' in devices:
+    if "GPU" in devices:
         dummy_circ = QuantumCircuit(1)
         dummy_circ.i(0)
-        qobj = assemble(dummy_circ,
-                        optimization_level=0,
-                        shots=1,
-                        method="statevector",
-                        device="GPU",
-                        cuStateVec_enable=True)
-        #run dummy circuit to check if Aer is built with cuStateVec
+        qobj = assemble(
+            dummy_circ,
+            optimization_level=0,
+            shots=1,
+            method="statevector",
+            device="GPU",
+            cuStateVec_enable=True,
+        )
+        # run dummy circuit to check if Aer is built with cuStateVec
         result = cpp_execute_qobj(aer_controller_execute(), qobj)
-        return result.get('success', False)
+        return result.get("success", False)
     else:
         return False
-
-

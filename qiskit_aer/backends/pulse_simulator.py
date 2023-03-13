@@ -34,22 +34,22 @@ from .aerbackend import AerBackend
 logger = logging.getLogger(__name__)
 
 DEFAULT_CONFIGURATION = {
-    'backend_name': 'pulse_simulator',
-    'backend_version': __version__,
-    'n_qubits': 20,
-    'coupling_map': None,
-    'url': 'https://github.com/Qiskit/qiskit-aer',
-    'simulator': True,
-    'meas_levels': [1, 2],
-    'local': True,
-    'conditional': True,
-    'open_pulse': True,
-    'memory': False,
-    'max_shots': int(1e6),
-    'description': 'A Pulse-based Hamiltonian simulator for Pulse Qobj files',
-    'gates': [],
-    'basis_gates': [],
-    'parametric_pulses': []
+    "backend_name": "pulse_simulator",
+    "backend_version": __version__,
+    "n_qubits": 20,
+    "coupling_map": None,
+    "url": "https://github.com/Qiskit/qiskit-aer",
+    "simulator": True,
+    "meas_levels": [1, 2],
+    "local": True,
+    "conditional": True,
+    "open_pulse": True,
+    "memory": False,
+    "max_shots": int(1e6),
+    "description": "A Pulse-based Hamiltonian simulator for Pulse Qobj files",
+    "gates": [],
+    "basis_gates": [],
+    "parametric_pulses": [],
 }
 
 
@@ -155,12 +155,10 @@ class PulseSimulator(AerBackend):
       are ``'atol'``, ``'rtol'``, ``'nsteps'``, ``'max_step'``, ``'num_cpus'``, ``'norm_tol'``,
       and ``'norm_steps'``.
     """
-    def __init__(self,
-                 configuration=None,
-                 properties=None,
-                 defaults=None,
-                 provider=None,
-                 **backend_options):
+
+    def __init__(
+        self, configuration=None, properties=None, defaults=None, provider=None, **backend_options
+    ):
         warn(
             "The Pulse simulator backend in Qiskit Aer is deprecated and will "
             "be removed in a future release. Instead the qiskit-dynamics "
@@ -170,8 +168,7 @@ class PulseSimulator(AerBackend):
         )
 
         if configuration is None:
-            configuration = BackendConfiguration.from_dict(
-                DEFAULT_CONFIGURATION)
+            configuration = BackendConfiguration.from_dict(DEFAULT_CONFIGURATION)
         else:
             configuration = copy.copy(configuration)
             configuration.meas_levels = self._meas_levels(configuration.meas_levels)
@@ -179,24 +176,23 @@ class PulseSimulator(AerBackend):
             configuration.parametric_pulses = []
 
         if defaults is None:
-            defaults = PulseDefaults(qubit_freq_est=[inf],
-                                     meas_freq_est=[inf],
-                                     buffer=0,
-                                     cmd_def=[],
-                                     pulse_library=[])
+            defaults = PulseDefaults(
+                qubit_freq_est=[inf], meas_freq_est=[inf], buffer=0, cmd_def=[], pulse_library=[]
+            )
 
-        super().__init__(configuration,
-                         properties=properties,
-                         defaults=defaults,
-                         provider=provider,
-                         backend_options=backend_options)
+        super().__init__(
+            configuration,
+            properties=properties,
+            defaults=defaults,
+            provider=provider,
+            backend_options=backend_options,
+        )
 
         # Set up default system model
-        subsystem_list = backend_options.get('subsystem_list', None)
-        if backend_options.get('system_model') is None:
-            if hasattr(configuration, 'hamiltonian'):
-                system_model = PulseSystemModel.from_config(
-                    configuration, subsystem_list)
+        subsystem_list = backend_options.get("subsystem_list", None)
+        if backend_options.get("system_model") is None:
+            if hasattr(configuration, "hamiltonian"):
+                system_model = PulseSystemModel.from_config(configuration, subsystem_list)
                 self._set_system_model(system_model)
 
     @classmethod
@@ -218,13 +214,11 @@ class PulseSimulator(AerBackend):
             executor=None,
             memory_slots=1,
             max_job_size=None,
-            max_shot_size=None)
+            max_shot_size=None,
+        )
 
     # pylint: disable=arguments-differ, missing-param-doc
-    def run(self,
-            schedules,
-            validate=True,
-            **run_options):
+    def run(self, schedules, validate=True, **run_options):
         """Run a qobj on the backend.
 
         Args:
@@ -255,29 +249,29 @@ class PulseSimulator(AerBackend):
 
     @property
     def _system_model(self):
-        return getattr(self._options, 'system_model')
+        return getattr(self._options, "system_model")
 
     @classmethod
     def from_backend(cls, backend, **options):
         """Initialize simulator from backend."""
         if isinstance(backend, BackendV2):
-            raise AerError(
-                "PulseSimulator.from_backend does not currently support V2 Backends."
-            )
+            raise AerError("PulseSimulator.from_backend does not currently support V2 Backends.")
         configuration = copy.copy(backend.configuration())
         defaults = copy.copy(backend.defaults())
         properties = copy.copy(backend.properties())
 
-        backend_name = 'pulse_simulator({})'.format(configuration.backend_name)
-        description = 'A Pulse-based simulator configured from the backend: '
+        backend_name = "pulse_simulator({})".format(configuration.backend_name)
+        description = "A Pulse-based simulator configured from the backend: "
         description += configuration.backend_name
 
-        sim = cls(configuration=configuration,
-                  properties=properties,
-                  defaults=defaults,
-                  backend_name=backend_name,
-                  description=description,
-                  **options)
+        sim = cls(
+            configuration=configuration,
+            properties=properties,
+            defaults=defaults,
+            backend_name=backend_name,
+            description=description,
+            **options,
+        )
         return sim
 
     def _execute_qobj(self, qobj):
@@ -293,42 +287,42 @@ class PulseSimulator(AerBackend):
         return pulse_controller(qobj)
 
     def _execute_circuits(self, aer_circuits, noise_model, config):
-        """Execute circuits on the backend.
-        """
+        """Execute circuits on the backend."""
         raise TypeError("pulse simulator does not support circuit execution")
 
     def set_option(self, key, value):
         """Set pulse simulation options and update backend."""
-        if key == 'meas_levels':
+        if key == "meas_levels":
             self._set_configuration_option(key, self._meas_levels(value))
             return
 
         # Handle cases that require updating two places
-        if key in ['dt', 'u_channel_lo']:
+        if key in ["dt", "u_channel_lo"]:
             self._set_configuration_option(key, value)
             if self._system_model is not None:
                 setattr(self._system_model, key, value)
             return
 
-        if key == 'hamiltonian':
+        if key == "hamiltonian":
             # if option is hamiltonian, set in configuration and reconstruct pulse system model
-            subsystem_list = getattr(self._options.get, 'subsystem_list', None)
-            system_model = PulseSystemModel.from_config(self.configuration(),
-                                                        subsystem_list)
-            super().set_option('system_model', system_model)
+            subsystem_list = getattr(self._options.get, "subsystem_list", None)
+            system_model = PulseSystemModel.from_config(self.configuration(), subsystem_list)
+            super().set_option("system_model", system_model)
             self._set_configuration_option(key, value)
             return
 
         # if system model is specified directly
-        if key == 'system_model':
-            if hasattr(self.configuration(), 'hamiltonian'):
-                warn('Specifying both a configuration with a Hamiltonian and a '
-                     'system model may result in inconsistencies.')
+        if key == "system_model":
+            if hasattr(self.configuration(), "hamiltonian"):
+                warn(
+                    "Specifying both a configuration with a Hamiltonian and a "
+                    "system model may result in inconsistencies."
+                )
             # Set config dt and u_channel_lo to system model values
             self._set_system_model(value)
             return
 
-        if key == 'qubit_lo_freq':
+        if key == "qubit_lo_freq":
             value = [freq * 1e-9 for freq in value]
 
         # Set all other options from AerBackend
@@ -336,11 +330,9 @@ class PulseSimulator(AerBackend):
 
     def _set_system_model(self, system_model):
         """Set system model option"""
-        self._set_configuration_option(
-            'dt', getattr(system_model, 'dt', []))
-        self._set_configuration_option(
-            'u_channel_lo', getattr(system_model, 'u_channel_lo', []))
-        super().set_option('system_model', system_model)
+        self._set_configuration_option("dt", getattr(system_model, "dt", []))
+        self._set_configuration_option("u_channel_lo", getattr(system_model, "u_channel_lo", []))
+        super().set_option("system_model", system_model)
 
     def _validate(self, qobj):
         """Validation of qobj.
@@ -348,28 +340,31 @@ class PulseSimulator(AerBackend):
         Ensures that exactly one Acquire instruction is present in each
         schedule. Checks SystemModel is in qobj config
         """
-        if getattr(qobj.config, 'system_model', None) is None:
+        if getattr(qobj.config, "system_model", None) is None:
             raise AerError("PulseSimulator requires a system model to run.")
 
         for exp in qobj.experiments:
             num_acquires = 0
             for instruction in exp.instructions:
-                if instruction.name == 'acquire':
+                if instruction.name == "acquire":
                     num_acquires += 1
 
                 if num_acquires > 1:
-                    raise AerError("PulseSimulator does not support multiple Acquire "
-                                   "instructions in a single schedule.")
+                    raise AerError(
+                        "PulseSimulator does not support multiple Acquire "
+                        "instructions in a single schedule."
+                    )
 
             if num_acquires == 0:
-                raise AerError("PulseSimulator requires at least one Acquire "
-                               "instruction per schedule.")
+                raise AerError(
+                    "PulseSimulator requires at least one Acquire " "instruction per schedule."
+                )
 
     @staticmethod
     def _meas_levels(meas_levels):
         """Function for setting meas_levels in a pulse simulator configuration."""
         if 0 in meas_levels:
-            warn('Measurement level 0 not supported in pulse simulator.')
+            warn("Measurement level 0 not supported in pulse simulator.")
             tmp = copy.copy(meas_levels)
             tmp.remove(0)
             return tmp

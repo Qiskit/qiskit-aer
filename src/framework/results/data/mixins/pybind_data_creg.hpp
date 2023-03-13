@@ -30,8 +30,7 @@ py::object to_python(AER::DataCreg &&data);
 // Move an DataCreg container object to an existing new Python dict
 void add_to_python(py::dict &pydata, AER::DataCreg &&data);
 
-} //end namespace AerToPy
-
+} // end namespace AerToPy
 
 //============================================================================
 // Implementations
@@ -44,8 +43,12 @@ py::object AerToPy::to_python(AER::DataCreg &&data) {
 }
 
 void AerToPy::add_to_python(py::dict &pydata, AER::DataCreg &&data) {
-  AerToPy::add_to_python(pydata, static_cast<AER::DataMap<AER::ListData, std::string, 1>&&>(data));
-  AerToPy::add_to_python(pydata, static_cast<AER::DataMap<AER::AccumData, AER::uint_t, 2>&&>(data));
+  AerToPy::add_to_python(
+      pydata,
+      static_cast<AER::DataMap<AER::ListData, std::string, 1> &&>(data));
+  AerToPy::add_to_python(
+      pydata,
+      static_cast<AER::DataMap<AER::AccumData, AER::uint_t, 2> &&>(data));
 }
 
 #endif

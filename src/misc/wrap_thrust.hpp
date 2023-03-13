@@ -21,22 +21,22 @@
 
 #include "misc/warnings.hpp"
 DISABLE_WARNING_PUSH
-#include <thrust/for_each.h>
+#include <thrust/binary_search.h>
 #include <thrust/complex.h>
+#include <thrust/detail/vector_base.h>
+#include <thrust/execution_policy.h>
+#include <thrust/for_each.h>
+#include <thrust/functional.h>
 #include <thrust/inner_product.h>
+#include <thrust/iterator/constant_iterator.h>
 #include <thrust/transform.h>
 #include <thrust/transform_scan.h>
-#include <thrust/binary_search.h>
-#include <thrust/execution_policy.h>
-#include <thrust/functional.h>
 #include <thrust/tuple.h>
-#include <thrust/iterator/constant_iterator.h>
-#include <thrust/detail/vector_base.h>
 
-#include <thrust/iterator/counting_iterator.h>
-#include <thrust/iterator/transform_iterator.h>
-#include <thrust/iterator/permutation_iterator.h>
 #include <thrust/fill.h>
+#include <thrust/iterator/counting_iterator.h>
+#include <thrust/iterator/permutation_iterator.h>
+#include <thrust/iterator/transform_iterator.h>
 
 #ifdef AER_THRUST_CUDA
 #include <thrust/device_vector.h>

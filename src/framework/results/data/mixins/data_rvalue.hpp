@@ -15,9 +15,9 @@
 #ifndef _aer_framework_results_data_rvalue_hpp_
 #define _aer_framework_results_data_rvalue_hpp_
 
-#include "framework/results/data/subtypes/data_map.hpp"
 #include "framework/results/data/subtypes/accum_data.hpp"
 #include "framework/results/data/subtypes/average_data.hpp"
+#include "framework/results/data/subtypes/data_map.hpp"
 #include "framework/results/data/subtypes/list_data.hpp"
 #include "framework/results/data/subtypes/single_data.hpp"
 #include "framework/types.hpp"
@@ -28,13 +28,12 @@ namespace AER {
 // Result container for Qiskit-Aer
 //============================================================================
 
-struct DataRValue :
-    public DataMap<ListData, double, 1>,
-    public DataMap<ListData, double, 2>,
-    public DataMap<AccumData, double, 1>,
-    public DataMap<AccumData, double, 2>,
-    public DataMap<AverageData, double, 1>,
-    public DataMap<AverageData, double, 2> {
+struct DataRValue : public DataMap<ListData, double, 1>,
+                    public DataMap<ListData, double, 2>,
+                    public DataMap<AccumData, double, 1>,
+                    public DataMap<AccumData, double, 2>,
+                    public DataMap<AverageData, double, 1>,
+                    public DataMap<AverageData, double, 2> {
 
   // Serialize engine data to JSON
   void add_to_json(json_t &result);

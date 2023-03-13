@@ -19,10 +19,10 @@
 #ifndef _aer_framework_blas_protos_hpp
 #define _aer_framework_blas_protos_hpp
 
+#include <array>
 #include <complex>
 #include <iostream>
 #include <vector>
-#include <array>
 
 #ifdef __cplusplus
 extern "C" {
@@ -79,45 +79,43 @@ void zgemm_(const char *TransA, const char *TransB, const size_t *M,
             const std::complex<double> *beta, std::complex<double> *C,
             size_t *ldc);
 
-// Reduces a Single-Precison Complex Hermitian matrix A to real symmetric tridiagonal form
-void chetrd_(char *TRANS, int *N, std::complex<float> *A,
-             int *LDA, float *d, float *e, std::complex<float> *tau,
-             std::complex<float> *work, int *lwork, int *info);
+// Reduces a Single-Precison Complex Hermitian matrix A to real symmetric
+// tridiagonal form
+void chetrd_(char *TRANS, int *N, std::complex<float> *A, int *LDA, float *d,
+             float *e, std::complex<float> *tau, std::complex<float> *work,
+             int *lwork, int *info);
 
-// Reduces a Double-Precison Complex Hermitian matrix A to real symmetric tridiagonal form T
-void zhetrd_(char *TRANS, int *N, std::complex<double> *A,
-             int *LDA, double *d, double *e, std::complex<double> *tau,
-             std::complex<double> *work, int *lwork, int *info);
+// Reduces a Double-Precison Complex Hermitian matrix A to real symmetric
+// tridiagonal form T
+void zhetrd_(char *TRANS, int *N, std::complex<double> *A, int *LDA, double *d,
+             double *e, std::complex<double> *tau, std::complex<double> *work,
+             int *lwork, int *info);
 
 // Computes all eigenvalues and, optionally, eigenvectors of a
 // Single-Precison Complex symmetric positive definite tridiagonal matrix
-void cpteqr_(char* compz, int *n, float *d, float *e,
-             std::complex<float> *z, int* ldz,
-             std::complex<float> *work, int *info);
+void cpteqr_(char *compz, int *n, float *d, float *e, std::complex<float> *z,
+             int *ldz, std::complex<float> *work, int *info);
 
 // Computes all eigenvalues and, optionally, eigenvectors of a
 // Double-Precison Complex symmetric positive definite tridiagonal matrix
-void zpteqr_(char* compz, int *n, double *d, double *e,
-             std::complex<double> *z, int* ldz,
-             std::complex<double> *work, int *info);
+void zpteqr_(char *compz, int *n, double *d, double *e, std::complex<double> *z,
+             int *ldz, std::complex<double> *work, int *info);
 
 // Computes selected eigenvalues and, optionally, eigenvectors
 // of a Single-Precison Complex Hermitian matrix A
 void cheevx_(char *jobz, char *range, char *uplo, int *n,
-             std::complex<float> *a, int *lda, float *vl,
-             float *vu, int *il, int *iu, float *abstol,
-             int *m, float *w, std::complex<float> *z, int *ldz,
-             std::complex<float> *work, int *lwork, float *rwork,
+             std::complex<float> *a, int *lda, float *vl, float *vu, int *il,
+             int *iu, float *abstol, int *m, float *w, std::complex<float> *z,
+             int *ldz, std::complex<float> *work, int *lwork, float *rwork,
              int *iwork, int *ifail, int *info);
 
 // Computes selected eigenvalues and, optionally, eigenvectors
 // of a Double-Precison Complex Hermitian matrix A
 void zheevx_(char *jobz, char *range, char *uplo, int *n,
-             std::complex<double> *a, int *lda, double *vl,
-             double *vu, int *il, int *iu, double *abstol,
-             int *m, double *w, std::complex<double> *z, int *ldz,
-             std::complex<double> *work, int *lwork, double *rwork,
-             int *iwork, int *ifail, int *info);
+             std::complex<double> *a, int *lda, double *vl, double *vu, int *il,
+             int *iu, double *abstol, int *m, double *w,
+             std::complex<double> *z, int *ldz, std::complex<double> *work,
+             int *lwork, double *rwork, int *iwork, int *ifail, int *info);
 
 // Determines Single-Precision machine parameters.
 float slamch_(char *cmach);

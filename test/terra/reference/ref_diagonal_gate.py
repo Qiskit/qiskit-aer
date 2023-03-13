@@ -19,7 +19,7 @@ import numpy as np
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
 
 # Backwards compatibility for Terra <= 0.13
-if not hasattr(QuantumCircuit, 'diagonal'):
+if not hasattr(QuantumCircuit, "diagonal"):
     QuantumCircuit.diagonal = QuantumCircuit.diag_gate
 
 
@@ -27,12 +27,12 @@ def diagonal_gate_circuits_deterministic(final_measure=True):
     """Diagonal gate test circuits with deterministic count output."""
 
     circuits = []
-    qr = QuantumRegister(2, 'qr')
+    qr = QuantumRegister(2, "qr")
     if final_measure:
-        cr = ClassicalRegister(2, 'cr')
+        cr = ClassicalRegister(2, "cr")
         regs = (qr, cr)
     else:
-        regs = (qr, )
+        regs = (qr,)
 
     # 4 x Swap |00> <--> |01> states
     # 4 x Swap |00> <--> |10> states
@@ -61,8 +61,7 @@ def diagonal_gate_circuits_deterministic(final_measure=True):
         circuits.append(circuit)
 
     # CS01.XX, exp(-1j * np.pi/k)|11> state
-    for diag in [np.array([1, 1, 1, np.exp(-1j * np.pi / k)])
-                 for k in [10, 100, 1000, 10000]]:
+    for diag in [np.array([1, 1, 1, np.exp(-1j * np.pi / k)]) for k in [10, 100, 1000, 10000]]:
         circuit = QuantumCircuit(*regs)
         circuit.x(qr)
         circuit.diagonal(list(diag), qr)
@@ -79,22 +78,22 @@ def diagonal_gate_counts_deterministic(shots, hex_counts=True):
     targets = []
     if hex_counts:
         # Swap |00> <--> |01> states
-        targets += 4 * [{'0x1': shots}]
+        targets += 4 * [{"0x1": shots}]
         # Swap |00> <--> |10> states
-        targets += 4 * [{'0x2': shots}]
+        targets += 4 * [{"0x2": shots}]
         # Swap |00> <--> |11> states
-        targets += 4 * [{'0x3': shots}]
+        targets += 4 * [{"0x3": shots}]
         # CS01.XX, exp(-1j * np.pi/N)|11> state
-        targets += 4 * [{'0x3': shots}]
+        targets += 4 * [{"0x3": shots}]
     else:
         # Swap |00> <--> |01> states
-        targets += 4 * [{'01': shots}]
+        targets += 4 * [{"01": shots}]
         # Swap |00> <--> |10> states
-        targets += 4 * [{'10': shots}]
+        targets += 4 * [{"10": shots}]
         # Swap |00> <--> |11> states
-        targets += 4 * [{'11': shots}]
+        targets += 4 * [{"11": shots}]
         # CS01.XX, exp(-1j * np.pi/k)|11> state
-        targets += 4 * [{'11': shots}]
+        targets += 4 * [{"11": shots}]
     return targets
 
 
@@ -117,24 +116,14 @@ def diagonal_gate_unitary_deterministic():
     targets = []
 
     # Swap |00> <--> |01> states
-    targets += 4 * [np.array([[0, 1, 0, 0],
-                              [1, 0, 0, 0],
-                              [0, 0, 0, 1],
-                              [0, 0, 1, 0]])]
+    targets += 4 * [np.array([[0, 1, 0, 0], [1, 0, 0, 0], [0, 0, 0, 1], [0, 0, 1, 0]])]
     # Swap |00> <--> |10> states
-    targets += 4 * [np.array([[0, 0, 1, 0],
-                              [0, 0, 0, 1],
-                              [1, 0, 0, 0],
-                              [0, 1, 0, 0]])]
+    targets += 4 * [np.array([[0, 0, 1, 0], [0, 0, 0, 1], [1, 0, 0, 0], [0, 1, 0, 0]])]
     # Swap |00> <--> |11> states
-    targets += 4 * [np.array([[0, 0, 0, 1],
-                              [0, 0, 1, 0],
-                              [0, 1, 0, 0],
-                              [1, 0, 0, 0]])]
+    targets += 4 * [np.array([[0, 0, 0, 1], [0, 0, 1, 0], [0, 1, 0, 0], [1, 0, 0, 0]])]
     # CS01.XX, 1j|11> state
-    targets += [np.array([[0, 0, 0, 1],
-                          [0, 0, 1, 0],
-                          [0, 1, 0, 0],
-                          [np.exp(-1j * np.pi / k), 0, 0, 0]])
-                for k in [10, 100, 1000, 10000]]
+    targets += [
+        np.array([[0, 0, 0, 1], [0, 0, 1, 0], [0, 1, 0, 0], [np.exp(-1j * np.pi / k), 0, 0, 0]])
+        for k in [10, 100, 1000, 10000]
+    ]
     return targets

@@ -16,10 +16,10 @@
 #define _aer_framework_result_data_pybind_subtypes_hpp_
 
 #include "framework/pybind_basics.hpp"
-#include "framework/results/data/subtypes/single_data.hpp"
 #include "framework/results/data/subtypes/accum_data.hpp"
 #include "framework/results/data/subtypes/average_data.hpp"
 #include "framework/results/data/subtypes/list_data.hpp"
+#include "framework/results/data/subtypes/single_data.hpp"
 
 namespace AerToPy {
 
@@ -39,8 +39,7 @@ py::object to_python(AER::AverageData<T> &&src);
 template <typename T>
 py::object to_python(AER::ListData<T> &&src);
 
-} //end namespace AerToPy
-
+} // end namespace AerToPy
 
 //============================================================================
 // Implementations

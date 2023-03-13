@@ -22,13 +22,10 @@ from ...aererror import AerError
 from .string_model_parser.string_model_parser import HamiltonianParser
 
 
-class HamiltonianModel():
+class HamiltonianModel:
     """Hamiltonian model for pulse simulator."""
 
-    def __init__(self,
-                 system=None,
-                 variables=None,
-                 subsystem_dims=None):
+    def __init__(self, system=None, variables=None, subsystem_dims=None):
         """Initialize a Hamiltonian model.
 
         Args:
@@ -65,7 +62,7 @@ class HamiltonianModel():
         self._calculate_hamiltonian_channels()
 
         if len(self._channels) == 0:
-            raise AerError('HamiltonianModel must contain channels to simulate.')
+            raise AerError("HamiltonianModel must contain channels to simulate.")
 
         # populate self._h_diag, self._evals, self._estates
         self._compute_drift_data()
@@ -89,51 +86,42 @@ class HamiltonianModel():
 
         # get variables
         variables = OrderedDict()
-        if 'vars' in hamiltonian:
-            variables = OrderedDict(hamiltonian['vars'])
+        if "vars" in hamiltonian:
+            variables = OrderedDict(hamiltonian["vars"])
 
         # Get qubit subspace dimensions
-        if 'qub' in hamiltonian:
+        if "qub" in hamiltonian:
             if subsystem_list is None:
-                subsystem_list = [int(qubit) for qubit in hamiltonian['qub']]
+                subsystem_list = [int(qubit) for qubit in hamiltonian["qub"]]
             else:
                 # if user supplied, make a copy and sort it
                 subsystem_list = subsystem_list.copy()
                 subsystem_list.sort()
 
             # force keys in hamiltonian['qub'] to be ints
-            qub_dict = {
-                int(key): val
-                for key, val in hamiltonian['qub'].items()
-            }
+            qub_dict = {int(key): val for key, val in hamiltonian["qub"].items()}
 
-            subsystem_dims = {
-                int(qubit): qub_dict[int(qubit)]
-                for qubit in subsystem_list
-            }
+            subsystem_dims = {int(qubit): qub_dict[int(qubit)] for qubit in subsystem_list}
         else:
             subsystem_dims = {}
 
         # Get oscillator subspace dimensions
-        if 'osc' in hamiltonian:
-            oscillator_dims = {
-                int(key): val
-                for key, val in hamiltonian['osc'].items()
-            }
+        if "osc" in hamiltonian:
+            oscillator_dims = {int(key): val for key, val in hamiltonian["osc"].items()}
         else:
             oscillator_dims = {}
 
         # Parse the Hamiltonian
-        system = HamiltonianParser(h_str=hamiltonian['h_str'],
-                                   dim_osc=oscillator_dims,
-                                   dim_qub=subsystem_dims)
+        system = HamiltonianParser(
+            h_str=hamiltonian["h_str"], dim_osc=oscillator_dims, dim_qub=subsystem_dims
+        )
         system.parse(subsystem_list)
         system = system.compiled
 
         return cls(system, variables, subsystem_dims)
 
     def get_qubit_lo_from_drift(self):
-        """ Computes a list of qubit frequencies corresponding to the exact energy
+        """Computes a list of qubit frequencies corresponding to the exact energy
         gap between the ground and first excited states of each qubit.
 
         If the keys in self._subsystem_dims skips over a qubit, it will default to outputting
@@ -150,14 +138,13 @@ class HamiltonianModel():
         min_eval = np.min(self._evals)
         for q_idx in self._subsystem_dims.keys():
             single_excite = _first_excited_state(q_idx, self._subsystem_dims)
-            dressed_eval = _eval_for_max_espace_overlap(
-                single_excite, self._evals, self._estates)
+            dressed_eval = _eval_for_max_espace_overlap(single_excite, self._evals, self._estates)
             qubit_lo_freq[q_idx] = (dressed_eval - min_eval) / (2 * np.pi)
 
         return qubit_lo_freq
 
     def _calculate_hamiltonian_channels(self):
-        """ Get all the qubit channels D_i and U_i in the string
+        """Get all the qubit channels D_i and U_i in the string
         representation of a system Hamiltonian.
 
         Raises:
@@ -165,13 +152,10 @@ class HamiltonianModel():
         """
         channels = []
         for _, ham_str in self._system:
-            chan_idx = [
-                i for i, letter in enumerate(ham_str) if letter in ['D', 'U']
-            ]
+            chan_idx = [i for i, letter in enumerate(ham_str) if letter in ["D", "U"]]
             for ch in chan_idx:
                 if (ch + 1) == len(ham_str) or not ham_str[ch + 1].isdigit():
-                    raise Exception('Channel name must include' +
-                                    'an integer labeling the qubit.')
+                    raise Exception("Channel name must include" + "an integer labeling the qubit.")
             for kk in chan_idx:
                 done = False
                 offset = 0
@@ -183,7 +167,7 @@ class HamiltonianModel():
                     elif (kk + offset + 1) == len(ham_str):
                         done = True
                         offset += 1
-                temp_chan = ham_str[kk:kk + offset]
+                temp_chan = ham_str[kk : kk + offset]
                 if temp_chan not in channels:
                     channels.append(temp_chan)
         channels.sort(key=lambda x: (int(x[1:]), x[0]))
@@ -206,12 +190,12 @@ class HamiltonianModel():
         # Get the diagonal elements of the hamiltonian with all the
         # drive terms set to zero
         for chan in self._channels:
-            exec('%s=0' % chan)
+            exec("%s=0" % chan)
 
         # might be a better solution to replace the 'var' in the hamiltonian
         # string with 'op_system.vars[var]'
         for var in self._variables:
-            exec('%s=%f' % (var, self._variables[var]))
+            exec("%s=%f" % (var, self._variables[var]))
 
         full_dim = np.prod(list(self._subsystem_dims.values()))
 
@@ -234,7 +218,7 @@ class HamiltonianModel():
 
             pos = np.argmax(np.abs(estate_copy))
             pos_list.append(pos)
-            min_overlap = min(np.abs(estate_copy)[pos]**2, min_overlap)
+            min_overlap = min(np.abs(estate_copy)[pos] ** 2, min_overlap)
 
             evals_mapped[pos] = evals[i]
             estates_mapped[:, pos] = estate
@@ -254,15 +238,15 @@ def _hamiltonian_pre_parse_exceptions(hamiltonian):
         AerError: if some part of the hamiltonian dictionary is unsupported
     """
 
-    ham_str = hamiltonian.get('h_str', [])
-    if ham_str in ([], ['']):
+    ham_str = hamiltonian.get("h_str", [])
+    if ham_str in ([], [""]):
         raise AerError("Hamiltonian dict requires a non-empty 'h_str' entry.")
 
-    if hamiltonian.get('qub', {}) == {}:
+    if hamiltonian.get("qub", {}) == {}:
         raise AerError("Hamiltonian dict requires non-empty 'qub' entry with subsystem dimensions.")
 
-    if hamiltonian.get('osc', {}) != {}:
-        raise AerError('Oscillator-type systems are not supported.')
+    if hamiltonian.get("osc", {}) != {}:
+        raise AerError("Oscillator-type systems are not supported.")
 
 
 def _first_excited_state(qubit_idx, subsystem_dims):
@@ -279,7 +263,7 @@ def _first_excited_state(qubit_idx, subsystem_dims):
     Returns:
         vector: the state with qubit_idx in state 1, and the rest in state 0
     """
-    vector = np.array([1.])
+    vector = np.array([1.0])
     # iterate through qubits, tensoring on the state
     qubit_indices = [int(qubit) for qubit in subsystem_dims]
     qubit_indices.sort()

@@ -25,7 +25,7 @@ def grovers_circuit(final_measure=True, allow_sampling=True):
         cr = ClassicalRegister(2)
         regs = (qr, cr)
     else:
-        regs = (qr, )
+        regs = (qr,)
     circuit = QuantumCircuit(*regs)
 
     circuit.h(qr[0])
@@ -64,14 +64,13 @@ def grovers_circuit(final_measure=True, allow_sampling=True):
     return circuits
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     # Run qasm simulator
     shots = 4000
     circuits = grovers_circuit(final_measure=True, allow_sampling=True)
-    if os.getenv('USE_MPI', False):
-        qobj = assemble(transpile(circuits), shots=shots,
-                        blocking_enable=True, blocking_qubits=2)
+    if os.getenv("USE_MPI", False):
+        qobj = assemble(transpile(circuits), shots=shots, blocking_enable=True, blocking_qubits=2)
     else:
         qobj = assemble(transpile(circuits), shots=shots)
-    with open('qobj.json', 'wt') as fp:
+    with open("qobj.json", "wt") as fp:
         json.dump(qobj.to_dict(), fp)

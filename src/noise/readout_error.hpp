@@ -22,11 +22,8 @@ namespace Noise {
 // Readout Error class
 //=========================================================================
 
-
-
 class ReadoutError {
 public:
-
   // Alias for return type
   using NoiseOps = std::vector<Operations::Op>;
 
@@ -35,8 +32,7 @@ public:
   //-----------------------------------------------------------------------
 
   // Sample a noisy implementation of op
-  NoiseOps sample_noise(const reg_t &memory,
-                        RngEngine &rng) const;
+  NoiseOps sample_noise(const reg_t &memory, RngEngine &rng) const;
 
   //-----------------------------------------------------------------------
   // Initialization
@@ -56,18 +52,17 @@ public:
   //-----------------------------------------------------------------------
 
   // Set number of qubits or memory bits for error
-  inline void set_num_qubits(uint_t num_qubits) {num_qubits_ = num_qubits;}
+  inline void set_num_qubits(uint_t num_qubits) { num_qubits_ = num_qubits; }
 
   // Get number of qubits or memory bits for error
-  inline uint_t get_num_qubits() const {return num_qubits_;}
+  inline uint_t get_num_qubits() const { return num_qubits_; }
 
 protected:
-
   // Number of qubits/memory bits the error applies to
   uint_t num_qubits_ = 0;
 
   // Vector of assignment probability vectors
-  std::vector<rvector_t> assignment_probabilities_; 
+  std::vector<rvector_t> assignment_probabilities_;
 
   // threshold for checking probabilities
   double threshold_ = 1e-10;
@@ -82,11 +77,11 @@ ReadoutError::NoiseOps ReadoutError::sample_noise(const reg_t &memory,
   (void)rng; // RNG is unused for readout error since it is handled by engine
   // Check assignment fidelity matrix is correct size
   if (memory.size() > get_num_qubits())
-    throw std::invalid_argument("ReadoutError: number of qubits don't match assignment probability matrix.");
+    throw std::invalid_argument("ReadoutError: number of qubits don't match "
+                                "assignment probability matrix.");
   // Initialize return ops,
   return {Operations::make_roerror(memory, assignment_probabilities_)};
 }
-
 
 void ReadoutError::set_probabilities(const std::vector<rvector_t> &probs) {
   assignment_probabilities_ = probs;
@@ -95,15 +90,17 @@ void ReadoutError::set_probabilities(const std::vector<rvector_t> &probs) {
     double total = 0.0;
     for (const auto &p : ps) {
       if (p < 0 || p > 1) {
-        throw std::invalid_argument("ReadoutError probability is not valid (p=" + std::to_string(p) +").");
+        throw std::invalid_argument(
+            "ReadoutError probability is not valid (p=" + std::to_string(p) +
+            ").");
       }
       total += p;
     }
     if (std::abs(total - 1) > threshold_)
-      throw std::invalid_argument("ReadoutError probability vector is not normalized.");
+      throw std::invalid_argument(
+          "ReadoutError probability vector is not normalized.");
   }
 }
-
 
 void ReadoutError::load_from_json(const json_t &js) {
   std::vector<rvector_t> probs;

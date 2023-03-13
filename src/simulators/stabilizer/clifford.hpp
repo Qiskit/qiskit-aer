@@ -18,8 +18,8 @@
 #include "framework/types.hpp"
 #include "framework/utils.hpp"
 
-#include "pauli.hpp"
 #include "framework/json_parser.hpp"
+#include "pauli.hpp"
 
 #include <omp.h>
 
@@ -48,27 +48,28 @@ public:
   //-----------------------------------------------------------------------
   // Utility functions
   //-----------------------------------------------------------------------
-  //initialize
+  // initialize
   void initialize(const uint64_t nqubit);
 
   // Get number of qubits of the Clifford table
-  uint64_t num_qubits() const {return num_qubits_;}
+  uint64_t num_qubits() const { return num_qubits_; }
 
   // Return true if the number of qubits is 0
-  bool empty() const {return (num_qubits_ == 0);}
+  bool empty() const { return (num_qubits_ == 0); }
 
   // Return JSON serialization of QubitVector;
   json_t json() const;
 
   // Access stabilizer table
-//  Pauli::Pauli<BV::BinaryVector> &operator[](uint64_t j) {return table_[j];}
-//  const Pauli::Pauli<BV::BinaryVector>& operator[](uint64_t j) const {return table_[j];}
+  //  Pauli::Pauli<BV::BinaryVector> &operator[](uint64_t j) {return table_[j];}
+  //  const Pauli::Pauli<BV::BinaryVector>& operator[](uint64_t j) const {return
+  //  table_[j];}
 
-  //set stabilizer
-  void set_destabilizer(const int i, const Pauli::Pauli<BV::BinaryVector>& P);
-  void set_stabilizer(const int i, const Pauli::Pauli<BV::BinaryVector>& P);
+  // set stabilizer
+  void set_destabilizer(const int i, const Pauli::Pauli<BV::BinaryVector> &P);
+  void set_stabilizer(const int i, const Pauli::Pauli<BV::BinaryVector> &P);
 
-  //set phase
+  // set phase
   void set_destabilizer_phases(const int i, const bool p);
   void set_stabilizer_phases(const int i, const bool p);
 
@@ -101,17 +102,16 @@ public:
   // Measurement
   //-----------------------------------------------------------------------
 
-  // If we perform a single qubit Z measurement, 
+  // If we perform a single qubit Z measurement,
   // will the outcome be random or deterministic.
-  bool is_deterministic_outcome(const uint64_t& qubit) const;
+  bool is_deterministic_outcome(const uint64_t &qubit) const;
 
   // Return the outcome (0 or 1) of a single qubit Z measurement, and
   // update the stabilizer to the conditional (post measurement) state if
   // the outcome was random.
   bool measure_and_update(const uint64_t qubit, const uint64_t randint);
 
-  double expval_pauli(const reg_t &qubits,
-                                const std::string& pauli);
+  double expval_pauli(const reg_t &qubits, const std::string &pauli);
 
   //-----------------------------------------------------------------------
   // Configuration settings
@@ -121,23 +121,22 @@ public:
   void set_json_chop_threshold(double threshold);
 
   // Set the threshold for chopping values to 0 in JSON
-  double get_json_chop_threshold() {return json_chop_threshold_;}
+  double get_json_chop_threshold() { return json_chop_threshold_; }
 
   // Set the maximum number of OpenMP thread for operations.
   void set_omp_threads(int n);
 
   // Get the maximum number of OpenMP thread for operations.
-  uint64_t get_omp_threads() {return omp_threads_;}
+  uint64_t get_omp_threads() { return omp_threads_; }
 
   // Set the qubit threshold for activating OpenMP.
   // If self.qubits() > threshold OpenMP will be activated.
   void set_omp_threshold(int n);
 
   // Get the qubit threshold for activating OpenMP.
-  uint64_t get_omp_threshold() {return omp_threshold_;}
+  uint64_t get_omp_threshold() { return omp_threshold_; }
 
 protected:
-
   //-----------------------------------------------------------------------
   // Protected data members
   //-----------------------------------------------------------------------
@@ -151,10 +150,11 @@ protected:
   // Config settings
   //-----------------------------------------------------------------------
 
-  uint64_t omp_threads_ = 1;          // Disable multithreading by default
-  uint64_t omp_threshold_ = 1000;     // Qubit threshold for multithreading when enabled
-  double json_chop_threshold_ = 0;  // Threshold for chopping small values
-                                    // in JSON serialization
+  uint64_t omp_threads_ = 1; // Disable multithreading by default
+  uint64_t omp_threshold_ =
+      1000; // Qubit threshold for multithreading when enabled
+  double json_chop_threshold_ = 0; // Threshold for chopping small values
+                                   // in JSON serialization
 
   //-----------------------------------------------------------------------
   // Helper functions
@@ -197,30 +197,27 @@ void Clifford::set_omp_threshold(int n) {
 // Constructors & Destructor
 //------------------------------------------------------------------------------
 
-Clifford::Clifford(uint64_t nq) : num_qubits_(nq) 
-{
-  initialize(nq);
-}
+Clifford::Clifford(uint64_t nq) : num_qubits_(nq) { initialize(nq); }
 
-void Clifford::initialize(uint64_t nq)
-{
+void Clifford::initialize(uint64_t nq) {
   num_qubits_ = nq;
 
   destabilizer_table_.resize(nq);
   stabilizer_table_.resize(nq);
 
   int nid = omp_get_num_threads();
-  auto init_func = [this, nq](AER::int_t i)
-  {
+  auto init_func = [this, nq](AER::int_t i) {
     destabilizer_table_[i].X.setLength(nq);
     destabilizer_table_[i].Z.setLength(nq);
-    destabilizer_table_[i].X.setValue(1,i);
+    destabilizer_table_[i].X.setValue(1, i);
 
     stabilizer_table_[i].X.setLength(nq);
     stabilizer_table_[i].Z.setLength(nq);
-    stabilizer_table_[i].Z.setValue(1,i);
+    stabilizer_table_[i].Z.setValue(1, i);
   };
-  AER::Utils::apply_omp_parallel_for((num_qubits_ > omp_threshold_ && omp_threads_ > 1 && nid == 1), 0, nq, init_func, omp_threads_);
+  AER::Utils::apply_omp_parallel_for(
+      (num_qubits_ > omp_threshold_ && omp_threads_ > 1 && nid == 1), 0, nq,
+      init_func, omp_threads_);
 
   // Add phases
   destabilizer_phases_.setLength(nq);
@@ -231,33 +228,42 @@ void Clifford::initialize(uint64_t nq)
 // Apply Clifford gates
 //------------------------------------------------------------------------------
 
-void Clifford::append_cx(const uint64_t qcon, const uint64_t qtar) 
-{
+void Clifford::append_cx(const uint64_t qcon, const uint64_t qtar) {
   const uint64_t mask = (~0ull);
 
   int nid = omp_get_num_threads();
-  auto cx_func = [this, qtar, qcon, mask](AER::int_t i)
-  {
-    destabilizer_phases_(i) = destabilizer_phases_(i) ^ (destabilizer_table_[qcon].X(i) & destabilizer_table_[qtar].Z(i) &
-                                                        (destabilizer_table_[qtar].X(i) ^ destabilizer_table_[qcon].Z(i) ^ mask));
-    stabilizer_phases_(i) = stabilizer_phases_(i) ^ (stabilizer_table_[qcon].X(i) & stabilizer_table_[qtar].Z(i) &
-                                                    (stabilizer_table_[qtar].X(i) ^ stabilizer_table_[qcon].Z(i) ^ mask));
+  auto cx_func = [this, qtar, qcon, mask](AER::int_t i) {
+    destabilizer_phases_(i) =
+        destabilizer_phases_(i) ^
+        (destabilizer_table_[qcon].X(i) & destabilizer_table_[qtar].Z(i) &
+         (destabilizer_table_[qtar].X(i) ^ destabilizer_table_[qcon].Z(i) ^
+          mask));
+    stabilizer_phases_(i) =
+        stabilizer_phases_(i) ^
+        (stabilizer_table_[qcon].X(i) & stabilizer_table_[qtar].Z(i) &
+         (stabilizer_table_[qtar].X(i) ^ stabilizer_table_[qcon].Z(i) ^ mask));
 
-    destabilizer_table_[qtar].X(i) = destabilizer_table_[qtar].X(i) ^ destabilizer_table_[qcon].X(i);
-    destabilizer_table_[qcon].Z(i) = destabilizer_table_[qtar].Z(i) ^ destabilizer_table_[qcon].Z(i);
-    stabilizer_table_[qtar].X(i) = stabilizer_table_[qtar].X(i) ^ stabilizer_table_[qcon].X(i);
-    stabilizer_table_[qcon].Z(i) = stabilizer_table_[qtar].Z(i) ^ stabilizer_table_[qcon].Z(i);
+    destabilizer_table_[qtar].X(i) =
+        destabilizer_table_[qtar].X(i) ^ destabilizer_table_[qcon].X(i);
+    destabilizer_table_[qcon].Z(i) =
+        destabilizer_table_[qtar].Z(i) ^ destabilizer_table_[qcon].Z(i);
+    stabilizer_table_[qtar].X(i) =
+        stabilizer_table_[qtar].X(i) ^ stabilizer_table_[qcon].X(i);
+    stabilizer_table_[qcon].Z(i) =
+        stabilizer_table_[qtar].Z(i) ^ stabilizer_table_[qcon].Z(i);
   };
-  AER::Utils::apply_omp_parallel_for((num_qubits_ > omp_threshold_ && omp_threads_ > 1 && nid == 1), 0, destabilizer_phases_.blockLength(), cx_func, omp_threads_);
+  AER::Utils::apply_omp_parallel_for(
+      (num_qubits_ > omp_threshold_ && omp_threads_ > 1 && nid == 1), 0,
+      destabilizer_phases_.blockLength(), cx_func, omp_threads_);
 }
 
-void Clifford::append_h(const uint64_t qubit) 
-{
+void Clifford::append_h(const uint64_t qubit) {
   int nid = omp_get_num_threads();
-  auto h_func = [this, qubit](AER::int_t i)
-  {
-    destabilizer_phases_(i) ^= (destabilizer_table_[qubit].X(i) & destabilizer_table_[qubit].Z(i));
-    stabilizer_phases_(i) ^= (stabilizer_table_[qubit].X(i) & stabilizer_table_[qubit].Z(i));
+  auto h_func = [this, qubit](AER::int_t i) {
+    destabilizer_phases_(i) ^=
+        (destabilizer_table_[qubit].X(i) & destabilizer_table_[qubit].Z(i));
+    stabilizer_phases_(i) ^=
+        (stabilizer_table_[qubit].X(i) & stabilizer_table_[qubit].Z(i));
     // exchange X and Z
     uint64_t t = destabilizer_table_[qubit].X(i);
     destabilizer_table_[qubit].X(i) = destabilizer_table_[qubit].Z(i);
@@ -266,115 +272,117 @@ void Clifford::append_h(const uint64_t qubit)
     stabilizer_table_[qubit].X(i) = stabilizer_table_[qubit].Z(i);
     stabilizer_table_[qubit].Z(i) = t;
   };
-  AER::Utils::apply_omp_parallel_for((num_qubits_ > omp_threshold_ && omp_threads_ > 1 && nid == 1), 0, destabilizer_phases_.blockLength(), h_func, omp_threads_);
+  AER::Utils::apply_omp_parallel_for(
+      (num_qubits_ > omp_threshold_ && omp_threads_ > 1 && nid == 1), 0,
+      destabilizer_phases_.blockLength(), h_func, omp_threads_);
 }
 
-void Clifford::append_s(const uint64_t qubit)
-{
+void Clifford::append_s(const uint64_t qubit) {
   int nid = omp_get_num_threads();
-  auto s_func = [this, qubit](AER::int_t i)
-  {
-    destabilizer_phases_(i) ^= (destabilizer_table_[qubit].X(i) & destabilizer_table_[qubit].Z(i));
+  auto s_func = [this, qubit](AER::int_t i) {
+    destabilizer_phases_(i) ^=
+        (destabilizer_table_[qubit].X(i) & destabilizer_table_[qubit].Z(i));
     destabilizer_table_[qubit].Z(i) ^= destabilizer_table_[qubit].X(i);
-    stabilizer_phases_(i) ^= (stabilizer_table_[qubit].X(i) & stabilizer_table_[qubit].Z(i));
+    stabilizer_phases_(i) ^=
+        (stabilizer_table_[qubit].X(i) & stabilizer_table_[qubit].Z(i));
     stabilizer_table_[qubit].Z(i) ^= stabilizer_table_[qubit].X(i);
   };
-  AER::Utils::apply_omp_parallel_for((num_qubits_ > omp_threshold_ && omp_threads_ > 1 && nid == 1), 0, destabilizer_phases_.blockLength(), s_func, omp_threads_);
+  AER::Utils::apply_omp_parallel_for(
+      (num_qubits_ > omp_threshold_ && omp_threads_ > 1 && nid == 1), 0,
+      destabilizer_phases_.blockLength(), s_func, omp_threads_);
 }
 
-void Clifford::append_x(const uint64_t qubit) 
-{
+void Clifford::append_x(const uint64_t qubit) {
   int nid = omp_get_num_threads();
-  auto x_func = [this, qubit](AER::int_t i)
-  {
+  auto x_func = [this, qubit](AER::int_t i) {
     destabilizer_phases_(i) ^= destabilizer_table_[qubit].Z(i);
     stabilizer_phases_(i) ^= stabilizer_table_[qubit].Z(i);
   };
-  AER::Utils::apply_omp_parallel_for((num_qubits_ > omp_threshold_ && omp_threads_ > 1 && nid == 1), 0, destabilizer_phases_.blockLength(), x_func, omp_threads_);
+  AER::Utils::apply_omp_parallel_for(
+      (num_qubits_ > omp_threshold_ && omp_threads_ > 1 && nid == 1), 0,
+      destabilizer_phases_.blockLength(), x_func, omp_threads_);
 }
 
-void Clifford::append_y(const uint64_t qubit) 
-{
+void Clifford::append_y(const uint64_t qubit) {
   int nid = omp_get_num_threads();
-  auto y_func = [this, qubit](AER::int_t i)
-  {
-    destabilizer_phases_(i) ^= (destabilizer_table_[qubit].Z(i) ^ destabilizer_table_[qubit].X(i));
-    stabilizer_phases_(i) ^= (stabilizer_table_[qubit].Z(i) ^ stabilizer_table_[qubit].X(i));
+  auto y_func = [this, qubit](AER::int_t i) {
+    destabilizer_phases_(i) ^=
+        (destabilizer_table_[qubit].Z(i) ^ destabilizer_table_[qubit].X(i));
+    stabilizer_phases_(i) ^=
+        (stabilizer_table_[qubit].Z(i) ^ stabilizer_table_[qubit].X(i));
   };
-  AER::Utils::apply_omp_parallel_for((num_qubits_ > omp_threshold_ && omp_threads_ > 1 && nid == 1), 0, destabilizer_phases_.blockLength(), y_func, omp_threads_);
+  AER::Utils::apply_omp_parallel_for(
+      (num_qubits_ > omp_threshold_ && omp_threads_ > 1 && nid == 1), 0,
+      destabilizer_phases_.blockLength(), y_func, omp_threads_);
 }
 
-void Clifford::append_z(const uint64_t qubit) 
-{
+void Clifford::append_z(const uint64_t qubit) {
   int nid = omp_get_num_threads();
-  auto z_func = [this, qubit](AER::int_t i)
-  {
+  auto z_func = [this, qubit](AER::int_t i) {
     destabilizer_phases_(i) ^= destabilizer_table_[qubit].X(i);
     stabilizer_phases_(i) ^= stabilizer_table_[qubit].X(i);
   };
-  AER::Utils::apply_omp_parallel_for((num_qubits_ > omp_threshold_ && omp_threads_ > 1 && nid == 1), 0, destabilizer_phases_.blockLength(), z_func, omp_threads_);
+  AER::Utils::apply_omp_parallel_for(
+      (num_qubits_ > omp_threshold_ && omp_threads_ > 1 && nid == 1), 0,
+      destabilizer_phases_.blockLength(), z_func, omp_threads_);
 }
 
 //------------------------------------------------------------------------------
 // Utility
 //------------------------------------------------------------------------------
-std::pair<bool, uint64_t> Clifford::z_anticommuting(const uint64_t qubit) const 
-{
+std::pair<bool, uint64_t>
+Clifford::z_anticommuting(const uint64_t qubit) const {
   for (uint_t i = 0; i < stabilizer_table_[qubit].X.blockLength(); i++) {
-    if (stabilizer_table_[qubit].X(i) != 0){
+    if (stabilizer_table_[qubit].X(i) != 0) {
       uint_t p = i << stabilizer_table_[qubit].X.BLOCK_BITS;
       for (uint_t j = 0; j < stabilizer_table_[qubit].X.BLOCK_SIZE; j++) {
-        if (stabilizer_table_[qubit].X[p+j])
-          return std::make_pair(true, p+j);
+        if (stabilizer_table_[qubit].X[p + j])
+          return std::make_pair(true, p + j);
       }
     }
   }
   return std::make_pair(false, 0);
 }
 
-
-std::pair<bool, uint64_t> Clifford::x_anticommuting(const uint64_t qubit) const 
-{
+std::pair<bool, uint64_t>
+Clifford::x_anticommuting(const uint64_t qubit) const {
   for (uint_t i = 0; i < stabilizer_table_[qubit].Z.blockLength(); i++) {
-    if (stabilizer_table_[qubit].Z(i) != 0){
+    if (stabilizer_table_[qubit].Z(i) != 0) {
       uint_t p = i << stabilizer_table_[qubit].Z.BLOCK_BITS;
       for (uint_t j = 0; j < stabilizer_table_[qubit].Z.BLOCK_SIZE; j++) {
-        if (stabilizer_table_[qubit].Z[p+j])
-          return std::make_pair(true, p+j);
+        if (stabilizer_table_[qubit].Z[p + j])
+          return std::make_pair(true, p + j);
       }
     }
   }
   return std::make_pair(false, 0);
 }
 
-void Clifford::set_destabilizer(const int idx, const Pauli::Pauli<BV::BinaryVector>& P)
-{
-  for (int64_t i = 0; i < static_cast<int64_t>( num_qubits_); i++){
+void Clifford::set_destabilizer(const int idx,
+                                const Pauli::Pauli<BV::BinaryVector> &P) {
+  for (int64_t i = 0; i < static_cast<int64_t>(num_qubits_); i++) {
     destabilizer_table_[i].X.setValue(P.X[i], idx);
     destabilizer_table_[i].Z.setValue(P.Z[i], idx);
   }
 }
 
-void Clifford::set_stabilizer(const int idx, const Pauli::Pauli<BV::BinaryVector>& P)
-{
-  for (int64_t i = 0; i < static_cast<int64_t>( num_qubits_); i++){
+void Clifford::set_stabilizer(const int idx,
+                              const Pauli::Pauli<BV::BinaryVector> &P) {
+  for (int64_t i = 0; i < static_cast<int64_t>(num_qubits_); i++) {
     stabilizer_table_[i].X.setValue(P.X[i], idx);
     stabilizer_table_[i].Z.setValue(P.Z[i], idx);
   }
 }
 
-void Clifford::set_destabilizer_phases(const int i, const bool p)
-{
+void Clifford::set_destabilizer_phases(const int i, const bool p) {
   destabilizer_phases_.setValue(p, i);
 }
 
-void Clifford::set_stabilizer_phases(const int i, const bool p)
-{
+void Clifford::set_stabilizer_phases(const int i, const bool p) {
   stabilizer_phases_.setValue(p, i);
 }
 
-void Clifford::apply_set_stabilizer(const Clifford &clifford)
-{
+void Clifford::apply_set_stabilizer(const Clifford &clifford) {
   destabilizer_table_ = clifford.destabilizer_table_;
   stabilizer_table_ = clifford.stabilizer_table_;
   destabilizer_phases_ = clifford.destabilizer_phases_;
@@ -385,15 +393,15 @@ void Clifford::apply_set_stabilizer(const Clifford &clifford)
 // Measurement
 //------------------------------------------------------------------------------
 
-bool Clifford::is_deterministic_outcome(const uint64_t& qubit) const {
+bool Clifford::is_deterministic_outcome(const uint64_t &qubit) const {
   // Clifford state measurements only have three probabilities:
   // (p0, p1) = (0.5, 0.5), (1, 0), or (0, 1)
   // The random case happens if there is a row anti-commuting with Z[qubit]
   return !z_anticommuting(qubit).first;
 }
 
-bool Clifford::measure_and_update(const uint64_t qubit, const uint64_t randint) 
-{
+bool Clifford::measure_and_update(const uint64_t qubit,
+                                  const uint64_t randint) {
   // Clifford state measurements only have three probabilities:
   // (p0, p1) = (0.5, 0.5), (1, 0), or (0, 1)
   // The random case happens if there is a row anti-commuting with Z[qubit]
@@ -407,25 +415,25 @@ bool Clifford::measure_and_update(const uint64_t qubit, const uint64_t randint)
 
     uint64_t rS = 0ull - (uint64_t)stabilizer_phases_[row];
 
-    auto measure_non_determinisitic_func = [this, rS, row, qubit](AER::int_t i)
-    {
+    auto measure_non_determinisitic_func = [this, rS, row,
+                                            qubit](AER::int_t i) {
       uint64_t row_mask = ~0ull;
-      if((row >> destabilizer_phases_.BLOCK_BITS) == i)
+      if ((row >> destabilizer_phases_.BLOCK_BITS) == i)
         row_mask ^= (1ull << (row & destabilizer_phases_.BLOCK_MASK));
 
       uint64_t d_mask = row_mask & destabilizer_table_[qubit].X(i);
       uint64_t s_mask = row_mask & stabilizer_table_[qubit].X(i);
 
-      if(d_mask != 0 || s_mask != 0){
-        //calculating exponents by 2-bits integer * 64-qubits at once
+      if (d_mask != 0 || s_mask != 0) {
+        // calculating exponents by 2-bits integer * 64-qubits at once
         uint64_t d0 = 0, d1 = 0;
         uint64_t s0 = 0, s1 = 0;
-        for (size_t q = 0; q < num_qubits_; q++){
-          uint64_t t0,t1;
+        for (size_t q = 0; q < num_qubits_; q++) {
+          uint64_t t0, t1;
           uint64_t rX = 0ull - (uint64_t)stabilizer_table_[q].X[row];
           uint64_t rZ = 0ull - (uint64_t)stabilizer_table_[q].Z[row];
 
-          //destabilizer
+          // destabilizer
           t0 = destabilizer_table_[q].X(i) & rZ;
           t1 = destabilizer_table_[q].Z(i) ^ rX;
 
@@ -444,7 +452,7 @@ bool Clifford::measure_and_update(const uint64_t qubit, const uint64_t randint)
           destabilizer_table_[q].X(i) ^= (d_mask & rX);
           destabilizer_table_[q].Z(i) ^= (d_mask & rZ);
 
-          //stabilizer
+          // stabilizer
           t0 = stabilizer_table_[q].X(i) & rZ;
           t1 = stabilizer_table_[q].Z(i) ^ rX;
 
@@ -464,40 +472,45 @@ bool Clifford::measure_and_update(const uint64_t qubit, const uint64_t randint)
           stabilizer_table_[q].Z(i) ^= (s_mask & rZ);
         }
         d1 ^= (rS ^ destabilizer_phases_(i));
-        destabilizer_phases_(i) = (destabilizer_phases_(i) & (~d_mask)) | (d1 & d_mask);
+        destabilizer_phases_(i) =
+            (destabilizer_phases_(i) & (~d_mask)) | (d1 & d_mask);
         s1 ^= (rS ^ stabilizer_phases_(i));
-        stabilizer_phases_(i) = (stabilizer_phases_(i) & (~s_mask)) | (s1 & s_mask);
+        stabilizer_phases_(i) =
+            (stabilizer_phases_(i) & (~s_mask)) | (s1 & s_mask);
       }
     };
-    AER::Utils::apply_omp_parallel_for((num_qubits_ > omp_threshold_ && omp_threads_ > 1 && nid == 1), 0, destabilizer_phases_.blockLength(), measure_non_determinisitic_func, omp_threads_);
+    AER::Utils::apply_omp_parallel_for(
+        (num_qubits_ > omp_threshold_ && omp_threads_ > 1 && nid == 1), 0,
+        destabilizer_phases_.blockLength(), measure_non_determinisitic_func,
+        omp_threads_);
 
     // Update state
-    auto measure_update_func = [this, row](AER::int_t q)
-    {
+    auto measure_update_func = [this, row](AER::int_t q) {
       destabilizer_table_[q].X.setValue(stabilizer_table_[q].X[row], row);
       destabilizer_table_[q].Z.setValue(stabilizer_table_[q].Z[row], row);
       stabilizer_table_[q].X.setValue(0, row);
       stabilizer_table_[q].Z.setValue(0, row);
     };
-    AER::Utils::apply_omp_parallel_for((num_qubits_ > omp_threshold_ && omp_threads_ > 1 && nid == 1), 0, num_qubits_, measure_update_func, omp_threads_);
+    AER::Utils::apply_omp_parallel_for(
+        (num_qubits_ > omp_threshold_ && omp_threads_ > 1 && nid == 1), 0,
+        num_qubits_, measure_update_func, omp_threads_);
 
     destabilizer_phases_.setValue(stabilizer_phases_[row], row);
     stabilizer_table_[qubit].Z.setValue(1, row);
     stabilizer_phases_.setValue(outcome, row);
     return outcome;
-  }
-  else {
+  } else {
     // Deterministic outcome
     bool outcome = false;
     Pauli::Pauli<BV::BinaryVector> accum(num_qubits_);
     uint64_t blocks = destabilizer_phases_.blockLength();
 
-    if(blocks < 2){
+    if (blocks < 2) {
       for (uint64_t i = 0; i < num_qubits_; i++) {
         if (destabilizer_table_[qubit].X[i]) {
           bool b0 = false, b1 = false;
-          for (size_t q = 0; q < num_qubits_; q++){
-            bool t0,t1,add;
+          for (size_t q = 0; q < num_qubits_; q++) {
+            bool t0, t1, add;
             bool accumX = accum.X[q];
             bool accumZ = accum.Z[q];
 
@@ -521,84 +534,89 @@ bool Clifford::measure_and_update(const uint64_t qubit, const uint64_t randint)
           }
           b1 ^= (stabilizer_phases_[i] ^ outcome);
 
-          if(b0){
+          if (b0) {
             throw std::runtime_error("Clifford: rowsum error");
           }
           outcome = b1;
         }
       }
-    }
-    else{
+    } else {
       uint64_t blockSize = destabilizer_phases_.blockSize();
 
-      //loop for cache blocking 
+      // loop for cache blocking
       for (uint64_t ii = 0; ii < blocks; ii++) {
         uint64_t destabilizer_mask = destabilizer_table_[qubit].X(ii);
-        if(destabilizer_mask == 0)
+        if (destabilizer_mask == 0)
           continue;
 
         uint64_t exponent_l = 0;
         uint64_t exponent_lc = 0;
         uint64_t exponent_h = 0;
 
-        auto measure_determinisitic_func = [this, &accum, &exponent_l, &exponent_lc, &exponent_h, blocks, blockSize, destabilizer_mask, ii](AER::int_t qq)
-        {
-          uint64_t qs = qq*blockSize;
-          uint64_t qe = qs + blockSize;
-          if(qe > num_qubits_)
-            qe = num_qubits_;
+        auto measure_determinisitic_func =
+            [this, &accum, &exponent_l, &exponent_lc, &exponent_h, blocks,
+             blockSize, destabilizer_mask, ii](AER::int_t qq) {
+              uint64_t qs = qq * blockSize;
+              uint64_t qe = qs + blockSize;
+              if (qe > num_qubits_)
+                qe = num_qubits_;
 
-          uint64_t local_exponent_l = 0;
-          uint64_t local_exponent_h = 0;
+              uint64_t local_exponent_l = 0;
+              uint64_t local_exponent_h = 0;
 
-          for (uint64_t q = qs; q < qe; q++){
-            uint64_t sX = stabilizer_table_[q].X(ii);
-            uint64_t sZ = stabilizer_table_[q].Z(ii);
+              for (uint64_t q = qs; q < qe; q++) {
+                uint64_t sX = stabilizer_table_[q].X(ii);
+                uint64_t sZ = stabilizer_table_[q].Z(ii);
 
-            //set accum for this block
-            uint64_t accumX = destabilizer_mask & sX;
-            uint64_t accumZ = destabilizer_mask & sZ;
-            for(int b=1;b<blockSize;b*=2){
-              accumX ^= (accumX << b);
-              accumZ ^= (accumZ << b);
-            }
-            accumX ^= (0ull - (uint64_t)accum.X[q]);
-            accumZ ^= (0ull - (uint64_t)accum.Z[q]);
-            accum.X.setValue((accumX >> (blockSize - 1)), q);
-            accum.Z.setValue((accumZ >> (blockSize - 1)), q);
+                // set accum for this block
+                uint64_t accumX = destabilizer_mask & sX;
+                uint64_t accumZ = destabilizer_mask & sZ;
+                for (int b = 1; b < blockSize; b *= 2) {
+                  accumX ^= (accumX << b);
+                  accumZ ^= (accumZ << b);
+                }
+                accumX ^= (0ull - (uint64_t)accum.X[q]);
+                accumZ ^= (0ull - (uint64_t)accum.Z[q]);
+                accum.X.setValue((accumX >> (blockSize - 1)), q);
+                accum.Z.setValue((accumZ >> (blockSize - 1)), q);
 
-            accumX ^= sX;
-            accumZ ^= sZ;
+                accumX ^= sX;
+                accumZ ^= sZ;
 
-            //exponents for this block
-            uint64_t t0,t1;
+                // exponents for this block
+                uint64_t t0, t1;
 
-            t0 = accumX & sZ;
-            t1 = accumZ ^ sX;
+                t0 = accumX & sZ;
+                t1 = accumZ ^ sX;
 
-            local_exponent_h ^= (t0 & local_exponent_l);
-            local_exponent_l ^= t0;
-            local_exponent_h ^= (t0 & t1);
+                local_exponent_h ^= (t0 & local_exponent_l);
+                local_exponent_l ^= t0;
+                local_exponent_h ^= (t0 & t1);
 
-            t0 = sX & accumZ;
-            t1 = sZ ^ accumX;
-            t1 ^= t0;
+                t0 = sX & accumZ;
+                t1 = sZ ^ accumX;
+                t1 ^= t0;
 
-            local_exponent_h ^= (t0 & local_exponent_l);
-            local_exponent_l ^= t0;
-            local_exponent_h ^= (t0 & t1);
-          }
+                local_exponent_h ^= (t0 & local_exponent_l);
+                local_exponent_l ^= t0;
+                local_exponent_h ^= (t0 & t1);
+              }
 
 #pragma omp atomic
-          exponent_lc |= local_exponent_l;
+              exponent_lc |= local_exponent_l;
 #pragma omp atomic
-          exponent_l ^= local_exponent_l;
+              exponent_l ^= local_exponent_l;
 #pragma omp atomic
-          exponent_h ^= local_exponent_h;
-        };
-        AER::Utils::apply_omp_parallel_for((num_qubits_ > omp_threshold_ && omp_threads_ > 1 && nid == 1), 0, blocks, measure_determinisitic_func, omp_threads_);
+              exponent_h ^= local_exponent_h;
+            };
+        AER::Utils::apply_omp_parallel_for(
+            (num_qubits_ > omp_threshold_ && omp_threads_ > 1 && nid == 1), 0,
+            blocks, measure_determinisitic_func, omp_threads_);
 
-        exponent_h ^= (exponent_lc ^ exponent_l);   //if exponent_l is 0 and any of local_exponent_l is 1, then flip exponent_h
+        exponent_h ^=
+            (exponent_lc ^
+             exponent_l); // if exponent_l is 0 and any of local_exponent_l is
+                          // 1, then flip exponent_h
 
         exponent_h ^= (stabilizer_phases_(ii) & destabilizer_mask);
         outcome ^= ((AER::Utils::popcount(exponent_h) & 1) != 0);
@@ -608,62 +626,61 @@ bool Clifford::measure_and_update(const uint64_t qubit, const uint64_t randint)
   }
 }
 
-double Clifford::expval_pauli(const reg_t &qubits,
-                              const std::string& pauli)
-{
+double Clifford::expval_pauli(const reg_t &qubits, const std::string &pauli) {
   // Construct Pauli on N-qubits
   Pauli::Pauli<BV::BinaryVector> P(num_qubits_);
   uint_t phase = 0;
   for (size_t i = 0; i < qubits.size(); ++i) {
     switch (pauli[pauli.size() - 1 - i]) {
-      case 'X':
-        P.X.set1(qubits[i]);
-        break;
-      case 'Y':
-        P.X.set1(qubits[i]);
-        P.Z.set1(qubits[i]);
-        phase += 1;
-        break;
-      case 'Z':
-        P.Z.set1(qubits[i]);
-        break;
-      default:
-        break;
+    case 'X':
+      P.X.set1(qubits[i]);
+      break;
+    case 'Y':
+      P.X.set1(qubits[i]);
+      P.Z.set1(qubits[i]);
+      phase += 1;
+      break;
+    case 'Z':
+      P.Z.set1(qubits[i]);
+      break;
+    default:
+      break;
     };
   }
 
-  // Check if there is a stabilizer that anti-commutes with an odd number of qubits
-  // If so expectation value is 0
+  // Check if there is a stabilizer that anti-commutes with an odd number of
+  // qubits If so expectation value is 0
   for (size_t i = 0; i < num_qubits_; i++) {
     size_t num_anti = 0;
-    for (const auto& qubit : qubits) {
+    for (const auto &qubit : qubits) {
       if (P.Z[qubit] & stabilizer_table_[qubit].X[i]) {
-	      num_anti++;
+        num_anti++;
       }
       if (P.X[qubit] & stabilizer_table_[qubit].Z[i]) {
-	      num_anti++;
+        num_anti++;
       }
     }
-    if(num_anti % 2 == 1)
+    if (num_anti % 2 == 1)
       return 0.0;
   }
 
   // Otherwise P is (-1)^a prod_j S_j^b_j for Clifford stabilizers
   // If P anti-commutes with D_j then b_j = 1.
   // Multiply P by stabilizers with anti-commuting destabilizers
-  auto PZ = P.Z; // Make a copy of P.Z 
+  auto PZ = P.Z; // Make a copy of P.Z
   for (size_t i = 0; i < num_qubits_; i++) {
     // Check if destabilizer anti-commutes
     size_t num_anti = 0;
-    for (const auto& qubit : qubits) {
+    for (const auto &qubit : qubits) {
       if (P.Z[qubit] & destabilizer_table_[qubit].X[i]) {
-	      num_anti++;
+        num_anti++;
       }
       if (P.X[qubit] & destabilizer_table_[qubit].Z[i]) {
-	      num_anti++;
+        num_anti++;
       }
     }
-    if (num_anti % 2 == 0) continue;
+    if (num_anti % 2 == 0)
+      continue;
 
     // If anti-commutes multiply Pauli by stabilizer
     phase += 2 * (uint_t)stabilizer_phases_[i];
@@ -676,13 +693,11 @@ double Clifford::expval_pauli(const reg_t &qubits,
   return (phase % 4) ? -1.0 : 1.0;
 }
 
-
 //------------------------------------------------------------------------------
 // JSON Serialization
 //------------------------------------------------------------------------------
 
-json_t Clifford::json() const 
-{
+json_t Clifford::json() const {
   json_t js = json_t::object();
   // Add destabilizers
   json_t stab;
@@ -710,14 +725,12 @@ json_t Clifford::json() const
   return js;
 }
 
-inline void to_json(json_t &js, const Clifford &clif) {
-  js = clif.json();
-}
+inline void to_json(json_t &js, const Clifford &clif) { js = clif.json(); }
 
 template <typename inputdata_t>
-void build_from(const inputdata_t& input, Clifford& clif)
-{
-  bool has_keys = AER::Parser<inputdata_t>::check_keys({"stabilizer", "destabilizer"}, input);
+void build_from(const inputdata_t &input, Clifford &clif) {
+  bool has_keys = AER::Parser<inputdata_t>::check_keys(
+      {"stabilizer", "destabilizer"}, input);
   if (!has_keys)
     throw std::invalid_argument("Invalid Clifford JSON.");
 
@@ -727,7 +740,8 @@ void build_from(const inputdata_t& input, Clifford& clif)
 
   const auto nq = stab.size();
   if (nq != destab.size()) {
-    throw std::invalid_argument("Invalid Clifford JSON: stabilizer and destabilizer lengths do not match.");
+    throw std::invalid_argument("Invalid Clifford JSON: stabilizer and "
+                                "destabilizer lengths do not match.");
   }
 
   clif.initialize(nq);
@@ -736,57 +750,61 @@ void build_from(const inputdata_t& input, Clifford& clif)
     // Get destabilizer
     label = destab[i];
     switch (label[0]) {
-      case '-':
-        clif.set_destabilizer_phases(i,1);
-        clif.set_destabilizer(i, Pauli::Pauli<BV::BinaryVector>(label.substr(1, nq)));
-        break;
-      case '+':
-        clif.set_destabilizer(i, Pauli::Pauli<BV::BinaryVector>(label.substr(1, nq)));
-        break;
-      case 'I':
-      case 'X':
-      case 'Y':
-      case 'Z':
-        clif.set_destabilizer(i, Pauli::Pauli<BV::BinaryVector>(label));
-        break;
-      default:
-        throw std::invalid_argument("Invalid Stabilizer JSON string.");
+    case '-':
+      clif.set_destabilizer_phases(i, 1);
+      clif.set_destabilizer(
+          i, Pauli::Pauli<BV::BinaryVector>(label.substr(1, nq)));
+      break;
+    case '+':
+      clif.set_destabilizer(
+          i, Pauli::Pauli<BV::BinaryVector>(label.substr(1, nq)));
+      break;
+    case 'I':
+    case 'X':
+    case 'Y':
+    case 'Z':
+      clif.set_destabilizer(i, Pauli::Pauli<BV::BinaryVector>(label));
+      break;
+    default:
+      throw std::invalid_argument("Invalid Stabilizer JSON string.");
     }
     // Get stabilizer
     label = stab[i];
     switch (label[0]) {
-      case '-':
-        clif.set_stabilizer_phases(i, 1);
-        clif.set_stabilizer(i, Pauli::Pauli<BV::BinaryVector>(label.substr(1, nq)));
-        break;
-      case '+':
-        clif.set_stabilizer(i, Pauli::Pauli<BV::BinaryVector>(label.substr(1, nq)));
-        break;
-      case 'I':
-      case 'X':
-      case 'Y':
-      case 'Z':
-        clif.set_stabilizer(i, Pauli::Pauli<BV::BinaryVector>(label));
-        break;
-      default:
-        throw std::invalid_argument("Invalid Stabilizer JSON string.");
+    case '-':
+      clif.set_stabilizer_phases(i, 1);
+      clif.set_stabilizer(i,
+                          Pauli::Pauli<BV::BinaryVector>(label.substr(1, nq)));
+      break;
+    case '+':
+      clif.set_stabilizer(i,
+                          Pauli::Pauli<BV::BinaryVector>(label.substr(1, nq)));
+      break;
+    case 'I':
+    case 'X':
+    case 'Y':
+    case 'Z':
+      clif.set_stabilizer(i, Pauli::Pauli<BV::BinaryVector>(label));
+      break;
+    default:
+      throw std::invalid_argument("Invalid Stabilizer JSON string.");
     }
   }
 }
 
-inline void from_json(const json_t &js, Clifford &clif) 
-{
+inline void from_json(const json_t &js, Clifford &clif) {
   build_from(js, clif);
 }
 
 //------------------------------------------------------------------------------
 } // end namespace Clifford
-} // AER
+} // namespace AER
 //------------------------------------------------------------------------------
 
 // ostream overload for templated qubitvector
 template <class statevector_t>
-std::ostream &operator<<(std::ostream &out, const AER::Clifford::Clifford &clif) {
+std::ostream &operator<<(std::ostream &out,
+                         const AER::Clifford::Clifford &clif) {
   out << clif.json().dump();
   return out;
 }

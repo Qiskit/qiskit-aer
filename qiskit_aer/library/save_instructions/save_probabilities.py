@@ -20,12 +20,15 @@ from ..default_qubits import default_qubits
 
 class SaveProbabilities(SaveAverageData):
     """Save measurement outcome probabilities vector."""
-    def __init__(self,
-                 num_qubits,
-                 label="probabilities",
-                 unnormalized=False,
-                 pershot=False,
-                 conditional=False):
+
+    def __init__(
+        self,
+        num_qubits,
+        label="probabilities",
+        unnormalized=False,
+        pershot=False,
+        conditional=False,
+    ):
         """Instruction to save measurement probabilities vector.
 
         Args:
@@ -40,20 +43,27 @@ class SaveProbabilities(SaveAverageData):
                                 on the current classical register values
                                 [Default: False].
         """
-        super().__init__("save_probabilities", num_qubits, label,
-                         conditional=conditional,
-                         pershot=pershot,
-                         unnormalized=unnormalized)
+        super().__init__(
+            "save_probabilities",
+            num_qubits,
+            label,
+            conditional=conditional,
+            pershot=pershot,
+            unnormalized=unnormalized,
+        )
 
 
 class SaveProbabilitiesDict(SaveAverageData):
     """Save measurement outcome probabilities dict."""
-    def __init__(self,
-                 num_qubits,
-                 label="probabilities_dict",
-                 unnormalized=False,
-                 pershot=False,
-                 conditional=False):
+
+    def __init__(
+        self,
+        num_qubits,
+        label="probabilities_dict",
+        unnormalized=False,
+        pershot=False,
+        conditional=False,
+    ):
         """Instruction to save measurement probabilities dict.
 
         Args:
@@ -68,18 +78,19 @@ class SaveProbabilitiesDict(SaveAverageData):
                                 on the current classical register values
                                 [Default: False].
         """
-        super().__init__("save_probabilities_dict", num_qubits, label,
-                         unnormalized=unnormalized,
-                         pershot=pershot,
-                         conditional=conditional)
+        super().__init__(
+            "save_probabilities_dict",
+            num_qubits,
+            label,
+            unnormalized=unnormalized,
+            pershot=pershot,
+            conditional=conditional,
+        )
 
 
-def save_probabilities(self,
-                       qubits=None,
-                       label="probabilities",
-                       unnormalized=False,
-                       pershot=False,
-                       conditional=False):
+def save_probabilities(
+    self, qubits=None, label="probabilities", unnormalized=False, pershot=False, conditional=False
+):
     """Save measurement outcome probabilities vector.
 
     Args:
@@ -99,20 +110,19 @@ def save_probabilities(self,
         QuantumCircuit: with attached instruction.
     """
     qubits = default_qubits(self, qubits=qubits)
-    instr = SaveProbabilities(len(qubits),
-                              label=label,
-                              unnormalized=unnormalized,
-                              pershot=pershot,
-                              conditional=conditional)
+    instr = SaveProbabilities(
+        len(qubits),
+        label=label,
+        unnormalized=unnormalized,
+        pershot=pershot,
+        conditional=conditional,
+    )
     return self.append(instr, qubits)
 
 
-def save_probabilities_dict(self,
-                            qubits=None,
-                            label="probabilities",
-                            unnormalized=False,
-                            pershot=False,
-                            conditional=False):
+def save_probabilities_dict(
+    self, qubits=None, label="probabilities", unnormalized=False, pershot=False, conditional=False
+):
     """Save measurement outcome probabilities vector.
 
     Args:
@@ -132,11 +142,13 @@ def save_probabilities_dict(self,
         QuantumCircuit: with attached instruction.
     """
     qubits = default_qubits(self, qubits=qubits)
-    instr = SaveProbabilitiesDict(len(qubits),
-                                  label=label,
-                                  unnormalized=unnormalized,
-                                  pershot=pershot,
-                                  conditional=conditional)
+    instr = SaveProbabilitiesDict(
+        len(qubits),
+        label=label,
+        unnormalized=unnormalized,
+        pershot=pershot,
+        conditional=conditional,
+    )
     return self.append(instr, qubits)
 
 
