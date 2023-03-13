@@ -34,8 +34,14 @@ from qiskit.circuit.library.generalized_gates import PauliGate
 from qiskit.circuit.library.standard_gates import IGate, XGate
 from qiskit.compiler import transpile
 from qiskit.providers.fake_provider import (
-    FakeBackend, FakeAlmaden, FakeLagos, FakeSingapore, FakeMumbai, FakeKolkata,
-    FakeBackendV2, FakeLagosV2
+    FakeBackend,
+    FakeAlmaden,
+    FakeLagos,
+    FakeSingapore,
+    FakeMumbai,
+    FakeKolkata,
+    FakeBackendV2,
+    FakeLagosV2,
 )
 from test.terra.common import QiskitAerTestCase
 
@@ -45,8 +51,8 @@ class TestNoiseModel(QiskitAerTestCase):
 
     def test_amplitude_damping_error(self):
         """Test amplitude damping error damps to correct state"""
-        qr = QuantumRegister(1, 'qr')
-        cr = ClassicalRegister(1, 'cr')
+        qr = QuantumRegister(1, "qr")
+        cr = ClassicalRegister(1, "cr")
         circuit = QuantumCircuit(qr, cr)
         circuit.x(qr)  # prepare + state
         for _ in range(30):
@@ -60,9 +66,9 @@ class TestNoiseModel(QiskitAerTestCase):
         # test noise model
         error = amplitude_damping_error(0.75, 0.25)
         noise_model = NoiseModel()
-        noise_model.add_all_qubit_quantum_error(error, 'id')
+        noise_model.add_all_qubit_quantum_error(error, "id")
         # Execute
-        target = {'0x0': 3 * shots / 4, '0x1': shots / 4}
+        target = {"0x0": 3 * shots / 4, "0x1": shots / 4}
         circuit = transpile(circuit, basis_gates=noise_model.basis_gates, optimization_level=0)
         result = backend.run(circuit, shots=shots, noise_model=noise_model).result()
         self.assertSuccess(result)
@@ -70,7 +76,7 @@ class TestNoiseModel(QiskitAerTestCase):
 
     def test_noise_model_basis_gates(self):
         """Test noise model basis_gates"""
-        basis_gates = ['u1', 'u2', 'u3', 'cx']
+        basis_gates = ["u1", "u2", "u3", "cx"]
         model = NoiseModel(basis_gates)
         target = sorted(basis_gates)
         self.assertEqual(model.basis_gates, target)
@@ -86,19 +92,19 @@ class TestNoiseModel(QiskitAerTestCase):
         # Check a reset instruction error isn't added to basis gates
         model = NoiseModel(basis_gates)
         target = sorted(basis_gates)
-        model.add_all_qubit_quantum_error(reset_error(0.2), ['reset'], False)
+        model.add_all_qubit_quantum_error(reset_error(0.2), ["reset"], False)
         self.assertEqual(model.basis_gates, target)
 
         # Check a non-standard gate isn't added to basis gates
         model = NoiseModel(basis_gates)
         target = sorted(basis_gates)
-        model.add_all_qubit_quantum_error(reset_error(0.2), ['label'], False)
+        model.add_all_qubit_quantum_error(reset_error(0.2), ["label"], False)
         self.assertEqual(model.basis_gates, target)
 
         # Check a standard gate is added to basis gates
         model = NoiseModel(basis_gates)
-        target = sorted(basis_gates + ['h'])
-        model.add_all_qubit_quantum_error(reset_error(0.2), ['h'], False)
+        target = sorted(basis_gates + ["h"])
+        model.add_all_qubit_quantum_error(reset_error(0.2), ["h"], False)
         self.assertEqual(model.basis_gates, target)
 
     def test_noise_model_noise_instructions(self):
@@ -109,26 +115,26 @@ class TestNoiseModel(QiskitAerTestCase):
 
         # Check a non-standard gate is added to noise instructions
         model = NoiseModel()
-        model.add_all_qubit_quantum_error(reset_error(0.2), ['label'], False)
-        target = ['label']
+        model.add_all_qubit_quantum_error(reset_error(0.2), ["label"], False)
+        target = ["label"]
         self.assertEqual(model.noise_instructions, target)
 
         # Check a standard gate is added to noise instructions
         model = NoiseModel()
-        model.add_all_qubit_quantum_error(reset_error(0.2), ['h'], False)
-        target = ['h']
+        model.add_all_qubit_quantum_error(reset_error(0.2), ["h"], False)
+        target = ["h"]
         self.assertEqual(model.noise_instructions, target)
 
         # Check a reset is added to noise instructions
         model = NoiseModel()
-        model.add_all_qubit_quantum_error(reset_error(0.2), ['reset'], False)
-        target = ['reset']
+        model.add_all_qubit_quantum_error(reset_error(0.2), ["reset"], False)
+        target = ["reset"]
         self.assertEqual(model.noise_instructions, target)
 
         # Check a measure is added to noise instructions for readout error
         model = NoiseModel()
         model.add_all_qubit_readout_error([[0.9, 0.1], [0, 1]], False)
-        target = ['measure']
+        target = ["measure"]
         self.assertEqual(model.noise_instructions, target)
 
     def test_noise_model_noise_qubits(self):
@@ -139,13 +145,13 @@ class TestNoiseModel(QiskitAerTestCase):
 
         # Check adding a default error isn't added to noise qubits
         model = NoiseModel()
-        model.add_all_qubit_quantum_error(pauli_error([['XX', 1]]), ['label'], False)
+        model.add_all_qubit_quantum_error(pauli_error([["XX", 1]]), ["label"], False)
         target = []
         self.assertEqual(model.noise_qubits, target)
 
         # Check adding a local error adds to noise qubits
         model = NoiseModel()
-        model.add_quantum_error(pauli_error([['XX', 1]]), ['label'], [1, 0], False)
+        model.add_quantum_error(pauli_error([["XX", 1]]), ["label"], [1, 0], False)
         target = sorted([0, 1])
         self.assertEqual(model.noise_qubits, target)
 
@@ -168,27 +174,27 @@ class TestNoiseModel(QiskitAerTestCase):
         error2 = pauli_error([("I", 0.5), ("Z", 0.5)])
 
         model1 = NoiseModel()
-        model1.add_all_qubit_quantum_error(error1, ['u3'], False)
-        model1.add_quantum_error(error1, ['u3'], [2], False)
+        model1.add_all_qubit_quantum_error(error1, ["u3"], False)
+        model1.add_quantum_error(error1, ["u3"], [2], False)
         model1.add_all_qubit_readout_error(roerror, False)
         model1.add_readout_error(roerror, [0], False)
 
         model2 = NoiseModel()
-        model2.add_all_qubit_quantum_error(error2, ['u3'], False)
-        model2.add_quantum_error(error2, ['u3'], [2], False)
+        model2.add_all_qubit_quantum_error(error2, ["u3"], False)
+        model2.add_quantum_error(error2, ["u3"], [2], False)
         model2.add_all_qubit_readout_error(roerror, False)
         model2.add_readout_error(roerror, [0], False)
         self.assertEqual(model1, model2)
 
     def test_noise_models_not_equal(self):
         """Test two noise models are not equal"""
-        error = pauli_error([['X', 1]])
+        error = pauli_error([["X", 1]])
 
         model1 = NoiseModel()
-        model1.add_all_qubit_quantum_error(error, ['u3'], False)
+        model1.add_all_qubit_quantum_error(error, ["u3"], False)
 
-        model2 = NoiseModel(basis_gates=['u3', 'cx'])
-        model2.add_all_qubit_quantum_error(error, ['u3'], False)
+        model2 = NoiseModel(basis_gates=["u3", "cx"])
+        model2.add_all_qubit_quantum_error(error, ["u3"], False)
 
     def test_noise_model_from_backend_singapore(self):
         circ = QuantumCircuit(2)
@@ -272,8 +278,8 @@ class TestNoiseModel(QiskitAerTestCase):
                     basis_gates=["u3"],
                     qubits=[
                         [
-                            Nduv(date=mock_time, name="T1", unit="µs", value=t1_ns/1000),
-                            Nduv(date=mock_time, name="T2", unit="µs", value=invalid_t2_ns/1000),
+                            Nduv(date=mock_time, name="T1", unit="µs", value=t1_ns / 1000),
+                            Nduv(date=mock_time, name="T2", unit="µs", value=invalid_t2_ns / 1000),
                             Nduv(date=mock_time, name="frequency", unit="MHz", value=frequency),
                         ],
                     ],
@@ -284,7 +290,9 @@ class TestNoiseModel(QiskitAerTestCase):
                             qubits=[0],
                             parameters=[
                                 Nduv(date=mock_time, name="gate_error", unit="", value=0.001),
-                                Nduv(date=mock_time, name="gate_length", unit="ns", value=u3_time_ns),
+                                Nduv(
+                                    date=mock_time, name="gate_length", unit="ns", value=u3_time_ns
+                                ),
                             ],
                         ),
                     ],
@@ -305,11 +313,11 @@ class TestNoiseModel(QiskitAerTestCase):
         noise_model = NoiseModel.from_backend(backend, gate_error=False)
         expected = thermal_relaxation_error(
             t1=t1_ns,
-            t2=2*t1_ns,
+            t2=2 * t1_ns,
             time=u3_time_ns,
-            excited_state_population=_excited_population(frequency, temperature=0)
+            excited_state_population=_excited_population(frequency, temperature=0),
         )
-        self.assertEqual(expected, noise_model._local_quantum_errors["u3"][(0, )])
+        self.assertEqual(expected, noise_model._local_quantum_errors["u3"][(0,)])
 
     def test_create_noise_model_without_user_warnings(self):
         """Test if never issue user warnings when creating a noise model from backend.
@@ -333,14 +341,13 @@ class TestNoiseModel(QiskitAerTestCase):
         result = AerSimulator().run(circ, noise_model=noise_model).result()
         self.assertTrue(result.success)
 
-
     def test_transform_noise(self):
         org_error = reset_error(0.2)
         new_error = pauli_error([("I", 0.5), ("Z", 0.5)])
 
         model = NoiseModel()
-        model.add_all_qubit_quantum_error(org_error, ['x'])
-        model.add_quantum_error(org_error, ['sx'], [0])
+        model.add_all_qubit_quantum_error(org_error, ["x"])
+        model.add_quantum_error(org_error, ["sx"], [0])
         model.add_all_qubit_readout_error([[0.9, 0.1], [0, 1]])
 
         def map_func(noise):
@@ -349,8 +356,8 @@ class TestNoiseModel(QiskitAerTestCase):
         actual = transform_noise_model(model, map_func)
 
         expected = NoiseModel()
-        expected.add_all_qubit_quantum_error(new_error, ['x'])
-        expected.add_quantum_error(new_error, ['sx'], [0])
+        expected.add_all_qubit_quantum_error(new_error, ["x"])
+        expected.add_quantum_error(new_error, ["sx"], [0])
         expected.add_all_qubit_readout_error([[0.9, 0.1], [0, 1]])
 
         self.assertEqual(actual, expected)
@@ -380,23 +387,24 @@ class TestNoiseModel(QiskitAerTestCase):
         self.assertTrue(result.success)
 
     def test_from_dict(self):
-        noise_ops_1q = [((IGate(), [0]), 0.9),
-                     ((XGate(), [0]), 0.1)]
+        noise_ops_1q = [((IGate(), [0]), 0.9), ((XGate(), [0]), 0.1)]
 
-        noise_ops_2q = [((PauliGate('II'), [0, 1]), 0.9),
-                     ((PauliGate('IX'), [0, 1]), 0.045),
-                     ((PauliGate('XI'), [0, 1]), 0.045),
-                     ((PauliGate('XX'), [0, 1]), 0.01)]
+        noise_ops_2q = [
+            ((PauliGate("II"), [0, 1]), 0.9),
+            ((PauliGate("IX"), [0, 1]), 0.045),
+            ((PauliGate("XI"), [0, 1]), 0.045),
+            ((PauliGate("XX"), [0, 1]), 0.01),
+        ]
 
         noise_model = NoiseModel()
         with self.assertWarns(DeprecationWarning):
-            noise_model.add_quantum_error(QuantumError(noise_ops_1q), 'h', [0])
-            noise_model.add_quantum_error(QuantumError(noise_ops_1q), 'h', [1])
-            noise_model.add_quantum_error(QuantumError(noise_ops_2q), 'cx', [0, 1])
-            noise_model.add_quantum_error(QuantumError(noise_ops_2q), 'cx', [1, 0])
+            noise_model.add_quantum_error(QuantumError(noise_ops_1q), "h", [0])
+            noise_model.add_quantum_error(QuantumError(noise_ops_1q), "h", [1])
+            noise_model.add_quantum_error(QuantumError(noise_ops_2q), "cx", [0, 1])
+            noise_model.add_quantum_error(QuantumError(noise_ops_2q), "cx", [1, 0])
             deserialized = NoiseModel.from_dict(noise_model.to_dict())
             self.assertEqual(noise_model, deserialized)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

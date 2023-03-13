@@ -18,7 +18,7 @@ Test circuits and reference outputs for standard algorithms.
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 
 # Backwards compatibility for Terra <= 0.13
-if not hasattr(QuantumCircuit, 'i'):
+if not hasattr(QuantumCircuit, "i"):
     QuantumCircuit.i = QuantumCircuit.iden
 
 
@@ -33,7 +33,7 @@ def grovers_circuit(final_measure=True, allow_sampling=True):
         cr = ClassicalRegister(2)
         regs = (qr, cr)
     else:
-        regs = (qr, )
+        regs = (qr,)
     circuit = QuantumCircuit(*regs)
 
     circuit.h(qr[0])
@@ -77,12 +77,10 @@ def grovers_counts(shots, hex_counts=True):
     targets = []
     if hex_counts:
         # 6-qubit grovers
-        targets.append({'0x0': 5 * shots / 8, '0x1': shots / 8,
-                        '0x2': shots / 8, '0x3': shots / 8})
+        targets.append({"0x0": 5 * shots / 8, "0x1": shots / 8, "0x2": shots / 8, "0x3": shots / 8})
     else:
         # 6-qubit grovers
-        targets.append({'00': 5 * shots / 8, '01': shots / 8,
-                        '10': shots / 8, '11': shots / 8})
+        targets.append({"00": 5 * shots / 8, "01": shots / 8, "10": shots / 8, "11": shots / 8})
     return targets
 
 
@@ -120,10 +118,10 @@ def teleport_counts(shots, hex_counts=True):
     targets = []
     if hex_counts:
         # Classical 3-qubit teleport
-        targets.append({'0x0': shots / 4, '0x1': shots / 4,
-                        '0x2': shots / 4, '0x3': shots / 4})
+        targets.append({"0x0": shots / 4, "0x1": shots / 4, "0x2": shots / 4, "0x3": shots / 4})
     else:
         # Classical 3-qubit teleport
-        targets.append({'0 0 0': shots / 4, '0 0 1': shots / 4,
-                        '0 1 0': shots / 4, '0 1 1': shots / 4})
+        targets.append(
+            {"0 0 0": shots / 4, "0 0 1": shots / 4, "0 1 0": shots / 4, "0 1 1": shots / 4}
+        )
     return targets

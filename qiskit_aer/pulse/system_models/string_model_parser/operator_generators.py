@@ -21,99 +21,85 @@ from . import gen_operator
 
 
 def sigmax(dim=2):
-    """Qiskit wrapper of sigma-X operator.
-    """
+    """Qiskit wrapper of sigma-X operator."""
     if dim == 2:
         return gen_operator.sigmax()
     else:
-        raise Exception('Invalid level specification of the qubit subspace')
+        raise Exception("Invalid level specification of the qubit subspace")
 
 
 def sigmay(dim=2):
-    """Qiskit wrapper of sigma-Y operator.
-    """
+    """Qiskit wrapper of sigma-Y operator."""
     if dim == 2:
         return gen_operator.sigmay()
     else:
-        raise Exception('Invalid level specification of the qubit subspace')
+        raise Exception("Invalid level specification of the qubit subspace")
 
 
 def sigmaz(dim=2):
-    """Qiskit wrapper of sigma-Z operator.
-    """
+    """Qiskit wrapper of sigma-Z operator."""
     if dim == 2:
         return gen_operator.sigmaz()
     else:
-        raise Exception('Invalid level specification of the qubit subspace')
+        raise Exception("Invalid level specification of the qubit subspace")
 
 
 def sigmap(dim=2):
-    """Qiskit wrapper of sigma-plus operator.
-    """
+    """Qiskit wrapper of sigma-plus operator."""
     return gen_operator.create(dim)
 
 
 def sigmam(dim=2):
-    """Qiskit wrapper of sigma-minus operator.
-    """
+    """Qiskit wrapper of sigma-minus operator."""
     return gen_operator.destroy(dim)
 
 
 def create(dim):
-    """Qiskit wrapper of creation operator.
-    """
+    """Qiskit wrapper of creation operator."""
     return gen_operator.create(dim)
 
 
 def destroy(dim):
-    """Qiskit wrapper of annihilation operator.
-    """
+    """Qiskit wrapper of annihilation operator."""
     return gen_operator.destroy(dim)
 
 
 def num(dim):
-    """Qiskit wrapper of number operator.
-    """
+    """Qiskit wrapper of number operator."""
     return gen_operator.num(dim)
 
 
 def qeye(dim):
-    """Qiskit wrapper of identity operator.
-    """
+    """Qiskit wrapper of identity operator."""
     return gen_operator.identity(dim)
 
 
 def project(dim, states):
-    """Qiskit wrapper of projection operator.
-    """
+    """Qiskit wrapper of projection operator."""
     ket, bra = states
     if ket in range(dim) and bra in range(dim):
         return gen_operator.basis(dim, ket) * gen_operator.basis(dim, bra).adjoint()
     else:
-        raise Exception('States are specified on the outside of Hilbert space %s' % states)
+        raise Exception("States are specified on the outside of Hilbert space %s" % states)
 
 
 def tensor(list_qobj):
-    """ Qiskit wrapper of tensor product
-    """
+    """Qiskit wrapper of tensor product"""
     return gen_operator.tensor(list_qobj)
 
 
 def basis(level, pos):
-    """ Qiskit wrapper of basis
-    """
+    """Qiskit wrapper of basis"""
     return gen_operator.basis(level, pos)
 
 
 def state(state_vec):
-    """ Qiskit wrapper of qobj
-    """
+    """Qiskit wrapper of qobj"""
     return gen_operator.state(state_vec)
 
 
 def fock_dm(level, eigv):
-    """ Qiskit wrapper of fock_dm
-    """
+    """Qiskit wrapper of fock_dm"""
     return gen_operator.fock_dm(level, eigv)
 
 
@@ -158,12 +144,20 @@ def qubit_occ_oper_dressed(target_qubit, estates, h_osc, h_qub, level=0):
 
 
 def get_oper(name, *args):
-    """ Return quantum operator of given name
-    """
+    """Return quantum operator of given name"""
     return __operdict.get(name, qeye)(*args)
 
 
-__operdict = {'X': sigmax, 'Y': sigmay, 'Z': sigmaz,
-              'Sp': create, 'Sm': destroy, 'I': qeye,
-              'O': num, 'P': project, 'A': destroy,
-              'C': create, 'N': num}
+__operdict = {
+    "X": sigmax,
+    "Y": sigmay,
+    "Z": sigmaz,
+    "Sp": create,
+    "Sm": destroy,
+    "I": qeye,
+    "O": num,
+    "P": project,
+    "A": destroy,
+    "C": create,
+    "N": num,
+}

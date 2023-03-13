@@ -16,8 +16,7 @@ StatevectorSimulator Integration Tests
 from ddt import ddt, data
 
 from qiskit_aer import QasmSimulator, AerError
-from test.terra.backends.simulator_test_case import (
-    SimulatorTestCase, supported_methods)
+from test.terra.backends.simulator_test_case import SimulatorTestCase, supported_methods
 
 
 @ddt
@@ -47,4 +46,3 @@ class TestQasmSimulator(SimulatorTestCase):
         backend = self.backend()
         with self.assertRaises(AerError):
             backend.set_options(method=method)
-

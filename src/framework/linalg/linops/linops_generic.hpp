@@ -30,23 +30,23 @@ namespace Linalg {
 // Linear operations
 //----------------------------------------------------------------------------
 template <class T>
-T add(const T& lhs, const T& rhs) {
+T add(const T &lhs, const T &rhs) {
   return std::plus<T>()(lhs, rhs);
 }
 
 template <class T>
-T& iadd(T& lhs, const T& rhs) {
+T &iadd(T &lhs, const T &rhs) {
   lhs = std::plus<T>()(lhs, rhs);
   return lhs;
 }
 
 template <class T>
-T sub(const T& lhs, const T& rhs) {
+T sub(const T &lhs, const T &rhs) {
   return std::minus<T>()(lhs, rhs);
 }
 
 template <class T>
-T& isub(T& lhs, const T& rhs) {
+T &isub(T &lhs, const T &rhs) {
   lhs = std::minus<T>()(lhs, rhs);
   return lhs;
 }
@@ -55,23 +55,23 @@ T& isub(T& lhs, const T& rhs) {
 // Affine operations
 //----------------------------------------------------------------------------
 template <class T, class Scalar, typename = enable_if_numeric_t<Scalar>>
-T add(const T& data, const Scalar& val) {
+T add(const T &data, const Scalar &val) {
   return std::plus<T>()(data, val);
 }
 
 template <class T, class Scalar, typename = enable_if_numeric_t<Scalar>>
-T& iadd(T& data, const Scalar& val) {
+T &iadd(T &data, const Scalar &val) {
   data = std::plus<T>()(data, val);
   return data;
 }
 
 template <class T, class Scalar, typename = enable_if_numeric_t<Scalar>>
-T sub(const T& data, const Scalar& val) {
+T sub(const T &data, const Scalar &val) {
   return std::minus<T>()(data, val);
 }
 
 template <class T, class Scalar, typename = enable_if_numeric_t<Scalar>>
-T& isub(T& data, const Scalar& val) {
+T &isub(T &data, const Scalar &val) {
   data = std::minus<T>()(data, val);
   return data;
 }
@@ -80,7 +80,7 @@ T& isub(T& data, const Scalar& val) {
 // Scalar operations
 //----------------------------------------------------------------------------
 template <class T, class Scalar, typename = enable_if_numeric_t<Scalar>>
-T mul(const T& data, const Scalar& val) {
+T mul(const T &data, const Scalar &val) {
   if (almost_equal<Scalar>(val, 1)) {
     return data;
   }
@@ -88,7 +88,7 @@ T mul(const T& data, const Scalar& val) {
 }
 
 template <class T, class Scalar, typename = enable_if_numeric_t<Scalar>>
-T& imul(T& data, const Scalar& val) {
+T &imul(T &data, const Scalar &val) {
   if (!almost_equal<Scalar>(val, 1)) {
     data = std::multiplies<T>()(data, val);
   }
@@ -96,7 +96,7 @@ T& imul(T& data, const Scalar& val) {
 }
 
 template <class T, class Scalar, typename = enable_if_numeric_t<Scalar>>
-T div(const T& data, const Scalar& val) {
+T div(const T &data, const Scalar &val) {
   if (almost_equal<Scalar>(val, 1)) {
     return data;
   }
@@ -104,7 +104,7 @@ T div(const T& data, const Scalar& val) {
 }
 
 template <class T, class Scalar, typename = enable_if_numeric_t<Scalar>>
-T& idiv(T& data, const Scalar& val) {
+T &idiv(T &data, const Scalar &val) {
   if (!almost_equal<Scalar>(val, 1)) {
     data = std::divides<T>()(data, val);
   }
@@ -112,8 +112,8 @@ T& idiv(T& data, const Scalar& val) {
 }
 
 //------------------------------------------------------------------------------
-}  // end namespace Linalg
+} // end namespace Linalg
 //------------------------------------------------------------------------------
-}  // end namespace AER
+} // end namespace AER
 //------------------------------------------------------------------------------
 #endif

@@ -15,8 +15,8 @@
 #ifndef _aer_framework_opset_hpp_
 #define _aer_framework_opset_hpp_
 
-#include <algorithm>
 #include "framework/operations.hpp"
+#include <algorithm>
 
 namespace AER {
 namespace Operations {
@@ -31,7 +31,8 @@ private:
   // Hash function so that we can use an enum class as a std::unordered_set
   // key on older C++11 compilers like GCC 5.
   struct EnumClassHash {
-    template <typename T> size_t operator()(T t) const {
+    template <typename T>
+    size_t operator()(T t) const {
       return static_cast<size_t>(t);
     }
   };
@@ -41,8 +42,8 @@ public:
   using optypeset_t = std::unordered_set<Operations::OpType, EnumClassHash>;
 
   // Public data members
-  optypeset_t optypes;   // A set of op types
-  stringset_t gates;     // A set of names for OpType::gates
+  optypeset_t optypes; // A set of op types
+  stringset_t gates;   // A set of names for OpType::gates
 
   OpSet() = default;
 

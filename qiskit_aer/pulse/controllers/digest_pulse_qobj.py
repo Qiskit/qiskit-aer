@@ -21,6 +21,7 @@ import numpy as np
 
 from qiskit.pulse import DriveChannel
 from ...aererror import AerError
+
 # pylint: disable=no-name-in-module
 from .pulse_utils import oplist_to_array
 
@@ -29,7 +30,6 @@ class DigestedPulseQobj:
     """Container class for information extracted from PulseQobj."""
 
     def __init__(self):
-
         # ####################################
         # Some "Simulation description"
         # ####################################
@@ -66,7 +66,7 @@ class DigestedPulseQobj:
 
 
 def digest_pulse_qobj(qobj, channels, dt, qubit_list):
-    """ Given a PulseQobj (and other parameters), returns a DigestedPulseQobj
+    """Given a PulseQobj (and other parameters), returns a DigestedPulseQobj
     containing relevant extracted information
 
     Parameters:
@@ -86,47 +86,50 @@ def digest_pulse_qobj(qobj, channels, dt, qubit_list):
     digested_qobj = DigestedPulseQobj()
 
     qobj_dict = qobj.to_dict()
-    qobj_config = qobj_dict['config']
+    qobj_config = qobj_dict["config"]
 
     # extract schedule_los
-    if qobj_config.get('schedule_los') is not None:
-        for exp, schedule_lo in zip(qobj_dict['experiments'], qobj_config['schedule_los']):
-            if exp.get('config') is None:
-                exp['config'] = {}
+    if qobj_config.get("schedule_los") is not None:
+        for exp, schedule_lo in zip(qobj_dict["experiments"], qobj_config["schedule_los"]):
+            if exp.get("config") is None:
+                exp["config"] = {}
 
             schedule_lo_list = []
             for idx in qubit_list:
                 freq = schedule_lo.get(DriveChannel(idx), None)
                 if freq is None:
-                    raise ValueError('''A qubit in the simulation is missing an entry in
-                                        schedule_los.''')
+                    raise ValueError(
+                        """A qubit in the simulation is missing an entry in
+                                        schedule_los."""
+                    )
 
                 schedule_lo_list.append(freq * 1e-9)
 
-            exp['config']['qubit_lo_freq'] = schedule_lo_list
+            exp["config"]["qubit_lo_freq"] = schedule_lo_list
 
     # raises errors for unsupported features
     _unsupported_errors(qobj_dict)
 
-    if 'memory_slots' not in qobj_config:
-        raise ValueError('Number of memory_slots must be specific in Qobj config')
+    if "memory_slots" not in qobj_config:
+        raise ValueError("Number of memory_slots must be specific in Qobj config")
 
     # set memory and measurement details
-    digested_qobj.shots = int(qobj_config.get('shots', 1024))
-    digested_qobj.meas_level = int(qobj_config.get('meas_level', 2))
-    digested_qobj.meas_return = qobj_config.get('meas_return', 'avg')
-    digested_qobj.memory_slots = qobj_config.get('memory_slots', 0)
-    digested_qobj.memory = qobj_config.get('memory', False)
-    digested_qobj.n_registers = qobj_config.get('n_registers', 0)
+    digested_qobj.shots = int(qobj_config.get("shots", 1024))
+    digested_qobj.meas_level = int(qobj_config.get("meas_level", 2))
+    digested_qobj.meas_return = qobj_config.get("meas_return", "avg")
+    digested_qobj.memory_slots = qobj_config.get("memory_slots", 0)
+    digested_qobj.memory = qobj_config.get("memory", False)
+    digested_qobj.n_registers = qobj_config.get("n_registers", 0)
 
     # set qubit_lo_freq as given in qobj
-    if 'qubit_lo_freq' in qobj_config and qobj_config['qubit_lo_freq'] != [np.inf]:
+    if "qubit_lo_freq" in qobj_config and qobj_config["qubit_lo_freq"] != [np.inf]:
         # qobj frequencies are divided by 1e9, so multiply back
-        digested_qobj.qubit_lo_freq = [freq * 1e9 for freq in qobj_config['qubit_lo_freq']]
+        digested_qobj.qubit_lo_freq = [freq * 1e9 for freq in qobj_config["qubit_lo_freq"]]
 
     # build pulse arrays from qobj
-    pulses, pulses_idx, pulse_dict = build_pulse_arrays(qobj_dict['experiments'],
-                                                        qobj_config['pulse_library'])
+    pulses, pulses_idx, pulse_dict = build_pulse_arrays(
+        qobj_dict["experiments"], qobj_config["pulse_library"]
+    )
 
     digested_qobj.pulse_array = pulses
     digested_qobj.pulse_indices = pulses_idx
@@ -134,13 +137,8 @@ def digest_pulse_qobj(qobj, channels, dt, qubit_list):
 
     experiments = []
 
-    for exp in qobj_dict['experiments']:
-        exp_struct = experiment_to_structs(exp,
-                                           channels,
-                                           pulses_idx,
-                                           pulse_dict,
-                                           dt,
-                                           qubit_list)
+    for exp in qobj_dict["experiments"]:
+        exp_struct = experiment_to_structs(exp, channels, pulses_idx, pulse_dict, dt, qubit_list)
         experiments.append(exp_struct)
 
     digested_qobj.experiments = experiments
@@ -149,7 +147,7 @@ def digest_pulse_qobj(qobj, channels, dt, qubit_list):
 
 
 def _unsupported_errors(qobj_dict):
-    """ Raises errors for untested/unsupported features.
+    """Raises errors for untested/unsupported features.
 
     Parameters:
         qobj_dict (dict): qobj in dictionary form
@@ -159,26 +157,26 @@ def _unsupported_errors(qobj_dict):
     """
 
     # Warnings that don't stop execution
-    warning_str = '{} are an untested feature, and therefore may not behave as expected.'
-    if _contains_pv_instruction(qobj_dict['experiments']):
-        raise AerError(warning_str.format('PersistentValue instructions'))
+    warning_str = "{} are an untested feature, and therefore may not behave as expected."
+    if _contains_pv_instruction(qobj_dict["experiments"]):
+        raise AerError(warning_str.format("PersistentValue instructions"))
 
-    error_str = '''{} are not directly supported by PulseSimulator. Convert to
-                explicit WaveForms to simulate.'''
-    if _contains_parametric_pulse(qobj_dict['experiments']):
-        raise AerError(error_str.format('Parametric Pulses'))
+    error_str = """{} are not directly supported by PulseSimulator. Convert to
+                explicit WaveForms to simulate."""
+    if _contains_parametric_pulse(qobj_dict["experiments"]):
+        raise AerError(error_str.format("Parametric Pulses"))
 
-    error_str = '''Schedules contain {}, are not supported by PulseSimulator.'''
-    if _contains_frequency_instruction(qobj_dict['experiments']):
-        raise AerError(error_str.format('shift frequency and/or set frequency instructions'))
+    error_str = """Schedules contain {}, are not supported by PulseSimulator."""
+    if _contains_frequency_instruction(qobj_dict["experiments"]):
+        raise AerError(error_str.format("shift frequency and/or set frequency instructions"))
 
-    required_str = '{} are required for simulation, and none were specified.'
-    if not _contains_acquire_instruction(qobj_dict['experiments']):
-        raise AerError(required_str.format('Acquire instructions'))
+    required_str = "{} are required for simulation, and none were specified."
+    if not _contains_acquire_instruction(qobj_dict["experiments"]):
+        raise AerError(required_str.format("Acquire instructions"))
 
 
 def _contains_acquire_instruction(experiments):
-    """ Return True if the list of experiments contains an Acquire instruction
+    """Return True if the list of experiments contains an Acquire instruction
     Parameters:
         experiments (list): list of schedules
     Returns:
@@ -187,14 +185,14 @@ def _contains_acquire_instruction(experiments):
     """
 
     for exp in experiments:
-        for inst in exp['instructions']:
-            if inst['name'] == 'acquire':
+        for inst in exp["instructions"]:
+            if inst["name"] == "acquire":
                 return True
     return False
 
 
 def _contains_pv_instruction(experiments):
-    """ Return True if the list of experiments contains a PersistentValue instruction.
+    """Return True if the list of experiments contains a PersistentValue instruction.
 
     Parameters:
         experiments (list): list of schedules
@@ -203,14 +201,14 @@ def _contains_pv_instruction(experiments):
     Raises:
     """
     for exp in experiments:
-        for inst in exp['instructions']:
-            if inst['name'] == 'pv':
+        for inst in exp["instructions"]:
+            if inst["name"] == "pv":
                 return True
     return False
 
 
 def _contains_frequency_instruction(experiments):
-    """ Return True if the list of experiments contains either a set fruquency or shift
+    """Return True if the list of experiments contains either a set fruquency or shift
     frequency instruction.
 
     Parameters:
@@ -220,8 +218,8 @@ def _contains_frequency_instruction(experiments):
     Raises:
     """
     for exp in experiments:
-        for inst in exp['instructions']:
-            if inst['name'] == 'setf' or inst['name'] == 'shiftf':
+        for inst in exp["instructions"]:
+            if inst["name"] == "setf" or inst["name"] == "shiftf":
                 return True
     return False
 
@@ -236,14 +234,14 @@ def _contains_parametric_pulse(experiments):
     Raises:
     """
     for exp in experiments:
-        for inst in exp['instructions']:
-            if inst['name'] == 'parametric_pulse':
+        for inst in exp["instructions"]:
+            if inst["name"] == "parametric_pulse":
                 return True
     return False
 
 
 def build_pulse_arrays(experiments, pulse_library):
-    """ Build pulses and pulse_idx arrays, and a pulse_dict
+    """Build pulses and pulse_idx arrays, and a pulse_dict
     used in simulations and mapping of experimental pulse
     sequencies to pulse_idx sequencies and timings.
 
@@ -261,22 +259,22 @@ def build_pulse_arrays(experiments, pulse_library):
 
     num_pulse = 0
     for pulse in pulse_library:
-        pulse_dict[pulse['name']] = num_pulse
-        total_pulse_length += len(pulse['samples'])
+        pulse_dict[pulse["name"]] = num_pulse
+        total_pulse_length += len(pulse["samples"])
         num_pulse += 1
 
     idx = num_pulse + 1
     # now go through experiments looking for PV gates
     pv_pulses = []
     for exp in experiments:
-        for pulse in exp['instructions']:
-            if pulse['name'] == 'pv':
-                if pulse['val'] not in [pval[1] for pval in pv_pulses] and pulse['val'] != 0:
-                    pv_pulses.append((pulse['val'], idx))
+        for pulse in exp["instructions"]:
+            if pulse["name"] == "pv":
+                if pulse["val"] not in [pval[1] for pval in pv_pulses] and pulse["val"] != 0:
+                    pv_pulses.append((pulse["val"], idx))
                     idx += 1
                     total_pulse_length += 1
 
-    pulse_dict['pv'] = pv_pulses
+    pulse_dict["pv"] = pv_pulses
 
     pulses = np.empty(total_pulse_length, dtype=complex)
     pulses_idx = np.zeros(idx + 1, dtype=np.uint32)
@@ -284,9 +282,9 @@ def build_pulse_arrays(experiments, pulse_library):
     stop = 0
     ind = 1
     for _, pulse in enumerate(pulse_library):
-        stop = pulses_idx[ind - 1] + len(pulse['samples'])
+        stop = pulses_idx[ind - 1] + len(pulse["samples"])
         pulses_idx[ind] = stop
-        oplist_to_array(format_pulse_samples(pulse['samples']), pulses, pulses_idx[ind - 1])
+        oplist_to_array(format_pulse_samples(pulse["samples"]), pulses, pulses_idx[ind - 1])
         ind += 1
 
     for pv in pv_pulses:
@@ -341,171 +339,173 @@ def experiment_to_structs(experiment, ham_chans, pulse_inds, pulse_to_int, dt, q
     # TO DO: Error check that operations are restricted to qubit list
     max_time = 0
     structs = {}
-    structs['header'] = experiment['header']
-    structs['channels'] = OrderedDict()
+    structs["header"] = experiment["header"]
+    structs["channels"] = OrderedDict()
     for chan_name in ham_chans:
-        structs['channels'][chan_name] = [[], []]
-    structs['acquire'] = []
-    structs['cond'] = []
-    structs['snapshot'] = []
-    structs['tlist'] = []
-    structs['can_sample'] = True
+        structs["channels"][chan_name] = [[], []]
+    structs["acquire"] = []
+    structs["cond"] = []
+    structs["snapshot"] = []
+    structs["tlist"] = []
+    structs["can_sample"] = True
 
     # set an experiment qubit_lo_freq if present in experiment
-    structs['qubit_lo_freq'] = None
-    if 'config' in experiment:
-        if ('qubit_lo_freq' in experiment['config'] and
-                experiment['config']['qubit_lo_freq'] is not None):
-            freq_list = experiment['config']['qubit_lo_freq']
+    structs["qubit_lo_freq"] = None
+    if "config" in experiment:
+        if (
+            "qubit_lo_freq" in experiment["config"]
+            and experiment["config"]["qubit_lo_freq"] is not None
+        ):
+            freq_list = experiment["config"]["qubit_lo_freq"]
             freq_list = [freq * 1e9 for freq in freq_list]
-            structs['qubit_lo_freq'] = freq_list
+            structs["qubit_lo_freq"] = freq_list
     # This is a list that tells us whether
     # the last PV pulse on a channel needs to
     # be assigned a final time based on the next pulse on that channel
     pv_needs_tf = [0] * len(ham_chans)
 
     # The instructions are time-ordered so just loop through them.
-    for inst in experiment['instructions']:
+    for inst in experiment["instructions"]:
         # Do D and U channels
-        if 'ch' in inst.keys() and inst['ch'][0] in ['d', 'u']:
-            chan_name = inst['ch'].upper()
+        if "ch" in inst.keys() and inst["ch"][0] in ["d", "u"]:
+            chan_name = inst["ch"].upper()
             if chan_name not in ham_chans.keys():
-                raise ValueError('Channel {} is not in Hamiltonian model'.format(inst['ch']))
+                raise ValueError("Channel {} is not in Hamiltonian model".format(inst["ch"]))
 
             # If last pulse on channel was a PV then need to set
             # its final time to be start time of current pulse
             if pv_needs_tf[ham_chans[chan_name]]:
-                structs['channels'][chan_name][0][-3] = inst['t0'] * dt
+                structs["channels"][chan_name][0][-3] = inst["t0"] * dt
                 pv_needs_tf[ham_chans[chan_name]] = 0
 
             # Get condtional info
-            if 'conditional' in inst.keys():
-                cond = inst['conditional']
+            if "conditional" in inst.keys():
+                cond = inst["conditional"]
             else:
                 cond = -1
             # PV's
-            if inst['name'] == 'pv':
+            if inst["name"] == "pv":
                 # Get PV index
-                for pv in pulse_to_int['pv']:
-                    if pv[0] == inst['val']:
+                for pv in pulse_to_int["pv"]:
+                    if pv[0] == inst["val"]:
                         index = pv[1]
                         break
-                structs['channels'][chan_name][0].extend([inst['t0'] * dt, None, index, cond])
+                structs["channels"][chan_name][0].extend([inst["t0"] * dt, None, index, cond])
                 pv_needs_tf[ham_chans[chan_name]] = 1
 
             # ShiftPhase instructions
-            elif inst['name'] == 'fc':
+            elif inst["name"] == "fc":
                 # get current phase value
                 current_phase = 0
-                if len(structs['channels'][chan_name][1]) > 0:
-                    current_phase = structs['channels'][chan_name][1][-2]
+                if len(structs["channels"][chan_name][1]) > 0:
+                    current_phase = structs["channels"][chan_name][1][-2]
 
-                structs['channels'][chan_name][1].extend([inst['t0'] * dt,
-                                                          current_phase + inst['phase'],
-                                                          cond])
+                structs["channels"][chan_name][1].extend(
+                    [inst["t0"] * dt, current_phase + inst["phase"], cond]
+                )
 
             # SetPhase instruction
-            elif inst['name'] == 'setp':
-                structs['channels'][chan_name][1].extend([inst['t0'] * dt,
-                                                          inst['phase'],
-                                                          cond])
+            elif inst["name"] == "setp":
+                structs["channels"][chan_name][1].extend([inst["t0"] * dt, inst["phase"], cond])
             # Delay instruction
-            elif inst['name'] == 'delay':
+            elif inst["name"] == "delay":
                 pass  # nothing to be done in this case
             # A standard pulse
             else:
-                start = inst['t0'] * dt
-                pulse_int = pulse_to_int[inst['name']]
+                start = inst["t0"] * dt
+                pulse_int = pulse_to_int[inst["name"]]
                 pulse_width = (pulse_inds[pulse_int + 1] - pulse_inds[pulse_int]) * dt
                 stop = start + pulse_width
-                structs['channels'][chan_name][0].extend([start, stop, pulse_int, cond])
+                structs["channels"][chan_name][0].extend([start, stop, pulse_int, cond])
 
                 max_time = max(max_time, stop)
 
         # Take care of acquires and snapshots (bfuncs added )
         else:
             # measurements
-            if inst['name'] == 'acquire':
-
+            if inst["name"] == "acquire":
                 # Better way??
                 qlist2 = []
                 mlist2 = []
                 if qubit_list is None:
-                    qlist2 = inst['qubits']
-                    mlist2 = inst['memory_slot']
+                    qlist2 = inst["qubits"]
+                    mlist2 = inst["memory_slot"]
                 else:
-                    for qind, qb in enumerate(inst['qubits']):
+                    for qind, qb in enumerate(inst["qubits"]):
                         if qb in qubit_list:
                             qlist2.append(qb)
-                            mlist2.append(inst['memory_slot'][qind])
+                            mlist2.append(inst["memory_slot"][qind])
 
-                acq_vals = [inst['t0'] * dt,
-                            np.asarray(qlist2, dtype=np.uint32),
-                            np.asarray(mlist2, dtype=np.uint32)
-                            ]
-                if 'register_slot' in inst.keys():
-                    acq_vals.append(np.asarray(inst['register_slot'],
-                                               dtype=np.uint32))
+                acq_vals = [
+                    inst["t0"] * dt,
+                    np.asarray(qlist2, dtype=np.uint32),
+                    np.asarray(mlist2, dtype=np.uint32),
+                ]
+                if "register_slot" in inst.keys():
+                    acq_vals.append(np.asarray(inst["register_slot"], dtype=np.uint32))
                 else:
                     acq_vals.append(None)
-                structs['acquire'].append(acq_vals)
+                structs["acquire"].append(acq_vals)
 
                 # update max_time
-                max_time = max(max_time, (inst['t0'] + inst['duration']) * dt)
+                max_time = max(max_time, (inst["t0"] + inst["duration"]) * dt)
 
                 # Add time to tlist
-                if inst['t0'] * dt not in structs['tlist']:
-                    structs['tlist'].append(inst['t0'] * dt)
+                if inst["t0"] * dt not in structs["tlist"]:
+                    structs["tlist"].append(inst["t0"] * dt)
 
             # conditionals
-            elif inst['name'] == 'bfunc':
-                bfun_vals = [inst['t0'] * dt, inst['mask'], inst['relation'],
-                             inst['val'], inst['register']]
-                if 'memory' in inst.keys():
-                    bfun_vals.append(inst['memory'])
+            elif inst["name"] == "bfunc":
+                bfun_vals = [
+                    inst["t0"] * dt,
+                    inst["mask"],
+                    inst["relation"],
+                    inst["val"],
+                    inst["register"],
+                ]
+                if "memory" in inst.keys():
+                    bfun_vals.append(inst["memory"])
                 else:
                     bfun_vals.append(None)
 
-                structs['cond'].append(acq_vals)
+                structs["cond"].append(acq_vals)
 
                 # update max_time
-                max_time = max(max_time, inst['t0'] * dt)
+                max_time = max(max_time, inst["t0"] * dt)
 
                 # Add time to tlist
-                if inst['t0'] * dt not in structs['tlist']:
-                    structs['tlist'].append(inst['t0'] * dt)
+                if inst["t0"] * dt not in structs["tlist"]:
+                    structs["tlist"].append(inst["t0"] * dt)
 
             # snapshots
-            elif inst['name'] == 'snapshot':
-                if inst['type'] != 'state':
+            elif inst["name"] == "snapshot":
+                if inst["type"] != "state":
                     raise TypeError("Snapshots must be of type 'state'")
-                structs['snapshot'].append([inst['t0'] * dt, inst['label']])
+                structs["snapshot"].append([inst["t0"] * dt, inst["label"]])
 
                 # Add time to tlist
-                if inst['t0'] * dt not in structs['tlist']:
-                    structs['tlist'].append(inst['t0'] * dt)
+                if inst["t0"] * dt not in structs["tlist"]:
+                    structs["tlist"].append(inst["t0"] * dt)
 
                 # update max_time
-                max_time = max(max_time, inst['t0'] * dt)
+                max_time = max(max_time, inst["t0"] * dt)
 
     # If any PVs still need time then they are at the end
     # and should just go til final time
     ham_keys = list(ham_chans.keys())
     for idx, pp in enumerate(pv_needs_tf):
         if pp:
-            structs['channels'][ham_keys[idx]][0][-3] = max_time
+            structs["channels"][ham_keys[idx]][0][-3] = max_time
             pv_needs_tf[idx] = 0
 
     # Convert lists to numpy arrays
-    for key in structs['channels'].keys():
-        structs['channels'][key][0] = np.asarray(structs['channels'][key][0],
-                                                 dtype=float)
-        structs['channels'][key][1] = np.asarray(structs['channels'][key][1],
-                                                 dtype=float)
+    for key in structs["channels"].keys():
+        structs["channels"][key][0] = np.asarray(structs["channels"][key][0], dtype=float)
+        structs["channels"][key][1] = np.asarray(structs["channels"][key][1], dtype=float)
 
-    structs['tlist'] = np.asarray([0] + structs['tlist'], dtype=float)
+    structs["tlist"] = np.asarray([0] + structs["tlist"], dtype=float)
 
-    if structs['tlist'][-1] > structs['acquire'][-1][0]:
-        structs['can_sample'] = False
+    if structs["tlist"][-1] > structs["acquire"][-1][0]:
+        structs["can_sample"] = False
 
     return structs

@@ -16,11 +16,16 @@ Test circuits and reference outputs for multiplexer gates.
 import numpy as np
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, transpile
 from test.terra.utils.multiplexer import multiplexer_multi_controlled_x
-from test.terra.reference.ref_2q_clifford import (cx_gate_counts_nondeterministic,
-                                                  cx_gate_counts_deterministic)
-from test.terra.reference.ref_non_clifford import (ccx_gate_counts_nondeterministic,
-                                                   ccx_gate_counts_deterministic)
+from test.terra.reference.ref_2q_clifford import (
+    cx_gate_counts_nondeterministic,
+    cx_gate_counts_deterministic,
+)
+from test.terra.reference.ref_non_clifford import (
+    ccx_gate_counts_nondeterministic,
+    ccx_gate_counts_deterministic,
+)
 from qiskit.quantum_info.states import Statevector
+
 
 def multiplexer_cx_gate_circuits_deterministic(final_measure=True):
     """multiplexer-gate simulating cx gate, test circuits with deterministic counts."""
@@ -30,7 +35,7 @@ def multiplexer_cx_gate_circuits_deterministic(final_measure=True):
         cr = ClassicalRegister(2)
         regs = (qr, cr)
     else:
-        regs = (qr, )
+        regs = (qr,)
 
     num_control_qubits = 1
 
@@ -112,6 +117,7 @@ def multiplexer_cx_gate_circuits_deterministic(final_measure=True):
 
     return circuits
 
+
 def multiplexer_cx_gate_circuits_nondeterministic(final_measure=True):
     """Multiplexer CX-like gate test circuits with non-deterministic counts."""
     circuits = []
@@ -120,7 +126,7 @@ def multiplexer_cx_gate_circuits_nondeterministic(final_measure=True):
         cr = ClassicalRegister(2)
         regs = (qr, cr)
     else:
-        regs = (qr, )
+        regs = (qr,)
 
     # cx gate only has one control qubit
     num_control_qubits = 1
@@ -148,12 +154,12 @@ def multiplexer_cx_gate_circuits_nondeterministic(final_measure=True):
 
 
 def multiplexer_cx_gate_counts_deterministic(shots, hex_counts=True):
-    """ The counts are exactly the same as the cx gate """
+    """The counts are exactly the same as the cx gate"""
     return cx_gate_counts_deterministic(shots, hex_counts)
 
 
 def multiplexer_cx_gate_counts_nondeterministic(shots, hex_counts=True):
-    """ The counts are exactly the same as the cx gate """
+    """The counts are exactly the same as the cx gate"""
     return cx_gate_counts_nondeterministic(shots, hex_counts)
 
 
@@ -169,15 +175,14 @@ def multiplexer_ccx_gate_circuits_deterministic(final_measure=True):
         cr = ClassicalRegister(3)
         regs = (qr, cr)
     else:
-        regs = (qr, )
+        regs = (qr,)
 
     # because ccx has two control qubits and one target
     num_control_qubits = 2
 
     # CCX(0,1,2)
     circuit = QuantumCircuit(*regs)
-    circuit.append(multiplexer_multi_controlled_x(num_control_qubits),
-                   [qr[2], qr[0], qr[1]])
+    circuit.append(multiplexer_multi_controlled_x(num_control_qubits), [qr[2], qr[0], qr[1]])
     if final_measure:
         circuit.barrier(qr)
         circuit.measure(qr, cr)
@@ -189,8 +194,7 @@ def multiplexer_ccx_gate_circuits_deterministic(final_measure=True):
     circuit.barrier(qr)
     circuit.x(qr[1])
     circuit.barrier(qr)
-    circuit.append(multiplexer_multi_controlled_x(num_control_qubits),
-                   [qr[2], qr[0], qr[1]])
+    circuit.append(multiplexer_multi_controlled_x(num_control_qubits), [qr[2], qr[0], qr[1]])
     circuit.barrier(qr)
     circuit.x(qr[0])
     circuit.barrier(qr)
@@ -202,8 +206,7 @@ def multiplexer_ccx_gate_circuits_deterministic(final_measure=True):
 
     # CCX(2,1,0)
     circuit = QuantumCircuit(*regs)
-    circuit.append(multiplexer_multi_controlled_x(num_control_qubits),
-                   [qr[0], qr[2], qr[1]])
+    circuit.append(multiplexer_multi_controlled_x(num_control_qubits), [qr[0], qr[2], qr[1]])
     if final_measure:
         circuit.barrier(qr)
         circuit.measure(qr, cr)
@@ -215,8 +218,7 @@ def multiplexer_ccx_gate_circuits_deterministic(final_measure=True):
     circuit.barrier(qr)
     circuit.x(qr[2])
     circuit.barrier(qr)
-    circuit.append(multiplexer_multi_controlled_x(num_control_qubits),
-                   [qr[0], qr[2], qr[1]])
+    circuit.append(multiplexer_multi_controlled_x(num_control_qubits), [qr[0], qr[2], qr[1]])
     circuit.barrier(qr)
     circuit.x(qr[1])
     circuit.barrier(qr)
@@ -237,7 +239,7 @@ def multiplexer_ccx_gate_circuits_nondeterministic(final_measure=True):
         cr = ClassicalRegister(3)
         regs = (qr, cr)
     else:
-        regs = (qr, )
+        regs = (qr,)
 
     # because ccx has two control qubits and one target
     num_control_qubits = 2
@@ -248,8 +250,7 @@ def multiplexer_ccx_gate_circuits_nondeterministic(final_measure=True):
     circuit.barrier(qr)
     circuit.x(qr[1])
     circuit.barrier(qr)
-    circuit.append(multiplexer_multi_controlled_x(num_control_qubits),
-                   [qr[2], qr[0], qr[1]])
+    circuit.append(multiplexer_multi_controlled_x(num_control_qubits), [qr[2], qr[0], qr[1]])
     circuit.barrier(qr)
     circuit.x(qr[1])
     if final_measure:
@@ -263,8 +264,7 @@ def multiplexer_ccx_gate_circuits_nondeterministic(final_measure=True):
     circuit.barrier(qr)
     circuit.x(qr[2])
     circuit.barrier(qr)
-    circuit.append(multiplexer_multi_controlled_x(num_control_qubits),
-                   [qr[0], qr[2], qr[1]])
+    circuit.append(multiplexer_multi_controlled_x(num_control_qubits), [qr[0], qr[2], qr[1]])
     circuit.barrier(qr)
     circuit.x(qr[2])
     if final_measure:
@@ -276,16 +276,17 @@ def multiplexer_ccx_gate_circuits_nondeterministic(final_measure=True):
 
 
 def multiplexer_ccx_gate_counts_deterministic(shots, hex_counts=True):
-    """ The counts are exactly the same as the ccx gate """
+    """The counts are exactly the same as the ccx gate"""
     return ccx_gate_counts_deterministic(shots, hex_counts)
 
 
 def multiplexer_ccx_gate_counts_nondeterministic(shots, hex_counts=True):
-    """ The counts are exactly the same as the ccx gate """
+    """The counts are exactly the same as the ccx gate"""
     return ccx_gate_counts_nondeterministic(shots, hex_counts)
 
+
 def multiplexer_no_control_qubits(final_measure=True):
-    qc = QuantumCircuit(1,1)
+    qc = QuantumCircuit(1, 1)
     vector = [0.2, 0.1]
     vector_circuit = QuantumCircuit(1)
     vector_circuit.isometry(vector / np.linalg.norm(vector), [0], None)
@@ -298,5 +299,5 @@ def multiplexer_no_control_qubits(final_measure=True):
     qc.uc(gate_list, [], [0])
 
     if final_measure:
-      qc.measure(0,0)
-    return [transpile(qc, basis_gates=['multiplexer', 'measure'])]
+        qc.measure(0, 0)
+    return [transpile(qc, basis_gates=["multiplexer", "measure"])]

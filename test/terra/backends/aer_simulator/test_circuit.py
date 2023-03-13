@@ -18,8 +18,7 @@ from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
 from qiskit.circuit import CircuitInstruction
 from test.terra.reference import ref_algorithms
 
-from test.terra.backends.simulator_test_case import (
-    SimulatorTestCase, supported_methods)
+from test.terra.backends.simulator_test_case import SimulatorTestCase, supported_methods
 
 
 @ddt
@@ -27,11 +26,18 @@ class TestVariousCircuit(SimulatorTestCase):
     """AerSimulator tests to simulate various types of circuits"""
 
     @supported_methods(
-        ['automatic', 'statevector', 'density_matrix',
-         'matrix_product_state', 'extended_stabilizer', 'tensor_network'])
+        [
+            "automatic",
+            "statevector",
+            "density_matrix",
+            "matrix_product_state",
+            "extended_stabilizer",
+            "tensor_network",
+        ]
+    )
     def test_quantum_register_circuit(self, method, device):
         """Test circuits with quantum registers."""
-        
+
         qubits = QuantumRegister(3)
         clbits = ClassicalRegister(3)
 
@@ -43,23 +49,26 @@ class TestVariousCircuit(SimulatorTestCase):
         for q, c in zip(qubits, clbits):
             circuit.measure(q, c)
 
-        backend = self.backend(
-            method=method,
-            device=device,
-            seed_simulator=1111
-        )
+        backend = self.backend(method=method, device=device, seed_simulator=1111)
 
-        shots=1000
+        shots = 1000
         result = backend.run(circuit, shots=shots).result()
         self.assertSuccess(result)
-        self.compare_counts(result, [circuit], [{'0x0':500, '0x7':500}], delta=0.05 * shots)
-        
+        self.compare_counts(result, [circuit], [{"0x0": 500, "0x7": 500}], delta=0.05 * shots)
+
     @supported_methods(
-        ['automatic', 'statevector', 'density_matrix',
-         'matrix_product_state', 'extended_stabilizer', 'tensor_network'])
+        [
+            "automatic",
+            "statevector",
+            "density_matrix",
+            "matrix_product_state",
+            "extended_stabilizer",
+            "tensor_network",
+        ]
+    )
     def test_qubits_circuit(self, method, device):
         """Test circuits with quantum registers."""
-        
+
         qubits = QuantumRegister(3)
         clbits = ClassicalRegister(3)
 
@@ -73,23 +82,26 @@ class TestVariousCircuit(SimulatorTestCase):
         for q, c in zip(qubits, clbits):
             circuit.measure(q, c)
 
-        backend = self.backend(
-            method=method,
-            device=device,
-            seed_simulator=1111
-        )
+        backend = self.backend(method=method, device=device, seed_simulator=1111)
 
-        shots=1000
+        shots = 1000
         result = backend.run(circuit, shots=shots).result()
         self.assertSuccess(result)
-        self.compare_counts(result, [circuit], [{'0x0':500, '0x7':500}], delta=0.05 * shots)
+        self.compare_counts(result, [circuit], [{"0x0": 500, "0x7": 500}], delta=0.05 * shots)
 
     @supported_methods(
-        ['automatic', 'statevector', 'density_matrix',
-         'matrix_product_state', 'extended_stabilizer', 'tensor_network'])
+        [
+            "automatic",
+            "statevector",
+            "density_matrix",
+            "matrix_product_state",
+            "extended_stabilizer",
+            "tensor_network",
+        ]
+    )
     def test_qubits_quantum_register_circuit(self, method, device):
         """Test circuits with quantum registers."""
-        
+
         qubits0 = QuantumRegister(2)
         clbits1 = ClassicalRegister(2)
         qubits1 = QuantumRegister(1)
@@ -106,16 +118,12 @@ class TestVariousCircuit(SimulatorTestCase):
             for q, c in zip(qubits, clbits):
                 circuit.measure(q, c)
 
-        backend = self.backend(
-            method=method,
-            device=device,
-            seed_simulator=1111
-        )
+        backend = self.backend(method=method, device=device, seed_simulator=1111)
 
-        shots=1000
+        shots = 1000
         result = backend.run(circuit, shots=shots).result()
         self.assertSuccess(result)
-        self.compare_counts(result, [circuit], [{'0x0':500, '0x7':500}], delta=0.05 * shots)
+        self.compare_counts(result, [circuit], [{"0x0": 500, "0x7": 500}], delta=0.05 * shots)
 
         qubits0 = QuantumRegister(1)
         clbits1 = ClassicalRegister(1)
@@ -136,17 +144,13 @@ class TestVariousCircuit(SimulatorTestCase):
         for qubits, clbits in zip([qubits0, qubits1, qubits2], [clbits1, clbits2, clbits3]):
             for q, c in zip(qubits, clbits):
                 circuit.measure(q, c)
- 
-        backend = self.backend(
-            method=method,
-            device=device,
-            seed_simulator=1111
-        )
 
-        shots=1000
+        backend = self.backend(method=method, device=device, seed_simulator=1111)
+
+        shots = 1000
         result = backend.run(circuit, shots=shots).result()
         self.assertSuccess(result)
-        self.compare_counts(result, [circuit], [{'0x0':500, '0x7':500}], delta=0.05 * shots)
+        self.compare_counts(result, [circuit], [{"0x0": 500, "0x7": 500}], delta=0.05 * shots)
 
     def test_partial_result_a_single_invalid_circuit(self):
         """Test a partial result is returned with a job with a valid and invalid circuit."""
@@ -163,7 +167,7 @@ class TestVariousCircuit(SimulatorTestCase):
         circuits.append(qc)
         backend = self.backend()
         shots = 100
-        result = backend.run(circuits, shots=shots, method='statevector').result()
-        self.assertEqual(result.status, 'PARTIAL COMPLETED')
-        self.assertTrue(hasattr(result.results[1].data, 'counts'))
-        self.assertFalse(hasattr(result.results[0].data, 'counts'))
+        result = backend.run(circuits, shots=shots, method="statevector").result()
+        self.assertEqual(result.status, "PARTIAL COMPLETED")
+        self.assertTrue(hasattr(result.results[1].data, "counts"))
+        self.assertFalse(hasattr(result.results[0].data, "counts"))

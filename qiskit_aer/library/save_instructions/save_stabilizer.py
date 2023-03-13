@@ -20,8 +20,8 @@ from ..default_qubits import default_qubits
 
 class SaveStabilizer(SaveSingleData):
     """Save Stabilizer instruction"""
-    def __init__(self, num_qubits, label="stabilizer",
-                 pershot=False, conditional=False):
+
+    def __init__(self, num_qubits, label="stabilizer", pershot=False, conditional=False):
         """Create new instruction to save the stabilizer simulator state as a StabilizerState.
 
         Args:
@@ -39,9 +39,9 @@ class SaveStabilizer(SaveSingleData):
             qubits in a circuit, otherwise an exception will be raised during
             simulation.
         """
-        super().__init__('save_stabilizer', num_qubits, label,
-                         pershot=pershot,
-                         conditional=conditional)
+        super().__init__(
+            "save_stabilizer", num_qubits, label, pershot=pershot, conditional=conditional
+        )
 
 
 def save_stabilizer(self, label="stabilizer", pershot=False, conditional=False):
@@ -63,10 +63,7 @@ def save_stabilizer(self, label="stabilizer", pershot=False, conditional=False):
         This instruction is always defined across all qubits in a circuit.
     """
     qubits = default_qubits(self)
-    instr = SaveStabilizer(len(qubits),
-                           label=label,
-                           pershot=pershot,
-                           conditional=conditional)
+    instr = SaveStabilizer(len(qubits), label=label, pershot=pershot, conditional=conditional)
     return self.append(instr, qubits)
 
 

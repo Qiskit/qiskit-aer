@@ -33,36 +33,48 @@ namespace AerToPy {
 // Template specialization is used with this function for adding custom
 // conversion for other types
 // NOTE: Can this function be replaced by overload py::cast for custom types?
-template <typename T> py::object to_python(T &&obj);
+template <typename T>
+py::object to_python(T &&obj);
 
 // Move a matrix to Python via conversion to Numpy array
-template <typename T> py::object to_python(matrix<T> &&obj);
+template <typename T>
+py::object to_python(matrix<T> &&obj);
 
 // Move a Vector to Python via conversion to Numpy array
-template <typename T> py::object to_python(AER::Vector<T> &&obj);
+template <typename T>
+py::object to_python(AER::Vector<T> &&obj);
 
 // Move a Vector to Python via recusivly calling to_python on elements
-template <typename T> py::object to_python(std::vector<T> &&obj);
+template <typename T>
+py::object to_python(std::vector<T> &&obj);
 
-// Move an Unordered string map to Python object by calling to_python on elements
-template <typename T> py::object to_python(std::unordered_map<std::string, T> &&obj);
+// Move an Unordered string map to Python object by calling to_python on
+// elements
+template <typename T>
+py::object to_python(std::unordered_map<std::string, T> &&obj);
 
 // Move an Unordered string map into an existing Python dict
 template <typename T>
 void add_to_python(py::dict &pydata, std::unordered_map<std::string, T> &&obj);
 
-
 // Template specialization for moving numeric std::vectors to Numpy arrays
-template <> py::object to_python(std::vector<AER::int_t> &&obj);
-template <> py::object to_python(std::vector<AER::uint_t> &&obj);
-template <> py::object to_python(std::vector<float> &&obj);
-template <> py::object to_python(std::vector<double> &&obj);
-template <> py::object to_python(std::vector<std::complex<double>> &&obj);
-template <> py::object to_python(std::vector<std::complex<float>> &&obj);
+template <>
+py::object to_python(std::vector<AER::int_t> &&obj);
+template <>
+py::object to_python(std::vector<AER::uint_t> &&obj);
+template <>
+py::object to_python(std::vector<float> &&obj);
+template <>
+py::object to_python(std::vector<double> &&obj);
+template <>
+py::object to_python(std::vector<std::complex<double>> &&obj);
+template <>
+py::object to_python(std::vector<std::complex<float>> &&obj);
 
 // Template specialization for JSON
 // NOTE: this copies rather than moves
-template <> py::object to_python(json_t &&obj);
+template <>
+py::object to_python(json_t &&obj);
 
 //------------------------------------------------------------------------------
 // Convert To Numpy Arrays
@@ -109,7 +121,7 @@ py::object to_python(std::unordered_map<std::string, T> &&obj) {
 
 template <typename T>
 void add_to_python(py::dict &pydata, std::unordered_map<std::string, T> &&obj) {
-  for(auto& elt : obj) {
+  for (auto &elt : obj) {
     pydata[elt.first.data()] = to_python(std::move(elt.second));
   }
 }
@@ -117,7 +129,7 @@ void add_to_python(py::dict &pydata, std::unordered_map<std::string, T> &&obj) {
 template <typename T>
 py::object to_python(std::vector<T> &&obj) {
   py::list pydata;
-  for(auto& elt : obj) {
+  for (auto &elt : obj) {
     pydata.append(to_python(std::move(elt)));
   }
   return std::move(pydata);
@@ -169,39 +181,39 @@ py::object to_python(std::vector<std::complex<float>> &&obj) {
 
 template <typename T>
 py::array_t<T, py::array::f_style> to_numpy(matrix<T> &&src) {
-  std::array<py::ssize_t, 2> shape {static_cast<py::ssize_t>(src.GetRows()),
-                                    static_cast<py::ssize_t>(src.GetColumns())};
-  matrix<T>* src_ptr = new matrix<T>(std::move(src));
-  auto capsule = py::capsule(src_ptr, [](void* p) { delete reinterpret_cast<matrix<T>*>(p); });
+  std::array<py::ssize_t, 2> shape{static_cast<py::ssize_t>(src.GetRows()),
+                                   static_cast<py::ssize_t>(src.GetColumns())};
+  matrix<T> *src_ptr = new matrix<T>(std::move(src));
+  auto capsule = py::capsule(
+      src_ptr, [](void *p) { delete reinterpret_cast<matrix<T> *>(p); });
   return py::array_t<T, py::array::f_style>(shape, src_ptr->data(), capsule);
 }
 
 template <typename T>
 py::array_t<T> to_numpy(AER::Vector<T> &&src) {
-  AER::Vector<T>* src_ptr = new AER::Vector<T>(std::move(src));
-  auto capsule = py::capsule(src_ptr, [](void* p) { 
-    delete reinterpret_cast<AER::Vector<T>*>(p);
-    });
+  AER::Vector<T> *src_ptr = new AER::Vector<T>(std::move(src));
+  auto capsule = py::capsule(
+      src_ptr, [](void *p) { delete reinterpret_cast<AER::Vector<T> *>(p); });
   return py::array_t<T>(
-    src_ptr->size(),  // shape of array
-    src_ptr->data(),  // c-style contiguous strides for vector
-    capsule           // numpy array references this parent
+      src_ptr->size(), // shape of array
+      src_ptr->data(), // c-style contiguous strides for vector
+      capsule          // numpy array references this parent
   );
 }
 
-
 template <typename T>
 py::array_t<T> to_numpy(std::vector<T> &&src) {
-  std::vector<T>* src_ptr = new std::vector<T>(std::move(src));
-  auto capsule = py::capsule(src_ptr, [](void* p) { delete reinterpret_cast<std::vector<T>*>(p); });
+  std::vector<T> *src_ptr = new std::vector<T>(std::move(src));
+  auto capsule = py::capsule(
+      src_ptr, [](void *p) { delete reinterpret_cast<std::vector<T> *>(p); });
   return py::array_t<T>(
-    src_ptr->size(),  // shape of array
-    src_ptr->data(),  // c-style contiguous strides for vector
-    capsule           // numpy array references this parent
+      src_ptr->size(), // shape of array
+      src_ptr->data(), // c-style contiguous strides for vector
+      capsule          // numpy array references this parent
   );
 }
 
 //------------------------------------------------------------------------------
-}  // end namespace AerToPy
+} // end namespace AerToPy
 //------------------------------------------------------------------------------
 #endif

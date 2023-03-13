@@ -67,7 +67,7 @@ class TestRelaxationNoisePass(QiskitAerTestCase):
         qc.measure([0, 1], [0, 1])
 
         durations = [("h", None, 10), ("cx", None, 50), ("measure", None, 200)]
-        sched_circ = transpile(qc, scheduling_method='alap', instruction_durations=durations)
+        sched_circ = transpile(qc, scheduling_method="alap", instruction_durations=durations)
 
         noise_pass = RelaxationNoisePass(t1s=[0.10, 0.11], t2s=[0.20, 0.21], dt=0.01)
         noisy_circ = noise_pass(sched_circ)
@@ -102,7 +102,7 @@ class TestRelaxationNoisePass(QiskitAerTestCase):
         qc.measure([0, 1], [0, 1])
 
         durations = [("h", None, 10), ("cx", None, 50), ("measure", None, 200)]
-        sched_circ = transpile(qc, scheduling_method='alap', instruction_durations=durations)
+        sched_circ = transpile(qc, scheduling_method="alap", instruction_durations=durations)
 
         noise_pass = RelaxationNoisePass(t1s=t1s, t2s=t2s, dt=dt, op_types=Delay)
         noisy_circ = noise_pass(sched_circ)
@@ -116,7 +116,7 @@ class TestRelaxationNoisePass(QiskitAerTestCase):
 
         self.assertEqual(expected, noisy_circ)
 
-    @ddt.data((1e5, 'dt'), (1e4, 'ns'), (1e1, 'us'), (1e-2, 'ms'), (1e-5, 's'))
+    @ddt.data((1e5, "dt"), (1e4, "ns"), (1e1, "us"), (1e-2, "ms"), (1e-5, "s"))
     @ddt.unpack
     def test_delay_units(self, duration, unit):
         """Test un-scheduled delay with different units."""
@@ -128,7 +128,6 @@ class TestRelaxationNoisePass(QiskitAerTestCase):
         qc = QuantumCircuit(1)
         qc.delay(duration, 0, unit=unit)
 
-        
         relax_pass = RelaxationNoisePass(t1s=[t1], t2s=[t2], dt=dt)
         actual = qi.SuperOp(relax_pass(qc))
         expected = qi.SuperOp(thermal_relaxation_error(t1, t2, target_duration))

@@ -43,9 +43,7 @@ class SetDensityMatrix(Instruction):
             state = DensityMatrix(state)
         if not state.num_qubits or not state.is_valid():
             raise ExtensionError("The input state is not valid")
-        super().__init__('set_density_matrix',
-                         state.num_qubits, 0,
-                         [state.data])
+        super().__init__("set_density_matrix", state.num_qubits, 0, [state.data])
 
 
 def set_density_matrix(self, state):
@@ -73,7 +71,8 @@ def set_density_matrix(self, state):
             "The size of the density matrix for the set state"
             " instruction must be equal to the number of qubits"
             f" in the circuit (state.num_qubits ({state.num_qubits})"
-            f" != QuantumCircuit.num_qubits ({self.num_qubits})).")
+            f" != QuantumCircuit.num_qubits ({self.num_qubits}))."
+        )
     return self.append(SetDensityMatrix(state), qubits)
 
 

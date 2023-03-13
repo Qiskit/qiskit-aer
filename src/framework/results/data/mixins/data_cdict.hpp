@@ -29,10 +29,11 @@ namespace AER {
 // Result container for Qiskit-Aer
 //============================================================================
 
-struct DataCDict : public DataMap<SingleData, std::map<std::string, complex_t>, 1>,
-                   public DataMap<SingleData, std::map<std::string, complex_t>, 2>,
-                   public DataMap<ListData, std::map<std::string, complex_t>, 1>,
-                   public DataMap<ListData, std::map<std::string, complex_t>, 2> {
+struct DataCDict
+    : public DataMap<SingleData, std::map<std::string, complex_t>, 1>,
+      public DataMap<SingleData, std::map<std::string, complex_t>, 2>,
+      public DataMap<ListData, std::map<std::string, complex_t>, 1>,
+      public DataMap<ListData, std::map<std::string, complex_t>, 2> {
 
   // Serialize engine data to JSON
   void add_to_json(json_t &result);
@@ -46,10 +47,14 @@ struct DataCDict : public DataMap<SingleData, std::map<std::string, complex_t>, 
 //------------------------------------------------------------------------------
 
 DataCDict &DataCDict::combine(DataCDict &&other) {
-  DataMap<SingleData, std::map<std::string, complex_t>, 1>::combine(std::move(other));
-  DataMap<SingleData, std::map<std::string, complex_t>, 2>::combine(std::move(other));
-  DataMap<ListData, std::map<std::string, complex_t>, 1>::combine(std::move(other));
-  DataMap<ListData, std::map<std::string, complex_t>, 2>::combine(std::move(other));
+  DataMap<SingleData, std::map<std::string, complex_t>, 1>::combine(
+      std::move(other));
+  DataMap<SingleData, std::map<std::string, complex_t>, 2>::combine(
+      std::move(other));
+  DataMap<ListData, std::map<std::string, complex_t>, 1>::combine(
+      std::move(other));
+  DataMap<ListData, std::map<std::string, complex_t>, 2>::combine(
+      std::move(other));
   return *this;
 }
 

@@ -30,8 +30,7 @@ py::object to_python(AER::DataJSON &&data);
 // Move an DataJSON container object to an existing new Python dict
 void add_to_python(py::dict &pydata, AER::DataJSON &&data);
 
-} //end namespace AerToPy
-
+} // end namespace AerToPy
 
 //============================================================================
 // Implementations
@@ -44,10 +43,14 @@ py::object AerToPy::to_python(AER::DataJSON &&data) {
 }
 
 void AerToPy::add_to_python(py::dict &pydata, AER::DataJSON &&data) {
-  AerToPy::add_to_python(pydata, static_cast<AER::DataMap<AER::SingleData, json_t, 1>&&>(data));
-  AerToPy::add_to_python(pydata, static_cast<AER::DataMap<AER::SingleData, json_t, 2>&&>(data));
-  AerToPy::add_to_python(pydata, static_cast<AER::DataMap<AER::ListData, json_t, 1>&&>(data));
-  AerToPy::add_to_python(pydata, static_cast<AER::DataMap<AER::ListData, json_t, 2>&&>(data));
+  AerToPy::add_to_python(
+      pydata, static_cast<AER::DataMap<AER::SingleData, json_t, 1> &&>(data));
+  AerToPy::add_to_python(
+      pydata, static_cast<AER::DataMap<AER::SingleData, json_t, 2> &&>(data));
+  AerToPy::add_to_python(
+      pydata, static_cast<AER::DataMap<AER::ListData, json_t, 1> &&>(data));
+  AerToPy::add_to_python(
+      pydata, static_cast<AER::DataMap<AER::ListData, json_t, 2> &&>(data));
 }
 
 #endif

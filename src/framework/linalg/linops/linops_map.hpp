@@ -15,10 +15,10 @@
 #ifndef _aer_framework_linalg_linops_map_hpp_
 #define _aer_framework_linalg_linops_map_hpp_
 
-#include <functional>
-#include <map>
 #include "framework/linalg/almost_equal.hpp"
 #include "framework/linalg/enable_if_numeric.hpp"
+#include <functional>
+#include <map>
 
 namespace AER {
 namespace Linalg {
@@ -31,8 +31,8 @@ namespace Linalg {
 //----------------------------------------------------------------------------
 template <class T1, class T2, class T3, class T4,
           typename = enable_if_numeric_t<T2>>
-std::map<T1, T2, T3, T4> add(const std::map<T1, T2, T3, T4>& lhs,
-                             const std::map<T1, T2, T3, T4>& rhs) {
+std::map<T1, T2, T3, T4> add(const std::map<T1, T2, T3, T4> &lhs,
+                             const std::map<T1, T2, T3, T4> &rhs) {
   std::map<T1, T2, T3, T4> result = lhs;
   for (const auto &pair : rhs) {
     result[pair.first] = std::plus<T2>()(result[pair.first], pair.second);
@@ -42,8 +42,8 @@ std::map<T1, T2, T3, T4> add(const std::map<T1, T2, T3, T4>& lhs,
 
 template <class T1, class T2, class T3, class T4,
           typename = enable_if_numeric_t<T2>>
-std::map<T1, T2, T3, T4>& iadd(std::map<T1, T2, T3, T4>& lhs,
-                               const std::map<T1, T2, T3, T4>& rhs) {
+std::map<T1, T2, T3, T4> &iadd(std::map<T1, T2, T3, T4> &lhs,
+                               const std::map<T1, T2, T3, T4> &rhs) {
   for (const auto &pair : rhs) {
     lhs[pair.first] = std::plus<T2>()(lhs[pair.first], pair.second);
   }
@@ -52,8 +52,8 @@ std::map<T1, T2, T3, T4>& iadd(std::map<T1, T2, T3, T4>& lhs,
 
 template <class T1, class T2, class T3, class T4,
           typename = enable_if_numeric_t<T2>>
-std::map<T1, T2, T3, T4> sub(const std::map<T1, T2, T3, T4>& lhs,
-                             const std::map<T1, T2, T3, T4>& rhs) {
+std::map<T1, T2, T3, T4> sub(const std::map<T1, T2, T3, T4> &lhs,
+                             const std::map<T1, T2, T3, T4> &rhs) {
   std::map<T1, T2, T3, T4> result = lhs;
   for (const auto &pair : rhs) {
     result[pair.first] = std::minus<T2>()(result[pair.first], pair.second);
@@ -63,8 +63,8 @@ std::map<T1, T2, T3, T4> sub(const std::map<T1, T2, T3, T4>& lhs,
 
 template <class T1, class T2, class T3, class T4,
           typename = enable_if_numeric_t<T2>>
-std::map<T1, T2, T3, T4>& isub(std::map<T1, T2, T3, T4>& lhs,
-                               const std::map<T1, T2, T3, T4>& rhs) {
+std::map<T1, T2, T3, T4> &isub(std::map<T1, T2, T3, T4> &lhs,
+                               const std::map<T1, T2, T3, T4> &rhs) {
   for (const auto &pair : rhs) {
     lhs[pair.first] = std::minus<T2>()(lhs[pair.first], pair.second);
   }
@@ -77,8 +77,8 @@ std::map<T1, T2, T3, T4>& isub(std::map<T1, T2, T3, T4>& lhs,
 template <class T1, class T2, class T3, class T4, class Scalar,
           typename = enable_if_numeric_t<T2>,
           typename = enable_if_numeric_t<Scalar>>
-std::map<T1, T2, T3, T4> add(const std::map<T1, T2, T3, T4>& data,
-                             const Scalar& val) {
+std::map<T1, T2, T3, T4> add(const std::map<T1, T2, T3, T4> &data,
+                             const Scalar &val) {
   std::map<T1, T2, T3, T4> result;
   for (const auto &pair : data) {
     result[pair.first] = std::plus<T2>()(pair.second, val);
@@ -89,8 +89,8 @@ std::map<T1, T2, T3, T4> add(const std::map<T1, T2, T3, T4>& data,
 template <class T1, class T2, class T3, class T4, class Scalar,
           typename = enable_if_numeric_t<T2>,
           typename = enable_if_numeric_t<Scalar>>
-std::map<T1, T2, T3, T4>& iadd(std::map<T1, T2, T3, T4>& data,
-                               const Scalar& val) {
+std::map<T1, T2, T3, T4> &iadd(std::map<T1, T2, T3, T4> &data,
+                               const Scalar &val) {
   for (const auto &pair : data) {
     data[pair.first] = std::plus<T2>()(data[pair.first], val);
   }
@@ -100,8 +100,8 @@ std::map<T1, T2, T3, T4>& iadd(std::map<T1, T2, T3, T4>& data,
 template <class T1, class T2, class T3, class T4, class Scalar,
           typename = enable_if_numeric_t<T2>,
           typename = enable_if_numeric_t<Scalar>>
-std::map<T1, T2, T3, T4> sub(const std::map<T1, T2, T3, T4>& data,
-                             const Scalar& val) {
+std::map<T1, T2, T3, T4> sub(const std::map<T1, T2, T3, T4> &data,
+                             const Scalar &val) {
   std::map<T1, T2, T3, T4> result;
   for (const auto &pair : data) {
     result[pair.first] = std::minus<T2>()(pair.second, val);
@@ -112,8 +112,8 @@ std::map<T1, T2, T3, T4> sub(const std::map<T1, T2, T3, T4>& data,
 template <class T1, class T2, class T3, class T4, class Scalar,
           typename = enable_if_numeric_t<T2>,
           typename = enable_if_numeric_t<Scalar>>
-std::map<T1, T2, T3, T4>& isub(std::map<T1, T2, T3, T4>& data,
-                               const Scalar& val) {
+std::map<T1, T2, T3, T4> &isub(std::map<T1, T2, T3, T4> &data,
+                               const Scalar &val) {
   for (const auto &pair : data) {
     data[pair.first] = std::plus<T2>()(data[pair.first], val);
   }
@@ -127,8 +127,8 @@ std::map<T1, T2, T3, T4>& isub(std::map<T1, T2, T3, T4>& data,
 template <class T1, class T2, class T3, class T4, class Scalar,
           typename = enable_if_numeric_t<T2>,
           typename = enable_if_numeric_t<Scalar>>
-std::map<T1, T2, T3, T4> mul(const std::map<T1, T2, T3, T4>& data,
-                             const Scalar& val) {
+std::map<T1, T2, T3, T4> mul(const std::map<T1, T2, T3, T4> &data,
+                             const Scalar &val) {
   if (almost_equal<Scalar>(val, 1)) {
     return data;
   }
@@ -142,8 +142,8 @@ std::map<T1, T2, T3, T4> mul(const std::map<T1, T2, T3, T4>& data,
 template <class T1, class T2, class T3, class T4, class Scalar,
           typename = enable_if_numeric_t<T2>,
           typename = enable_if_numeric_t<Scalar>>
-std::map<T1, T2, T3, T4>& imul(std::map<T1, T2, T3, T4>& data,
-                               const Scalar& val) {
+std::map<T1, T2, T3, T4> &imul(std::map<T1, T2, T3, T4> &data,
+                               const Scalar &val) {
   if (almost_equal<Scalar>(val, 1)) {
     return data;
   }
@@ -156,8 +156,8 @@ std::map<T1, T2, T3, T4>& imul(std::map<T1, T2, T3, T4>& data,
 template <class T1, class T2, class T3, class T4, class Scalar,
           typename = enable_if_numeric_t<T2>,
           typename = enable_if_numeric_t<Scalar>>
-std::map<T1, T2, T3, T4> div(const std::map<T1, T2, T3, T4>& data,
-                             const Scalar& val) {
+std::map<T1, T2, T3, T4> div(const std::map<T1, T2, T3, T4> &data,
+                             const Scalar &val) {
   if (almost_equal<Scalar>(val, 1)) {
     return data;
   }
@@ -171,8 +171,8 @@ std::map<T1, T2, T3, T4> div(const std::map<T1, T2, T3, T4>& data,
 template <class T1, class T2, class T3, class T4, class Scalar,
           typename = enable_if_numeric_t<T2>,
           typename = enable_if_numeric_t<Scalar>>
-std::map<T1, T2, T3, T4>& idiv(std::map<T1, T2, T3, T4>& data,
-                               const Scalar& val) {
+std::map<T1, T2, T3, T4> &idiv(std::map<T1, T2, T3, T4> &data,
+                               const Scalar &val) {
   if (almost_equal<Scalar>(val, 1)) {
     return data;
   }
@@ -183,8 +183,8 @@ std::map<T1, T2, T3, T4>& idiv(std::map<T1, T2, T3, T4>& data,
 }
 
 //------------------------------------------------------------------------------
-}  // end namespace Linalg
+} // end namespace Linalg
 //------------------------------------------------------------------------------
-}  // end namespace AER
+} // end namespace AER
 //------------------------------------------------------------------------------
 #endif
