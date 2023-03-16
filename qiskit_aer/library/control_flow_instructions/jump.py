@@ -25,5 +25,5 @@ class AerJump(Instruction):
 
     _directive = True
 
-    def __init__(self, jump_to, num_qubits):
-        super().__init__("jump", num_qubits, 0, [jump_to])
+    def __init__(self, jump_to, num_qubits, num_clbits=0):
+        super().__init__("jump", num_qubits, num_clbits, [jump_to])

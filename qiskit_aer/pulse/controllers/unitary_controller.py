@@ -42,7 +42,7 @@ def _full_simulation(exp, y0, pulse_sim_desc, pulse_de_model, solver_options=Non
     # ###############
     # do measurement
     # ###############
-    rng = np.random.RandomState(exp['seed'])
+    rng = np.random.RandomState(exp["seed"])
 
     shots = pulse_sim_desc.shots
     # Init memory
@@ -50,13 +50,13 @@ def _full_simulation(exp, y0, pulse_sim_desc, pulse_de_model, solver_options=Non
 
     qubits = []
     memory_slots = []
-    tlist = exp['tlist']
-    for acq in exp['acquire']:
+    tlist = exp["tlist"]
+    for acq in exp["acquire"]:
         if acq[0] == tlist[-1]:
             qubits += list(acq[1])
             memory_slots += list(acq[2])
-    qubits = np.array(qubits, dtype='uint32')
-    memory_slots = np.array(memory_slots, dtype='uint32')
+    qubits = np.array(qubits, dtype="uint32")
+    memory_slots = np.array(memory_slots, dtype="uint32")
 
     probs = occ_probabilities(qubits, psi, pulse_sim_desc.measurement_ops)
     rand_vals = rng.rand(memory_slots.shape[0] * shots)
@@ -66,7 +66,7 @@ def _full_simulation(exp, y0, pulse_sim_desc, pulse_de_model, solver_options=Non
 
 
 def run_unitary_experiments(pulse_sim_desc, pulse_de_model, solver_options=None):
-    """ Runs unitary experiments for a given op_system
+    """Runs unitary experiments for a given op_system
 
     Parameters:
         pulse_sim_desc (PulseSimDescription): description of pulse simulation
@@ -95,20 +95,27 @@ def run_unitary_experiments(pulse_sim_desc, pulse_de_model, solver_options=None)
     seed = pulse_sim_desc.seed or np.random.randint(np.iinfo(np.int32).max - 1)
     prng = np.random.RandomState(seed)
     for exp in pulse_sim_desc.experiments:
-        exp['seed'] = prng.randint(np.iinfo(np.int32).max - 1)
+        exp["seed"] = prng.randint(np.iinfo(np.int32).max - 1)
 
-    map_kwargs = {'num_processes': solver_options.num_cpus}
+    map_kwargs = {"num_processes": solver_options.num_cpus}
 
     # run simulation on each experiment in parallel
     start = time.time()
-    exp_results = parallel_map(_full_simulation,
-                               pulse_sim_desc.experiments,
-                               task_args=(y0, pulse_sim_desc, pulse_de_model, solver_options, ),
-                               **map_kwargs
-                               )
+    exp_results = parallel_map(
+        _full_simulation,
+        pulse_sim_desc.experiments,
+        task_args=(
+            y0,
+            pulse_sim_desc,
+            pulse_de_model,
+            solver_options,
+        ),
+        **map_kwargs,
+    )
     end = time.time()
-    exp_times = (np.ones(len(pulse_sim_desc.experiments)) *
-                 (end - start) / len(pulse_sim_desc.experiments))
+    exp_times = (
+        np.ones(len(pulse_sim_desc.experiments)) * (end - start) / len(pulse_sim_desc.experiments)
+    )
 
     return exp_results, exp_times
 
@@ -135,14 +142,14 @@ def unitary_evolution(exp, y0, pulse_de_model, solver_options=None):
 
     ODE = setup_de_solver(exp, y0, pulse_de_model, solver_options.de_options)
 
-    tlist = exp['tlist']
+    tlist = exp["tlist"]
 
     for t in tlist[1:]:
         ODE.integrate(t)
         if ODE.successful():
             psi = ODE.y / dznrm2(ODE.y)
         else:
-            err_msg = 'ODE method exited with status: %s' % ODE.return_code()
+            err_msg = "ODE method exited with status: %s" % ODE.return_code()
             raise Exception(err_msg)
 
     # apply final rotation to come out of rotating frame

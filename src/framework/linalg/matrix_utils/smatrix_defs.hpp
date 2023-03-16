@@ -34,24 +34,25 @@ namespace Linalg {
 class SMatrix {
 public:
   // Single-qubit gates
-  const static cmatrix_t I;   // name: "id"
-  const static cmatrix_t X;   // name: "x"
-  const static cmatrix_t Y;   // name: "y"
-  const static cmatrix_t Z;   // name: "z"
-  const static cmatrix_t H;   // name: "h"
-  const static cmatrix_t S;   // name: "s"
-  const static cmatrix_t SDG; // name: "sdg"
-  const static cmatrix_t T;   // name: "t"
-  const static cmatrix_t TDG; // name: "tdg"
-  const static cmatrix_t SX;  // name: "sx"
-  const static cmatrix_t SXDG;// name: "sxdg"
-  const static cmatrix_t X90; // name: "x90"
+  const static cmatrix_t I;    // name: "id"
+  const static cmatrix_t X;    // name: "x"
+  const static cmatrix_t Y;    // name: "y"
+  const static cmatrix_t Z;    // name: "z"
+  const static cmatrix_t H;    // name: "h"
+  const static cmatrix_t S;    // name: "s"
+  const static cmatrix_t SDG;  // name: "sdg"
+  const static cmatrix_t T;    // name: "t"
+  const static cmatrix_t TDG;  // name: "tdg"
+  const static cmatrix_t SX;   // name: "sx"
+  const static cmatrix_t SXDG; // name: "sxdg"
+  const static cmatrix_t X90;  // name: "x90"
 
   // Two-qubit gates
   const static cmatrix_t CX;   // name: "cx"
   const static cmatrix_t CY;   // name: "cy"
   const static cmatrix_t CZ;   // name: "cz"
   const static cmatrix_t SWAP; // name: "swap"
+  const static cmatrix_t ECR;  // name: "ecr"
 
   // Identity Matrix
   static cmatrix_t identity(size_t dim);
@@ -92,8 +93,10 @@ public:
   static cmatrix_t u3(complex_t theta, complex_t phi, complex_t lam) {
     return u3(std::real(theta), std::real(phi), std::real(lam));
   };
-  static cmatrix_t u4(complex_t theta, complex_t phi, complex_t lam, complex_t gamma) {
-    return u4(std::real(theta), std::real(phi), std::real(lam), std::real(gamma));
+  static cmatrix_t u4(complex_t theta, complex_t phi, complex_t lam,
+                      complex_t gamma) {
+    return u4(std::real(theta), std::real(phi), std::real(lam),
+              std::real(gamma));
   }
   static cmatrix_t r(complex_t theta, complex_t phi) {
     return r(std::real(theta), std::real(phi));
@@ -106,11 +109,17 @@ public:
   static cmatrix_t rzz(complex_t theta) { return rzz(std::real(theta)); }
   static cmatrix_t rzx(complex_t theta) { return rzx(std::real(theta)); }
   static cmatrix_t phase(complex_t theta) { return phase(std::real(theta)); }
-  static cmatrix_t phase_diag(complex_t theta) { return phase_diag(std::real(theta)); }
+  static cmatrix_t phase_diag(complex_t theta) {
+    return phase_diag(std::real(theta));
+  }
   static cmatrix_t cphase(complex_t theta) { return cphase(std::real(theta)); }
-  static cmatrix_t cphase_diag(complex_t theta) { return cphase_diag(std::real(theta)); }
-  static cmatrix_t cu(complex_t theta, complex_t phi, complex_t lam, complex_t gamma) {
-    return cu(std::real(theta), std::real(phi), std::real(lam), std::real(gamma));
+  static cmatrix_t cphase_diag(complex_t theta) {
+    return cphase_diag(std::real(theta));
+  }
+  static cmatrix_t cu(complex_t theta, complex_t phi, complex_t lam,
+                      complex_t gamma) {
+    return cu(std::real(theta), std::real(phi), std::real(lam),
+              std::real(gamma));
   }
 
   // Return superoperator matrix for reset instruction
@@ -171,20 +180,20 @@ const cmatrix_t SMatrix::CZ = Utils::unitary_superop(Matrix::CZ);
 
 const cmatrix_t SMatrix::SWAP = Utils::unitary_superop(Matrix::SWAP);
 
+const cmatrix_t SMatrix::ECR = Utils::unitary_superop(Matrix::ECR);
+
 // Lookup table
 const stringmap_t<const cmatrix_t *> SMatrix::label_map_ = {
-    {"id", &SMatrix::I},     {"x", &SMatrix::X},   {"y", &SMatrix::Y},
-    {"z", &SMatrix::Z},      {"h", &SMatrix::H},   {"s", &SMatrix::S},
-    {"sdg", &SMatrix::SDG},  {"t", &SMatrix::T},   {"tdg", &SMatrix::TDG},
-    {"x90", &SMatrix::X90},  {"cx", &SMatrix::CX}, {"cy", &SMatrix::CY},
-    {"cz", &SMatrix::CZ},    {"swap", &SMatrix::SWAP}, {"sx", &SMatrix::SX},
-    {"sxdg", &SMatrix::SXDG}, {"delay", &SMatrix::I}};
+    {"id", &SMatrix::I},      {"x", &SMatrix::X},       {"y", &SMatrix::Y},
+    {"z", &SMatrix::Z},       {"h", &SMatrix::H},       {"s", &SMatrix::S},
+    {"sdg", &SMatrix::SDG},   {"t", &SMatrix::T},       {"tdg", &SMatrix::TDG},
+    {"x90", &SMatrix::X90},   {"cx", &SMatrix::CX},     {"cy", &SMatrix::CY},
+    {"cz", &SMatrix::CZ},     {"swap", &SMatrix::SWAP}, {"sx", &SMatrix::SX},
+    {"sxdg", &SMatrix::SXDG}, {"delay", &SMatrix::I},   {"ecr", &SMatrix::ECR}};
 
 cmatrix_t SMatrix::identity(size_t dim) { return Matrix::identity(dim * dim); }
 
-cmatrix_t SMatrix::u1(double lambda) {
-  return phase(lambda);
-}
+cmatrix_t SMatrix::u1(double lambda) { return phase(lambda); }
 
 cmatrix_t SMatrix::u2(double phi, double lambda) {
   return Utils::tensor_product(Matrix::u2(-phi, -lambda),

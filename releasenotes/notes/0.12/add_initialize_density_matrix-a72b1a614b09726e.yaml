@@ -1,0 +1,8 @@
+---
+features:
+  - |
+    ``AerState`` has a new method ``initialize_density_matrix()`` that sets a density matrix
+    to ``AER::QV::DensityMatrix``. This method will be called in ``q.i.states.DensityMatrix``
+    to initialize its data with ``ndarray``. ``initialize_density_matrix()`` has a boolean
+    argument that specifies copy or share of ``ndarray`` data. If the data is shared with
+    C++ and python, the data must not be collected in python while C++ accesses it.

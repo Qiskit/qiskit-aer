@@ -1,0 +1,24 @@
+---
+features:
+  - |
+    Added a new simulation method based on NVIDIA's `cuTensorNet <https://docs.nvidia.com/cuda/cuquantum/cutensornet/index.html>`__
+    APIs of cuQuantum SDK. This provides a GPU accelerated general tensor
+    network simulator that can simulate any quantum circuit, by internally
+    translating the circuit into a tensor network to perform the simulation.
+    To use this simulation method, set ``method="tensor_network"`` and
+    ``device="GPU"`` when initializing an :class:`~.AerSimulator` object.
+    For example::
+
+        from qiskit_aer import AerSimulator
+
+        tensor_net_sim = AerSimulator(method="tensor_network", device="GPU")
+
+    This method supports both statevector and density matrix simulations.
+    Noise simulation can also be done with a density matrix single shot
+    simulation if there are not any :class:`~.SaveStatevector` operations
+    in the circuit.
+    
+    This new simulation method also supports parallelization with multiple GPUs and
+    MPI processes by using tensor network slicing technique. However, this type of
+    simulation will likely take a very long time if the input circuits are
+    complicated.

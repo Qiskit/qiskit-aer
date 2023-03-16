@@ -21,19 +21,20 @@ namespace AER {
 
 template <typename T>
 class AverageData : public AccumData<T> {
-using Base = AccumData<T>;
+  using Base = AccumData<T>;
+
 public:
   // Access data
-  T& value();
+  T &value();
 
   // Add data (copy)
-  void add(const T& data);
+  void add(const T &data);
 
   // Add data (move)
-  void add(T&& data);
+  void add(T &&data);
 
   // Add data
-  void combine(AverageData<T>&& other);
+  void combine(AverageData<T> &&other);
 
   // Clear all stored data
   void clear();
@@ -58,21 +59,21 @@ protected:
 //------------------------------------------------------------------------------
 
 template <typename T>
-void AverageData<T>::add(const T& data) {
+void AverageData<T>::add(const T &data) {
   denormalize();
   Base::add(data);
   count_ += 1;
 }
 
 template <typename T>
-void AverageData<T>::add(T&& data) {
+void AverageData<T>::add(T &&data) {
   denormalize();
   Base::add(std::move(data));
   count_ += 1;
 }
 
 template <typename T>
-void AverageData<T>::combine(AverageData<T>&& other) {
+void AverageData<T>::combine(AverageData<T> &&other) {
   denormalize();
   other.denormalize();
   Base::combine(std::move(other));
@@ -103,12 +104,12 @@ void AverageData<T>::denormalize() {
 }
 
 template <typename T>
-T& AverageData<T>::value() {
+T &AverageData<T>::value() {
   normalize();
   return Base::data_;
 }
 
 //------------------------------------------------------------------------------
-}  // end namespace AER
+} // end namespace AER
 //------------------------------------------------------------------------------
 #endif

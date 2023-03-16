@@ -29,6 +29,7 @@
 DISABLE_WARNING_PUSH
 #include <nlohmann/json.hpp>
 DISABLE_WARNING_POP
+#include "framework/linalg/vector.hpp"
 #include "framework/matrix.hpp"
 
 namespace nl = nlohmann;
@@ -47,7 +48,7 @@ namespace JSON {
  * @param name: file name to load.
  * @returns: the loaded json.
  */
-inline json_t load(const std::string& name);
+inline json_t load(const std::string &name);
 
 /**
  * Check if a key exists in a json_t object.
@@ -55,7 +56,7 @@ inline json_t load(const std::string& name);
  * @param js: the json_t to search for key.
  * @returns: true if the key exists, false otherwise.
  */
-inline bool check_key(const std::string& key, const json_t &js);
+inline bool check_key(const std::string &key, const json_t &js);
 
 /**
  * Check if all keys exists in a json_t object.
@@ -63,7 +64,7 @@ inline bool check_key(const std::string& key, const json_t &js);
  * @param js: the json_t to search for keys.
  * @returns: true if all keys exists, false otherwise.
  */
-inline bool check_keys(const std::vector<std::string>& keys, const json_t &js);
+inline bool check_keys(const std::vector<std::string> &keys, const json_t &js);
 
 /**
  * Load a json_t object value into a variable if the key name exists.
@@ -72,9 +73,10 @@ inline bool check_keys(const std::vector<std::string>& keys, const json_t &js);
  * @param js: the json_t to search for key.
  * @returns: true if the keys exists and val was set, false otherwise.
  */
-template <typename T> bool get_value(T &var, const std::string& key, const json_t &js);
+template <typename T>
+bool get_value(T &var, const std::string &key, const json_t &js);
 
-const json_t& get_value(const std::string& key, const json_t &js);
+const json_t &get_value(const std::string &key, const json_t &js);
 
 } // end namespace JSON
 
@@ -89,7 +91,8 @@ namespace std {
  * @param js a json_t object to contain converted type.
  * @param z a complex number to convert.
  */
-template <typename T> void to_json(json_t &js, const std::complex<T> &z);
+template <typename T>
+void to_json(json_t &js, const std::complex<T> &z);
 
 /**
  * Convert a JSON value to a complex number z. If the json value is a float
@@ -98,7 +101,8 @@ template <typename T> void to_json(json_t &js, const std::complex<T> &z);
  * @param js a json_t object to convert.
  * @param z a complex number to contain result.
  */
-template <typename T> void from_json(const json_t &js, std::complex<T> &z);
+template <typename T>
+void from_json(const json_t &js, std::complex<T> &z);
 
 /**
  * Convert a complex vector to a json list
@@ -122,6 +126,15 @@ template <typename RealType>
 void from_json(const json_t &js, std::vector<std::complex<RealType>> &vec);
 
 /**
+ * Convert a custom complex vector to a json list
+ * v -> [ [real(v[0]), imag(v[0])], ...]
+ * @param js a json_t object to contain converted type.
+ * @param vec a complex vector to convert.
+ */
+template <typename RealType>
+void to_json(json_t &js, const AER::Vector<std::complex<RealType>> &vec);
+
+/**
  * Convert a map with integer keys to a json. This converts the integer keys
  * to strings in the resulting json object.
  * @param js a json_t object to contain converted type.
@@ -140,9 +153,9 @@ void to_json(json_t &js, const std::map<uint64_t, T1, T2> &map);
  * @param js a json_t object to contain converted type.
  * @param mat a matrix to convert.
  */
-template<class T> 
+template <class T>
 void from_json(const json_t &js, matrix<T> &mat);
-template<class T>
+template <class T>
 void to_json(json_t &js, const matrix<T> &mat);
 
 /*******************************************************************************
@@ -155,7 +168,7 @@ void to_json(json_t &js, const matrix<T> &mat);
 // JSON Helper Functions
 //------------------------------------------------------------------------------
 
-json_t JSON::load(const std::string& name) {
+json_t JSON::load(const std::string &name) {
   if (name == "") {
     json_t js;
     return js; // Return empty node if no config file
@@ -176,7 +189,7 @@ json_t JSON::load(const std::string& name) {
   return js;
 }
 
-bool JSON::check_key(const std::string& key, const json_t &js) {
+bool JSON::check_key(const std::string &key, const json_t &js) {
   // returns false if the value is 'null'
   if (js.find(key) != js.end() && !js[key].is_null())
     return true;
@@ -184,15 +197,15 @@ bool JSON::check_key(const std::string& key, const json_t &js) {
     return false;
 }
 
-bool JSON::check_keys(const std::vector<std::string>& keys, const json_t &js) {
+bool JSON::check_keys(const std::vector<std::string> &keys, const json_t &js) {
   bool pass = true;
-  for (const auto& s : keys)
+  for (const auto &s : keys)
     pass &= check_key(s, js);
   return pass;
 }
 
 template <typename T>
-bool JSON::get_value(T &var, const std::string& key, const json_t &js) {
+bool JSON::get_value(T &var, const std::string &key, const json_t &js) {
   if (check_key(key, js)) {
     var = js[key].get<T>();
     return true;
@@ -201,8 +214,8 @@ bool JSON::get_value(T &var, const std::string& key, const json_t &js) {
   }
 }
 
-const json_t& JSON::get_value(const std::string& key, const json_t &js){
-    return js[key];
+const json_t &JSON::get_value(const std::string &key, const json_t &js) {
+  return js[key];
 }
 
 //------------------------------------------------------------------------------
@@ -221,8 +234,7 @@ void std::from_json(const json_t &js, std::complex<RealType> &z) {
   else if (js.is_array() && js.size() == 2) {
     z = std::complex<RealType>{js[0].get<RealType>(), js[1].get<RealType>()};
   } else {
-    throw std::invalid_argument(
-        std::string("JSON: invalid complex number"));
+    throw std::invalid_argument(std::string("JSON: invalid complex number"));
   }
 }
 
@@ -236,17 +248,26 @@ void std::to_json(json_t &js, const std::vector<std::complex<RealType>> &vec) {
 }
 
 template <typename RealType>
-void std::from_json(const json_t &js, std::vector<std::complex<RealType>> &vec) {
+void std::from_json(const json_t &js,
+                    std::vector<std::complex<RealType>> &vec) {
   std::vector<std::complex<RealType>> ret;
   if (js.is_array()) {
     for (auto &elt : js)
       ret.push_back(elt);
     vec = ret;
-  } 
-  else {
-    throw std::invalid_argument(
-        std::string("JSON: invalid complex vector."));
+  } else {
+    throw std::invalid_argument(std::string("JSON: invalid complex vector."));
   }
+}
+
+template <typename RealType>
+void std::to_json(json_t &js, const AER::Vector<std::complex<RealType>> &vec) {
+  std::vector<std::vector<RealType>> out;
+  for (int64_t i = 0; i < vec.size(); ++i) {
+    auto &z = vec[i];
+    out.push_back(std::vector<RealType>{real(z), imag(z)});
+  }
+  js = out;
 }
 
 // Int-key maps
@@ -274,7 +295,8 @@ void std::to_json(json_t &js, const std::map<uint64_t, T1, T2> &map) {
 // Implementation: JSON Conversion
 //------------------------------------------------------------------------------
 
-template <typename T> void to_json(json_t &js, const matrix<T> &mat) {
+template <typename T>
+void to_json(json_t &js, const matrix<T> &mat) {
   js = json_t();
   size_t rows = mat.GetRows();
   size_t cols = mat.GetColumns();
@@ -286,15 +308,15 @@ template <typename T> void to_json(json_t &js, const matrix<T> &mat) {
   }
 }
 
-
-template <typename T> void from_json(const json_t &js, matrix<T> &mat) {
+template <typename T>
+void from_json(const json_t &js, matrix<T> &mat) {
   // Check JSON is an array
-  if(!js.is_array()) {
+  if (!js.is_array()) {
     throw std::invalid_argument(
         std::string("JSON: invalid matrix (not array)."));
   }
   // Check JSON isn't empty
-  if(js.empty()) {
+  if (js.empty()) {
     throw std::invalid_argument(
         std::string("JSON: invalid matrix (empty array)."));
   }
@@ -305,7 +327,7 @@ template <typename T> void from_json(const json_t &js, matrix<T> &mat) {
   size_t nrows = js.size();
   for (auto &row : js)
     rows_valid &= (row.is_array() && row.size() == ncols);
-  if(!rows_valid) {
+  if (!rows_valid) {
     throw std::invalid_argument(
         std::string("JSON: invalid matrix (rows different sizes)."));
   }

@@ -38,7 +38,7 @@ class SetMatrixProductState(Instruction):
             vector of pairs of matrices of complex numbers. The second is a vector of
             vectors of double.
         """
-        super().__init__('set_matrix_product_state', len(state[0]), 0, [state])
+        super().__init__("set_matrix_product_state", len(state[0]), 0, [state])
 
 
 def set_matrix_product_state(self, state):
@@ -61,19 +61,23 @@ def set_matrix_product_state(self, state):
     qubits = default_qubits(self)
     if not isinstance(state, tuple) or len(state) != 2:
         raise ExtensionError(
-            "The input matrix product state is not valid.  Should be a list of 2 elements")
+            "The input matrix product state is not valid.  Should be a list of 2 elements"
+        )
     if not isinstance(state[0], list) or not isinstance(state[1], list):
         raise ExtensionError(
-            "The first element of the input matrix product state is not valid. Should be a list.")
+            "The first element of the input matrix product state is not valid. Should be a list."
+        )
     if len(state[0]) != len(state[1]) + 1:
         raise ExtensionError(
             "The input matrix product state is not valid. "
-            "Length of q_reg vector should be 1 more than length of lambda_reg")
+            "Length of q_reg vector should be 1 more than length of lambda_reg"
+        )
     for elem in state[0]:
         if not isinstance(elem, tuple) or len(elem) != 2:
             raise ExtensionError(
                 "The input matrix product state is not valid."
-                "The first element should be a list of length 2")
+                "The first element should be a list of length 2"
+            )
     return self.append(SetMatrixProductState(state), qubits)
 
 

@@ -34,24 +34,25 @@ namespace Linalg {
 class VMatrix {
 public:
   // Single-qubit gates
-  const static cvector_t I;   // name: "id"
-  const static cvector_t X;   // name: "x"
-  const static cvector_t Y;   // name: "y"
-  const static cvector_t Z;   // name: "z"
-  const static cvector_t H;   // name: "h"
-  const static cvector_t S;   // name: "s"
-  const static cvector_t SDG; // name: "sdg"
-  const static cvector_t T;   // name: "t"
-  const static cvector_t TDG; // name: "tdg"
-  const static cvector_t SX;  // name: "sx"
-  const static cvector_t SXDG;// name: "sxdg"
-  const static cvector_t X90; // name: "x90"
+  const static cvector_t I;    // name: "id"
+  const static cvector_t X;    // name: "x"
+  const static cvector_t Y;    // name: "y"
+  const static cvector_t Z;    // name: "z"
+  const static cvector_t H;    // name: "h"
+  const static cvector_t S;    // name: "s"
+  const static cvector_t SDG;  // name: "sdg"
+  const static cvector_t T;    // name: "t"
+  const static cvector_t TDG;  // name: "tdg"
+  const static cvector_t SX;   // name: "sx"
+  const static cvector_t SXDG; // name: "sxdg"
+  const static cvector_t X90;  // name: "x90"
 
   // Two-qubit gates
   const static cvector_t CX;   // name: "cx"
   const static cvector_t CY;   // name: "cy"
   const static cvector_t CZ;   // name: "cz"
   const static cvector_t SWAP; // name: "swap"
+  const static cvector_t ECR;  // name: "ECR"
 
   // Identity Matrix
   static cvector_t identity(size_t dim);
@@ -73,7 +74,7 @@ public:
   static cvector_t rxx(double theta);
   static cvector_t ryy(double theta);
   static cvector_t rzz(double theta);
-  static cvector_t rzx(double theta); // rotation around Tensor(X, Z)
+  static cvector_t rzx(double theta);      // rotation around Tensor(X, Z)
   static cvector_t rzz_diag(double theta); // return the matrix diagonal
 
   // Phase Gates
@@ -94,8 +95,10 @@ public:
   static cvector_t u3(complex_t theta, complex_t phi, complex_t lam) {
     return u3(std::real(theta), std::real(phi), std::real(lam));
   };
-  static cvector_t u4(complex_t theta, complex_t phi, complex_t lam, complex_t gamma) {
-    return u4(std::real(theta), std::real(phi), std::real(lam), std::real(gamma));
+  static cvector_t u4(complex_t theta, complex_t phi, complex_t lam,
+                      complex_t gamma) {
+    return u4(std::real(theta), std::real(phi), std::real(lam),
+              std::real(gamma));
   };
   static cvector_t r(complex_t theta, complex_t phi) {
     return r(std::real(theta), std::real(phi));
@@ -103,18 +106,28 @@ public:
   static cvector_t rx(complex_t theta) { return rx(std::real(theta)); }
   static cvector_t ry(complex_t theta) { return ry(std::real(theta)); }
   static cvector_t rz(complex_t theta) { return rz(std::real(theta)); }
-  static cvector_t rz_diag(complex_t theta) { return rz_diag(std::real(theta)); }
+  static cvector_t rz_diag(complex_t theta) {
+    return rz_diag(std::real(theta));
+  }
   static cvector_t rxx(complex_t theta) { return rxx(std::real(theta)); }
   static cvector_t ryy(complex_t theta) { return ryy(std::real(theta)); }
   static cvector_t rzz(complex_t theta) { return rzz(std::real(theta)); }
-  static cvector_t rzz_diag(complex_t theta) { return rzz_diag(std::real(theta)); }
+  static cvector_t rzz_diag(complex_t theta) {
+    return rzz_diag(std::real(theta));
+  }
   static cvector_t rzx(complex_t theta) { return rzx(std::real(theta)); }
   static cvector_t phase(complex_t theta) { return phase(std::real(theta)); }
-  static cvector_t phase_diag(complex_t theta) { return phase_diag(std::real(theta)); }
+  static cvector_t phase_diag(complex_t theta) {
+    return phase_diag(std::real(theta));
+  }
   static cvector_t cphase(complex_t theta) { return cphase(std::real(theta)); }
-  static cvector_t cphase_diag(complex_t theta) { return cphase_diag(std::real(theta)); }
-  static cvector_t cu(complex_t theta, complex_t phi, complex_t lam, complex_t gamma) {
-    return cu(std::real(theta), std::real(phi), std::real(lam), std::real(gamma));
+  static cvector_t cphase_diag(complex_t theta) {
+    return cphase_diag(std::real(theta));
+  }
+  static cvector_t cu(complex_t theta, complex_t phi, complex_t lam,
+                      complex_t gamma) {
+    return cu(std::real(theta), std::real(phi), std::real(lam),
+              std::real(gamma));
   }
 
   // Return the matrix for a named matrix string
@@ -170,14 +183,16 @@ const cvector_t VMatrix::CZ = Utils::vectorize_matrix(Matrix::CZ);
 
 const cvector_t VMatrix::SWAP = Utils::vectorize_matrix(Matrix::SWAP);
 
+const cvector_t VMatrix::ECR = Utils::vectorize_matrix(Matrix::ECR);
+
 // Lookup table
 const stringmap_t<const cvector_t *> VMatrix::label_map_ = {
-    {"id", &VMatrix::I},     {"x", &VMatrix::X},   {"y", &VMatrix::Y},
-    {"z", &VMatrix::Z},      {"h", &VMatrix::H},   {"s", &VMatrix::S},
-    {"sdg", &VMatrix::SDG},  {"t", &VMatrix::T},   {"tdg", &VMatrix::TDG},
-    {"x90", &VMatrix::X90},  {"cx", &VMatrix::CX}, {"cy", &VMatrix::CY},
-    {"cz", &VMatrix::CZ},    {"swap", &VMatrix::SWAP}, {"sx", &VMatrix::SX},
-    {"sxdg", &VMatrix::SXDG},    {"delay", &VMatrix::I}};
+    {"id", &VMatrix::I},      {"x", &VMatrix::X},       {"y", &VMatrix::Y},
+    {"z", &VMatrix::Z},       {"h", &VMatrix::H},       {"s", &VMatrix::S},
+    {"sdg", &VMatrix::SDG},   {"t", &VMatrix::T},       {"tdg", &VMatrix::TDG},
+    {"x90", &VMatrix::X90},   {"cx", &VMatrix::CX},     {"cy", &VMatrix::CY},
+    {"cz", &VMatrix::CZ},     {"swap", &VMatrix::SWAP}, {"sx", &VMatrix::SX},
+    {"sxdg", &VMatrix::SXDG}, {"delay", &VMatrix::I},   {"ecr", &VMatrix::ECR}};
 
 cvector_t VMatrix::identity(size_t dim) {
   cvector_t mat(dim * dim);
@@ -186,9 +201,7 @@ cvector_t VMatrix::identity(size_t dim) {
   return mat;
 }
 
-cvector_t VMatrix::u1(double lambda) {
-  return phase(lambda);
-}
+cvector_t VMatrix::u1(double lambda) { return phase(lambda); }
 
 cvector_t VMatrix::u2(double phi, double lambda) {
   cvector_t mat(2 * 2);
@@ -312,7 +325,7 @@ cvector_t VMatrix::rzz_diag(double theta) {
   const complex_t i(0., 1.);
   const complex_t exp_p = std::exp(i * 0.5 * theta);
   const complex_t exp_m = std::exp(-i * 0.5 * theta);
-  return cvector_t({exp_m, exp_p,  exp_p,  exp_m});
+  return cvector_t({exp_m, exp_p, exp_p, exp_m});
 }
 
 cvector_t VMatrix::rzx(double theta) {

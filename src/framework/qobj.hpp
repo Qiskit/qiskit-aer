@@ -30,7 +30,7 @@ namespace AER {
 //============================================================================
 
 class Qobj {
- public:
+public:
   //----------------------------------------------------------------
   // Constructors
   //----------------------------------------------------------------
@@ -46,12 +46,12 @@ class Qobj {
   //----------------------------------------------------------------
   // Data
   //----------------------------------------------------------------
-  std::string id;                 // qobj identifier passed to result
-  std::string type = "QASM";      // currently we only support QASM
-  std::vector<Circuit> circuits;  // List of circuits
-  json_t header;                  // (optional) passed through to result
-  json_t config;                  // (optional) qobj level config data
-  Noise::NoiseModel noise_model;  // (optional) noise model
+  std::string id;                // qobj identifier passed to result
+  std::string type = "QASM";     // currently we only support QASM
+  std::vector<Circuit> circuits; // List of circuits
+  json_t header;                 // (optional) passed through to result
+  json_t config;                 // (optional) qobj level config data
+  Noise::NoiseModel noise_model; // (optional) noise model
 };
 
 //============================================================================
@@ -67,7 +67,7 @@ Qobj::Qobj(const inputdata_t &input) {
   if (Parser<inputdata_t>::get_value(id, "qobj_id", input) == false) {
     throw std::invalid_argument(R"(Invalid qobj: no "qobj_id" field)");
   };
-    Parser<inputdata_t>::get_value(type, "type", input);
+  Parser<inputdata_t>::get_value(type, "type", input);
   if (type != "QASM") {
     throw std::invalid_argument(R"(Invalid qobj: "type" != "QASM".)");
   };
@@ -100,12 +100,13 @@ Qobj::Qobj(const inputdata_t &input) {
   }
 
   // Check for fixed simulator seed
-  // If simulator seed is set, each experiment will be set to a fixed (but different) seed
-  // Otherwise a random seed will be chosen for each experiment
+  // If simulator seed is set, each experiment will be set to a fixed (but
+  // different) seed Otherwise a random seed will be chosen for each experiment
   int_t seed = -1;
   uint_t seed_shift = 0;
-  bool has_simulator_seed = Parser<json_t>::get_value(seed, "seed_simulator", config); // config always json
-  const auto& circs = Parser<inputdata_t>::get_list("experiments", input);
+  bool has_simulator_seed = Parser<json_t>::get_value(
+      seed, "seed_simulator", config); // config always json
+  const auto &circs = Parser<inputdata_t>::get_list("experiments", input);
   const size_t num_circs = circs.size();
 
   // Check if parameterized qobj
@@ -128,7 +129,7 @@ Qobj::Qobj(const inputdata_t &input) {
   }
 
   // Load circuits
-  for (size_t i=0; i<num_circs; i++) {
+  for (size_t i = 0; i < num_circs; i++) {
     if (param_table.empty() || param_table[i].empty()) {
       // Get base circuit from qobj
       Circuit circuit(static_cast<inputdata_t>(circs[i]), config, truncation);
@@ -141,7 +142,7 @@ Qobj::Qobj(const inputdata_t &input) {
       const auto circ_params = param_table[i];
       const size_t num_params = circ_params[0].second.size();
       const size_t num_instr = circuit.ops.size();
-      for (size_t j=0; j<num_params; j++) {
+      for (size_t j = 0; j < num_params; j++) {
         // Make a copy of the initial circuit
         Circuit param_circuit = circuit;
         for (const auto &params : circ_params) {
@@ -149,22 +150,26 @@ Qobj::Qobj(const inputdata_t &input) {
           const auto param_pos = params.first.second;
           // Validation
           if (instr_pos >= num_instr) {
-            throw std::invalid_argument(R"(Invalid parameterized qobj: instruction position out of range)");
+            throw std::invalid_argument(
+                R"(Invalid parameterized qobj: instruction position out of range)");
           }
           auto &op = param_circuit.ops[instr_pos];
           if (param_pos >= op.params.size()) {
-            throw std::invalid_argument(R"(Invalid parameterized qobj: instruction param position out of range)");
+            throw std::invalid_argument(
+                R"(Invalid parameterized qobj: instruction param position out of range)");
           }
           if (j >= params.second.size()) {
-            throw std::invalid_argument(R"(Invalid parameterized qobj: parameterization value out of range)");
+            throw std::invalid_argument(
+                R"(Invalid parameterized qobj: parameterization value out of range)");
           }
           // Update the param
           op.params[param_pos] = params.second[j];
         }
         // Run truncation.
-        // TODO: Truncation should be performed and parameters should be resolved after it.
-        // However, parameters are associated with indices of instructions, which can be changed in truncation.
-        // Therefore, current implementation performs truncation for each parameter set.
+        // TODO: Truncation should be performed and parameters should be
+        // resolved after it. However, parameters are associated with indices of
+        // instructions, which can be changed in truncation. Therefore, current
+        // implementation performs truncation for each parameter set.
         if (truncation)
           param_circuit.set_params(true);
         circuits.push_back(std::move(param_circuit));
@@ -177,13 +182,13 @@ Qobj::Qobj(const inputdata_t &input) {
   if (!has_simulator_seed) {
     seed = circuits[0].seed;
   }
-  for (auto& circuit : circuits) {
+  for (auto &circuit : circuits) {
     circuit.seed = seed + seed_shift;
-    seed_shift += 2113;  // Shift the seed
+    seed_shift += 2113; // Shift the seed
   }
 }
 
 //------------------------------------------------------------------------------
-}  // namespace AER
+} // namespace AER
 //------------------------------------------------------------------------------
 #endif

@@ -53,10 +53,10 @@ class LocalNoisePass(TransformationPass):
     """
 
     def __init__(
-            self,
-            func: Callable[[Instruction, Sequence[int]], Optional[InstructionLike]],
-            op_types: Optional[Union[type, Iterable[type]]] = None,
-            method: str = 'append'
+        self,
+        func: Callable[[Instruction, Sequence[int]], Optional[InstructionLike]],
+        op_types: Optional[Union[type, Iterable[type]]] = None,
+        method: str = "append",
     ):
         """Initialize noise pass.
 

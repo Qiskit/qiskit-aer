@@ -16,8 +16,7 @@ StatevectorSimulator Integration Tests
 from ddt import ddt, data
 
 from qiskit_aer import QasmSimulator, AerError
-from test.terra.backends.simulator_test_case import (
-    SimulatorTestCase, supported_methods)
+from test.terra.backends.simulator_test_case import SimulatorTestCase, supported_methods
 
 
 @ddt
@@ -33,6 +32,9 @@ class TestQasmSimulator(SimulatorTestCase):
         # GPU_cuStateVec is converted to GPU
         if device == "GPU_cuStateVec":
             device = "GPU"
+        # GPU_batch is converted to GPU
+        if device == "GPU_batch":
+            device = "GPU"
         legacy_method = f"{method}_{device.lower()}"
         backend.set_options(method=legacy_method)
         self.assertEqual(backend.options.method, method)
@@ -44,4 +46,3 @@ class TestQasmSimulator(SimulatorTestCase):
         backend = self.backend()
         with self.assertRaises(AerError):
             backend.set_options(method=method)
-

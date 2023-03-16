@@ -31,23 +31,23 @@ namespace Linalg {
 // Linear operations
 //----------------------------------------------------------------------------
 template <class T, typename = enable_if_numeric_t<T>>
-matrix<T> add(const matrix<T>& lhs, const matrix<T>& rhs) {
+matrix<T> add(const matrix<T> &lhs, const matrix<T> &rhs) {
   return lhs + rhs;
 }
 
 template <class T, typename = enable_if_numeric_t<T>>
-matrix<T>& iadd(matrix<T>& lhs, const matrix<T>& rhs) {
+matrix<T> &iadd(matrix<T> &lhs, const matrix<T> &rhs) {
   lhs = lhs + rhs;
   return lhs;
 }
 
 template <class T, typename = enable_if_numeric_t<T>>
-matrix<T> sub(const matrix<T>& lhs, const matrix<T>& rhs) {
+matrix<T> sub(const matrix<T> &lhs, const matrix<T> &rhs) {
   return lhs - rhs;
 }
 
 template <class T, typename = enable_if_numeric_t<T>>
-matrix<T>& isub(matrix<T>& lhs, const matrix<T>& rhs) {
+matrix<T> &isub(matrix<T> &lhs, const matrix<T> &rhs) {
   lhs = lhs - rhs;
   return lhs;
 }
@@ -57,7 +57,7 @@ matrix<T>& isub(matrix<T>& lhs, const matrix<T>& rhs) {
 //----------------------------------------------------------------------------
 template <class T, class Scalar, typename = enable_if_numeric_t<T>,
           typename = enable_if_numeric_t<Scalar>>
-matrix<T>& iadd(matrix<T>& data, const Scalar& val) {
+matrix<T> &iadd(matrix<T> &data, const Scalar &val) {
   if (val == 0) {
     return data;
   }
@@ -69,20 +69,20 @@ matrix<T>& iadd(matrix<T>& data, const Scalar& val) {
 
 template <class T, class Scalar, typename = enable_if_numeric_t<T>,
           typename = enable_if_numeric_t<Scalar>>
-matrix<T> add(const matrix<T>& data, const Scalar& val) {
+matrix<T> add(const matrix<T> &data, const Scalar &val) {
   matrix<T> result(data);
   return iadd(result, val);
 }
 
 template <class T, class Scalar, typename = enable_if_numeric_t<T>,
           typename = enable_if_numeric_t<Scalar>>
-matrix<T> sub(const matrix<T>& data, const Scalar& val) {
+matrix<T> sub(const matrix<T> &data, const Scalar &val) {
   return add(data, -val);
 }
 
 template <class T, class Scalar, typename = enable_if_numeric_t<T>,
           typename = enable_if_numeric_t<Scalar>>
-matrix<T>& isub(matrix<T>& data, const Scalar& val) {
+matrix<T> &isub(matrix<T> &data, const Scalar &val) {
   return iadd(data, -val);
 }
 
@@ -92,7 +92,7 @@ matrix<T>& isub(matrix<T>& data, const Scalar& val) {
 
 template <class T, class Scalar, typename = enable_if_numeric_t<T>,
           typename = enable_if_numeric_t<Scalar>>
-matrix<T>& imul(matrix<T>& data, const Scalar& val) {
+matrix<T> &imul(matrix<T> &data, const Scalar &val) {
   if (almost_equal<Scalar>(val, 1)) {
     return data;
   }
@@ -104,7 +104,7 @@ matrix<T>& imul(matrix<T>& data, const Scalar& val) {
 
 template <class T, class Scalar, typename = enable_if_numeric_t<T>,
           typename = enable_if_numeric_t<Scalar>>
-matrix<T> mul(const matrix<T>& data, const Scalar& val) {
+matrix<T> mul(const matrix<T> &data, const Scalar &val) {
   if (almost_equal<Scalar>(val, 1)) {
     return data;
   }
@@ -115,7 +115,7 @@ matrix<T> mul(const matrix<T>& data, const Scalar& val) {
 
 template <class T, class Scalar, typename = enable_if_numeric_t<T>,
           typename = enable_if_numeric_t<Scalar>>
-matrix<T>& idiv(matrix<T>& data, const Scalar& val) {
+matrix<T> &idiv(matrix<T> &data, const Scalar &val) {
   if (almost_equal<Scalar>(val, 1)) {
     return data;
   }
@@ -127,7 +127,7 @@ matrix<T>& idiv(matrix<T>& data, const Scalar& val) {
 
 template <class T, class Scalar, typename = enable_if_numeric_t<T>,
           typename = enable_if_numeric_t<Scalar>>
-matrix<T> div(const matrix<T>& data, const Scalar& val) {
+matrix<T> div(const matrix<T> &data, const Scalar &val) {
   if (almost_equal<Scalar>(val, 1)) {
     return data;
   }
@@ -137,8 +137,8 @@ matrix<T> div(const matrix<T>& data, const Scalar& val) {
 }
 
 //------------------------------------------------------------------------------
-}  // end namespace Linalg
+} // end namespace Linalg
 //------------------------------------------------------------------------------
-}  // end namespace AER
+} // end namespace AER
 //------------------------------------------------------------------------------
 #endif

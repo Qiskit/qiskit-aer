@@ -15,11 +15,12 @@
 #ifndef _aer_base_state_hpp_
 #define _aer_base_state_hpp_
 
+#include "framework/config.hpp"
+#include "framework/creg.hpp"
 #include "framework/json.hpp"
 #include "framework/opset.hpp"
-#include "framework/types.hpp"
-#include "framework/creg.hpp"
 #include "framework/results/experiment_result.hpp"
+#include "framework/types.hpp"
 
 #include "noise/noise_model.hpp"
 
@@ -49,20 +50,14 @@ public:
   // - `OpType::gate` if gates are supported
   // - `OpType::measure` if measure is supported
   // - `OpType::reset` if reset is supported
-  // - `OpType::snapshot` if any snapshots are supported
   // - `OpType::barrier` if barrier is supported
   // - `OpType::matrix` if arbitrary unitary matrices are supported
   // - `OpType::kraus` if general Kraus noise channels are supported
   //
   // For gate ops allowed gates are specified by a set of string names,
   // for example this could include {"u1", "u2", "u3", "U", "cx", "CX"}
-  //
-  // For snapshot ops allowed snapshots are specified by a set of string names,
-  // For example this could include {"probabilities", "pauli_observable"}
 
-  Base(const Operations::OpSet &opset) : opset_(opset) {
-    cregs_.resize(1);
-  }
+  Base(const Operations::OpSet &opset) : opset_(opset) { cregs_.resize(1); }
 
   virtual ~Base() = default;
 
@@ -71,8 +66,8 @@ public:
   //-----------------------------------------------------------------------
 
   // Return the state creg object
-  auto &creg(uint_t idx=0) { return cregs_[idx]; }
-  const auto &creg(uint_t idx=0) const { return cregs_[idx]; }
+  auto &creg(uint_t idx = 0) { return cregs_[idx]; }
+  const auto &creg(uint_t idx = 0) const { return cregs_[idx]; }
   std::vector<ClassicalRegister> &cregs() { return cregs_; }
   const std::vector<ClassicalRegister> &cregs() const { return cregs_; }
 
@@ -94,24 +89,27 @@ public:
   //
   // The implementation of these methods must be defined in all subclasses
   //-----------------------------------------------------------------------
-  
+
   // Return a string name for the State type
   virtual std::string name() const = 0;
 
   // Return an estimate of the required memory for implementing the
   // specified sequence of operations on a `num_qubit` sized State.
-  virtual size_t required_memory_mb(uint_t num_qubits,
-                                    const std::vector<Operations::Op> &ops)
-                                    const = 0;
+  virtual size_t
+  required_memory_mb(uint_t num_qubits,
+                     const std::vector<Operations::Op> &ops) const = 0;
 
-  //memory allocation (previously called before inisitalize_qreg)
-  virtual bool allocate(uint_t num_qubits,uint_t block_bits,uint_t num_parallel_shots = 1){return true;}
+  // memory allocation (previously called before inisitalize_qreg)
+  virtual bool allocate(uint_t num_qubits, uint_t block_bits,
+                        uint_t num_parallel_shots = 1) {
+    return true;
+  }
 
   // Return the expectation value of a N-qubit Pauli operator
   // If the simulator does not support Pauli expectation value this should
   // raise an exception.
   virtual double expval_pauli(const reg_t &qubits,
-                              const std::string& pauli) = 0;
+                              const std::string &pauli) = 0;
 
   // Initializes the State to the default state.
   // Typically this is the n-qubit all |0> state
@@ -125,8 +123,7 @@ public:
   virtual void initialize_creg(uint_t num_memory, uint_t num_register);
 
   // Initialize classical memory and register to specific values
-  virtual void initialize_creg(uint_t num_memory,
-                               uint_t num_register,
+  virtual void initialize_creg(uint_t num_memory, uint_t num_register,
                                const std::string &memory_hex,
                                const std::string &register_hex);
 
@@ -135,16 +132,14 @@ public:
   //-----------------------------------------------------------------------
 
   // Apply the global phase
-  virtual void apply_global_phase() {};
+  virtual void apply_global_phase(){};
 
   // Apply a single operation
   // The `final_op` flag indicates no more instructions will be applied
   // to the state after this sequence, so the state can be modified at the
   // end of the instructions.
-  virtual void apply_op(const Operations::Op &op,
-                        ExperimentResult &result,
-                        RngEngine& rng,
-                        bool final_op = false) = 0;
+  virtual void apply_op(const Operations::Op &op, ExperimentResult &result,
+                        RngEngine &rng, bool final_op = false) = 0;
 
   // Apply a sequence of operations to the current state of the State class.
   // It is up to the State subclass to decide how this sequence should be
@@ -154,34 +149,33 @@ public:
   // The `final_ops` flag indicates no more instructions will be applied
   // to the state after this sequence, so the state can be modified at the
   // end of the instructions.
-  virtual void apply_ops(OpItr first, OpItr last,
-                         ExperimentResult &result, RngEngine &rng, bool final_ops = false);
+  virtual void apply_ops(OpItr first, OpItr last, ExperimentResult &result,
+                         RngEngine &rng, bool final_ops = false);
 
-  //apply ops to multiple shots
-  //this function should be separately defined since apply_ops is called in quantum_error
+  // apply ops to multiple shots
+  // this function should be separately defined since apply_ops is called in
+  // quantum_error
   void apply_ops_multi_shots(OpItr first, OpItr last,
                              const Noise::NoiseModel &noise,
-                             ExperimentResult &result,
-                             uint_t rng_seed,
-                             bool final_ops = false)
-  {
-    throw std::invalid_argument("apply_ops_multi_shots is not supported in State " + name());
+                             ExperimentResult &result, uint_t rng_seed,
+                             bool final_ops = false) {
+    throw std::invalid_argument(
+        "apply_ops_multi_shots is not supported in State " + name());
   }
 
   //-----------------------------------------------------------------------
   // Optional: Load config settings
   //-----------------------------------------------------------------------
 
-  // Load any settings for the State class from a config JSON
-  virtual void set_config(const json_t &config);
+  // Load any settings for the State class from a config
+  virtual void set_config(const Config &config);
 
   //-----------------------------------------------------------------------
-  // Optional: Add information to metadata 
+  // Optional: Add information to metadata
   //-----------------------------------------------------------------------
 
   // Every state can add information to the metadata structure
-  virtual void add_metadata(ExperimentResult &result) const {
-  }
+  virtual void add_metadata(ExperimentResult &result) const {}
 
   //-----------------------------------------------------------------------
   // Optional: measurement sampling
@@ -194,8 +188,7 @@ public:
   // to the system state. Even though this method is not marked as const
   // at the end of sample the system should be left in the same state
   // as before sampling
-  virtual std::vector<reg_t> sample_measure(const reg_t &qubits,
-                                            uint_t shots,
+  virtual std::vector<reg_t> sample_measure(const reg_t &qubits, uint_t shots,
                                             RngEngine &rng);
 
   //-----------------------------------------------------------------------
@@ -204,7 +197,7 @@ public:
 
   // Sets the number of threads available to the State implementation
   // If negative there is no restriction on the backend
-  virtual inline void set_parallelization(int n) {threads_ = n;}
+  virtual inline void set_parallelization(int n) { threads_ = n; }
 
   // Set a complex global phase value exp(1j * theta) for the state
   void set_global_phase(double theta);
@@ -212,45 +205,34 @@ public:
   // Set a complex global phase value exp(1j * theta) for the state
   void add_global_phase(double theta);
 
-  //set number of processes to be distributed
-  virtual void set_distribution(uint_t nprocs){}
+  // set number of processes to be distributed
+  virtual void set_distribution(uint_t nprocs) {}
 
-  //set maximum number of qubits for matrix multiplication
-  virtual void set_max_matrix_qubits(int_t bits)
-  {
-    max_matrix_qubits_ = bits;
-  }
+  // set maximum number of qubits for matrix multiplication
+  virtual void set_max_matrix_qubits(int_t bits) { max_matrix_qubits_ = bits; }
 
-  //set max number of shots to execute in a batch (used in StateChunk class)
-  virtual void set_max_bached_shots(uint_t shots){}
+  // set max number of shots to execute in a batch (used in StateChunk class)
+  virtual void set_max_bached_shots(uint_t shots) {}
 
-  //Does this state support multi-chunk distribution?
-  virtual bool multi_chunk_distribution_supported(void){return false;}
+  // Does this state support multi-chunk distribution?
+  virtual bool multi_chunk_distribution_supported(void) { return false; }
 
-  //Does this state support multi-shot parallelization?
-  virtual bool multi_shot_parallelization_supported(void){return false;}
+  // Does this state support multi-shot parallelization?
+  virtual bool multi_shot_parallelization_supported(void) { return false; }
 
+  // set creg bit counts before initialize creg
+  virtual void set_num_creg_bits(uint_t num_memory, uint_t num_register) {}
+
+  // can apply density matrix (without statevector output required)
+  virtual void enable_density_matrix(bool flg) {}
   //-----------------------------------------------------------------------
   // Common instructions
   //-----------------------------------------------------------------------
- 
+
   // Apply a save expectation value instruction
   void apply_save_expval(const Operations::Op &op, ExperimentResult &result);
 
-  //-----------------------------------------------------------------------
-  // Standard snapshots
-  //-----------------------------------------------------------------------
-
-  // Snapshot the classical memory bits state (single-shot)
-  void snapshot_creg_memory(const Operations::Op &op, ExperimentResult &result,
-                            std::string name = "memory") const;
-
-  // Snapshot the classical register bits state (single-shot)
-  void snapshot_creg_register(const Operations::Op &op, ExperimentResult &result,
-                              std::string name = "register") const;
-
 protected:
-
   // Classical register data
   std::vector<ClassicalRegister> cregs_;
 
@@ -270,21 +252,19 @@ protected:
   std::string sim_device_name_ = "CPU";
 };
 
-void Base::set_config(const json_t &config) 
-{
-  JSON::get_value(sim_device_name_, "device", config);
+void Base::set_config(const Config &config) {
+  sim_device_name_ = config.device;
 }
 
-std::vector<reg_t> Base::sample_measure(const reg_t &qubits,
-                                             uint_t shots,
-                                             RngEngine &rng) {
-  (ignore_argument)qubits;
-  (ignore_argument)shots;
+std::vector<reg_t> Base::sample_measure(const reg_t &qubits, uint_t shots,
+                                        RngEngine &rng) {
+  (ignore_argument) qubits;
+  (ignore_argument) shots;
   return std::vector<reg_t>();
 }
 
 void Base::apply_ops(const OpItr first, const OpItr last,
-                          ExperimentResult &result, RngEngine &rng, bool final_ops) {
+                     ExperimentResult &result, RngEngine &rng, bool final_ops) {
 
   std::unordered_map<std::string, OpItr> marks;
   // Simple loop over vector of input operations
@@ -296,7 +276,7 @@ void Base::apply_ops(const OpItr first, const OpItr last,
     }
     case Operations::OpType::jump: {
       if (creg().check_conditional(*it)) {
-        const auto& mark_name = it->string_params[0];
+        const auto &mark_name = it->string_params[0];
         auto mark_it = marks.find(mark_name);
         if (mark_it != marks.end()) {
           it = mark_it->second;
@@ -311,7 +291,8 @@ void Base::apply_ops(const OpItr first, const OpItr last,
           }
           if (it == last) {
             std::stringstream msg;
-            msg << "Invalid jump destination:\"" << mark_name << "\"." << std::endl;
+            msg << "Invalid jump destination:\"" << mark_name << "\"."
+                << std::endl;
             throw std::runtime_error(msg.str());
           }
         }
@@ -325,20 +306,18 @@ void Base::apply_ops(const OpItr first, const OpItr last,
   }
 };
 
-void Base::initialize_creg(uint_t num_memory, uint_t num_register) 
-{
+void Base::initialize_creg(uint_t num_memory, uint_t num_register) {
   creg().initialize(num_memory, num_register);
 }
 
-void Base::initialize_creg(uint_t num_memory,
-                                uint_t num_register,
-                                const std::string &memory_hex,
-                                const std::string &register_hex) {
+void Base::initialize_creg(uint_t num_memory, uint_t num_register,
+                           const std::string &memory_hex,
+                           const std::string &register_hex) {
   creg().initialize(num_memory, num_register, memory_hex, register_hex);
 }
 
 template <class state_t>
-class State: public Base {
+class State : public Base {
 
 public:
   using ignore_argument = void;
@@ -356,25 +335,19 @@ public:
   // - `OpType::gate` if gates are supported
   // - `OpType::measure` if measure is supported
   // - `OpType::reset` if reset is supported
-  // - `OpType::snapshot` if any snapshots are supported
   // - `OpType::barrier` if barrier is supported
   // - `OpType::matrix` if arbitrary unitary matrices are supported
   // - `OpType::kraus` if general Kraus noise channels are supported
   //
   // For gate ops allowed gates are specified by a set of string names,
   // for example this could include {"u1", "u2", "u3", "U", "cx", "CX"}
-  //
-  // For snapshot ops allowed snapshots are specified by a set of string names,
-  // For example this could include {"probabilities", "pauli_observable"}
 
   State(const Operations::OpSet &opset) : Base(opset) {}
 
-  State(const Operations::OpSet::optypeset_t &optypes,
-        const stringset_t &gates,
-        const stringset_t &snapshots)
-    : State(Operations::OpSet(optypes, gates, snapshots)) {};
+  State(const Operations::OpSet::optypeset_t &optypes, const stringset_t &gates)
+      : State(Operations::OpSet(optypes, gates)){};
 
-  virtual ~State() {};
+  virtual ~State(){};
 
   //-----------------------------------------------------------------------
   // Data accessors
@@ -384,68 +357,31 @@ public:
   auto &qreg() { return qreg_; }
   const auto &qreg() const { return qreg_; }
 
-  //-----------------------------------------------------------------------
-  // Standard snapshots
-  //-----------------------------------------------------------------------
-
-  // Snapshot the current statevector (single-shot)
-  // if type_label is the empty string the operation type will be used for the type
-  virtual void snapshot_state(const Operations::Op &op, ExperimentResult &result,
-                      std::string name = "") const;
-
 protected:
   // The quantum state data structure
   state_t qreg_;
 };
 
-
-template <class state_t>
-void State<state_t>::snapshot_state(const Operations::Op &op,
-                                    ExperimentResult &result,
-                                    std::string name) const {
-  name = (name.empty()) ? op.name : name;
-  result.legacy_data.add_pershot_snapshot(name, op.string_params[0], qreg());
-}
-
 void Base::set_global_phase(double theta) {
   if (Linalg::almost_equal(theta, 0.0)) {
     has_global_phase_ = false;
     global_phase_ = 1;
-  }
-  else {
+  } else {
     has_global_phase_ = true;
     global_phase_ = std::exp(complex_t(0.0, theta));
   }
 }
 
 void Base::add_global_phase(double theta) {
-  if (Linalg::almost_equal(theta, 0.0)) 
+  if (Linalg::almost_equal(theta, 0.0))
     return;
-  
+
   has_global_phase_ = true;
   global_phase_ *= std::exp(complex_t(0.0, theta));
 }
 
-void Base::snapshot_creg_memory(const Operations::Op &op,
-                                          ExperimentResult &result,
-                                          std::string name) const {
-  result.legacy_data.add_pershot_snapshot(name,
-                               op.string_params[0],
-                               creg().memory_hex());
-}
-
-
-void Base::snapshot_creg_register(const Operations::Op &op,
-                                            ExperimentResult &result,
-                                            std::string name) const {
-  result.legacy_data.add_pershot_snapshot(name,
-                               op.string_params[0],
-                               creg().register_hex());
-}
-
-
 void Base::apply_save_expval(const Operations::Op &op,
-                                       ExperimentResult &result){
+                             ExperimentResult &result) {
   // Check empty edge case
   if (op.expval_params.empty()) {
     throw std::invalid_argument(
@@ -467,16 +403,18 @@ void Base::apply_save_expval(const Operations::Op &op,
   }
   if (variance) {
     std::vector<double> expval_var(2);
-    expval_var[0] = expval;  // mean
-    expval_var[1] = sq_expval - expval * expval;  // variance
-    result.save_data_average(creg(), op.string_params[0], expval_var, op.type, op.save_type);
+    expval_var[0] = expval;                      // mean
+    expval_var[1] = sq_expval - expval * expval; // variance
+    result.save_data_average(creg(), op.string_params[0], expval_var, op.type,
+                             op.save_type);
   } else {
-    result.save_data_average(creg(), op.string_params[0], expval, op.type, op.save_type);
+    result.save_data_average(creg(), op.string_params[0], expval, op.type,
+                             op.save_type);
   }
 }
 
 //-------------------------------------------------------------------------
-} // end namespace Base
+} // namespace QuantumState
 //-------------------------------------------------------------------------
 } // end namespace AER
 //-------------------------------------------------------------------------

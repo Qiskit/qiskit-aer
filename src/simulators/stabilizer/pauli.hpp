@@ -15,9 +15,10 @@
 #ifndef _pauli_hpp_
 #define _pauli_hpp_
 
-#include <iostream>
 #include "binary_vector.hpp"
+#include <iostream>
 
+namespace AER {
 namespace Pauli {
 
 /*******************************************************************************
@@ -26,17 +27,18 @@ namespace Pauli {
  *
  ******************************************************************************/
 
+template <typename bv_type>
 class Pauli {
 public:
   // Symplectic binary vectors
-  BV::BinaryVector X;
-  BV::BinaryVector Z;
+  bv_type X;
+  bv_type Z;
 
   // Construct an empty pauli
-  Pauli() : X(0), Z(0) {};
+  Pauli(){};
 
   // Construct an n-qubit identity Pauli
-  explicit Pauli(uint64_t len) : X(len), Z(len) {};
+  explicit Pauli(uint64_t len) : X(len), Z(len){};
 
   // Construct an n-qubit Pauli from a string label;
   explicit Pauli(const std::string &label);
@@ -45,9 +47,9 @@ public:
   std::string str() const;
 
   // exponent g of i such that P(x1,z1) P(x2,z2) = i^g P(x1+x2,z1+z2)
-  static int8_t phase_exponent(const Pauli& pauli1, const Pauli& pauli2);
+  static int8_t phase_exponent(const Pauli<bv_type> &pauli1,
+                               const Pauli<bv_type> &pauli2);
 };
-
 
 /*******************************************************************************
  *
@@ -55,40 +57,43 @@ public:
  *
  ******************************************************************************/
 
-Pauli::Pauli(const std::string &label) {
+template <typename bv_type>
+Pauli<bv_type>::Pauli(const std::string &label) {
   const auto num_qubits = label.size();
-  X = BV::BinaryVector(num_qubits);
-  Z = BV::BinaryVector(num_qubits);
+  X = bv_type(num_qubits);
+  Z = bv_type(num_qubits);
   // The label corresponds to tensor product order
   // So the first element of label is the last qubit and vice versa
-  for (size_t i =0; i < num_qubits; i++) {
+  for (size_t i = 0; i < num_qubits; i++) {
     const auto qubit_i = num_qubits - 1 - i;
     switch (label[i]) {
-      case 'I':
-        break;
-      case 'X':
-        X.set1(qubit_i);
-        break;
-      case 'Y':
-        X.set1(qubit_i);
-        Z.set1(qubit_i);
-        break;
-      case 'Z':
-        Z.set1(qubit_i);
-        break;
-      default:
-        throw std::invalid_argument("Invalid Pauli label");
+    case 'I':
+      break;
+    case 'X':
+      X.set1(qubit_i);
+      break;
+    case 'Y':
+      X.set1(qubit_i);
+      Z.set1(qubit_i);
+      break;
+    case 'Z':
+      Z.set1(qubit_i);
+      break;
+    default:
+      throw std::invalid_argument("Invalid Pauli label");
     }
   }
 }
 
-std::string Pauli::str() const {
+template <typename bv_type>
+std::string Pauli<bv_type>::str() const {
   // Check X and Z are same length
   const auto num_qubits = X.getLength();
   if (Z.getLength() != num_qubits)
-    throw std::runtime_error("Pauli::str X and Z vectors are different length.");
+    throw std::runtime_error(
+        "Pauli::str X and Z vectors are different length.");
   std::string label;
-  for (size_t i =0; i < num_qubits; i++) {
+  for (size_t i = 0; i < num_qubits; i++) {
     const auto qubit_i = num_qubits - 1 - i;
     if (!X[qubit_i] && !Z[qubit_i])
       label.push_back('I');
@@ -102,29 +107,34 @@ std::string Pauli::str() const {
   return label;
 }
 
-int8_t Pauli::phase_exponent(const Pauli& pauli1, const Pauli& pauli2) {
+template <typename bv_type>
+int8_t Pauli<bv_type>::phase_exponent(const Pauli<bv_type> &pauli1,
+                                      const Pauli<bv_type> &pauli2) {
   int8_t exponent = 0;
   for (size_t q = 0; q < pauli1.X.getLength(); q++) {
-    exponent += pauli2.X[q] * pauli1.Z[q] * (1 + 2 * pauli2.Z[q] + 2 * pauli1.X[q]);
-    exponent -= pauli1.X[q] * pauli2.Z[q] * (1 + 2 * pauli1.Z[q] + 2 * pauli2.X[q]);
+    exponent +=
+        pauli2.X[q] * pauli1.Z[q] * (1 + 2 * pauli2.Z[q] + 2 * pauli1.X[q]);
+    exponent -=
+        pauli1.X[q] * pauli2.Z[q] * (1 + 2 * pauli1.Z[q] + 2 * pauli2.X[q]);
     exponent %= 4;
   }
   if (exponent < 0)
-      exponent += 4;
+    exponent += 4;
   return exponent;
 }
 
 //------------------------------------------------------------------------------
 } // end namespace Pauli
+} // namespace AER
 //------------------------------------------------------------------------------
 
 // ostream overload for templated qubitvector
-template <class statevector_t>
-inline std::ostream &operator<<(std::ostream &out, const Pauli::Pauli &pauli) {
+template <typename bv_type>
+inline std::ostream &operator<<(std::ostream &out,
+                                const AER::Pauli::Pauli<bv_type> &pauli) {
   out << pauli.str();
   return out;
 }
 
 //------------------------------------------------------------------------------
 #endif
-

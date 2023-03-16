@@ -1,0 +1,10 @@
+---
+features:
+  - |
+    Added a new class method :meth:`~.NoiseModel.from_backend_properties` to
+    the :class:`NoiseModel`. This enables constructing a new :class:`~.NoiseModel`
+    from a :class:`~qiskit.providers.BackendProperties` object. Similar functionality used
+    to be present in the :meth:`.NoiseModel.from_backend` constructor,
+    however it was removed since a :class:`~qiskit.providers.BackendProperties` object alone
+    doesn't contain sufficient information to create a :class:`~.NoiseModel`
+    object.

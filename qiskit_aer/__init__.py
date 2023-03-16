@@ -52,26 +52,40 @@ Exceptions
    AerError
 """
 
+import platform
+import sys
+import warnings
+
+
 # https://github.com/Qiskit/qiskit-aer/issues/1
 # Because of this issue, we need to make sure that Numpy's OpenMP library is initialized
 # before loading our simulators, so we force it using this ugly trick
-import platform
 if platform.system() == "Darwin":
     import numpy as np
+
     np.dot(np.zeros(100), np.zeros(100))
 # ... ¯\_(ツ)_/¯
 
 # pylint: disable=wrong-import-position
-from .aerprovider import AerProvider
-from .jobs import AerJob, AerJobSet
-from .aererror import AerError
-from .backends import *
-from . import library
-from . import pulse
-from . import quantum_info
-from . import noise
-from . import utils
-from .version import __version__
+from qiskit_aer.aerprovider import AerProvider
+from qiskit_aer.jobs import AerJob, AerJobSet
+from qiskit_aer.aererror import AerError
+from qiskit_aer.backends import *
+from qiskit_aer import library
+from qiskit_aer import pulse
+from qiskit_aer import quantum_info
+from qiskit_aer import noise
+from qiskit_aer import utils
+from qiskit_aer.version import __version__
+
+if sys.version_info < (3, 8):
+    warnings.warn(
+        "Using Qiskit Aer with Python 3.7 is deprecated as of the 0.12.0 release. "
+        "Support for running Qiskit Aer with Python 3.7 will be removed in a future "
+        "release",
+        DeprecationWarning,
+    )
+
 
 # Global instance to be used as the entry point for convenience.
 Aer = AerProvider()  # pylint: disable=invalid-name

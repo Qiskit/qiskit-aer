@@ -24,21 +24,14 @@ namespace QV {
 enum class Avx { NotApplied, Applied };
 
 template <typename FloatType>
-Avx apply_matrix_avx(FloatType* data,
-                     const uint64_t data_size,
-                     const uint64_t* qregs,
-                     const size_t qregs_size,
-                     const FloatType* mat,
-                     const size_t omp_threads);
-
+Avx apply_matrix_avx(FloatType *data, const uint64_t data_size,
+                     const uint64_t *qregs, const size_t qregs_size,
+                     const FloatType *mat, const size_t omp_threads);
 
 template <typename FloatType>
-Avx apply_diagonal_matrix_avx(FloatType* data,
-                              const uint64_t data_size,
-                              const uint64_t* qregs,
-                              const size_t qregs_size,
-                              const FloatType* vec,
-                              const size_t omp_threads);
+Avx apply_diagonal_matrix_avx(FloatType *data, const uint64_t data_size,
+                              const uint64_t *qregs, const size_t qregs_size,
+                              const FloatType *vec, const size_t omp_threads);
 
 } // end namespace QV
 } // end namespace AER

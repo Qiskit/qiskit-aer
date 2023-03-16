@@ -24,7 +24,7 @@ endmacro()
 macro(_use_system_libraries)
 	# Use system libraries
 	_import_aer_system_dependency(nlohmann_json 3.1.1)
-	_import_aer_system_dependency(spdlog 1.5.0)
+	_import_aer_system_dependency(spdlog 1.9.2)
 
 	if(SKBUILD)
 		_import_aer_system_dependency(muparserx 4.0.8)

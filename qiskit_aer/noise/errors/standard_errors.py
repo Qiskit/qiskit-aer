@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2018, 2019, 2021.
+# (C) Copyright IBM 2018-2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -14,30 +14,27 @@ Standard quantum computing error channels for Qiskit Aer.
 """
 
 import itertools as it
-import warnings
 
 import numpy as np
-from qiskit.circuit import QuantumCircuit, Reset
-from qiskit.circuit.library.standard_gates import IGate, XGate, YGate, ZGate
+
+from qiskit.circuit import Reset
+from qiskit.circuit.library.standard_gates import IGate, XGate, ZGate
 from qiskit.exceptions import QiskitError
 from qiskit.extensions import UnitaryGate
-from qiskit.quantum_info.operators import Operator, Pauli
+from qiskit.quantum_info.operators import Pauli
 from qiskit.quantum_info.operators.channel import Choi, Kraus
 from qiskit.quantum_info.operators.predicates import is_identity_matrix
 from qiskit.quantum_info.operators.predicates import is_unitary_matrix
-
-from .errorutils import _make_unitary_instruction
 from .quantum_error import QuantumError
 from ..noiseerror import NoiseError
 
 
-def kraus_error(noise_ops, standard_gates=None, canonical_kraus=False):
+def kraus_error(noise_ops, canonical_kraus=False):
     """
     Return a Kraus quantum error channel.
 
     Args:
         noise_ops (list[matrix]): Kraus matrices.
-        standard_gates (bool): DEPRECATED, Check if input matrices are standard gates.
         canonical_kraus (bool): Convert input Kraus matrices into the
                                 canonical Kraus representation (default: False)
 
@@ -52,12 +49,6 @@ def kraus_error(noise_ops, standard_gates=None, canonical_kraus=False):
     if not noise_ops:
         raise NoiseError("Kraus error noise_ops must not be empty.")
 
-    if standard_gates is not None:
-        warnings.warn(
-            '"standard_gates" option has been deprecated as of qiskit-aer 0.10.0'
-            ' and will be removed no earlier than 3 months from that release date.',
-            DeprecationWarning, stacklevel=2)
-
     kraus = Kraus(noise_ops)
     if canonical_kraus:
         # Convert to Choi and back to get canonical Kraus
@@ -65,7 +56,7 @@ def kraus_error(noise_ops, standard_gates=None, canonical_kraus=False):
     return QuantumError(kraus)
 
 
-def mixed_unitary_error(noise_ops, standard_gates=None):
+def mixed_unitary_error(noise_ops):
     """
     Return a mixed unitary quantum error channel.
 
@@ -75,7 +66,6 @@ def mixed_unitary_error(noise_ops, standard_gates=None):
 
     Args:
         noise_ops (list[pair[matrix, double]]): unitary error matrices.
-        standard_gates (bool): DEPRECATED, Check if input matrices are standard gates.
 
     Returns:
         QuantumError: The quantum error object.
@@ -83,13 +73,6 @@ def mixed_unitary_error(noise_ops, standard_gates=None):
     Raises:
         NoiseError: if error parameters are invalid.
     """
-    if standard_gates is not None:
-        warnings.warn(
-            '"standard_gates" option has been deprecated as of qiskit-aer 0.10.0'
-            ' and will be removed no earlier than 3 months from that release date.'
-            ' Use directly init e.g. QuantumError([(IGate(), prob1), (ZGate(), prob2)]) instead.',
-            DeprecationWarning, stacklevel=2)
-
     # Error checking
     if not isinstance(noise_ops, (list, tuple, zip)):
         raise NoiseError("Input noise ops is not a list.")
@@ -100,7 +83,7 @@ def mixed_unitary_error(noise_ops, standard_gates=None):
         raise NoiseError("Input noise list is empty.")
 
     # Check for identity unitaries
-    prob_identity = 0.
+    prob_identity = 0.0
     instructions = []
     instructions_probs = []
     num_qubits = int(np.log2(noise_ops[0][0].shape[0]))
@@ -115,19 +98,11 @@ def mixed_unitary_error(noise_ops, standard_gates=None):
         if is_identity_matrix(unitary):
             prob_identity += prob
         else:
-            if standard_gates:  # TODO: to be removed after deprecation period
-                qubits = list(range(num_qubits))
-                instr = _make_unitary_instruction(
-                    unitary, qubits, standard_gates=standard_gates)
-            else:
-                instr = UnitaryGate(unitary)
+            instr = UnitaryGate(unitary)
             instructions.append(instr)
             instructions_probs.append(prob)
     if prob_identity > 0:
-        if standard_gates:  # TODO: to be removed after deprecation period
-            instructions.append([{"name": "id", "qubits": [0]}])
-        else:
-            instructions.append(IGate())
+        instructions.append(IGate())
         instructions_probs.append(prob_identity)
     return QuantumError(zip(instructions, instructions_probs))
 
@@ -145,7 +120,7 @@ def coherent_unitary_error(unitary):
     return mixed_unitary_error([(unitary, 1)])
 
 
-def pauli_error(noise_ops, standard_gates=None):
+def pauli_error(noise_ops):
     """
     Return a mixed Pauli quantum error channel.
 
@@ -156,10 +131,6 @@ def pauli_error(noise_ops, standard_gates=None):
 
     Args:
         noise_ops (list[pair[Pauli, double]]): Pauli error terms.
-        standard_gates (bool): DEPRECATED, if True return the operators as standard qobj
-                               Pauli gate instructions. If false return as
-                               unitary matrix qobj instructions.
-                               (Default: None)
 
     Returns:
         QuantumError: The quantum error object.
@@ -193,20 +164,10 @@ def pauli_error(noise_ops, standard_gates=None):
         if num_qubits != pauli.num_qubits:
             raise NoiseError("Pauli's are not all of the same length.")
 
-    if standard_gates is not None:
-        warnings.warn(
-            '"standard_gates" option has been deprecated as of qiskit-aer 0.10.0'
-            ' and will be removed no earlier than 3 months from that release date.',
-            DeprecationWarning, stacklevel=2)
-        if num_qubits > 1:
-            paulis = [pauli.to_instruction().definition for pauli in paulis]
-        if not standard_gates:
-            paulis = [Operator(pauli).to_instruction() for pauli in paulis]
-
     return QuantumError(zip(paulis, probs))
 
 
-def depolarizing_error(param, num_qubits, standard_gates=None):
+def depolarizing_error(param, num_qubits):
     r"""
     Return a depolarizing quantum error channel.
 
@@ -231,9 +192,6 @@ def depolarizing_error(param, num_qubits, standard_gates=None):
     Args:
         param (double): depolarizing error parameter.
         num_qubits (int): the number of qubits for the error channel.
-        standard_gates (bool): DEPRECATED, if True return the operators as
-                               Pauli gates. If false return as unitary gates.
-                               (Default: None)
 
     Returns:
         QuantumError: The quantum error object.
@@ -244,11 +202,10 @@ def depolarizing_error(param, num_qubits, standard_gates=None):
     if not isinstance(num_qubits, int) or num_qubits < 1:
         raise NoiseError("num_qubits must be a positive integer.")
     # Check that the depolarizing parameter gives a valid CPTP
-    num_terms = 4 ** num_qubits
+    num_terms = 4**num_qubits
     max_param = num_terms / (num_terms - 1)
     if param < 0 or param > max_param:
-        raise NoiseError("Depolarizing parameter must be in between 0 "
-                         "and {}.".format(max_param))
+        raise NoiseError("Depolarizing parameter must be in between 0 " "and {}.".format(max_param))
 
     # Rescale completely depolarizing channel error probs
     # with the identity component removed
@@ -256,24 +213,9 @@ def depolarizing_error(param, num_qubits, standard_gates=None):
     prob_pauli = param / num_terms
     probs = [prob_iden] + (num_terms - 1) * [prob_pauli]
 
-    if standard_gates is not None:
-        warnings.warn(
-            '"standard_gates" option has been deprecated as of qiskit-aer 0.10.0'
-            ' and will be removed no earlier than 3 months from that release date.',
-            DeprecationWarning, stacklevel=2)
-        circs = []
-        for pauli_list in it.product([IGate(), XGate(), YGate(), ZGate()], repeat=num_qubits):
-            qc = QuantumCircuit(num_qubits)
-            for q, pauli in enumerate(pauli_list):
-                if not standard_gates:
-                    pauli = UnitaryGate(pauli.to_matrix())
-                qc.append(pauli, qargs=[q])
-            circs.append(qc)
-        return QuantumError(zip(circs, probs))
-
     # Generate pauli strings. The order doesn't matter as long
     # as the all identity string is first.
-    paulis = [Pauli("".join(tup)) for tup in it.product(['I', 'X', 'Y', 'Z'], repeat=num_qubits)]
+    paulis = [Pauli("".join(tup)) for tup in it.product(["I", "X", "Y", "Z"], repeat=num_qubits)]
     return QuantumError(zip(paulis, probs))
 
 
@@ -306,7 +248,7 @@ def reset_error(prob0, prob1=0):
     noise_ops = [
         ([(IGate(), [0])], 1 - prob0 - prob1),
         ([(Reset(), [0])], prob0),
-        ([(Reset(), [0]), (XGate(), [0])], prob1)
+        ([(Reset(), [0]), (XGate(), [0])], prob1),
     ]
     return QuantumError(noise_ops)
 
@@ -340,11 +282,13 @@ def thermal_relaxation_error(t1, t2, time, excited_state_population=0):
           general non-unitary Kraus error channel.
     """
     if excited_state_population < 0:
-        raise NoiseError("Invalid excited state population "
-                         "({} < 0).".format(excited_state_population))
+        raise NoiseError(
+            "Invalid excited state population " "({} < 0).".format(excited_state_population)
+        )
     if excited_state_population > 1:
-        raise NoiseError("Invalid excited state population "
-                         "({} > 1).".format(excited_state_population))
+        raise NoiseError(
+            "Invalid excited state population " "({} > 1).".format(excited_state_population)
+        )
     if time < 0:
         raise NoiseError("Invalid gate_time ({} < 0)".format(time))
     if t1 <= 0:
@@ -352,8 +296,7 @@ def thermal_relaxation_error(t1, t2, time, excited_state_population=0):
     if t2 <= 0:
         raise NoiseError("Invalid T_2 relaxation time parameter: T_2 <= 0.")
     if t2 - 2 * t1 > 0:
-        raise NoiseError(
-            "Invalid T_2 relaxation time parameter: T_2 greater than 2 * T_1.")
+        raise NoiseError("Invalid T_2 relaxation time parameter: T_2 greater than 2 * T_1.")
 
     # T1 relaxation rate
     if t1 == np.inf:
@@ -377,9 +320,15 @@ def thermal_relaxation_error(t1, t2, time, excited_state_population=0):
         # If T_2 > T_1 we must express this as a Kraus channel
         # We start with the Choi-matrix representation:
         chan = Choi(
-            np.array([[1 - p1 * p_reset, 0, 0, exp_t2],
-                      [0, p1 * p_reset, 0, 0], [0, 0, p0 * p_reset, 0],
-                      [exp_t2, 0, 0, 1 - p0 * p_reset]]))
+            np.array(
+                [
+                    [1 - p1 * p_reset, 0, 0, exp_t2],
+                    [0, p1 * p_reset, 0, 0],
+                    [0, 0, p0 * p_reset, 0],
+                    [exp_t2, 0, 0, 1 - p0 * p_reset],
+                ]
+            )
+        )
         return QuantumError(Kraus(chan))
     else:
         # If T_2 < T_1 we can express this channel as a probabilistic
@@ -388,7 +337,7 @@ def thermal_relaxation_error(t1, t2, time, excited_state_population=0):
             [(IGate(), [0])],
             [(ZGate(), [0])],
             [(Reset(), [0])],
-            [(Reset(), [0]), (XGate(), [0])]
+            [(Reset(), [0]), (XGate(), [0])],
         ]
         # Probability
         p_reset0 = p_reset * p0
@@ -399,10 +348,9 @@ def thermal_relaxation_error(t1, t2, time, excited_state_population=0):
         return QuantumError(zip(circuits, probabilities))
 
 
-def phase_amplitude_damping_error(param_amp,
-                                  param_phase,
-                                  excited_state_population=0,
-                                  canonical_kraus=True):
+def phase_amplitude_damping_error(
+    param_amp, param_phase, excited_state_population=0, canonical_kraus=True
+):
     r"""
     Return a single-qubit combined phase and amplitude damping quantum error channel.
 
@@ -442,20 +390,22 @@ def phase_amplitude_damping_error(param_amp,
     """
 
     if param_amp < 0:
-        raise NoiseError("Invalid amplitude damping to |0> parameter "
-                         "({} < 0)".format(param_amp))
+        raise NoiseError("Invalid amplitude damping to |0> parameter " "({} < 0)".format(param_amp))
     if param_phase < 0:
-        raise NoiseError("Invalid phase damping parameter "
-                         "({} < 0)".format(param_phase))
+        raise NoiseError("Invalid phase damping parameter " "({} < 0)".format(param_phase))
     if param_phase + param_amp > 1:
-        raise NoiseError("Invalid amplitude and phase damping parameters "
-                         "({} + {} > 1)".format(param_phase, param_amp))
+        raise NoiseError(
+            "Invalid amplitude and phase damping parameters "
+            "({} + {} > 1)".format(param_phase, param_amp)
+        )
     if excited_state_population < 0:
-        raise NoiseError("Invalid excited state population "
-                         "({} < 0).".format(excited_state_population))
+        raise NoiseError(
+            "Invalid excited state population " "({} < 0).".format(excited_state_population)
+        )
     if excited_state_population > 1:
-        raise NoiseError("Invalid excited state population "
-                         "({} > 1).".format(excited_state_population))
+        raise NoiseError(
+            "Invalid excited state population " "({} > 1).".format(excited_state_population)
+        )
     c0 = np.sqrt(1 - excited_state_population)
     c1 = np.sqrt(excited_state_population)
     param = 1 - param_amp - param_phase
@@ -468,15 +418,11 @@ def phase_amplitude_damping_error(param_amp,
     B1 = c1 * np.array([[0, 0], [np.sqrt(param_amp), 0]], dtype=complex)
     B2 = c1 * np.array([[np.sqrt(param_phase), 0], [0, 0]], dtype=complex)
     # Select non-zero ops
-    noise_ops = [
-        a for a in [A0, A1, A2, B0, B1, B2] if np.linalg.norm(a) > 1e-10
-    ]
+    noise_ops = [a for a in [A0, A1, A2, B0, B1, B2] if np.linalg.norm(a) > 1e-10]
     return kraus_error(noise_ops, canonical_kraus=canonical_kraus)
 
 
-def amplitude_damping_error(param_amp,
-                            excited_state_population=0,
-                            canonical_kraus=True):
+def amplitude_damping_error(param_amp, excited_state_population=0, canonical_kraus=True):
     r"""
     Return a single-qubit generalized amplitude damping quantum error channel.
 
@@ -512,7 +458,8 @@ def amplitude_damping_error(param_amp,
         param_amp,
         0,
         excited_state_population=excited_state_population,
-        canonical_kraus=canonical_kraus)
+        canonical_kraus=canonical_kraus,
+    )
 
 
 def phase_damping_error(param_phase, canonical_kraus=True):
@@ -547,7 +494,5 @@ def phase_damping_error(param_phase, canonical_kraus=True):
     """
 
     return phase_amplitude_damping_error(
-        0,
-        param_phase,
-        excited_state_population=0,
-        canonical_kraus=canonical_kraus)
+        0, param_phase, excited_state_population=0, canonical_kraus=canonical_kraus
+    )

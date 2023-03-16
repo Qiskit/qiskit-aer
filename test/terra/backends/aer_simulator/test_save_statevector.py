@@ -16,16 +16,22 @@ Integration Tests for SaveStatevector instruction
 from ddt import ddt
 import qiskit.quantum_info as qi
 from qiskit import QuantumCircuit, transpile
-from test.terra.backends.simulator_test_case import (
-    SimulatorTestCase, supported_methods)
+from test.terra.backends.simulator_test_case import SimulatorTestCase, supported_methods
 
 
 @ddt
 class TestSaveStatevector(SimulatorTestCase):
     """SaveStatevector instruction tests."""
 
-    @supported_methods(['automatic', 'statevector', 'matrix_product_state',
-                        'extended_stabilizer'])
+    @supported_methods(
+        [
+            "automatic",
+            "statevector",
+            "matrix_product_state",
+            "extended_stabilizer",
+            "tensor_network",
+        ]
+    )
     def test_save_statevector(self, method, device):
         """Test save statevector instruction"""
         backend = self.backend(method=method, device=device)
@@ -41,20 +47,26 @@ class TestSaveStatevector(SimulatorTestCase):
         target = qi.Statevector(circ)
 
         # Add save to circuit
-        label = 'state'
+        label = "state"
         circ.save_statevector(label=label)
 
         # Run
-        result = backend.run(transpile(
-            circ, backend, optimization_level=0), shots=1).result()
+        result = backend.run(transpile(circ, backend, optimization_level=0), shots=1).result()
         self.assertTrue(result.success)
         simdata = result.data(0)
         self.assertIn(label, simdata)
         value = simdata[label]
         self.assertEqual(value, target)
 
-    @supported_methods(['automatic', 'statevector', 'matrix_product_state',
-                        'extended_stabilizer'])
+    @supported_methods(
+        [
+            "automatic",
+            "statevector",
+            "matrix_product_state",
+            "extended_stabilizer",
+            "tensor_network",
+        ]
+    )
     def test_save_statevector_conditional(self, method, device):
         """Test conditional save statevector instruction"""
 
@@ -62,7 +74,7 @@ class TestSaveStatevector(SimulatorTestCase):
 
         # Stabilizer test circuit
         # Add save to circuit
-        label = 'state'
+        label = "state"
         circ = QuantumCircuit(2)
         circ.h(0)
         circ.sdg(0)
@@ -71,12 +83,10 @@ class TestSaveStatevector(SimulatorTestCase):
         circ.save_statevector(label=label, conditional=True)
 
         # Target statevector
-        target = {'0x0': qi.Statevector([1, 0, 0, 0]),
-                  '0x3': qi.Statevector([0, 0, 0, -1j])}
+        target = {"0x0": qi.Statevector([1, 0, 0, 0]), "0x3": qi.Statevector([0, 0, 0, -1j])}
 
         # Run
-        result = backend.run(transpile(
-            circ, backend, optimization_level=0), shots=1).result()
+        result = backend.run(transpile(circ, backend, optimization_level=0), shots=1).result()
         self.assertTrue(result.success)
         simdata = result.data(0)
         self.assertIn(label, simdata)
@@ -84,8 +94,15 @@ class TestSaveStatevector(SimulatorTestCase):
             self.assertIn(key, target)
             self.assertEqual(vec, target[key])
 
-    @supported_methods(['automatic', 'statevector', 'matrix_product_state',
-                        'extended_stabilizer'])
+    @supported_methods(
+        [
+            "automatic",
+            "statevector",
+            "matrix_product_state",
+            "extended_stabilizer",
+            "tensor_network",
+        ]
+    )
     def test_save_statevector_pershot(self, method, device):
         """Test pershot save statevector instruction"""
         backend = self.backend(method=method, device=device)
@@ -101,13 +118,12 @@ class TestSaveStatevector(SimulatorTestCase):
         target = qi.Statevector(circ)
 
         # Add save
-        label = 'state'
+        label = "state"
         circ.save_statevector(label=label, pershot=True)
 
         # Run
         shots = 10
-        result = backend.run(transpile(
-            circ, backend, optimization_level=0), shots=shots).result()
+        result = backend.run(transpile(circ, backend, optimization_level=0), shots=shots).result()
         self.assertTrue(result.success)
         simdata = result.data(0)
         self.assertIn(label, simdata)
@@ -116,8 +132,15 @@ class TestSaveStatevector(SimulatorTestCase):
         for vec in value:
             self.assertEqual(vec, target)
 
-    @supported_methods(['automatic', 'statevector', 'matrix_product_state',
-                        'extended_stabilizer'])
+    @supported_methods(
+        [
+            "automatic",
+            "statevector",
+            "matrix_product_state",
+            "extended_stabilizer",
+            "tensor_network",
+        ]
+    )
     def test_save_statevector_pershot_conditional(self, method, device):
         """Test pershot conditional save statevector instruction"""
 
@@ -134,28 +157,28 @@ class TestSaveStatevector(SimulatorTestCase):
         target = qi.Statevector(circ)
 
         # Add save
-        label = 'state'
+        label = "state"
         circ.save_statevector(label=label, pershot=True, conditional=True)
         circ.measure_all()
 
         # Run
         shots = 10
-        result = backend.run(transpile(
-            circ, backend, optimization_level=0), shots=shots).result()
+        result = backend.run(transpile(circ, backend, optimization_level=0), shots=shots).result()
         self.assertTrue(result.success)
         simdata = result.data(0)
         self.assertIn(label, simdata)
         value = simdata[label]
-        self.assertIn('0x0', value)
-        self.assertEqual(len(value['0x0']), shots)
-        for vec in value['0x0']:
+        self.assertIn("0x0", value)
+        self.assertEqual(len(value["0x0"]), shots)
+        for vec in value["0x0"]:
             self.assertEqual(vec, target)
 
-    @supported_methods(['statevector'])
+    @supported_methods(["statevector"])
     def test_save_statevector_cache_blocking(self, method, device):
         """Test save statevector for instruction"""
-        backend = self.backend(method=method, device=device,
-                               blocking_qubits=2, max_parallel_threads=1)
+        backend = self.backend(
+            method=method, device=device, blocking_qubits=2, max_parallel_threads=1
+        )
 
         # Stabilizer test circuit
         circ = QuantumCircuit(3)
@@ -168,12 +191,11 @@ class TestSaveStatevector(SimulatorTestCase):
         target = qi.Statevector(circ)
 
         # Add save to circuit
-        label = 'state'
+        label = "state"
         circ.save_statevector(label=label)
 
         # Run
-        result = backend.run(transpile(
-            circ, backend, optimization_level=0), shots=1).result()
+        result = backend.run(transpile(circ, backend, optimization_level=0), shots=1).result()
         self.assertTrue(result.success)
         simdata = result.data(0)
         self.assertIn(label, simdata)

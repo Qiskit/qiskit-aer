@@ -23,10 +23,16 @@ from qiskit.providers.backend import BackendV2
 from ..version import __version__
 from ..aererror import AerError
 from .aerbackend import AerBackend
-from .backend_utils import (cpp_execute, available_methods,
-                            MAX_QUBITS_STATEVECTOR,
-                            LEGACY_METHOD_MAP,
-                            map_legacy_method_options)
+from .backend_utils import (
+    cpp_execute_qobj,
+    cpp_execute_circuits,
+    available_methods,
+    MAX_QUBITS_STATEVECTOR,
+    LEGACY_METHOD_MAP,
+    map_legacy_method_options,
+    map_legacy_method_config,
+)
+
 # pylint: disable=import-error, no-name-in-module
 from .controller_wrappers import aer_controller_execute
 
@@ -57,9 +63,9 @@ class QasmSimulator(AerBackend):
         backend = QasmSimulator(method='density_matrix',
                                 noise_model=noise_model)
 
-    **Simulating an IBMQ Backend**
+    **Simulating an IBM Quantum Backend**
 
-    The simulator can be automatically configured to mimic an IBMQ backend using
+    The simulator can be automatically configured to mimic an IBM Quantum backend using
     the :meth:`from_backend` method. This will configure the simulator to use the
     basic device :class:`NoiseModel` for that backend, and the same basis gates
     and coupling map.
@@ -300,78 +306,153 @@ class QasmSimulator(AerBackend):
       than or equal to enable fusion optimization [Default: 14]
     """
 
-    _DEFAULT_BASIS_GATES = sorted([
-        'u1', 'u2', 'u3', 'u', 'p', 'r', 'rx', 'ry', 'rz', 'id', 'x',
-        'y', 'z', 'h', 's', 'sdg', 'sx', 'sxdg', 't', 'tdg', 'swap', 'cx',
-        'cy', 'cz', 'csx', 'cp', 'cu', 'cu1', 'cu2', 'cu3', 'rxx', 'ryy',
-        'rzz', 'rzx', 'ccx', 'cswap', 'mcx', 'mcy', 'mcz', 'mcsx',
-        'mcp', 'mcphase', 'mcu', 'mcu1', 'mcu2', 'mcu3', 'mcrx', 'mcry', 'mcrz',
-        'mcr', 'mcswap', 'unitary', 'diagonal', 'multiplexer',
-        'initialize', 'delay', 'pauli', 'mcx_gray'
-    ])
+    _DEFAULT_BASIS_GATES = sorted(
+        [
+            "u1",
+            "u2",
+            "u3",
+            "u",
+            "p",
+            "r",
+            "rx",
+            "ry",
+            "rz",
+            "id",
+            "x",
+            "y",
+            "z",
+            "h",
+            "s",
+            "sdg",
+            "sx",
+            "sxdg",
+            "t",
+            "tdg",
+            "swap",
+            "cx",
+            "cy",
+            "cz",
+            "csx",
+            "cp",
+            "cu",
+            "cu1",
+            "cu2",
+            "cu3",
+            "rxx",
+            "ryy",
+            "rzz",
+            "rzx",
+            "ccx",
+            "cswap",
+            "mcx",
+            "mcy",
+            "mcz",
+            "mcsx",
+            "mcp",
+            "mcphase",
+            "mcu",
+            "mcu1",
+            "mcu2",
+            "mcu3",
+            "mcrx",
+            "mcry",
+            "mcrz",
+            "mcr",
+            "mcswap",
+            "unitary",
+            "diagonal",
+            "multiplexer",
+            "initialize",
+            "delay",
+            "pauli",
+            "mcx_gray",
+            "ecr",
+        ]
+    )
 
-    _DEFAULT_CUSTOM_INSTR = sorted([
-        'quantum_channel', 'qerror_loc', 'roerror', 'kraus',
-        'save_expval', 'save_expval_var',
-        'save_probabilities', 'save_probabilities_dict',
-        'save_amplitudes', 'save_amplitudes_sq', 'save_state',
-        'save_density_matrix', 'save_statevector', 'save_statevector_dict',
-        'save_stabilizer', 'set_statevector', 'set_density_matrix',
-        'set_stabilizer',
-    ])
+    _DEFAULT_CUSTOM_INSTR = sorted(
+        [
+            "quantum_channel",
+            "qerror_loc",
+            "roerror",
+            "kraus",
+            "save_expval",
+            "save_expval_var",
+            "save_probabilities",
+            "save_probabilities_dict",
+            "save_amplitudes",
+            "save_amplitudes_sq",
+            "save_state",
+            "save_density_matrix",
+            "save_statevector",
+            "save_statevector_dict",
+            "save_stabilizer",
+            "set_statevector",
+            "set_density_matrix",
+            "set_stabilizer",
+        ]
+    )
 
     _DEFAULT_CONFIGURATION = {
-        'backend_name': 'qasm_simulator',
-        'backend_version': __version__,
-        'n_qubits': MAX_QUBITS_STATEVECTOR,
-        'url': 'https://github.com/Qiskit/qiskit-aer',
-        'simulator': True,
-        'local': True,
-        'conditional': True,
-        'open_pulse': False,
-        'memory': True,
-        'max_shots': int(1e6),
-        'description': 'A C++ QasmQobj simulator with noise',
-        'coupling_map': None,
-        'basis_gates': _DEFAULT_BASIS_GATES,
-        'custom_instructions': _DEFAULT_CUSTOM_INSTR,
-        'gates': []
+        "backend_name": "qasm_simulator",
+        "backend_version": __version__,
+        "n_qubits": MAX_QUBITS_STATEVECTOR,
+        "url": "https://github.com/Qiskit/qiskit-aer",
+        "simulator": True,
+        "local": True,
+        "conditional": True,
+        "open_pulse": False,
+        "memory": True,
+        "max_shots": int(1e6),
+        "description": "A C++ QasmQobj simulator with noise",
+        "coupling_map": None,
+        "basis_gates": _DEFAULT_BASIS_GATES,
+        "custom_instructions": _DEFAULT_CUSTOM_INSTR,
+        "gates": [],
     }
 
     _SIMULATION_METHODS = [
-        'automatic', 'statevector', 'statevector_gpu', 'statevector_custatevec',
-        'statevector_thrust', 'density_matrix',
-        'density_matrix_gpu', 'density_matrix_custatevec', 'density_matrix_thrust',
-        'stabilizer', 'matrix_product_state', 'extended_stabilizer'
+        "automatic",
+        "statevector",
+        "statevector_gpu",
+        "statevector_custatevec",
+        "statevector_thrust",
+        "density_matrix",
+        "density_matrix_gpu",
+        "density_matrix_custatevec",
+        "density_matrix_thrust",
+        "stabilizer",
+        "matrix_product_state",
+        "extended_stabilizer",
     ]
 
     _AVAILABLE_METHODS = None
 
-    _SIMULATION_DEVICES = ('CPU', 'GPU', 'Thrust')
+    _SIMULATION_DEVICES = ("CPU", "GPU", "Thrust")
 
     _AVAILABLE_DEVICES = None
 
-    def __init__(self,
-                 configuration=None,
-                 properties=None,
-                 provider=None,
-                 **backend_options):
-
-        warn('The `QasmSimulator` backend will be deprecated in the'
-             ' future. It has been superseded by the `AerSimulator`'
-             ' backend.', PendingDeprecationWarning)
+    def __init__(self, configuration=None, properties=None, provider=None, **backend_options):
+        warn(
+            "The `QasmSimulator` backend will be deprecated in the"
+            " future. It has been superseded by the `AerSimulator`"
+            " backend.",
+            PendingDeprecationWarning,
+        )
 
         self._controller = aer_controller_execute()
 
         # Update available methods for class
         if QasmSimulator._AVAILABLE_METHODS is None:
             QasmSimulator._AVAILABLE_METHODS = available_methods(
-                self._controller, QasmSimulator._SIMULATION_METHODS)
+                self._controller,
+                QasmSimulator._SIMULATION_METHODS,
+                QasmSimulator._SIMULATION_DEVICES,
+            )
 
         # Default configuration
         if configuration is None:
-            configuration = QasmBackendConfiguration.from_dict(
-                QasmSimulator._DEFAULT_CONFIGURATION)
+            configuration = QasmBackendConfiguration.from_dict(QasmSimulator._DEFAULT_CONFIGURATION)
         else:
             configuration.open_pulse = False
 
@@ -379,23 +460,22 @@ class QasmSimulator(AerBackend):
         # of noise model, method, and config gates is expensive.
         self._cached_basis_gates = self._DEFAULT_BASIS_GATES
 
-        super().__init__(configuration,
-                         properties=properties,
-                         provider=provider,
-                         backend_options=backend_options)
+        super().__init__(
+            configuration, properties=properties, provider=provider, backend_options=backend_options
+        )
 
     def __repr__(self):
         """String representation of an AerBackend."""
         display = super().__repr__()[:-1]
-        pad = ' ' * (len(self.__class__.__name__) + 1)
+        pad = " " * (len(self.__class__.__name__) + 1)
 
-        method = getattr(self.options, 'method', None)
-        if method not in [None, 'automatic']:
-            display += ",\n{}method='{}'".format(pad, method)
+        method = getattr(self.options, "method", None)
+        if method not in [None, "automatic"]:
+            display += f",\n{pad}method='{method}'"
 
-        noise_model = getattr(self.options, 'noise_model', None)
+        noise_model = getattr(self.options, "noise_model", None)
         if noise_model is not None and not noise_model.is_ideal():
-            display += ',\n{}noise_model={})'.format(pad, repr(noise_model))
+            display += f",\n{pad}noise_model={repr(noise_model)})"
 
         display += ")"
         return display
@@ -434,7 +514,7 @@ class QasmSimulator(AerBackend):
             # stabilizer options
             stabilizer_max_snapshot_probabilities=32,
             # extended stabilizer options
-            extended_stabilizer_sampling_method='resampled_metropolis',
+            extended_stabilizer_sampling_method="resampled_metropolis",
             extended_stabilizer_metropolis_mixing_time=5000,
             extended_stabilizer_approximation_error=0.05,
             extended_stabilizer_norm_estimation_samples=100,
@@ -444,19 +524,18 @@ class QasmSimulator(AerBackend):
             # MPS options
             matrix_product_state_truncation_threshold=1e-16,
             matrix_product_state_max_bond_dimension=None,
-            mps_sample_measure_algorithm='mps_heuristic',
+            mps_sample_measure_algorithm="mps_heuristic",
             mps_log_data=False,
             chop_threshold=1e-8,
             mps_parallel_threshold=14,
-            mps_omp_threads=1)
+            mps_omp_threads=1,
+        )
 
     @classmethod
     def from_backend(cls, backend, **options):
         """Initialize simulator from backend."""
         if isinstance(backend, BackendV2):
-            raise AerError(
-                "QasmSimulator.from_backend does not currently support V2 Backends."
-            )
+            raise AerError("QasmSimulator.from_backend does not currently support V2 Backends.")
         # pylint: disable=import-outside-toplevel
         # Avoid cyclic import
         from ..noise.noise_model import NoiseModel
@@ -467,18 +546,16 @@ class QasmSimulator(AerBackend):
 
         # Customize configuration name
         name = configuration.backend_name
-        configuration.backend_name = 'qasm_simulator({})'.format(name)
+        configuration.backend_name = f"qasm_simulator({name})"
 
         # Use automatic noise model if none is provided
-        if 'noise_model' not in options:
+        if "noise_model" not in options:
             noise_model = NoiseModel.from_backend(backend)
             if not noise_model.is_ideal():
-                options['noise_model'] = noise_model
+                options["noise_model"] = noise_model
 
         # Initialize simulator
-        sim = cls(configuration=configuration,
-                  properties=properties,
-                  **options)
+        sim = cls(configuration=configuration, properties=properties, **options)
         return sim
 
     def configuration(self):
@@ -504,7 +581,7 @@ class QasmSimulator(AerBackend):
         """Return the available simulation methods."""
         return copy.copy(self._AVAILABLE_DEVICES)
 
-    def _execute(self, qobj):
+    def _execute_qobj(self, qobj):
         """Execute a qobj on the backend.
 
         Args:
@@ -514,7 +591,12 @@ class QasmSimulator(AerBackend):
             dict: return a dictionary of results.
         """
         qobj = map_legacy_method_options(qobj)
-        return cpp_execute(self._controller, qobj)
+        return cpp_execute_qobj(self._controller, qobj)
+
+    def _execute_circuits(self, aer_circuits, noise_model, config):
+        """Execute circuits on the backend."""
+        config = map_legacy_method_config(config)
+        return cpp_execute_circuits(self._controller, aer_circuits, noise_model, config)
 
     def set_option(self, key, value):
         if key == "custom_instructions":
@@ -524,10 +606,11 @@ class QasmSimulator(AerBackend):
             if value in LEGACY_METHOD_MAP:
                 value, device = LEGACY_METHOD_MAP[value]
                 self.set_option("device", device)
-            if (value is not None and value not in self.available_methods()):
+            if value is not None and value not in self.available_methods():
                 raise AerError(
-                    "Invalid simulation method {}. Available methods"
-                    " are: {}".format(value, self.available_methods()))
+                    f"Invalid simulation method {value}. Available methods"
+                    f" are: {self.available_methods()}"
+                )
             self._set_method_config(value)
         super().set_option(key, value)
         if key in ["method", "noise_model", "basis_gates"]:
@@ -552,9 +635,9 @@ class QasmSimulator(AerBackend):
                 # Print warning if clbits but no measure
                 if no_measure:
                     logger.warning(
-                        'No measurements in circuit "%s": '
-                        'count data will return all zeros.',
-                        experiment.header.name)
+                        'No measurements in circuit "%s": ' "count data will return all zeros.",
+                        experiment.header.name,
+                    )
 
     def _basis_gates(self):
         """Return simualtor basis gates.
@@ -564,20 +647,19 @@ class QasmSimulator(AerBackend):
         and method supported basis gates.
         """
         # Use option value for basis gates if set
-        if 'basis_gates' in self._options_configuration:
-            return self._options_configuration['basis_gates']
+        if "basis_gates" in self._options_configuration:
+            return self._options_configuration["basis_gates"]
 
         # Compute intersection with method basis gates
         method_gates = self._method_basis_gates()
         config_gates = self._configuration.basis_gates
         if config_gates:
-            basis_gates = set(config_gates).intersection(
-                method_gates)
+            basis_gates = set(config_gates).intersection(method_gates)
         else:
             basis_gates = method_gates
 
         # Compute intersection with noise model basis gates
-        noise_model = getattr(self.options, 'noise_model', None)
+        noise_model = getattr(self.options, "noise_model", None)
         if noise_model:
             noise_gates = noise_model.basis_gates
             basis_gates = basis_gates.intersection(noise_gates)
@@ -589,106 +671,279 @@ class QasmSimulator(AerBackend):
                 "The intersection of configuration basis gates (%s), "
                 "simulation method basis gates (%s), and "
                 "noise model basis gates (%s) is empty",
-                config_gates, method_gates, noise_gates)
+                config_gates,
+                method_gates,
+                noise_gates,
+            )
         return sorted(basis_gates)
 
     def _method_basis_gates(self):
         """Return method basis gates and custom instructions"""
-        method = self._options.get('method', None)
-        if method in ['density_matrix', 'density_matrix_gpu',
-                      'density_matrix_custatevec', 'density_matrix_thrust']:
-            return sorted([
-                'u1', 'u2', 'u3', 'u', 'p', 'r', 'rx', 'ry', 'rz', 'id', 'x',
-                'y', 'z', 'h', 's', 'sdg', 'sx', 'sxdg', 't', 'tdg', 'swap', 'cx',
-                'cy', 'cz', 'cp', 'cu1', 'rxx', 'ryy', 'rzz', 'rzx', 'ccx',
-                'unitary', 'diagonal', 'delay', 'pauli'
-            ])
-        if method == 'matrix_product_state':
-            return sorted([
-                'u1', 'u2', 'u3', 'u', 'p', 'cp', 'cx', 'cy', 'cz', 'id', 'x',
-                'y', 'z', 'h', 's', 'sdg', 'sx', 'sxdg', 't', 'tdg', 'swap', 'ccx',
-                'unitary', 'roerror', 'delay', 'pauli', 'r', 'rx', 'ry', 'rz', 'rxx',
-                'ryy', 'rzz', 'rzx', 'csx', 'cswap', 'diagonal', 'initialize'
-            ])
-        if method == 'stabilizer':
-            return sorted([
-                'id', 'x', 'y', 'z', 'h', 's', 'sdg', 'sx', 'sxdg', 'cx', 'cy', 'cz',
-                'swap', 'delay', 'pauli'
-            ])
-        if method == 'extended_stabilizer':
-            return sorted([
-                'cx', 'cz', 'id', 'x', 'y', 'z', 'h', 's', 'sdg', 'sx', 'sxdg',
-                'swap', 'u0', 't', 'tdg', 'u1', 'p', 'ccx', 'ccz', 'delay', 'pauli'
-            ])
+        method = self._options.get("method", None)
+        if method in [
+            "density_matrix",
+            "density_matrix_gpu",
+            "density_matrix_custatevec",
+            "density_matrix_thrust",
+        ]:
+            return sorted(
+                [
+                    "u1",
+                    "u2",
+                    "u3",
+                    "u",
+                    "p",
+                    "r",
+                    "rx",
+                    "ry",
+                    "rz",
+                    "id",
+                    "x",
+                    "y",
+                    "z",
+                    "h",
+                    "s",
+                    "sdg",
+                    "sx",
+                    "sxdg",
+                    "t",
+                    "tdg",
+                    "swap",
+                    "cx",
+                    "cy",
+                    "cz",
+                    "cp",
+                    "cu1",
+                    "rxx",
+                    "ryy",
+                    "rzz",
+                    "rzx",
+                    "ccx",
+                    "unitary",
+                    "diagonal",
+                    "delay",
+                    "pauli",
+                    "ecr",
+                ]
+            )
+        if method == "matrix_product_state":
+            return sorted(
+                [
+                    "u1",
+                    "u2",
+                    "u3",
+                    "u",
+                    "p",
+                    "cp",
+                    "cx",
+                    "cy",
+                    "cz",
+                    "id",
+                    "x",
+                    "y",
+                    "z",
+                    "h",
+                    "s",
+                    "sdg",
+                    "sx",
+                    "sxdg",
+                    "t",
+                    "tdg",
+                    "swap",
+                    "ccx",
+                    "unitary",
+                    "roerror",
+                    "delay",
+                    "pauli",
+                    "r",
+                    "rx",
+                    "ry",
+                    "rz",
+                    "rxx",
+                    "ryy",
+                    "rzz",
+                    "rzx",
+                    "csx",
+                    "cswap",
+                    "diagonal",
+                    "initialize",
+                ]
+            )
+        if method == "stabilizer":
+            return sorted(
+                [
+                    "id",
+                    "x",
+                    "y",
+                    "z",
+                    "h",
+                    "s",
+                    "sdg",
+                    "sx",
+                    "sxdg",
+                    "cx",
+                    "cy",
+                    "cz",
+                    "swap",
+                    "delay",
+                    "pauli",
+                ]
+            )
+        if method == "extended_stabilizer":
+            return sorted(
+                [
+                    "cx",
+                    "cz",
+                    "id",
+                    "x",
+                    "y",
+                    "z",
+                    "h",
+                    "s",
+                    "sdg",
+                    "sx",
+                    "sxdg",
+                    "swap",
+                    "u0",
+                    "t",
+                    "tdg",
+                    "u1",
+                    "p",
+                    "ccx",
+                    "ccz",
+                    "delay",
+                    "pauli",
+                ]
+            )
         return QasmSimulator._DEFAULT_BASIS_GATES
 
     def _custom_instructions(self):
         """Return method basis gates and custom instructions"""
         # pylint: disable = too-many-return-statements
-        if 'custom_instructions' in self._options_configuration:
-            return self._options_configuration['custom_instructions']
+        if "custom_instructions" in self._options_configuration:
+            return self._options_configuration["custom_instructions"]
 
-        method = self._options.get('method', None)
-        if method in ['statevector', 'statevector_gpu',
-                      'statevector_custatevec', 'statevector_thrust']:
-            return sorted([
-                'quantum_channel', 'qerror_loc', 'roerror', 'kraus', 'save_expval',
-                'save_expval_var', 'save_probabilities', 'save_probabilities_dict',
-                'save_amplitudes', 'save_amplitudes_sq', 'save_state',
-                'save_density_matrix', 'save_statevector', 'save_statevector_dict',
-                'set_statevector'
-            ])
-        if method in ['density_matrix', 'density_matrix_gpu',
-                      'density_matrix_custatevec', 'density_matrix_thrust']:
-            return sorted([
-                'quantum_channel', 'qerror_loc', 'roerror', 'kraus', 'superop',
-                'save_expval', 'save_expval_var', 'save_probabilities', 'save_probabilities_dict',
-                'save_state', 'save_density_matrix', 'save_amplitudes_sq',
-                'set_statevector', 'set_density_matrix'
-            ])
-        if method == 'matrix_product_state':
-            return sorted([
-                'quantum_channel', 'qerror_loc', 'roerror', 'kraus', 'save_expval',
-                'save_expval_var', 'save_probabilities', 'save_probabilities_dict',
-                'save_density_matrix', 'save_state', 'save_statevector',
-                'save_amplitudes', 'save_amplitudes_sq', 'save_matrix_product_state',
-                'set_matrix_product_state'])
-        if method == 'stabilizer':
-            return sorted([
-                'quantum_channel', 'qerror_loc', 'roerror', 'save_expval',
-                'save_expval_var', 'save_probabilities', 'save_probabilities_dict',
-                'save_amplitudes_sq', 'save_state', 'save_stabilizer',
-                'set_stabilizer'
-            ])
-        if method == 'extended_stabilizer':
-            return sorted([
-                'quantum_channel', 'qerror_loc', 'roerror',
-                'save_statevector'])
+        method = self._options.get("method", None)
+        if method in [
+            "statevector",
+            "statevector_gpu",
+            "statevector_custatevec",
+            "statevector_thrust",
+        ]:
+            return sorted(
+                [
+                    "quantum_channel",
+                    "qerror_loc",
+                    "roerror",
+                    "kraus",
+                    "save_expval",
+                    "save_expval_var",
+                    "save_probabilities",
+                    "save_probabilities_dict",
+                    "save_amplitudes",
+                    "save_amplitudes_sq",
+                    "save_state",
+                    "save_density_matrix",
+                    "save_statevector",
+                    "save_statevector_dict",
+                    "set_statevector",
+                ]
+            )
+        if method in [
+            "density_matrix",
+            "density_matrix_gpu",
+            "density_matrix_custatevec",
+            "density_matrix_thrust",
+        ]:
+            return sorted(
+                [
+                    "quantum_channel",
+                    "qerror_loc",
+                    "roerror",
+                    "kraus",
+                    "superop",
+                    "save_expval",
+                    "save_expval_var",
+                    "save_probabilities",
+                    "save_probabilities_dict",
+                    "save_state",
+                    "save_density_matrix",
+                    "save_amplitudes_sq",
+                    "set_statevector",
+                    "set_density_matrix",
+                ]
+            )
+        if method == "matrix_product_state":
+            return sorted(
+                [
+                    "quantum_channel",
+                    "qerror_loc",
+                    "roerror",
+                    "kraus",
+                    "save_expval",
+                    "save_expval_var",
+                    "save_probabilities",
+                    "save_probabilities_dict",
+                    "save_density_matrix",
+                    "save_state",
+                    "save_statevector",
+                    "save_amplitudes",
+                    "save_amplitudes_sq",
+                    "save_matrix_product_state",
+                    "set_matrix_product_state",
+                ]
+            )
+        if method == "stabilizer":
+            return sorted(
+                [
+                    "quantum_channel",
+                    "qerror_loc",
+                    "roerror",
+                    "save_expval",
+                    "save_expval_var",
+                    "save_probabilities",
+                    "save_probabilities_dict",
+                    "save_amplitudes_sq",
+                    "save_state",
+                    "save_stabilizer",
+                    "set_stabilizer",
+                ]
+            )
+        if method == "extended_stabilizer":
+            return sorted(["quantum_channel", "qerror_loc", "roerror", "save_statevector"])
         return QasmSimulator._DEFAULT_CUSTOM_INSTR
 
     def _set_method_config(self, method=None):
         """Set non-basis gate options when setting method"""
         # Update configuration description and number of qubits
-        if method in ['statevector', 'statevector_gpu',
-                      'statevector_custatevec', 'statevector_thrust']:
-            description = 'A C++ statevector simulator with noise'
+        if method in [
+            "statevector",
+            "statevector_gpu",
+            "statevector_custatevec",
+            "statevector_thrust",
+        ]:
+            description = "A C++ statevector simulator with noise"
             n_qubits = MAX_QUBITS_STATEVECTOR
-        elif method in ['density_matrix', 'density_matrix_gpu',
-                        'density_matrix_custatevec', 'density_matrix_thrust']:
-            description = 'A C++ density matrix simulator with noise'
+        elif method in [
+            "density_matrix",
+            "density_matrix_gpu",
+            "density_matrix_custatevec",
+            "density_matrix_thrust",
+        ]:
+            description = "A C++ density matrix simulator with noise"
             n_qubits = MAX_QUBITS_STATEVECTOR // 2
-        elif method == 'matrix_product_state':
-            description = 'A C++ matrix product state simulator with noise'
+        elif method == "matrix_product_state":
+            description = "A C++ matrix product state simulator with noise"
             n_qubits = 63  # TODO: not sure what to put here?
-        elif method == 'stabilizer':
-            description = 'A C++ Clifford stabilizer simulator with noise'
+        elif method == "stabilizer":
+            description = "A C++ Clifford stabilizer simulator with noise"
             n_qubits = 10000  # TODO: estimate from memory
-        elif method == 'extended_stabilizer':
-            description = 'A C++ Clifford+T extended stabilizer simulator with noise'
+        elif method == "extended_stabilizer":
+            description = "A C++ Clifford+T extended stabilizer simulator with noise"
             n_qubits = 63  # TODO: estimate from memory
         else:
             # Clear options to default
             description = None
             n_qubits = None
-        self._set_configuration_option('description', description)
-        self._set_configuration_option('n_qubits', n_qubits)
+        self._set_configuration_option("description", description)
+        self._set_configuration_option("n_qubits", n_qubits)

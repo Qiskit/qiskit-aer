@@ -22,12 +22,15 @@ from .save_data import SaveAverageData
 
 class SaveExpectationValue(SaveAverageData):
     """Save expectation value of an operator."""
-    def __init__(self,
-                 operator,
-                 label="expectation_value",
-                 unnormalized=False,
-                 pershot=False,
-                 conditional=False):
+
+    def __init__(
+        self,
+        operator,
+        label="expectation_value",
+        unnormalized=False,
+        pershot=False,
+        conditional=False,
+    ):
         r"""Instruction to save the expectation value of a Hermitian operator.
 
         The expectation value of a Hermitian operator :math:`H` for a simulator
@@ -63,21 +66,28 @@ class SaveExpectationValue(SaveAverageData):
         if not allclose(operator.coeffs.imag, 0):
             raise ExtensionError("Input operator is not Hermitian.")
         params = _expval_params(operator, variance=False)
-        super().__init__('save_expval', operator.num_qubits, label,
-                         unnormalized=unnormalized,
-                         pershot=pershot,
-                         conditional=conditional,
-                         params=params)
+        super().__init__(
+            "save_expval",
+            operator.num_qubits,
+            label,
+            unnormalized=unnormalized,
+            pershot=pershot,
+            conditional=conditional,
+            params=params,
+        )
 
 
 class SaveExpectationValueVariance(SaveAverageData):
     """Save expectation value and variance of an operator."""
-    def __init__(self,
-                 operator,
-                 label="expectation_value_variance",
-                 unnormalized=False,
-                 pershot=False,
-                 conditional=False):
+
+    def __init__(
+        self,
+        operator,
+        label="expectation_value_variance",
+        unnormalized=False,
+        pershot=False,
+        conditional=False,
+    ):
         r"""Instruction to save the expectation value and variance of a Hermitian operator.
 
         The expectation value of a Hermitian operator :math:`H` for a
@@ -114,15 +124,18 @@ class SaveExpectationValueVariance(SaveAverageData):
         if not allclose(operator.coeffs.imag, 0):
             raise ExtensionError("Input operator is not Hermitian.")
         params = _expval_params(operator, variance=True)
-        super().__init__('save_expval_var', operator.num_qubits, label,
-                         unnormalized=unnormalized,
-                         pershot=pershot,
-                         conditional=conditional,
-                         params=params)
+        super().__init__(
+            "save_expval_var",
+            operator.num_qubits,
+            label,
+            unnormalized=unnormalized,
+            pershot=pershot,
+            conditional=conditional,
+            params=params,
+        )
 
 
 def _expval_params(operator, variance=False):
-
     # Convert O to SparsePauliOp representation
     if isinstance(operator, Pauli):
         operator = SparsePauliOp(operator)
@@ -154,13 +167,15 @@ def _expval_params(operator, variance=False):
     return list(params.items())
 
 
-def save_expectation_value(self,
-                           operator,
-                           qubits,
-                           label="expectation_value",
-                           unnormalized=False,
-                           pershot=False,
-                           conditional=False):
+def save_expectation_value(
+    self,
+    operator,
+    qubits,
+    label="expectation_value",
+    unnormalized=False,
+    pershot=False,
+    conditional=False,
+):
     r"""Save the expectation value of a Hermitian operator.
 
     Args:
@@ -188,21 +203,21 @@ def save_expectation_value(self,
         This method appends a :class:`SaveExpectationValue` instruction to
         the quantum circuit.
     """
-    instr = SaveExpectationValue(operator,
-                                 label=label,
-                                 unnormalized=unnormalized,
-                                 pershot=pershot,
-                                 conditional=conditional)
+    instr = SaveExpectationValue(
+        operator, label=label, unnormalized=unnormalized, pershot=pershot, conditional=conditional
+    )
     return self.append(instr, qubits)
 
 
-def save_expectation_value_variance(self,
-                                    operator,
-                                    qubits,
-                                    label="expectation_value_variance",
-                                    unnormalized=False,
-                                    pershot=False,
-                                    conditional=False):
+def save_expectation_value_variance(
+    self,
+    operator,
+    qubits,
+    label="expectation_value_variance",
+    unnormalized=False,
+    pershot=False,
+    conditional=False,
+):
     r"""Save the expectation value of a Hermitian operator.
 
     Args:
@@ -229,11 +244,9 @@ def save_expectation_value_variance(self,
         This method appends a :class:`SaveExpectationValueVariance`
         instruction to the quantum circuit.
     """
-    instr = SaveExpectationValueVariance(operator,
-                                         label=label,
-                                         unnormalized=unnormalized,
-                                         pershot=pershot,
-                                         conditional=conditional)
+    instr = SaveExpectationValueVariance(
+        operator, label=label, unnormalized=unnormalized, pershot=pershot, conditional=conditional
+    )
     return self.append(instr, qubits)
 
 

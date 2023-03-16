@@ -1,0 +1,7 @@
+---
+features:
+  - |
+    Added a new class, :class:`~.AerDensityMatrix`, to the :mod:`qiskit_aer.quantum_info`
+    module. This class is used to provide the same interface to the
+    upstream :class:`~qiskit.quantum_info.DensityMatrix` class in Qiskit but backed by
+    Qiskit Aer's simulation.

@@ -31,7 +31,6 @@ namespace AER {
 
 class RngEngine {
 public:
-
   //-----------------------------------------------------------------------
   // Constructors
   //-----------------------------------------------------------------------
@@ -47,22 +46,18 @@ public:
   //-----------------------------------------------------------------------
 
   // Set random seed for the RNG engine
-  void set_random_seed() { 
+  void set_random_seed() {
     std::random_device rd;
     set_seed(rd());
   }
 
   // Set a fixed seed for the RNG engine
-  void set_seed(size_t seed)
-  {
-    rng.seed(seed); 
+  void set_seed(size_t seed) {
+    rng.seed(seed);
     initial_seed_ = seed;
   }
 
-  size_t initial_seed(void)
-  {
-    return initial_seed_;
-  }
+  size_t initial_seed(void) { return initial_seed_; }
 
   //-----------------------------------------------------------------------
   // Sampling methods
@@ -76,13 +71,11 @@ public:
 
   // Generate a uniformly distributed pseudo random real in the half-open
   // interval [0,b)
-  double rand(double b) {
-    return rand(double(0), b);
-  };
+  double rand(double b) { return rand(double(0), b); };
 
   // Generate a uniformly distributed pseudo random real in the half-open
   // interval [0,1)
-  double rand() {return rand(0, 1); };
+  double rand() { return rand(0, 1); };
 
   // Generate a uniformly distributed pseudo random integer in the closed
   // interval [a,b]
@@ -103,8 +96,8 @@ public:
   }
 
 private:
-  std::mt19937_64 rng; // Mersenne twister rng engine
-  size_t initial_seed_; //save seed used to initialize rng engine 
+  std::mt19937_64 rng;  // Mersenne twister rng engine
+  size_t initial_seed_; // save seed used to initialize rng engine
 };
 
 //------------------------------------------------------------------------------

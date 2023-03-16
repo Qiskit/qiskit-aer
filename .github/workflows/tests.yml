@@ -34,17 +34,22 @@ jobs:
           pip install -U pip wheel
           pip install -U -c constraints.txt -r requirements-dev.txt qiskit-terra numpy scipy
         shell: bash
+      - name: Run clang-format
+        run: |
+          set -e
+          sh tools/clang-format.sh --Werror -n
+        shell: bash          
       - name: Run Lint
         run: |
           set -e
-          pycodestyle --ignore=E402,W504 --max-line-length=100 qiskit_aer
+          black --check qiskit_aer test tools setup.py
           pylint -j 2 -rn qiskit_aer
   sdist:
     runs-on: ${{ matrix.platform.os }}
     needs: ["lint"]
     strategy:
       matrix:
-        python-version: [3.7, 3.8, 3.9, "3.10"]
+        python-version: [3.7, 3.8, 3.9, "3.10", '3.11']
         platform: [
           { os: "ubuntu-latest", python-architecture: "x64" },
         ]
@@ -64,7 +69,7 @@ jobs:
             ${{ runner.os }}-${{ matrix.python-version}}-pip-
             ${{ runner.os }}-${{ matrix.python-version}}-
       - name: Install Deps
-        run: python -m pip install -U setuptools wheel virtualenv
+        run: python -m pip install -U setuptools wheel virtualenv build
       - name: Install openblas
         run: |
           set -e
@@ -72,7 +77,7 @@ jobs:
           sudo apt-get install -y libopenblas-dev
         shell: bash
       - name: Build Sdist
-        run: python setup.py sdist
+        run: python -I -m build --sdist
       - name: Install from sdist and test
         run: |
           set -e
@@ -87,11 +92,15 @@ jobs:
     timeout-minutes: 60
     strategy:
       matrix:
-        python-version: [3.7, 3.8, 3.9, "3.10"]
+        python-version: [3.7, 3.8, 3.9, "3.10", "3.11"]
         os: ["ubuntu-latest"]
     env:
       AER_THRUST_BACKEND: OMP
       QISKIT_TEST_CAPTURE_STREAMS: 1
+      # Needed to suppress a warning in jupyter-core 5.x by eagerly migrating to
+      # a new internal interface that will be the default in jupyter-core 6.x.
+      # This variable should become redundant on release of jupyter-core 6.
+      JUPYTER_PLATFORM_DIRS: 1
     steps:
       - uses: actions/checkout@v2
       - name: Set up Python ${{ matrix.python-version }}
@@ -136,6 +145,10 @@ jobs:
     env:
       AER_THRUST_BACKEND: OMP
       QISKIT_TEST_CAPTURE_STREAMS: 1
+      # Needed to suppress a warning in jupyter-core 5.x by eagerly migrating to
+      # a new internal interface that will be the default in jupyter-core 6.x.
+      # This variable should become redundant on release of jupyter-core 6.
+      JUPYTER_PLATFORM_DIRS: 1
     steps:
       - uses: actions/checkout@v2
       - name: Set up Python ${{ matrix.python-version }}
@@ -152,7 +165,7 @@ jobs:
             ${{ runner.os }}-${{ matrix.python-version}}-pip-
             ${{ runner.os }}-${{ matrix.python-version}}-
       - name: Install Deps
-        run: python -m pip install -U -c constraints.txt -r requirements-dev.txt wheel
+        run: python -m pip install -U -c constraints.txt -r requirements-dev.txt wheel build
       - name: Install openblas
         run: |
           set -e
@@ -162,7 +175,7 @@ jobs:
       - name: Install Aer
         run: |
           set -e
-          python setup.py bdist_wheel -- -DTEST_JSON=1
+          python -I -m build --wheel --config-setting=--build-option=-- --config-setting=--build-option=-DTEST_JSON=1
           pip install --find-links=dist qiskit-aer
       - name: Run Tests
         run: |
@@ -177,11 +190,15 @@ jobs:
     timeout-minutes: 60
     strategy:
       matrix:
-        python-version: [3.7, 3.8, 3.9, "3.10"]
+        python-version: [3.7, 3.8, 3.9, "3.10", '3.11']
         os: ["macOS-latest"]
     env:
       AER_THRUST_BACKEND: OMP
       QISKIT_TEST_CAPTURE_STREAMS: 1
+      # Needed to suppress a warning in jupyter-core 5.x by eagerly migrating to
+      # a new internal interface that will be the default in jupyter-core 6.x.
+      # This variable should become redundant on release of jupyter-core 6.
+      JUPYTER_PLATFORM_DIRS: 1
     steps:
       - uses: actions/checkout@v2
       - name: Set up Python ${{ matrix.python-version }}
@@ -216,11 +233,15 @@ jobs:
     timeout-minutes: 60
     strategy:
       matrix:
-        python-version: [3.7, 3.8, 3.9, "3.10"]
+        python-version: [3.7, 3.8, 3.9, "3.10", "3.11"]
         os: ["windows-2019"]
     env:
       AER_THRUST_BACKEND: OMP
       QISKIT_TEST_CAPTURE_STREAMS: 1
+      # Needed to suppress a warning in jupyter-core 5.x by eagerly migrating to
+      # a new internal interface that will be the default in jupyter-core 6.x.
+      # This variable should become redundant on release of jupyter-core 6.
+      JUPYTER_PLATFORM_DIRS: 1
     steps:
       - uses: actions/checkout@v2
       - name: Set up Python ${{ matrix.python-version }}
@@ -239,11 +260,13 @@ jobs:
       - name: Add msbuild to PATH
         uses: microsoft/setup-msbuild@v1.0.2
       - name: Install Deps
-        run: python -m pip install -U -c constraints.txt -r requirements-dev.txt wheel
+        run: python -m pip install -U -c constraints.txt -r requirements-dev.txt wheel build
       - name: Install Aer Windows
+        env:
+          CMAKE_GENERATOR: "Visual Studio 16 2019"
         run: |
           set -e
-          python setup.py bdist_wheel -- -G 'Visual Studio 16 2019'
+          python -I -m build --wheel
           pip install --find-links=dist qiskit-aer
         shell: bash
       - name: Run Tests
