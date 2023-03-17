@@ -33,6 +33,8 @@ class TestQasmSimulator(SimulatorTestCase):
         # GPU_cuStateVec is converted to GPU
         if device == "GPU_cuStateVec":
             device = "GPU"
+        if device == "GPU_batch":
+            device = "GPU"
         legacy_method = f"{method}_{device.lower()}"
         backend.set_options(method=legacy_method)
         self.assertEqual(backend.options.method, method)

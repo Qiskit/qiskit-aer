@@ -262,7 +262,7 @@ class AerSimulator(AerBackend):
       intermediate measurements and can greatly accelerate simulation time
       on GPUs. If there are multiple GPUs on the system, shots are distributed
       automatically across available GPUs. Also this option distributes multiple
-      shots to parallel processes of MPI (Default: True).
+      shots to parallel processes of MPI (Default: False).
       If multiple GPUs are used for batched exectuion number of GPUs is
       reported to ``batched_shots_optimization_parallel_gpus`` metadata.
 
@@ -275,6 +275,19 @@ class AerSimulator(AerBackend):
       threads per device. For GPU simulation, this value sets number of
       threads per GPU. This parameter is used to optimize Pauli noise
       simulation with multiple-GPUs (Default: 1).
+
+    * ``shot_branching_enable`` (bool): This option enables/disables
+      optimized multi-shots simulation starting from single state and
+      state will be branched when some operations with randomness
+      (i.e. measure, reset, noises, etc.) is applied (Default: True).
+      This option can decrease runs of shots if there will be less branches
+      than number of shots.
+      This option is available for ``"statevector"``, ``"density_matrix"``.
+      For GPU, ``cuStateVec_enable`` is not supported for this option.
+
+    * ``runtime_noise_sampling_enable`` (bool): This option enables/disables
+      runtime noise sampling. This option is only applicable when
+      ``shot_branching_enable`` is also True. (Default: False).
 
     These backend options only apply when using the ``"statevector"``
     simulation method:
@@ -578,9 +591,12 @@ class AerSimulator(AerBackend):
             blocking_enable=False,
             chunk_swap_buffer_qubits=None,
             # multi-shots optimization options (GPU only)
-            batched_shots_gpu=True,
+            batched_shots_gpu=False,
             batched_shots_gpu_max_qubits=16,
             num_threads_per_device=1,
+            # multi-shot branching
+            shot_branching_enable=True,
+            runtime_noise_sampling_enable=False,
             # statevector options
             statevector_parallel_threshold=14,
             statevector_sample_measure_opt=10,

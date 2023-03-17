@@ -229,6 +229,11 @@ public:
   //set creg bit counts before initialize creg
   virtual void set_num_creg_bits(uint_t num_memory, uint_t num_register){}
 
+  void set_num_global_qubits(uint_t qubits)
+  {
+    num_global_qubits_ = qubits;
+  }
+
   //-----------------------------------------------------------------------
   // Common instructions
   //-----------------------------------------------------------------------
@@ -255,6 +260,8 @@ protected:
   int_t max_matrix_qubits_ = 0;
 
   std::string sim_device_name_ = "CPU";
+
+  uint_t num_global_qubits_;  //used for chunk parallelization
 };
 
 void Base::set_config(const json_t &config) 

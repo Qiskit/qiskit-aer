@@ -40,7 +40,7 @@ enum class OpType {
   gate, measure, reset, bfunc, barrier, qerror_loc,
   matrix, diagonal_matrix, multiplexer, initialize, sim_op, nop,
   // Noise instructions
-  kraus, superop, roerror, noise_switch,
+  kraus, superop, roerror, noise_switch, sample_noise, 
   // Save instructions
   save_state, save_expval, save_expval_var, save_statevec, save_statevec_dict,
   save_densmat, save_probs, save_probs_ket, save_amps, save_amps_sq,
@@ -164,6 +164,9 @@ inline std::ostream& operator<<(std::ostream& stream, const OpType& type) {
     break;
   case OpType::qerror_loc:
     stream << "qerror_loc";
+    break;
+  case OpType::sample_noise:
+    stream << "sample_noise";
     break;
   case OpType::noise_switch:
     stream << "noise_switch";

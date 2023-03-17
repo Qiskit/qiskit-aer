@@ -37,6 +37,9 @@ class SimulatorTestCase(QiskitAerTestCase):
             if 'device' == key and 'cuStateVec' in val:
                 sim_options['device'] = 'GPU'
                 sim_options['cuStateVec_enable'] = True
+            elif 'device' == key and 'batch' in val:
+                sim_options['device'] = 'GPU'
+                sim_options['batched_shots_gpu'] = True
             else:
                 sim_options[key] = val
         return self.BACKEND(**sim_options)
@@ -83,6 +86,9 @@ def _method_device(methods):
         if method in gpu_methods:
             for device in available_devices:
                 data_args.append((method, device))
+                if device == 'GPU':
+                    #add batched optimization test for GPU
+                    data_args.append((method, 'GPU_batch'))
             #add test cases for cuStateVec if available using special device = 'GPU_cuStateVec'
             #'GPU_cuStateVec' is used only inside tests not available in Aer
             #and this is converted to "device='GPU'" and option "cuStateVec_enalbe = True" is added

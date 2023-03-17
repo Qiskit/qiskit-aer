@@ -485,12 +485,15 @@ class initialize_component_func : public GateFuncBase<data_t>
 {
 protected:
   int nqubits;
-  uint_t matSize;
+  uint_t offset;
+  uint_t mat_pos;
+  uint_t mat_num;
 public:
-  initialize_component_func(const cvector_t<double>& mat,const reg_t &qb)
+  initialize_component_func(const int nq, const uint_t pos, const uint_t num)
   {
-    nqubits = qb.size();
-    matSize = 1ull << nqubits;
+    nqubits = nq;
+    mat_pos = pos;
+    mat_num = num;
   }
 
   int qubits_count(void)
@@ -527,13 +530,17 @@ public:
     idx += ii;
 
     q0 = vec[idx];
-    for(k=0;k<matSize;k++){
+    for(k=mat_pos;k<mat_pos+mat_num;k++){
       ii = idx;
       for(j=0;j<nqubits;j++){
         if(((k >> j) & 1) != 0)
           ii += (1ull << qubits[j]);
       }
-      q = q0 * state[k];
+      if(ii == idx){
+        if(mat_pos > 0)
+          continue;
+      }
+      q = q0 * state[k-mat_pos];
       vec[ii] = q;
     }
   }
@@ -544,50 +551,7 @@ public:
   }
 };
 
-template <typename data_t>
-class initialize_large_component_func : public GateFuncBase<data_t>
-{
-protected:
-  int num_qubits_;
-  uint_t mask_;
-  uint_t cmask_;
-  thrust::complex<double> init_;
-public:
-  initialize_large_component_func(thrust::complex<double> m,const reg_t& qubits,int i)
-  {
-    num_qubits_ = qubits.size();
-    init_ = m;
 
-    mask_ = 0;
-    cmask_ = 0;
-    for(int k=0;k<num_qubits_;k++){
-      mask_ |= (1ull << qubits[k]);
-
-      if(((i >> k) & 1) != 0){
-        cmask_ |= (1ull << qubits[k]);
-      }
-    }
-  }
-  bool is_diagonal(void)
-  {
-    return true;
-  }
-
-  __host__ __device__ void operator()(const uint_t &i) const
-  {
-    thrust::complex<data_t>* vec;
-    thrust::complex<double> q;
-    vec = this->data_;
-    if((i & mask_) == cmask_){
-      q = vec[i];
-      vec[i] = init_*q;
-    }
-  }
-  const char* name(void)
-  {
-    return "initialize_large_component";
-  }
-};
 
 //------------------------------------------------------------------------------
 // Zero clear

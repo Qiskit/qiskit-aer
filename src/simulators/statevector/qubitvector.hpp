@@ -159,6 +159,10 @@ public:
   //setup chunk
   bool chunk_setup(int chunk_bits,int num_qubits,uint_t chunk_index,uint_t num_local_chunks);
   bool chunk_setup(QubitVector<data_t>& base,const uint_t chunk_index);
+  uint_t chunk_index(void)
+  {
+    return chunk_index_;
+  }
 
   //cache control for chunks on host
   bool fetch_chunk(void) const
@@ -206,6 +210,12 @@ public:
 
   // Initializes the current vector so that all qubits are in the |0> state.
   void initialize();
+
+  //initialize from existing state (copy)
+  void initialize(const QubitVector<data_t>& obj)
+  {
+    copy_qv(obj);
+  }
 
   // Initializes the vector to a custom initial state.
   // If the length of the data vector does not match the number of qubits
@@ -450,6 +460,11 @@ public:
     return false;
   }
 
+  bool support_global_indexing(void)
+  {
+    return false;
+  }
+
 protected:
 
   //-----------------------------------------------------------------------
@@ -627,6 +642,9 @@ protected:
 
   // Allocates memory for the checkoiunt
   void allocate_checkpoint(size_t data_size);
+
+  //copy state from other QubitVector
+  void copy_qv(const QubitVector<data_t>& obj);
 };
 
 /*******************************************************************************
@@ -752,6 +770,23 @@ template <typename data_t>
 QubitVector<data_t>::~QubitVector() {
   free_mem();
   free_checkpoint();
+}
+
+template <typename data_t>
+void QubitVector<data_t>::copy_qv(const QubitVector<data_t>& obj)
+{
+  data_ = nullptr;
+  checkpoint_ = nullptr;
+  set_num_qubits(obj.num_qubits());
+  set_transformer_method();
+
+  initialize_from_data(obj.data_,obj.data_size_);
+
+  chunk_index_ = obj.chunk_index_;
+  omp_threads_ = obj.omp_threads_;
+  omp_threshold_ = obj.omp_threshold_;
+  sample_measure_index_size_ = obj.sample_measure_index_size_;
+  json_chop_threshold_ = obj.json_chop_threshold_;
 }
 
 //------------------------------------------------------------------------------
@@ -1232,8 +1267,9 @@ QubitVector<data_t>::apply_reduction_lambda(Lambda&& func,
  ******************************************************************************/
 template <typename data_t>
 void QubitVector<data_t>::apply_matrix(const reg_t &qubits,
-                                       const cvector_t<double> &mat) {
-    transformer_->apply_matrix(data_, data_size_, omp_threads_managed(), qubits, mat);
+                                       const cvector_t<double> &mat) 
+{
+  transformer_->apply_matrix(data_, data_size_, omp_threads_managed(), qubits, mat);
 }
 
 template <typename data_t>
@@ -1272,8 +1308,8 @@ void QubitVector<data_t>::apply_multiplexer(const reg_t &control_qubits,
 
 template <typename data_t>
 void QubitVector<data_t>::apply_diagonal_matrix(const reg_t &qubits,
-                                                const cvector_t<double> &diag) {
-
+                                                const cvector_t<double> &diag) 
+{
   transformer_->apply_diagonal_matrix(data_, data_size_, omp_threads_managed(), qubits, diag);
 }
 

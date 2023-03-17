@@ -62,6 +62,12 @@ public:
   // Initializes the current vector so that all qubits are in the |0> state.
   void initialize();
 
+  //initialize from existing state (copy)
+  void initialize(const DensityMatrixThrust<data_t>& obj)
+  {
+    BaseMatrix::initialize(obj);
+  }
+
   // Initializes the vector to a custom initial state.
   // The vector can be either a statevector or a vectorized density matrix
   // If the length of the data vector does not match either case for the
@@ -1364,12 +1370,13 @@ template <typename data_t>
 reg_t DensityMatrixThrust<data_t>::sample_measure(const std::vector<double> &rnds) const 
 {
   uint_t count = 1;
-  if(!BaseVector::multi_chunk_distribution_){
-    if(BaseVector::enable_batch_ && BaseVector::chunk_.pos() != 0){
+#ifdef AER_THRUST_CUDA
+  if((this->multi_chunk_distribution_ && this->chunk_.device() >= 0) || this->enable_batch_){
+    if(this->chunk_.pos() != 0)
       return reg_t();   //first chunk execute all in batch
-    }
-    count = BaseVector::chunk_.container()->num_chunks();
+    count = this->chunk_.container()->num_chunks();
   }
+#endif
 
   uint_t nrows = BaseMatrix::num_rows();
 

@@ -367,7 +367,7 @@ class TestAerState(common.QiskitAerTestCase):
         circuit.reset([2, 4])
         circuit.save_statevector()
 
-        aer_simulator = AerSimulator(method='statevector', seed_simulator=seed)
+        aer_simulator = AerSimulator(method='statevector', seed_simulator=seed, shot_branching_enable=False)
         result = aer_simulator.run(circuit).result()
         expected = result.get_statevector(0)
 
