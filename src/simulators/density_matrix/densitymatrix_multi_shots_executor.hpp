@@ -41,7 +41,7 @@ public:
   virtual ~MultiShotsExecutor(){}
 
 protected:
-  void set_config(const json_t &config) override;
+  void set_config(const Config &config) override;
 
   uint_t qubit_scale(void) override
   {
@@ -79,7 +79,7 @@ protected:
 
 
 template <class state_t>
-void MultiShotsExecutor<state_t>::set_config(const json_t &config) 
+void MultiShotsExecutor<state_t>::set_config(const Config &config) 
 {
   BaseExecutor::set_config(config);
 }

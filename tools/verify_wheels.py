@@ -16,8 +16,7 @@ from qiskit.quantum_info import Operator, Statevector
 from qiskit.quantum_info.operators.predicates import matrix_equal
 
 from qiskit_aer.pulse.system_models.duffing_model_generators import duffing_system_model
-from qiskit.pulse import (Schedule, Play, Acquire, Waveform, DriveChannel, AcquireChannel,
-                          MemorySlot)
+from qiskit.pulse import Schedule, Play, Acquire, Waveform, DriveChannel, AcquireChannel, MemorySlot
 
 from qiskit_aer import AerSimulator
 from qiskit_aer import QasmSimulator
@@ -26,12 +25,11 @@ from qiskit_aer import UnitarySimulator
 from qiskit_aer import PulseSimulator
 
 # Backwards compatibility for Terra <= 0.13
-if not hasattr(QuantumCircuit, 'i'):
+if not hasattr(QuantumCircuit, "i"):
     QuantumCircuit.i = QuantumCircuit.iden
 
 
-def assertAlmostEqual(first, second, places=None, msg=None,
-                      delta=None):
+def assertAlmostEqual(first, second, places=None, msg=None, delta=None):
     """Test of 2 object are almost equal.
 
     Fail if the two objects are unequal as determined by their
@@ -55,11 +53,7 @@ def assertAlmostEqual(first, second, places=None, msg=None,
         if diff <= delta:
             return
 
-        standardMsg = '%s != %s within %s delta (%s difference)' % (
-            first,
-            second,
-            delta,
-            diff)
+        standardMsg = "%s != %s within %s delta (%s difference)" % (first, second, delta, diff)
     else:
         if places is None:
             places = 7
@@ -67,11 +61,7 @@ def assertAlmostEqual(first, second, places=None, msg=None,
         if round(diff, places) == 0:
             return
 
-        standardMsg = '%s != %s within %r places (%s difference)' % (
-            first,
-            second,
-            places,
-            diff)
+        standardMsg = "%s != %s within %r places (%s difference)" % (first, second, places, diff)
     raise Exception(standardMsg)
 
 
@@ -86,7 +76,7 @@ def grovers_circuit(final_measure=True, allow_sampling=True):
         cr = ClassicalRegister(2)
         regs = (qr, cr)
     else:
-        regs = (qr, )
+        regs = (qr,)
     circuit = QuantumCircuit(*regs)
 
     circuit.h(qr[0])
@@ -125,8 +115,7 @@ def grovers_circuit(final_measure=True, allow_sampling=True):
     return circuits
 
 
-def assertDictAlmostEqual(dict1, dict2, delta=None, msg=None,
-                          places=None, default_value=0):
+def assertDictAlmostEqual(dict1, dict2, delta=None, msg=None, places=None, default_value=0):
     """Assert two dictionaries with numeric values are almost equal.
 
     Fail if the two dictionaries are unequal as determined by
@@ -156,7 +145,7 @@ def assertDictAlmostEqual(dict1, dict2, delta=None, msg=None,
 
     if places is not None:
         success = True
-        standard_msg = ''
+        standard_msg = ""
         # check value for keys in target
         keys1 = set(dict1.keys())
         for key in keys1:
@@ -164,9 +153,7 @@ def assertDictAlmostEqual(dict1, dict2, delta=None, msg=None,
             val2 = dict2.get(key, default_value)
             if round(abs(val1 - val2), places) != 0:
                 success = False
-                standard_msg += '(%s: %s != %s), ' % (key,
-                                                      val1,
-                                                      val2)
+                standard_msg += "(%s: %s != %s), " % (key, val1, val2)
         # check values for keys in counts, not in target
         keys2 = set(dict2.keys()) - keys1
         for key in keys2:
@@ -174,18 +161,16 @@ def assertDictAlmostEqual(dict1, dict2, delta=None, msg=None,
             val2 = dict2.get(key, default_value)
             if round(abs(val1 - val2), places) != 0:
                 success = False
-                standard_msg += '(%s: %s != %s), ' % (key,
-                                                      val1,
-                                                      val2)
+                standard_msg += "(%s: %s != %s), " % (key, val1, val2)
         if success is True:
             return
-        standard_msg = standard_msg[:-2] + ' within %s places' % places
+        standard_msg = standard_msg[:-2] + " within %s places" % places
 
     else:
         if delta is None:
             delta = 1e-8  # default delta value
         success = True
-        standard_msg = ''
+        standard_msg = ""
         # check value for keys in target
         keys1 = set(dict1.keys())
         for key in keys1:
@@ -193,9 +178,7 @@ def assertDictAlmostEqual(dict1, dict2, delta=None, msg=None,
             val2 = dict2.get(key, default_value)
             if abs(val1 - val2) > delta:
                 success = False
-                standard_msg += '(%s: %s != %s), ' % (key,
-                                                      val1,
-                                                      val2)
+                standard_msg += "(%s: %s != %s), " % (key, val1, val2)
         # check values for keys in counts, not in target
         keys2 = set(dict2.keys()) - keys1
         for key in keys2:
@@ -203,12 +186,10 @@ def assertDictAlmostEqual(dict1, dict2, delta=None, msg=None,
             val2 = dict2.get(key, default_value)
             if abs(val1 - val2) > delta:
                 success = False
-                standard_msg += '(%s: %s != %s), ' % (key,
-                                                      val1,
-                                                      val2)
+                standard_msg += "(%s: %s != %s), " % (key, val1, val2)
         if success is True:
             return
-        standard_msg = standard_msg[:-2] + ' within %s delta' % delta
+        standard_msg = standard_msg[:-2] + " within %s delta" % delta
 
     raise Exception(standard_msg)
 
@@ -234,7 +215,7 @@ def cx_gate_circuits_deterministic(final_measure=True):
         cr = ClassicalRegister(2)
         regs = (qr, cr)
     else:
-        regs = (qr, )
+        regs = (qr,)
 
     # CX01, |00> state
     circuit = QuantumCircuit(*regs)
@@ -341,79 +322,51 @@ def cx_gate_unitary_deterministic():
     """CX-gate circuits reference unitaries."""
     targets = []
     # CX01, |00> state
-    targets.append(np.array([[1, 0, 0, 0],
-                             [0, 0, 0, 1],
-                             [0, 0, 1, 0],
-                             [0, 1, 0, 0]]))
+    targets.append(np.array([[1, 0, 0, 0], [0, 0, 0, 1], [0, 0, 1, 0], [0, 1, 0, 0]]))
     # CX10, |00> state
-    targets.append(np.array([[1, 0, 0, 0],
-                             [0, 1, 0, 0],
-                             [0, 0, 0, 1],
-                             [0, 0, 1, 0]]))
+    targets.append(np.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 0, 1], [0, 0, 1, 0]]))
     # CX01.(X^I), |10> state
-    targets.append(np.array([[0, 0, 1, 0],
-                             [0, 1, 0, 0],
-                             [1, 0, 0, 0],
-                             [0, 0, 0, 1]]))
+    targets.append(np.array([[0, 0, 1, 0], [0, 1, 0, 0], [1, 0, 0, 0], [0, 0, 0, 1]]))
     # CX10.(I^X), |01> state
-    targets.append(np.array([[0, 1, 0, 0],
-                             [1, 0, 0, 0],
-                             [0, 0, 1, 0],
-                             [0, 0, 0, 1]]))
+    targets.append(np.array([[0, 1, 0, 0], [1, 0, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]))
     # CX01.(I^X), |11> state
-    targets.append(np.array([[0, 1, 0, 0],
-                             [0, 0, 1, 0],
-                             [0, 0, 0, 1],
-                             [1, 0, 0, 0]]))
+    targets.append(np.array([[0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1], [1, 0, 0, 0]]))
     # CX10.(X^I), |11> state
-    targets.append(np.array([[0, 0, 1, 0],
-                             [0, 0, 0, 1],
-                             [0, 1, 0, 0],
-                             [1, 0, 0, 0]]))
+    targets.append(np.array([[0, 0, 1, 0], [0, 0, 0, 1], [0, 1, 0, 0], [1, 0, 0, 0]]))
     # CX01.(X^X), |01> state
-    targets.append(np.array([[0, 0, 0, 1],
-                             [1, 0, 0, 0],
-                             [0, 1, 0, 0],
-                             [0, 0, 1, 0]]))
+    targets.append(np.array([[0, 0, 0, 1], [1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0]]))
     # CX10.(X^X), |10> state
-    targets.append(np.array([[0, 0, 0, 1],
-                             [0, 0, 1, 0],
-                             [1, 0, 0, 0],
-                             [0, 1, 0, 0]]))
+    targets.append(np.array([[0, 0, 0, 1], [0, 0, 1, 0], [1, 0, 0, 0], [0, 1, 0, 0]]))
     return targets
 
 
-def compare_statevector(result, circuits, targets,
-                        ignore_phase=False, atol=1e-8, rtol=1e-5):
+def compare_statevector(result, circuits, targets, ignore_phase=False, atol=1e-8, rtol=1e-5):
     """Compare final statevectors to targets."""
     for pos, test_case in enumerate(zip(circuits, targets)):
         circuit, target = test_case
         target = Statevector(target)
         output = Statevector(result.get_statevector(circuit))
-        equiv = matrix_equal(output.data, target.data,
-                             ignore_phase=ignore_phase,
-                             atol=atol, rtol=rtol)
+        equiv = matrix_equal(
+            output.data, target.data, ignore_phase=ignore_phase, atol=atol, rtol=rtol
+        )
         if equiv:
             return
-        msg = "Circuit ({}/{}): {} != {}".format(
-            pos + 1, len(circuits), output.data, target.data)
+        msg = "Circuit ({}/{}): {} != {}".format(pos + 1, len(circuits), output.data, target.data)
         raise Exception(msg)
 
 
-def compare_unitary(result, circuits, targets,
-                    ignore_phase=False, atol=1e-8, rtol=1e-5):
+def compare_unitary(result, circuits, targets, ignore_phase=False, atol=1e-8, rtol=1e-5):
     """Compare final unitary matrices to targets."""
     for pos, test_case in enumerate(zip(circuits, targets)):
         circuit, target = test_case
         target = Operator(target)
         output = Operator(result.get_unitary(circuit))
-        equiv = matrix_equal(output.data, target.data,
-                             ignore_phase=ignore_phase,
-                             atol=atol, rtol=rtol)
+        equiv = matrix_equal(
+            output.data, target.data, ignore_phase=ignore_phase, atol=atol, rtol=rtol
+        )
         if equiv:
             return
-        msg = "Circuit ({}/{}): {} != {}".format(
-            pos + 1, len(circuits), output.data, target.data)
+        msg = "Circuit ({}/{}): {} != {}".format(pos + 1, len(circuits), output.data, target.data)
         raise Exception(msg)
 
 
@@ -421,39 +374,41 @@ def model_and_pi_schedule():
     """Return a simple model and schedule for pulse simulation"""
 
     # construct model
-    model = duffing_system_model(dim_oscillators=2,
-                                 oscillator_freqs=[5.0],
-                                 anharm_freqs=[0],
-                                 drive_strengths=[0.01],
-                                 coupling_dict={},
-                                 dt=1.0)
+    model = duffing_system_model(
+        dim_oscillators=2,
+        oscillator_freqs=[5.0],
+        anharm_freqs=[0],
+        drive_strengths=[0.01],
+        coupling_dict={},
+        dt=1.0,
+    )
 
     # note: parameters set so that area under curve is 1/4
     sample_pulse = Waveform(np.ones(50))
 
     # construct schedule
-    schedule = Schedule(name='test_sched')
+    schedule = Schedule(name="test_sched")
     schedule |= Play(sample_pulse, DriveChannel(0))
     schedule += Acquire(10, AcquireChannel(0), MemorySlot(0)) << schedule.duration
 
     return model, schedule
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     # Run Aer simulator
     shots = 4000
     circuits = grovers_circuit(final_measure=True, allow_sampling=True)
-    targets = [{'0x0': 5 * shots / 8, '0x1': shots / 8,
-                '0x2': shots / 8, '0x3': shots / 8}]
+    targets = [{"0x0": 5 * shots / 8, "0x1": shots / 8, "0x2": shots / 8, "0x3": shots / 8}]
     simulator = AerSimulator()
     result = simulator.run(transpile(circuits, simulator), shots=shots).result()
-    assert result.status == 'COMPLETED'
+    assert result.status == "COMPLETED"
     assert result.success is True
     compare_counts(result, circuits, targets, delta=0.05 * shots)
 
     # Run qasm simulator
     simulator = QasmSimulator()
     result = simulator.run(transpile(circuits, simulator), shots=shots).result()
-    assert result.status == 'COMPLETED'
+    assert result.status == "COMPLETED"
     assert result.success is True
     compare_counts(result, circuits, targets, delta=0.05 * shots)
 
@@ -462,7 +417,7 @@ if __name__ == '__main__':
     targets = cx_gate_statevector_deterministic()
     backend = StatevectorSimulator()
     result = backend.run(transpile(circuits, backend), shots=1).result()
-    assert result.status == 'COMPLETED'
+    assert result.status == "COMPLETED"
     assert result.success is True
     compare_statevector(result, circuits, targets)
 
@@ -471,19 +426,21 @@ if __name__ == '__main__':
     targets = cx_gate_unitary_deterministic()
     backend = UnitarySimulator()
     result = backend.run(transpile(circuits, backend), shots=1).result()
-    assert result.status == 'COMPLETED'
+    assert result.status == "COMPLETED"
     assert result.success is True
     compare_unitary(result, circuits, targets)
 
     # Run pulse simulator
     system_model, schedule = model_and_pi_schedule()
     backend_sim = PulseSimulator()
-    qobj = assemble([schedule],
-                    backend=backend_sim,
-                    qubit_lo_freq=[5.0],
-                    meas_level=1,
-                    meas_return='avg',
-                    shots=1)
+    qobj = assemble(
+        [schedule],
+        backend=backend_sim,
+        qubit_lo_freq=[5.0],
+        meas_level=1,
+        meas_return="avg",
+        shots=1,
+    )
     results = backend_sim.run(qobj, system_model=system_model).result()
     state = results.get_statevector(0)
     assertAlmostEqual(state[0], 0, delta=10**-3)

@@ -14,13 +14,18 @@ AerSimulator Integration Tests
 """
 from ddt import ddt
 from test.terra.reference import ref_reset
-from test.terra.backends.simulator_test_case import (
-    SimulatorTestCase, supported_methods)
+from test.terra.backends.simulator_test_case import SimulatorTestCase, supported_methods
 
 ALL_METHODS = [
-    'automatic', 'stabilizer', 'statevector', 'density_matrix',
-    'matrix_product_state', 'extended_stabilizer'
+    "automatic",
+    "stabilizer",
+    "statevector",
+    "density_matrix",
+    "matrix_product_state",
+    "extended_stabilizer",
+    "tensor_network",
 ]
+
 
 @ddt
 class TestReset(SimulatorTestCase):
@@ -49,8 +54,7 @@ class TestReset(SimulatorTestCase):
         # For statevector output we can combine deterministic and non-deterministic
         # count output circuits
         shots = 4000
-        circuits = ref_reset.reset_circuits_nondeterministic(
-            final_measure=True)
+        circuits = ref_reset.reset_circuits_nondeterministic(final_measure=True)
         targets = ref_reset.reset_counts_nondeterministic(shots)
         result = backend.run(circuits, shots=shots).result()
         self.assertSuccess(result)
@@ -88,4 +92,4 @@ class TestReset(SimulatorTestCase):
         targets = ref_reset.reset_counts_with_entangled_and_moving_qubits(shots)
         result = backend.run(circuits, shots=shots).result()
         self.assertSuccess(result)
-        self.compare_counts(result, circuits, targets, delta=0.05*shots)
+        self.compare_counts(result, circuits, targets, delta=0.05 * shots)

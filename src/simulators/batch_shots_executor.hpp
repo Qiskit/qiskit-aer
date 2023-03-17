@@ -45,20 +45,20 @@ public:
   virtual ~BatchShotsExecutor();
 
 protected:
-  void set_config(const json_t &config) override;
+  void set_config(const Config &config) override;
   void set_parallelization(const Circuit &circ,
                            const Noise::NoiseModel &noise) override;
 
   bool allocate_states(uint_t num_shots) override;
 
   void run_circuit_shots(
-            Circuit &circ, const Noise::NoiseModel &noise, const json_t &config,
+            Circuit &circ, const Noise::NoiseModel &noise, const Config &config,
             ExperimentResult &result, bool sample_noise) override;
 
   //run circuit by using batched shots optimization (on GPU)
   void run_circuit_with_batched_multi_shots(Circuit &circ,
                                          const Noise::NoiseModel &noise,
-                                         const json_t &config,
+                                         const Config &config,
                                          ExperimentResult &result);
 
   //apply ops for multi-shots to one group
@@ -94,18 +94,14 @@ BatchShotsExecutor<state_t>::~BatchShotsExecutor()
 }
 
 template <class state_t>
-void BatchShotsExecutor<state_t>::set_config(const json_t &config) 
+void BatchShotsExecutor<state_t>::set_config(const Config &config) 
 {
   BaseExecutor::set_config(config);
 
   //enable batched multi-shots/experiments optimization
-  if(JSON::check_key("batched_shots_gpu", config)) {
-    JSON::get_value(batched_shots_gpu_, "batched_shots_gpu", config);
-  }
+  batched_shots_gpu_ = config.batched_shots_gpu;
 
-  if(JSON::check_key("batched_shots_gpu_max_qubits", config)) {
-    JSON::get_value(batched_shots_gpu_max_qubits_, "batched_shots_gpu_max_qubits", config);
-  }
+  batched_shots_gpu_max_qubits_ = config.batched_shots_gpu_max_qubits;
   if(BaseExecutor::method_ == Method::density_matrix || BaseExecutor::method_ == Method::unitary)
     batched_shots_gpu_max_qubits_ /= 2;
 }
@@ -187,7 +183,7 @@ bool BatchShotsExecutor<state_t>::allocate_states(uint_t num_shots)
 
 template <class state_t>
 void BatchShotsExecutor<state_t>::run_circuit_shots(
-    Circuit &circ, const Noise::NoiseModel &noise, const json_t &config,
+    Circuit &circ, const Noise::NoiseModel &noise, const Config &config,
     ExperimentResult &result, bool sample_noise) 
 {
   state_t dummy_state;
@@ -238,7 +234,7 @@ void BatchShotsExecutor<state_t>::run_circuit_shots(
 template <class state_t>
 void BatchShotsExecutor<state_t>::run_circuit_with_batched_multi_shots(Circuit &circ,
                                        const Noise::NoiseModel &noise,
-                                       const json_t &config,
+                                       const Config &config,
                                        ExperimentResult &result)
 {
   int_t i;

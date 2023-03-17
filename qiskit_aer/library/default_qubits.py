@@ -43,7 +43,7 @@ def default_qubits(circuit, qubits=None):
             for register in circuit.qregs:
                 tuples.append(register)
         if not tuples:
-            raise ExtensionError('no qubits for snapshot')
+            raise ExtensionError("no qubits for snapshot")
         qubits = []
         for tuple_element in tuples:
             if isinstance(tuple_element, QuantumRegister):

@@ -17,8 +17,7 @@ from ddt import ddt
 from qiskit import transpile, QuantumCircuit
 from test.terra.reference import ref_algorithms
 
-from test.terra.backends.simulator_test_case import (
-    SimulatorTestCase, supported_methods)
+from test.terra.backends.simulator_test_case import SimulatorTestCase, supported_methods
 
 
 @ddt
@@ -29,8 +28,7 @@ class TestAlgorithms(SimulatorTestCase):
         shots = 2000
         backend = self.backend(**options)
 
-        circuits = ref_algorithms.grovers_circuit(
-            final_measure=True, allow_sampling=True)
+        circuits = ref_algorithms.grovers_circuit(final_measure=True, allow_sampling=True)
 
         targets = ref_algorithms.grovers_counts(shots)
         circuits = transpile(circuits, backend)
@@ -43,6 +41,10 @@ class TestAlgorithms(SimulatorTestCase):
     def _test_teleport(self, **options):
         """Test teleport circuits."""
         shots = 1000
+        for key, val in options.items():
+            if "method" == key and "tensor_network" in val:
+                shots = 100
+
         backend = self.backend(**options)
 
         circuits = ref_algorithms.teleport_circuit()
@@ -55,40 +57,50 @@ class TestAlgorithms(SimulatorTestCase):
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
 
     @supported_methods(
-        ['automatic', 'statevector', 'density_matrix',
-         'matrix_product_state', 'extended_stabilizer'])
+        [
+            "automatic",
+            "statevector",
+            "density_matrix",
+            "matrix_product_state",
+            "extended_stabilizer",
+            "tensor_network",
+        ]
+    )
     def test_grovers(self, method, device):
         """Test grovers circuits execute."""
-        
+
         opts = {
             "method": method,
             "device": device,
             # ops only for extended stabilizer method
             "extended_stabilizer_sampling_method": "metropolis",
-            "extended_stabilizer_metropolis_mixing_time": 100
+            "extended_stabilizer_metropolis_mixing_time": 100,
         }
         self._test_grovers(**opts)
 
     @supported_methods(
-        ['automatic', 'statevector', 'density_matrix',
-         'matrix_product_state', 'extended_stabilizer'])
+        [
+            "automatic",
+            "statevector",
+            "density_matrix",
+            "matrix_product_state",
+            "extended_stabilizer",
+            "tensor_network",
+        ]
+    )
     def test_teleport(self, method, device):
         """Test teleport circuits."""
         self._test_teleport(method=method, device=device)
 
-    @supported_methods(['statevector', 'density_matrix'])
+    @supported_methods(["statevector", "density_matrix"])
     def test_grovers_cache_blocking(self, method, device):
         """Test grovers circuits execute."""
-        self._test_grovers(
-            method=method, device=device,
-            blocking_qubits=2, max_parallel_threads=1)
+        self._test_grovers(method=method, device=device, blocking_qubits=2, max_parallel_threads=1)
 
-    @supported_methods(['statevector', 'density_matrix'])
+    @supported_methods(["statevector", "density_matrix"])
     def test_teleport_cache_blocking(self, method, device):
         """Test teleport circuits."""
-        self._test_teleport(
-             method=method, device=device,
-             blocking_qubits=2, max_parallel_threads=1)
+        self._test_teleport(method=method, device=device, blocking_qubits=2, max_parallel_threads=1)
 
     def test_extended_stabilizer_sparse_output_probs(self):
         """
@@ -99,7 +111,7 @@ class TestAlgorithms(SimulatorTestCase):
             method="extended_stabilizer",
             extended_stabilizer_sampling_method="norm_estimation",
             extended_stabilizer_norm_estimation_samples=100,
-            extended_stabilizer_norm_estimation_repetitions=3
+            extended_stabilizer_norm_estimation_repetitions=3,
         )
 
         shots = 100
@@ -114,8 +126,8 @@ class TestAlgorithms(SimulatorTestCase):
         circ = transpile(circ, backend)
 
         target = {
-            nqubits * "0": shots * (0.5 + sqrt(2)/4.),
-            nqubits * "1": shots * (0.5 - sqrt(2)/4.)
+            nqubits * "0": shots * (0.5 + sqrt(2) / 4.0),
+            nqubits * "1": shots * (0.5 - sqrt(2) / 4.0),
         }
         result = backend.run(circ, shots=shots).result()
         self.assertSuccess(result)

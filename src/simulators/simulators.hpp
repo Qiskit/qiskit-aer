@@ -23,6 +23,7 @@
 #include "simulators/statevector/statevector_state.hpp"
 #include "simulators/superoperator/superoperator_state.hpp"
 #include "simulators/unitary/unitary_state.hpp"
+#include "simulators/tensor_network/tensor_net_state.hpp"
 
 namespace AER {
 
@@ -35,7 +36,8 @@ namespace AER {
     stabilizer,
     extended_stabilizer,
     unitary,
-    superop
+    superop,
+    tensor_network
   };
 
   enum class Device { CPU, GPU, ThrustCPU };

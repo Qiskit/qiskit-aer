@@ -38,29 +38,52 @@ using OpType = Operations::OpType;
 // OpSet of supported instructions
 const Operations::OpSet StateOpSet(
     // Op types
-    {OpType::gate, OpType::measure,
-     OpType::reset,
-     OpType::barrier, OpType::bfunc, OpType::qerror_loc,
-     OpType::roerror, OpType::matrix,
-     OpType::diagonal_matrix, OpType::kraus,
-     OpType::superop, OpType::set_statevec,
-     OpType::set_densmat, OpType::save_expval,
-     OpType::save_expval_var, OpType::save_densmat,
-     OpType::save_probs, OpType::save_probs_ket,
-     OpType::save_amps_sq, OpType::save_state,
-     OpType::jump, OpType::mark
-    },
+    {OpType::gate,         OpType::measure,     OpType::reset,
+     OpType::barrier,      OpType::bfunc,       OpType::qerror_loc,
+     OpType::roerror,      OpType::matrix,      OpType::diagonal_matrix,
+     OpType::kraus,        OpType::superop,     OpType::set_statevec,
+     OpType::set_densmat,  OpType::save_expval, OpType::save_expval_var,
+     OpType::save_densmat, OpType::save_probs,  OpType::save_probs_ket,
+     OpType::save_amps_sq, OpType::save_state,  OpType::jump,
+     OpType::mark},
     // Gates
-    {"U",    "CX",  "u1", "u2",  "u3", "u",   "cx",   "cy",  "cz",
-     "swap", "id",  "x",  "y",   "z",  "h",   "s",    "sdg", "t",
-     "tdg",  "ccx", "r",  "rx",  "ry", "rz",  "rxx",  "ryy", "rzz",
-     "rzx",  "p",   "cp", "cu1", "sx", "sxdg", "x90", "delay", "pauli",
-     "ecr"});
+    {"U",   "CX", "u1",   "u2",  "u3",    "u",     "cx",  "cy",  "cz",  "swap",
+     "id",  "x",  "y",    "z",   "h",     "s",     "sdg", "t",   "tdg", "ccx",
+     "r",   "rx", "ry",   "rz",  "rxx",   "ryy",   "rzz", "rzx", "p",   "cp",
+     "cu1", "sx", "sxdg", "x90", "delay", "pauli", "ecr"});
 
 // Allowed gates enum class
 enum class Gates {
-  u1, u2, u3, r, rx,ry, rz, id, x, y, z, h, s, sdg, sx, sxdg, t, tdg,
-  cx, cy, cz, swap, rxx, ryy, rzz, rzx, ccx, cp, pauli, ecr
+  u1,
+  u2,
+  u3,
+  r,
+  rx,
+  ry,
+  rz,
+  id,
+  x,
+  y,
+  z,
+  h,
+  s,
+  sdg,
+  sx,
+  sxdg,
+  t,
+  tdg,
+  cx,
+  cy,
+  cz,
+  swap,
+  rxx,
+  ryy,
+  rzz,
+  rzx,
+  ccx,
+  cp,
+  pauli,
+  ecr
 };
 
 //=========================================================================
@@ -104,12 +127,19 @@ public:
 
   // Load the threshold for applying OpenMP parallelization
   // if the controller/engine allows threads for it
-  void set_config(const json_t &config) override;
+  void set_config(const Config &config) override;
 
   // Sample n-measurement outcomes without applying the measure operation
   // to the system state
   std::vector<reg_t> sample_measure(const reg_t &qubits, uint_t shots,
                                             RngEngine &rng) override;
+
+  //-----------------------------------------------------------------------
+  // Additional methods
+  //-----------------------------------------------------------------------
+
+  // Initializes to a specific n-qubit state
+  virtual void initialize_qreg(uint_t num_qubits, densmat_t &&state);
 
   // Initialize OpenMP settings for the underlying DensityMatrix class
   void initialize_omp();
@@ -248,29 +278,29 @@ protected:
 template <class densmat_t>
 const stringmap_t<Gates> State<densmat_t>::gateset_({
     // Single qubit gates
-    {"delay", Gates::id},// Delay gate
-    {"id", Gates::id},   // Pauli-Identity gate
-    {"x", Gates::x},     // Pauli-X gate
-    {"y", Gates::y},     // Pauli-Y gate
-    {"z", Gates::z},     // Pauli-Z gate
-    {"s", Gates::s},     // Phase gate (aka sqrt(Z) gate)
-    {"sdg", Gates::sdg}, // Conjugate-transpose of Phase gate
-    {"h", Gates::h},     // Hadamard gate (X + Z / sqrt(2))
-    {"t", Gates::t},     // T-gate (sqrt(S))
-    {"tdg", Gates::tdg}, // Conjguate-transpose of T gate
-    {"x90", Gates::sx},  // Pi/2 X (equiv to Sqrt(X) gate)
-    {"sx", Gates::sx},   // Sqrt(X) gate
-    {"sxdg", Gates::sxdg},// Inverse Sqrt(X) gate
-    {"r", Gates::r},     // R rotation gate
-    {"rx", Gates::rx},   // Pauli-X rotation gate
-    {"ry", Gates::ry},   // Pauli-Y rotation gate
-    {"rz", Gates::rz},   // Pauli-Z rotation gate
+    {"delay", Gates::id},  // Delay gate
+    {"id", Gates::id},     // Pauli-Identity gate
+    {"x", Gates::x},       // Pauli-X gate
+    {"y", Gates::y},       // Pauli-Y gate
+    {"z", Gates::z},       // Pauli-Z gate
+    {"s", Gates::s},       // Phase gate (aka sqrt(Z) gate)
+    {"sdg", Gates::sdg},   // Conjugate-transpose of Phase gate
+    {"h", Gates::h},       // Hadamard gate (X + Z / sqrt(2))
+    {"t", Gates::t},       // T-gate (sqrt(S))
+    {"tdg", Gates::tdg},   // Conjguate-transpose of T gate
+    {"x90", Gates::sx},    // Pi/2 X (equiv to Sqrt(X) gate)
+    {"sx", Gates::sx},     // Sqrt(X) gate
+    {"sxdg", Gates::sxdg}, // Inverse Sqrt(X) gate
+    {"r", Gates::r},       // R rotation gate
+    {"rx", Gates::rx},     // Pauli-X rotation gate
+    {"ry", Gates::ry},     // Pauli-Y rotation gate
+    {"rz", Gates::rz},     // Pauli-Z rotation gate
     // Waltz Gates
     {"p", Gates::u1},  // Phase gate
     {"u1", Gates::u1}, // zero-X90 pulse waltz gate
     {"u2", Gates::u2}, // single-X90 pulse waltz gate
     {"u3", Gates::u3}, // two X90 pulse waltz gate
-    {"u", Gates::u3}, // two X90 pulse waltz gate
+    {"u", Gates::u3},  // two X90 pulse waltz gate
     {"U", Gates::u3},  // two X90 pulse waltz gate
     // Two-qubit gates
     {"CX", Gates::cx},     // Controlled-X gate (CNOT)
@@ -286,7 +316,7 @@ const stringmap_t<Gates> State<densmat_t>::gateset_({
     {"rzx", Gates::rzx},   // Pauli-ZX rotation gate
     {"ecr", Gates::ecr},   // ECR Gate
     // Three-qubit gates
-    {"ccx", Gates::ccx},   // Controlled-CX gate (Toffoli)
+    {"ccx", Gates::ccx}, // Controlled-CX gate (Toffoli)
     // Pauli gate
     {"pauli", Gates::pauli} // Multi-qubit Pauli gate
 });
@@ -318,8 +348,19 @@ bool State<densmat_t>::allocate(uint_t num_qubits,uint_t block_bits,uint_t num_p
   return true;
 }
 
-template <class densmat_t> void State<densmat_t>::initialize_omp() 
-{
+template <class densmat_t>
+void State<densmat_t>::initialize_qreg(uint_t num_qubits, densmat_t &&state) {
+  if (state.num_qubits() != num_qubits) {
+    state.move_to_vector().move_to_buffer();
+    throw std::invalid_argument("DensityMatrix::State::initialize_qreg: "
+                                "initial state does not match qubit number");
+  }
+
+  BaseState::qreg_ = std::move(state);
+}
+
+template <class densmat_t>
+void State<densmat_t>::initialize_omp() {
   uint_t i;
   BaseState::qreg_.set_omp_threshold(omp_qubit_threshold_);
   if (BaseState::threads_ > 0)
@@ -351,29 +392,25 @@ auto State<densmat_t>::copy_to_matrix()
 
 template <class densmat_t>
 size_t State<densmat_t>::required_memory_mb(
-    uint_t num_qubits, const std::vector<Operations::Op> &ops) const 
-{
+    uint_t num_qubits, const std::vector<Operations::Op> &ops) const {
   (void)ops; // avoid unused variable compiler warning
   (void)ops; // avoid unused variable compiler warning
   densmat_t tmp;
-  return tmp.required_memory_mb(2*num_qubits);
+  return tmp.required_memory_mb(2 * num_qubits);
 }
 
 template <class densmat_t>
-void State<densmat_t>::set_config(const json_t &config) 
-{
+void State<densmat_t>::set_config(const Config &config) {
   BaseState::set_config(config);
 
   // Set threshold for truncating snapshots
-  JSON::get_value(json_chop_threshold_, "chop_threshold", config);
+  json_chop_threshold_ = config.chop_threshold;
   uint_t i;
   BaseState::qreg_.set_json_chop_threshold(json_chop_threshold_);
 
   // Set OMP threshold for state update functions
-  JSON::get_value(omp_qubit_threshold_, "statevector_parallel_threshold",
-                  config);
+  omp_qubit_threshold_ = config.statevector_parallel_threshold;
 }
-
 
 //=========================================================================
 // Implementation: apply operations
@@ -470,7 +507,8 @@ template <class densmat_t>
 void State<densmat_t>::apply_save_amplitudes_sq(const Operations::Op &op,
                                                 ExperimentResult &result) {
   if (op.int_params.empty()) {
-    throw std::invalid_argument("Invalid save_amplitudes_sq instructions (empty params).");
+    throw std::invalid_argument(
+        "Invalid save_amplitudes_sq instructions (empty params).");
   }
   const int_t size = op.int_params.size();
   rvector_t amps_sq(size);
@@ -516,14 +554,14 @@ void State<densmat_t>::apply_save_state(const Operations::Op &op,
   // Renamp single data type to average
   Operations::DataSubType save_type;
   switch (op.save_type) {
-    case Operations::DataSubType::single:
-      save_type = Operations::DataSubType::average;
-      break;
-    case Operations::DataSubType::c_single:
-      save_type = Operations::DataSubType::c_average;
-      break;
-    default:
-      save_type = op.save_type;
+  case Operations::DataSubType::single:
+    save_type = Operations::DataSubType::average;
+    break;
+  case Operations::DataSubType::c_single:
+    save_type = Operations::DataSubType::c_average;
+    break;
+  default:
+    save_type = op.save_type;
   }
 
   // Default key
@@ -538,7 +576,6 @@ void State<densmat_t>::apply_save_state(const Operations::Op &op,
                              OpType::save_densmat, save_type);
   }
 }
-
 
 template <class densmat_t>
 cmatrix_t State<densmat_t>::reduced_density_matrix(const reg_t& qubits, bool last_op) 
@@ -601,7 +638,6 @@ cmatrix_t State<densmat_t>::reduced_density_matrix_helper(const reg_t &qubits,
   }
   return reduced_state;
 }
-
 
 //=========================================================================
 // Implementation: Matrix multiplication
@@ -829,8 +865,8 @@ void State<densmat_t>::apply_diagonal_unitary_matrix(const reg_t &qubits, const 
       }
       Chunk::block_diagonal_matrix(BaseState::qreg_.chunk_index(), BaseState::qreg_.num_qubits(), qubits_row,diag_row);
 
-      reg_t qubits_chunk(qubits_in.size()*2);
-      for(int_t i=0;i<qubits_in.size();i++){
+      reg_t qubits_chunk(qubits_in.size() * 2);
+      for (int_t i = 0; i < qubits_in.size(); i++) {
         qubits_chunk[i] = qubits_in[i];
         qubits_chunk[i+qubits_in.size()] = qubits_in[i] + BaseState::qreg_.num_qubits();
       }
@@ -912,8 +948,7 @@ template <class densmat_t>
 void State<densmat_t>::measure_reset_update(const reg_t &qubits,
                                             const uint_t final_state,
                                             const uint_t meas_state,
-                                            const double meas_prob) 
-{
+                                            const double meas_prob) {
   // Update a state vector based on an outcome pair [m, p] from
   // sample_measure_with_prob function, and a desired post-measurement
   // final_state Single-qubit case
@@ -956,14 +991,13 @@ void State<densmat_t>::measure_reset_update(const reg_t &qubits,
 template <class densmat_t>
 std::vector<reg_t> State<densmat_t>::sample_measure(const reg_t &qubits,
                                                     uint_t shots,
-                                                    RngEngine &rng) 
-{
+                                                    RngEngine &rng) {
   // Generate flat register for storing
   std::vector<double> rnds;
   rnds.reserve(shots);
   for (uint_t i = 0; i < shots; ++i)
     rnds.push_back(rng.rand(0, 1));
-  reg_t allbit_samples(shots,0);
+  reg_t allbit_samples(shots, 0);
 
   allbit_samples = BaseState::qreg_.sample_measure(rnds);
 
@@ -982,7 +1016,6 @@ std::vector<reg_t> State<densmat_t>::sample_measure(const reg_t &qubits,
   return all_samples;
 }
 
-
 //=========================================================================
 // Implementation: Kraus Noise
 //=========================================================================
@@ -994,7 +1027,6 @@ void State<densmat_t>::apply_kraus(const reg_t &qubits,
   BaseState::qreg_.apply_superop_matrix(
       qubits, Utils::vectorize_matrix(Utils::kraus_superop(kmats)));
 }
-
 
 //-------------------------------------------------------------------------
 } // end namespace DensityMatrix

@@ -35,7 +35,7 @@ public:
   //-----------------------------------------------------------------------
   // Base class overrides
   //-----------------------------------------------------------------------
-  void set_config(const json_t &config) override;
+  void set_config(const Config &config) override;
 
   //apply parallel operations
   void apply_parallel_op(const Operations::Op &op,
@@ -253,7 +253,7 @@ auto ParallelExecutor<densmat_t>::copy_to_matrix()
 //-------------------------------------------------------------------------
 
 template <class densmat_t>
-void ParallelExecutor<densmat_t>::set_config(const json_t &config) 
+void ParallelExecutor<densmat_t>::set_config(const Config &config) 
 {
   BaseExecutor::set_config(config);
 }

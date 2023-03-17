@@ -20,22 +20,26 @@
 #include <unordered_map>
 #include <utility>
 
-template <class Key, class T, class Hash = std::hash<Key>, class KeyEqual = std::equal_to<Key>,
+template <class Key, class T, class Hash = std::hash<Key>,
+          class KeyEqual = std::equal_to<Key>,
           class Allocator = std::allocator<std::pair<const Key, T>>>
 class ordered_map {
 public:
   using unordered_map_t = std::unordered_map<Key, T, Hash, KeyEqual, Allocator>;
   using vector_t = std::vector<Key>;
 
-  ordered_map(){}
-  ordered_map(const ordered_map& other) : internal_map(other.internal_map), order(other.order){
-    it.reset(new ordered_map_iterator_t<unordered_map_t, vector_t>(internal_map, order));
+  ordered_map() {}
+  ordered_map(const ordered_map &other)
+      : internal_map(other.internal_map), order(other.order) {
+    it.reset(new ordered_map_iterator_t<unordered_map_t, vector_t>(internal_map,
+                                                                   order));
   }
 
-  ordered_map& operator=(const ordered_map& other){
+  ordered_map &operator=(const ordered_map &other) {
     internal_map = other.internal_map;
     order = other.order;
-    it.reset(new ordered_map_iterator_t<unordered_map_t, vector_t>(internal_map, order));
+    it.reset(new ordered_map_iterator_t<unordered_map_t, vector_t>(internal_map,
+                                                                   order));
     return *this;
   }
 
@@ -44,7 +48,8 @@ public:
     return internal_map.reserve(size);
   }
 
-  template <class... Args> decltype(auto) emplace(Args &&... args) {
+  template <class... Args>
+  decltype(auto) emplace(Args &&...args) {
     const auto first = std::get<0>(std::forward_as_tuple(args...));
     order.emplace_back(first);
     return internal_map.emplace(std::forward<Args>(args)...);
@@ -52,10 +57,14 @@ public:
 
   size_t size() const { return internal_map.size(); }
 
-  const T &operator[](const std::string &index) const { return internal_map[index]; }
+  const T &operator[](const std::string &index) const {
+    return internal_map[index];
+  }
 
-  // This is needed so we can use the container in an iterator context like ranged fors.
-  template <class _map_t, class _vec_t> class ordered_map_iterator_t {
+  // This is needed so we can use the container in an iterator context like
+  // ranged fors.
+  template <class _map_t, class _vec_t>
+  class ordered_map_iterator_t {
     using unordered_map_iter_t = typename _map_t::iterator;
     using vec_iter_t = typename _vec_t::iterator;
 
@@ -93,9 +102,13 @@ public:
       return *this;
     }
 
-    bool operator==(const ordered_map_iterator_t &rhs) const { return vec_iter == rhs.vec_iter; }
+    bool operator==(const ordered_map_iterator_t &rhs) const {
+      return vec_iter == rhs.vec_iter;
+    }
 
-    bool operator!=(const ordered_map_iterator_t &rhs) const { return vec_iter != rhs.vec_iter; }
+    bool operator!=(const ordered_map_iterator_t &rhs) const {
+      return vec_iter != rhs.vec_iter;
+    }
 
     const reference operator*() const { return *map_iter; }
   };
@@ -103,7 +116,8 @@ public:
   using iterator = ordered_map_iterator_t<unordered_map_t, vector_t>;
   using const_iterator = ordered_map_iterator_t<unordered_map_t, vector_t>;
 
-  std::unique_ptr<iterator> it = std::make_unique<iterator>(internal_map, order);
+  std::unique_ptr<iterator> it =
+      std::make_unique<iterator>(internal_map, order);
 
   const_iterator begin() const { return it->begin(); }
 

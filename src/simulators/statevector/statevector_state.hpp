@@ -12,7 +12,6 @@
  * that they have been altered from the originals.
  */
 
-
 #ifndef _statevector_state_hpp
 #define _statevector_state_hpp
 
@@ -20,11 +19,13 @@
 #define _USE_MATH_DEFINES
 #include <math.h>
 
+#include "framework/config.hpp"
 #include "framework/json.hpp"
 #include "framework/utils.hpp"
 #include "simulators/state.hpp"
 #include "simulators/chunk_utils.hpp"
 #include "qubitvector.hpp"
+
 #ifdef AER_THRUST_SUPPORTED
 #include "qubitvector_thrust.hpp"
 #endif
@@ -38,36 +39,71 @@ using OpType = Operations::OpType;
 // OpSet of supported instructions
 const Operations::OpSet StateOpSet(
     // Op types
-    {OpType::gate, OpType::measure,
-     OpType::reset, OpType::initialize,
+    {OpType::gate,
+     OpType::measure,
+     OpType::reset,
+     OpType::initialize,
      OpType::barrier,
-     OpType::bfunc, OpType::roerror,
-     OpType::matrix, OpType::diagonal_matrix,
-     OpType::multiplexer, OpType::kraus, OpType::qerror_loc,
-     OpType::sim_op, OpType::set_statevec,
-     OpType::save_expval, OpType::save_expval_var,
-     OpType::save_probs, OpType::save_probs_ket,
-     OpType::save_amps, OpType::save_amps_sq,
-     OpType::save_state, OpType::save_statevec,
-     OpType::save_statevec_dict, OpType::save_densmat,
-     OpType::jump, OpType::mark
-     },
+     OpType::bfunc,
+     OpType::roerror,
+     OpType::matrix,
+     OpType::diagonal_matrix,
+     OpType::multiplexer,
+     OpType::kraus,
+     OpType::qerror_loc,
+     OpType::sim_op,
+     OpType::set_statevec,
+     OpType::save_expval,
+     OpType::save_expval_var,
+     OpType::save_probs,
+     OpType::save_probs_ket,
+     OpType::save_amps,
+     OpType::save_amps_sq,
+     OpType::save_state,
+     OpType::save_statevec,
+     OpType::save_statevec_dict,
+     OpType::save_densmat,
+     OpType::jump,
+     OpType::mark},
     // Gates
-    {"u1",     "u2",      "u3",  "u",    "U",    "CX",   "cx",   "cz",
-     "cy",     "cp",      "cu1", "cu2",  "cu3",  "swap", "id",   "p",
-     "x",      "y",       "z",   "h",    "s",    "sdg",  "t",    "tdg",
-     "r",      "rx",      "ry",  "rz",   "rxx",  "ryy",  "rzz",  "rzx",
-     "ccx",    "cswap",   "mcx", "mcy",  "mcz",  "mcu1", "mcu2", "mcu3",
-     "mcswap", "mcphase", "mcr", "mcrx", "mcry", "mcry", "sx",   "sxdg",
-     "csx", "mcsx", "csxdg", "mcsxdg",  "delay", "pauli", "mcx_gray", "cu", "mcu", "mcp",
-     "ecr"});
+    {"u1",   "u2",    "u3",     "u",     "U",     "CX",       "cx",
+     "cz",   "cy",    "cp",     "cu1",   "cu2",   "cu3",      "swap",
+     "id",   "p",     "x",      "y",     "z",     "h",        "s",
+     "sdg",  "t",     "tdg",    "r",     "rx",    "ry",       "rz",
+     "rxx",  "ryy",   "rzz",    "rzx",   "ccx",   "cswap",    "mcx",
+     "mcy",  "mcz",   "mcu1",   "mcu2",  "mcu3",  "mcswap",   "mcphase",
+     "mcr",  "mcrx",  "mcry",   "mcry",  "sx",    "sxdg",     "csx",
+     "mcsx", "csxdg", "mcsxdg", "delay", "pauli", "mcx_gray", "cu",
+     "mcu",  "mcp",   "ecr"});
 
 // Allowed gates enum class
 enum class Gates {
-  id, h, s, sdg, t, tdg,
-  rxx, ryy, rzz, rzx,
-  mcx, mcy, mcz, mcr, mcrx, mcry,
-  mcrz, mcp, mcu2, mcu3, mcu, mcswap, mcsx, mcsxdg, pauli, ecr
+  id,
+  h,
+  s,
+  sdg,
+  t,
+  tdg,
+  rxx,
+  ryy,
+  rzz,
+  rzx,
+  mcx,
+  mcy,
+  mcz,
+  mcr,
+  mcrx,
+  mcry,
+  mcrz,
+  mcp,
+  mcu2,
+  mcu3,
+  mcu,
+  mcswap,
+  mcsx,
+  mcsxdg,
+  pauli,
+  ecr
 };
 
 //=========================================================================
@@ -115,7 +151,7 @@ public:
 
   // Load the threshold for applying OpenMP parallelization
   // if the controller/engine allows threads for it
-  virtual void set_config(const json_t &config) override;
+  virtual void set_config(const Config &config) override;
 
   // Sample n-measurement outcomes without applying the measure operation
   // to the system state
@@ -135,6 +171,7 @@ public:
   //-----------------------------------------------------------------------
   // Apply instructions
   //-----------------------------------------------------------------------
+
   // Applies a sypported Gate operation to the state class.
   // If the input is not in allowed_gates an exeption will be raised.
   void apply_gate(const Operations::Op &op);
@@ -245,7 +282,8 @@ protected:
                             const double meas_prob);
 
   // Helper function to convert a vector to a reduced density matrix
-  template <class T> cmatrix_t vec2density(const reg_t &qubits, const T &vec);
+  template <class T>
+  cmatrix_t vec2density(const reg_t &qubits, const T &vec);
 
   //-----------------------------------------------------------------------
   // Single-qubit gate helpers
@@ -283,7 +321,6 @@ protected:
 
   // Table of allowed gate names to gate enum class members
   const static stringmap_t<Gates> gateset_;
-
 };
 
 //=========================================================================
@@ -291,74 +328,73 @@ protected:
 //=========================================================================
 
 template <class statevec_t>
-const stringmap_t<Gates> State<statevec_t>::gateset_({
-    // 1-qubit gates
-    {"delay", Gates::id},// Delay gate
-    {"id", Gates::id},   // Pauli-Identity gate
-    {"x", Gates::mcx},   // Pauli-X gate
-    {"y", Gates::mcy},   // Pauli-Y gate
-    {"z", Gates::mcz},   // Pauli-Z gate
-    {"s", Gates::s},     // Phase gate (aka sqrt(Z) gate)
-    {"sdg", Gates::sdg}, // Conjugate-transpose of Phase gate
-    {"h", Gates::h},     // Hadamard gate (X + Z / sqrt(2))
-    {"t", Gates::t},     // T-gate (sqrt(S))
-    {"tdg", Gates::tdg}, // Conjguate-transpose of T gate
-    {"p", Gates::mcp},   // Parameterized phase gate 
-    {"sx", Gates::mcsx}, // Sqrt(X) gate
-    {"sxdg", Gates::mcsxdg}, // Inverse Sqrt(X) gate
-    // 1-qubit rotation Gates
-    {"r", Gates::mcr},   // R rotation gate
-    {"rx", Gates::mcrx}, // Pauli-X rotation gate
-    {"ry", Gates::mcry}, // Pauli-Y rotation gate
-    {"rz", Gates::mcrz}, // Pauli-Z rotation gate
-    // Waltz Gates
-    {"u1", Gates::mcp},  // zero-X90 pulse waltz gate
-    {"u2", Gates::mcu2}, // single-X90 pulse waltz gate
-    {"u3", Gates::mcu3}, // two X90 pulse waltz gate
-    {"u", Gates::mcu3}, // two X90 pulse waltz gate
-    {"U", Gates::mcu3}, // two X90 pulse waltz gate
-    // 2-qubit gates
-    {"CX", Gates::mcx},      // Controlled-X gate (CNOT)
-    {"cx", Gates::mcx},      // Controlled-X gate (CNOT)
-    {"cy", Gates::mcy},      // Controlled-Y gate
-    {"cz", Gates::mcz},      // Controlled-Z gate
-    {"cp", Gates::mcp},      // Controlled-Phase gate 
-    {"cu1", Gates::mcp},     // Controlled-u1 gate
-    {"cu2", Gates::mcu2},    // Controlled-u2 gate
-    {"cu3", Gates::mcu3},    // Controlled-u3 gate
-    {"cu", Gates::mcu},      // Controlled-u4 gate
-    {"cp", Gates::mcp},      // Controlled-Phase gate 
-    {"swap", Gates::mcswap}, // SWAP gate
-    {"rxx", Gates::rxx},     // Pauli-XX rotation gate
-    {"ryy", Gates::ryy},     // Pauli-YY rotation gate
-    {"rzz", Gates::rzz},     // Pauli-ZZ rotation gate
-    {"rzx", Gates::rzx},     // Pauli-ZX rotation gate
-    {"csx", Gates::mcsx},    // Controlled-Sqrt(X) gate
-    {"csxdg", Gates::mcsxdg}, // Controlled-Sqrt(X)dg gate
-    {"ecr", Gates::ecr},      // ECR Gate
-    // 3-qubit gates
-    {"ccx", Gates::mcx},      // Controlled-CX gate (Toffoli)
-    {"cswap", Gates::mcswap}, // Controlled SWAP gate (Fredkin)
-    // Multi-qubit controlled gates
-    {"mcx", Gates::mcx},      // Multi-controlled-X gate
-    {"mcy", Gates::mcy},      // Multi-controlled-Y gate
-    {"mcz", Gates::mcz},      // Multi-controlled-Z gate
-    {"mcr", Gates::mcr},      // Multi-controlled R-rotation gate
-    {"mcrx", Gates::mcrx},    // Multi-controlled X-rotation gate
-    {"mcry", Gates::mcry},    // Multi-controlled Y-rotation gate
-    {"mcrz", Gates::mcrz},    // Multi-controlled Z-rotation gate
-    {"mcphase", Gates::mcp},  // Multi-controlled-Phase gate 
-    {"mcp", Gates::mcp},      // Multi-controlled-Phase gate 
-    {"mcu1", Gates::mcp},     // Multi-controlled-u1
-    {"mcu2", Gates::mcu2},    // Multi-controlled-u2
-    {"mcu3", Gates::mcu3},    // Multi-controlled-u3
-    {"mcu", Gates::mcu},      // Multi-controlled-u4
-    {"mcswap", Gates::mcswap},// Multi-controlled SWAP gate
-    {"mcsx", Gates::mcsx},    // Multi-controlled-Sqrt(X) gate
-    {"mcsxdg", Gates::mcsxdg}, // Multi-controlled-Sqrt(X)dg gate
-    {"pauli", Gates::pauli},   // Multi-qubit Pauli gate
-    {"mcx_gray", Gates::mcx}
-});
+const stringmap_t<Gates> State<statevec_t>::gateset_(
+    {                         // 1-qubit gates
+     {"delay", Gates::id},    // Delay gate
+     {"id", Gates::id},       // Pauli-Identity gate
+     {"x", Gates::mcx},       // Pauli-X gate
+     {"y", Gates::mcy},       // Pauli-Y gate
+     {"z", Gates::mcz},       // Pauli-Z gate
+     {"s", Gates::s},         // Phase gate (aka sqrt(Z) gate)
+     {"sdg", Gates::sdg},     // Conjugate-transpose of Phase gate
+     {"h", Gates::h},         // Hadamard gate (X + Z / sqrt(2))
+     {"t", Gates::t},         // T-gate (sqrt(S))
+     {"tdg", Gates::tdg},     // Conjguate-transpose of T gate
+     {"p", Gates::mcp},       // Parameterized phase gate
+     {"sx", Gates::mcsx},     // Sqrt(X) gate
+     {"sxdg", Gates::mcsxdg}, // Inverse Sqrt(X) gate
+     /* 1-qubit rotation Gates */
+     {"r", Gates::mcr},   // R rotation gate
+     {"rx", Gates::mcrx}, // Pauli-X rotation gate
+     {"ry", Gates::mcry}, // Pauli-Y rotation gate
+     {"rz", Gates::mcrz}, // Pauli-Z rotation gate
+     /* Waltz Gates */
+     {"u1", Gates::mcp},  // zero-X90 pulse waltz gate
+     {"u2", Gates::mcu2}, // single-X90 pulse waltz gate
+     {"u3", Gates::mcu3}, // two X90 pulse waltz gate
+     {"u", Gates::mcu3},  // two X90 pulse waltz gate
+     {"U", Gates::mcu3},  // two X90 pulse waltz gate
+     /* 2-qubit gates */
+     {"CX", Gates::mcx},       // Controlled-X gate (CNOT)
+     {"cx", Gates::mcx},       // Controlled-X gate (CNOT)
+     {"cy", Gates::mcy},       // Controlled-Y gate
+     {"cz", Gates::mcz},       // Controlled-Z gate
+     {"cp", Gates::mcp},       // Controlled-Phase gate
+     {"cu1", Gates::mcp},      // Controlled-u1 gate
+     {"cu2", Gates::mcu2},     // Controlled-u2 gate
+     {"cu3", Gates::mcu3},     // Controlled-u3 gate
+     {"cu", Gates::mcu},       // Controlled-u4 gate
+     {"cp", Gates::mcp},       // Controlled-Phase gate
+     {"swap", Gates::mcswap},  // SWAP gate
+     {"rxx", Gates::rxx},      // Pauli-XX rotation gate
+     {"ryy", Gates::ryy},      // Pauli-YY rotation gate
+     {"rzz", Gates::rzz},      // Pauli-ZZ rotation gate
+     {"rzx", Gates::rzx},      // Pauli-ZX rotation gate
+     {"csx", Gates::mcsx},     // Controlled-Sqrt(X) gate
+     {"csxdg", Gates::mcsxdg}, // Controlled-Sqrt(X)dg gate
+     {"ecr", Gates::ecr},      // ECR Gate
+     /* 3-qubit gates */
+     {"ccx", Gates::mcx},      // Controlled-CX gate (Toffoli)
+     {"cswap", Gates::mcswap}, // Controlled SWAP gate (Fredkin)
+     /* Multi-qubit controlled gates */
+     {"mcx", Gates::mcx},       // Multi-controlled-X gate
+     {"mcy", Gates::mcy},       // Multi-controlled-Y gate
+     {"mcz", Gates::mcz},       // Multi-controlled-Z gate
+     {"mcr", Gates::mcr},       // Multi-controlled R-rotation gate
+     {"mcrx", Gates::mcrx},     // Multi-controlled X-rotation gate
+     {"mcry", Gates::mcry},     // Multi-controlled Y-rotation gate
+     {"mcrz", Gates::mcrz},     // Multi-controlled Z-rotation gate
+     {"mcphase", Gates::mcp},   // Multi-controlled-Phase gate
+     {"mcp", Gates::mcp},       // Multi-controlled-Phase gate
+     {"mcu1", Gates::mcp},      // Multi-controlled-u1
+     {"mcu2", Gates::mcu2},     // Multi-controlled-u2
+     {"mcu3", Gates::mcu3},     // Multi-controlled-u3
+     {"mcu", Gates::mcu},       // Multi-controlled-u4
+     {"mcswap", Gates::mcswap}, // Multi-controlled SWAP gate
+     {"mcsx", Gates::mcsx},     // Multi-controlled-Sqrt(X) gate
+     {"mcsxdg", Gates::mcsxdg}, // Multi-controlled-Sqrt(X)dg gate
+     {"pauli", Gates::pauli},   // Multi-qubit Pauli gate
+     {"mcx_gray", Gates::mcx}});
 
 //=========================================================================
 // Implementation: Base class method overrides
@@ -369,8 +405,7 @@ const stringmap_t<Gates> State<statevec_t>::gateset_({
 //-------------------------------------------------------------------------
 
 template <class statevec_t>
-void State<statevec_t>::initialize_qreg(uint_t num_qubits) 
-{
+void State<statevec_t>::initialize_qreg(uint_t num_qubits) {
   int_t i;
   initialize_omp();
 
@@ -381,11 +416,10 @@ void State<statevec_t>::initialize_qreg(uint_t num_qubits)
 }
 
 template <class statevec_t>
-void State<statevec_t>::initialize_statevector(uint_t num_qubits,
-                                               statevec_t &&state) 
-{
+void State<statevec_t>::initialize_statevector(uint_t num_qubits, statevec_t &&state) {
   if (state.num_qubits() != num_qubits) {
-    throw std::invalid_argument("QubitVector::State::initialize: initial state does not match qubit number");
+    throw std::invalid_argument("QubitVector::State::initialize: initial state "
+                                "does not match qubit number");
   }
 
   BaseState::qreg_ = std::move(state);
@@ -393,8 +427,8 @@ void State<statevec_t>::initialize_statevector(uint_t num_qubits,
   apply_global_phase();
 }
 
-template <class statevec_t> void State<statevec_t>::initialize_omp() 
-{
+template <class statevec_t>
+void State<statevec_t>::initialize_omp() {
   uint_t i;
 
   BaseState::qreg_.set_omp_threshold(omp_qubit_threshold_);
@@ -423,33 +457,30 @@ void State<statevec_t>::apply_global_phase()
 }
 
 template <class statevec_t>
-size_t State<statevec_t>::required_memory_mb(uint_t num_qubits,
-                                             const std::vector<Operations::Op> &ops)
-                                             const 
-{
+size_t State<statevec_t>::required_memory_mb(
+    uint_t num_qubits, const std::vector<Operations::Op> &ops) const {
   (void)ops; // avoid unused variable compiler warning
   return BaseState::qreg_.required_memory_mb(num_qubits);
 }
 
 template <class statevec_t>
-void State<statevec_t>::set_config(const json_t &config) 
+void State<statevec_t>::set_config(const Config &config) 
 {
   BaseState::set_config(config);
 
   // Set threshold for truncating states to be saved
-  JSON::get_value(json_chop_threshold_, "zero_threshold", config);
+  json_chop_threshold_ = config.zero_threshold;
   BaseState::qreg_.set_json_chop_threshold(json_chop_threshold_);
 
   // Set OMP threshold for state update functions
-  JSON::get_value(omp_qubit_threshold_, "statevector_parallel_threshold", config);
+  omp_qubit_threshold_ = config.statevector_parallel_threshold;
 
   // Set the sample measure indexing size
-  int index_size;
-  if (JSON::get_value(index_size, "statevector_sample_measure_opt", config)) {
+  if (config.statevector_sample_measure_opt) {
+    int index_size = config.statevector_sample_measure_opt;
     BaseState::qreg_.set_sample_measure_index_size(index_size);
   }
 }
-
 
 template <class statevec_t>
 auto State<statevec_t>::move_to_vector(void)
@@ -462,7 +493,6 @@ auto State<statevec_t>::copy_to_vector(void)
 {
   return BaseState::qreg_.copy_to_vector();
 }
-
 
 //=========================================================================
 // Implementation: apply operations
@@ -550,7 +580,6 @@ void State<statevec_t>::apply_op(const Operations::Op &op,
   }
 }
 
-
 //=========================================================================
 // Implementation: Save data
 //=========================================================================
@@ -572,7 +601,6 @@ void State<statevec_t>::apply_save_probs(const Operations::Op &op,
   }
 }
 
-
 template <class statevec_t>
 double State<statevec_t>::expval_pauli(const reg_t &qubits,
                                        const std::string& pauli)
@@ -590,9 +618,8 @@ void State<statevec_t>::apply_save_statevector(const Operations::Op &op,
         op.name + " was not applied to all qubits."
         " Only the full statevector can be saved.");
   }
-  std::string key = (op.string_params[0] == "_method_")
-                      ? "statevector"
-                      : op.string_params[0];
+  std::string key =
+      (op.string_params[0] == "_method_") ? "statevector" : op.string_params[0];
 
   if (last_op) {
     auto v = move_to_vector();
@@ -646,7 +673,8 @@ void State<statevec_t>::apply_save_amplitudes(const Operations::Op &op,
                                               ExperimentResult &result) 
 {
   if (op.int_params.empty()) {
-    throw std::invalid_argument("Invalid save_amplitudes instructions (empty params).");
+    throw std::invalid_argument(
+        "Invalid save_amplitudes instructions (empty params).");
   }
   const int_t size = op.int_params.size();
   if (op.type == Operations::OpType::save_amps) {
@@ -851,8 +879,7 @@ void State<statevec_t>::apply_gate(const Operations::Op &op)
 template <class statevec_t>
 void State<statevec_t>::apply_multiplexer(const reg_t &control_qubits,
                                           const reg_t &target_qubits,
-                                          const cmatrix_t &mat) 
-{
+                                          const cmatrix_t &mat) {
   if (control_qubits.empty() == false && target_qubits.empty() == false &&
       mat.size() > 0) {
     cvector_t vmat = Utils::vectorize_matrix(mat);
@@ -957,8 +984,7 @@ template <class statevec_t>
 void State<statevec_t>::measure_reset_update(const std::vector<uint_t> &qubits,
                                              const uint_t final_state,
                                              const uint_t meas_state,
-                                             const double meas_prob) 
-{
+                                             const double meas_prob) {
   // Update a state vector based on an outcome pair [m, p] from
   // sample_measure_with_prob function, and a desired post-measurement
   // final_state
@@ -1004,13 +1030,12 @@ void State<statevec_t>::measure_reset_update(const std::vector<uint_t> &qubits,
 template <class statevec_t>
 std::vector<reg_t> State<statevec_t>::sample_measure(const reg_t &qubits,
                                                      uint_t shots,
-                                                     RngEngine &rng) 
-{
-  int_t i,j;
+                                                     RngEngine &rng) {
+  int_t i, j;
   // Generate flat register for storing
   std::vector<double> rnds;
   rnds.reserve(shots);
-  reg_t allbit_samples(shots,0);
+  reg_t allbit_samples(shots, 0);
 
   for (i = 0; i < shots; ++i)
     rnds.push_back(rng.rand(0, 1));
@@ -1036,8 +1061,7 @@ std::vector<reg_t> State<statevec_t>::sample_measure(const reg_t &qubits,
 template <class statevec_t>
 void State<statevec_t>::apply_initialize(const reg_t &qubits,
                                          const cvector_t &params,
-                                         RngEngine &rng) 
-{
+                                         RngEngine &rng) {
   auto sorted_qubits = qubits;
   std::sort(sorted_qubits.begin(), sorted_qubits.end());
   if (qubits.size() == BaseState::qreg_.num_qubits()) {
@@ -1083,8 +1107,7 @@ void State<statevec_t>::apply_multiplexer(const reg_t &control_qubits,
 template <class statevec_t>
 void State<statevec_t>::apply_kraus(const reg_t &qubits,
                                     const std::vector<cmatrix_t> &kmats,
-                                    RngEngine &rng) 
-{
+                                    RngEngine &rng) {
   // Check edge case for empty Kraus set (this shouldn't happen)
   if (kmats.empty())
     return; // end function early
@@ -1108,7 +1131,6 @@ void State<statevec_t>::apply_kraus(const reg_t &qubits,
 
     p = BaseState::qreg_.norm(qubits, vmat);
     accum += p;
-
     // check if we need to apply this operator
     if (accum > r) {
       // rescale vmat so projection is normalized
@@ -1128,7 +1150,6 @@ void State<statevec_t>::apply_kraus(const reg_t &qubits,
     apply_matrix(qubits, vmat);
   }
 }
-
 
 //-------------------------------------------------------------------------
 } // namespace Statevector

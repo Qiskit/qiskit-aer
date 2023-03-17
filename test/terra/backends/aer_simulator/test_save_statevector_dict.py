@@ -14,22 +14,20 @@ Integration Tests for SaveStatevector instruction
 """
 
 from ddt import ddt
-from test.terra.backends.simulator_test_case import (
-    SimulatorTestCase, supported_methods)
+from test.terra.backends.simulator_test_case import SimulatorTestCase, supported_methods
 import qiskit.quantum_info as qi
 from qiskit import QuantumCircuit, transpile
 
 
 def statevec_as_dict(data):
-    return {hex(int(key, 2)): val
-            for key, val in qi.Statevector(data).to_dict().items()}
+    return {hex(int(key, 2)): val for key, val in qi.Statevector(data).to_dict().items()}
 
 
 @ddt
 class TestSaveStatevectorDict(SimulatorTestCase):
     """Test SaveStatevectorDict instruction."""
 
-    @supported_methods(['automatic', 'statevector'])
+    @supported_methods(["automatic", "statevector", "tensor_network"])
     def test_save_statevector_dict(self, method, device):
         """Test save statevector for instruction"""
 
@@ -46,26 +44,25 @@ class TestSaveStatevectorDict(SimulatorTestCase):
         target = statevec_as_dict(circ)
 
         # Add save to circuit
-        label = 'sv'
+        label = "sv"
         circ.save_statevector_dict(label)
 
         # Run
-        result = backend.run(transpile(
-            circ, backend, optimization_level=0), shots=1).result()
+        result = backend.run(transpile(circ, backend, optimization_level=0), shots=1).result()
         self.assertTrue(result.success)
         simdata = result.data(0)
         self.assertIn(label, simdata)
         value = simdata[label]
         self.assertDictAlmostEqual(value, target)
 
-    @supported_methods(['automatic', 'statevector'])
+    @supported_methods(["automatic", "statevector", "tensor_network"])
     def test_save_statevector_conditional(self, method, device):
         """Test conditional save statevector instruction"""
 
         backend = self.backend(method=method, device=device)
 
         # Stabilizer test circuit
-        label = 'sv'
+        label = "sv"
         circ = QuantumCircuit(2)
         circ.h(0)
         circ.sdg(0)
@@ -74,12 +71,10 @@ class TestSaveStatevectorDict(SimulatorTestCase):
         circ.save_statevector_dict(label, conditional=True)
 
         # Target statevector
-        target = {'0x0': statevec_as_dict([1, 0, 0, 0]),
-                  '0x3': statevec_as_dict([0, 0, 0, -1j])}
+        target = {"0x0": statevec_as_dict([1, 0, 0, 0]), "0x3": statevec_as_dict([0, 0, 0, -1j])}
 
         # Run
-        result = backend.run(transpile(
-            circ, backend, optimization_level=0), shots=1).result()
+        result = backend.run(transpile(circ, backend, optimization_level=0), shots=1).result()
         self.assertTrue(result.success)
         simdata = result.data(0)
         self.assertIn(label, simdata)
@@ -87,7 +82,7 @@ class TestSaveStatevectorDict(SimulatorTestCase):
             self.assertIn(key, target)
             self.assertDictAlmostEqual(vec, target[key])
 
-    @supported_methods(['automatic', 'statevector'])
+    @supported_methods(["automatic", "statevector", "tensor_network"])
     def test_save_statevector_dict_pershot(self, method, device):
         """Test pershot save statevector instruction"""
 
@@ -104,13 +99,12 @@ class TestSaveStatevectorDict(SimulatorTestCase):
         target = statevec_as_dict(circ)
 
         # Add save
-        label = 'sv'
+        label = "sv"
         circ.save_statevector_dict(label, pershot=True)
 
         # Run
         shots = 10
-        result = backend.run(transpile(
-            circ, backend, optimization_level=0), shots=shots).result()
+        result = backend.run(transpile(circ, backend, optimization_level=0), shots=shots).result()
         self.assertTrue(result.success)
         simdata = result.data(0)
         self.assertIn(label, simdata)
@@ -119,9 +113,8 @@ class TestSaveStatevectorDict(SimulatorTestCase):
         for vec in value:
             self.assertDictAlmostEqual(vec, target)
 
-    @supported_methods(['automatic', 'statevector'])
-    def test_save_statevector_dict_pershot_conditional(
-            self, method, device):
+    @supported_methods(["automatic", "statevector", "tensor_network"])
+    def test_save_statevector_dict_pershot_conditional(self, method, device):
         """Test pershot conditional save statevector instruction"""
 
         backend = self.backend(method=method, device=device)
@@ -137,19 +130,18 @@ class TestSaveStatevectorDict(SimulatorTestCase):
         target = statevec_as_dict(circ)
 
         # Add save
-        label = 'sv'
+        label = "sv"
         circ.save_statevector_dict(label, pershot=True, conditional=True)
         circ.measure_all()
 
         # Run
         shots = 10
-        result = backend.run(transpile(
-            circ, backend, optimization_level=0), shots=shots).result()
+        result = backend.run(transpile(circ, backend, optimization_level=0), shots=shots).result()
         self.assertTrue(result.success)
         simdata = result.data(0)
         self.assertIn(label, simdata)
         value = simdata[label]
-        self.assertIn('0x0', value)
-        self.assertEqual(len(value['0x0']), shots)
-        for vec in value['0x0']:
+        self.assertIn("0x0", value)
+        self.assertEqual(len(value["0x0"]), shots)
+        for vec in value["0x0"]:
             self.assertDictAlmostEqual(vec, target)

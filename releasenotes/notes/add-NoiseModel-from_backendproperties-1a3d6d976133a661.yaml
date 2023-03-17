@@ -1,6 +1,0 @@
----
-features:
-  - |
-    Add a new class method :meth:`~.NoiseModel.from_backend` to :class:`NoiseModel`.
-    The function allows to construct a noise model from a `BackendProperties` object,
-    which can seen as a spin-off of a removed functionality of `NoiseModel.from_backend`.

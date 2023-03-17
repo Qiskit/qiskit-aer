@@ -23,6 +23,7 @@
 #include "simulators/state.hpp"
 #include "simulators/chunk_utils.hpp"
 #include "unitarymatrix.hpp"
+#include <math.h>
 #ifdef AER_THRUST_SUPPORTED
 #include "unitarymatrix_thrust.hpp"
 #endif
@@ -36,26 +37,47 @@ const Operations::OpSet StateOpSet(
     // Op types
     {Operations::OpType::gate, Operations::OpType::barrier,
      Operations::OpType::bfunc, Operations::OpType::roerror,
-     Operations::OpType::qerror_loc,
-     Operations::OpType::matrix, Operations::OpType::diagonal_matrix,
-    Operations::OpType::save_unitary,
+     Operations::OpType::qerror_loc, Operations::OpType::matrix,
+     Operations::OpType::diagonal_matrix, Operations::OpType::save_unitary,
      Operations::OpType::save_state, Operations::OpType::set_unitary,
-     Operations::OpType::jump, Operations::OpType::mark
-    },
+     Operations::OpType::jump, Operations::OpType::mark},
     // Gates
-    {"u1",     "u2",      "u3",  "u",    "U",    "CX",   "cx",   "cz",
-     "cy",     "cp",      "cu1", "cu2",  "cu3",  "swap", "id",   "p",
-     "x",      "y",       "z",   "h",    "s",    "sdg",  "t",    "tdg",
-     "r",      "rx",      "ry",  "rz",   "rxx",  "ryy",  "rzz",  "rzx",
-     "ccx",    "cswap",   "mcx", "mcy",  "mcz",  "mcu1", "mcu2", "mcu3",
-     "mcswap", "mcphase", "mcr", "mcrx", "mcry", "mcry", "sx",   "sxdg", "csx",
-     "mcsx",   "csxdg", "mcsxdg", "delay", "pauli", "cu",   "mcu", "mcp", "ecr"});
+    {"u1",     "u2",      "u3",    "u",      "U",     "CX",    "cx",   "cz",
+     "cy",     "cp",      "cu1",   "cu2",    "cu3",   "swap",  "id",   "p",
+     "x",      "y",       "z",     "h",      "s",     "sdg",   "t",    "tdg",
+     "r",      "rx",      "ry",    "rz",     "rxx",   "ryy",   "rzz",  "rzx",
+     "ccx",    "cswap",   "mcx",   "mcy",    "mcz",   "mcu1",  "mcu2", "mcu3",
+     "mcswap", "mcphase", "mcr",   "mcrx",   "mcry",  "mcry",  "sx",   "sxdg",
+     "csx",    "mcsx",    "csxdg", "mcsxdg", "delay", "pauli", "cu",   "mcu",
+     "mcp",    "ecr"});
 
 // Allowed gates enum class
 enum class Gates {
-  id, h, s, sdg, t, tdg, rxx, ryy, rzz, rzx,
-  mcx, mcy, mcz, mcr, mcrx, mcry, mcrz, mcp,
-  mcu2, mcu3, mcu, mcswap, mcsx, mcsxdg, pauli,
+  id,
+  h,
+  s,
+  sdg,
+  t,
+  tdg,
+  rxx,
+  ryy,
+  rzz,
+  rzx,
+  mcx,
+  mcy,
+  mcz,
+  mcr,
+  mcrx,
+  mcry,
+  mcrz,
+  mcp,
+  mcu2,
+  mcu3,
+  mcu,
+  mcswap,
+  mcsx,
+  mcsxdg,
+  pauli,
   ecr
 };
 
@@ -101,7 +123,7 @@ public:
   // Load the threshold for applying OpenMP parallelization
   // if the controller/engine allows threads for it
   // Config: {"omp_qubit_threshold": 7}
-  virtual void set_config(const json_t &config) override;
+  virtual void set_config(const Config &config) override;
 
   //-----------------------------------------------------------------------
   // Additional methods
@@ -189,18 +211,18 @@ protected:
 template <class unitary_matrix_t>
 const stringmap_t<Gates> State<unitary_matrix_t>::gateset_({
     // Single qubit gates
-    {"delay", Gates::id},// Delay gate
-    {"id", Gates::id},   // Pauli-Identity gate
-    {"x", Gates::mcx},   // Pauli-X gate
-    {"y", Gates::mcy},   // Pauli-Y gate
-    {"z", Gates::mcz},   // Pauli-Z gate
-    {"s", Gates::s},     // Phase gate (aka sqrt(Z) gate)
-    {"sdg", Gates::sdg}, // Conjugate-transpose of Phase gate
-    {"h", Gates::h},     // Hadamard gate (X + Z / sqrt(2))
-    {"t", Gates::t},     // T-gate (sqrt(S))
-    {"tdg", Gates::tdg}, // Conjguate-transpose of T gate
-    {"p", Gates::mcp},   // Parameterized phase gate
-    {"sx", Gates::mcsx}, // Sqrt(X) gate
+    {"delay", Gates::id},    // Delay gate
+    {"id", Gates::id},       // Pauli-Identity gate
+    {"x", Gates::mcx},       // Pauli-X gate
+    {"y", Gates::mcy},       // Pauli-Y gate
+    {"z", Gates::mcz},       // Pauli-Z gate
+    {"s", Gates::s},         // Phase gate (aka sqrt(Z) gate)
+    {"sdg", Gates::sdg},     // Conjugate-transpose of Phase gate
+    {"h", Gates::h},         // Hadamard gate (X + Z / sqrt(2))
+    {"t", Gates::t},         // T-gate (sqrt(S))
+    {"tdg", Gates::tdg},     // Conjguate-transpose of T gate
+    {"p", Gates::mcp},       // Parameterized phase gate
+    {"sx", Gates::mcsx},     // Sqrt(X) gate
     {"sxdg", Gates::mcsxdg}, // Sqrt(X)^hc gate
     // 1-qubit rotation Gates
     {"r", Gates::mcr},   // R rotation gate
@@ -208,52 +230,52 @@ const stringmap_t<Gates> State<unitary_matrix_t>::gateset_({
     {"ry", Gates::mcry}, // Pauli-Y rotation gate
     {"rz", Gates::mcrz}, // Pauli-Z rotation gate
     // Waltz Gates
-    {"p", Gates::mcp},   // Parameterized phase gate 
-    {"u1", Gates::mcp}, // zero-X90 pulse waltz gate
+    {"p", Gates::mcp},   // Parameterized phase gate
+    {"u1", Gates::mcp},  // zero-X90 pulse waltz gate
     {"u2", Gates::mcu2}, // single-X90 pulse waltz gate
     {"u3", Gates::mcu3}, // two X90 pulse waltz gate
-    {"u", Gates::mcu3}, // two X90 pulse waltz gate
-    {"U", Gates::mcu3}, // two X90 pulse waltz gate
+    {"u", Gates::mcu3},  // two X90 pulse waltz gate
+    {"U", Gates::mcu3},  // two X90 pulse waltz gate
     // Two-qubit gates
-    {"CX", Gates::mcx},      // Controlled-X gate (CNOT)
-    {"cx", Gates::mcx},      // Controlled-X gate (CNOT)
-    {"cy", Gates::mcy},      // Controlled-Z gate
-    {"cz", Gates::mcz},      // Controlled-Z gate
-    {"cp", Gates::mcp},      // Controlled-Phase gate 
-    {"cu1", Gates::mcp},     // Controlled-u1 gate
-    {"cu2", Gates::mcu2},    // Controlled-u2 gate
-    {"cu3", Gates::mcu3},    // Controlled-u3 gate
-    {"cu", Gates::mcu},      // Controlled-u4 gate
-    {"cp", Gates::mcp},      // Controlled-Phase gate 
-    {"swap", Gates::mcswap}, // SWAP gate
-    {"rxx", Gates::rxx},     // Pauli-XX rotation gate
-    {"ryy", Gates::ryy},     // Pauli-YY rotation gate
-    {"rzz", Gates::rzz},     // Pauli-ZZ rotation gate
-    {"rzx", Gates::rzx},     // Pauli-ZX rotation gate
-    {"csx", Gates::mcsx},    // Controlled-Sqrt(X) gate
-    {"csxdg", Gates::mcsxdg},// Controlled-Sqrt(X)dg gate
-    {"ecr", Gates::ecr},     // ECR Gate
+    {"CX", Gates::mcx},       // Controlled-X gate (CNOT)
+    {"cx", Gates::mcx},       // Controlled-X gate (CNOT)
+    {"cy", Gates::mcy},       // Controlled-Z gate
+    {"cz", Gates::mcz},       // Controlled-Z gate
+    {"cp", Gates::mcp},       // Controlled-Phase gate
+    {"cu1", Gates::mcp},      // Controlled-u1 gate
+    {"cu2", Gates::mcu2},     // Controlled-u2 gate
+    {"cu3", Gates::mcu3},     // Controlled-u3 gate
+    {"cu", Gates::mcu},       // Controlled-u4 gate
+    {"cp", Gates::mcp},       // Controlled-Phase gate
+    {"swap", Gates::mcswap},  // SWAP gate
+    {"rxx", Gates::rxx},      // Pauli-XX rotation gate
+    {"ryy", Gates::ryy},      // Pauli-YY rotation gate
+    {"rzz", Gates::rzz},      // Pauli-ZZ rotation gate
+    {"rzx", Gates::rzx},      // Pauli-ZX rotation gate
+    {"csx", Gates::mcsx},     // Controlled-Sqrt(X) gate
+    {"csxdg", Gates::mcsxdg}, // Controlled-Sqrt(X)dg gate
+    {"ecr", Gates::ecr},      // ECR Gate
     // Three-qubit gates
     {"ccx", Gates::mcx},      // Controlled-CX gate (Toffoli)
     {"cswap", Gates::mcswap}, // Controlled-SWAP gate (Fredkin)
     // Multi-qubit controlled gates
-    {"mcx", Gates::mcx},      // Multi-controlled-X gate
-    {"mcy", Gates::mcy},      // Multi-controlled-Y gate
-    {"mcz", Gates::mcz},      // Multi-controlled-Z gate
-    {"mcr", Gates::mcr},      // Multi-controlled R-rotation gate
-    {"mcrx", Gates::mcrx},    // Multi-controlled X-rotation gate
-    {"mcry", Gates::mcry},    // Multi-controlled Y-rotation gate
-    {"mcrz", Gates::mcrz},    // Multi-controlled Z-rotation gate
-    {"mcphase", Gates::mcp},  // Multi-controlled-Phase gate 
-    {"mcu1", Gates::mcp},    // Multi-controlled-u1
-    {"mcu2", Gates::mcu2},    // Multi-controlled-u2
-    {"mcu3", Gates::mcu3},    // Multi-controlled-u3
-    {"mcu", Gates::mcu},      // Multi-controlled-u4
-    {"mcp", Gates::mcp},      // Multi-controlled-Phase gate 
-    {"mcswap", Gates::mcswap},// Multi-controlled SWAP gate
-    {"mcsx", Gates::mcsx},    // Multi-controlled-Sqrt(X) gate
-    {"mcsxdg", Gates::mcsxdg},    // Multi-controlled-Sqrt(X)dg gate
-    {"pauli", Gates::pauli}  // Multiple pauli operations at once
+    {"mcx", Gates::mcx},       // Multi-controlled-X gate
+    {"mcy", Gates::mcy},       // Multi-controlled-Y gate
+    {"mcz", Gates::mcz},       // Multi-controlled-Z gate
+    {"mcr", Gates::mcr},       // Multi-controlled R-rotation gate
+    {"mcrx", Gates::mcrx},     // Multi-controlled X-rotation gate
+    {"mcry", Gates::mcry},     // Multi-controlled Y-rotation gate
+    {"mcrz", Gates::mcrz},     // Multi-controlled Z-rotation gate
+    {"mcphase", Gates::mcp},   // Multi-controlled-Phase gate
+    {"mcu1", Gates::mcp},      // Multi-controlled-u1
+    {"mcu2", Gates::mcu2},     // Multi-controlled-u2
+    {"mcu3", Gates::mcu3},     // Multi-controlled-u3
+    {"mcu", Gates::mcu},       // Multi-controlled-u4
+    {"mcp", Gates::mcp},       // Multi-controlled-Phase gate
+    {"mcswap", Gates::mcswap}, // Multi-controlled SWAP gate
+    {"mcsx", Gates::mcsx},     // Multi-controlled-Sqrt(X) gate
+    {"mcsxdg", Gates::mcsxdg}, // Multi-controlled-Sqrt(X)dg gate
+    {"pauli", Gates::pauli}    // Multiple pauli operations at once
 });
 
 //============================================================================
@@ -311,15 +333,15 @@ size_t State<unitary_matrix_t>::required_memory_mb(
 }
 
 template <class unitary_matrix_t>
-void State<unitary_matrix_t>::set_config(const json_t &config) 
-{
+void State<unitary_matrix_t>::set_config(const Config &config) {
   BaseState::set_config(config);
 
   // Set OMP threshold for state update functions
-  JSON::get_value(omp_qubit_threshold_, "unitary_parallel_threshold", config);
+  if (config.unitary_parallel_threshold.has_value())
+    omp_qubit_threshold_ = config.unitary_parallel_threshold.value();
 
   // Set threshold for truncating snapshots
-  JSON::get_value(json_chop_threshold_, "zero_threshold", config);
+  json_chop_threshold_ = config.zero_threshold;
 
   BaseState::qreg_.set_json_chop_threshold(json_chop_threshold_);
 }
@@ -337,8 +359,7 @@ void State<unitary_matrix_t>::initialize_qreg(uint_t num_qubits)
 
 template <class unitary_matrix_t>
 void State<unitary_matrix_t>::initialize_qreg(uint_t num_qubits,
-                                              const cmatrix_t &unitary) 
-{
+                                              const cmatrix_t &unitary) {
   // Check dimension of unitary
   if (unitary.size() != 1ULL << (2 * num_qubits)) {
     throw std::invalid_argument(
@@ -354,8 +375,7 @@ void State<unitary_matrix_t>::initialize_qreg(uint_t num_qubits,
 }
 
 template <class unitary_matrix_t>
-void State<unitary_matrix_t>::initialize_omp() 
-{
+void State<unitary_matrix_t>::initialize_omp() {
   uint_t i;
   BaseState::qreg_.set_omp_threshold(omp_qubit_threshold_);
   if (BaseState::threads_ > 0)
@@ -588,8 +608,7 @@ void State<unitary_matrix_t>::apply_gate_mcu(const reg_t &qubits, double theta,
 }
 
 template <class unitary_matrix_t>
-void State<unitary_matrix_t>::apply_global_phase() 
-{
+void State<unitary_matrix_t>::apply_global_phase() {
   if (BaseState::has_global_phase_) {
     apply_diagonal_matrix({0}, {BaseState::global_phase_, BaseState::global_phase_});
   }
@@ -605,7 +624,8 @@ void State<unitary_matrix_t>::apply_save_unitary(const Operations::Op &op,
         op.name + " was not applied to all qubits."
         " Only the full unitary can be saved.");
   }
-  std::string key = (op.string_params[0] == "_method_") ? "unitary" : op.string_params[0];
+  std::string key =
+      (op.string_params[0] == "_method_") ? "unitary" : op.string_params[0];
 
   if (last_op) {
     result.save_data_pershot(BaseState::creg(), key, move_to_matrix(),
@@ -624,7 +644,6 @@ double  State<unitary_matrix_t>::expval_pauli(const reg_t &qubits,
 {
   throw std::runtime_error("Unitary simulator does not support Pauli expectation values.");
 }
-
 
 //------------------------------------------------------------------------------
 } // namespace QubitUnitary

@@ -20,7 +20,7 @@ jobs:
         with:
           python-version: 3.7
       - name: Install deps
-        run: pip install "conan>=1.31.2"
+        run: pip install "conan<2.0.0"
       - name: Install openblas
         run: |
           set -e
@@ -79,7 +79,7 @@ jobs:
         with:
           python-version: 3.7
       - name: Install deps
-        run: pip install "conan>=1.31.2"
+        run: pip install "conan<2.0.0"
       - name: Install openblas and mpi
         run: |
           set -e

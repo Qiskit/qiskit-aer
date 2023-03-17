@@ -20,6 +20,7 @@ from ..default_qubits import default_qubits
 
 class SaveUnitary(SaveSingleData):
     """Save Unitary"""
+
     def __init__(self, num_qubits, label="unitary", pershot=False):
         """Create new instruction to save the unitary simulator state.
 
@@ -36,7 +37,7 @@ class SaveUnitary(SaveSingleData):
             qubits in a circuit, otherwise an exception will be raised during
             simulation.
         """
-        super().__init__('save_unitary', num_qubits, label, pershot=pershot)
+        super().__init__("save_unitary", num_qubits, label, pershot=pershot)
 
 
 def save_unitary(self, label="unitary", pershot=False):

@@ -44,7 +44,7 @@ public:
   auto move_to_matrix(void);
   auto copy_to_matrix(void);
 protected:
-  void set_config(const json_t &config) override;
+  void set_config(const Config &config) override;
 
   //apply parallel operations
   void apply_parallel_op(const Operations::Op &op,
@@ -83,7 +83,7 @@ protected:
 };
 
 template <class unitary_matrix_t>
-void ParallelExecutor<unitary_matrix_t>::set_config(const json_t &config) 
+void ParallelExecutor<unitary_matrix_t>::set_config(const Config &config) 
 {
   BaseExecutor::set_config(config);
 }

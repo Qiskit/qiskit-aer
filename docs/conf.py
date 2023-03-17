@@ -34,19 +34,24 @@ Sphinx documentation builder
 """
 
 import os
+import datetime
 # Set env flag so that we can doc functions that may otherwise not be loaded
 # see for example interactive visualizations in qiskit.visualization.
 os.environ['QISKIT_DOCS'] = 'TRUE'
 
 # -- Project information -----------------------------------------------------
-project = 'Qiskit'
-copyright = '2019, Qiskit Development Team'  # pylint: disable=redefined-builtin
+project = 'Qiskit Aer'
+copyright = f"2017-{datetime.date.today().year}, Qiskit Development Team"  # pylint: disable=redefined-builtin
 author = 'Qiskit Development Team'
 
+import qiskit_sphinx_theme
+
 # The short X.Y version
-version = ''
+version = '0.13.0'
 # The full version, including alpha/beta/rc tags
-release = '0.12.0'
+release = '0.13.0'
+
+templates_path = ['_templates']
 
 # -- General configuration ---------------------------------------------------
 
@@ -64,14 +69,10 @@ extensions = [
     'sphinx.ext.mathjax',
     'sphinx.ext.viewcode',
     'sphinx.ext.extlinks',
-    'sphinx_tabs.tabs',
     'jupyter_sphinx',
     'reno.sphinxext',
-]
-html_static_path = ['_static']
-templates_path = ['_templates']
-html_css_files = [
-    'style.css',
+    'matplotlib.sphinxext.plot_directive',
+    'sphinx.ext.intersphinx'
 ]
 
 # -----------------------------------------------------------------------------
@@ -123,7 +124,7 @@ add_module_names = False
 # (e.g., if this is set to ['foo.'], then foo.bar is shown under B, not F).
 # This can be handy if you document a project that consists of a single
 # package. Works only for the HTML builder currently.
-modindex_common_prefix = ['qiskit_aer']
+modindex_common_prefix = ['qiskit_aer.']
 
 # -- Configuration for extlinks extension ------------------------------------
 # Refer to https://www.sphinx-doc.org/en/master/usage/extensions/extlinks.html
@@ -134,7 +135,8 @@ modindex_common_prefix = ['qiskit_aer']
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-html_theme = 'sphinx_rtd_theme'  # use the theme in subdir 'theme'
+
+html_theme = "qiskit_sphinx_theme"
 
 html_logo = 'images/logo.png'
 #html_sidebars = {'**': ['globaltoc.html']}
@@ -145,7 +147,10 @@ html_theme_options = {
     'display_version': True,
     'prev_next_buttons_location': 'bottom',
     'style_external_links': True,
-    'style_nav_header_background': '#212121',
 }
 
 autoclass_content = 'both'
+intersphinx_mapping = {
+    "matplotlib": ("https://matplotlib.org/stable/", None),
+    "qiskit": ("https://qiskit.org/documentation/", None),
+}

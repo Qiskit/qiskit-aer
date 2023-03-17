@@ -24,7 +24,7 @@ from ..de.DE_Methods import method_from_string
 
 
 def setup_de_solver(exp, y0, pulse_de_model, de_options):
-    """ Constructs a scipy ODE solver for a given exp and op_system
+    """Constructs a scipy ODE solver for a given exp and op_system
 
     Parameters:
         exp (dict): dict containing experiment description

@@ -24,6 +24,7 @@ from qiskit_aer import AerSimulator
 
 class TestAlgorithms(SimulatorTestCase):
     """AerSimulator algorithm tests in the default basis"""
+
     def setUp(self):
         super().setUp()
         self.qc = QuantumCircuit(2)
@@ -49,5 +50,5 @@ class TestAlgorithms(SimulatorTestCase):
         self.assertDictAlmostEqual(
             backend.run(tqc, shots=1024, seed_simulator=12345678942).result().get_counts(),
             sim_backend.run(tqc, shots=1024, seed_simulator=12345678942).result().get_counts(),
-            delta=100
+            delta=100,
         )

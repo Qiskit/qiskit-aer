@@ -41,7 +41,7 @@ public:
   virtual ~ParallelExecutor(){}
 
 protected:
-  void set_config(const json_t &config) override;
+  void set_config(const Config &config) override;
 
   //apply parallel operations
   void apply_parallel_op(const Operations::Op &op,
@@ -150,7 +150,7 @@ protected:
 
 
 template <class state_t>
-void ParallelExecutor<state_t>::set_config(const json_t &config) 
+void ParallelExecutor<state_t>::set_config(const Config &config) 
 {
   BaseExecutor::set_config(config);
 }

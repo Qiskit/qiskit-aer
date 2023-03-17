@@ -33,18 +33,18 @@ namespace Linalg {
 class Matrix {
 public:
   // Single-qubit gates
-  const static cmatrix_t I;   // name: "id"
-  const static cmatrix_t X;   // name: "x"
-  const static cmatrix_t Y;   // name: "y"
-  const static cmatrix_t Z;   // name: "z"
-  const static cmatrix_t H;   // name: "h"
-  const static cmatrix_t S;   // name: "s"
-  const static cmatrix_t SDG; // name: "sdg"
-  const static cmatrix_t T;   // name: "t"
-  const static cmatrix_t TDG; // name: "tdg"
-  const static cmatrix_t SX;  // name: "sx"
-  const static cmatrix_t SXDG;// name: "sxdg"
-  const static cmatrix_t X90; // name: "x90"
+  const static cmatrix_t I;    // name: "id"
+  const static cmatrix_t X;    // name: "x"
+  const static cmatrix_t Y;    // name: "y"
+  const static cmatrix_t Z;    // name: "z"
+  const static cmatrix_t H;    // name: "h"
+  const static cmatrix_t S;    // name: "s"
+  const static cmatrix_t SDG;  // name: "sdg"
+  const static cmatrix_t T;    // name: "t"
+  const static cmatrix_t TDG;  // name: "tdg"
+  const static cmatrix_t SX;   // name: "sx"
+  const static cmatrix_t SXDG; // name: "sxdg"
+  const static cmatrix_t X90;  // name: "x90"
 
   // Two-qubit gates
   const static cmatrix_t CX;   // name: "cx"
@@ -92,8 +92,10 @@ public:
   static cmatrix_t u3(complex_t theta, complex_t phi, complex_t lam) {
     return u3(std::real(theta), std::real(phi), std::real(lam));
   };
-  static cmatrix_t u4(complex_t theta, complex_t phi, complex_t lam, complex_t gamma) {
-    return u4(std::real(theta), std::real(phi), std::real(lam), std::real(gamma));
+  static cmatrix_t u4(complex_t theta, complex_t phi, complex_t lam,
+                      complex_t gamma) {
+    return u4(std::real(theta), std::real(phi), std::real(lam),
+              std::real(gamma));
   };
   static cmatrix_t r(complex_t theta, complex_t phi) {
     return r(std::real(theta), std::real(phi));
@@ -106,11 +108,17 @@ public:
   static cmatrix_t rzz(complex_t theta) { return rzz(std::real(theta)); }
   static cmatrix_t rzx(complex_t theta) { return rzx(std::real(theta)); }
   static cmatrix_t phase(complex_t theta) { return phase(std::real(theta)); }
-  static cmatrix_t phase_diag(complex_t theta) { return phase_diag(std::real(theta)); }
+  static cmatrix_t phase_diag(complex_t theta) {
+    return phase_diag(std::real(theta));
+  }
   static cmatrix_t cphase(complex_t theta) { return cphase(std::real(theta)); }
-  static cmatrix_t cphase_diag(complex_t theta) { return cphase_diag(std::real(theta)); }
-  static cmatrix_t cu(complex_t theta, complex_t phi, complex_t lam, complex_t gamma) {
-    return cu(std::real(theta), std::real(phi), std::real(lam), std::real(gamma));
+  static cmatrix_t cphase_diag(complex_t theta) {
+    return cphase_diag(std::real(theta));
+  }
+  static cmatrix_t cu(complex_t theta, complex_t phi, complex_t lam,
+                      complex_t gamma) {
+    return cu(std::real(theta), std::real(phi), std::real(lam),
+              std::real(gamma));
   }
 
   // Return the matrix for a named matrix string
@@ -183,7 +191,7 @@ const cmatrix_t Matrix::CY =
                                    {{0, 0}, {0, 0}, {0, 0}, {0, -1}},
                                    {{0, 0}, {0, 0}, {1, 0}, {0, 0}},
                                    {{0, 0}, {0, 1}, {0, 0}, {0, 0}}});
-                     
+
 const cmatrix_t Matrix::CZ =
     Utils::make_matrix<complex_t>({{{1, 0}, {0, 0}, {0, 0}, {0, 0}},
                                    {{0, 0}, {1, 0}, {0, 0}, {0, 0}},
@@ -196,20 +204,20 @@ const cmatrix_t Matrix::SWAP =
                                    {{0, 0}, {1, 0}, {0, 0}, {0, 0}},
                                    {{0, 0}, {0, 0}, {0, 0}, {1, 0}}});
 
-const cmatrix_t Matrix::ECR =
-    Utils::make_matrix<complex_t>({{{0, 0}, {1. / std::sqrt(2.), 0}, {0, 0}, {0, 1. / std::sqrt(2.)}},
-                                   {{1. / std::sqrt(2.), 0}, {0, 0}, {0, -1. / std::sqrt(2.)}, {0, 0}},
-                                   {{0, 0}, {0, 1. / std::sqrt(2.)}, {0, 0}, {1. / std::sqrt(2.), 0}},
-                                   {{0, -1. / std::sqrt(2.)}, {0, 0}, {1. / std::sqrt(2.), 0}, {0, 0}}});
+const cmatrix_t Matrix::ECR = Utils::make_matrix<complex_t>(
+    {{{0, 0}, {1. / std::sqrt(2.), 0}, {0, 0}, {0, 1. / std::sqrt(2.)}},
+     {{1. / std::sqrt(2.), 0}, {0, 0}, {0, -1. / std::sqrt(2.)}, {0, 0}},
+     {{0, 0}, {0, 1. / std::sqrt(2.)}, {0, 0}, {1. / std::sqrt(2.), 0}},
+     {{0, -1. / std::sqrt(2.)}, {0, 0}, {1. / std::sqrt(2.), 0}, {0, 0}}});
 
 // Lookup table
 const stringmap_t<const cmatrix_t *> Matrix::label_map_ = {
-    {"id", &Matrix::I},     {"x", &Matrix::X},   {"y", &Matrix::Y},
-    {"z", &Matrix::Z},      {"h", &Matrix::H},   {"s", &Matrix::S},
-    {"sdg", &Matrix::SDG},  {"t", &Matrix::T},   {"tdg", &Matrix::TDG},
-    {"x90", &Matrix::X90},  {"cx", &Matrix::CX}, {"cy", &Matrix::CY},
-    {"cz", &Matrix::CZ},    {"swap", &Matrix::SWAP}, {"sx", &Matrix::SX},
-    {"sxdg", &Matrix::SXDG},  {"delay", &Matrix::I}, {"ecr", &Matrix::ECR}};
+    {"id", &Matrix::I},      {"x", &Matrix::X},       {"y", &Matrix::Y},
+    {"z", &Matrix::Z},       {"h", &Matrix::H},       {"s", &Matrix::S},
+    {"sdg", &Matrix::SDG},   {"t", &Matrix::T},       {"tdg", &Matrix::TDG},
+    {"x90", &Matrix::X90},   {"cx", &Matrix::CX},     {"cy", &Matrix::CY},
+    {"cz", &Matrix::CZ},     {"swap", &Matrix::SWAP}, {"sx", &Matrix::SX},
+    {"sxdg", &Matrix::SXDG}, {"delay", &Matrix::I},   {"ecr", &Matrix::ECR}};
 
 cmatrix_t Matrix::identity(size_t dim) {
   cmatrix_t mat(dim, dim);
@@ -218,9 +226,7 @@ cmatrix_t Matrix::identity(size_t dim) {
   return mat;
 }
 
-cmatrix_t Matrix::u1(double lambda) {
-  return phase(lambda);
-}
+cmatrix_t Matrix::u1(double lambda) { return phase(lambda); }
 
 cmatrix_t Matrix::u2(double phi, double lambda) {
   cmatrix_t mat(2, 2);

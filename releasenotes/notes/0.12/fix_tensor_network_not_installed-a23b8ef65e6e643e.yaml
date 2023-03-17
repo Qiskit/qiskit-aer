@@ -1,0 +1,4 @@
+---
+fixes:
+  - |
+    Fix build errors and test errors when enabling GPU but disabling cuQuantum.

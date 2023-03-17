@@ -15,6 +15,7 @@
 #ifndef _aer_executor_hpp_
 #define _aer_executor_hpp_
 
+#include "framework/config.hpp"
 #include "framework/json.hpp"
 #include "framework/opset.hpp"
 #include "framework/types.hpp"
@@ -105,7 +106,7 @@ public:
 
   void run_circuit(Circuit &circ,
                    const Noise::NoiseModel &noise,
-                   const json_t &config,
+                   const Config &config,
                    const Method method,
                    const Device device,
                    ExperimentResult &result);
@@ -114,14 +115,14 @@ public:
   // method, circuit and config
   Transpile::Fusion transpile_fusion(
                                      const Operations::OpSet &opset,
-                                     const json_t &config) const;
+                                     const Config &config) const;
 
   // Return cache blocking transpiler pass
   Transpile::CacheBlocking
   transpile_cache_blocking(
                            const Circuit &circ,
                            const Noise::NoiseModel &noise,
-                           const json_t &config) const;
+                           const Config &config) const;
 
   //return maximum number of qubits for matrix
   int_t get_max_matrix_qubits(const Circuit &circ) const;
@@ -160,16 +161,16 @@ public:
   // the first measurement in the circuit prevent sampling
   bool check_measure_sampling_opt(const Circuit &circ) const;
 protected:
-  virtual void set_config(const json_t &config);
+  virtual void set_config(const Config &config);
   virtual void set_parallelization(const Circuit &circ,
                                    const Noise::NoiseModel &noise);
 
   virtual void run_circuit_with_sampling(Circuit &circ,
-                                         const json_t &config,
+                                         const Config &config,
                                          ExperimentResult &result);
 
   virtual void run_circuit_shots(
-            Circuit &circ, const Noise::NoiseModel &noise, const json_t &config,
+            Circuit &circ, const Noise::NoiseModel &noise, const Config &config,
             ExperimentResult &result, bool sample_noise) = 0;
 
 
@@ -224,20 +225,20 @@ Base<state_t>::Base()
 }
 
 template <class state_t>
-void Base<state_t>::set_config(const json_t &config)
+void Base<state_t>::set_config(const Config &config)
 {
   // Load config for memory (creg list data)
-  JSON::get_value(save_creg_memory_, "memory", config);
+  if (config.memory.has_value())
+    save_creg_memory_ = config.memory.value();
 
 #ifdef _OPENMP
   // Load OpenMP maximum thread settings
-  if (JSON::check_key("max_parallel_threads", config))
-    JSON::get_value(max_parallel_threads_, "max_parallel_threads", config);
-  if (JSON::check_key("max_parallel_experiments", config))
-    JSON::get_value(max_parallel_experiments_, "max_parallel_experiments",
-                    config);
-  if (JSON::check_key("max_parallel_shots", config))
-    JSON::get_value(max_parallel_shots_, "max_parallel_shots", config);
+  if (config.max_parallel_threads.has_value())
+    max_parallel_threads_ = config.max_parallel_threads.value();
+  if (config.max_parallel_experiments.has_value())
+    max_parallel_experiments_ = config.max_parallel_experiments.value();
+  if (config.max_parallel_shots.has_value())
+    max_parallel_shots_ = config.max_parallel_shots.value();
   // Limit max threads based on number of available OpenMP threads
   auto omp_threads = omp_get_max_threads();
   max_parallel_threads_ = (max_parallel_threads_ > 0)
@@ -253,25 +254,24 @@ void Base<state_t>::set_config(const json_t &config)
 
   // Load configurations for parallelization
 
-  if (JSON::check_key("max_memory_mb", config)) {
-    JSON::get_value(max_memory_mb_, "max_memory_mb", config);
-  }
+  if (config.max_memory_mb.has_value())
+    max_memory_mb_ = config.max_memory_mb.value();
 
   // for debugging
-  if (JSON::check_key("_parallel_experiments", config)) {
-    JSON::get_value(parallel_experiments_, "_parallel_experiments", config);
+  if (config._parallel_experiments.has_value()) {
+    parallel_experiments_ = config._parallel_experiments.value();
     explicit_parallelization_ = true;
   }
 
   // for debugging
-  if (JSON::check_key("_parallel_shots", config)) {
-    JSON::get_value(parallel_shots_, "_parallel_shots", config);
+  if (config._parallel_shots.has_value()) {
+    parallel_shots_ = config._parallel_shots.value();
     explicit_parallelization_ = true;
   }
 
   // for debugging
-  if (JSON::check_key("_parallel_state_update", config)) {
-    JSON::get_value(parallel_state_update_, "_parallel_state_update", config);
+  if (config._parallel_state_update.has_value()) {
+    parallel_state_update_ = config._parallel_state_update.value();
     explicit_parallelization_ = true;
   }
 
@@ -281,74 +281,95 @@ void Base<state_t>::set_config(const json_t &config)
     parallel_state_update_ = std::max<int>({parallel_state_update_, 1});
   }
 
-  if (JSON::check_key("accept_distributed_results", config)) {
-    JSON::get_value(accept_distributed_results_, "accept_distributed_results",
-                    config);
-  }
+  if (config.accept_distributed_results.has_value())
+    accept_distributed_results_ = config.accept_distributed_results.value();
 
   // enable multiple qregs if cache blocking is enabled
-  cache_block_qubit_ = 0;
-  if (JSON::check_key("blocking_qubits", config)) {
-    JSON::get_value(cache_block_qubit_, "blocking_qubits", config);
-  }
+  if (config.blocking_qubits.has_value())
+    cache_block_qubit_ = config.blocking_qubits.value();
 
-  //cuStateVec configs
+  // cuStateVec configs
   cuStateVec_enable_ = false;
-  if(JSON::check_key("cuStateVec_enable", config)) {
-    JSON::get_value(cuStateVec_enable_, "cuStateVec_enable", config);
-  }
-
-
+  if (config.cuStateVec_enable.has_value())
+    cuStateVec_enable_ = config.cuStateVec_enable.value();
 
   // Override automatic simulation method with a fixed method
-  if (JSON::get_value(sim_device_name_, "device", config)) {
-    if (sim_device_name_ == "CPU") {
-      sim_device_ = Device::CPU;
-    } else if (sim_device_name_ == "Thrust") {
+  std::string method = config.method;
+  if (config.method == "statevector") {
+    method_ = Method::statevector;
+  } else if (config.method == "density_matrix") {
+    method_ = Method::density_matrix;
+  } else if (config.method == "stabilizer") {
+    method_ = Method::stabilizer;
+  } else if (config.method == "extended_stabilizer") {
+    method_ = Method::extended_stabilizer;
+  } else if (config.method == "matrix_product_state") {
+    method_ = Method::matrix_product_state;
+  } else if (config.method == "unitary") {
+    method_ = Method::unitary;
+  } else if (config.method == "superop") {
+    method_ = Method::superop;
+  } else if (config.method == "tensor_network") {
+    method_ = Method::tensor_network;
+  } else if (config.method != "automatic") {
+    throw std::runtime_error(std::string("Invalid simulation method (") +
+                             method + std::string(")."));
+  }
+
+  // Override automatic simulation method with a fixed method
+  sim_device_name_ = config.device;
+  if (sim_device_name_ == "CPU") {
+    sim_device_ = Device::CPU;
+  } else if (sim_device_name_ == "Thrust") {
 #ifndef AER_THRUST_CPU
-      throw std::runtime_error(
-          "Simulation device \"Thrust\" is not supported on this system");
+    throw std::runtime_error(
+        "Simulation device \"Thrust\" is not supported on this system");
 #else
-      sim_device_ = Device::ThrustCPU;
+    sim_device_ = Device::ThrustCPU;
 #endif
-    } else if (sim_device_name_ == "GPU") {
+  } else if (sim_device_name_ == "GPU") {
 #ifndef AER_THRUST_CUDA
-      throw std::runtime_error(
-          "Simulation device \"GPU\" is not supported on this system");
+    throw std::runtime_error(
+        "Simulation device \"GPU\" is not supported on this system");
 #else
 
 #ifndef AER_CUSTATEVEC
-      if(cuStateVec_enable_){
-        //Aer is not built for cuStateVec
-        throw std::runtime_error(
-            "Simulation device \"GPU\" does not support cuStateVec on this system");
-      }
-#endif
-      int nDev;
-      if (cudaGetDeviceCount(&nDev) != cudaSuccess) {
-          cudaGetLastError();
-          throw std::runtime_error("No CUDA device available!");
-      }
-      num_gpus_ = nDev;
-      sim_device_ = Device::GPU;
-#endif
+    if (cuStateVec_enable_) {
+      // Aer is not built for cuStateVec
+      throw std::runtime_error("Simulation device \"GPU\" does not support "
+                               "cuStateVec on this system");
     }
-    else {
-      throw std::runtime_error(std::string("Invalid simulation device (\"") +
-                               sim_device_name_ + std::string("\")."));
+#endif
+    int nDev;
+    if (cudaGetDeviceCount(&nDev) != cudaSuccess) {
+      cudaGetLastError();
+      throw std::runtime_error("No CUDA device available!");
     }
+    num_gpus_ = nDev;
+    sim_device_ = Device::GPU;
+#endif
+  } else {
+    throw std::runtime_error(std::string("Invalid simulation device (\"") +
+                             sim_device_name_ + std::string("\")."));
   }
 
-  std::string precision;
-  if (JSON::get_value(precision, "precision", config)) {
-    if (precision == "double") {
-      sim_precision_ = Precision::Double;
-    } else if (precision == "single") {
-      sim_precision_ = Precision::Single;
-    } else {
-      throw std::runtime_error(std::string("Invalid simulation precision (") +
-                               precision + std::string(")."));
-    }
+  if (method_ == Method::tensor_network) {
+#if defined(AER_THRUST_CUDA) && defined(AER_CUTENSORNET)
+    if (sim_device_ != Device::GPU)
+#endif
+      throw std::runtime_error(
+          "Invalid combination of simulation method and device, "
+          "\"tensor_network\" only supports \"device=GPU\"");
+  }
+
+  std::string precision = config.precision;
+  if (precision == "double") {
+    sim_precision_ = Precision::Double;
+  } else if (precision == "single") {
+    sim_precision_ = Precision::Single;
+  } else {
+    throw std::runtime_error(std::string("Invalid simulation precision (") +
+                             precision + std::string(")."));
   }
 }
 
@@ -539,7 +560,7 @@ void Base<state_t>::set_parallelization(const Circuit &circ,
 template <class state_t>
 void Base<state_t>::run_circuit(Circuit &circ,
                        const Noise::NoiseModel &noise,
-                       const json_t &config,
+                       const Config &config,
                        const Method method,
                        const Device device,
                        ExperimentResult &result)
@@ -686,7 +707,7 @@ void Base<state_t>::run_with_sampling(const Circuit &circ,
 
 template <class state_t>
 void Base<state_t>::run_circuit_with_sampling(Circuit &circ,
-                                              const json_t &config,
+                                              const Config &config,
                                               ExperimentResult &result) 
 {
   state_t state;
@@ -916,7 +937,7 @@ bool Base<state_t>::validate_state(const Circuit &circ,
 
 template <class state_t>
 Transpile::Fusion Base<state_t>::transpile_fusion(const Operations::OpSet &opset,
-                                         const json_t &config) const 
+                                         const Config &config) const 
 {
   Transpile::Fusion fusion_pass;
   fusion_pass.set_parallelization(parallel_state_update_);
@@ -964,7 +985,7 @@ Transpile::Fusion Base<state_t>::transpile_fusion(const Operations::OpSet &opset
 template <class state_t>
 Transpile::CacheBlocking Base<state_t>::transpile_cache_blocking(const Circuit &circ,
                                const Noise::NoiseModel &noise,
-                               const json_t &config) const
+                               const Config &config) const
 {
   Transpile::CacheBlocking cache_block_pass;
 

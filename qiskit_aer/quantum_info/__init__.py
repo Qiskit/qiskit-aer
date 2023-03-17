@@ -24,7 +24,9 @@ States
    :toctree: ../stubs/
 
    AerStatevector
+   AerDensityMatrix
 
 """
 
 from .states import AerStatevector
+from .states import AerDensityMatrix

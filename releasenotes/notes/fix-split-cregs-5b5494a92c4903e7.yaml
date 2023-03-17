@@ -1,5 +1,0 @@
----
-features:
-  - |
-    Fix the bug where the :class:`.Sampler` fails if the input circuit has multiple classical
-    registers.

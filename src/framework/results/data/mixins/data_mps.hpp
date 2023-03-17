@@ -25,7 +25,7 @@ namespace AER {
 //============================================================================
 // Result container for Qiskit-Aer
 //============================================================================
-//using cmat = std::vector<std::vector<complex_t>>;
+// using cmat = std::vector<std::vector<complex_t>>;
 struct DataMPS : public DataMap<SingleData, mps_container_t, 1>,
                  public DataMap<SingleData, mps_container_t, 2>,
                  public DataMap<ListData, mps_container_t, 1>,

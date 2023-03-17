@@ -15,9 +15,9 @@
 #ifndef _aer_noise_quantum_error_hpp_
 #define _aer_noise_quantum_error_hpp_
 
+#include "framework/noise_utils.hpp"
 #include "framework/opset.hpp"
 #include "simulators/superoperator/superoperator_state.hpp"
-#include "framework/noise_utils.hpp"
 
 namespace AER {
 namespace Noise {
@@ -31,9 +31,8 @@ namespace Noise {
 
 class QuantumError {
 public:
-
   // Methods for sampling
-  enum class Method {circuit, superop, kraus};
+  enum class Method { circuit, superop, kraus };
 
   // Alias for return type
   using NoiseOps = std::vector<Operations::Op>;
@@ -43,22 +42,21 @@ public:
   //-----------------------------------------------------------------------
 
   // Sample a noisy implementation of op
-  NoiseOps sample_noise(const reg_t &qubits,
-                        RngEngine &rng,
+  NoiseOps sample_noise(const reg_t &qubits, RngEngine &rng,
                         Method method = Method::circuit) const;
 
   // Return the opset for the quantum error
-  const Operations::OpSet& opset() const {return opset_;}
+  const Operations::OpSet &opset() const { return opset_; }
 
   // Return the superoperator matrix representation of the error.
   // If the error cannot be converted to a superoperator an error
   // will be raised.
-  const cmatrix_t& superoperator() const;
+  const cmatrix_t &superoperator() const;
 
   // Return the canonical Kraus representation of the error.
   // If the error cannot be converted to a Kraus an error
   // will be raised.
-  const std::vector<cmatrix_t>& kraus() const;
+  const std::vector<cmatrix_t> &kraus() const;
 
   //-----------------------------------------------------------------------
   // Initialization
@@ -79,7 +77,7 @@ public:
 
   // Compute the superoperator representation of the quantum error
   void compute_superoperator();
-  
+
   // Compute canonical Kraus representation of the quantum error
   void compute_kraus();
 
@@ -88,19 +86,19 @@ public:
   //-----------------------------------------------------------------------
 
   // Set number of qubits or memory bits for error
-  inline void set_num_qubits(uint_t num_qubits) {num_qubits_ = num_qubits;}
+  inline void set_num_qubits(uint_t num_qubits) { num_qubits_ = num_qubits; }
 
   // Get number of qubits or memory bits for error
-  inline uint_t get_num_qubits() const {return num_qubits_;}
+  inline uint_t get_num_qubits() const { return num_qubits_; }
 
   // Set the sampled errors to be applied after the original operation
-  inline void set_errors_after() {errors_after_op_ = true;}
+  inline void set_errors_after() { errors_after_op_ = true; }
 
   // Set the sampled errors to be applied before the original operation
-  inline void set_errors_before() {errors_after_op_ = false;}
+  inline void set_errors_before() { errors_after_op_ = false; }
 
   // Returns true if the errors are to be applied after the operation
-  inline bool errors_after() const {return errors_after_op_;}
+  inline bool errors_after() const { return errors_after_op_; }
 
   // Set threshold for checking probabilities and matrices
   void set_threshold(double);
@@ -134,7 +132,6 @@ protected:
 // Implementation: Mixed unitary error subclass
 //-------------------------------------------------------------------------
 
-
 QuantumError::NoiseOps QuantumError::sample_noise(const reg_t &qubits,
                                                   RngEngine &rng,
                                                   Method method) const {
@@ -145,39 +142,40 @@ QuantumError::NoiseOps QuantumError::sample_noise(const reg_t &qubits,
     throw std::invalid_argument(msg.str());
   }
   switch (method) {
-    case Method::superop: {
-      // Truncate qubits to size of the actual error
-      reg_t op_qubits = qubits;
-      op_qubits.resize(get_num_qubits());
-      auto op = Operations::make_superop(op_qubits, superoperator());
-      return NoiseOps({op});
+  case Method::superop: {
+    // Truncate qubits to size of the actual error
+    reg_t op_qubits = qubits;
+    op_qubits.resize(get_num_qubits());
+    auto op = Operations::make_superop(op_qubits, superoperator());
+    return NoiseOps({op});
+  }
+  case Method::kraus: {
+    // Truncate qubits to size of the actual error
+    reg_t op_qubits = qubits;
+    op_qubits.resize(get_num_qubits());
+    auto op = Operations::make_kraus(op_qubits, kraus());
+    return NoiseOps({op});
+  }
+  default: {
+    auto r = rng.rand_int(probabilities_);
+    // Check for invalid arguments
+    if (r + 1 > circuits_.size()) {
+      throw std::invalid_argument("QuantumError: probability outcome (" +
+                                  std::to_string(r) +
+                                  ")"
+                                  " is greater than number of circuits (" +
+                                  std::to_string(circuits_.size()) + ").");
     }
-    case Method::kraus: {
-      // Truncate qubits to size of the actual error
-      reg_t op_qubits = qubits;
-      op_qubits.resize(get_num_qubits());
-      auto op = Operations::make_kraus(op_qubits, kraus());
-      return NoiseOps({op});
-    }
-    default: {
-      auto r = rng.rand_int(probabilities_);
-      // Check for invalid arguments
-      if (r + 1 > circuits_.size()) {
-        throw std::invalid_argument(
-          "QuantumError: probability outcome (" + std::to_string(r) + ")"
-          " is greater than number of circuits (" + std::to_string(circuits_.size()) + ")."
-        );
+    NoiseOps noise_ops = circuits_[r];
+    // Add qubits to noise op commands;
+    for (auto &op : noise_ops) {
+      // Update qubits based on position in qubits list
+      for (auto &qubit : op.qubits) {
+        qubit = qubits[qubit];
       }
-      NoiseOps noise_ops = circuits_[r];
-      // Add qubits to noise op commands;
-      for (auto &op : noise_ops) {
-        // Update qubits based on position in qubits list
-        for (auto &qubit: op.qubits) {
-          qubit = qubits[qubit];
-        }
-      }
-      return noise_ops;
     }
+    return noise_ops;
+  }
   }
 }
 
@@ -189,10 +187,9 @@ void QuantumError::set_circuits(const std::vector<NoiseOps> &circuits,
                                 const rvector_t &probs) {
   if (probs.size() != circuits.size()) {
     throw std::invalid_argument(
-      "QuantumError: invalid input, number of circuits (" +
-      std::to_string(circuits.size()) + ") and number of probabilities (" +
-      std::to_string(probs.size()) + ") are not equal."
-    );
+        "QuantumError: invalid input, number of circuits (" +
+        std::to_string(circuits.size()) + ") and number of probabilities (" +
+        std::to_string(probs.size()) + ") are not equal.");
   }
   // Check probability vector
   double total = 0.;
@@ -203,17 +200,18 @@ void QuantumError::set_circuits(const std::vector<NoiseOps> &circuits,
     total += p;
   }
   if (!probs_valid || std::abs(total - 1.0) > threshold_) {
-    throw std::invalid_argument("QuantumError: invalid probability vector total (" +
-                                std::to_string(total) + "!= 1)");
+    throw std::invalid_argument(
+        "QuantumError: invalid probability vector total (" +
+        std::to_string(total) + "!= 1)");
   }
   // Reset OpSet
   opset_ = Operations::OpSet();
   // Add elements with non-zero probability
-  for (size_t j=0; j < probs.size(); j++ ) {
+  for (size_t j = 0; j < probs.size(); j++) {
     if (probs[j] > threshold_) {
       probabilities_.push_back(probs[j]);
       circuits_.push_back(circuits[j]);
-      for (const auto &op: circuits[j]) {
+      for (const auto &op : circuits[j]) {
         // Check max qubit size
         for (const auto &qubit : op.qubits) {
           num_qubits = std::max(num_qubits, qubit + 1);
@@ -226,7 +224,6 @@ void QuantumError::set_circuits(const std::vector<NoiseOps> &circuits,
   set_num_qubits(num_qubits);
 }
 
-
 void QuantumError::set_from_kraus(const std::vector<cmatrix_t> &mats) {
   // Check input isn't empty
   if (mats.empty())
@@ -234,14 +231,16 @@ void QuantumError::set_from_kraus(const std::vector<cmatrix_t> &mats) {
 
   // Check input is a CPTP map
   if (Utils::is_cptp_kraus(mats, threshold_) == false)
-    throw std::invalid_argument("QuantumError: Kraus channel input is not a CPTP map.");
+    throw std::invalid_argument(
+        "QuantumError: Kraus channel input is not a CPTP map.");
 
   // Get number of qubits from first Kraus operator
   size_t mat_dim = mats[0].GetRows();
   auto num_qubits = static_cast<unsigned>(std::log2(mat_dim));
   set_num_qubits(num_qubits);
   if (mat_dim != 1ULL << num_qubits)
-    throw std::invalid_argument("QuantumError: Kraus channel input is a multi-qubit channel.");
+    throw std::invalid_argument(
+        "QuantumError: Kraus channel input is a multi-qubit channel.");
 
   // Check if each matrix is a:
   // - scaled identity matrix
@@ -254,17 +253,18 @@ void QuantumError::set_from_kraus(const std::vector<cmatrix_t> &mats) {
 
   // Matrices
   std::vector<cmatrix_t> unitaries; // non-identity unitaries
-  std::vector<cmatrix_t> kraus; // non-unitary Kraus matrices
+  std::vector<cmatrix_t> kraus;     // non-unitary Kraus matrices
 
   for (const auto &mat : mats) {
     if (!Utils::is_square(mat) && !Utils::is_diagonal(mat)) {
       throw std::invalid_argument("Error matrix is not square or diagonal.");
     }
-    // Get the value of the first non-zero diagonal element of mat * dagger(mat) for rescaling
+    // Get the value of the first non-zero diagonal element of mat * dagger(mat)
+    // for rescaling
     double p = 0.;
-    for (size_t i=0; i < mat.GetColumns(); i ++) {
-      for (size_t j=0; j < mat.GetRows(); j ++) {
-        p += std::real(std::abs(mat(j, i) * std::conj(mat(j, i)) ));
+    for (size_t i = 0; i < mat.GetColumns(); i++) {
+      for (size_t j = 0; j < mat.GetRows(); j++) {
+        p += std::real(std::abs(mat(j, i) * std::conj(mat(j, i))));
       }
       if (p > threshold_)
         break;
@@ -273,7 +273,8 @@ void QuantumError::set_from_kraus(const std::vector<cmatrix_t> &mats) {
       // Rescale mat by probability
       cmatrix_t tmp = (1 / std::sqrt(p)) * mat;
       // Check if rescaled matrix is an identity
-      if (Utils::is_identity(tmp, threshold_) || Utils::is_diagonal_identity(tmp, threshold_)) {
+      if (Utils::is_identity(tmp, threshold_) ||
+          Utils::is_diagonal_identity(tmp, threshold_)) {
         // Add to identity probability
         probs[0] += p;
         p_unitary += p;
@@ -292,7 +293,7 @@ void QuantumError::set_from_kraus(const std::vector<cmatrix_t> &mats) {
 
   // Create noise circuits:
   std::vector<NoiseOps> circuits;
-  
+
   // Add identity
   Operations::Op iden;
   iden.name = "id";
@@ -304,7 +305,7 @@ void QuantumError::set_from_kraus(const std::vector<cmatrix_t> &mats) {
   // for indexing remaining errors operators
   reg_t error_qubits(num_qubits);
   std::iota(error_qubits.begin(), error_qubits.end(), 0);
-  for (size_t j=1; j < probs.size(); j++) {
+  for (size_t j = 1; j < probs.size(); j++) {
     auto op = Operations::make_unitary(error_qubits, unitaries[j - 1]);
     circuits.push_back({op});
   }
@@ -314,10 +315,12 @@ void QuantumError::set_from_kraus(const std::vector<cmatrix_t> &mats) {
   double p_kraus = 1.0 - p_unitary;
   if (std::abs(p_kraus) > threshold_) {
     // Rescale Kraus operators by probability
-    Utils::scalar_multiply_inplace(kraus, complex_t(1. / std::sqrt(p_kraus), 0.0));
+    Utils::scalar_multiply_inplace(kraus,
+                                   complex_t(1. / std::sqrt(p_kraus), 0.0));
     // Check rescaled Kraus map is still CPTP
     if (Utils::is_cptp_kraus(kraus, threshold_) == false) {
-      throw std::invalid_argument("QuantumError: Rescaled non-unitary Kraus channel is not a CPTP map.");
+      throw std::invalid_argument("QuantumError: Rescaled non-unitary Kraus "
+                                  "channel is not a CPTP map.");
     }
     // Add Kraus error subcircuit
     auto op = Operations::make_kraus(error_qubits, kraus);
@@ -330,8 +333,7 @@ void QuantumError::set_from_kraus(const std::vector<cmatrix_t> &mats) {
   set_circuits(circuits, probs);
 }
 
-
-const cmatrix_t& QuantumError::superoperator() const {
+const cmatrix_t &QuantumError::superoperator() const {
   // Check the superoperator is actually computed
   // If not raise an exception
   if (superoperator_.empty()) {
@@ -340,8 +342,7 @@ const cmatrix_t& QuantumError::superoperator() const {
   return superoperator_;
 }
 
-
-const std::vector<cmatrix_t>& QuantumError::kraus() const {
+const std::vector<cmatrix_t> &QuantumError::kraus() const {
   // Check the canonical Kraus method is actually computed
   // If not raise an exception
   if (canonical_kraus_.empty()) {
@@ -350,14 +351,13 @@ const std::vector<cmatrix_t>& QuantumError::kraus() const {
   return canonical_kraus_;
 }
 
-
 void QuantumError::compute_superoperator() {
   // Initialize superoperator matrix to correct size
   size_t dim = 1ULL << (2 * get_num_qubits());
   superoperator_.initialize(dim, dim);
   // We use the superoperator simulator state to do this
   QubitSuperoperator::State<> superop;
-  for (size_t j=0; j<circuits_.size(); j++ ){
+  for (size_t j = 0; j < circuits_.size(); j++) {
     // Initialize identity superoperator
     superop.initialize_qreg(get_num_qubits());
     // Apply each gate in the circuit
@@ -386,8 +386,6 @@ void QuantumError::load_from_json(const json_t &js) {
   JSON::get_value(circuits, "instructions", js);
   set_circuits(circuits, probs);
 }
-
-
 
 //-------------------------------------------------------------------------
 } // end namespace Noise

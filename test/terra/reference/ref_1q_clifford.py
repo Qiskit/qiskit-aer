@@ -22,6 +22,7 @@ from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 # H-gate
 # ==========================================================================
 
+
 def h_gate_circuits_deterministic(final_measure=True):
     """H-gate test circuits with deterministic counts."""
     circuits = []
@@ -30,7 +31,7 @@ def h_gate_circuits_deterministic(final_measure=True):
         cr = ClassicalRegister(1)
         regs = (qr, cr)
     else:
-        regs = (qr, )
+        regs = (qr,)
     # HH=I
     circuit = QuantumCircuit(*regs)
     circuit.h(qr)
@@ -48,10 +49,10 @@ def h_gate_counts_deterministic(shots, hex_counts=True):
     targets = []
     if hex_counts:
         # HH=I
-        targets.append({'0x0': shots})
+        targets.append({"0x0": shots})
     else:
         # HH=I
-        targets.append({'0': shots})
+        targets.append({"0": shots})
     return targets
 
 
@@ -79,7 +80,7 @@ def h_gate_circuits_nondeterministic(final_measure=True):
         cr = ClassicalRegister(1)
         regs = (qr, cr)
     else:
-        regs = (qr, )
+        regs = (qr,)
     # H
     circuit = QuantumCircuit(*regs)
     circuit.h(qr)
@@ -95,10 +96,10 @@ def h_gate_counts_nondeterministic(shots, hex_counts=True):
     targets = []
     if hex_counts:
         # H
-        targets.append({'0x0': shots / 2, '0x1': shots / 2})
+        targets.append({"0x0": shots / 2, "0x1": shots / 2})
     else:
         # H
-        targets.append({'0': shots / 2, '1': shots / 2})
+        targets.append({"0": shots / 2, "1": shots / 2})
     return targets
 
 
@@ -122,6 +123,7 @@ def h_gate_unitary_nondeterministic():
 # X-gate
 # ==========================================================================
 
+
 def x_gate_circuits_deterministic(final_measure=True):
     """X-gate test circuits with deterministic counts."""
     circuits = []
@@ -130,7 +132,7 @@ def x_gate_circuits_deterministic(final_measure=True):
         cr = ClassicalRegister(1)
         regs = (qr, cr)
     else:
-        regs = (qr, )
+        regs = (qr,)
 
     # X
     circuit = QuantumCircuit(*regs)
@@ -170,18 +172,18 @@ def x_gate_counts_deterministic(shots, hex_counts=True):
     targets = []
     if hex_counts:
         # X
-        targets.append({'0x1': shots})
+        targets.append({"0x1": shots})
         # XX = I
-        targets.append({'0x0': shots})
+        targets.append({"0x0": shots})
         # HXH=Z
-        targets.append({'0x0': shots})
+        targets.append({"0x0": shots})
     else:
         # X
-        targets.append({'1': shots})
+        targets.append({"1": shots})
         # XX = I
-        targets.append({'0': shots})
+        targets.append({"0": shots})
         # HXH=Z
-        targets.append({'0': shots})
+        targets.append({"0": shots})
     return targets
 
 
@@ -213,6 +215,7 @@ def x_gate_unitary_deterministic():
 # Z-gate
 # ==========================================================================
 
+
 def z_gate_circuits_deterministic(final_measure=True):
     """Z-gate test circuits with deterministic counts."""
     circuits = []
@@ -221,7 +224,7 @@ def z_gate_circuits_deterministic(final_measure=True):
         cr = ClassicalRegister(1)
         regs = (qr, cr)
     else:
-        regs = (qr, )
+        regs = (qr,)
 
     # Z alone
     circuit = QuantumCircuit(*regs)
@@ -265,18 +268,18 @@ def z_gate_counts_deterministic(shots, hex_counts=True):
     targets = []
     if hex_counts:
         # Z
-        targets.append({'0x0': shots})
+        targets.append({"0x0": shots})
         # HZH = X
-        targets.append({'0x1': shots})
+        targets.append({"0x1": shots})
         # HZZH = I
-        targets.append({'0x0': shots})
+        targets.append({"0x0": shots})
     else:
         # Z
-        targets.append({'0': shots})
+        targets.append({"0": shots})
         # HZH = X
-        targets.append({'1': shots})
+        targets.append({"1": shots})
         # HZZH = I
-        targets.append({'0': shots})
+        targets.append({"0": shots})
     return targets
 
 
@@ -308,6 +311,7 @@ def z_gate_unitary_deterministic():
 # Y-gate
 # ==========================================================================
 
+
 def y_gate_circuits_deterministic(final_measure=True):
     """Y-gate test circuits with deterministic counts."""
     circuits = []
@@ -316,7 +320,7 @@ def y_gate_circuits_deterministic(final_measure=True):
         cr = ClassicalRegister(1)
         regs = (qr, cr)
     else:
-        regs = (qr, )
+        regs = (qr,)
 
     # Y
     circuit = QuantumCircuit(*regs)
@@ -354,18 +358,18 @@ def y_gate_counts_deterministic(shots, hex_counts=True):
     targets = []
     if hex_counts:
         # Y
-        targets.append({'0x1': shots})
+        targets.append({"0x1": shots})
         # YY = I
-        targets.append({'0x0': shots})
+        targets.append({"0x0": shots})
         # HYH = -Y
-        targets.append({'0x1': shots})
+        targets.append({"0x1": shots})
     else:
         # Y
-        targets.append({'1': shots})
+        targets.append({"1": shots})
         # YY = I
-        targets.append({'0': shots})
+        targets.append({"0": shots})
         # HYH = -Y
-        targets.append({'1': shots})
+        targets.append({"1": shots})
     return targets
 
 
@@ -397,6 +401,7 @@ def y_gate_unitary_deterministic():
 # S-gate
 # ==========================================================================
 
+
 def s_gate_circuits_deterministic(final_measure=True):
     """S-gate test circuits with deterministic counts."""
     circuits = []
@@ -405,7 +410,7 @@ def s_gate_circuits_deterministic(final_measure=True):
         cr = ClassicalRegister(1)
         regs = (qr, cr)
     else:
-        regs = (qr, )
+        regs = (qr,)
 
     # S
     circuit = QuantumCircuit(*regs)
@@ -446,18 +451,18 @@ def s_gate_counts_deterministic(shots, hex_counts=True):
     targets = []
     if hex_counts:
         # S
-        targets.append({'0x0': shots})
+        targets.append({"0x0": shots})
         # S.X
-        targets.append({'0x1': shots})
+        targets.append({"0x1": shots})
         # HSSH = HZH = X
-        targets.append({'0x1': shots})
+        targets.append({"0x1": shots})
     else:
         # S
-        targets.append({'0': shots})
+        targets.append({"0": shots})
         # S.X
-        targets.append({'1': shots})
+        targets.append({"1": shots})
         # HSSH = HZH = X
-        targets.append({'1': shots})
+        targets.append({"1": shots})
     return targets
 
 
@@ -493,7 +498,7 @@ def s_gate_circuits_nondeterministic(final_measure=True):
         cr = ClassicalRegister(1)
         regs = (qr, cr)
     else:
-        regs = (qr, )
+        regs = (qr,)
 
     # SH
     circuit = QuantumCircuit(*regs)
@@ -524,14 +529,14 @@ def s_gate_counts_nondeterministic(shots, hex_counts=True):
     targets = []
     if hex_counts:
         # S.H
-        targets.append({'0x0': shots / 2, '0x1': shots / 2})
+        targets.append({"0x0": shots / 2, "0x1": shots / 2})
         # H.S.H
-        targets.append({'0x0': shots / 2, '0x1': shots / 2})
+        targets.append({"0x0": shots / 2, "0x1": shots / 2})
     else:
         # S.H
-        targets.append({'0': shots / 2, '1': shots / 2})
+        targets.append({"0": shots / 2, "1": shots / 2})
         # H.S.H
-        targets.append({'0': shots / 2, '1': shots / 2})
+        targets.append({"0": shots / 2, "1": shots / 2})
     return targets
 
 
@@ -551,14 +556,14 @@ def s_gate_unitary_nondeterministic():
     # S.H
     targets.append(np.array([[1, 1], [1j, -1j]]) / np.sqrt(2))
     # H.S.H
-    targets.append(np.array([[1 + 1j, 1 - 1j],
-                             [1 - 1j, 1 + 1j]]) / 2)
+    targets.append(np.array([[1 + 1j, 1 - 1j], [1 - 1j, 1 + 1j]]) / 2)
     return targets
 
 
 # ==========================================================================
 # S^dagger-gate
 # ==========================================================================
+
 
 def sdg_gate_circuits_deterministic(final_measure=True):
     """Sdg-gate test circuits with deterministic counts."""
@@ -568,7 +573,7 @@ def sdg_gate_circuits_deterministic(final_measure=True):
         cr = ClassicalRegister(1)
         regs = (qr, cr)
     else:
-        regs = (qr, )
+        regs = (qr,)
 
     # Sdg
     circuit = QuantumCircuit(*regs)
@@ -613,18 +618,18 @@ def sdg_gate_counts_deterministic(shots, hex_counts=True):
     targets = []
     if hex_counts:
         # Sdg
-        targets.append({'0x0': shots})
+        targets.append({"0x0": shots})
         # H.Sdg.Sdg.H = H.Z.H = X
-        targets.append({'0x1': shots})
+        targets.append({"0x1": shots})
         # H.Sdg.S.H = I
-        targets.append({'0x0': shots})
+        targets.append({"0x0": shots})
     else:
         # Sdg
-        targets.append({'0': shots})
+        targets.append({"0": shots})
         # H.Sdg.Sdg.H = H.Z.H = X
-        targets.append({'1': shots})
+        targets.append({"1": shots})
         # H.Sdg.S.H = I
-        targets.append({'0': shots})
+        targets.append({"0": shots})
     return targets
 
 
@@ -660,7 +665,7 @@ def sdg_gate_circuits_nondeterministic(final_measure=True):
         cr = ClassicalRegister(1)
         regs = (qr, cr)
     else:
-        regs = (qr, )
+        regs = (qr,)
 
     # Sdg.H
     circuit = QuantumCircuit(*regs)
@@ -691,14 +696,14 @@ def sdg_gate_counts_nondeterministic(shots, hex_counts=True):
     targets = []
     if hex_counts:
         # Sdg.H
-        targets.append({'0x0': shots / 2, '0x1': shots / 2})
+        targets.append({"0x0": shots / 2, "0x1": shots / 2})
         # H.Sdg.H
-        targets.append({'0x0': shots / 2, '0x1': shots / 2})
+        targets.append({"0x0": shots / 2, "0x1": shots / 2})
     else:
         # Sdg.H
-        targets.append({'0': shots / 2, '1': shots / 2})
+        targets.append({"0": shots / 2, "1": shots / 2})
         # H.Sdg.H
-        targets.append({'0': shots / 2, '1': shots / 2})
+        targets.append({"0": shots / 2, "1": shots / 2})
     return targets
 
 
@@ -718,13 +723,14 @@ def sdg_gate_unitary_nondeterministic():
     # Sdg.H
     targets.append(np.array([[1, 1], [-1j, 1j]]) / np.sqrt(2))
     # H.Sdg.H
-    targets.append(np.array([[1 - 1j, 1 + 1j],
-                             [1 + 1j, 1 - 1j]]) / 2)
+    targets.append(np.array([[1 - 1j, 1 + 1j], [1 + 1j, 1 - 1j]]) / 2)
     return targets
+
 
 # ==========================================================================
 # Pauli gate
 # ==========================================================================
+
 
 def pauli_gate_circuits_deterministic(final_measure=True):
     """pauli gate test circuits with deterministic counts."""
@@ -734,10 +740,10 @@ def pauli_gate_circuits_deterministic(final_measure=True):
         cr = ClassicalRegister(3)
         regs = (qr, cr)
     else:
-        regs = (qr, )
+        regs = (qr,)
 
     circuit = QuantumCircuit(*regs)
-    circuit.pauli('ZYX', qr)
+    circuit.pauli("ZYX", qr)
     if final_measure:
         circuit.barrier(qr)
         circuit.measure(qr, cr)
@@ -747,7 +753,7 @@ def pauli_gate_circuits_deterministic(final_measure=True):
     circuit = QuantumCircuit(*regs)
     circuit.h(qr[0])
     circuit.h(qr[2])
-    circuit.pauli('ZZ', [qr[0], qr[2]])
+    circuit.pauli("ZZ", [qr[0], qr[2]])
     circuit.h(qr[0])
     circuit.h(qr[2])
     if final_measure:
@@ -756,7 +762,7 @@ def pauli_gate_circuits_deterministic(final_measure=True):
     circuits.append(circuit)
 
     circuit = QuantumCircuit(*regs)
-    circuit.pauli('XYZ', qr)
+    circuit.pauli("XYZ", qr)
     if final_measure:
         circuit.barrier(qr)
         circuit.measure(qr, cr)
@@ -764,22 +770,25 @@ def pauli_gate_circuits_deterministic(final_measure=True):
 
     return circuits
 
+
 def pauli_gate_counts_deterministic(shots, hex_counts=True):
     """multipauli-gate circuits reference counts."""
     targets = []
     if hex_counts:
-        targets.append({'0x3': shots})
-        targets.append({'0x5': shots})
-        targets.append({'0x6': shots})
+        targets.append({"0x3": shots})
+        targets.append({"0x5": shots})
+        targets.append({"0x6": shots})
     else:
-        targets.append({'110': shots})
-        targets.append({'101': shots})
-        targets.append({'011': shots})
+        targets.append({"110": shots})
+        targets.append({"101": shots})
+        targets.append({"011": shots})
     return targets
+
 
 # ==========================================================================
 # I-gate
 # ==========================================================================
+
 
 def id_gate_circuits_deterministic(final_measure=True):
     """I-gate test circuits with deterministic counts."""
@@ -789,7 +798,7 @@ def id_gate_circuits_deterministic(final_measure=True):
         cr = ClassicalRegister(1)
         regs = (qr, cr)
     else:
-        regs = (qr, )
+        regs = (qr,)
 
     circuit = QuantumCircuit(*regs)
     circuit.id(qr)
@@ -814,11 +823,11 @@ def id_gate_counts_deterministic(shots, hex_counts=True):
     """I-gate circuits reference counts."""
     targets = []
     if hex_counts:
-        targets.append({'0x0': shots})
-        targets.append({'0x1': shots})
+        targets.append({"0x0": shots})
+        targets.append({"0x1": shots})
     else:
-        targets.append({'0': shots})
-        targets.append({'1': shots})
+        targets.append({"0": shots})
+        targets.append({"1": shots})
     return targets
 
 
@@ -842,6 +851,7 @@ def id_gate_unitary_deterministic():
 # delay-gate
 # ==========================================================================
 
+
 def delay_gate_circuits_deterministic(final_measure=True):
     """delay-gate test circuits with deterministic counts."""
     circuits = []
@@ -850,7 +860,7 @@ def delay_gate_circuits_deterministic(final_measure=True):
         cr = ClassicalRegister(1)
         regs = (qr, cr)
     else:
-        regs = (qr, )
+        regs = (qr,)
 
     circuit = QuantumCircuit(*regs)
     circuit.delay(1, qr)
@@ -875,11 +885,11 @@ def delay_gate_counts_deterministic(shots, hex_counts=True):
     """delay-gate circuits reference counts."""
     targets = []
     if hex_counts:
-        targets.append({'0x0': shots})
-        targets.append({'0x1': shots})
+        targets.append({"0x0": shots})
+        targets.append({"0x1": shots})
     else:
-        targets.append({'0': shots})
-        targets.append({'1': shots})
+        targets.append({"0": shots})
+        targets.append({"1": shots})
     return targets
 
 

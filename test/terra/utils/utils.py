@@ -28,6 +28,6 @@ def list2dict(counts_list, hex_counts=True):
     for i, val in enumerate(counts_list):
         if val > 0:
             key = bin(i)[2:]
-            key = (n_qubits - len(key)) * '0' + key
+            key = (n_qubits - len(key)) * "0" + key
             counts_dict[key] = val
     return counts_dict

@@ -117,7 +117,7 @@ public:
 
   uint_t get_process_by_chunk(uint_t cid);
 protected:
-  void set_config(const json_t &config) override;
+  void set_config(const Config &config) override;
 
   virtual uint_t qubit_scale(void)
   {
@@ -127,11 +127,11 @@ protected:
   bool allocate_states(uint_t num_chunks);
 
   void run_circuit_with_sampling(Circuit &circ,
-                                         const json_t &config,
+                                         const Config &config,
                                          ExperimentResult &result) override;
 
   void run_circuit_shots(
-            Circuit &circ, const Noise::NoiseModel &noise, const json_t &config,
+            Circuit &circ, const Noise::NoiseModel &noise, const Config &config,
             ExperimentResult &result, bool sample_noise) override;
 
   template <typename InputIterator>
@@ -288,24 +288,20 @@ ParallelExecutor<state_t>::~ParallelExecutor()
 }
 
 template <class state_t>
-void ParallelExecutor<state_t>::set_config(const json_t &config) 
+void ParallelExecutor<state_t>::set_config(const Config &config) 
 {
   Base<state_t>::set_config(config);
 
   // Set threshold for truncating states to be saved
-  JSON::get_value(json_chop_threshold_, "zero_threshold", config);
+  json_chop_threshold_ = config.zero_threshold;
 
   // Set OMP threshold for state update functions
-  JSON::get_value(omp_qubit_threshold_, "statevector_parallel_threshold", config);
+  omp_qubit_threshold_ = config.statevector_parallel_threshold;
 
-  num_threads_per_group_ = 1;
-  if(JSON::check_key("num_threads_per_device", config)) {
-    JSON::get_value(num_threads_per_group_, "num_threads_per_device", config);
-  }
-
-  if(JSON::check_key("chunk_swap_buffer_qubits", config)) {
-    JSON::get_value(chunk_swap_buffer_qubits_, "chunk_swap_buffer_qubits", config);
-  }
+  if(config.num_threads_per_device.has_value())
+    num_threads_per_group_ = config.num_threads_per_device.value();
+  if(config.chunk_swap_buffer_qubits.has_value())
+    chunk_swap_buffer_qubits_ = config.chunk_swap_buffer_qubits.value();
 }
 
 template <class state_t>
@@ -523,7 +519,7 @@ uint_t ParallelExecutor<state_t>::mapped_index(const uint_t idx)
 
 template <class state_t>
 void ParallelExecutor<state_t>::run_circuit_with_sampling(Circuit &circ,
-                                                   const json_t &config,
+                                                   const Config &config,
                                                    ExperimentResult &result)
 {
   max_matrix_qubits_ = Base<state_t>::get_max_matrix_qubits(circ);
@@ -581,7 +577,7 @@ void ParallelExecutor<state_t>::run_circuit_with_sampling(Circuit &circ,
 
 template <class state_t>
 void ParallelExecutor<state_t>::run_circuit_shots(
-    Circuit &circ, const Noise::NoiseModel &noise, const json_t &config,
+    Circuit &circ, const Noise::NoiseModel &noise, const Config &config,
     ExperimentResult &result, bool sample_noise)
 {
   set_distribution(Base<state_t>::num_process_per_experiment_);

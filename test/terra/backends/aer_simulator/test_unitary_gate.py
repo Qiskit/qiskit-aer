@@ -21,15 +21,20 @@ from qiskit.quantum_info import Statevector
 
 from test.terra.reference import ref_unitary_gate, ref_diagonal_gate
 
-from test.terra.backends.simulator_test_case import (
-    SimulatorTestCase, supported_methods)
+from test.terra.backends.simulator_test_case import SimulatorTestCase, supported_methods
 
 
 @ddt
 class TestUnitaryGates(SimulatorTestCase):
     """AerSimulator unitary gate tests."""
- 
-    METHODS = ["automatic", "statevector", "density_matrix", "matrix_product_state"]
+
+    METHODS = [
+        "automatic",
+        "statevector",
+        "density_matrix",
+        "matrix_product_state",
+        "tensor_network",
+    ]
 
     # ---------------------------------------------------------------------
     # Test unitary gate qobj instruction
@@ -40,10 +45,8 @@ class TestUnitaryGates(SimulatorTestCase):
         """Test simulation with unitary gate circuit instructions."""
         backend = self.backend(method=method, device=device)
         shots = 100
-        circuits = ref_unitary_gate.unitary_gate_circuits_deterministic(
-            final_measure=True)
-        targets = ref_unitary_gate.unitary_gate_counts_deterministic(
-            shots)
+        circuits = ref_unitary_gate.unitary_gate_circuits_deterministic(final_measure=True)
+        targets = ref_unitary_gate.unitary_gate_counts_deterministic(shots)
         circuits = transpile(circuits, backend)
         result = backend.run(circuits, shots=shots).result()
         self.assertSuccess(result)
@@ -54,7 +57,9 @@ class TestUnitaryGates(SimulatorTestCase):
         """Test simulation with random unitary gate circuit instructions."""
         backend = self.backend(method=method, device=device)
         shots = 4000
-        circuits = ref_unitary_gate.unitary_random_gate_circuits_nondeterministic(final_measure=True)
+        circuits = ref_unitary_gate.unitary_random_gate_circuits_nondeterministic(
+            final_measure=True
+        )
         targets = ref_unitary_gate.unitary_random_gate_counts_nondeterministic(shots)
         circuits = transpile(circuits, backend)
         result = backend.run(circuits, shots=shots).result()
@@ -75,8 +80,8 @@ class TestUnitaryGates(SimulatorTestCase):
         circuit.measure(range(n), range(n))
         circuits = transpile(circuit, backend)
         result = backend.run(circuits, shots=shots).result()
-        
-        state = Statevector.from_label(n * '0').evolve(unitary_matrix, perm)
+
+        state = Statevector.from_label(n * "0").evolve(unitary_matrix, perm)
         state.seed(11111)
         probs = state.probabilities_dict()
         hex_counts = {hex(int(key, 2)): val * shots for key, val in probs.items()}
@@ -92,10 +97,8 @@ class TestUnitaryGates(SimulatorTestCase):
         """Test simulation with unitary gate circuit instructions."""
         backend = self.backend(method=method, device=device)
         shots = 100
-        circuits = ref_diagonal_gate.diagonal_gate_circuits_deterministic(
-            final_measure=True)
-        targets = ref_diagonal_gate.diagonal_gate_counts_deterministic(
-            shots)
+        circuits = ref_diagonal_gate.diagonal_gate_circuits_deterministic(final_measure=True)
+        targets = ref_diagonal_gate.diagonal_gate_counts_deterministic(shots)
         circuits = transpile(circuits, backend)
         result = backend.run(circuits, shots=shots).result()
         self.assertSuccess(result)

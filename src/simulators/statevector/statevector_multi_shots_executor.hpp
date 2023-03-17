@@ -41,7 +41,7 @@ public:
   virtual ~MultiShotsExecutor(){}
 
 protected:
-  void set_config(const json_t &config) override;
+  void set_config(const Config &config) override;
 
   void apply_global_phase() override;
 
@@ -91,7 +91,7 @@ protected:
 
 
 template <class statevec_t>
-void MultiShotsExecutor<statevec_t>::set_config(const json_t &config) 
+void MultiShotsExecutor<statevec_t>::set_config(const Config &config) 
 {
   BaseExecutor::set_config(config);
 }

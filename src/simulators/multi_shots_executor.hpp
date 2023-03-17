@@ -111,7 +111,7 @@ public:
 
   uint_t get_process_by_chunk(uint_t cid);
 protected:
-  void set_config(const json_t &config) override;
+  void set_config(const Config &config) override;
 
   void set_distribution(uint_t nprocs, uint_t num_parallel_shots);
 
@@ -123,11 +123,11 @@ protected:
   virtual bool allocate_states(uint_t num_shots);
 
   void run_circuit_shots(
-            Circuit &circ, const Noise::NoiseModel &noise, const json_t &config,
+            Circuit &circ, const Noise::NoiseModel &noise, const Config &config,
             ExperimentResult &result, bool sample_noise) override;
 
   void run_circuit_with_shot_branching(
-            Circuit &circ, const Noise::NoiseModel &noise, const json_t &config,
+            Circuit &circ, const Noise::NoiseModel &noise, const Config &config,
             ExperimentResult &result, bool sample_noise);
 
   //apply op for shot-branching, return false if op is not applied in sub-class
@@ -187,29 +187,19 @@ MultiShotsExecutor<state_t>::~MultiShotsExecutor()
 }
 
 template <class state_t>
-void MultiShotsExecutor<state_t>::set_config(const json_t &config) 
+void MultiShotsExecutor<state_t>::set_config(const Config &config) 
 {
   Base<state_t>::set_config(config);
 
   // Set threshold for truncating states to be saved
-  JSON::get_value(json_chop_threshold_, "zero_threshold", config);
+  json_chop_threshold_ = config.zero_threshold;
 
   // Set OMP threshold for state update functions
-  JSON::get_value(omp_qubit_threshold_, "statevector_parallel_threshold", config);
-
-  num_threads_per_group_ = 1;
-  if(JSON::check_key("num_threads_per_device", config)) {
-    JSON::get_value(num_threads_per_group_, "num_threads_per_device", config);
-  }
+  omp_qubit_threshold_ = config.statevector_parallel_threshold;
 
   //shot branching optimization
-  if(JSON::check_key("shot_branching_enable", config)) {
-    JSON::get_value(shot_branching_enable_, "shot_branching_enable", config);
-  }
-  if(JSON::check_key("runtime_noise_sampling_enable", config)) {
-    JSON::get_value(runtime_noise_sampling_enable_, "runtime_noise_sampling_enable", config);
-  }
-
+  shot_branching_enable_ = config.shot_branching_enable;
+  runtime_noise_sampling_enable_ = config.runtime_noise_sampling_enable;
 }
 
 template <class state_t>
@@ -307,7 +297,7 @@ bool MultiShotsExecutor<state_t>::allocate_states(uint_t num_shots)
 
 template <class state_t>
 void MultiShotsExecutor<state_t>::run_circuit_shots(
-    Circuit &circ, const Noise::NoiseModel &noise, const json_t &config,
+    Circuit &circ, const Noise::NoiseModel &noise, const Config &config,
     ExperimentResult &result, bool sample_noise)
 {
   num_qubits_ = circ.num_qubits;
@@ -406,7 +396,7 @@ void MultiShotsExecutor<state_t>::run_circuit_shots(
 
 template <class state_t>
 void MultiShotsExecutor<state_t>::run_circuit_with_shot_branching(
-          Circuit &circ, const Noise::NoiseModel &noise, const json_t &config,
+          Circuit &circ, const Noise::NoiseModel &noise, const Config &config,
           ExperimentResult &result, bool sample_noise)
 {
   std::vector<std::shared_ptr<Branch>> branches;

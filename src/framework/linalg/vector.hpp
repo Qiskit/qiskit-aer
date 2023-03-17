@@ -29,15 +29,18 @@
 
 namespace AER {
 
-template <class T> T *malloc_array(size_t size) {
+template <class T>
+T *malloc_data(size_t size) {
   return reinterpret_cast<T *>(malloc(sizeof(T) * size));
 }
 
-template <class T> T *calloc_array(size_t size) {
+template <class T>
+T *calloc_data(size_t size) {
   return reinterpret_cast<T *>(calloc(size, sizeof(T)));
 }
 
-template <class T> class Vector {
+template <class T>
+class Vector {
 
 public:
   //-----------------------------------------------------------------------
@@ -60,8 +63,7 @@ public:
   Vector(Vector<T> &&other) noexcept;
 
   // Destructor
-  virtual ~Vector() { 
-    free(data_); }
+  virtual ~Vector() { free(data_); }
 
   //-----------------------------------------------------------------------
   // Assignment
@@ -74,7 +76,8 @@ public:
   Vector<T> &operator=(Vector<T> &&other) noexcept;
 
   // Copy and cast assignment
-  template <class S> Vector<T> &operator=(const Vector<S> &other);
+  template <class S>
+  Vector<T> &operator=(const Vector<S> &other);
 
   //-----------------------------------------------------------------------
   // Buffer conversion
@@ -192,11 +195,12 @@ protected:
 
 template <class T>
 Vector<T>::Vector(size_t sz, bool fill)
-    : size_(sz), data_((fill) ? calloc_array<T>(size_) : malloc_array<T>(size_)) {}
+    : size_(sz), data_((fill) ? calloc_data<T>(size_) : malloc_data<T>(size_)) {
+}
 
 template <class T>
 Vector<T>::Vector(const Vector<T> &other)
-    : size_(other.size_), data_(malloc_array<T>(other.size_)) {
+    : size_(other.size_), data_(malloc_data<T>(other.size_)) {
   std::copy(other.data_, other.data_ + other.size_, data_);
 }
 
@@ -211,7 +215,8 @@ Vector<T>::Vector(Vector<T> &&other) noexcept
 // Assignment
 //-----------------------------------------------------------------------
 
-template <class T> Vector<T> &Vector<T>::operator=(Vector<T> &&other) noexcept {
+template <class T>
+Vector<T> &Vector<T>::operator=(Vector<T> &&other) noexcept {
   free(data_);
   size_ = other.size_;
   data_ = other.data_;
@@ -220,11 +225,12 @@ template <class T> Vector<T> &Vector<T>::operator=(Vector<T> &&other) noexcept {
   return *this;
 }
 
-template <class T> Vector<T> &Vector<T>::operator=(const Vector<T> &other) {
+template <class T>
+Vector<T> &Vector<T>::operator=(const Vector<T> &other) {
   if (size_ != other.size_) {
     free(data_);
     size_ = other.size_;
-    data_ = malloc_array<T>(size_);
+    data_ = malloc_data<T>(size_);
   }
   std::copy(other.data_, other.data_ + size_, data_);
   return *this;
@@ -237,7 +243,7 @@ inline Vector<T> &Vector<T>::operator=(const Vector<S> &other) {
   if (size_ != other.size_) {
     free(data_);
     size_ = other.size_;
-    data_ = malloc_array<T>(size_);
+    data_ = malloc_data<T>(size_);
   }
   std::transform(other.data_, other.data_ + size_, data_,
                  [](const S &i) { return T{i}; });
@@ -252,7 +258,7 @@ template <class T>
 Vector<T> Vector<T>::copy_from_buffer(size_t sz, const T *buffer) {
   Vector<T> ret;
   ret.size_ = sz;
-  ret.data_ = malloc_array<T>(ret.size_);
+  ret.data_ = malloc_data<T>(ret.size_);
   std::copy(buffer, buffer + ret.size_, ret.data_);
   return ret;
 }
@@ -265,13 +271,15 @@ Vector<T> Vector<T>::move_from_buffer(size_t sz, T *buffer) {
   return ret;
 }
 
-template <class T> T *Vector<T>::copy_to_buffer() const {
-  T *buffer = malloc_array<T>(size_);
+template <class T>
+T *Vector<T>::copy_to_buffer() const {
+  T *buffer = malloc_data<T>(size_);
   std::copy(data_, data_ + size_, buffer);
   return buffer;
 }
 
-template <class T> T *Vector<T>::move_to_buffer() {
+template <class T>
+T *Vector<T>::move_to_buffer() {
   T *buffer = data_;
   data_ = nullptr;
   size_ = 0;
@@ -282,27 +290,31 @@ template <class T> T *Vector<T>::move_to_buffer() {
 // Operations
 //-----------------------------------------------------------------------
 
-template <class T> void Vector<T>::clear() noexcept {
+template <class T>
+void Vector<T>::clear() noexcept {
   free(data_);
   size_ = 0;
 }
 
-template <class T> void Vector<T>::swap(Vector<T> &other) {
+template <class T>
+void Vector<T>::swap(Vector<T> &other) {
   std::swap(size_, other.size_);
   std::swap(data_, other.data_);
 }
 
-template <class T> void Vector<T>::resize(size_t sz) {
+template <class T>
+void Vector<T>::resize(size_t sz) {
   if (size_ == sz)
     return;
-  T *tmp = calloc_array<T>(sz);
+  T *tmp = calloc_data<T>(sz);
   std::move(data_, data_ + size_, tmp);
   free(data_);
   size_ = sz;
   data_ = tmp;
 }
 
-template <class T> void Vector<T>::fill(const T &val) {
+template <class T>
+void Vector<T>::fill(const T &val) {
   std::fill(data_, data_ + size_, val);
 }
 
@@ -317,13 +329,14 @@ Vector<T> Vector<T>::operator+(const Vector<T> &other) const {
   }
   Vector<T> result;
   result.size_ = size_;
-  result.data_ = malloc_array<T>(size_);
+  result.data_ = malloc_data<T>(size_);
   std::transform(data_, data_ + size_, other.data_, result.data_,
                  [](const T &a, const T &b) -> T { return a + b; });
   return result;
 }
 
-template <class T> Vector<T> &Vector<T>::operator+=(const Vector<T> &other) {
+template <class T>
+Vector<T> &Vector<T>::operator+=(const Vector<T> &other) {
   if (size_ != other.size_) {
     throw std::runtime_error("Cannot add two vectors of different sizes.");
   }
@@ -339,13 +352,14 @@ Vector<T> Vector<T>::operator-(const Vector<T> &other) const {
   }
   Vector<T> result;
   result.size_ = size_;
-  result.data_ = malloc_array<T>(size_);
+  result.data_ = malloc_data<T>(size_);
   std::transform(data_, data_ + size_, other.data_, result.data_,
                  [](const T &a, const T &b) -> T { return a - b; });
   return result;
 }
 
-template <class T> Vector<T> &Vector<T>::operator-=(const Vector<T> &other) {
+template <class T>
+Vector<T> &Vector<T>::operator-=(const Vector<T> &other) {
   if (size_ != other.size_) {
     throw std::runtime_error("Cannot add two vectors of different sizes.");
   }
@@ -354,35 +368,37 @@ template <class T> Vector<T> &Vector<T>::operator-=(const Vector<T> &other) {
   return *this;
 }
 
-template <class T> Vector<T> Vector<T>::operator*(const T &other) const {
+template <class T>
+Vector<T> Vector<T>::operator*(const T &other) const {
   Vector<T> ret;
   ret.size_ = size_;
-  ret.data_ = malloc_array<T>(size_);
+  ret.data_ = malloc_data<T>(size_);
   std::transform(data_, data_ + size_, ret.data_,
                  [&other](const T &a) -> T { return a * other; });
   return ret;
 }
 
-template <class T> Vector<T> &Vector<T>::operator*=(const T &other) {
-  std::for_each(data_, data_ + size_,
-                 [&other](T &a) { a *= other; });
+template <class T>
+Vector<T> &Vector<T>::operator*=(const T &other) {
+  std::for_each(data_, data_ + size_, [&other](T &a) { a *= other; });
   return *this;
 }
 
-template <class T> Vector<T> Vector<T>::operator/(const T &other) const {
+template <class T>
+Vector<T> Vector<T>::operator/(const T &other) const {
   Vector<T> ret;
   ret.size_ = size_;
-  ret.data_ = malloc_array<T>(size_);
+  ret.data_ = malloc_data<T>(size_);
   std::transform(data_, data_ + size_, ret.data_,
                  [&other](const T &a) -> T { return a / other; });
   return ret;
 }
 
-template <class T> Vector<T> &Vector<T>::operator/=(const T &other) {
+template <class T>
+Vector<T> &Vector<T>::operator/=(const T &other) {
   std::for_each(data_, data_ + size_, [&other](T &a) { a /= other; });
   return *this;
 }
-
 
 //------------------------------------------------------------------------------
 } // end Namespace AER

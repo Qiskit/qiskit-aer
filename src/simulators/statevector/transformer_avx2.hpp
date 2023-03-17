@@ -35,11 +35,12 @@ public:
   // The matrix is input as vector of the column-major vectorized N-qubit
   // matrix.
   void apply_matrix(Container &data, size_t data_size, int threads,
-                           const reg_t &qubits, const cvector_t<double> &mat) const override;
+                    const reg_t &qubits,
+                    const cvector_t<double> &mat) const override;
 
   void apply_diagonal_matrix(Container &data, size_t data_size, int threads,
-                            const reg_t &qubits, const cvector_t<double> &diag) const override;
-
+                             const reg_t &qubits,
+                             const cvector_t<double> &diag) const override;
 };
 
 /*******************************************************************************
@@ -53,9 +54,9 @@ public:
 #if defined(_MSC_VER) || defined(GNUC_AVX2)
 
 template <typename Container, typename data_t>
-void TransformerAVX2<Container, data_t>::apply_matrix(Container &data, size_t data_size,
-                                           int threads, const reg_t &qubits,
-                                           const cvector_t<double> &mat) const{
+void TransformerAVX2<Container, data_t>::apply_matrix(
+    Container &data, size_t data_size, int threads, const reg_t &qubits,
+    const cvector_t<double> &mat) const {
 
   if (qubits.size() == 1 &&
       ((mat[1] == 0.0 && mat[2] == 0.0) || (mat[0] == 0.0 && mat[3] == 0.0))) {
@@ -72,13 +73,10 @@ void TransformerAVX2<Container, data_t>::apply_matrix(Container &data, size_t da
   Base::apply_matrix(data, data_size, threads, qubits, mat);
 }
 
-
 template <typename Container, typename data_t>
-void TransformerAVX2<Container, data_t>::apply_diagonal_matrix(Container &data,
-                                                               size_t data_size,
-                                                               int threads,
-                                                               const reg_t &qubits,
-                                                               const cvector_t<double> &diag) const {
+void TransformerAVX2<Container, data_t>::apply_diagonal_matrix(
+    Container &data, size_t data_size, int threads, const reg_t &qubits,
+    const cvector_t<double> &diag) const {
 
   if (apply_diagonal_matrix_avx<data_t>(
           reinterpret_cast<data_t *>(data), data_size, qubits.data(),
@@ -89,7 +87,6 @@ void TransformerAVX2<Container, data_t>::apply_diagonal_matrix(Container &data,
 
   Base::apply_diagonal_matrix(data, data_size, threads, qubits, diag);
 }
-
 
 #endif // AVX2 Code
 
