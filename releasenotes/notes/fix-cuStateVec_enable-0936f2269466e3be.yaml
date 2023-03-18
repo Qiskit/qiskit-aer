@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixed an error when building Qiskit Aer with cuQuautum support.
+    CPU and normal GPU-enabled build are fine, but there was an
+    incorrect reference to a config when cuQuamtum support was enabled.
