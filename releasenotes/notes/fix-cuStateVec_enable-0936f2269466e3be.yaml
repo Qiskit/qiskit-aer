@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fixed a build break to compile Qiskit Aer with cuQuautum support (`AER_ENABLE_CUQUANTUM=true`).
+    This change does not affect build for CPU and normal GPU binaries.

@@ -474,7 +474,7 @@ void StateChunk<state_t>::set_config(const Config &config) {
 
 #ifdef AER_CUSTATEVEC
   // cuStateVec configs
-  if (config.cuStateVec_enable)
+  if (config.cuStateVec_enable.has_value())
     cuStateVec_enable_ = config.cuStateVec_enable.value();
 #endif
 }
