@@ -963,10 +963,10 @@ Result Controller::execute(std::vector<Circuit> &circuits,
       parallel_nested_ = true;
 
       // nested should be set to zero if num_threads clause will be used
-#if defined(_WIN64) || defined(_WIN32)
-      omp_set_nested(0);
-#else
+#if _OPENMP >= 200805
       omp_set_max_active_levels(0);
+#else
+      omp_set_nested(0);
 #endif
 
       result.metadata.add(parallel_nested_, "omp_nested");
