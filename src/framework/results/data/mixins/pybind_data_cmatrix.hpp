@@ -30,8 +30,7 @@ py::object to_python(AER::DataCMatrix &&data);
 // Move an DataCMatrix container object to an existing new Python dict
 void add_to_python(py::dict &pydata, AER::DataCMatrix &&data);
 
-} //end namespace AerToPy
-
+} // end namespace AerToPy
 
 //============================================================================
 // Implementations
@@ -44,22 +43,70 @@ py::object AerToPy::to_python(AER::DataCMatrix &&data) {
 }
 
 void AerToPy::add_to_python(py::dict &pydata, AER::DataCMatrix &&data) {
-  AerToPy::add_to_python(pydata, static_cast<AER::DataMap<AER::SingleData, matrix<AER::complex_t>, 1>&&>(data));
-  AerToPy::add_to_python(pydata, static_cast<AER::DataMap<AER::SingleData, matrix<AER::complexf_t>, 1>&&>(data));
-  AerToPy::add_to_python(pydata, static_cast<AER::DataMap<AER::SingleData, matrix<AER::complex_t>, 2>&&>(data));
-  AerToPy::add_to_python(pydata, static_cast<AER::DataMap<AER::SingleData, matrix<AER::complexf_t>, 2>&&>(data));
-  AerToPy::add_to_python(pydata, static_cast<AER::DataMap<AER::ListData, matrix<AER::complex_t>, 1>&&>(data));
-  AerToPy::add_to_python(pydata, static_cast<AER::DataMap<AER::ListData, matrix<AER::complexf_t>, 1>&&>(data));
-  AerToPy::add_to_python(pydata, static_cast<AER::DataMap<AER::ListData, matrix<AER::complex_t>, 2>&&>(data));
-  AerToPy::add_to_python(pydata, static_cast<AER::DataMap<AER::ListData, matrix<AER::complexf_t>, 2>&&>(data));
-  AerToPy::add_to_python(pydata, static_cast<AER::DataMap<AER::AccumData, matrix<AER::complex_t>, 1>&&>(data));
-  AerToPy::add_to_python(pydata, static_cast<AER::DataMap<AER::AccumData, matrix<AER::complexf_t>, 1>&&>(data));
-  AerToPy::add_to_python(pydata, static_cast<AER::DataMap<AER::AccumData, matrix<AER::complex_t>, 2>&&>(data));
-  AerToPy::add_to_python(pydata, static_cast<AER::DataMap<AER::AccumData, matrix<AER::complexf_t>, 2>&&>(data));
-  AerToPy::add_to_python(pydata, static_cast<AER::DataMap<AER::AverageData, matrix<AER::complex_t>, 1>&&>(data));
-  AerToPy::add_to_python(pydata, static_cast<AER::DataMap<AER::AverageData, matrix<AER::complexf_t>, 1>&&>(data));
-  AerToPy::add_to_python(pydata, static_cast<AER::DataMap<AER::AverageData, matrix<AER::complex_t>, 2>&&>(data));
-  AerToPy::add_to_python(pydata, static_cast<AER::DataMap<AER::AverageData, matrix<AER::complexf_t>, 2>&&>(data));
+  AerToPy::add_to_python(
+      pydata,
+      static_cast<AER::DataMap<AER::SingleData, matrix<AER::complex_t>, 1> &&>(
+          data));
+  AerToPy::add_to_python(
+      pydata,
+      static_cast<AER::DataMap<AER::SingleData, matrix<AER::complexf_t>, 1> &&>(
+          data));
+  AerToPy::add_to_python(
+      pydata,
+      static_cast<AER::DataMap<AER::SingleData, matrix<AER::complex_t>, 2> &&>(
+          data));
+  AerToPy::add_to_python(
+      pydata,
+      static_cast<AER::DataMap<AER::SingleData, matrix<AER::complexf_t>, 2> &&>(
+          data));
+  AerToPy::add_to_python(
+      pydata,
+      static_cast<AER::DataMap<AER::ListData, matrix<AER::complex_t>, 1> &&>(
+          data));
+  AerToPy::add_to_python(
+      pydata,
+      static_cast<AER::DataMap<AER::ListData, matrix<AER::complexf_t>, 1> &&>(
+          data));
+  AerToPy::add_to_python(
+      pydata,
+      static_cast<AER::DataMap<AER::ListData, matrix<AER::complex_t>, 2> &&>(
+          data));
+  AerToPy::add_to_python(
+      pydata,
+      static_cast<AER::DataMap<AER::ListData, matrix<AER::complexf_t>, 2> &&>(
+          data));
+  AerToPy::add_to_python(
+      pydata,
+      static_cast<AER::DataMap<AER::AccumData, matrix<AER::complex_t>, 1> &&>(
+          data));
+  AerToPy::add_to_python(
+      pydata,
+      static_cast<AER::DataMap<AER::AccumData, matrix<AER::complexf_t>, 1> &&>(
+          data));
+  AerToPy::add_to_python(
+      pydata,
+      static_cast<AER::DataMap<AER::AccumData, matrix<AER::complex_t>, 2> &&>(
+          data));
+  AerToPy::add_to_python(
+      pydata,
+      static_cast<AER::DataMap<AER::AccumData, matrix<AER::complexf_t>, 2> &&>(
+          data));
+  AerToPy::add_to_python(
+      pydata,
+      static_cast<AER::DataMap<AER::AverageData, matrix<AER::complex_t>, 1> &&>(
+          data));
+  AerToPy::add_to_python(
+      pydata,
+      static_cast<
+          AER::DataMap<AER::AverageData, matrix<AER::complexf_t>, 1> &&>(data));
+  AerToPy::add_to_python(
+      pydata,
+      static_cast<AER::DataMap<AER::AverageData, matrix<AER::complex_t>, 2> &&>(
+          data));
+  AerToPy::add_to_python(
+      pydata,
+      static_cast<
+          AER::DataMap<AER::AverageData, matrix<AER::complexf_t>, 2> &&>(data));
 }
 
 #endif

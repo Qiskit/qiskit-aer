@@ -31,7 +31,7 @@ namespace Linalg {
 // Linear operations
 //----------------------------------------------------------------------------
 template <class T, typename = enable_if_numeric_t<T>>
-std::vector<T> add(const std::vector<T>& lhs, const std::vector<T>& rhs) {
+std::vector<T> add(const std::vector<T> &lhs, const std::vector<T> &rhs) {
   if (lhs.size() != rhs.size()) {
     throw std::runtime_error("Cannot add two vectors of different sizes.");
   }
@@ -43,7 +43,7 @@ std::vector<T> add(const std::vector<T>& lhs, const std::vector<T>& rhs) {
 }
 
 template <class T, typename = enable_if_numeric_t<T>>
-std::vector<T>& iadd(std::vector<T>& lhs, const std::vector<T>& rhs) {
+std::vector<T> &iadd(std::vector<T> &lhs, const std::vector<T> &rhs) {
   if (lhs.size() != rhs.size()) {
     throw std::runtime_error("Cannot add two vectors of different sizes.");
   }
@@ -53,7 +53,7 @@ std::vector<T>& iadd(std::vector<T>& lhs, const std::vector<T>& rhs) {
 }
 
 template <class T, typename = enable_if_numeric_t<T>>
-std::vector<T> sub(const std::vector<T>& lhs, const std::vector<T>& rhs) {
+std::vector<T> sub(const std::vector<T> &lhs, const std::vector<T> &rhs) {
   if (lhs.size() != rhs.size()) {
     throw std::runtime_error("Cannot add two vectors of different sizes.");
   }
@@ -65,7 +65,7 @@ std::vector<T> sub(const std::vector<T>& lhs, const std::vector<T>& rhs) {
 }
 
 template <class T, typename = enable_if_numeric_t<T>>
-std::vector<T>& isub(std::vector<T>& lhs, const std::vector<T>& rhs) {
+std::vector<T> &isub(std::vector<T> &lhs, const std::vector<T> &rhs) {
   if (lhs.size() != rhs.size()) {
     throw std::runtime_error("Cannot add two vectors of different sizes.");
   }
@@ -79,7 +79,7 @@ std::vector<T>& isub(std::vector<T>& lhs, const std::vector<T>& rhs) {
 //----------------------------------------------------------------------------
 template <class T, class Scalar, typename = enable_if_numeric_t<T>,
           typename = enable_if_numeric_t<Scalar>>
-std::vector<T> add(const std::vector<T>& data, const Scalar& val) {
+std::vector<T> add(const std::vector<T> &data, const Scalar &val) {
   std::vector<T> result;
   result.reserve(data.size());
   std::transform(data.begin(), data.end(), std::back_inserter(result),
@@ -89,7 +89,7 @@ std::vector<T> add(const std::vector<T>& data, const Scalar& val) {
 
 template <class T, class Scalar, typename = enable_if_numeric_t<T>,
           typename = enable_if_numeric_t<Scalar>>
-std::vector<T>& iadd(std::vector<T>& data, const Scalar& val) {
+std::vector<T> &iadd(std::vector<T> &data, const Scalar &val) {
   std::transform(data.begin(), data.end(), data.begin(),
                  std::bind(std::plus<T>(), std::placeholders::_1, val));
   return data;
@@ -97,7 +97,7 @@ std::vector<T>& iadd(std::vector<T>& data, const Scalar& val) {
 
 template <class T, class Scalar, typename = enable_if_numeric_t<T>,
           typename = enable_if_numeric_t<Scalar>>
-std::vector<T> sub(const std::vector<T>& data, const Scalar& val) {
+std::vector<T> sub(const std::vector<T> &data, const Scalar &val) {
   std::vector<T> result;
   result.reserve(data.size());
   std::transform(data.begin(), data.end(), std::back_inserter(result),
@@ -107,7 +107,7 @@ std::vector<T> sub(const std::vector<T>& data, const Scalar& val) {
 
 template <class T, class Scalar, typename = enable_if_numeric_t<T>,
           typename = enable_if_numeric_t<Scalar>>
-std::vector<T>& isub(std::vector<T>& data, const Scalar& val) {
+std::vector<T> &isub(std::vector<T> &data, const Scalar &val) {
   std::transform(data.begin(), data.end(), data.begin(),
                  std::bind(std::minus<T>(), std::placeholders::_1, val));
   return data;
@@ -118,7 +118,7 @@ std::vector<T>& isub(std::vector<T>& data, const Scalar& val) {
 //----------------------------------------------------------------------------
 template <class T, class Scalar, typename = enable_if_numeric_t<T>,
           typename = enable_if_numeric_t<Scalar>>
-std::vector<T> mul(const std::vector<T>& data, const Scalar& val) {
+std::vector<T> mul(const std::vector<T> &data, const Scalar &val) {
   if (almost_equal<Scalar>(val, 1)) {
     return data;
   }
@@ -131,7 +131,7 @@ std::vector<T> mul(const std::vector<T>& data, const Scalar& val) {
 
 template <class T, class Scalar, typename = enable_if_numeric_t<T>,
           typename = enable_if_numeric_t<Scalar>>
-std::vector<T>& imul(std::vector<T>& data, const Scalar& val) {
+std::vector<T> &imul(std::vector<T> &data, const Scalar &val) {
   if (almost_equal<Scalar>(val, 1)) {
     return data;
   }
@@ -142,7 +142,7 @@ std::vector<T>& imul(std::vector<T>& data, const Scalar& val) {
 
 template <class T, class Scalar, typename = enable_if_numeric_t<T>,
           typename = enable_if_numeric_t<Scalar>>
-std::vector<T> div(const std::vector<T>& data, const Scalar& val) {
+std::vector<T> div(const std::vector<T> &data, const Scalar &val) {
   if (almost_equal<Scalar>(val, 1)) {
     return data;
   }
@@ -155,7 +155,7 @@ std::vector<T> div(const std::vector<T>& data, const Scalar& val) {
 
 template <class T, class Scalar, typename = enable_if_numeric_t<T>,
           typename = enable_if_numeric_t<Scalar>>
-std::vector<T>& idiv(std::vector<T>& data, const Scalar& val) {
+std::vector<T> &idiv(std::vector<T> &data, const Scalar &val) {
   if (almost_equal<Scalar>(val, 1)) {
     return data;
   }
@@ -165,8 +165,8 @@ std::vector<T>& idiv(std::vector<T>& data, const Scalar& val) {
 }
 
 //------------------------------------------------------------------------------
-}  // end namespace Linalg
+} // end namespace Linalg
 //------------------------------------------------------------------------------
-}  // end namespace AER
+} // end namespace AER
 //------------------------------------------------------------------------------
 #endif

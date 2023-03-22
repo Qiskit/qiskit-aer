@@ -28,7 +28,7 @@ namespace Linalg {
 //----------------------------------------------------------------------------
 // Linear operations
 //----------------------------------------------------------------------------
-inline json_t& iadd(json_t& lhs, const json_t& rhs) {
+inline json_t &iadd(json_t &lhs, const json_t &rhs) {
   // Null case
   if (lhs.is_null()) {
     lhs = rhs;
@@ -57,12 +57,12 @@ inline json_t& iadd(json_t& lhs, const json_t& rhs) {
   return lhs;
 }
 
-inline json_t add(const json_t& lhs, const json_t& rhs) {
+inline json_t add(const json_t &lhs, const json_t &rhs) {
   json_t result = lhs;
   return iadd(result, rhs);
 }
 
-inline json_t& isub(json_t& lhs, const json_t& rhs) {
+inline json_t &isub(json_t &lhs, const json_t &rhs) {
   // Null case
   if (rhs.is_null()) {
     return lhs;
@@ -88,7 +88,7 @@ inline json_t& isub(json_t& lhs, const json_t& rhs) {
 }
 
 template <class T>
-json_t sub(const T& lhs, const json_t& rhs) {
+json_t sub(const T &lhs, const json_t &rhs) {
   json_t result = lhs;
   return isub(result, rhs);
 }
@@ -97,7 +97,7 @@ json_t sub(const T& lhs, const json_t& rhs) {
 // Affine operations
 //----------------------------------------------------------------------------
 template <class Scalar, typename = enable_if_numeric_t<Scalar>>
-json_t& iadd(json_t& data, const Scalar& val) {
+json_t &iadd(json_t &data, const Scalar &val) {
   // Null case
   if (val == 0) {
     return data;
@@ -123,13 +123,13 @@ json_t& iadd(json_t& data, const Scalar& val) {
 }
 
 template <class Scalar, typename = enable_if_numeric_t<Scalar>>
-json_t add(const json_t& data, const Scalar& val) {
+json_t add(const json_t &data, const Scalar &val) {
   json_t result = data;
   return iadd(result, val);
 }
 
 template <class Scalar, typename = enable_if_numeric_t<Scalar>>
-json_t& isub(json_t& data, const Scalar& val) {
+json_t &isub(json_t &data, const Scalar &val) {
   // Null case
   if (val == 0) {
     return data;
@@ -156,7 +156,7 @@ json_t& isub(json_t& data, const Scalar& val) {
 }
 
 template <class Scalar, typename = enable_if_numeric_t<Scalar>>
-json_t sub(const json_t& data, const Scalar& val) {
+json_t sub(const json_t &data, const Scalar &val) {
   json_t result = data;
   return isub(result, val);
 }
@@ -166,7 +166,7 @@ json_t sub(const json_t& data, const Scalar& val) {
 //----------------------------------------------------------------------------
 
 template <class Scalar, typename = enable_if_numeric_t<Scalar>>
-json_t& imul(json_t& data, const Scalar& val) {
+json_t &imul(json_t &data, const Scalar &val) {
   // Trival case
   if (almost_equal<Scalar>(val, 1)) {
     return data;
@@ -194,14 +194,14 @@ json_t& imul(json_t& data, const Scalar& val) {
 }
 
 template <class Scalar, typename = enable_if_numeric_t<Scalar>>
-json_t mul(const json_t& data, const Scalar& val) {
+json_t mul(const json_t &data, const Scalar &val) {
   // Null case
   json_t result = data;
   return imul(result, val);
 }
 
 template <class Scalar, typename = enable_if_numeric_t<Scalar>>
-json_t& idiv(json_t& data, const Scalar& val) {
+json_t &idiv(json_t &data, const Scalar &val) {
   // Trival case
   if (almost_equal<Scalar>(val, 1)) {
     return data;
@@ -228,15 +228,15 @@ json_t& idiv(json_t& data, const Scalar& val) {
 }
 
 template <class Scalar, typename = enable_if_numeric_t<Scalar>>
-json_t div(const json_t& data, const Scalar& val) {
+json_t div(const json_t &data, const Scalar &val) {
   // Null case
   json_t result = data;
   return idiv(result, val);
 }
 
 //------------------------------------------------------------------------------
-}  // end namespace Linalg
+} // end namespace Linalg
 //------------------------------------------------------------------------------
-}  // end namespace AER
+} // end namespace AER
 //------------------------------------------------------------------------------
 #endif

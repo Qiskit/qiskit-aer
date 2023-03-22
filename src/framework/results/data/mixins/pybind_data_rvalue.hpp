@@ -30,8 +30,7 @@ py::object to_python(AER::DataRValue &&data);
 // Move an DataRValue container object to an existing new Python dict
 void add_to_python(py::dict &pydata, AER::DataRValue &&data);
 
-} //end namespace AerToPy
-
+} // end namespace AerToPy
 
 //============================================================================
 // Implementations
@@ -44,12 +43,18 @@ py::object AerToPy::to_python(AER::DataRValue &&data) {
 }
 
 void AerToPy::add_to_python(py::dict &pydata, AER::DataRValue &&data) {
-  AerToPy::add_to_python(pydata, static_cast<AER::DataMap<AER::ListData, double, 1>&&>(data));
-  AerToPy::add_to_python(pydata, static_cast<AER::DataMap<AER::ListData, double, 2>&&>(data));
-  AerToPy::add_to_python(pydata, static_cast<AER::DataMap<AER::AccumData, double, 1>&&>(data));
-  AerToPy::add_to_python(pydata, static_cast<AER::DataMap<AER::AccumData, double, 2>&&>(data));
-  AerToPy::add_to_python(pydata, static_cast<AER::DataMap<AER::AverageData, double, 1>&&>(data));
-  AerToPy::add_to_python(pydata, static_cast<AER::DataMap<AER::AverageData, double, 2>&&>(data));
+  AerToPy::add_to_python(
+      pydata, static_cast<AER::DataMap<AER::ListData, double, 1> &&>(data));
+  AerToPy::add_to_python(
+      pydata, static_cast<AER::DataMap<AER::ListData, double, 2> &&>(data));
+  AerToPy::add_to_python(
+      pydata, static_cast<AER::DataMap<AER::AccumData, double, 1> &&>(data));
+  AerToPy::add_to_python(
+      pydata, static_cast<AER::DataMap<AER::AccumData, double, 2> &&>(data));
+  AerToPy::add_to_python(
+      pydata, static_cast<AER::DataMap<AER::AverageData, double, 1> &&>(data));
+  AerToPy::add_to_python(
+      pydata, static_cast<AER::DataMap<AER::AverageData, double, 2> &&>(data));
 }
 
 #endif

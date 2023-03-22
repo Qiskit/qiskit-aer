@@ -43,8 +43,7 @@ class SetUnitary(Instruction):
             state = Operator(state)
         if not state.num_qubits or not state.is_unitary():
             raise ExtensionError("The input matrix is not unitary")
-        super().__init__('set_unitary', state.num_qubits, 0,
-                         [state.data])
+        super().__init__("set_unitary", state.num_qubits, 0, [state.data])
 
 
 def set_unitary(self, state):
@@ -73,7 +72,8 @@ def set_unitary(self, state):
             "The size of the unitary matrix for the set_unitary"
             " instruction must be equal to the number of qubits"
             f" in the circuit (state.num_qubits ({state.num_qubits})"
-            f" != QuantumCircuit.num_qubits ({self.num_qubits})).")
+            f" != QuantumCircuit.num_qubits ({self.num_qubits}))."
+        )
     return self.append(SetUnitary(state), qubits)
 
 

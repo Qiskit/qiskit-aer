@@ -40,7 +40,7 @@ class SetStabilizer(Instruction):
             state = state.clifford
         elif not isinstance(state, Clifford):
             state = Clifford(state)
-        super().__init__('set_stabilizer', state.num_qubits, 0, [state.to_dict()])
+        super().__init__("set_stabilizer", state.num_qubits, 0, [state.to_dict()])
 
 
 def set_stabilizer(self, state):
@@ -70,7 +70,8 @@ def set_stabilizer(self, state):
             "The size of the Clifford for the set_stabilizer"
             " instruction must be equal to the number of qubits"
             f" in the circuit (state.num_qubits ({state.num_qubits})"
-            f" != QuantumCircuit.num_qubits ({self.num_qubits})).")
+            f" != QuantumCircuit.num_qubits ({self.num_qubits}))."
+        )
     return self.append(SetStabilizer(state), qubits)
 
 

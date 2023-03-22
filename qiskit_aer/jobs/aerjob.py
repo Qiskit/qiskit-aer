@@ -27,11 +27,18 @@ LOGGER = logging.getLogger(__name__)
 class AerJob(Job):
     """AerJob class for Qiskit Aer Simulators."""
 
-    def __init__(self, backend, job_id, fn,
-                 qobj=None,
-                 circuits=None, noise_model=None, config=None,
-                 executor=None):
-        """ Initializes the asynchronous job.
+    def __init__(
+        self,
+        backend,
+        job_id,
+        fn,
+        qobj=None,
+        circuits=None,
+        noise_model=None,
+        config=None,
+        executor=None,
+    ):
+        """Initializes the asynchronous job.
 
         Args:
             backend(AerBackend): the backend used to run the job.
@@ -65,7 +72,7 @@ class AerJob(Job):
             self._noise_model = noise_model
             self._config = config
         else:
-            raise JobError('AerJob needs a qobj or circuits')
+            raise JobError("AerJob needs a qobj or circuits")
         self._executor = executor or DEFAULT_EXECUTOR
         self._future = None
 
@@ -82,8 +89,9 @@ class AerJob(Job):
         if self._qobj:
             self._future = self._executor.submit(self._fn, self._qobj, self._job_id)
         else:
-            self._future = self._executor.submit(self._fn, self._circuits, self._noise_model,
-                                                 self._config, self._job_id)
+            self._future = self._executor.submit(
+                self._fn, self._circuits, self._noise_model, self._config, self._job_id
+            )
 
     @requires_submit
     def result(self, timeout=None):
@@ -147,11 +155,13 @@ class AerJob(Job):
             Qobj: the Qobj submitted for this job.
         """
         warnings.warn(
-            '`AerJob.qobj() is deprecated as of qiskit-aer 0.12.0`. '
-            'Using a qobj for `backend.run()` is deprecated as of qiskit-aer 0.9.0'
-            ' and will be removed no sooner than 3 months from that release'
-            ' date. Once it is removed, this `qobj()` returns always `None`.',
-            DeprecationWarning, stacklevel=2)
+            "`AerJob.qobj() is deprecated as of qiskit-aer 0.12.0`. "
+            "Using a qobj for `backend.run()` is deprecated as of qiskit-aer 0.9.0"
+            " and will be removed no sooner than 3 months from that release"
+            " date. Once it is removed, this `qobj()` returns always `None`.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         return self._qobj
 
     def circuits(self):

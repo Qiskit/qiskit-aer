@@ -26,14 +26,13 @@ namespace AER {
 
 struct Result {
 public:
-
   // Result status:
   // completed: all experiments were executed successfully
   // partial: only some experiments were executed succesfully
-  enum class Status {empty, completed, partial_completed, error};
+  enum class Status { empty, completed, partial_completed, error };
 
   // Constructor
-  Result(size_t num_exp = 0) {results.resize(num_exp);}
+  Result(size_t num_exp = 0) { results.resize(num_exp); }
 
   // Experiment results
   std::vector<ExperimentResult> results;
@@ -44,18 +43,18 @@ public:
   std::string qobj_id;
   std::string job_id;
   std::string date;
-  
+
   // Success and status
   Status status = Status::empty; // Result status
-  std::string message; // error message
+  std::string message;           // error message
 
   // Metadata
   json_t header;
   Metadata metadata;
 
   // Size and resize
-  auto size() {return results.size();}
-  void resize(size_t size) {results.resize(size);}
+  auto size() { return results.size(); }
+  void resize(size_t size) { results.resize(size); }
 
   // Serialize engine data to JSON
   json_t to_json();
@@ -68,7 +67,7 @@ json_t Result::to_json() {
   // Initialize output as additional data JSON
   json_t js;
   js["qobj_id"] = qobj_id;
-  
+
   js["backend_name"] = backend_name;
   js["backend_version"] = backend_version;
   js["date"] = date;
@@ -76,26 +75,26 @@ json_t Result::to_json() {
   if (results.empty()) {
     js["results"] = json_t::array({});
   } else {
-      for (auto& res : results) {
-        js["results"].push_back(res.to_json());
-      }
+    for (auto &res : results) {
+      js["results"].push_back(res.to_json());
+    }
   }
   if (header.empty() == false)
     js["header"] = header;
   js["metadata"] = metadata.to_json();
   js["success"] = (status == Status::completed);
   switch (status) {
-    case Status::completed:
-      js["status"] = std::string("COMPLETED");
-      break;
-    case Status:: partial_completed:
-      js["status"] = std::string("PARTIAL COMPLETED");
-      break;
-    case Status::error:
-      js["status"] = std::string("ERROR: ") + message;
-      break;
-    case Status::empty:
-      js["status"] = std::string("EMPTY");
+  case Status::completed:
+    js["status"] = std::string("COMPLETED");
+    break;
+  case Status::partial_completed:
+    js["status"] = std::string("PARTIAL COMPLETED");
+    break;
+  case Status::error:
+    js["status"] = std::string("ERROR: ") + message;
+    break;
+  case Status::empty:
+    js["status"] = std::string("EMPTY");
   }
   return js;
 }

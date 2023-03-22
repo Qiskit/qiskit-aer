@@ -12,8 +12,7 @@ import sys
 from qiskit.result import Result
 
 
-def assertDictAlmostEqual(dict1, dict2, delta=None, msg=None,
-                          places=None, default_value=0):
+def assertDictAlmostEqual(dict1, dict2, delta=None, msg=None, places=None, default_value=0):
     """Assert two dictionaries with numeric values are almost equal.
 
     Fail if the two dictionaries are unequal as determined by
@@ -43,7 +42,7 @@ def assertDictAlmostEqual(dict1, dict2, delta=None, msg=None,
 
     if places is not None:
         success = True
-        standard_msg = ''
+        standard_msg = ""
         # check value for keys in target
         keys1 = set(dict1.keys())
         for key in keys1:
@@ -51,9 +50,7 @@ def assertDictAlmostEqual(dict1, dict2, delta=None, msg=None,
             val2 = dict2.get(key, default_value)
             if round(abs(val1 - val2), places) != 0:
                 success = False
-                standard_msg += '(%s: %s != %s), ' % (key,
-                                                      val1,
-                                                      val2)
+                standard_msg += "(%s: %s != %s), " % (key, val1, val2)
         # check values for keys in counts, not in target
         keys2 = set(dict2.keys()) - keys1
         for key in keys2:
@@ -61,18 +58,16 @@ def assertDictAlmostEqual(dict1, dict2, delta=None, msg=None,
             val2 = dict2.get(key, default_value)
             if round(abs(val1 - val2), places) != 0:
                 success = False
-                standard_msg += '(%s: %s != %s), ' % (key,
-                                                      val1,
-                                                      val2)
+                standard_msg += "(%s: %s != %s), " % (key, val1, val2)
         if success is True:
             return
-        standard_msg = standard_msg[:-2] + ' within %s places' % places
+        standard_msg = standard_msg[:-2] + " within %s places" % places
 
     else:
         if delta is None:
             delta = 1e-8  # default delta value
         success = True
-        standard_msg = ''
+        standard_msg = ""
         # check value for keys in target
         keys1 = set(dict1.keys())
         for key in keys1:
@@ -80,9 +75,7 @@ def assertDictAlmostEqual(dict1, dict2, delta=None, msg=None,
             val2 = dict2.get(key, default_value)
             if abs(val1 - val2) > delta:
                 success = False
-                standard_msg += '(%s: %s != %s), ' % (key,
-                                                      val1,
-                                                      val2)
+                standard_msg += "(%s: %s != %s), " % (key, val1, val2)
         # check values for keys in counts, not in target
         keys2 = set(dict2.keys()) - keys1
         for key in keys2:
@@ -90,12 +83,10 @@ def assertDictAlmostEqual(dict1, dict2, delta=None, msg=None,
             val2 = dict2.get(key, default_value)
             if abs(val1 - val2) > delta:
                 success = False
-                standard_msg += '(%s: %s != %s), ' % (key,
-                                                      val1,
-                                                      val2)
+                standard_msg += "(%s: %s != %s), " % (key, val1, val2)
         if success is True:
             return
-        standard_msg = standard_msg[:-2] + ' within %s delta' % delta
+        standard_msg = standard_msg[:-2] + " within %s delta" % delta
 
     raise Exception(standard_msg)
 
@@ -107,20 +98,19 @@ def compare_counts(result, target, delta=0):
     assertDictAlmostEqual(output, target, delta=delta)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     if len(sys.argv) == 2:
-        with open(sys.argv[1], 'rt') as fp:
+        with open(sys.argv[1], "rt") as fp:
             result_dict = json.load(fp)
     else:
         result_dict = json.load(sys.stdin)
 
     result = Result.from_dict(result_dict)
-    assert result.status == 'COMPLETED'
+    assert result.status == "COMPLETED"
     assert result.success is True
-    if os.getenv('USE_MPI', False):
-        assert result.metadata['num_mpi_processes'] > 1
+    if os.getenv("USE_MPI", False):
+        assert result.metadata["num_mpi_processes"] > 1
     shots = result.results[0].shots
-    targets = {'0x0': 5 * shots / 8, '0x1': shots / 8,
-               '0x2': shots / 8, '0x3': shots / 8}
+    targets = {"0x0": 5 * shots / 8, "0x1": shots / 8, "0x2": shots / 8, "0x3": shots / 8}
     compare_counts(result, targets, delta=0.05 * shots)
     print("Input result JSON is valid!")

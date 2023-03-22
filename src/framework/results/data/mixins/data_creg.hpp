@@ -26,8 +26,8 @@ namespace AER {
 // Result container for Qiskit-Aer
 //============================================================================
 
-struct DataCreg : public DataMap<AccumData, uint_t, 2>,     // Counts
-                  public DataMap<ListData, std::string, 1>  // Memory
+struct DataCreg : public DataMap<AccumData, uint_t, 2>,    // Counts
+                  public DataMap<ListData, std::string, 1> // Memory
 {
   // Serialize engine data to JSON
   void add_to_json(json_t &result);

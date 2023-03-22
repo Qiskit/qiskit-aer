@@ -15,8 +15,7 @@ Integration Tests for SaveExpval instruction
 
 from ddt import ddt
 import numpy as np
-from test.terra.backends.simulator_test_case import (
-    SimulatorTestCase, supported_methods)
+from test.terra.backends.simulator_test_case import SimulatorTestCase, supported_methods
 import qiskit.quantum_info as qi
 from qiskit import QuantumCircuit
 from qiskit.compiler import transpile
@@ -26,6 +25,7 @@ from qiskit.result import Counts
 @ddt
 class TestSaveProbabilities(SimulatorTestCase):
     """Test SaveProbabilities instruction."""
+
     def _test_save_probabilities(self, qubits, **options):
         """Test save probabilities instruction"""
         backend = self.backend(**options)
@@ -39,10 +39,9 @@ class TestSaveProbabilities(SimulatorTestCase):
         state = qi.Statevector(circ)
         target = state.probabilities(qubits)
 
-        label = 'probs'
+        label = "probs"
         circ.save_probabilities(qubits, label=label)
-        result = backend.run(transpile(circ, backend, optimization_level=0),
-                             shots=1).result()
+        result = backend.run(transpile(circ, backend, optimization_level=0), shots=1).result()
         self.assertTrue(result.success)
         simdata = result.data(0)
         self.assertIn(label, simdata)
@@ -63,51 +62,55 @@ class TestSaveProbabilities(SimulatorTestCase):
         target = state.probabilities_dict(qubits)
 
         # Snapshot circuit
-        label = 'probs'
+        label = "probs"
         circ.save_probabilities_dict(qubits, label=label)
-        result = backend.run(transpile(circ, backend, optimization_level=0),
-                             shots=1).result()
+        result = backend.run(transpile(circ, backend, optimization_level=0), shots=1).result()
         self.assertTrue(result.success)
         simdata = result.data(0)
         self.assertIn(label, simdata)
         value = Counts(result.data(0)[label], memory_slots=len(qubits))
         self.assertDictAlmostEqual(value, target)
 
-    @supported_methods([
-        'automatic', 'statevector', 'density_matrix', 'matrix_product_state',
-        'stabilizer', 'tensor_network'
-    ], [[0, 1], [1, 0], [0], [1]])
+    @supported_methods(
+        [
+            "automatic",
+            "statevector",
+            "density_matrix",
+            "matrix_product_state",
+            "stabilizer",
+            "tensor_network",
+        ],
+        [[0, 1], [1, 0], [0], [1]],
+    )
     def test_save_probabilities(self, method, device, qubits):
         """Test save probabilities instruction"""
         self._test_save_probabilities(qubits, method=method, device=device)
 
-    @supported_methods([
-        'automatic', 'statevector', 'density_matrix', 'matrix_product_state',
-        'stabilizer', 'tensor_network'
-    ], [[0, 1], [1, 0], [0], [1]])
+    @supported_methods(
+        [
+            "automatic",
+            "statevector",
+            "density_matrix",
+            "matrix_product_state",
+            "stabilizer",
+            "tensor_network",
+        ],
+        [[0, 1], [1, 0], [0], [1]],
+    )
     def test_save_probabilities_dict(self, method, device, qubits):
         """Test save probabilities dict instruction"""
-        self._test_save_probabilities_dict(qubits,
-                                           method=method,
-                                           device=device)
+        self._test_save_probabilities_dict(qubits, method=method, device=device)
 
-    @supported_methods(['statevector', 'density_matrix'],
-                       [[0, 1], [1, 0], [0], [1]])
+    @supported_methods(["statevector", "density_matrix"], [[0, 1], [1, 0], [0], [1]])
     def test_save_probabilities_cache_blocking(self, method, device, qubits):
         """Test save probabilities instruction"""
-        self._test_save_probabilities(qubits,
-                                      method=method,
-                                      device=device,
-                                      blocking_qubits=2,
-                                      max_parallel_threads=1)
+        self._test_save_probabilities(
+            qubits, method=method, device=device, blocking_qubits=2, max_parallel_threads=1
+        )
 
-    @supported_methods(['statevector', 'density_matrix'],
-                       [[0, 1], [1, 0], [0], [1]])
-    def test_save_probabilities_dict_cache_blocking(self, method, device,
-                                                    qubits):
+    @supported_methods(["statevector", "density_matrix"], [[0, 1], [1, 0], [0], [1]])
+    def test_save_probabilities_dict_cache_blocking(self, method, device, qubits):
         """Test save probabilities dict instruction"""
-        self._test_save_probabilities_dict(qubits,
-                                           method=method,
-                                           device=device,
-                                           blocking_qubits=2,
-                                           max_parallel_threads=1)
+        self._test_save_probabilities_dict(
+            qubits, method=method, device=device, blocking_qubits=2, max_parallel_threads=1
+        )

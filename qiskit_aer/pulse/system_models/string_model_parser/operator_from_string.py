@@ -35,26 +35,23 @@ def gen_oper(opname, index, h_osc, h_qub, states=None):
     opr_tmp = None
 
     # get number of levels in Hilbert space
-    if opname in ['X', 'Y', 'Z', 'Sp', 'Sm', 'I', 'O', 'P']:
+    if opname in ["X", "Y", "Z", "Sp", "Sm", "I", "O", "P"]:
         is_qubit = True
         dim = h_qub.get(index, 2)
 
-        if opname in ['X', 'Y', 'Z'] and dim > 2:
-            if opname == 'X':
-                opr_tmp = (op_gen.get_oper('A', dim) +
-                           op_gen.get_oper('C', dim))
-            elif opname == 'Y':
-                opr_tmp = (-1j * op_gen.get_oper('A', dim) +
-                           1j * op_gen.get_oper('C', dim))
+        if opname in ["X", "Y", "Z"] and dim > 2:
+            if opname == "X":
+                opr_tmp = op_gen.get_oper("A", dim) + op_gen.get_oper("C", dim)
+            elif opname == "Y":
+                opr_tmp = -1j * op_gen.get_oper("A", dim) + 1j * op_gen.get_oper("C", dim)
             else:
-                opr_tmp = (op_gen.get_oper('I', dim) -
-                           2 * op_gen.get_oper('N', dim))
+                opr_tmp = op_gen.get_oper("I", dim) - 2 * op_gen.get_oper("N", dim)
 
     else:
         is_qubit = False
         dim = h_osc.get(index, 5)
 
-    if opname == 'P':
+    if opname == "P":
         opr_tmp = op_gen.get_oper(opname, dim, states)
     else:
         if opr_tmp is None:

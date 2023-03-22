@@ -18,17 +18,18 @@
 #define _USE_MATH_DEFINES
 #include <math.h>
 
-#include "framework/operations.hpp"
-#include "framework/types.hpp"
-#include "framework/rng.hpp"
 #include "framework/circuit.hpp"
 #include "framework/linalg/matrix_utils.hpp"
+#include "framework/operations.hpp"
+#include "framework/rng.hpp"
+#include "framework/types.hpp"
 
 namespace AER {
 namespace Noise {
-//predifine NoiseModel here for passing noise model to State::apply_ops
+// predifine NoiseModel here for passing noise model to State::apply_ops
 class NoiseModel;
-}}
+} // namespace Noise
+} // namespace AER
 
 #include "noise/quantum_error.hpp"
 #include "noise/readout_error.hpp"
@@ -48,45 +49,42 @@ namespace Noise {
 
 class NoiseModel {
 public:
-
   using Method = QuantumError::Method;
   using NoiseOps = std::vector<Operations::Op>;
 
   NoiseModel() = default;
-  NoiseModel(const json_t &js) {load_from_json(js);}
+  NoiseModel(const json_t &js) { load_from_json(js); }
 
   // Sample a noisy implementation of a full circuit
   // An RngEngine is passed in as a reference so that sampling
   // can be done in a thread-safe manner.
   // Sample methods are:
   // standard: each noisy op will be returned along with additional noise ops
-  // superop: each noisy gate or reset will be returned as a single superop 
-  Circuit sample_noise(const Circuit &circ,
-                       RngEngine &rng,
-                       const Method method = Method::circuit,bool sample_at_runtime = false) const;
+  // superop: each noisy gate or reset will be returned as a single superop
+  Circuit sample_noise(const Circuit &circ, RngEngine &rng,
+                       const Method method = Method::circuit,
+                       bool sample_at_runtime = false) const;
 
-  NoiseOps sample_noise_loc(const Operations::Op &op,RngEngine &rng) const;
+  NoiseOps sample_noise_loc(const Operations::Op &op, RngEngine &rng) const;
 
   // Enable superop sampling method
   // This will cause all QuantumErrors stored in the noise model
   // to calculate their superoperator representations and raise
   // an exception if they cannot be converted.
-  void enable_superop_method(int num_threads=1);
+  void enable_superop_method(int num_threads = 1);
 
   // Enable kraus sampling method
   // This will cause all QuantumErrors stored in the noise model
   // to calculate their canonical Kraus representations and raise
   // an exception if they cannot be converted.
-  void enable_kraus_method(int num_threads=1);
+  void enable_kraus_method(int num_threads = 1);
 
   //-----------------------------------------------------------------------
   // Checking if errors types are in noise model
   //-----------------------------------------------------------------------
 
   // Return True if noise model contains readout errors
-  inline bool has_readout_errors() const {
-    return !readout_errors_.empty();
-  }
+  inline bool has_readout_errors() const { return !readout_errors_.empty(); }
 
   // Return True if noise model contains quantum errors
   inline bool has_quantum_errors() const {
@@ -99,9 +97,7 @@ public:
   }
 
   // Return True if noise model contains local quantum errors
-  inline bool has_local_quantum_errors() const {
-    return local_quantum_errors_;
-  }
+  inline bool has_local_quantum_errors() const { return local_quantum_errors_; }
 
   // Return true if the noise model is ideal
   inline bool is_ideal() const {
@@ -120,7 +116,7 @@ public:
                          const stringset_t &op_labels,
                          const std::vector<reg_t> &op_qubits = {},
                          const std::vector<reg_t> &noise_qubits = {});
-  
+
   // Add a ReadoutError to the noise model
   void add_readout_error(const ReadoutError &error,
                          const std::vector<reg_t> &op_qubits = {});
@@ -129,51 +125,45 @@ public:
   // Utils
   //-----------------------------------------------------------------------
 
-  // Return vector of noise qubits for non local error on specified label and qubits
-  // If no nonlocal error exists an empty set is returned.
-  std::set<uint_t> nonlocal_noise_qubits(const std::string label, const reg_t &qubits) const;
+  // Return vector of noise qubits for non local error on specified label and
+  // qubits If no nonlocal error exists an empty set is returned.
+  std::set<uint_t> nonlocal_noise_qubits(const std::string label,
+                                         const reg_t &qubits) const;
 
   // Return the opset for the noise model
-  inline const Operations::OpSet& opset() const {return opset_;}
+  inline const Operations::OpSet &opset() const { return opset_; }
 
 private:
-
-  Circuit sample_noise_circuit(const Circuit &circ,
-                               RngEngine &rng,
-                               const Method method,bool sample_at_runtime) const;
+  Circuit sample_noise_circuit(const Circuit &circ, RngEngine &rng,
+                               const Method method,
+                               bool sample_at_runtime) const;
 
   // Sample noise for the current operation.
 
-  NoiseOps sample_noise_op(const Operations::Op &op,
-                           RngEngine &rng,
-                           const Method method,
-                           const reg_t &mapping,bool sample_at_runtime) const;
+  NoiseOps sample_noise_op(const Operations::Op &op, RngEngine &rng,
+                           const Method method, const reg_t &mapping,
+                           bool sample_at_runtime) const;
 
   // Sample noise for the current operation
-  void sample_readout_noise(const Operations::Op &op,
-                            NoiseOps &noise_after,
-                            RngEngine &rng,
-                            const reg_t &mapping)  const;
+  void sample_readout_noise(const Operations::Op &op, NoiseOps &noise_after,
+                            RngEngine &rng, const reg_t &mapping) const;
 
   void sample_local_quantum_noise(const Operations::Op &op,
-                                  NoiseOps &noise_before,
-                                  NoiseOps &noise_after,
-                                  RngEngine &rng,
-                                  const Method method,
-                                  const reg_t &mapping,bool sample_at_runtime)  const;
+                                  NoiseOps &noise_before, NoiseOps &noise_after,
+                                  RngEngine &rng, const Method method,
+                                  const reg_t &mapping,
+                                  bool sample_at_runtime) const;
 
   void sample_nonlocal_quantum_noise(const Operations::Op &op,
-                                     NoiseOps &noise_ops,
-                                     NoiseOps &noise_after,
-                                     RngEngine &rng,
-                                     const Method method,
-                                     const reg_t &mapping,bool sample_at_runtime) const;
+                                     NoiseOps &noise_ops, NoiseOps &noise_after,
+                                     RngEngine &rng, const Method method,
+                                     const reg_t &mapping,
+                                     bool sample_at_runtime) const;
 
   // Sample noise for the current operation
-  NoiseOps sample_noise_helper(const Operations::Op &op,
-                               RngEngine &rng,
-                               const Method method,
-                               const reg_t &mapping,bool sample_at_runtime) const;
+  NoiseOps sample_noise_helper(const Operations::Op &op, RngEngine &rng,
+                               const Method method, const reg_t &mapping,
+                               bool sample_at_runtime) const;
 
   // Add a local quantum error to the noise model for specific qubits
   void add_local_quantum_error(const QuantumError &error,
@@ -186,7 +176,7 @@ private:
                                   const std::vector<reg_t> &op_qubits,
                                   const std::vector<reg_t> &noise_qubits);
 
-  //create loc noise
+  // create loc noise
   NoiseOps create_noise_loc(const Operations::Op &op) const;
 
   // Flags which say whether the local or nonlocal error tables are used
@@ -231,16 +221,31 @@ private:
   cmatrix_t op2unitary(const Operations::Op &op) const;
 
   // Parameterized Gates
-  enum class ParamGate {u1, u2, u3, r, rx, ry, rz, rxx, ryy, rzz, rzx, cp, cu};
+  enum class ParamGate {
+    u1,
+    u2,
+    u3,
+    r,
+    rx,
+    ry,
+    rz,
+    rxx,
+    ryy,
+    rzz,
+    rzx,
+    cp,
+    cu
+  };
   const static stringmap_t<ParamGate> param_gate_table_;
 
   // Joint OpSet of all errors
   Operations::OpSet opset_;
 
   // Allowed sampling methods
-  std::unordered_set<Method> enabled_methods_ = std::unordered_set<Method>({Method::circuit});
+  std::unordered_set<Method> enabled_methods_ =
+      std::unordered_set<Method>({Method::circuit});
 
-  //saved qubit mapping for runtime loc
+  // saved qubit mapping for runtime loc
   mutable reg_t circ_mapping_;
 };
 
@@ -248,34 +253,22 @@ private:
 // Parameterized Gates
 //=========================================================================
 
-const stringmap_t<NoiseModel::ParamGate>
-NoiseModel::param_gate_table_ = {
-  {"u", ParamGate::u3},
-  {"u3", ParamGate::u3},
-  {"u2", ParamGate::u2},
-  {"u1", ParamGate::u1},
-  {"r", ParamGate::r},
-  {"rx", ParamGate::rx},
-  {"ry", ParamGate::ry},
-  {"rz", ParamGate::rz},
-  {"rxx", ParamGate::rxx},
-  {"ryy", ParamGate::ryy},
-  {"rzz", ParamGate::rzz},
-  {"rzx", ParamGate::rzx},
-  {"p", ParamGate::u1},
-  {"cp", ParamGate::cp},
-  {"cu1", ParamGate::cp},
-  {"cu", ParamGate::cu},
+const stringmap_t<NoiseModel::ParamGate> NoiseModel::param_gate_table_ = {
+    {"u", ParamGate::u3},    {"u3", ParamGate::u3},   {"u2", ParamGate::u2},
+    {"u1", ParamGate::u1},   {"r", ParamGate::r},     {"rx", ParamGate::rx},
+    {"ry", ParamGate::ry},   {"rz", ParamGate::rz},   {"rxx", ParamGate::rxx},
+    {"ryy", ParamGate::ryy}, {"rzz", ParamGate::rzz}, {"rzx", ParamGate::rzx},
+    {"p", ParamGate::u1},    {"cp", ParamGate::cp},   {"cu1", ParamGate::cp},
+    {"cu", ParamGate::cu},
 };
-
 
 //=========================================================================
 // Noise sampling
 //=========================================================================
 
-Circuit NoiseModel::sample_noise(const Circuit &circ,
-                                 RngEngine &rng,
-                                 const Method method,bool sample_at_runtime) const {
+Circuit NoiseModel::sample_noise(const Circuit &circ, RngEngine &rng,
+                                 const Method method,
+                                 bool sample_at_runtime) const {
   // Check edge case of empty circuit
   if (circ.ops.empty()) {
     return circ;
@@ -283,18 +276,20 @@ Circuit NoiseModel::sample_noise(const Circuit &circ,
   // Check if sampling method is enabled
   if (enabled_methods_.find(method) == enabled_methods_.end()) {
     throw std::runtime_error(
-      "Kraus or superoperator noise sampling method has not been enabled.");
+        "Kraus or superoperator noise sampling method has not been enabled.");
   }
-  return sample_noise_circuit(circ, rng, method,sample_at_runtime);
+  return sample_noise_circuit(circ, rng, method, sample_at_runtime);
 }
 
-NoiseModel::NoiseOps NoiseModel::sample_noise_loc(const Operations::Op &op,RngEngine &rng) const
-{
-  auto noise_ops = sample_noise_op(op, rng, Method::circuit,circ_mapping_,false);
+NoiseModel::NoiseOps NoiseModel::sample_noise_loc(const Operations::Op &op,
+                                                  RngEngine &rng) const {
+  auto noise_ops =
+      sample_noise_op(op, rng, Method::circuit, circ_mapping_, false);
 
-  // If original op is conditional, make all the noise operations also conditional
+  // If original op is conditional, make all the noise operations also
+  // conditional
   if (op.conditional) {
-    for (auto& noise_op : noise_ops) {
+    for (auto &noise_op : noise_ops) {
       noise_op.conditional = op.conditional;
       noise_op.conditional_reg = op.conditional_reg;
       noise_op.bfunc = op.bfunc;
@@ -303,75 +298,78 @@ NoiseModel::NoiseOps NoiseModel::sample_noise_loc(const Operations::Op &op,RngEn
   return noise_ops;
 }
 
-Circuit NoiseModel::sample_noise_circuit(const Circuit &circ,
-                                         RngEngine &rng,
-                                         const Method method,bool sample_at_runtime) const 
-{
-    bool noise_active = true; // set noise active to on-state
-    Circuit noisy_circ;
-    // Copy metadata
-    noisy_circ.seed = circ.seed;
-    noisy_circ.shots = circ.shots;
-    noisy_circ.header = circ.header;
+Circuit NoiseModel::sample_noise_circuit(const Circuit &circ, RngEngine &rng,
+                                         const Method method,
+                                         bool sample_at_runtime) const {
+  bool noise_active = true; // set noise active to on-state
+  Circuit noisy_circ;
+  // Copy metadata
+  noisy_circ.seed = circ.seed;
+  noisy_circ.shots = circ.shots;
+  noisy_circ.header = circ.header;
 
-    // Reserve double length of ops just to be safe
-    noisy_circ.ops.reserve(2 * circ.ops.size());
+  // Reserve double length of ops just to be safe
+  noisy_circ.ops.reserve(2 * circ.ops.size());
 
-    // Qubit mapping
-    reg_t mapping;
-    if (circ.remapped_qubits)
-      mapping = reg_t(circ.qubits().cbegin(), circ.qubits().cend());
+  // Qubit mapping
+  reg_t mapping;
+  if (circ.remapped_qubits)
+    mapping = reg_t(circ.qubits().cbegin(), circ.qubits().cend());
 
-    // Sample a noisy realization of the circuit
-    for (const auto &op: circ.ops) {
-      switch (op.type) {
-        // Operations that cannot have noise
-        case Operations::OpType::barrier:
-          noisy_circ.ops.push_back(op);
-          break;
-        case Operations::OpType::kraus:
-          noisy_circ.ops.push_back(op);
-          break;
-        case Operations::OpType::superop:
-          noisy_circ.ops.push_back(op);
-          break;
-        case Operations::OpType::roerror:
-          noisy_circ.ops.push_back(op);
-          break;
-        case Operations::OpType::bfunc:
-          noisy_circ.ops.push_back(op);
-          break;
-        // Switch noise on or off during current circuit sample
-        case Operations::OpType::noise_switch:
-          noise_active = static_cast<int>(std::real(op.params[0]));
-          break;
-        default:
-          if (noise_active) {
-            NoiseOps noisy_op = sample_noise_op(op, rng, method, mapping, sample_at_runtime);
-            noisy_circ.ops.insert(noisy_circ.ops.end(), noisy_op.begin(), noisy_op.end());
-          }
-          break;
+  // Sample a noisy realization of the circuit
+  for (const auto &op : circ.ops) {
+    switch (op.type) {
+    // Operations that cannot have noise
+    case Operations::OpType::barrier:
+      noisy_circ.ops.push_back(op);
+      break;
+    case Operations::OpType::kraus:
+      noisy_circ.ops.push_back(op);
+      break;
+    case Operations::OpType::superop:
+      noisy_circ.ops.push_back(op);
+      break;
+    case Operations::OpType::roerror:
+      noisy_circ.ops.push_back(op);
+      break;
+    case Operations::OpType::bfunc:
+      noisy_circ.ops.push_back(op);
+      break;
+    // Switch noise on or off during current circuit sample
+    case Operations::OpType::noise_switch:
+      noise_active = static_cast<int>(std::real(op.params[0]));
+      break;
+    default:
+      if (noise_active) {
+        NoiseOps noisy_op =
+            sample_noise_op(op, rng, method, mapping, sample_at_runtime);
+        noisy_circ.ops.insert(noisy_circ.ops.end(), noisy_op.begin(),
+                              noisy_op.end());
       }
+      break;
     }
-    // Update circuit parameters
-    noisy_circ.set_params();
-    if(sample_at_runtime){
-      noisy_circ.can_sample = false;
-      circ_mapping_ = mapping;
-    }
-    return noisy_circ;
+  }
+  // Update circuit parameters
+  noisy_circ.set_params();
+  if (sample_at_runtime) {
+    noisy_circ.can_sample = false;
+    circ_mapping_ = mapping;
+  }
+  return noisy_circ;
 }
 
 NoiseModel::NoiseOps NoiseModel::sample_noise_op(const Operations::Op &op,
                                                  RngEngine &rng,
                                                  const Method method,
-                                                 const reg_t &mapping,bool sample_at_runtime) const 
-{
-  auto noise_ops = sample_noise_helper(op, rng, method, mapping, sample_at_runtime);
+                                                 const reg_t &mapping,
+                                                 bool sample_at_runtime) const {
+  auto noise_ops =
+      sample_noise_helper(op, rng, method, mapping, sample_at_runtime);
 
-  // If original op is conditional, make all the noise operations also conditional
+  // If original op is conditional, make all the noise operations also
+  // conditional
   if (op.conditional) {
-    for (auto& noise_op : noise_ops) {
+    for (auto &noise_op : noise_ops) {
       noise_op.conditional = op.conditional;
       noise_op.conditional_reg = op.conditional_reg;
       noise_op.bfunc = op.bfunc;
@@ -380,28 +378,27 @@ NoiseModel::NoiseOps NoiseModel::sample_noise_op(const Operations::Op &op,
   return noise_ops;
 }
 
-
 void NoiseModel::enable_superop_method(int num_threads) {
   if (enabled_methods_.find(Method::superop) == enabled_methods_.end()) {
-    #pragma omp parallel for if (num_threads > 1 && quantum_errors_.size() > 10) num_threads(num_threads)
-    for (int i=0; i < quantum_errors_.size(); i++)  {
+#pragma omp parallel for if (num_threads > 1 && quantum_errors_.size() > 10)   \
+    num_threads(num_threads)
+    for (int i = 0; i < quantum_errors_.size(); i++) {
       quantum_errors_[i].compute_superoperator();
     }
     enabled_methods_.insert(Method::superop);
   }
 }
 
-
 void NoiseModel::enable_kraus_method(int num_threads) {
   if (enabled_methods_.find(Method::kraus) == enabled_methods_.end()) {
-    #pragma omp parallel for if (num_threads > 1 && quantum_errors_.size() > 10) num_threads(num_threads)
-    for (int i=0; i < quantum_errors_.size(); i++)  {
+#pragma omp parallel for if (num_threads > 1 && quantum_errors_.size() > 10)   \
+    num_threads(num_threads)
+    for (int i = 0; i < quantum_errors_.size(); i++) {
       quantum_errors_[i].compute_kraus();
     }
     enabled_methods_.insert(Method::kraus);
   }
 }
-
 
 void NoiseModel::add_readout_error(const ReadoutError &error,
                                    const std::vector<reg_t> &op_qubits) {
@@ -424,7 +421,6 @@ void NoiseModel::add_readout_error(const ReadoutError &error,
   }
 }
 
-
 void NoiseModel::add_quantum_error(const QuantumError &error,
                                    const stringset_t &op_labels,
                                    const std::vector<reg_t> &op_qubits,
@@ -445,7 +441,6 @@ void NoiseModel::add_quantum_error(const QuantumError &error,
   }
 }
 
-
 void NoiseModel::add_local_quantum_error(const QuantumError &error,
                                          const stringset_t &op_labels,
                                          const std::vector<reg_t> &op_qubits) {
@@ -458,7 +453,7 @@ void NoiseModel::add_local_quantum_error(const QuantumError &error,
   // Get position of error in error vector
   const auto error_pos = quantum_errors_.size() - 1;
   // Add error index to the error table
-  for (const auto &gate: op_labels)
+  for (const auto &gate : op_labels)
     for (const auto &qubits : op_qubits) {
       local_quantum_error_table_[gate][reg2string(qubits)].push_back(error_pos);
       for (const auto &qubit : qubits)
@@ -466,11 +461,10 @@ void NoiseModel::add_local_quantum_error(const QuantumError &error,
     }
 }
 
-
-void NoiseModel::add_nonlocal_quantum_error(const QuantumError &error,
-                                            const stringset_t &op_labels,
-                                            const std::vector<reg_t> &op_qubits,
-                                            const std::vector<reg_t> &noise_qubits) {
+void NoiseModel::add_nonlocal_quantum_error(
+    const QuantumError &error, const stringset_t &op_labels,
+    const std::vector<reg_t> &op_qubits,
+    const std::vector<reg_t> &noise_qubits) {
 
   // Turn on nonlocal error flag
   if (!op_labels.empty() && !op_qubits.empty() && !noise_qubits.empty()) {
@@ -481,31 +475,33 @@ void NoiseModel::add_nonlocal_quantum_error(const QuantumError &error,
   // Get position of error in error vector
   const auto error_pos = quantum_errors_.size() - 1;
   // Add error index to the error table
-  for (const auto &gate: op_labels)
+  for (const auto &gate : op_labels)
     for (const auto &qubits_gate : op_qubits) {
       for (const auto &qubit : qubits_gate)
         noise_qubits_.insert(qubit);
       for (const auto &qubits_noise : noise_qubits) {
-        nonlocal_quantum_error_table_[gate][reg2string(qubits_gate)][reg2string(qubits_noise)].push_back(error_pos);
+        nonlocal_quantum_error_table_[gate][reg2string(qubits_gate)]
+                                     [reg2string(qubits_noise)]
+                                         .push_back(error_pos);
         for (const auto &qubit : qubits_noise)
           noise_qubits_.insert(qubit);
       }
     }
 }
 
-
-NoiseModel::NoiseOps NoiseModel::sample_noise_helper(const Operations::Op &op,
-                                                     RngEngine &rng,
-                                                     const Method method,
-                                                     const reg_t &mapping,bool sample_at_runtime) const 
-{
+NoiseModel::NoiseOps
+NoiseModel::sample_noise_helper(const Operations::Op &op, RngEngine &rng,
+                                const Method method, const reg_t &mapping,
+                                bool sample_at_runtime) const {
   // Return operator set
   NoiseOps noise_before;
   NoiseOps noise_after;
   // Apply local errors first
-  sample_local_quantum_noise(op, noise_before, noise_after, rng, method, mapping, sample_at_runtime);
+  sample_local_quantum_noise(op, noise_before, noise_after, rng, method,
+                             mapping, sample_at_runtime);
   // Apply nonlocal errors second
-  sample_nonlocal_quantum_noise(op, noise_before, noise_after, rng, method, mapping, sample_at_runtime);
+  sample_nonlocal_quantum_noise(op, noise_before, noise_after, rng, method,
+                                mapping, sample_at_runtime);
   // Apply readout error to measure ops
   if (op.type == Operations::OpType::measure) {
     sample_readout_noise(op, noise_after, rng, mapping);
@@ -521,39 +517,38 @@ NoiseModel::NoiseOps NoiseModel::sample_noise_helper(const Operations::Op &op,
                    std::make_move_iterator(noise_after.begin()),
                    std::make_move_iterator(noise_after.end()));
 
-  if (op.type != Operations::OpType::measure &&
-      noise_ops.size() == 2 &&
+  if (op.type != Operations::OpType::measure && noise_ops.size() == 2 &&
       noise_ops[0].qubits == noise_ops[1].qubits) {
     // Try and fuse operations
     // If either are superoperators combine superoperators
     // else if either are unitaries combine unitaries
     // otherwise return the full list
-    auto& first_op = noise_ops[0];
-    auto& second_op = noise_ops[1];
+    auto &first_op = noise_ops[0];
+    auto &second_op = noise_ops[1];
 
     if (second_op.type == Operations::OpType::superop) {
-      auto& current = second_op;
+      auto &current = second_op;
       const auto mat = op2superop(first_op);
       if (!mat.empty()) {
         current.mats[0] = current.mats[0] * mat;
         return NoiseOps({current});
       }
     } else if (first_op.type == Operations::OpType::superop) {
-      auto& current = first_op;
+      auto &current = first_op;
       const auto mat = op2superop(second_op);
       if (!mat.empty()) {
         current.mats[0] = mat * current.mats[0];
         return NoiseOps({current});
       }
-    } else if (second_op.type == Operations::OpType::matrix) { 
-      auto& current = noise_before[1];
+    } else if (second_op.type == Operations::OpType::matrix) {
+      auto &current = noise_before[1];
       const auto mat = op2unitary(first_op);
       if (!mat.empty()) {
         current.mats[0] = current.mats[0] * mat;
         return NoiseOps({current});
       }
     } else if (first_op.type == Operations::OpType::matrix) {
-      auto& current = first_op;
+      auto &current = first_op;
       const auto mat = op2unitary(second_op);
       if (!mat.empty()) {
         current.mats[0] = mat * current.mats[0];
@@ -565,10 +560,8 @@ NoiseModel::NoiseOps NoiseModel::sample_noise_helper(const Operations::Op &op,
   return noise_before;
 }
 
-
 void NoiseModel::sample_readout_noise(const Operations::Op &op,
-                                      NoiseOps &noise_after,
-                                      RngEngine &rng,
+                                      NoiseOps &noise_after, RngEngine &rng,
                                       const reg_t &mapping) const {
   // If no readout errors are defined pass
   if (readout_errors_.empty()) {
@@ -577,7 +570,7 @@ void NoiseModel::sample_readout_noise(const Operations::Op &op,
   // Check if measure op writes only to memory, or also to registers
   // We will use the same error model for both memory and registers
   bool has_registers = !op.registers.empty();
-  
+
   // Optional remap circuit qubits to noise model qubits
   const auto op_qubits = remap_reg(op.qubits, mapping);
 
@@ -614,36 +607,36 @@ void NoiseModel::sample_readout_noise(const Operations::Op &op,
       registers_sets.push_back(op.registers);
   }
   // Iterate over qubits
-  for (size_t qs=0; qs < qubit_keys.size(); ++qs) {
+  for (size_t qs = 0; qs < qubit_keys.size(); ++qs) {
     auto iter_qubits = readout_error_table_.find(qubit_keys[qs]);
     if (iter_qubits != readout_error_table_.end() ||
         iter_default != readout_error_table_.end()) {
       auto &error_positions = (iter_qubits != readout_error_table_.end())
-        ? iter_qubits->second
-        : iter_default->second;
+                                  ? iter_qubits->second
+                                  : iter_default->second;
       for (auto &pos : error_positions) {
         // Sample Readout error
-        auto noise_ops = readout_errors_[pos].sample_noise(memory_sets[qs], rng);
+        auto noise_ops =
+            readout_errors_[pos].sample_noise(memory_sets[qs], rng);
         if (has_registers) {
-          for (auto& noise_op: noise_ops) {
+          for (auto &noise_op : noise_ops) {
             noise_op.registers = registers_sets[qs];
           }
         }
-        // Add noise after the error 
-        noise_after.insert(noise_after.end(), noise_ops.begin(), noise_ops.end());
+        // Add noise after the error
+        noise_after.insert(noise_after.end(), noise_ops.begin(),
+                           noise_ops.end());
       }
     }
   }
 }
 
-
 void NoiseModel::sample_local_quantum_noise(const Operations::Op &op,
                                             NoiseOps &noise_before,
                                             NoiseOps &noise_after,
-                                            RngEngine &rng,
-                                            const Method method,
-                                            const reg_t &mapping,bool sample_at_runtime) const 
-{
+                                            RngEngine &rng, const Method method,
+                                            const reg_t &mapping,
+                                            bool sample_at_runtime) const {
   // If no errors are defined pass
   if (local_quantum_errors_ == false)
     return;
@@ -651,8 +644,8 @@ void NoiseModel::sample_local_quantum_noise(const Operations::Op &op,
   // Get op name, or label if it is a gate or unitary matrix
   std::string name = (op.type == Operations::OpType::matrix ||
                       op.type == Operations::OpType::gate)
-    ? op.string_params[0]
-    : op.name;
+                         ? op.string_params[0]
+                         : op.name;
 
   // Check if op is a measure or reset
   bool is_measure_or_reset = (op.type == Operations::OpType::measure ||
@@ -675,13 +668,15 @@ void NoiseModel::sample_local_quantum_noise(const Operations::Op &op,
     // Format qubit sets
     std::vector<std::string> qubit_keys;
     std::vector<reg_t> original_qubits;
-    if (is_measure_or_reset && qubit_map.find(op_qubits_key) == qubit_map.end()) {
+    if (is_measure_or_reset &&
+        qubit_map.find(op_qubits_key) == qubit_map.end()) {
       // Since measure and reset ops can be defined on multiple qubits
       // but error model may be specified only on single qubits we add
       // each one separately. If a multi-qubit model is found for specified
       // qubits however, that will be used instead.
-      for (size_t i=0; i < remapped_op_qubits.size(); ++i) {
-        qubit_keys.push_back(std::to_string(remapped_op_qubits[i]) + std::string(","));
+      for (size_t i = 0; i < remapped_op_qubits.size(); ++i) {
+        qubit_keys.push_back(std::to_string(remapped_op_qubits[i]) +
+                             std::string(","));
         original_qubits.push_back(reg_t({op.qubits[i]}));
       }
     } else {
@@ -689,52 +684,51 @@ void NoiseModel::sample_local_quantum_noise(const Operations::Op &op,
       qubit_keys.push_back(op_qubits_key);
       original_qubits.push_back(op.qubits);
     }
-    for(size_t i=0; i < qubit_keys.size(); ++i){
-      const auto& op_qubits = original_qubits[i];
-      const auto& qubit_key = qubit_keys[i];
+    for (size_t i = 0; i < qubit_keys.size(); ++i) {
+      const auto &op_qubits = original_qubits[i];
+      const auto &qubit_key = qubit_keys[i];
       auto iter_qubits = qubit_map.find(qubit_key);
-      if (iter_qubits != qubit_map.end() ||
-          iter_default != qubit_map.end()) {
+      if (iter_qubits != qubit_map.end() || iter_default != qubit_map.end()) {
         auto &error_positions = (iter_qubits != qubit_map.end())
-          ? iter_qubits->second
-          : iter_default->second;
+                                    ? iter_qubits->second
+                                    : iter_default->second;
         for (auto &pos : error_positions) {
           NoiseOps noise_ops;
-          if(sample_at_runtime)
+          if (sample_at_runtime)
             noise_ops = create_noise_loc(op);
           else
-            noise_ops = quantum_errors_[pos].sample_noise(op_qubits, rng, method);
+            noise_ops =
+                quantum_errors_[pos].sample_noise(op_qubits, rng, method);
           // Duplicate same sampled error operations
           if (quantum_errors_[pos].errors_after())
-            noise_after.insert(noise_after.end(), noise_ops.begin(), noise_ops.end());
+            noise_after.insert(noise_after.end(), noise_ops.begin(),
+                               noise_ops.end());
           else
-            noise_before.insert(noise_before.end(), noise_ops.begin(), noise_ops.end());
+            noise_before.insert(noise_before.end(), noise_ops.begin(),
+                                noise_ops.end());
         }
       }
     }
   }
 }
 
-
-void NoiseModel::sample_nonlocal_quantum_noise(const Operations::Op &op,
-                                               NoiseOps &noise_before,
-                                               NoiseOps &noise_after,
-                                               RngEngine &rng,
-                                               const Method method,
-                                               const reg_t &mapping,bool sample_at_runtime) const 
-{
+void NoiseModel::sample_nonlocal_quantum_noise(
+    const Operations::Op &op, NoiseOps &noise_before, NoiseOps &noise_after,
+    RngEngine &rng, const Method method, const reg_t &mapping,
+    bool sample_at_runtime) const {
   // If no errors are defined pass
   if (nonlocal_quantum_errors_ == false)
     return;
-  
+
   // Get op name, or label if it is a gate or unitary matrix
   std::string name = (op.type == Operations::OpType::matrix ||
                       op.type == Operations::OpType::gate)
-    ? op.string_params[0]
-    : op.name;
+                         ? op.string_params[0]
+                         : op.name;
 
   if (!mapping.empty()) {
-    throw std::invalid_argument("Non-local noise model cannot be used with a qubit mapping.");
+    throw std::invalid_argument(
+        "Non-local noise model cannot be used with a qubit mapping.");
   }
 
   // Convert qubits to string for table lookup
@@ -746,8 +740,9 @@ void NoiseModel::sample_nonlocal_quantum_noise(const Operations::Op &op,
     // Format qubit sets
     std::vector<std::string> qubit_keys;
 
-    if ((op.type == Operations::OpType::measure || op.type == Operations::OpType::reset)
-        && qubit_map.find(qubits_str) == qubit_map.end()) {
+    if ((op.type == Operations::OpType::measure ||
+         op.type == Operations::OpType::reset) &&
+        qubit_map.find(qubits_str) == qubit_map.end()) {
       // Since measure and reset ops can be defined on multiple qubits
       // but error model may be specified only on single qubits we add
       // each one separately. If a multi-qubit model is found for specified
@@ -759,7 +754,7 @@ void NoiseModel::sample_nonlocal_quantum_noise(const Operations::Op &op,
       // for gate operations we use the qubits as specified
       qubit_keys.push_back(reg2string(op.qubits));
     }
-    for (const auto &qubits: qubit_keys) {
+    for (const auto &qubits : qubit_keys) {
       // Check if the qubits are listed in the inner model
       auto iter_qubits = qubit_map.find(qubits);
       if (iter_qubits != qubit_map.end()) {
@@ -768,11 +763,11 @@ void NoiseModel::sample_nonlocal_quantum_noise(const Operations::Op &op,
           auto &error_positions = target_pair.second;
           for (auto &pos : error_positions) {
             NoiseOps ops;
-            if(sample_at_runtime)
+            if (sample_at_runtime)
               ops = create_noise_loc(op);
-            else{
-              ops = quantum_errors_[pos].sample_noise(string2reg(target_qubits), rng,
-                                                         method);
+            else {
+              ops = quantum_errors_[pos].sample_noise(string2reg(target_qubits),
+                                                      rng, method);
             }
             if (quantum_errors_[pos].errors_after())
               noise_after.insert(noise_after.end(), ops.begin(), ops.end());
@@ -785,8 +780,8 @@ void NoiseModel::sample_nonlocal_quantum_noise(const Operations::Op &op,
   }
 }
 
-NoiseModel::NoiseOps NoiseModel::create_noise_loc(const Operations::Op &op) const
-{
+NoiseModel::NoiseOps
+NoiseModel::create_noise_loc(const Operations::Op &op) const {
   NoiseOps ops(1);
   ops[0] = op;
   ops[0].type = Operations::OpType::qerror_loc;
@@ -795,56 +790,57 @@ NoiseModel::NoiseOps NoiseModel::create_noise_loc(const Operations::Op &op) cons
 
 cmatrix_t NoiseModel::op2superop(const Operations::Op &op) const {
   switch (op.type) {
-    case Operations::OpType::superop:
-      return op.mats[0];
-    case Operations::OpType::kraus: {
-      return Utils::kraus_superop(op.mats);
-    }
-    case Operations::OpType::reset:
-      return Linalg::SMatrix::reset(1ULL << op.qubits.size());
-    case  Operations::OpType::matrix:
-      return Utils::unitary_superop(op.mats[0]);
-    case Operations::OpType::gate:  {
-      auto it = param_gate_table_.find(op.name);
-      if (it != param_gate_table_.end()) {
-        // Get parameterized gate superop
-        switch (it -> second) {
-          case ParamGate::u1:
-            return Linalg::SMatrix::u1(op.params[0]);
-          case ParamGate::u2:
-            return Linalg::SMatrix::u2(op.params[0], op.params[1]);
-          case ParamGate::u3:
-            return Linalg::SMatrix::u3(op.params[0], op.params[1], op.params[2]);
-          case ParamGate::r:
-            return Linalg::SMatrix::r(op.params[0], op.params[1]);
-          case ParamGate::rx:
-            return Linalg::SMatrix::rx(op.params[0]);
-          case ParamGate::ry:
-            return Linalg::SMatrix::ry(op.params[0]);
-          case ParamGate::rz:
-            return Linalg::SMatrix::rz(op.params[0]);
-          case ParamGate::rxx:
-            return Linalg::SMatrix::rxx(op.params[0]);
-          case ParamGate::ryy:
-            return Linalg::SMatrix::ryy(op.params[0]);
-          case ParamGate::rzz:
-            return Linalg::SMatrix::rzz(op.params[0]);
-          case ParamGate::rzx:
-            return Linalg::SMatrix::rzx(op.params[0]);
-          case ParamGate::cp:
-            return Linalg::SMatrix::cphase(op.params[0]);
-          case ParamGate::cu:
-            return Linalg::SMatrix::cu(op.params[0], op.params[1], op.params[2], op.params[3]);
-        }
-      } else {
-        // Check if we can convert this gate to a standard superoperator matrix
-        if (Linalg::SMatrix::allowed_name(op.name)) {
-          return Linalg::SMatrix::from_name(op.name);
-        }
+  case Operations::OpType::superop:
+    return op.mats[0];
+  case Operations::OpType::kraus: {
+    return Utils::kraus_superop(op.mats);
+  }
+  case Operations::OpType::reset:
+    return Linalg::SMatrix::reset(1ULL << op.qubits.size());
+  case Operations::OpType::matrix:
+    return Utils::unitary_superop(op.mats[0]);
+  case Operations::OpType::gate: {
+    auto it = param_gate_table_.find(op.name);
+    if (it != param_gate_table_.end()) {
+      // Get parameterized gate superop
+      switch (it->second) {
+      case ParamGate::u1:
+        return Linalg::SMatrix::u1(op.params[0]);
+      case ParamGate::u2:
+        return Linalg::SMatrix::u2(op.params[0], op.params[1]);
+      case ParamGate::u3:
+        return Linalg::SMatrix::u3(op.params[0], op.params[1], op.params[2]);
+      case ParamGate::r:
+        return Linalg::SMatrix::r(op.params[0], op.params[1]);
+      case ParamGate::rx:
+        return Linalg::SMatrix::rx(op.params[0]);
+      case ParamGate::ry:
+        return Linalg::SMatrix::ry(op.params[0]);
+      case ParamGate::rz:
+        return Linalg::SMatrix::rz(op.params[0]);
+      case ParamGate::rxx:
+        return Linalg::SMatrix::rxx(op.params[0]);
+      case ParamGate::ryy:
+        return Linalg::SMatrix::ryy(op.params[0]);
+      case ParamGate::rzz:
+        return Linalg::SMatrix::rzz(op.params[0]);
+      case ParamGate::rzx:
+        return Linalg::SMatrix::rzx(op.params[0]);
+      case ParamGate::cp:
+        return Linalg::SMatrix::cphase(op.params[0]);
+      case ParamGate::cu:
+        return Linalg::SMatrix::cu(op.params[0], op.params[1], op.params[2],
+                                   op.params[3]);
+      }
+    } else {
+      // Check if we can convert this gate to a standard superoperator matrix
+      if (Linalg::SMatrix::allowed_name(op.name)) {
+        return Linalg::SMatrix::from_name(op.name);
       }
     }
-    default:
-      return cmatrix_t();
+  }
+  default:
+    return cmatrix_t();
   }
 }
 
@@ -852,35 +848,35 @@ cmatrix_t NoiseModel::op2unitary(const Operations::Op &op) const {
   switch (op.type) {
   case Operations::OpType::matrix:
     return op.mats[0];
-  case Operations::OpType::gate:  {
+  case Operations::OpType::gate: {
     auto it = param_gate_table_.find(op.name);
     if (it != param_gate_table_.end()) {
       // Get parameterized gate superop
-      switch (it -> second) {
-        case ParamGate::u1:
-          return Linalg::Matrix::u1(op.params[0]);
-        case ParamGate::u2:
-          return Linalg::Matrix::u2(op.params[0], op.params[1]);
-        case ParamGate::u3:
-          return Linalg::Matrix::u3(op.params[0], op.params[1], op.params[2]);
-        case ParamGate::r:
-          return Linalg::Matrix::r(op.params[0], op.params[1]);
-        case ParamGate::rx:
-          return Linalg::Matrix::rx(op.params[0]);
-        case ParamGate::ry:
-          return Linalg::Matrix::ry(op.params[0]);
-        case ParamGate::rz:
-          return Linalg::Matrix::rz(op.params[0]);
-        case ParamGate::rxx:
-          return Linalg::Matrix::rxx(op.params[0]);
-        case ParamGate::ryy:
-          return Linalg::Matrix::ryy(op.params[0]);
-        case ParamGate::rzz:
-          return Linalg::Matrix::rzz(op.params[0]);
-        case ParamGate::rzx:
-          return Linalg::Matrix::rzx(op.params[0]);
-        case ParamGate::cp:
-          return Linalg::Matrix::cphase(op.params[0]);
+      switch (it->second) {
+      case ParamGate::u1:
+        return Linalg::Matrix::u1(op.params[0]);
+      case ParamGate::u2:
+        return Linalg::Matrix::u2(op.params[0], op.params[1]);
+      case ParamGate::u3:
+        return Linalg::Matrix::u3(op.params[0], op.params[1], op.params[2]);
+      case ParamGate::r:
+        return Linalg::Matrix::r(op.params[0], op.params[1]);
+      case ParamGate::rx:
+        return Linalg::Matrix::rx(op.params[0]);
+      case ParamGate::ry:
+        return Linalg::Matrix::ry(op.params[0]);
+      case ParamGate::rz:
+        return Linalg::Matrix::rz(op.params[0]);
+      case ParamGate::rxx:
+        return Linalg::Matrix::rxx(op.params[0]);
+      case ParamGate::ryy:
+        return Linalg::Matrix::ryy(op.params[0]);
+      case ParamGate::rzz:
+        return Linalg::Matrix::rzz(op.params[0]);
+      case ParamGate::rzx:
+        return Linalg::Matrix::rzx(op.params[0]);
+      case ParamGate::cp:
+        return Linalg::Matrix::cphase(op.params[0]);
       }
     } else {
       // Check if we can convert this gate to a standard superoperator matrix
@@ -894,13 +890,12 @@ cmatrix_t NoiseModel::op2unitary(const Operations::Op &op) const {
   }
 }
 
-
 std::string NoiseModel::reg2string(const reg_t &reg) const {
   std::stringstream result;
-  std::copy(reg.begin(), reg.end(), std::ostream_iterator<reg_t::value_type>(result, ","));
+  std::copy(reg.begin(), reg.end(),
+            std::ostream_iterator<reg_t::value_type>(result, ","));
   return result.str();
 }
-
 
 reg_t NoiseModel::string2reg(std::string s) const {
   reg_t result;
@@ -912,13 +907,12 @@ reg_t NoiseModel::string2reg(std::string s) const {
   return result;
 }
 
-
 //=========================================================================
 // Qubit Remapping
 //=========================================================================
 
 std::set<uint_t> NoiseModel::nonlocal_noise_qubits(const std::string label,
-                                                   const reg_t& qubits) const {
+                                                   const reg_t &qubits) const {
   std::set<uint_t> all_noise_qubits;
   // Check if label has noise
   const auto outer_it = nonlocal_quantum_error_table_.find(label);
@@ -968,8 +962,9 @@ reg_t NoiseModel::remap_reg(const reg_t &reg, const reg_t &mapping) const {
   {
     "type": "qerror",
     "operations": ["x", "y", ...],  // ops to apply error to
-    "gate_qubits": [[0], [1]]      // error only apples when op is on these qubits (blank for all)
-    "noise_qubits": [[2], ...]     // error term will be applied to these qubits (blank for input qubits)
+    "gate_qubits": [[0], [1]]      // error only apples when op is on these
+  qubits (blank for all) "noise_qubits": [[2], ...]     // error term will be
+  applied to these qubits (blank for input qubits)
                                    // if false noise will be applied before op
     "probabilities": [p0, p1, ..],
     "instructions": [qobj_circuit_instrs0, qobj_circuit_instrs1, ...]
@@ -980,7 +975,8 @@ reg_t NoiseModel::remap_reg(const reg_t &reg, const reg_t &mapping) const {
     "type": "roerror",
     "operations": ["measure"],
     "probabilities": [[P(0|0), P(0|1)], [P(1|0), P(1|1)]]
-    "gate_qubits": [[0]]  // error only apples when op is on these qubits (blank for all)
+    "gate_qubits": [[0]]  // error only apples when op is on these qubits (blank
+  for all)
   }
 */
 
@@ -997,24 +993,27 @@ void NoiseModel::load_from_json(const json_t &js) {
 
   if (JSON::check_key("errors", js)) {
     if (!js["errors"].is_array()) {
-      throw std::invalid_argument("Invalid noise_params JSON: \"error\" field is not a list");
+      throw std::invalid_argument(
+          "Invalid noise_params JSON: \"error\" field is not a list");
     }
     for (const auto &gate_js : JSON::get_value("errors", js)) {
       std::string type;
       JSON::get_value(type, "type", gate_js);
-      stringset_t ops; // want set so ops are unique, and we can pull out measure
+      stringset_t
+          ops; // want set so ops are unique, and we can pull out measure
       JSON::get_value(ops, "operations", gate_js);
       std::vector<reg_t> gate_qubits;
       JSON::get_value(gate_qubits, "gate_qubits", gate_js);
       std::vector<reg_t> noise_qubits;
       JSON::get_value(noise_qubits, "noise_qubits", gate_js);
 
-      // We treat measure as a separate error op so that it can be applied before
-      // the measure operation, rather than after like the other gates
+      // We treat measure as a separate error op so that it can be applied
+      // before the measure operation, rather than after like the other gates
       if (ops.find("measure") != ops.end() && type != "roerror") {
         ops.erase("measure"); // remove measure from set of ops
         if (type != "qerror")
-          throw std::invalid_argument("NoiseModel: Invalid noise type (" + type + ")");
+          throw std::invalid_argument("NoiseModel: Invalid noise type (" +
+                                      type + ")");
         QuantumError error;
         error.load_from_json(gate_js);
         error.set_errors_before(); // set errors before the op
@@ -1033,8 +1032,9 @@ void NoiseModel::load_from_json(const json_t &js) {
         ReadoutError error; // readout error goes after
         error.load_from_json(gate_js);
         add_readout_error(error, gate_qubits);
-      }else {
-        throw std::invalid_argument("NoiseModel: Invalid noise type (" + type + ")");
+      } else {
+        throw std::invalid_argument("NoiseModel: Invalid noise type (" + type +
+                                    ")");
       }
     }
   }
@@ -1043,7 +1043,6 @@ void NoiseModel::load_from_json(const json_t &js) {
 inline void from_json(const json_t &js, NoiseModel &model) {
   model = NoiseModel(js);
 }
-
 
 //-------------------------------------------------------------------------
 } // end namespace Noise
