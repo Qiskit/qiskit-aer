@@ -1,7 +1,4 @@
 ---
 fixes:
   - |
-    Aer used `omp_set_nested` to efficiently use nested OpenMP pragma, which
-    is deprecated and produces warning in some environment. This fix replaces
-    call of `omp_set_nested` with of `omp_set_max_active_levels` and stop
-    warning in any environment.
+    Aer will now use ``omp_set_max_active_levels()`` instead of the deprecated ``omp_set_nested()`` when compiled against recent versions of OpenMP.
