@@ -22,30 +22,30 @@
 #include "simulators/statevector/qubitvector.hpp"
 #include "simulators/statevector/statevector_state.hpp"
 #include "simulators/superoperator/superoperator_state.hpp"
-#include "simulators/unitary/unitary_state.hpp"
 #include "simulators/tensor_network/tensor_net_state.hpp"
+#include "simulators/unitary/unitary_state.hpp"
 
 namespace AER {
 
-  // Simulation methods
-  enum class Method {
-    automatic,
-    statevector,
-    density_matrix,
-    matrix_product_state,
-    stabilizer,
-    extended_stabilizer,
-    unitary,
-    superop,
-    tensor_network
-  };
+// Simulation methods
+enum class Method {
+  automatic,
+  statevector,
+  density_matrix,
+  matrix_product_state,
+  stabilizer,
+  extended_stabilizer,
+  unitary,
+  superop,
+  tensor_network
+};
 
-  enum class Device { CPU, GPU, ThrustCPU };
+enum class Device { CPU, GPU, ThrustCPU };
 
-  // Simulation precision
-  enum class Precision { Double, Single };
+// Simulation precision
+enum class Precision { Double, Single };
 
-  const std::unordered_map<Method, std::string> method_names_ = {
+const std::unordered_map<Method, std::string> method_names_ = {
     {Method::automatic, "automatic"},
     {Method::statevector, "statevector"},
     {Method::density_matrix, "density_matrix"},
@@ -53,14 +53,9 @@ namespace AER {
     {Method::stabilizer, "stabilizer"},
     {Method::extended_stabilizer, "extended_stabilizer"},
     {Method::unitary, "unitary"},
-    {Method::superop, "superop"}
-  };
-
+    {Method::superop, "superop"}};
 
 //-------------------------------------------------------------------------
 } // end namespace AER
 //-------------------------------------------------------------------------
 #endif
-
-
-

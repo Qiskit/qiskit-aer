@@ -52,15 +52,16 @@
 #include "transpile/cacheblocking.hpp"
 #include "transpile/fusion.hpp"
 
-#include "simulators/simulators.hpp"
 #include "simulators/aer_executor.hpp"
-#include "simulators/parallel_executor.hpp"
-#include "simulators/multi_shots_executor.hpp"
-#include "simulators/statevector/statevector_parallel_executor.hpp"
-#include "simulators/statevector/statevector_multi_shots_executor.hpp"
-#include "simulators/density_matrix/densitymatrix_parallel_executor.hpp"
 #include "simulators/density_matrix/densitymatrix_multi_shots_executor.hpp"
+#include "simulators/density_matrix/densitymatrix_parallel_executor.hpp"
+#include "simulators/multi_shots_executor.hpp"
+#include "simulators/parallel_executor.hpp"
+#include "simulators/simulators.hpp"
+#include "simulators/statevector/statevector_multi_shots_executor.hpp"
+#include "simulators/statevector/statevector_parallel_executor.hpp"
 #include "simulators/unitary/unitary_parallel_executor.hpp"
+#include "simulators/tensor_network/tensor_net_multi_shots_executor.hpp"
 
 namespace AER {
 
@@ -138,7 +139,8 @@ protected:
   // This method must initialize a state and return output data for
   // the required number of shots.
   void run_circuit(Circuit &circ, const Noise::NoiseModel &noise,
-                   const Method method,const Config &config, ExperimentResult &result);
+                   const Method method, const Config &config,
+                   ExperimentResult &result);
 
   //----------------------------------------------------------------
   // Measurement
@@ -182,9 +184,8 @@ protected:
   // circuit and noise model.
   // The noise model will be modified to enable superop or kraus sampling
   // methods if required by the chosen methods.
-  std::vector<Method>
-  simulation_methods(std::vector<Circuit> &circuits,
-                     Noise::NoiseModel &noise_model) const;
+  std::vector<Method> simulation_methods(std::vector<Circuit> &circuits,
+                                         Noise::NoiseModel &noise_model) const;
 
   // Return the simulation method to use based on the input circuit
   // and noise model
@@ -208,7 +209,6 @@ protected:
   bool multiple_chunk_required(const Circuit &circuit,
                                const Noise::NoiseModel &noise,
                                const Method method) const;
-
 
   void save_exception_to_results(Result &result, const std::exception &e) const;
 
@@ -564,8 +564,7 @@ bool Controller::multiple_chunk_required(const Circuit &circ,
   return false;
 }
 
-size_t Controller::get_system_memory_mb() 
-{
+size_t Controller::get_system_memory_mb() {
   size_t total_physical_memory = Utils::get_system_memory_mb();
 #ifdef AER_MPI
   // get minimum memory size per process
@@ -608,7 +607,6 @@ size_t Controller::get_gpu_memory_mb() {
 
   return total_physical_memory >> 20;
 }
-
 
 //-------------------------------------------------------------------------
 // Qobj execution
@@ -680,11 +678,11 @@ Result Controller::execute(std::vector<Circuit> &circuits,
 
   // Execute each circuit in a try block
   try {
-    //check if multi-chunk distribution is required
+    // check if multi-chunk distribution is required
     multi_chunk_required_ = false;
-    for (size_t j = 0; j < circuits.size(); j++){
-      if(circuits[j].num_qubits > 0){
-        if(multiple_chunk_required(circuits[j], noise_model, methods[j]))
+    for (size_t j = 0; j < circuits.size(); j++) {
+      if (circuits[j].num_qubits > 0) {
+        if (multiple_chunk_required(circuits[j], noise_model, methods[j]))
           multi_chunk_required_ = true;
       }
     }
@@ -755,8 +753,8 @@ Result Controller::execute(std::vector<Circuit> &circuits,
     // in #pragma omp)
     if (parallel_experiments_ == 1) {
       for (int j = 0; j < NUM_RESULTS; ++j) {
-        run_circuit(circuits[j], noise_model,methods[j],
-                    config, result.results[j]);
+        run_circuit(circuits[j], noise_model, methods[j], config,
+                    result.results[j]);
       }
     } else {
 #pragma omp parallel for num_threads(parallel_experiments_)
@@ -803,187 +801,251 @@ Result Controller::execute(std::vector<Circuit> &circuits,
 // Base class override
 //-------------------------------------------------------------------------
 void Controller::run_circuit(Circuit &circ, const Noise::NoiseModel &noise,
-                 const Method method,const Config &config, ExperimentResult &result)
-{
+                             const Method method, const Config &config,
+                             ExperimentResult &result) {
   // Run the circuit
-  if(multi_chunk_required_){
-    if(method == Method::statevector){
+  if (multi_chunk_required_) {
+    if (method == Method::statevector) {
       if (sim_device_ == Device::CPU) {
         if (sim_precision_ == Precision::Double) {
           // Double-precision Statevector simulation
-          Statevector::ParallelExecutor<Statevector::State<QV::QubitVector<double>>> executor;
-          executor.run_circuit(circ, noise, config, method, sim_device_, result);
-        }
-        else {
-          // Single-precision Statevector simulation
-          Statevector::ParallelExecutor<Statevector::State<QV::QubitVector<float>>> executor;
-          executor.run_circuit(circ, noise, config, method, sim_device_, result);
-        }
-      } else {
-#ifdef AER_THRUST_SUPPORTED
-        // Chunk based simulation
-        if (sim_precision_ == Precision::Double) {
-          // Double-precision Statevector simulation
-          Statevector::ParallelExecutor<Statevector::State<QV::QubitVectorThrust<double>>> executor;
-          executor.run_circuit(circ, noise, config, method, sim_device_, result);
+          Statevector::ParallelExecutor<
+              Statevector::State<QV::QubitVector<double>>>
+              executor;
+          executor.run_circuit(circ, noise, config, method, sim_device_,
+                               result);
         } else {
           // Single-precision Statevector simulation
-          Statevector::ParallelExecutor<Statevector::State<QV::QubitVectorThrust<float>>> executor;
-          executor.run_circuit(circ, noise, config, method, sim_device_, result);
+          Statevector::ParallelExecutor<
+              Statevector::State<QV::QubitVector<float>>>
+              executor;
+          executor.run_circuit(circ, noise, config, method, sim_device_,
+                               result);
+        }
+      } else {
+#ifdef AER_THRUST_SUPPORTED
+        // Chunk based simulation
+        if (sim_precision_ == Precision::Double) {
+          // Double-precision Statevector simulation
+          Statevector::ParallelExecutor<
+              Statevector::State<QV::QubitVectorThrust<double>>>
+              executor;
+          executor.run_circuit(circ, noise, config, method, sim_device_,
+                               result);
+        } else {
+          // Single-precision Statevector simulation
+          Statevector::ParallelExecutor<
+              Statevector::State<QV::QubitVectorThrust<float>>>
+              executor;
+          executor.run_circuit(circ, noise, config, method, sim_device_,
+                               result);
         }
 #endif
       }
-    }
-    else if(method == Method::density_matrix){
+    } else if (method == Method::density_matrix) {
       if (sim_device_ == Device::CPU) {
         if (sim_precision_ == Precision::Double) {
           // Double-precision unitary simulation
-          DensityMatrix::ParallelExecutor<DensityMatrix::State<QV::DensityMatrix<double>>> executor;
-          executor.run_circuit(circ, noise, config, method, sim_device_, result);
-        }
-        else {
+          DensityMatrix::ParallelExecutor<
+              DensityMatrix::State<QV::DensityMatrix<double>>>
+              executor;
+          executor.run_circuit(circ, noise, config, method, sim_device_,
+                               result);
+        } else {
           // Single-precision unitary simulation
-          DensityMatrix::ParallelExecutor<DensityMatrix::State<QV::DensityMatrix<float>>> executor;
-          executor.run_circuit(circ, noise, config, method, sim_device_, result);
+          DensityMatrix::ParallelExecutor<
+              DensityMatrix::State<QV::DensityMatrix<float>>>
+              executor;
+          executor.run_circuit(circ, noise, config, method, sim_device_,
+                               result);
         }
       } else {
 #ifdef AER_THRUST_SUPPORTED
         // Chunk based simulation
         if (sim_precision_ == Precision::Double) {
           // Double-precision unitary simulation
-          DensityMatrix::ParallelExecutor<DensityMatrix::State<QV::DensityMatrixThrust<double>>> executor;
-          executor.run_circuit(circ, noise, config, method, sim_device_, result);
-        }
-        else {
+          DensityMatrix::ParallelExecutor<
+              DensityMatrix::State<QV::DensityMatrixThrust<double>>>
+              executor;
+          executor.run_circuit(circ, noise, config, method, sim_device_,
+                               result);
+        } else {
           // Single-precision unitary simulation
-          DensityMatrix::ParallelExecutor<DensityMatrix::State<QV::DensityMatrixThrust<float>>> executor;
-          executor.run_circuit(circ, noise, config, method, sim_device_, result);
+          DensityMatrix::ParallelExecutor<
+              DensityMatrix::State<QV::DensityMatrixThrust<float>>>
+              executor;
+          executor.run_circuit(circ, noise, config, method, sim_device_,
+                               result);
         }
 #endif
       }
-    }
-    else if(method == Method::unitary){
+    } else if (method == Method::unitary) {
       if (sim_device_ == Device::CPU) {
         if (sim_precision_ == Precision::Double) {
           // Double-precision unitary simulation
-          QubitUnitary::ParallelExecutor<QubitUnitary::State<QV::UnitaryMatrix<double>>> executor;
-          executor.run_circuit(circ, noise, config, method, sim_device_, result);
-        }
-        else {
+          QubitUnitary::ParallelExecutor<
+              QubitUnitary::State<QV::UnitaryMatrix<double>>>
+              executor;
+          executor.run_circuit(circ, noise, config, method, sim_device_,
+                               result);
+        } else {
           // Single-precision unitary simulation
-          QubitUnitary::ParallelExecutor<QubitUnitary::State<QV::UnitaryMatrix<float>>> executor;
-          executor.run_circuit(circ, noise, config, method, sim_device_, result);
+          QubitUnitary::ParallelExecutor<
+              QubitUnitary::State<QV::UnitaryMatrix<float>>>
+              executor;
+          executor.run_circuit(circ, noise, config, method, sim_device_,
+                               result);
         }
       } else {
 #ifdef AER_THRUST_SUPPORTED
         // Chunk based simulation
         if (sim_precision_ == Precision::Double) {
           // Double-precision unitary simulation
-          QubitUnitary::ParallelExecutor<QubitUnitary::State<QV::UnitaryMatrixThrust<double>>> executor;
-          executor.run_circuit(circ, noise, config, method, sim_device_, result);
-        }
-        else {
+          QubitUnitary::ParallelExecutor<
+              QubitUnitary::State<QV::UnitaryMatrixThrust<double>>>
+              executor;
+          executor.run_circuit(circ, noise, config, method, sim_device_,
+                               result);
+        } else {
           // Single-precision unitary simulation
-          QubitUnitary::ParallelExecutor<QubitUnitary::State<QV::UnitaryMatrixThrust<float>>> executor;
-          executor.run_circuit(circ, noise, config, method, sim_device_, result);
+          QubitUnitary::ParallelExecutor<
+              QubitUnitary::State<QV::UnitaryMatrixThrust<float>>>
+              executor;
+          executor.run_circuit(circ, noise, config, method, sim_device_,
+                               result);
         }
 #endif
       }
+    } else {
+      throw std::runtime_error(
+          "Controller: Invalid simulation method for cache-blocking");
     }
-    else{
-      throw std::runtime_error("Controller: Invalid simulation method for cache-blocking");
-    }
-  }
-  else{
+  } else {
     switch (method) {
     case Method::statevector:
-      if(sim_device_ == Device::CPU) {
+      if (sim_device_ == Device::CPU) {
         if (sim_precision_ == Precision::Double) {
           // Double-precision Statevector simulation
-          Statevector::MultiShotsExecutor<Statevector::State<QV::QubitVector<double>>> executor;
-          executor.run_circuit(circ, noise, config, method, sim_device_, result);
-        }
-        else {
+          Statevector::MultiShotsExecutor<
+              Statevector::State<QV::QubitVector<double>>>
+              executor;
+          executor.run_circuit(circ, noise, config, method, sim_device_,
+                               result);
+        } else {
           // Single-precision Statevector simulation
-          Statevector::MultiShotsExecutor<Statevector::State<QV::QubitVector<float>>> executor;
-          executor.run_circuit(circ, noise, config, method, sim_device_, result);
+          Statevector::MultiShotsExecutor<
+              Statevector::State<QV::QubitVector<float>>>
+              executor;
+          executor.run_circuit(circ, noise, config, method, sim_device_,
+                               result);
         }
       } else {
-  #ifdef AER_THRUST_SUPPORTED
+#ifdef AER_THRUST_SUPPORTED
         // Chunk based simulation
         if (sim_precision_ == Precision::Double) {
           // Double-precision Statevector simulation
-          Statevector::MultiShotsExecutor<Statevector::State<QV::QubitVectorThrust<double>>> executor;
-          executor.run_circuit(circ, noise, config, method, sim_device_, result);
+          Statevector::MultiShotsExecutor<
+              Statevector::State<QV::QubitVectorThrust<double>>>
+              executor;
+          executor.run_circuit(circ, noise, config, method, sim_device_,
+                               result);
         } else {
           // Single-precision Statevector simulation
-          Statevector::MultiShotsExecutor<Statevector::State<QV::QubitVectorThrust<float>>> executor;
-          executor.run_circuit(circ, noise, config, method, sim_device_, result);
+          Statevector::MultiShotsExecutor<
+              Statevector::State<QV::QubitVectorThrust<float>>>
+              executor;
+          executor.run_circuit(circ, noise, config, method, sim_device_,
+                               result);
         }
-  #endif
+#endif
       }
       break;
-    case Method::density_matrix: 
-      if(sim_device_ == Device::CPU) {
+    case Method::density_matrix:
+      if (sim_device_ == Device::CPU) {
         if (sim_precision_ == Precision::Double) {
           // Double-precision DensityMatrix simulation
-          Executor::MultiShotsExecutor<DensityMatrix::State<QV::DensityMatrix<double>>> executor;
-          executor.run_circuit(circ, noise, config, method, sim_device_, result);
-        }
-        else {
+          Executor::MultiShotsExecutor<
+              DensityMatrix::State<QV::DensityMatrix<double>>>
+              executor;
+          executor.run_circuit(circ, noise, config, method, sim_device_,
+                               result);
+        } else {
           // Single-precision DensityMatrix simulation
-          Executor::MultiShotsExecutor<DensityMatrix::State<QV::DensityMatrix<float>>> executor;
-          executor.run_circuit(circ, noise, config, method, sim_device_, result);
+          Executor::MultiShotsExecutor<
+              DensityMatrix::State<QV::DensityMatrix<float>>>
+              executor;
+          executor.run_circuit(circ, noise, config, method, sim_device_,
+                               result);
         }
       } else {
-  #ifdef AER_THRUST_SUPPORTED
+#ifdef AER_THRUST_SUPPORTED
         // Chunk based simulation
         if (sim_precision_ == Precision::Double) {
           // Double-precision DensityMatrix simulation
-          DensityMatrix::MultiShotsExecutor<DensityMatrix::State<QV::DensityMatrixThrust<double>>> executor;
-          executor.run_circuit(circ, noise, config, method, sim_device_, result);
+          DensityMatrix::MultiShotsExecutor<
+              DensityMatrix::State<QV::DensityMatrixThrust<double>>>
+              executor;
+          executor.run_circuit(circ, noise, config, method, sim_device_,
+                               result);
         } else {
           // Single-precision DensityMatrix simulation
-          DensityMatrix::MultiShotsExecutor<DensityMatrix::State<QV::DensityMatrixThrust<float>>> executor;
-          executor.run_circuit(circ, noise, config, method, sim_device_, result);
+          DensityMatrix::MultiShotsExecutor<
+              DensityMatrix::State<QV::DensityMatrixThrust<float>>>
+              executor;
+          executor.run_circuit(circ, noise, config, method, sim_device_,
+                               result);
         }
-  #endif
+#endif
       }
       break;
-    case Method::unitary: 
-      if(sim_device_ == Device::CPU) {
+    case Method::unitary:
+      if (sim_device_ == Device::CPU) {
         if (sim_precision_ == Precision::Double) {
           // Double-precision unitary simulation
-          Executor::MultiShotsExecutor<QubitUnitary::State<QV::UnitaryMatrix<double>>> executor;
-          executor.run_circuit(circ, noise, config, method, sim_device_, result);
-        }
-        else {
+          Executor::MultiShotsExecutor<
+              QubitUnitary::State<QV::UnitaryMatrix<double>>>
+              executor;
+          executor.run_circuit(circ, noise, config, method, sim_device_,
+                               result);
+        } else {
           // Single-precision unitary simulation
-          Executor::MultiShotsExecutor<QubitUnitary::State<QV::UnitaryMatrix<float>>> executor;
-          executor.run_circuit(circ, noise, config, method, sim_device_, result);
+          Executor::MultiShotsExecutor<
+              QubitUnitary::State<QV::UnitaryMatrix<float>>>
+              executor;
+          executor.run_circuit(circ, noise, config, method, sim_device_,
+                               result);
         }
       } else {
-  #ifdef AER_THRUST_SUPPORTED
+#ifdef AER_THRUST_SUPPORTED
         // Chunk based simulation
         if (sim_precision_ == Precision::Double) {
           // Double-precision unitary simulation
-          Executor::BatchShotsExecutor<QubitUnitary::State<QV::UnitaryMatrixThrust<double>>> executor;
-          executor.run_circuit(circ, noise, config, method, sim_device_, result);
+          Executor::BatchShotsExecutor<
+              QubitUnitary::State<QV::UnitaryMatrixThrust<double>>>
+              executor;
+          executor.run_circuit(circ, noise, config, method, sim_device_,
+                               result);
         } else {
           // Single-precision unitary simulation
-          Executor::BatchShotsExecutor<QubitUnitary::State<QV::UnitaryMatrixThrust<float>>> executor;
-          executor.run_circuit(circ, noise, config, method, sim_device_, result);
+          Executor::BatchShotsExecutor<
+              QubitUnitary::State<QV::UnitaryMatrixThrust<float>>>
+              executor;
+          executor.run_circuit(circ, noise, config, method, sim_device_,
+                               result);
         }
-  #endif
+#endif
       }
       break;
     case Method::superop:
       if (sim_precision_ == Precision::Double) {
-        Executor::MultiShotsExecutor<QubitSuperoperator::State<QV::Superoperator<double>>> executor;
+        Executor::MultiShotsExecutor<
+            QubitSuperoperator::State<QV::Superoperator<double>>>
+            executor;
         executor.run_circuit(circ, noise, config, method, sim_device_, result);
-      }
-      else{
-        Executor::MultiShotsExecutor<QubitSuperoperator::State<QV::Superoperator<float>>> executor;
+      } else {
+        Executor::MultiShotsExecutor<
+            QubitSuperoperator::State<QV::Superoperator<float>>>
+            executor;
         executor.run_circuit(circ, noise, config, method, sim_device_, result);
       }
       break;
@@ -995,18 +1057,29 @@ void Controller::run_circuit(Circuit &circ, const Noise::NoiseModel &noise,
         executor.run_circuit(circ, noise, config, method, sim_device_, result);
       }
       break;
-    case Method::extended_stabilizer:
-      {
-        Executor::MultiShotsExecutor<ExtendedStabilizer::State> executor;
-        executor.run_circuit(circ, noise, config, method, sim_device_, result);
+    case Method::extended_stabilizer: {
+      Executor::MultiShotsExecutor<ExtendedStabilizer::State> executor;
+      executor.run_circuit(circ, noise, config, method, sim_device_, result);
+    } break;
+    case Method::matrix_product_state: {
+      Executor::MultiShotsExecutor<MatrixProductState::State> executor;
+      executor.run_circuit(circ, noise, config, method, sim_device_, result);
+    } break;
+    case Method::tensor_network: {
+      if (sim_precision_ == Precision::Double) {
+        TensorNetwork::MultiShotsExecutor<
+              TensorNetwork::State<TensorNetwork::TensorNet<double>>>
+              executor;
+        executor.run_circuit(circ, noise, config, method, sim_device_,
+                               result);
+      } else {
+        TensorNetwork::MultiShotsExecutor<
+              TensorNetwork::State<TensorNetwork::TensorNet<float>>>
+              executor;
+        executor.run_circuit(circ, noise, config, method, sim_device_,
+                               result);
       }
-      break;
-    case Method::matrix_product_state:
-      {
-        Executor::MultiShotsExecutor<MatrixProductState::State> executor;
-        executor.run_circuit(circ, noise, config, method, sim_device_, result);
-      }
-      break;
+    }break;
     default:
       throw std::runtime_error("Controller:Invalid simulation method");
     }
@@ -1191,9 +1264,8 @@ Controller::simulation_methods(std::vector<Circuit> &circuits,
   return sim_methods;
 }
 
-Method
-Controller::automatic_simulation_method(const Circuit &circ,
-                                        const Noise::NoiseModel &noise_model) const {
+Method Controller::automatic_simulation_method(
+    const Circuit &circ, const Noise::NoiseModel &noise_model) const {
   // If circuit and noise model are Clifford run on Stabilizer simulator
   if (validate_method(Method::stabilizer, circ, noise_model, false)) {
     return Method::stabilizer;

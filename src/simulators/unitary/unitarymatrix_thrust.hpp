@@ -82,9 +82,8 @@ public:
   // Initializes the current vector so that all qubits are in the |0> state.
   void initialize();
 
-  //initialize from existing state (copy)
-  void initialize(const UnitaryMatrixThrust<data_t>& obj)
-  {
+  // initialize from existing state (copy)
+  void initialize(const UnitaryMatrixThrust<data_t> &obj) {
     BaseVector::initialize(obj);
     num_qubits_ = obj.num_qubits_;
     rows_ = obj.rows_;
@@ -100,7 +99,8 @@ public:
 
   // Apply a N-qubit diagonal matrix to the state vector.
   // The matrix is input as vector of the matrix diagonal.
-  void apply_diagonal_matrix(const reg_t &qubits, const cvector_t<double> &mat) override;
+  void apply_diagonal_matrix(const reg_t &qubits,
+                             const cvector_t<double> &mat) override;
 
   //-----------------------------------------------------------------------
   // Identity checking
@@ -315,12 +315,11 @@ std::complex<double> UnitaryMatrixThrust<data_t>::trace() const {
 }
 
 template <typename data_t>
-void UnitaryMatrixThrust<data_t>::apply_diagonal_matrix(const reg_t &qubits,
-                                                const cvector_t<double> &diag)
-{
+void UnitaryMatrixThrust<data_t>::apply_diagonal_matrix(
+    const reg_t &qubits, const cvector_t<double> &diag) {
   reg_t qubits_chunk = qubits;
-  for(uint_t i=0;i<qubits.size();i++){
-    if(qubits_chunk[i] >= num_qubits_)
+  for (uint_t i = 0; i < qubits.size(); i++) {
+    if (qubits_chunk[i] >= num_qubits_)
       qubits_chunk[i] += num_qubits_;
   }
   BaseVector::apply_diagonal_matrix(qubits_chunk, diag);

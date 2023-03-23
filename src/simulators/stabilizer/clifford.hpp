@@ -45,8 +45,8 @@ public:
   Clifford() = default;
   explicit Clifford(const uint64_t nqubit);
 
-  //initialize from existing state (copy)
-  void initialize(const Clifford& obj);
+  // initialize from existing state (copy)
+  void initialize(const Clifford &obj);
 
   //-----------------------------------------------------------------------
   // Utility functions
@@ -227,8 +227,7 @@ void Clifford::initialize(uint64_t nq) {
   stabilizer_phases_.setLength(nq);
 }
 
-void Clifford::initialize(const Clifford& obj)
-{
+void Clifford::initialize(const Clifford &obj) {
   destabilizer_table_ = obj.destabilizer_table_;
   stabilizer_table_ = obj.stabilizer_table_;
   destabilizer_phases_ = obj.destabilizer_phases_;

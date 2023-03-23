@@ -12,10 +12,10 @@
  * that they have been altered from the originals.
  */
 
-#ifndef _statevector_multi_shots_executor_hpp_
-#define _statevector_multi_shots_executor_hpp_
+#ifndef _tensor_network_multi_shots_executor_hpp_
+#define _tensor_network_multi_shots_executor_hpp_
 
-#include "simulators/batch_shots_executor.hpp"
+#include "simulators/multi_shots_executor.hpp"
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -27,14 +27,14 @@
 
 namespace AER {
 
-namespace Statevector {
+namespace TensorNetwork {
 
 //-------------------------------------------------------------------------
 // Batched-shots executor for statevector
 //-------------------------------------------------------------------------
-template <class statevec_t>
-class MultiShotsExecutor : public Executor::BatchShotsExecutor<statevec_t> {
-  using BaseExecutor = Executor::BatchShotsExecutor<statevec_t>;
+template <class tensor_net_t>
+class MultiShotsExecutor : public Executor::MultiShotsExecutor<tensor_net_t> {
+  using BaseExecutor = Executor::MultiShotsExecutor<tensor_net_t>;
 
 protected:
 public:
@@ -44,15 +44,7 @@ public:
 protected:
   void set_config(const Config &config) override;
 
-  void apply_global_phase() override;
-
   bool shot_branching_supported(void) override { return true; }
-
-  // apply op to multiple shots , return flase if op is not supported to execute
-  // in a batch
-  bool apply_batched_op(const int_t istate, const Operations::Op &op,
-                        ExperimentResult &result, std::vector<RngEngine> &rng,
-                        bool final_op = false) override;
 
   bool apply_branching_op(Executor::Branch &root, const Operations::Op &op,
                           ExperimentResult &result, bool final_op) override;
@@ -67,11 +59,11 @@ protected:
                      const reg_t &cmemory, const reg_t &cregister);
   void apply_reset(Executor::Branch &root, const reg_t &qubits);
   void apply_initialize(Executor::Branch &root, const reg_t &qubits,
-                        const cvector_t &params);
+                        const cvector_t<double> &params);
   void apply_kraus(Executor::Branch &root, const reg_t &qubits,
                    const std::vector<cmatrix_t> &kmats);
 
-  std::vector<reg_t> sample_measure(statevec_t &state, const reg_t &qubits,
+  std::vector<reg_t> sample_measure(tensor_net_t &state, const reg_t &qubits,
                                     uint_t shots,
                                     std::vector<RngEngine> &rng) const override;
 
@@ -84,139 +76,50 @@ protected:
                              ExperimentResult &result);
 };
 
-template <class statevec_t>
-void MultiShotsExecutor<statevec_t>::set_config(const Config &config) {
+template <class tensor_net_t>
+void MultiShotsExecutor<tensor_net_t>::set_config(const Config &config) {
   BaseExecutor::set_config(config);
 }
 
-template <class statevec_t>
-void MultiShotsExecutor<statevec_t>::apply_global_phase() {
-  if (BaseExecutor::has_global_phase_) {
-    int_t i;
-    if (BaseExecutor::shot_omp_parallel_ && BaseExecutor::num_groups_ > 0) {
-#pragma omp parallel for
-      for (int_t ig = 0; ig < BaseExecutor::num_groups_; ig++) {
-        for (int_t iChunk = BaseExecutor::top_shot_of_group_[ig];
-             iChunk < BaseExecutor::top_shot_of_group_[ig + 1]; iChunk++)
-          BaseExecutor::states_[iChunk].apply_diagonal_matrix(
-              {0}, {BaseExecutor::global_phase_, BaseExecutor::global_phase_});
-      }
-    } else {
-      for (i = 0; i < BaseExecutor::states_.size(); i++)
-        BaseExecutor::states_[i].apply_diagonal_matrix(
-            {0}, {BaseExecutor::global_phase_, BaseExecutor::global_phase_});
-    }
-  }
-}
-
-template <class statevec_t>
-bool MultiShotsExecutor<statevec_t>::apply_batched_op(
-    const int_t istate, const Operations::Op &op, ExperimentResult &result,
-    std::vector<RngEngine> &rng, bool final_op) {
-  if (op.conditional) {
-    BaseExecutor::states_[istate].qreg().set_conditional(op.conditional_reg);
-  }
-
-  switch (op.type) {
-  case Operations::OpType::barrier:
-  case Operations::OpType::nop:
-  case Operations::OpType::qerror_loc:
-    break;
-  case Operations::OpType::reset:
-    BaseExecutor::states_[istate].qreg().apply_batched_reset(op.qubits, rng);
-    break;
-  case Operations::OpType::initialize:
-    BaseExecutor::states_[istate].qreg().apply_batched_reset(op.qubits, rng);
-    BaseExecutor::states_[istate].qreg().initialize_component(op.qubits,
-                                                              op.params);
-    break;
-  case Operations::OpType::measure:
-    BaseExecutor::states_[istate].qreg().apply_batched_measure(
-        op.qubits, rng, op.memory, op.registers);
-    break;
-  case Operations::OpType::bfunc:
-    BaseExecutor::states_[istate].qreg().apply_bfunc(op);
-    break;
-  case Operations::OpType::roerror:
-    BaseExecutor::states_[istate].qreg().apply_roerror(op, rng);
-    break;
-  case Operations::OpType::gate:
-    BaseExecutor::states_[istate].apply_gate(op);
-    break;
-  case Operations::OpType::matrix:
-    BaseExecutor::states_[istate].apply_matrix(op);
-    break;
-  case Operations::OpType::diagonal_matrix:
-    BaseExecutor::states_[istate].qreg().apply_diagonal_matrix(op.qubits,
-                                                               op.params);
-    break;
-  case Operations::OpType::multiplexer:
-    BaseExecutor::states_[istate].apply_multiplexer(
-        op.regs[0], op.regs[1],
-        op.mats); // control qubits ([0]) & target qubits([1])
-    break;
-  case Operations::OpType::kraus:
-    BaseExecutor::states_[istate].qreg().apply_batched_kraus(op.qubits, op.mats,
-                                                             rng);
-    break;
-  case Operations::OpType::sim_op:
-    if (op.name == "begin_register_blocking") {
-      BaseExecutor::states_[istate].qreg().enter_register_blocking(op.qubits);
-    } else if (op.name == "end_register_blocking") {
-      BaseExecutor::states_[istate].qreg().leave_register_blocking();
-    } else {
-      return false;
-    }
-    break;
-  case Operations::OpType::set_statevec:
-    BaseExecutor::states_[istate].qreg().initialize_from_vector(op.params);
-    break;
-  default:
-    // other operations should be called to indivisual chunks by apply_op
-    return false;
-  }
-  return true;
-}
-
-template <class statevec_t>
-bool MultiShotsExecutor<statevec_t>::apply_branching_op(
+template <class tensor_net_t>
+bool MultiShotsExecutor<tensor_net_t>::apply_branching_op(
     Executor::Branch &root, const Operations::Op &op, ExperimentResult &result,
     bool final_op) {
   RngEngine dummy;
   if (BaseExecutor::states_[root.state_index()].creg().check_conditional(op)) {
     switch (op.type) {
-    // ops with branching
-    case Operations::OpType::reset:
+    case OpType::reset:
       apply_reset(root, op.qubits);
       break;
-    case Operations::OpType::initialize:
+    case OpType::initialize:
       apply_initialize(root, op.qubits, op.params);
       break;
-    case Operations::OpType::measure:
+    case OpType::measure:
       apply_measure(root, op.qubits, op.memory, op.registers);
       break;
-    case Operations::OpType::kraus:
+    case OpType::kraus:
+      if(!BaseExecutor::has_statevector_ops_)
+        return false;
       apply_kraus(root, op.qubits, op.mats);
       break;
-    // save ops
-    case Operations::OpType::save_expval:
-    case Operations::OpType::save_expval_var:
-    case Operations::OpType::save_densmat:
-    case Operations::OpType::save_probs:
-    case Operations::OpType::save_probs_ket:
+    case OpType::save_expval:
+    case OpType::save_expval_var:
+    case OpType::save_densmat:
+    case OpType::save_probs:
+    case OpType::save_probs_ket:
       // call save functions in state class
       BaseExecutor::states_[root.state_index()].apply_op(op, result, dummy,
                                                          final_op);
       break;
-    case Operations::OpType::save_state:
-    case Operations::OpType::save_statevec:
+    case OpType::save_state:
+    case OpType::save_statevec:
       apply_save_statevector(root, op, result, final_op);
       break;
-    case Operations::OpType::save_statevec_dict:
+    case OpType::save_statevec_dict:
       apply_save_statevector_dict(root, op, result);
       break;
-    case Operations::OpType::save_amps:
-    case Operations::OpType::save_amps_sq:
+    case OpType::save_amps:
+    case OpType::save_amps_sq:
       apply_save_amplitudes(root, op, result);
       break;
     default:
@@ -226,9 +129,9 @@ bool MultiShotsExecutor<statevec_t>::apply_branching_op(
   return true;
 }
 
-template <class statevec_t>
+template <class tensor_net_t>
 rvector_t
-MultiShotsExecutor<statevec_t>::sample_measure_with_prob(Executor::Branch &root,
+MultiShotsExecutor<tensor_net_t>::sample_measure_with_prob(Executor::Branch &root,
                                                          const reg_t &qubits) {
   rvector_t probs =
       BaseExecutor::states_[root.state_index()].qreg().probabilities(qubits);
@@ -246,8 +149,8 @@ MultiShotsExecutor<statevec_t>::sample_measure_with_prob(Executor::Branch &root,
   return probs;
 }
 
-template <class statevec_t>
-void MultiShotsExecutor<statevec_t>::measure_reset_update(
+template <class tensor_net_t>
+void MultiShotsExecutor<tensor_net_t>::measure_reset_update(
     Executor::Branch &root, const std::vector<uint_t> &qubits,
     const int_t final_state, const rvector_t &meas_probs) {
   // Update a state vector based on an outcome pair [m, p] from
@@ -258,7 +161,7 @@ void MultiShotsExecutor<statevec_t>::measure_reset_update(
   if (qubits.size() == 1) {
     // Diagonal matrix for projecting and renormalizing to measurement outcome
     for (int_t i = 0; i < 2; i++) {
-      cvector_t mdiag(2, 0.);
+      cvector_t<double> mdiag(2, 0.);
       mdiag[i] = 1. / std::sqrt(meas_probs[i]);
 
       Operations::Op op;
@@ -281,7 +184,7 @@ void MultiShotsExecutor<statevec_t>::measure_reset_update(
     // Diagonal matrix for projecting and renormalizing to measurement outcome
     const size_t dim = 1ULL << qubits.size();
     for (int_t i = 0; i < dim; i++) {
-      cvector_t mdiag(dim, 0.);
+      cvector_t<double> mdiag(dim, 0.);
       mdiag[i] = 1. / std::sqrt(meas_probs[i]);
 
       Operations::Op op;
@@ -292,7 +195,7 @@ void MultiShotsExecutor<statevec_t>::measure_reset_update(
 
       if (final_state >= 0 && final_state != i) {
         // build vectorized permutation matrix
-        cvector_t perm(dim * dim, 0.);
+        cvector_t<double> perm(dim * dim, 0.);
         perm[final_state * dim + i] = 1.;
         perm[i * dim + final_state] = 1.;
         for (size_t j = 0; j < dim; j++) {
@@ -309,8 +212,8 @@ void MultiShotsExecutor<statevec_t>::measure_reset_update(
   }
 }
 
-template <class statevec_t>
-void MultiShotsExecutor<statevec_t>::apply_measure(Executor::Branch &root,
+template <class tensor_net_t>
+void MultiShotsExecutor<tensor_net_t>::apply_measure(Executor::Branch &root,
                                                    const reg_t &qubits,
                                                    const reg_t &cmemory,
                                                    const reg_t &cregister) {
@@ -325,18 +228,18 @@ void MultiShotsExecutor<statevec_t>::apply_measure(Executor::Branch &root,
   measure_reset_update(root, qubits, -1, probs);
 }
 
-template <class statevec_t>
-void MultiShotsExecutor<statevec_t>::apply_reset(Executor::Branch &root,
+template <class tensor_net_t>
+void MultiShotsExecutor<tensor_net_t>::apply_reset(Executor::Branch &root,
                                                  const reg_t &qubits) {
   rvector_t probs = sample_measure_with_prob(root, qubits);
 
   measure_reset_update(root, qubits, 0, probs);
 }
 
-template <class statevec_t>
-void MultiShotsExecutor<statevec_t>::apply_initialize(Executor::Branch &root,
+template <class tensor_net_t>
+void MultiShotsExecutor<tensor_net_t>::apply_initialize(Executor::Branch &root,
                                                       const reg_t &qubits,
-                                                      const cvector_t &params) {
+                                                      const cvector_t<double> &params) {
   if (qubits.size() == BaseExecutor::num_qubits_) {
     auto sorted_qubits = qubits;
     std::sort(sorted_qubits.begin(), sorted_qubits.end());
@@ -367,8 +270,8 @@ void MultiShotsExecutor<statevec_t>::apply_initialize(Executor::Branch &root,
                                                                         params);
 }
 
-template <class statevec_t>
-void MultiShotsExecutor<statevec_t>::apply_kraus(
+template <class tensor_net_t>
+void MultiShotsExecutor<tensor_net_t>::apply_kraus(
     Executor::Branch &root, const reg_t &qubits,
     const std::vector<cmatrix_t> &kmats) {
   // Check edge case for empty Kraus set (this shouldn't happen)
@@ -403,7 +306,7 @@ void MultiShotsExecutor<statevec_t>::apply_kraus(
   // Loop through N-1 kraus operators
   for (size_t j = 0; j < kmats.size() - 1; j++) {
     // Calculate probability
-    cvector_t vmat = Utils::vectorize_matrix(kmats[j]);
+    cvector_t<double> vmat = Utils::vectorize_matrix(kmats[j]);
 
     p = BaseExecutor::states_[root.state_index()].qreg().norm(qubits, vmat);
     accum += p;
@@ -441,8 +344,8 @@ void MultiShotsExecutor<statevec_t>::apply_kraus(
   }
 }
 
-template <class statevec_t>
-void MultiShotsExecutor<statevec_t>::apply_save_statevector(
+template <class tensor_net_t>
+void MultiShotsExecutor<tensor_net_t>::apply_save_statevector(
     Executor::Branch &root, const Operations::Op &op, ExperimentResult &result,
     bool last_op) {
   if (op.qubits.size() != BaseExecutor::num_qubits_) {
@@ -466,8 +369,8 @@ void MultiShotsExecutor<statevec_t>::apply_save_statevector(
   }
 }
 
-template <class statevec_t>
-void MultiShotsExecutor<statevec_t>::apply_save_statevector_dict(
+template <class tensor_net_t>
+void MultiShotsExecutor<tensor_net_t>::apply_save_statevector_dict(
     Executor::Branch &root, const Operations::Op &op,
     ExperimentResult &result) {
   if (op.qubits.size() != BaseExecutor::num_qubits_) {
@@ -486,8 +389,8 @@ void MultiShotsExecutor<statevec_t>::apply_save_statevector_dict(
                            op.save_type, root.num_shots());
 }
 
-template <class statevec_t>
-void MultiShotsExecutor<statevec_t>::apply_save_amplitudes(
+template <class tensor_net_t>
+void MultiShotsExecutor<tensor_net_t>::apply_save_amplitudes(
     Executor::Branch &root, const Operations::Op &op,
     ExperimentResult &result) {
   if (op.int_params.empty()) {
@@ -516,9 +419,9 @@ void MultiShotsExecutor<statevec_t>::apply_save_amplitudes(
   }
 }
 
-template <class statevec_t>
-std::vector<reg_t> MultiShotsExecutor<statevec_t>::sample_measure(
-    statevec_t &state, const reg_t &qubits, uint_t shots,
+template <class tensor_net_t>
+std::vector<reg_t> MultiShotsExecutor<tensor_net_t>::sample_measure(
+    tensor_net_t &state, const reg_t &qubits, uint_t shots,
     std::vector<RngEngine> &rng) const {
   int_t i, j;
   std::vector<double> rnds;
@@ -527,23 +430,24 @@ std::vector<reg_t> MultiShotsExecutor<statevec_t>::sample_measure(
   for (i = 0; i < shots; ++i)
     rnds.push_back(rng[i].rand(0, 1));
 
-  bool flg = state.qreg().enable_batch(false);
-  auto allbit_samples = state.qreg().sample_measure(rnds);
-  state.qreg().enable_batch(flg);
+  std::vector<reg_t> samples = state.qreg().sample_measure(rnds);
+  std::vector<reg_t> ret(shots);
 
-  // Convert to reg_t format
-  std::vector<reg_t> all_samples;
-  all_samples.reserve(shots);
-  for (int_t val : allbit_samples) {
-    reg_t allbit_sample = Utils::int2reg(val, 2, BaseExecutor::num_qubits_);
-    reg_t sample;
-    sample.reserve(qubits.size());
-    for (uint_t qubit : qubits) {
-      sample.push_back(allbit_sample[qubit]);
+  if (omp_get_num_threads() > 1) {
+    for (i = 0; i < shots; ++i) {
+      ret[i].resize(qubits.size());
+      for (j = 0; j < qubits.size(); j++)
+        ret[i][j] = samples[i][qubits[j]];
     }
-    all_samples.push_back(sample);
+  } else {
+#pragma omp parallel for private(j)
+    for (i = 0; i < shots; ++i) {
+      ret[i].resize(qubits.size());
+      for (j = 0; j < qubits.size(); j++)
+        ret[i][j] = samples[i][qubits[j]];
+    }
   }
-  return all_samples;
+  return ret;
 }
 
 //-------------------------------------------------------------------------

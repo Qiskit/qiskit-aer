@@ -12,7 +12,6 @@
  * that they have been altered from the originals.
  */
 
-
 #ifndef _shot_branching_hpp
 #define _shot_branching_hpp
 
@@ -24,131 +23,85 @@ using OpItr = std::vector<Operations::Op>::const_iterator;
 
 class Branch;
 
-//class for shared state for sho-branching
+// class for shared state for sho-branching
 class Branch {
 protected:
-  uint_t state_index_;  //state index
+  uint_t state_index_; // state index
 
-  //creg to be stored to the state
+  // creg to be stored to the state
   ClassicalRegister creg_;
-  //random generators for shots
+  // random generators for shots
   std::vector<RngEngine> shots_;
-  //additional operations applied after shot branching
+  // additional operations applied after shot branching
   std::vector<Operations::Op> additional_ops_;
 
-  //mark for control flow
+  // mark for control flow
   std::unordered_map<std::string, OpItr> flow_marks_;
 
-  //current iterator of operations
+  // current iterator of operations
   OpItr iter_;
 
-  //branches from this
+  // branches from this
   std::vector<std::shared_ptr<Branch>> branches_;
+
 public:
-  Branch(void)
-  {
-    
-  }
-  ~Branch()
-  {
+  Branch(void) {}
+  ~Branch() {
     shots_.clear();
     additional_ops_.clear();
     branches_.clear();
   }
-  Branch(const Branch& src)
-  {
+  Branch(const Branch &src) {
     shots_ = src.shots_;
     creg_ = src.creg_;
     iter_ = src.iter_;
     flow_marks_ = src.flow_marks_;
   }
 
-  uint_t& state_index(void)
-  {
-    return state_index_;
-  }
-  ClassicalRegister& creg(void)
-  {
-    return creg_;
-  }
-  std::vector<RngEngine>& rng_shots(void)
-  {
-    return shots_;
-  }
-  OpItr& op_iterator(void)
-  {
-    return iter_;
-  }
-  std::unordered_map<std::string, OpItr>& marks(void)
-  {
-    return flow_marks_;
-  }
-  uint_t num_branches(void)
-  {
-    return branches_.size();
-  }
-  std::vector<std::shared_ptr<Branch>>& branches(void)
-  {
-    return branches_;
-  }
+  uint_t &state_index(void) { return state_index_; }
+  ClassicalRegister &creg(void) { return creg_; }
+  std::vector<RngEngine> &rng_shots(void) { return shots_; }
+  OpItr &op_iterator(void) { return iter_; }
+  std::unordered_map<std::string, OpItr> &marks(void) { return flow_marks_; }
+  uint_t num_branches(void) { return branches_.size(); }
+  std::vector<std::shared_ptr<Branch>> &branches(void) { return branches_; }
 
-  uint_t num_shots(void)
-  {
-    return shots_.size();
-  }
-  void clear(void)
-  {
+  uint_t num_shots(void) { return shots_.size(); }
+  void clear(void) {
     shots_.clear();
     additional_ops_.clear();
     branches_.clear();
   }
-  void clear_branch(void)
-  {
-    branches_.clear();
-  }
+  void clear_branch(void) { branches_.clear(); }
 
-  void set_shots(std::vector<RngEngine>& shots)
-  {
-    shots_ = shots;
-  }
-  void initialize_shots(const uint_t nshots, const uint_t seed)
-  {
+  void set_shots(std::vector<RngEngine> &shots) { shots_ = shots; }
+  void initialize_shots(const uint_t nshots, const uint_t seed) {
     shots_.resize(nshots);
-    for(int_t i=0;i<nshots;i++){
+    for (int_t i = 0; i < nshots; i++) {
       shots_[i].set_seed(seed + i);
     }
   }
 
-  void add_op_after_branch(Operations::Op& op)
-  {
+  void add_op_after_branch(Operations::Op &op) {
     additional_ops_.push_back(op);
   }
-  void copy_ops_after_branch(std::vector<Operations::Op>& ops)
-  {
+  void copy_ops_after_branch(std::vector<Operations::Op> &ops) {
     additional_ops_ = ops;
   }
-  void clear_additional_ops(void)
-  {
-    additional_ops_.clear();
-  }
+  void clear_additional_ops(void) { additional_ops_.clear(); }
 
-  std::vector<Operations::Op>& additional_ops(void)
-  {
-    return additional_ops_;
-  }
+  std::vector<Operations::Op> &additional_ops(void) { return additional_ops_; }
 
-  void branch_shots(reg_t& shots, int_t nbranch);
+  void branch_shots(reg_t &shots, int_t nbranch);
 
-  bool apply_control_flow(ClassicalRegister& creg, OpItr last)
-  {
-    if(iter_->type == Operations::OpType::mark){
+  bool apply_control_flow(ClassicalRegister &creg, OpItr last) {
+    if (iter_->type == Operations::OpType::mark) {
       flow_marks_[iter_->string_params[0]] = iter_;
       iter_++;
       return true;
-    }
-    else if(iter_->type == Operations::OpType::jump){
-      if (creg.check_conditional(*iter_)){
-        const auto& mark_name = iter_->string_params[0];
+    } else if (iter_->type == Operations::OpType::jump) {
+      if (creg.check_conditional(*iter_)) {
+        const auto &mark_name = iter_->string_params[0];
         auto mark_it = flow_marks_.find(mark_name);
         if (mark_it != flow_marks_.end()) {
           iter_ = mark_it->second;
@@ -163,7 +116,8 @@ public:
           }
           if (iter_ == last) {
             std::stringstream msg;
-            msg << "Invalid jump destination:\"" << mark_name << "\"." << std::endl;
+            msg << "Invalid jump destination:\"" << mark_name << "\"."
+                << std::endl;
             throw std::runtime_error(msg.str());
           }
         }
@@ -176,129 +130,128 @@ public:
 
   void advance_iterator(void);
 
-  bool apply_runtime_noise_sampling(const ClassicalRegister& creg, const Operations::Op &op, const Noise::NoiseModel &noise);
-
+  bool apply_runtime_noise_sampling(const ClassicalRegister &creg,
+                                    const Operations::Op &op,
+                                    const Noise::NoiseModel &noise);
 };
 
-void Branch::branch_shots(reg_t& shots, int_t nbranch)
-{
+void Branch::branch_shots(reg_t &shots, int_t nbranch) {
   branches_.resize(nbranch);
 
-  for(int_t i=0;i<nbranch;i++){
+  for (int_t i = 0; i < nbranch; i++) {
     branches_[i] = std::make_shared<Branch>();
     branches_[i]->creg_ = creg_;
     branches_[i]->iter_ = iter_;
     branches_[i]->flow_marks_ = flow_marks_;
   }
-  for(int_t i=0;i<shots.size();i++){
+  for (int_t i = 0; i < shots.size(); i++) {
     branches_[shots[i]]->shots_.push_back(shots_[i]);
   }
 }
 
-void Branch::advance_iterator(void)
-{
+void Branch::advance_iterator(void) {
   iter_++;
-  for(int_t i=0;i<branches_.size();i++){
+  for (int_t i = 0; i < branches_.size(); i++) {
     branches_[i]->iter_++;
   }
 }
 
-bool Branch::apply_runtime_noise_sampling(const ClassicalRegister& creg, const Operations::Op &op, const Noise::NoiseModel &noise)
-{
-  if(op.type != Operations::OpType::sample_noise)
+bool Branch::apply_runtime_noise_sampling(const ClassicalRegister &creg,
+                                          const Operations::Op &op,
+                                          const Noise::NoiseModel &noise) {
+  if (op.type != Operations::OpType::sample_noise)
     return false;
 
   uint_t nshots = num_shots();
   reg_t shot_map(nshots);
   std::vector<std::vector<Operations::Op>> noises;
 
-  for(int_t i=0;i<nshots;i++){
-    std::vector<Operations::Op> noise_ops = noise.sample_noise_loc(op, shots_[i]);
+  for (int_t i = 0; i < nshots; i++) {
+    std::vector<Operations::Op> noise_ops =
+        noise.sample_noise_loc(op, shots_[i]);
 
-    //search same noise ops 
+    // search same noise ops
     int_t pos = -1;
-    for(int_t j=0;j<noises.size();j++){
-      if(noise_ops.size() != noises[j].size())
+    for (int_t j = 0; j < noises.size(); j++) {
+      if (noise_ops.size() != noises[j].size())
         continue;
       bool same = true;
-      for(int_t k=0;k<noise_ops.size();k++){
-        if(noise_ops[k].type != noises[j][k].type || noise_ops[k].name != noises[j][k].name)
+      for (int_t k = 0; k < noise_ops.size(); k++) {
+        if (noise_ops[k].type != noises[j][k].type ||
+            noise_ops[k].name != noises[j][k].name)
           same = false;
-        else if(noise_ops[k].qubits.size() != noises[j][k].qubits.size())
+        else if (noise_ops[k].qubits.size() != noises[j][k].qubits.size())
           same = false;
-        else{
-          for(int_t l=0;l<noise_ops[k].qubits.size();l++){
-            if(noise_ops[k].qubits[l] != noises[j][k].qubits[l]){
+        else {
+          for (int_t l = 0; l < noise_ops[k].qubits.size(); l++) {
+            if (noise_ops[k].qubits[l] != noises[j][k].qubits[l]) {
               same = false;
               break;
             }
           }
         }
-        if(!same)
+        if (!same)
           break;
-        if(noise_ops[k].type == Operations::OpType::gate){
-          if(noise_ops[k].name == "pauli"){
-            if(noise_ops[k].string_params[0] != noises[j][k].string_params[0])
+        if (noise_ops[k].type == Operations::OpType::gate) {
+          if (noise_ops[k].name == "pauli") {
+            if (noise_ops[k].string_params[0] != noises[j][k].string_params[0])
               same = false;
-          }
-          else if(noise_ops[k].params.size() != noises[j][k].params.size())
+          } else if (noise_ops[k].params.size() != noises[j][k].params.size())
             same = false;
-          else{
-            for(int_t l=0;l<noise_ops[k].params.size();l++){
-              if(noise_ops[k].params[l] != noises[j][k].params[l]){
+          else {
+            for (int_t l = 0; l < noise_ops[k].params.size(); l++) {
+              if (noise_ops[k].params[l] != noises[j][k].params[l]) {
                 same = false;
                 break;
               }
             }
           }
-        }
-        else if(noise_ops[k].type == Operations::OpType::matrix || noise_ops[k].type == Operations::OpType::diagonal_matrix){
-          if(noise_ops[k].mats.size() != noises[j][k].mats.size())
+        } else if (noise_ops[k].type == Operations::OpType::matrix ||
+                   noise_ops[k].type == Operations::OpType::diagonal_matrix) {
+          if (noise_ops[k].mats.size() != noises[j][k].mats.size())
             same = false;
-          else{
-            for(int_t l=0;l<noise_ops[k].mats.size();l++){
-              if(noise_ops[k].mats[l].size() != noises[j][k].mats[l].size()){
+          else {
+            for (int_t l = 0; l < noise_ops[k].mats.size(); l++) {
+              if (noise_ops[k].mats[l].size() != noises[j][k].mats[l].size()) {
                 same = false;
                 break;
               }
-              for(int_t m=0;m<noise_ops[k].mats[l].size();m++){
-                if(noise_ops[k].mats[l][m] != noises[j][k].mats[l][m]){
+              for (int_t m = 0; m < noise_ops[k].mats[l].size(); m++) {
+                if (noise_ops[k].mats[l][m] != noises[j][k].mats[l][m]) {
                   same = false;
                   break;
                 }
               }
-              if(!same)
+              if (!same)
                 break;
             }
           }
         }
-        if(!same)
+        if (!same)
           break;
       }
-      if(same){
+      if (same) {
         pos = j;
         break;
       }
     }
 
-    if(pos < 0){  //if not found, add noise ops to the list
+    if (pos < 0) { // if not found, add noise ops to the list
       shot_map[i] = noises.size();
       noises.push_back(noise_ops);
-    }
-    else{   //if found, add shot
+    } else { // if found, add shot
       shot_map[i] = pos;
     }
   }
 
   creg_ = creg;
   branch_shots(shot_map, noises.size());
-  for(int_t i=0;i<noises.size();i++){
+  for (int_t i = 0; i < noises.size(); i++) {
     branches_[i]->copy_ops_after_branch(noises[i]);
   }
 
   return true;
 }
-
 
 //-------------------------------------------------------------------------
 } // namespace Executor

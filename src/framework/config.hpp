@@ -449,7 +449,8 @@ inline void from_json(const json_t &js, Config &config) {
   get_value(config.num_threads_per_device, "num_threads_per_device", js);
   // # multi-shot branching
   get_value(config.shot_branching_enable, "shot_branching_enable", js);
-  get_value(config.runtime_noise_sampling_enable, "runtime_noise_sampling_enable", js);
+  get_value(config.runtime_noise_sampling_enable,
+            "runtime_noise_sampling_enable", js);
   // # statevector options
   get_value(config.statevector_parallel_threshold,
             "statevector_parallel_threshold", js);

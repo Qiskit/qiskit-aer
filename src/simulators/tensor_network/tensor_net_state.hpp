@@ -152,6 +152,8 @@ public:
   // Initializes to a specific n-qubit state
   void initialize_qreg(const tensor_net_t &tensor);
 
+  void initialize_from_vector(const cvector_t<double> &params);
+
   //-----------------------------------------------------------------------
   // Additional methods
   //-----------------------------------------------------------------------
@@ -189,8 +191,6 @@ protected:
   // /psi> is given in params
   void apply_initialize(const reg_t &qubits, const cvector_t<double> &params,
                         RngEngine &rng);
-
-  void initialize_from_vector(const cvector_t<double> &params);
 
   void initialize_from_matrix(const cmatrix_t &params);
 

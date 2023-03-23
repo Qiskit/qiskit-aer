@@ -410,9 +410,9 @@ protected:
   uint_t offset;
   uint_t mat_pos;
   uint_t mat_num;
+
 public:
-  initialize_component_func(const int nq, const uint_t pos, const uint_t num)
-  {
+  initialize_component_func(const int nq, const uint_t pos, const uint_t num) {
     nqubits = nq;
     mat_pos = pos;
     mat_num = num;
@@ -448,24 +448,23 @@ public:
     idx += ii;
 
     q0 = vec[idx];
-    for(k=mat_pos;k<mat_pos+mat_num;k++){
+    for (k = mat_pos; k < mat_pos + mat_num; k++) {
       ii = idx;
       for (j = 0; j < nqubits; j++) {
         if (((k >> j) & 1) != 0)
           ii += (1ull << qubits[j]);
       }
-      if(ii == idx){
-        if(mat_pos > 0)
+      if (ii == idx) {
+        if (mat_pos > 0)
           continue;
       }
-      q = q0 * state[k-mat_pos];
+      q = q0 * state[k - mat_pos];
       vec[ii] = q;
     }
   }
 
   const char *name(void) { return "initialize_component"; }
 };
-
 
 //------------------------------------------------------------------------------
 // Zero clear

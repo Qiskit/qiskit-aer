@@ -16,18 +16,19 @@
 #define _aer_executor_hpp_
 
 #include "framework/config.hpp"
+#include "framework/creg.hpp"
 #include "framework/json.hpp"
 #include "framework/opset.hpp"
-#include "framework/types.hpp"
-#include "framework/creg.hpp"
 #include "framework/results/experiment_result.hpp"
 #include "framework/results/result.hpp"
 #include "framework/rng.hpp"
+#include "framework/types.hpp"
 #include "noise/noise_model.hpp"
 
 #include "transpile/cacheblocking.hpp"
 #include "transpile/fusion.hpp"
 
+#include "simulators/simulators.hpp"
 #include "simulators/state.hpp"
 
 namespace AER {
@@ -40,7 +41,7 @@ using OpItr = std::vector<Operations::Op>::const_iterator;
 using myclock_t = std::chrono::high_resolution_clock;
 
 //-------------------------------------------------------------------------
-//Executor base class
+// Executor base class
 //-------------------------------------------------------------------------
 template <class state_t>
 class Base {
@@ -78,7 +79,8 @@ protected:
 
   bool parallel_nested_ = false;
 
-  //max number of states can be stored on memory for batched multi-shots/experiments optimization
+  // max number of states can be stored on memory for batched
+  // multi-shots/experiments optimization
   int max_batched_states_;
 
   // max number of qubits in given circuits
@@ -94,39 +96,36 @@ protected:
 
   uint_t cache_block_qubit_ = 0;
 
-  //multi-chunks are required to simulate circuits
+  // multi-chunks are required to simulate circuits
   bool multi_chunk_required_ = false;
 
-
-  //settings for cuStateVec
+  // settings for cuStateVec
   bool cuStateVec_enable_ = false;
+
+  //if circuit has statevector operations or not
+  bool has_statevector_ops_;
 public:
   Base();
-  virtual ~Base(){}
+  virtual ~Base() {}
 
-  void run_circuit(Circuit &circ,
-                   const Noise::NoiseModel &noise,
-                   const Config &config,
-                   const Method method,
-                   const Device device,
-                   ExperimentResult &result);
+  void run_circuit(Circuit &circ, const Noise::NoiseModel &noise,
+                   const Config &config, const Method method,
+                   const Device device, ExperimentResult &result);
 
+protected:
   // Return a fusion transpilation pass configured for the current
   // method, circuit and config
-  Transpile::Fusion transpile_fusion(
-                                     const Operations::OpSet &opset,
+  Transpile::Fusion transpile_fusion(const Operations::OpSet &opset,
                                      const Config &config) const;
 
   // Return cache blocking transpiler pass
   Transpile::CacheBlocking
-  transpile_cache_blocking(
-                           const Circuit &circ,
-                           const Noise::NoiseModel &noise,
+  transpile_cache_blocking(const Circuit &circ, const Noise::NoiseModel &noise,
                            const Config &config) const;
 
-  //return maximum number of qubits for matrix
+  // return maximum number of qubits for matrix
   int_t get_max_matrix_qubits(const Circuit &circ) const;
-  int_t get_matrix_bits(const Operations::Op& op) const;
+  int_t get_matrix_bits(const Operations::Op &op) const;
 
   // Get system memory size
   size_t get_system_memory_mb();
@@ -140,14 +139,14 @@ public:
   }
   // Return an estimate of the required memory for a circuit.
   virtual size_t required_memory_mb(const Circuit &circuit,
-                            const Noise::NoiseModel &noise) const
-  {
+                                    const Noise::NoiseModel &noise) const {
     state_t tmp;
     return tmp.required_memory_mb(circuit.num_qubits, circuit.ops);
   }
 
-  //get max shots stored on memory
-  uint_t get_max_parallel_shots(const Circuit &circuit, const Noise::NoiseModel &noise) const;
+  // get max shots stored on memory
+  uint_t get_max_parallel_shots(const Circuit &circuit,
+                                const Noise::NoiseModel &noise) const;
 
   bool multiple_chunk_required(const Circuit &circuit,
                                const Noise::NoiseModel &noise) const;
@@ -155,54 +154,48 @@ public:
   bool multiple_shots_required(const Circuit &circuit,
                                const Noise::NoiseModel &noise) const;
 
-
   // Check if measure sampling optimization is valid for the input circuit
   // for the given method. This checks if operation types before
   // the first measurement in the circuit prevent sampling
   bool check_measure_sampling_opt(const Circuit &circ) const;
-protected:
+
+  bool has_statevector_ops(const Circuit &circ) const;
+
   virtual void set_config(const Config &config);
   virtual void set_parallelization(const Circuit &circ,
                                    const Noise::NoiseModel &noise);
 
-  virtual void run_circuit_with_sampling(Circuit &circ,
-                                         const Config &config,
+  virtual void run_circuit_with_sampling(Circuit &circ, const Config &config,
                                          ExperimentResult &result);
 
-  virtual void run_circuit_shots(
-            Circuit &circ, const Noise::NoiseModel &noise, const Config &config,
-            ExperimentResult &result, bool sample_noise) = 0;
+  virtual void run_circuit_shots(Circuit &circ, const Noise::NoiseModel &noise,
+                                 const Config &config, ExperimentResult &result,
+                                 bool sample_noise) = 0;
 
+  bool validate_state(const Circuit &circ, const Noise::NoiseModel &noise,
+                      bool throw_except) const;
 
-  bool validate_state(const Circuit &circ,
-                          const Noise::NoiseModel &noise,
-                          bool throw_except) const;
-
-
-  void run_with_sampling(const Circuit &circ,
-                         state_t &state,
-                         ExperimentResult &result,
-                         RngEngine &rng,
+  void run_with_sampling(const Circuit &circ, state_t &state,
+                         ExperimentResult &result, RngEngine &rng,
                          const uint_t shots);
 
   template <typename InputIterator>
-  void measure_sampler(
-      InputIterator first_meas, InputIterator last_meas, uint_t shots,
-      state_t &state, ExperimentResult &result, std::vector<RngEngine> &rng, bool shot_branching = false) const;
+  void measure_sampler(InputIterator first_meas, InputIterator last_meas,
+                       uint_t shots, state_t &state, ExperimentResult &result,
+                       std::vector<RngEngine> &rng,
+                       bool shot_branching = false) const;
 
-  //sampling measure 
-  virtual std::vector<reg_t> sample_measure(state_t& state, const reg_t &qubits,
-                                            uint_t shots, std::vector<RngEngine> &rng) const
-  {
-    //this is for single rng, impement in sub-class for multi-shots case
+  // sampling measure
+  virtual std::vector<reg_t> sample_measure(state_t &state, const reg_t &qubits,
+                                            uint_t shots,
+                                            std::vector<RngEngine> &rng) const {
+    // this is for single rng, impement in sub-class for multi-shots case
     return state.sample_measure(qubits, shots, rng[0]);
   }
-
 };
 
 template <class state_t>
-Base<state_t>::Base()
-{
+Base<state_t>::Base() {
   max_parallel_threads_ = 0;
   max_parallel_experiments_ = 1;
   max_parallel_shots_ = 0;
@@ -222,11 +215,11 @@ Base<state_t>::Base()
   max_memory_mb_ = get_system_memory_mb();
   max_gpu_memory_mb_ = get_gpu_memory_mb();
 
+  has_statevector_ops_ = false;
 }
 
 template <class state_t>
-void Base<state_t>::set_config(const Config &config)
-{
+void Base<state_t>::set_config(const Config &config) {
   // Load config for memory (creg list data)
   if (config.memory.has_value())
     save_creg_memory_ = config.memory.value();
@@ -285,6 +278,7 @@ void Base<state_t>::set_config(const Config &config)
     accept_distributed_results_ = config.accept_distributed_results.value();
 
   // enable multiple qregs if cache blocking is enabled
+  cache_block_qubit_ = 0;
   if (config.blocking_qubits.has_value())
     cache_block_qubit_ = config.blocking_qubits.value();
 
@@ -292,29 +286,6 @@ void Base<state_t>::set_config(const Config &config)
   cuStateVec_enable_ = false;
   if (config.cuStateVec_enable.has_value())
     cuStateVec_enable_ = config.cuStateVec_enable.value();
-
-  // Override automatic simulation method with a fixed method
-  std::string method = config.method;
-  if (config.method == "statevector") {
-    method_ = Method::statevector;
-  } else if (config.method == "density_matrix") {
-    method_ = Method::density_matrix;
-  } else if (config.method == "stabilizer") {
-    method_ = Method::stabilizer;
-  } else if (config.method == "extended_stabilizer") {
-    method_ = Method::extended_stabilizer;
-  } else if (config.method == "matrix_product_state") {
-    method_ = Method::matrix_product_state;
-  } else if (config.method == "unitary") {
-    method_ = Method::unitary;
-  } else if (config.method == "superop") {
-    method_ = Method::superop;
-  } else if (config.method == "tensor_network") {
-    method_ = Method::tensor_network;
-  } else if (config.method != "automatic") {
-    throw std::runtime_error(std::string("Invalid simulation method (") +
-                             method + std::string(")."));
-  }
 
   // Override automatic simulation method with a fixed method
   sim_device_name_ = config.device;
@@ -374,8 +345,7 @@ void Base<state_t>::set_config(const Config &config)
 }
 
 template <class state_t>
-size_t Base<state_t>::get_system_memory_mb() 
-{
+size_t Base<state_t>::get_system_memory_mb() {
   size_t total_physical_memory = Utils::get_system_memory_mb();
 #ifdef AER_MPI
   // get minimum memory size per process
@@ -389,8 +359,7 @@ size_t Base<state_t>::get_system_memory_mb()
 }
 
 template <class state_t>
-size_t Base<state_t>::get_gpu_memory_mb() 
-{
+size_t Base<state_t>::get_gpu_memory_mb() {
   size_t total_physical_memory = 0;
 #ifdef AER_THRUST_CUDA
   int iDev, nDev, j;
@@ -422,22 +391,23 @@ size_t Base<state_t>::get_gpu_memory_mb()
 }
 
 template <class state_t>
-bool Base<state_t>::multiple_chunk_required(const Circuit &circ,
-                                   const Noise::NoiseModel &noise) const 
-{
+bool Base<state_t>::multiple_chunk_required(
+    const Circuit &circ, const Noise::NoiseModel &noise) const {
   if (circ.num_qubits < 3)
     return false;
   if (cache_block_qubit_ >= 2 && cache_block_qubit_ < circ.num_qubits)
     return true;
 
-  if(num_process_per_experiment_ == 1 && sim_device_ == Device::GPU && num_gpus_ > 0){
+  if (num_process_per_experiment_ == 1 && sim_device_ == Device::GPU &&
+      num_gpus_ > 0) {
     return (max_gpu_memory_mb_ / num_gpus_ < required_memory_mb(circ, noise));
   }
-  if(num_process_per_experiment_ > 1){
+  if (num_process_per_experiment_ > 1) {
     size_t total_mem = max_memory_mb_;
-    if(sim_device_ == Device::GPU)
+    if (sim_device_ == Device::GPU)
       total_mem += max_gpu_memory_mb_;
-    if(total_mem*num_process_per_experiment_ > required_memory_mb(circ, noise))
+    if (total_mem * num_process_per_experiment_ >
+        required_memory_mb(circ, noise))
       return true;
   }
 
@@ -445,82 +415,79 @@ bool Base<state_t>::multiple_chunk_required(const Circuit &circ,
 }
 
 template <class state_t>
-bool Base<state_t>::multiple_shots_required(const Circuit &circ,
-                                         const Noise::NoiseModel &noise) const 
-{
+bool Base<state_t>::multiple_shots_required(
+    const Circuit &circ, const Noise::NoiseModel &noise) const {
   if (circ.shots < 2)
     return false;
-  if (method_ == Method::density_matrix ||
-      method_ == Method::superop ||
+  if (method_ == Method::density_matrix || method_ == Method::superop ||
       method_ == Method::unitary) {
     return false;
   }
 
   bool can_sample = check_measure_sampling_opt(circ);
 
-  if (noise.is_ideal()){
-   return !can_sample;
+  if (noise.is_ideal()) {
+    return !can_sample;
   }
 
   return true;
 }
 
 template <class state_t>
-uint_t Base<state_t>::get_max_parallel_shots(const Circuit &circ, const Noise::NoiseModel &noise) const
-{
+uint_t
+Base<state_t>::get_max_parallel_shots(const Circuit &circ,
+                                      const Noise::NoiseModel &noise) const {
   uint_t mem = required_memory_mb(circ, noise);
-  if(mem == 0)
+  if (mem == 0)
     return circ.shots;
 
-  if(sim_device_ == Device::GPU && num_gpus_ > 0){
-    return std::min(circ.shots, (max_gpu_memory_mb_*8/10 / mem));
-  }
-  else{
+  if (sim_device_ == Device::GPU && num_gpus_ > 0) {
+    return std::min(circ.shots, (max_gpu_memory_mb_ * 8 / 10 / mem));
+  } else {
     return std::min(circ.shots, (max_memory_mb_ / mem));
   }
 }
 
 template <class state_t>
 void Base<state_t>::set_parallelization(const Circuit &circ,
-                                                      const Noise::NoiseModel &noise)
-{
-  if(explicit_parallelization_)
+                                        const Noise::NoiseModel &noise) {
+  if (explicit_parallelization_)
     return;
 
-  //number of threads for parallel loop of experiments
+  // number of threads for parallel loop of experiments
   parallel_experiments_ = omp_get_num_threads();
 
   // Check for trivial parallelization conditions
   switch (method_) {
-    case Method::statevector:
-    case Method::stabilizer:
-    case Method::unitary:
-    case Method::matrix_product_state: {
-      if (circ.shots == 1 || num_process_per_experiment_ > 1 ||
-          (!noise.has_quantum_errors() &&
-          check_measure_sampling_opt(circ))) {
-        parallel_shots_ = 1;
-        parallel_state_update_ =
-            std::max<int>({1, max_parallel_threads_ / parallel_experiments_});
-        return;
-      }
-      break;
+  case Method::statevector:
+  case Method::stabilizer:
+  case Method::unitary:
+  case Method::matrix_product_state: {
+    if (circ.shots == 1 || num_process_per_experiment_ > 1 ||
+        (!noise.has_quantum_errors() && check_measure_sampling_opt(circ))) {
+      parallel_shots_ = 1;
+      parallel_state_update_ =
+          std::max<int>({1, max_parallel_threads_ / parallel_experiments_});
+      return;
     }
-    case Method::density_matrix:
-    case Method::superop: {
-      if (circ.shots == 1 || num_process_per_experiment_ > 1 ||
-          check_measure_sampling_opt(circ)) {
-        parallel_shots_ = 1;
-        parallel_state_update_ =
-            std::max<int>({1, max_parallel_threads_ / parallel_experiments_});
-        return;
-      }
-      break;
+    break;
+  }
+  case Method::density_matrix:
+  case Method::superop: {
+    if (circ.shots == 1 || num_process_per_experiment_ > 1 ||
+        check_measure_sampling_opt(circ)) {
+      parallel_shots_ = 1;
+      parallel_state_update_ =
+          std::max<int>({1, max_parallel_threads_ / parallel_experiments_});
+      return;
     }
-    case Method::extended_stabilizer:
-      break;
-    default:
-      throw std::invalid_argument("Cannot set parallelization for unresolved method.");
+    break;
+  }
+  case Method::extended_stabilizer:
+    break;
+  default:
+    throw std::invalid_argument(
+        "Cannot set parallelization for unresolved method.");
   }
 
   // Use a local variable to not override stored maximum based
@@ -540,7 +507,8 @@ void Base<state_t>::set_parallelization(const Circuit &circ,
     // And assign the remaining threads to state update
     int circ_memory_mb =
         required_memory_mb(circ, noise) / num_process_per_experiment_;
-    size_t mem_size = (sim_device_ == Device::GPU) ? max_gpu_memory_mb_ : max_memory_mb_;
+    size_t mem_size =
+        (sim_device_ == Device::GPU) ? max_gpu_memory_mb_ : max_memory_mb_;
     if (mem_size < circ_memory_mb)
       throw std::runtime_error(
           "a circuit requires more memory than max_memory_mb.");
@@ -549,7 +517,7 @@ void Base<state_t>::set_parallelization(const Circuit &circ,
 
     int shots = circ.shots;
     parallel_shots_ = std::min<int>(
-        {static_cast<int>(mem_size/(circ_memory_mb*2)), max_shots, shots});
+        {static_cast<int>(mem_size / (circ_memory_mb * 2)), max_shots, shots});
   }
   parallel_state_update_ =
       (parallel_shots_ > 1)
@@ -558,20 +526,16 @@ void Base<state_t>::set_parallelization(const Circuit &circ,
 }
 
 template <class state_t>
-void Base<state_t>::run_circuit(Circuit &circ,
-                       const Noise::NoiseModel &noise,
-                       const Config &config,
-                       const Method method,
-                       const Device device,
-                       ExperimentResult &result)
-{
+void Base<state_t>::run_circuit(Circuit &circ, const Noise::NoiseModel &noise,
+                                const Config &config, const Method method,
+                                const Device device, ExperimentResult &result) {
   // Start individual circuit timer
   auto timer_start = myclock_t::now(); // state circuit timer
 
   // Execute in try block so we can catch errors and return the error message
   // for individual circuit failures.
   try {
-    //set configuration
+    // set configuration
     method_ = method;
     sim_device_ = device;
     set_config(config);
@@ -603,10 +567,13 @@ void Base<state_t>::run_circuit(Circuit &circ,
     result.metadata.add(false, "measure_sampling");
     result.metadata.add(false, "batched_shots_optimization");
 
-    // Validate gateset and memory requirements, raise exception if they're exceeded
+    // Validate gateset and memory requirements, raise exception if they're
+    // exceeded
     validate_state(circ, noise, true);
 
-    if(circ.num_qubits > 0){  //do nothing for query steps
+    has_statevector_ops_ = has_statevector_ops(circ);
+
+    if (circ.num_qubits > 0) { // do nothing for query steps
       // Choose execution method based on noise and method
       Circuit opt_circ;
       bool noise_sampling = false;
@@ -624,13 +591,15 @@ void Base<state_t>::run_circuit(Circuit &circ,
       // Superop noise sampling
       else if (method == Method::density_matrix || method == Method::superop) {
         // Sample noise using SuperOp method
-        opt_circ = noise.sample_noise(circ, rng, Noise::NoiseModel::Method::superop);
+        opt_circ =
+            noise.sample_noise(circ, rng, Noise::NoiseModel::Method::superop);
         result.metadata.add("superop", "noise");
       }
       // Kraus noise sampling
       else if (noise.opset().contains(Operations::OpType::kraus) ||
                noise.opset().contains(Operations::OpType::superop)) {
-        opt_circ = noise.sample_noise(circ, rng, Noise::NoiseModel::Method::kraus);
+        opt_circ =
+            noise.sample_noise(circ, rng, Noise::NoiseModel::Method::kraus);
         result.metadata.add("kraus", "noise");
       }
       // General circuit noise sampling
@@ -639,15 +608,14 @@ void Base<state_t>::run_circuit(Circuit &circ,
         result.metadata.add("circuit", "noise");
       }
 
-      if(noise_sampling){
+      if (noise_sampling) {
         run_circuit_shots(circ, noise, config, result, true);
-      }
-      else{
+      } else {
         // Run multishot simulation without noise sampling
         bool can_sample = opt_circ.can_sample;
         can_sample &= check_measure_sampling_opt(opt_circ);
 
-        if(can_sample)
+        if (can_sample)
           run_circuit_with_sampling(opt_circ, config, result);
         else
           run_circuit_shots(opt_circ, noise, config, result, false);
@@ -677,39 +645,37 @@ void Base<state_t>::run_circuit(Circuit &circ,
   }
 }
 
-
 template <class state_t>
-void Base<state_t>::run_with_sampling(const Circuit &circ,
-                                   state_t &state,
-                                   ExperimentResult &result,
-                                   RngEngine &rng,
-                                   const uint_t shots) 
-{
-  auto& ops = circ.ops;
+void Base<state_t>::run_with_sampling(const Circuit &circ, state_t &state,
+                                      ExperimentResult &result, RngEngine &rng,
+                                      const uint_t shots) {
+  auto &ops = circ.ops;
   auto first_meas = circ.first_measure_pos; // Position of first measurement op
   bool final_ops = (first_meas == ops.size());
 
   // allocate qubit register
   state.allocate(circ.num_qubits, circ.num_qubits);
   state.set_num_global_qubits(circ.num_qubits);
+  state.enable_density_matrix(!has_statevector_ops_);
 
   // Run circuit instructions before first measure
   state.initialize_qreg(circ.num_qubits);
   state.initialize_creg(circ.num_memory, circ.num_registers);
 
-  state.apply_ops(ops.cbegin(), ops.cbegin() + first_meas, result, rng, final_ops);
+  state.apply_ops(ops.cbegin(), ops.cbegin() + first_meas, result, rng,
+                  final_ops);
 
   // Get measurement operations and set of measured qubits
   std::vector<RngEngine> rngs;
   rngs.push_back(rng);
-  measure_sampler(circ.ops.begin() + first_meas, circ.ops.end(), shots, state, result, rngs);
+  measure_sampler(circ.ops.begin() + first_meas, circ.ops.end(), shots, state,
+                  result, rngs);
 }
 
 template <class state_t>
 void Base<state_t>::run_circuit_with_sampling(Circuit &circ,
                                               const Config &config,
-                                              ExperimentResult &result) 
-{
+                                              ExperimentResult &result) {
   state_t state;
   // Set state config
   state.set_config(config);
@@ -719,7 +685,7 @@ void Base<state_t>::run_circuit_with_sampling(Circuit &circ,
   // Optimize circuit
   Noise::NoiseModel dummy_noise;
 
-  auto fusion_pass = transpile_fusion( circ.opset(), config);
+  auto fusion_pass = transpile_fusion(circ.opset(), config);
   fusion_pass.optimize_circuit(circ, dummy_noise, state.opset(), result);
 
   auto max_bits = get_max_matrix_qubits(circ);
@@ -737,8 +703,8 @@ void Base<state_t>::run_circuit_with_sampling(Circuit &circ,
 
 #pragma omp parallel for num_threads(parallel_shots_)
     for (int i = 0; i < parallel_shots_; i++) {
-      uint_t i_shot = circ.shots*i/parallel_shots_;
-      uint_t shot_end = circ.shots*(i+1)/parallel_shots_;
+      uint_t i_shot = circ.shots * i / parallel_shots_;
+      uint_t shot_end = circ.shots * (i + 1) / parallel_shots_;
       uint_t this_shot = shot_end - i_shot;
 
       state_t shot_state;
@@ -746,6 +712,7 @@ void Base<state_t>::run_circuit_with_sampling(Circuit &circ,
       shot_state.set_config(config);
       shot_state.set_parallelization(parallel_state_update_);
       shot_state.set_global_phase(circ.global_phase_angle);
+      shot_state.enable_density_matrix(!has_statevector_ops_);
 
       shot_state.set_max_matrix_qubits(max_bits);
 
@@ -760,8 +727,8 @@ void Base<state_t>::run_circuit_with_sampling(Circuit &circ,
       result.combine(std::move(res));
     }
 
-    if (sim_device_ == Device::GPU){
-      if(parallel_shots_ >= num_gpus_)
+    if (sim_device_ == Device::GPU) {
+      if (parallel_shots_ >= num_gpus_)
         result.metadata.add(num_gpus_, "gpu_parallel_shots");
       else
         result.metadata.add(parallel_shots_, "gpu_parallel_shots");
@@ -775,10 +742,11 @@ void Base<state_t>::run_circuit_with_sampling(Circuit &circ,
 
 template <class state_t>
 template <typename InputIterator>
-void Base<state_t>::measure_sampler(
-    InputIterator first_meas, InputIterator last_meas, uint_t shots,
-    state_t &state, ExperimentResult &result, std::vector<RngEngine> &rng, bool shot_branching) const 
-{
+void Base<state_t>::measure_sampler(InputIterator first_meas,
+                                    InputIterator last_meas, uint_t shots,
+                                    state_t &state, ExperimentResult &result,
+                                    std::vector<RngEngine> &rng,
+                                    bool shot_branching) const {
   // Check if meas_circ is empty, and if so return initial creg
   if (first_meas == last_meas) {
     while (shots-- > 0) {
@@ -810,7 +778,7 @@ void Base<state_t>::measure_sampler(
   // Generate the samples
   auto timer_start = myclock_t::now();
   std::vector<reg_t> all_samples;
-  if(shot_branching)
+  if (shot_branching)
     all_samples = sample_measure(state, meas_qubits, shots, rng);
   else
     all_samples = state.sample_measure(meas_qubits, shots, rng[0]);
@@ -838,19 +806,21 @@ void Base<state_t>::measure_sampler(
   }
 
   // Process samples
-  uint_t num_memory = (memory_map.empty()) ? 0ULL : 1 + memory_map.rbegin()->first;
-  uint_t num_registers = (register_map.empty()) ? 0ULL : 1 + register_map.rbegin()->first;
+  uint_t num_memory =
+      (memory_map.empty()) ? 0ULL : 1 + memory_map.rbegin()->first;
+  uint_t num_registers =
+      (register_map.empty()) ? 0ULL : 1 + register_map.rbegin()->first;
   ClassicalRegister creg;
-  for(int_t i=0;i<all_samples.size();i++){
-  if(shot_branching)
+  for (int_t i = 0; i < all_samples.size(); i++) {
+    if (shot_branching)
       creg = state.creg();
     else
       creg.initialize(num_memory, num_registers);
 
     // process memory bit measurements
     for (const auto &pair : memory_map) {
-      creg.store_measure(reg_t({all_samples[i][pair.second]}), reg_t({pair.first}),
-                         reg_t());
+      creg.store_measure(reg_t({all_samples[i][pair.second]}),
+                         reg_t({pair.first}), reg_t());
     }
     // process register bit measurements
     for (const auto &pair : register_map) {
@@ -858,8 +828,8 @@ void Base<state_t>::measure_sampler(
                          reg_t({pair.first}));
     }
 
-    if(shot_branching){
-      //for shot-branching
+    if (shot_branching) {
+      // for shot-branching
 
       // process read out errors for memory and registers
       for (const Operations::Op &roerror : roerror_ops)
@@ -869,8 +839,7 @@ void Base<state_t>::measure_sampler(
       result.data.add_accum(static_cast<uint_t>(1ULL), "counts", memory_hex);
       if (save_creg_memory_)
         result.data.add_list(memory_hex, "memory");
-    }
-    else{
+    } else {
       // process read out errors for memory and registers
       for (const Operations::Op &roerror : roerror_ops)
         creg.apply_roerror(roerror, rng[0]);
@@ -883,9 +852,8 @@ void Base<state_t>::measure_sampler(
 
 template <class state_t>
 bool Base<state_t>::validate_state(const Circuit &circ,
-                          const Noise::NoiseModel &noise,
-                          bool throw_except) const 
-{
+                                   const Noise::NoiseModel &noise,
+                                   bool throw_except) const {
   std::stringstream error_msg;
   std::string circ_name;
   state_t state;
@@ -911,13 +879,17 @@ bool Base<state_t>::validate_state(const Circuit &circ,
   // Validate memory requirements
   bool memory_valid = true;
   if (max_memory_mb_ > 0) {
-    size_t required_mb = state.required_memory_mb(circ.num_qubits, circ.ops) / num_process_per_experiment_;                                        
-    size_t mem_size = (sim_device_ == Device::GPU) ? max_memory_mb_ + max_gpu_memory_mb_ : max_memory_mb_;
+    size_t required_mb = state.required_memory_mb(circ.num_qubits, circ.ops) /
+                         num_process_per_experiment_;
+    size_t mem_size = (sim_device_ == Device::GPU)
+                          ? max_memory_mb_ + max_gpu_memory_mb_
+                          : max_memory_mb_;
     memory_valid = (required_mb <= mem_size);
     if (throw_except && !memory_valid) {
       error_msg << "Insufficient memory to run circuit " << circ_name;
       error_msg << " using the " << state.name() << " simulator.";
-      error_msg << " Required memory: " << required_mb << "M, max memory: " << max_memory_mb_ << "M";
+      error_msg << " Required memory: " << required_mb
+                << "M, max memory: " << max_memory_mb_ << "M";
       if (sim_device_ == Device::GPU) {
         error_msg << " (Host) + " << max_gpu_memory_mb_ << "M (GPU)";
       }
@@ -936,9 +908,9 @@ bool Base<state_t>::validate_state(const Circuit &circ,
 }
 
 template <class state_t>
-Transpile::Fusion Base<state_t>::transpile_fusion(const Operations::OpSet &opset,
-                                         const Config &config) const 
-{
+Transpile::Fusion
+Base<state_t>::transpile_fusion(const Operations::OpSet &opset,
+                                const Config &config) const {
   Transpile::Fusion fusion_pass;
   fusion_pass.set_parallelization(parallel_state_update_);
 
@@ -958,7 +930,7 @@ Transpile::Fusion Base<state_t>::transpile_fusion(const Operations::OpSet &opset
   }
   case Method::matrix_product_state: {
     fusion_pass.active = false;
-    return fusion_pass;  // Do not allow the config to set active for MPS
+    return fusion_pass; // Do not allow the config to set active for MPS
   }
   case Method::statevector: {
     if (fusion_pass.allow_kraus) {
@@ -983,17 +955,17 @@ Transpile::Fusion Base<state_t>::transpile_fusion(const Operations::OpSet &opset
 }
 
 template <class state_t>
-Transpile::CacheBlocking Base<state_t>::transpile_cache_blocking(const Circuit &circ,
-                               const Noise::NoiseModel &noise,
-                               const Config &config) const
-{
+Transpile::CacheBlocking
+Base<state_t>::transpile_cache_blocking(const Circuit &circ,
+                                        const Noise::NoiseModel &noise,
+                                        const Config &config) const {
   Transpile::CacheBlocking cache_block_pass;
 
-  const bool is_matrix = (method_ == Method::density_matrix
-                          || method_ == Method::unitary);
+  const bool is_matrix =
+      (method_ == Method::density_matrix || method_ == Method::unitary);
   const auto complex_size = (sim_precision_ == Precision::Single)
-                              ? sizeof(std::complex<float>)
-                              : sizeof(std::complex<double>);
+                                ? sizeof(std::complex<float>)
+                                : sizeof(std::complex<double>);
 
   cache_block_pass.set_num_processes(num_process_per_experiment_);
   cache_block_pass.set_config(config);
@@ -1002,7 +974,7 @@ Transpile::CacheBlocking Base<state_t>::transpile_cache_blocking(const Circuit &
     // if blocking is not set by config, automatically set if required
     if (multiple_chunk_required(circ, noise)) {
       int nplace = num_process_per_experiment_;
-      if(sim_device_ == Device::GPU && num_gpus_ > 0)
+      if (sim_device_ == Device::GPU && num_gpus_ > 0)
         nplace *= num_gpus_;
       cache_block_pass.set_blocking(circ.num_qubits, get_min_memory_mb() << 20,
                                     nplace, complex_size, is_matrix);
@@ -1012,8 +984,7 @@ Transpile::CacheBlocking Base<state_t>::transpile_cache_blocking(const Circuit &
 }
 
 template <class state_t>
-bool Base<state_t>::check_measure_sampling_opt(const Circuit &circ) const 
-{
+bool Base<state_t>::check_measure_sampling_opt(const Circuit &circ) const {
   // Check if circuit has sampling flag disabled
   if (circ.can_sample == false) {
     return false;
@@ -1021,12 +992,11 @@ bool Base<state_t>::check_measure_sampling_opt(const Circuit &circ) const
 
   // If density matrix, unitary, superop method all supported instructions
   // allow sampling
-  if (method_ == Method::density_matrix ||
-      method_ == Method::superop ||
+  if (method_ == Method::density_matrix || method_ == Method::superop ||
       method_ == Method::unitary) {
     return true;
   }
-  
+
   // If circuit contains a non-initial initialize that is not a full width
   // instruction we can't sample
   if (circ.can_sample_initialize == false) {
@@ -1042,7 +1012,7 @@ bool Base<state_t>::check_measure_sampling_opt(const Circuit &circ) const
       circ.opset().contains(Operations::OpType::kraus) ||
       circ.opset().contains(Operations::OpType::superop) ||
       circ.opset().contains(Operations::OpType::jump) ||
-      circ.opset().contains(Operations::OpType::mark )) {
+      circ.opset().contains(Operations::OpType::mark)) {
     return false;
   }
   // Otherwise true
@@ -1050,13 +1020,15 @@ bool Base<state_t>::check_measure_sampling_opt(const Circuit &circ) const
 }
 
 template <class state_t>
-int_t Base<state_t>::get_matrix_bits(const Operations::Op& op) const
-{
+int_t Base<state_t>::get_matrix_bits(const Operations::Op &op) const {
   int_t bit = 1;
-  if(op.type == Operations::OpType::matrix || op.type == Operations::OpType::diagonal_matrix || op.type == Operations::OpType::initialize)
+  if (op.type == Operations::OpType::matrix ||
+      op.type == Operations::OpType::diagonal_matrix ||
+      op.type == Operations::OpType::initialize)
     bit = op.qubits.size();
-  else if(op.type == Operations::OpType::kraus || op.type == Operations::OpType::superop){
-    if(method_ == Method::density_matrix)
+  else if (op.type == Operations::OpType::kraus ||
+           op.type == Operations::OpType::superop) {
+    if (method_ == Method::density_matrix)
       bit = op.qubits.size() * 2;
     else
       bit = op.qubits.size();
@@ -1065,19 +1037,25 @@ int_t Base<state_t>::get_matrix_bits(const Operations::Op& op) const
 }
 
 template <class state_t>
-int_t Base<state_t>::get_max_matrix_qubits(const Circuit &circ) const
-{
+int_t Base<state_t>::get_max_matrix_qubits(const Circuit &circ) const {
   int_t max_bits = 0;
   int_t i;
 
-  if(sim_device_ != Device::CPU){     //Only applicable for GPU (and Thrust)
-    for(i=0;i<circ.ops.size();i++){
+  if (sim_device_ != Device::CPU) { // Only applicable for GPU (and Thrust)
+    for (i = 0; i < circ.ops.size(); i++) {
       int_t bit = 1;
       bit = get_matrix_bits(circ.ops[i]);
-      max_bits = std::max(max_bits,bit);
+      max_bits = std::max(max_bits, bit);
     }
   }
   return max_bits;
+}
+
+template <class state_t>
+bool Base<state_t>::has_statevector_ops(const Circuit &circ) const {
+  return circ.opset().contains(Operations::OpType::save_statevec) ||
+         circ.opset().contains(Operations::OpType::save_statevec_dict) ||
+         circ.opset().contains(Operations::OpType::save_amps);
 }
 
 //-------------------------------------------------------------------------
@@ -1086,6 +1064,3 @@ int_t Base<state_t>::get_max_matrix_qubits(const Circuit &circ) const
 } // end namespace AER
 //-------------------------------------------------------------------------
 #endif
-
-
-

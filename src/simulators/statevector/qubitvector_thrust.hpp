@@ -141,13 +141,12 @@ public:
   void initialize_component(const reg_t &qubits,
                             const cvector_t<double> &state);
 
-  //chunk setup
-  bool chunk_setup(int chunk_bits,int num_qubits,uint_t chunk_index,uint_t num_local_chunks);
-  bool chunk_setup(const QubitVectorThrust<data_t>& base,const uint_t chunk_index);
-  uint_t chunk_index(void)
-  {
-    return chunk_index_;
-  }
+  // chunk setup
+  bool chunk_setup(int chunk_bits, int num_qubits, uint_t chunk_index,
+                   uint_t num_local_chunks);
+  bool chunk_setup(const QubitVectorThrust<data_t> &base,
+                   const uint_t chunk_index);
+  uint_t chunk_index(void) { return chunk_index_; }
 
   // cache control for chunks on host
   bool fetch_chunk(void) const;
@@ -188,11 +187,8 @@ public:
   // Initializes the current vector so that all qubits are in the |0> state.
   void initialize();
 
-  //initialize from existing state (copy)
-  void initialize(const QubitVectorThrust<data_t>& obj)
-  {
-    copy_qv(obj);
-  }
+  // initialize from existing state (copy)
+  void initialize(const QubitVectorThrust<data_t> &obj) { copy_qv(obj); }
 
   // Initializes the vector to a custom initial state.
   // If the length of the data vector does not match the number of qubits
@@ -242,11 +238,13 @@ public:
 
   // Apply a N-qubit diagonal matrix to the state vector.
   // The matrix is input as vector of the matrix diagonal.
-  virtual void apply_diagonal_matrix(const reg_t &qubits, const cvector_t<double> &mat);
-  
+  virtual void apply_diagonal_matrix(const reg_t &qubits,
+                                     const cvector_t<double> &mat);
+
   // Swap pairs of indicies in the underlying vector
-  void apply_permutation_matrix(const reg_t &qubits,
-                                const std::vector<std::pair<uint_t, uint_t>> &pairs);
+  void
+  apply_permutation_matrix(const reg_t &qubits,
+                           const std::vector<std::pair<uint_t, uint_t>> &pairs);
 
   //-----------------------------------------------------------------------
   // Apply Specialized Gates
@@ -329,7 +327,7 @@ public:
   //-----------------------------------------------------------------------
   virtual bool batched_optimization_supported(void) {
 #ifdef AER_THRUST_CUDA
-    if(enable_batch_)
+    if (enable_batch_)
       return true;
     else
       return false;
@@ -460,10 +458,7 @@ public:
   // cuStateVec
   void cuStateVec_enable(bool flg) { cuStateVec_enable_ = flg; }
 
-  bool support_global_indexing(void)
-  {
-    return (!cuStateVec_enable_);
-  }
+  bool support_global_indexing(void) { return (!cuStateVec_enable_); }
 
   //-----------------------------------------------------------------------
   // Optimization configuration settings
@@ -545,8 +540,8 @@ protected:
   // get number of chunk to be applied
   uint_t get_chunk_count(void);
 
-  //copy from other qv
-  void copy_qv(const QubitVectorThrust<data_t>& obj);
+  // copy from other qv
+  void copy_qv(const QubitVectorThrust<data_t> &obj);
 
 #ifdef AER_DEBUG
   // for debugging
@@ -694,8 +689,7 @@ QubitVectorThrust<data_t>::~QubitVectorThrust() {
 }
 
 template <typename data_t>
-void QubitVectorThrust<data_t>::copy_qv(const QubitVectorThrust<data_t>& obj)
-{
+void QubitVectorThrust<data_t>::copy_qv(const QubitVectorThrust<data_t> &obj) {
   omp_threads_ = obj.omp_threads_;
   omp_threshold_ = obj.omp_threshold_;
   sample_measure_index_size_ = obj.sample_measure_index_size_;
@@ -704,13 +698,13 @@ void QubitVectorThrust<data_t>::copy_qv(const QubitVectorThrust<data_t>& obj)
   num_threads_per_group_ = obj.num_threads_per_group_;
   max_matrix_bits_ = obj.max_matrix_bits_;
 
-  if(!chunk_setup(obj, obj.chunk_index_)){
-    throw std::runtime_error("QubitVectorThrust: can not allocate chunk for copy");
+  if (!chunk_setup(obj, obj.chunk_index_)) {
+    throw std::runtime_error(
+        "QubitVectorThrust: can not allocate chunk for copy");
   }
   set_num_qubits(obj.num_qubits());
 
   chunk_.CopyIn(obj.chunk_);
-
 }
 //------------------------------------------------------------------------------
 // Element access operators
@@ -815,12 +809,12 @@ AER::Vector<std::complex<data_t>> QubitVectorThrust<data_t>::move_to_vector() {
 // State initialize component
 //------------------------------------------------------------------------------
 template <typename data_t>
-void QubitVectorThrust<data_t>::initialize_component(const reg_t &qubits, const cvector_t<double> &state0) 
-{
-  if(qubits.size() == 1){
-    apply_function(Chunk::initialize_component_1qubit_func<data_t>(qubits[0],state0[0],state0[1]) );
-  }
-  else{
+void QubitVectorThrust<data_t>::initialize_component(
+    const reg_t &qubits, const cvector_t<double> &state0) {
+  if (qubits.size() == 1) {
+    apply_function(Chunk::initialize_component_1qubit_func<data_t>(
+        qubits[0], state0[0], state0[1]));
+  } else {
     auto qubits_sorted = qubits;
     std::sort(qubits_sorted.begin(), qubits_sorted.end());
 
@@ -830,16 +824,18 @@ void QubitVectorThrust<data_t>::initialize_component(const reg_t &qubits, const 
       qubits_param.push_back(qubits_sorted[i]);
 
     int nbit = chunk_.container()->matrix_bits();
-    if(nbit > qubits.size())
+    if (nbit > qubits.size())
       nbit = qubits.size();
 
     uint_t dim = 1ull << qubits.size();
     uint_t sub_dim = 1ull << nbit;
-    for(uint_t i=0;i<dim;i+=sub_dim){
+    for (uint_t i = 0; i < dim; i += sub_dim) {
       cvector_t<double> state(sub_dim);
-      for(uint_t j=0;j<sub_dim;j++)
+      for (uint_t j = 0; j < sub_dim; j++)
         state[j] = state0[dim - sub_dim - i + j];
-      apply_function(Chunk::initialize_component_func<data_t>(qubits.size(), dim - sub_dim - i, sub_dim), state, qubits_param );
+      apply_function(Chunk::initialize_component_func<data_t>(
+                         qubits.size(), dim - sub_dim - i, sub_dim),
+                     state, qubits_param);
     }
   }
 }
@@ -897,9 +893,9 @@ bool QubitVectorThrust<data_t>::chunk_setup(int chunk_bits, int num_qubits,
     multi_chunk_distribution_ = true;
   }
 
-  if(chunk_.is_mapped())
+  if (chunk_.is_mapped())
     chunk_manager_->UnmapChunk(chunk_);
-  if(buffer_chunk_.is_mapped())
+  if (buffer_chunk_.is_mapped())
     chunk_manager_->UnmapBufferChunk(buffer_chunk_);
   send_chunk_.unmap();
   recv_chunk_.unmap();
@@ -912,26 +908,26 @@ bool QubitVectorThrust<data_t>::chunk_setup(int chunk_bits, int num_qubits,
 }
 
 template <typename data_t>
-bool QubitVectorThrust<data_t>::chunk_setup(const QubitVectorThrust<data_t>& base,const uint_t chunk_index)
-{
+bool QubitVectorThrust<data_t>::chunk_setup(
+    const QubitVectorThrust<data_t> &base, const uint_t chunk_index) {
   multi_chunk_distribution_ = base.multi_chunk_distribution_;
   cuStateVec_enable_ = base.cuStateVec_enable_;
 
   // set global chunk ID / shot ID
   chunk_index_ = chunk_index;
 
-  if(chunk_.is_mapped())
+  if (chunk_.is_mapped())
     chunk_manager_->UnmapChunk(chunk_);
-  if(buffer_chunk_.is_mapped())
+  if (buffer_chunk_.is_mapped())
     chunk_manager_->UnmapBufferChunk(buffer_chunk_);
   send_chunk_.unmap();
   recv_chunk_.unmap();
 
   chunk_.set_chunk_index(chunk_index_);
 
-  //mapping/setting chunk
+  // mapping/setting chunk
   chunk_manager_ = base.chunk_manager_;
-  bool mapped = chunk_manager_->MapChunk(chunk_,0);
+  bool mapped = chunk_manager_->MapChunk(chunk_, 0);
 
   return mapped;
 }
@@ -1192,13 +1188,12 @@ uint_t QubitVectorThrust<data_t>::get_chunk_count(void) {
   if (multi_chunk_distribution_) {
     if (chunk_.device() < 0 || cuStateVec_enable_)
       return 1;
-    else if(chunk_.pos() != 0)
-      return 0;   //first chunk execute all in batch
-  }
-  else{   //multi-shots
-    if(enable_batch_ && chunk_.pos() != 0)
-      return 0;   //first chunk execute all in batch
-    else if(!enable_batch_)
+    else if (chunk_.pos() != 0)
+      return 0; // first chunk execute all in batch
+  } else {      // multi-shots
+    if (enable_batch_ && chunk_.pos() != 0)
+      return 0; // first chunk execute all in batch
+    else if (!enable_batch_)
       return 1;
   }
   return chunk_.container()->num_chunks();

@@ -61,9 +61,8 @@ public:
   // Initialize to the identity superoperator
   void initialize();
 
-  //initialize from existing state (copy)
-  void initialize(const SuperoperatorThrust<data_t>& obj)
-  {
+  // initialize from existing state (copy)
+  void initialize(const SuperoperatorThrust<data_t> &obj) {
     BaseDensity::copy_qv(obj);
     num_qubits_ = obj.num_qubits_;
   }

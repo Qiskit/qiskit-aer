@@ -59,9 +59,8 @@ public:
   // Initializes the current vector so that all qubits are in the |0> state.
   void initialize();
 
-  //initialize from existing state (copy)
-  void initialize(const DensityMatrix<data_t>& obj)
-  {
+  // initialize from existing state (copy)
+  void initialize(const DensityMatrix<data_t> &obj) {
     BaseMatrix::initialize(obj);
   }
 
@@ -324,9 +323,8 @@ void DensityMatrix<data_t>::apply_unitary_matrix(const reg_t &qubits,
 }
 
 template <typename data_t>
-void DensityMatrix<data_t>::apply_diagonal_unitary_matrix(const reg_t &qubits,
-                                                          const cvector_t<double> &diag) 
-{
+void DensityMatrix<data_t>::apply_diagonal_unitary_matrix(
+    const reg_t &qubits, const cvector_t<double> &diag) {
   // Apply as single 2N-qubit matrix mult.
   apply_diagonal_superop_matrix(
       qubits, AER::Utils::tensor_product(AER::Utils::conjugate(diag), diag));
