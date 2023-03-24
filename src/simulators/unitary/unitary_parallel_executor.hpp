@@ -93,13 +93,13 @@ void ParallelExecutor<unitary_matrix_t>::initialize_qreg(uint_t num_qubits) {
   if (BaseExecutor::chunk_omp_parallel_ && BaseExecutor::num_groups_ > 0) {
 #pragma omp parallel for private(iChunk)
     for (int_t ig = 0; ig < BaseExecutor::num_groups_; ig++) {
-      for (iChunk = BaseExecutor::top_chunk_of_group_[ig];
-           iChunk < BaseExecutor::top_chunk_of_group_[ig + 1]; iChunk++) {
+      for (iChunk = BaseExecutor::top_state_of_group_[ig];
+           iChunk < BaseExecutor::top_state_of_group_[ig + 1]; iChunk++) {
         uint_t irow, icol;
-        irow = (BaseExecutor::global_chunk_index_ + iChunk) >>
+        irow = (BaseExecutor::global_state_index_ + iChunk) >>
                ((BaseExecutor::num_qubits_ - BaseExecutor::chunk_bits_));
         icol =
-            (BaseExecutor::global_chunk_index_ + iChunk) -
+            (BaseExecutor::global_state_index_ + iChunk) -
             (irow << ((BaseExecutor::num_qubits_ - BaseExecutor::chunk_bits_)));
         if (irow == icol)
           BaseExecutor::states_[iChunk].qreg().initialize();
@@ -110,10 +110,10 @@ void ParallelExecutor<unitary_matrix_t>::initialize_qreg(uint_t num_qubits) {
   } else {
     for (iChunk = 0; iChunk < BaseExecutor::states_.size(); iChunk++) {
       uint_t irow, icol;
-      irow = (BaseExecutor::global_chunk_index_ + iChunk) >>
+      irow = (BaseExecutor::global_state_index_ + iChunk) >>
              ((BaseExecutor::num_qubits_ - BaseExecutor::chunk_bits_));
       icol =
-          (BaseExecutor::global_chunk_index_ + iChunk) -
+          (BaseExecutor::global_state_index_ + iChunk) -
           (irow << ((BaseExecutor::num_qubits_ - BaseExecutor::chunk_bits_)));
       if (irow == icol)
         BaseExecutor::states_[iChunk].qreg().initialize();

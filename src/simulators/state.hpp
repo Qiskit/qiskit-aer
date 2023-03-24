@@ -228,6 +228,8 @@ public:
 
   void set_num_global_qubits(uint_t qubits) { num_global_qubits_ = qubits; }
 
+  void enable_cuStateVec(bool flg) { cuStateVec_enable_ = flg; }
+
   //-----------------------------------------------------------------------
   // Common instructions
   //-----------------------------------------------------------------------
@@ -255,6 +257,8 @@ protected:
   std::string sim_device_name_ = "CPU";
 
   uint_t num_global_qubits_; // used for chunk parallelization
+
+  bool cuStateVec_enable_ = false;
 };
 
 void Base::set_config(const Config &config) {

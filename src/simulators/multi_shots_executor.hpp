@@ -45,14 +45,14 @@ protected:
   // number of qubits for the circuit
   uint_t num_qubits_;
 
-  uint_t num_global_shots_; // number of total shots
-  uint_t num_local_shots_;  // number of local shots
+  uint_t num_global_states_; // number of total shots
+  uint_t num_local_states_;  // number of local shots
 
-  uint_t global_shot_index_; // beginning chunk index for this process
-  reg_t shot_index_begin_;   // beginning chunk index for each process
-  reg_t shot_index_end_;     // ending chunk index for each process
-  uint_t local_shot_index_;  // local shot ID of current loop
-  uint_t num_active_shots_;  // number of active shots in current loop
+  uint_t global_state_index_; // beginning chunk index for this process
+  reg_t state_index_begin_;   // beginning chunk index for each process
+  reg_t state_index_end_;     // ending chunk index for each process
+  uint_t local_state_index_;  // local shot ID of current loop
+  uint_t num_active_states_;  // number of active shots in current loop
 
   uint_t myrank_;               // process ID
   uint_t nprocs_;               // number of processes
@@ -79,16 +79,13 @@ protected:
 
   // group of states (GPU devices)
   uint_t num_groups_; // number of groups of chunks
-  reg_t top_shot_of_group_;
-  reg_t num_shots_in_group_;
+  reg_t top_state_of_group_;
+  reg_t num_states_in_group_;
   int num_threads_per_group_; // number of outer threads per group
 
   uint_t num_creg_memory_ =
       0; // number of total bits for creg (reserve for multi-shots)
   uint_t num_creg_registers_ = 0;
-
-  // cuStateVec settings
-  bool cuStateVec_enable_ = false;
 
 #ifdef AER_MPI
   // communicator group to simulate a circuit (for multi-experiments)
@@ -124,7 +121,7 @@ protected:
 
   virtual uint_t qubit_scale(void) { return 1; }
 
-  virtual bool allocate_states(uint_t num_shots);
+  virtual bool allocate_states(uint_t num_shots, const Config &config);
 
   void run_circuit_shots(Circuit &circ, const Noise::NoiseModel &noise,
                          const Config &config, ExperimentResult &result,
@@ -161,8 +158,8 @@ protected:
 
 template <class state_t>
 MultiShotsExecutor<state_t>::MultiShotsExecutor() {
-  num_global_shots_ = 0;
-  num_local_shots_ = 0;
+  num_global_states_ = 0;
+  num_local_states_ = 0;
 
   myrank_ = 0;
   nprocs_ = 1;
@@ -251,19 +248,19 @@ void MultiShotsExecutor<state_t>::set_distribution(uint_t nprocs,
   }
 #endif
 
-  num_global_shots_ = num_parallel_shots;
+  num_global_states_ = num_parallel_shots;
 
-  shot_index_begin_.resize(distributed_procs_);
-  shot_index_end_.resize(distributed_procs_);
+  state_index_begin_.resize(distributed_procs_);
+  state_index_end_.resize(distributed_procs_);
   for (int_t i = 0; i < distributed_procs_; i++) {
-    shot_index_begin_[i] = num_global_shots_ * i / distributed_procs_;
-    shot_index_end_[i] = num_global_shots_ * (i + 1) / distributed_procs_;
+    state_index_begin_[i] = num_global_states_ * i / distributed_procs_;
+    state_index_end_[i] = num_global_states_ * (i + 1) / distributed_procs_;
   }
 
-  num_local_shots_ =
-      shot_index_end_[distributed_rank_] - shot_index_begin_[distributed_rank_];
-  global_shot_index_ = shot_index_begin_[distributed_rank_];
-  local_shot_index_ = 0;
+  num_local_states_ =
+      state_index_end_[distributed_rank_] - state_index_begin_[distributed_rank_];
+  global_state_index_ = state_index_begin_[distributed_rank_];
+  local_state_index_ = 0;
 }
 
 template <class state_t>
@@ -273,23 +270,25 @@ void MultiShotsExecutor<state_t>::set_parallelization(
 }
 
 template <class state_t>
-bool MultiShotsExecutor<state_t>::allocate_states(uint_t num_shots) {
+bool MultiShotsExecutor<state_t>::allocate_states(uint_t num_shots,
+                                                  const Config &config) {
   int_t i;
   bool ret = true;
 
   states_.resize(num_shots);
 
-  num_active_shots_ = num_shots;
+  num_active_states_ = num_shots;
 
   // initialize groups
-  top_shot_of_group_.resize(num_shots);
-  num_shots_in_group_.resize(num_shots);
+  top_state_of_group_.resize(num_shots);
+  num_states_in_group_.resize(num_shots);
   num_groups_ = num_shots;
   for (i = 0; i < num_shots; i++) {
+    states_[i].set_config(config);
     states_[i].set_num_global_qubits(num_qubits_);
 
-    top_shot_of_group_[i] = i;
-    num_shots_in_group_[i] = 1;
+    top_state_of_group_[i] = i;
+    num_states_in_group_[i] = 1;
   }
 
   return ret;
@@ -318,7 +317,7 @@ void MultiShotsExecutor<state_t>::run_circuit_shots(
     num_max_shots_ = 1;
 
   bool shot_branching = false;
-  if (shot_branching_enable_ && num_local_shots_ > 1 &&
+  if (shot_branching_enable_ && num_local_states_ > 1 &&
       shot_branching_supported()) {
     shot_branching = true;
     if (sample_noise) {
@@ -329,6 +328,9 @@ void MultiShotsExecutor<state_t>::run_circuit_shots(
     shot_branching = false;
 
   if (shot_branching) {
+    //disable cuStateVec if shot-branching is enabled
+    if(BaseExecutor::cuStateVec_enable_)
+      BaseExecutor::cuStateVec_enable_ = false;
     return run_circuit_with_shot_branching(circ, noise, config, result,
                                            sample_noise);
   }
@@ -346,8 +348,8 @@ void MultiShotsExecutor<state_t>::run_circuit_shots(
     Noise::NoiseModel dummy_noise;
     state_t state;
     uint_t i_shot, shot_end;
-    i_shot = num_local_shots_ * i / par_shots;
-    shot_end = num_local_shots_ * (i + 1) / par_shots;
+    i_shot = num_local_states_ * i / par_shots;
+    shot_end = num_local_states_ * (i + 1) / par_shots;
 
     auto fusion_pass = Base<state_t>::transpile_fusion(circ.opset(), config);
 
@@ -362,7 +364,7 @@ void MultiShotsExecutor<state_t>::run_circuit_shots(
 
     for (; i_shot < shot_end; i_shot++) {
       RngEngine rng;
-      rng.set_seed(circ.seed + global_shot_index_ + i_shot);
+      rng.set_seed(circ.seed + global_state_index_ + i_shot);
 
       int max_matrix_qubits;
       Circuit circ_opt;
@@ -456,12 +458,12 @@ void MultiShotsExecutor<state_t>::run_circuit_with_shot_branching(
   cregs_.resize(circ.shots);
 
   // reserve states
-  allocate_states(num_max_shots_);
+  allocate_states(num_max_shots_, config);
 
   // initialize local shots
-  std::vector<RngEngine> shots_storage(num_local_shots_);
-  for (int_t i = 0; i < num_local_shots_; i++) {
-    shots_storage[i].set_seed(circ.seed + global_shot_index_ + i);
+  std::vector<RngEngine> shots_storage(num_local_states_);
+  for (int_t i = 0; i < num_local_states_; i++) {
+    shots_storage[i].set_seed(circ.seed + global_state_index_ + i);
   }
 
   int_t par_shots =
@@ -482,7 +484,6 @@ void MultiShotsExecutor<state_t>::run_circuit_with_shot_branching(
     shots_storage.clear();
 
     // initialize initial state
-    states_[0].set_config(config);
     states_[0].set_parallelization(this->parallel_state_update_);
     states_[0].set_global_phase(circ.global_phase_angle);
     states_[0].enable_density_matrix(!BaseExecutor::has_statevector_ops_);
@@ -579,7 +580,6 @@ void MultiShotsExecutor<state_t>::run_circuit_with_shot_branching(
                   branches.push_back(branches[i]->branches()[j]);
                   branches[pos]->state_index() = pos;
                   // copy state to new branch
-                  states_[pos].set_config(config);
                   states_[pos].set_parallelization(this->parallel_state_update_);
                   states_[pos].set_global_phase(circ.global_phase_angle);
                   states_[pos].enable_density_matrix(!BaseExecutor::has_statevector_ops_);
@@ -660,7 +660,9 @@ void MultiShotsExecutor<state_t>::run_circuit_with_shot_branching(
               branches[istate]->rng_shots(), true);
         }
       };
-      Utils::apply_omp_parallel_for((par_shots > 1 && branches.size() > 1), 0,
+      bool can_parallel = par_shots > 1 && branches.size() > 1 &&
+                          !BaseExecutor::cuStateVec_enable_;
+      Utils::apply_omp_parallel_for(can_parallel, 0,
                                     par_shots, sampling_measure_func,
                                     par_shots);
     } else {
@@ -718,8 +720,8 @@ void MultiShotsExecutor<state_t>::run_circuit_with_shot_branching(
     //save cregs to result
     auto save_cregs = [this,&par_results, par_shots](int_t i){
       uint_t i_shot,shot_end;
-      i_shot = num_global_shots_*i/par_shots;
-      shot_end = num_global_shots_*(i+1)/par_shots;
+      i_shot = num_global_states_*i/par_shots;
+      shot_end = num_global_states_*(i+1)/par_shots;
 
       for(;i_shot<shot_end;i_shot++){
         if(cregs_[i_shot].memory_size() > 0) {
@@ -758,36 +760,36 @@ void MultiShotsExecutor<state_t>::gather_creg_memory(void) {
   // number of 64-bit integers per memory
   n64 = (states_[0].creg().memory_size() + 63) >> 6;
 
-  reg_t bin_memory(n64 * num_local_shots_, 0);
+  reg_t bin_memory(n64 * num_local_states_, 0);
   // compress memory string to binary
 #pragma omp parallel for private(i, j, i64, ibit)
   for (i = 0; i < num_local_shotss_; i++) {
     for (j = 0; j < states_[0].creg().memory_size(); j++) {
       i64 = j >> 6;
       ibit = j & 63;
-      if (states_[global_shot_index_ + i].creg().creg_memory()[j] == '1') {
+      if (states_[global_state_index_ + i].creg().creg_memory()[j] == '1') {
         bin_memory[i * n64 + i64] |= (1ull << ibit);
       }
     }
   }
 
-  reg_t recv(n64 * num_global_shots_);
+  reg_t recv(n64 * num_global_states_);
   std::vector<int> recv_counts(distributed_procs_);
   std::vector<int> recv_offset(distributed_procs_);
 
   for (i = 0; i < distributed_procs_; i++) {
-    recv_offset[i] = num_global_shots_ * i / distributed_procs_;
+    recv_offset[i] = num_global_states_ * i / distributed_procs_;
     recv_counts[i] =
-        (num_global_shots_ * (i + 1) / distributed_procs_) - recv_offset[i];
+        (num_global_states_ * (i + 1) / distributed_procs_) - recv_offset[i];
   }
 
-  MPI_Allgatherv(&bin_memory[0], n64 * num_local_shots_, MPI_UINT64_T, &recv[0],
+  MPI_Allgatherv(&bin_memory[0], n64 * num_local_states_, MPI_UINT64_T, &recv[0],
                  &recv_counts[0], &recv_offset[0], MPI_UINT64_T,
                  distributed_comm_);
 
   // store gathered memory
 #pragma omp parallel for private(i, j, i64, ibit)
-  for (i = 0; i < num_global_shots_; i++) {
+  for (i = 0; i < num_global_states_; i++) {
     for (j = 0; j < states_[0].creg().memory_size(); j++) {
       i64 = j >> 6;
       ibit = j & 63;

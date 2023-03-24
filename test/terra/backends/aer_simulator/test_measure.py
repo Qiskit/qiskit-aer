@@ -93,9 +93,6 @@ class TestMeasure(SimulatorTestCase):
         backend = self.backend(method=method, device=device)
         shots = 4000
         delta = 0.05
-        if "tensor_network" in method:
-            shots = 100
-            delta = 0.1
         circuits = ref_measure.measure_circuits_nondeterministic(allow_sampling=False)
         targets = ref_measure.measure_counts_nondeterministic(shots)
         result = backend.run(circuits, shots=shots).result()
@@ -195,9 +192,6 @@ class TestMeasure(SimulatorTestCase):
         backend = self.backend(method=method, device=device)
         shots = 4000
         delta = 0.05
-        if "tensor_network" in method:
-            shots = 100
-            delta = 0.1
         circuits = ref_measure.multiqubit_measure_circuits_nondeterministic(allow_sampling=False)
         targets = ref_measure.multiqubit_measure_counts_nondeterministic(shots)
         result = backend.run(circuits, shots=shots).result()

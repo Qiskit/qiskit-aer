@@ -262,17 +262,6 @@ protected:
 
   // multi-chunks are required to simulate circuits
   bool multi_chunk_required_ = false;
-
-  // config setting for multi-shot parallelization
-  bool batched_shots_gpu_ = true;
-  int_t batched_shots_gpu_max_qubits_ =
-      16; // multi-shot parallelization is applied if qubits is less than max
-          // qubits
-  bool enable_batch_multi_shots_ =
-      false; // multi-shot parallelization can be applied
-
-  // settings for cuStateVec
-  bool cuStateVec_enable_ = false;
 };
 
 //=========================================================================
@@ -349,15 +338,6 @@ void Controller::set_config(const Config &config) {
   if (config.blocking_qubits.has_value())
     cache_block_qubit_ = config.blocking_qubits.value();
 
-  // enable batched multi-shots/experiments optimization
-  batched_shots_gpu_ = config.batched_shots_gpu;
-  batched_shots_gpu_max_qubits_ = config.batched_shots_gpu_max_qubits;
-
-  // cuStateVec configs
-  cuStateVec_enable_ = false;
-  if (config.cuStateVec_enable.has_value())
-    cuStateVec_enable_ = config.cuStateVec_enable.value();
-
   // Override automatic simulation method with a fixed method
   std::string method = config.method;
   if (config.method == "statevector") {
@@ -381,9 +361,6 @@ void Controller::set_config(const Config &config) {
                              method + std::string(")."));
   }
 
-  if (method_ == Method::density_matrix || method_ == Method::unitary)
-    batched_shots_gpu_max_qubits_ /= 2;
-
   // Override automatic simulation method with a fixed method
   sim_device_name_ = config.device;
   if (sim_device_name_ == "CPU") {
@@ -402,10 +379,14 @@ void Controller::set_config(const Config &config) {
 #else
 
 #ifndef AER_CUSTATEVEC
-    if (cuStateVec_enable_) {
-      // Aer is not built for cuStateVec
-      throw std::runtime_error("Simulation device \"GPU\" does not support "
-                               "cuStateVec on this system");
+    // cuStateVec configs
+    cuStateVec_enable_ = false;
+    if (config.cuStateVec_enable.has_value()){
+      if(config.cuStateVec_enable.value()){
+        // Aer is not built for cuStateVec
+        throw std::runtime_error("Simulation device \"GPU\" does not support "
+                                 "cuStateVec on this system");
+      }
     }
 #endif
     int nDev;
@@ -482,21 +463,6 @@ void Controller::set_parallelization_experiments(
   std::sort(required_memory_mb_list.begin(), required_memory_mb_list.end(),
             std::greater<>());
 
-  // set max batchable number of circuits
-  if (batched_shots_gpu_) {
-    if (required_memory_mb_list[0] == 0 || max_qubits_ == 0)
-      max_batched_states_ = 1;
-    else {
-      if (sim_device_ == Device::GPU) {
-        max_batched_states_ = ((max_gpu_memory_mb_ / num_gpus_ * 8 / 10) /
-                               required_memory_mb_list[0]) *
-                              num_gpus_;
-      } else {
-        max_batched_states_ =
-            (max_memory_mb_ * 8 / 10) / required_memory_mb_list[0];
-      }
-    }
-  }
   if (max_qubits_ == 0)
     max_qubits_ = 1;
 
@@ -724,7 +690,11 @@ Result Controller::execute(std::vector<Circuit> &circuits,
       parallel_nested_ = true;
 
       // nested should be set to zero if num_threads clause will be used
+#if _OPENMP >= 200805
+      omp_set_max_active_levels(0);
+#else
       omp_set_nested(0);
+#endif
 
       result.metadata.add(parallel_nested_, "omp_nested");
     } else {

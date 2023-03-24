@@ -222,9 +222,9 @@ void ParallelExecutor<statevec_t>::initialize_qreg(uint_t num_qubits) {
   if (BaseExecutor::chunk_omp_parallel_ && BaseExecutor::num_groups_ > 0) {
 #pragma omp parallel for
     for (int_t ig = 0; ig < BaseExecutor::num_groups_; ig++) {
-      for (int_t iChunk = BaseExecutor::top_chunk_of_group_[ig];
-           iChunk < BaseExecutor::top_chunk_of_group_[ig + 1]; iChunk++) {
-        if (BaseExecutor::global_chunk_index_ + iChunk == 0 ||
+      for (int_t iChunk = BaseExecutor::top_state_of_group_[ig];
+           iChunk < BaseExecutor::top_state_of_group_[ig + 1]; iChunk++) {
+        if (BaseExecutor::global_state_index_ + iChunk == 0 ||
             this->num_qubits_ == this->chunk_bits_) {
           BaseExecutor::states_[iChunk].qreg().initialize();
         } else {
@@ -234,7 +234,7 @@ void ParallelExecutor<statevec_t>::initialize_qreg(uint_t num_qubits) {
     }
   } else {
     for (i = 0; i < BaseExecutor::states_.size(); i++) {
-      if (BaseExecutor::global_chunk_index_ + i == 0 ||
+      if (BaseExecutor::global_state_index_ + i == 0 ||
           this->num_qubits_ == this->chunk_bits_) {
         BaseExecutor::states_[i].qreg().initialize();
       } else {
@@ -251,14 +251,14 @@ auto ParallelExecutor<statevec_t>::move_to_vector(void) {
   size_t size_required =
       2 * (sizeof(std::complex<double>) << BaseExecutor::num_qubits_) +
       (sizeof(std::complex<double>) << BaseExecutor::chunk_bits_) *
-          BaseExecutor::num_local_chunks_;
+          BaseExecutor::num_local_states_;
   if ((size_required >> 20) > Utils::get_system_memory_mb()) {
     throw std::runtime_error(
         std::string("There is not enough memory to store states"));
   }
   int_t iChunk;
   auto state = BaseExecutor::states_[0].qreg().move_to_vector();
-  state.resize(BaseExecutor::num_local_chunks_ << BaseExecutor::chunk_bits_);
+  state.resize(BaseExecutor::num_local_states_ << BaseExecutor::chunk_bits_);
 
 #pragma omp parallel for if (BaseExecutor::chunk_omp_parallel_) private(iChunk)
   for (iChunk = 1; iChunk < BaseExecutor::states_.size(); iChunk++) {
@@ -280,14 +280,14 @@ auto ParallelExecutor<statevec_t>::copy_to_vector(void) {
   size_t size_required =
       2 * (sizeof(std::complex<double>) << BaseExecutor::num_qubits_) +
       (sizeof(std::complex<double>) << BaseExecutor::chunk_bits_) *
-          BaseExecutor::num_local_chunks_;
+          BaseExecutor::num_local_states_;
   if ((size_required >> 20) > Utils::get_system_memory_mb()) {
     throw std::runtime_error(
         std::string("There is not enough memory to store states"));
   }
   int_t iChunk;
   auto state = BaseExecutor::states_[0].qreg().copy_to_vector();
-  state.resize(BaseExecutor::num_local_chunks_ << BaseExecutor::chunk_bits_);
+  state.resize(BaseExecutor::num_local_states_ << BaseExecutor::chunk_bits_);
 
 #pragma omp parallel for if (BaseExecutor::chunk_omp_parallel_) private(iChunk)
   for (iChunk = 1; iChunk < BaseExecutor::states_.size(); iChunk++) {
@@ -390,8 +390,8 @@ double ParallelExecutor<statevec_t>::expval_pauli(const reg_t &qubits,
                                          mask_l, qubits_in_chunk,
                                          pauli_in_chunk, phase](int_t iGroup) {
           double expval = 0.0;
-          for (int_t iChunk = BaseExecutor::top_chunk_of_group_[iGroup];
-               iChunk < BaseExecutor::top_chunk_of_group_[iGroup + 1];
+          for (int_t iChunk = BaseExecutor::top_state_of_group_[iGroup];
+               iChunk < BaseExecutor::top_state_of_group_[iGroup + 1];
                iChunk++) {
             uint_t pair_chunk = iChunk ^ x_mask;
             if (iChunk < pair_chunk) {
@@ -401,7 +401,7 @@ double ParallelExecutor<statevec_t>::expval_pauli(const reg_t &qubits,
 
               expval +=
                   BaseExecutor::states_[iChunk -
-                                        BaseExecutor::global_chunk_index_]
+                                        BaseExecutor::global_state_index_]
                       .qreg()
                       .expval_pauli(qubits_in_chunk, pauli_in_chunk,
                                     BaseExecutor::states_[pair_chunk].qreg(),
@@ -413,15 +413,15 @@ double ParallelExecutor<statevec_t>::expval_pauli(const reg_t &qubits,
         expval += Utils::apply_omp_parallel_for_reduction(
             (BaseExecutor::chunk_omp_parallel_ &&
              BaseExecutor::num_groups_ > 0),
-            0, BaseExecutor::num_global_chunks_ / 2, apply_expval_pauli_chunk);
+            0, BaseExecutor::num_global_states_ / 2, apply_expval_pauli_chunk);
       } else {
-        for (int_t i = 0; i < BaseExecutor::num_global_chunks_ / 2; i++) {
+        for (int_t i = 0; i < BaseExecutor::num_global_states_ / 2; i++) {
           uint_t iChunk = ((i << 1) & mask_u) | (i & mask_l);
           uint_t pair_chunk = iChunk ^ x_mask;
           uint_t iProc = BaseExecutor::get_process_by_chunk(pair_chunk);
-          if (BaseExecutor::chunk_index_begin_
+          if (BaseExecutor::state_index_begin_
                       [BaseExecutor::distributed_rank_] <= iChunk &&
-              BaseExecutor::chunk_index_end_[BaseExecutor::distributed_rank_] >
+              BaseExecutor::state_index_end_[BaseExecutor::distributed_rank_] >
                   iChunk) { // on this process
             uint_t z_count, z_count_pair;
             z_count = AER::Utils::popcount(iChunk & z_mask);
@@ -431,31 +431,31 @@ double ParallelExecutor<statevec_t>::expval_pauli(const reg_t &qubits,
                                                             // same process
               expval +=
                   BaseExecutor::states_[iChunk -
-                                        BaseExecutor::global_chunk_index_]
+                                        BaseExecutor::global_state_index_]
                       .qreg()
                       .expval_pauli(
                           qubits_in_chunk, pauli_in_chunk,
                           BaseExecutor::states_
-                              [pair_chunk - BaseExecutor::global_chunk_index_]
+                              [pair_chunk - BaseExecutor::global_state_index_]
                                   .qreg(),
                           z_count, z_count_pair, phase);
             } else {
               BaseExecutor::recv_chunk(
-                  iChunk - BaseExecutor::global_chunk_index_, pair_chunk);
+                  iChunk - BaseExecutor::global_state_index_, pair_chunk);
               // refer receive buffer to calculate expectation value
               expval += BaseExecutor::states_[iChunk -
-                                              BaseExecutor::global_chunk_index_]
+                                              BaseExecutor::global_state_index_]
                             .qreg()
                             .expval_pauli(
                                 qubits_in_chunk, pauli_in_chunk,
                                 BaseExecutor::states_
-                                    [iChunk - BaseExecutor::global_chunk_index_]
+                                    [iChunk - BaseExecutor::global_state_index_]
                                         .qreg(),
                                 z_count, z_count_pair, phase);
             }
           } else if (iProc == BaseExecutor::distributed_rank_) { // pair is on
                                                                  // this process
-            BaseExecutor::send_chunk(iChunk - BaseExecutor::global_chunk_index_,
+            BaseExecutor::send_chunk(iChunk - BaseExecutor::global_state_index_,
                                      pair_chunk);
           }
         }
@@ -466,12 +466,12 @@ double ParallelExecutor<statevec_t>::expval_pauli(const reg_t &qubits,
 #pragma omp parallel for reduction(+ : expval)
         for (int_t ig = 0; ig < BaseExecutor::num_groups_; ig++) {
           double e_tmp = 0.0;
-          for (int_t iChunk = BaseExecutor::top_chunk_of_group_[ig];
-               iChunk < BaseExecutor::top_chunk_of_group_[ig + 1]; iChunk++) {
+          for (int_t iChunk = BaseExecutor::top_state_of_group_[ig];
+               iChunk < BaseExecutor::top_state_of_group_[ig + 1]; iChunk++) {
             double sign = 1.0;
             if (z_mask &&
                 (AER::Utils::popcount(
-                     (iChunk + BaseExecutor::global_chunk_index_) & z_mask) &
+                     (iChunk + BaseExecutor::global_state_index_) & z_mask) &
                  1))
               sign = -1.0;
             e_tmp += sign * BaseExecutor::states_[iChunk].qreg().expval_pauli(
@@ -483,7 +483,7 @@ double ParallelExecutor<statevec_t>::expval_pauli(const reg_t &qubits,
         for (i = 0; i < BaseExecutor::states_.size(); i++) {
           double sign = 1.0;
           if (z_mask && (AER::Utils::popcount(
-                             (i + BaseExecutor::global_chunk_index_) & z_mask) &
+                             (i + BaseExecutor::global_state_index_) & z_mask) &
                          1))
             sign = -1.0;
           expval += sign * BaseExecutor::states_[i].qreg().expval_pauli(
@@ -496,8 +496,8 @@ double ParallelExecutor<statevec_t>::expval_pauli(const reg_t &qubits,
 #pragma omp parallel for reduction(+ : expval)
       for (int_t ig = 0; ig < BaseExecutor::num_groups_; ig++) {
         double e_tmp = 0.0;
-        for (int_t iChunk = BaseExecutor::top_chunk_of_group_[ig];
-             iChunk < BaseExecutor::top_chunk_of_group_[ig + 1]; iChunk++)
+        for (int_t iChunk = BaseExecutor::top_state_of_group_[ig];
+             iChunk < BaseExecutor::top_state_of_group_[ig + 1]; iChunk++)
           e_tmp +=
               BaseExecutor::states_[iChunk].qreg().expval_pauli(qubits, pauli);
         expval += e_tmp;
@@ -600,11 +600,11 @@ void ParallelExecutor<statevec_t>::apply_save_amplitudes(
       uint_t idx = BaseExecutor::mapped_index(op.int_params[i]);
       uint_t iChunk = idx >> BaseExecutor::chunk_bits_;
       amps[i] = 0.0;
-      if (iChunk >= BaseExecutor::global_chunk_index_ &&
-          iChunk < BaseExecutor::global_chunk_index_ +
+      if (iChunk >= BaseExecutor::global_state_index_ &&
+          iChunk < BaseExecutor::global_state_index_ +
                        BaseExecutor::states_.size()) {
         amps[i] =
-            BaseExecutor::states_[iChunk - BaseExecutor::global_chunk_index_]
+            BaseExecutor::states_[iChunk - BaseExecutor::global_state_index_]
                 .qreg()
                 .get_state(idx - (iChunk << BaseExecutor::chunk_bits_));
       }
@@ -622,11 +622,11 @@ void ParallelExecutor<statevec_t>::apply_save_amplitudes(
     for (int_t i = 0; i < size; ++i) {
       uint_t idx = BaseExecutor::mapped_index(op.int_params[i]);
       uint_t iChunk = idx >> BaseExecutor::chunk_bits_;
-      if (iChunk >= BaseExecutor::global_chunk_index_ &&
-          iChunk < BaseExecutor::global_chunk_index_ +
+      if (iChunk >= BaseExecutor::global_state_index_ &&
+          iChunk < BaseExecutor::global_state_index_ +
                        BaseExecutor::states_.size()) {
         amps_sq[i] =
-            BaseExecutor::states_[iChunk - BaseExecutor::global_chunk_index_]
+            BaseExecutor::states_[iChunk - BaseExecutor::global_state_index_]
                 .qreg()
                 .probability(idx - (iChunk << BaseExecutor::chunk_bits_));
       }
@@ -717,8 +717,8 @@ ParallelExecutor<statevec_t>::measure_probs(const reg_t &qubits) const {
     if (BaseExecutor::chunk_omp_parallel_ && BaseExecutor::num_groups_ > 0) {
 #pragma omp parallel for private(i, j, k)
       for (int_t ig = 0; ig < BaseExecutor::num_groups_; ig++) {
-        for (int_t i = BaseExecutor::top_chunk_of_group_[ig];
-             i < BaseExecutor::top_chunk_of_group_[ig + 1]; i++) {
+        for (int_t i = BaseExecutor::top_state_of_group_[ig];
+             i < BaseExecutor::top_state_of_group_[ig + 1]; i++) {
           auto chunkSum =
               BaseExecutor::states_[i].qreg().probabilities(qubits_in_chunk);
 
@@ -736,7 +736,7 @@ ParallelExecutor<statevec_t>::measure_probs(const reg_t &qubits) const {
                   idx += (((j >> i_in) & 1) << k);
                   i_in++;
                 } else {
-                  if ((((i + BaseExecutor::global_chunk_index_)
+                  if ((((i + BaseExecutor::global_state_index_)
                         << BaseExecutor::chunk_bits_) >>
                        qubits[k]) &
                       1) {
@@ -768,7 +768,7 @@ ParallelExecutor<statevec_t>::measure_probs(const reg_t &qubits) const {
                 idx += (((j >> i_in) & 1) << k);
                 i_in++;
               } else {
-                if ((((i + BaseExecutor::global_chunk_index_)
+                if ((((i + BaseExecutor::global_state_index_)
                       << BaseExecutor::chunk_bits_) >>
                      qubits[k]) &
                     1) {
@@ -785,12 +785,12 @@ ParallelExecutor<statevec_t>::measure_probs(const reg_t &qubits) const {
     if (BaseExecutor::chunk_omp_parallel_ && BaseExecutor::num_groups_ > 0) {
 #pragma omp parallel for private(i, j, k)
       for (int_t ig = 0; ig < BaseExecutor::num_groups_; ig++) {
-        for (int_t i = BaseExecutor::top_chunk_of_group_[ig];
-             i < BaseExecutor::top_chunk_of_group_[ig + 1]; i++) {
+        for (int_t i = BaseExecutor::top_state_of_group_[ig];
+             i < BaseExecutor::top_state_of_group_[ig + 1]; i++) {
           auto nr = std::real(BaseExecutor::states_[i].qreg().norm());
           int idx = 0;
           for (k = 0; k < qubits_out_chunk.size(); k++) {
-            if ((((i + BaseExecutor::global_chunk_index_)
+            if ((((i + BaseExecutor::global_state_index_)
                   << (BaseExecutor::chunk_bits_)) >>
                  qubits_out_chunk[k]) &
                 1) {
@@ -806,7 +806,7 @@ ParallelExecutor<statevec_t>::measure_probs(const reg_t &qubits) const {
         auto nr = std::real(BaseExecutor::states_[i].qreg().norm());
         int idx = 0;
         for (k = 0; k < qubits_out_chunk.size(); k++) {
-          if ((((i + BaseExecutor::global_chunk_index_)
+          if ((((i + BaseExecutor::global_state_index_)
                 << (BaseExecutor::chunk_bits_)) >>
                qubits_out_chunk[k]) &
               1) {
@@ -862,14 +862,14 @@ void ParallelExecutor<statevec_t>::measure_reset_update(
     if (BaseExecutor::chunk_omp_parallel_ && BaseExecutor::num_groups_ > 1) {
 #pragma omp parallel for
       for (int_t ig = 0; ig < BaseExecutor::num_groups_; ig++) {
-        for (int_t ic = BaseExecutor::top_chunk_of_group_[ig];
-             ic < BaseExecutor::top_chunk_of_group_[ig + 1]; ic++)
+        for (int_t ic = BaseExecutor::top_state_of_group_[ig];
+             ic < BaseExecutor::top_state_of_group_[ig + 1]; ic++)
           BaseExecutor::states_[ic].apply_diagonal_matrix(qubits, mdiag);
       }
     } else {
       for (int_t ig = 0; ig < BaseExecutor::num_groups_; ig++) {
-        for (int_t ic = BaseExecutor::top_chunk_of_group_[ig];
-             ic < BaseExecutor::top_chunk_of_group_[ig + 1]; ic++)
+        for (int_t ic = BaseExecutor::top_state_of_group_[ig];
+             ic < BaseExecutor::top_state_of_group_[ig + 1]; ic++)
           BaseExecutor::states_[ic].apply_diagonal_matrix(qubits, mdiag);
       }
     }
@@ -889,14 +889,14 @@ void ParallelExecutor<statevec_t>::measure_reset_update(
     if (BaseExecutor::chunk_omp_parallel_ && BaseExecutor::num_groups_ > 1) {
 #pragma omp parallel for
       for (int_t ig = 0; ig < BaseExecutor::num_groups_; ig++) {
-        for (int_t ic = BaseExecutor::top_chunk_of_group_[ig];
-             ic < BaseExecutor::top_chunk_of_group_[ig + 1]; ic++)
+        for (int_t ic = BaseExecutor::top_state_of_group_[ig];
+             ic < BaseExecutor::top_state_of_group_[ig + 1]; ic++)
           BaseExecutor::states_[ic].apply_diagonal_matrix(qubits, mdiag);
       }
     } else {
       for (int_t ig = 0; ig < BaseExecutor::num_groups_; ig++) {
-        for (int_t ic = BaseExecutor::top_chunk_of_group_[ig];
-             ic < BaseExecutor::top_chunk_of_group_[ig + 1]; ic++)
+        for (int_t ic = BaseExecutor::top_state_of_group_[ig];
+             ic < BaseExecutor::top_state_of_group_[ig + 1]; ic++)
           BaseExecutor::states_[ic].apply_diagonal_matrix(qubits, mdiag);
       }
     }
@@ -925,14 +925,14 @@ void ParallelExecutor<statevec_t>::measure_reset_update(
             BaseExecutor::num_groups_ > 1) {
 #pragma omp parallel for
           for (int_t ig = 0; ig < BaseExecutor::num_groups_; ig++) {
-            for (int_t ic = BaseExecutor::top_chunk_of_group_[ig];
-                 ic < BaseExecutor::top_chunk_of_group_[ig + 1]; ic++)
+            for (int_t ic = BaseExecutor::top_state_of_group_[ig];
+                 ic < BaseExecutor::top_state_of_group_[ig + 1]; ic++)
               BaseExecutor::states_[ic].qreg().apply_matrix(qubits, perm);
           }
         } else {
           for (int_t ig = 0; ig < BaseExecutor::num_groups_; ig++) {
-            for (int_t ic = BaseExecutor::top_chunk_of_group_[ig];
-                 ic < BaseExecutor::top_chunk_of_group_[ig + 1]; ic++)
+            for (int_t ic = BaseExecutor::top_state_of_group_[ig];
+                 ic < BaseExecutor::top_state_of_group_[ig + 1]; ic++)
               BaseExecutor::states_[ic].qreg().apply_matrix(qubits, perm);
           }
         }
@@ -967,8 +967,8 @@ ParallelExecutor<statevec_t>::sample_measure(const reg_t &qubits, uint_t shots,
   if (BaseExecutor::chunk_omp_parallel_ && BaseExecutor::num_groups_ > 1) {
 #pragma omp parallel for
     for (int_t ig = 0; ig < BaseExecutor::num_groups_; ig++) {
-      for (int_t ic = BaseExecutor::top_chunk_of_group_[ig];
-           ic < BaseExecutor::top_chunk_of_group_[ig + 1]; ic++) {
+      for (int_t ic = BaseExecutor::top_state_of_group_[ig];
+           ic < BaseExecutor::top_state_of_group_[ig + 1]; ic++) {
         bool batched = BaseExecutor::states_[ic].qreg().enable_batch(
             true); // return sum of all chunks in group
         chunkSum[ic] = BaseExecutor::states_[ic].qreg().norm();
@@ -977,8 +977,8 @@ ParallelExecutor<statevec_t>::sample_measure(const reg_t &qubits, uint_t shots,
     }
   } else {
     for (int_t ig = 0; ig < BaseExecutor::num_groups_; ig++) {
-      for (int_t ic = BaseExecutor::top_chunk_of_group_[ig];
-           ic < BaseExecutor::top_chunk_of_group_[ig + 1]; ic++) {
+      for (int_t ic = BaseExecutor::top_state_of_group_[ig];
+           ic < BaseExecutor::top_state_of_group_[ig + 1]; ic++) {
         bool batched = BaseExecutor::states_[ic].qreg().enable_batch(
             true); // return sum of all chunks in group
         chunkSum[ic] = BaseExecutor::states_[ic].qreg().norm();
@@ -1033,7 +1033,7 @@ ParallelExecutor<statevec_t>::sample_measure(const reg_t &qubits, uint_t shots,
       auto chunkSamples = BaseExecutor::states_[i].qreg().sample_measure(vRnd);
 
       for (j = 0; j < chunkSamples.size(); j++) {
-        local_samples[vIdx[j]] = ((BaseExecutor::global_chunk_index_ + i)
+        local_samples[vIdx[j]] = ((BaseExecutor::global_state_index_ + i)
                                   << BaseExecutor::chunk_bits_) +
                                  chunkSamples[j];
       }
@@ -1088,8 +1088,8 @@ void ParallelExecutor<statevec_t>::apply_initialize(const reg_t &qubits,
     if (BaseExecutor::chunk_omp_parallel_ && BaseExecutor::num_groups_ > 0) {
 #pragma omp parallel for
       for (int_t ig = 0; ig < BaseExecutor::num_groups_; ig++) {
-        for (int_t i = BaseExecutor::top_chunk_of_group_[ig];
-             i < BaseExecutor::top_chunk_of_group_[ig + 1]; i++)
+        for (int_t i = BaseExecutor::top_state_of_group_[ig];
+             i < BaseExecutor::top_state_of_group_[ig + 1]; i++)
           BaseExecutor::states_[i].qreg().initialize_component(qubits, params);
       }
     } else {
@@ -1142,14 +1142,14 @@ void ParallelExecutor<statevec_t>::apply_initialize(const reg_t &qubits,
               ic += (1ull << (qubits_out_chunk[t] - BaseExecutor::chunk_bits_));
           }
 
-          if (ic >= BaseExecutor::chunk_index_begin_
+          if (ic >= BaseExecutor::state_index_begin_
                         [BaseExecutor::distributed_rank_] &&
-              ic < BaseExecutor::chunk_index_end_
+              ic < BaseExecutor::state_index_end_
                        [BaseExecutor::distributed_rank_]) { // on this process
-            if (baseChunk >= BaseExecutor::chunk_index_begin_
+            if (baseChunk >= BaseExecutor::state_index_begin_
                                  [BaseExecutor::distributed_rank_] &&
                 baseChunk <
-                    BaseExecutor::chunk_index_end_
+                    BaseExecutor::state_index_end_
                         [BaseExecutor::distributed_rank_]) { // base chunk is on
                                                              // this process
               BaseExecutor::states_[ic].qreg().initialize_from_data(
@@ -1165,15 +1165,15 @@ void ParallelExecutor<statevec_t>::apply_initialize(const reg_t &qubits,
               BaseExecutor::states_[ic].qreg().apply_chunk_swap(swap,
                                                                 baseChunk);
             }
-          } else if (baseChunk >= BaseExecutor::chunk_index_begin_
+          } else if (baseChunk >= BaseExecutor::state_index_begin_
                                       [BaseExecutor::distributed_rank_] &&
                      baseChunk <
-                         BaseExecutor::chunk_index_end_
+                         BaseExecutor::state_index_end_
                              [BaseExecutor::distributed_rank_]) { // base chunk
                                                                   // is on this
                                                                   // process
             BaseExecutor::send_chunk(
-                baseChunk - BaseExecutor::global_chunk_index_, ic);
+                baseChunk - BaseExecutor::global_state_index_, ic);
           }
         }
       }
@@ -1183,8 +1183,8 @@ void ParallelExecutor<statevec_t>::apply_initialize(const reg_t &qubits,
     if (BaseExecutor::chunk_omp_parallel_ && BaseExecutor::num_groups_ > 0) {
 #pragma omp parallel for
       for (int_t ig = 0; ig < BaseExecutor::num_groups_; ig++) {
-        for (int_t i = BaseExecutor::top_chunk_of_group_[ig];
-             i < BaseExecutor::top_chunk_of_group_[ig + 1]; i++)
+        for (int_t i = BaseExecutor::top_state_of_group_[ig];
+             i < BaseExecutor::top_state_of_group_[ig + 1]; i++)
           BaseExecutor::states_[i].qreg().apply_diagonal_matrix(qubits, params);
       }
     } else {
@@ -1197,7 +1197,7 @@ void ParallelExecutor<statevec_t>::apply_initialize(const reg_t &qubits,
 template <class statevec_t>
 void ParallelExecutor<statevec_t>::initialize_from_vector(
     const cvector_t &params) {
-  uint_t local_offset = BaseExecutor::global_chunk_index_
+  uint_t local_offset = BaseExecutor::global_state_index_
                         << BaseExecutor::chunk_bits_;
 
 #pragma omp parallel for if (BaseExecutor::chunk_omp_parallel_)
@@ -1243,8 +1243,8 @@ void ParallelExecutor<statevec_t>::apply_kraus(
     if (BaseExecutor::chunk_omp_parallel_ && BaseExecutor::num_groups_ > 0) {
 #pragma omp parallel for reduction(+ : p)
       for (int_t ig = 0; ig < BaseExecutor::num_groups_; ig++) {
-        for (int_t i = BaseExecutor::top_chunk_of_group_[ig];
-             i < BaseExecutor::top_chunk_of_group_[ig + 1]; i++)
+        for (int_t i = BaseExecutor::top_state_of_group_[ig];
+             i < BaseExecutor::top_state_of_group_[ig + 1]; i++)
           p += BaseExecutor::states_[i].qreg().norm(qubits, vmat);
       }
     } else {
@@ -1265,14 +1265,14 @@ void ParallelExecutor<statevec_t>::apply_kraus(
       if (BaseExecutor::chunk_omp_parallel_ && BaseExecutor::num_groups_ > 1) {
 #pragma omp parallel for
         for (int_t ig = 0; ig < BaseExecutor::num_groups_; ig++) {
-          for (int_t ic = BaseExecutor::top_chunk_of_group_[ig];
-               ic < BaseExecutor::top_chunk_of_group_[ig + 1]; ic++)
+          for (int_t ic = BaseExecutor::top_state_of_group_[ig];
+               ic < BaseExecutor::top_state_of_group_[ig + 1]; ic++)
             BaseExecutor::states_[ic].qreg().apply_matrix(qubits, vmat);
         }
       } else {
         for (int_t ig = 0; ig < BaseExecutor::num_groups_; ig++) {
-          for (int_t ic = BaseExecutor::top_chunk_of_group_[ig];
-               ic < BaseExecutor::top_chunk_of_group_[ig + 1]; ic++)
+          for (int_t ic = BaseExecutor::top_state_of_group_[ig];
+               ic < BaseExecutor::top_state_of_group_[ig + 1]; ic++)
             BaseExecutor::states_[ic].qreg().apply_matrix(qubits, vmat);
         }
       }
@@ -1289,14 +1289,14 @@ void ParallelExecutor<statevec_t>::apply_kraus(
     if (BaseExecutor::chunk_omp_parallel_ && BaseExecutor::num_groups_ > 1) {
 #pragma omp parallel for
       for (int_t ig = 0; ig < BaseExecutor::num_groups_; ig++) {
-        for (int_t ic = BaseExecutor::top_chunk_of_group_[ig];
-             ic < BaseExecutor::top_chunk_of_group_[ig + 1]; ic++)
+        for (int_t ic = BaseExecutor::top_state_of_group_[ig];
+             ic < BaseExecutor::top_state_of_group_[ig + 1]; ic++)
           BaseExecutor::states_[ic].qreg().apply_matrix(qubits, vmat);
       }
     } else {
       for (int_t ig = 0; ig < BaseExecutor::num_groups_; ig++) {
-        for (int_t ic = BaseExecutor::top_chunk_of_group_[ig];
-             ic < BaseExecutor::top_chunk_of_group_[ig + 1]; ic++)
+        for (int_t ic = BaseExecutor::top_state_of_group_[ig];
+             ic < BaseExecutor::top_state_of_group_[ig + 1]; ic++)
           BaseExecutor::states_[ic].qreg().apply_matrix(qubits, vmat);
       }
     }

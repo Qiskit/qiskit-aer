@@ -473,7 +473,8 @@ void Base<state_t>::set_parallelization(const Circuit &circ,
     break;
   }
   case Method::density_matrix:
-  case Method::superop: {
+  case Method::superop:
+  case Method::tensor_network: {
     if (circ.shots == 1 || num_process_per_experiment_ > 1 ||
         check_measure_sampling_opt(circ)) {
       parallel_shots_ = 1;
@@ -549,7 +550,7 @@ void Base<state_t>::run_circuit(Circuit &circ, const Noise::NoiseModel &noise,
     result.set_config(config);
     result.metadata.add(method_names_.at(method), "method");
     if (method == Method::statevector || method == Method::density_matrix ||
-        method == Method::unitary) {
+        method == Method::unitary || method == Method::tensor_network) {
       result.metadata.add(sim_device_name_, "device");
     } else {
       result.metadata.add("CPU", "device");
@@ -589,7 +590,8 @@ void Base<state_t>::run_circuit(Circuit &circ, const Noise::NoiseModel &noise,
         result.metadata.add("readout", "noise");
       }
       // Superop noise sampling
-      else if (method == Method::density_matrix || method == Method::superop) {
+      else if (method == Method::density_matrix || method == Method::superop ||
+               (method == Method::tensor_network && !has_statevector_ops_)) {
         // Sample noise using SuperOp method
         opt_circ =
             noise.sample_noise(circ, rng, Noise::NoiseModel::Method::superop);
@@ -621,7 +623,6 @@ void Base<state_t>::run_circuit(Circuit &circ, const Noise::NoiseModel &noise,
           run_circuit_shots(opt_circ, noise, config, result, false);
       }
     }
-
     // Report success
     result.status = ExperimentResult::Status::completed;
 
@@ -631,6 +632,9 @@ void Base<state_t>::run_circuit(Circuit &circ, const Noise::NoiseModel &noise,
     result.seed = circ.seed;
     result.metadata.add(parallel_shots_, "parallel_shots");
     result.metadata.add(parallel_state_update_, "parallel_state_update");
+#ifdef AER_CUSTATEVEC
+    result.metadata.add(cuStateVec_enable_, "cuStateVec_enable");
+#endif
 
     // Add timer data
     auto timer_stop = myclock_t::now(); // stop timer
@@ -654,6 +658,7 @@ void Base<state_t>::run_with_sampling(const Circuit &circ, state_t &state,
   bool final_ops = (first_meas == ops.size());
 
   // allocate qubit register
+  state.enable_cuStateVec(cuStateVec_enable_);
   state.allocate(circ.num_qubits, circ.num_qubits);
   state.set_num_global_qubits(circ.num_qubits);
   state.enable_density_matrix(!has_statevector_ops_);
@@ -677,10 +682,6 @@ void Base<state_t>::run_circuit_with_sampling(Circuit &circ,
                                               const Config &config,
                                               ExperimentResult &result) {
   state_t state;
-  // Set state config
-  state.set_config(config);
-  state.set_parallelization(parallel_state_update_);
-  state.set_global_phase(circ.global_phase_angle);
 
   // Optimize circuit
   Noise::NoiseModel dummy_noise;
@@ -692,8 +693,14 @@ void Base<state_t>::run_circuit_with_sampling(Circuit &circ,
 
   // Implement measure sampler
   if (parallel_shots_ <= 1) {
+    // Set state config
+    state.set_config(config);
+    state.set_parallelization(parallel_state_update_);
+    state.set_global_phase(circ.global_phase_angle);
+
     state.set_distribution(1);
     state.set_max_matrix_qubits(max_bits);
+
     RngEngine rng;
     rng.set_seed(circ.seed);
     run_with_sampling(circ, state, result, rng, circ.shots);
@@ -944,6 +951,20 @@ Base<state_t>::transpile_fusion(const Operations::OpSet &opset,
     fusion_pass.threshold /= 2;
     break;
   }
+  case Method::tensor_network: {
+    if (opset.contains(Operations::OpType::save_statevec) ||
+        opset.contains(Operations::OpType::save_statevec_dict)) {
+      if (fusion_pass.allow_kraus) {
+        // Halve default max fused qubits for Kraus noise fusion
+        fusion_pass.max_qubit /= 2;
+      }
+    } else {
+      // Halve the default threshold and max fused qubits for density matrix
+      fusion_pass.threshold /= 2;
+      fusion_pass.max_qubit /= 2;
+    }
+    break;
+  }
   default: {
     fusion_pass.active = false;
     return fusion_pass;
@@ -995,6 +1016,14 @@ bool Base<state_t>::check_measure_sampling_opt(const Circuit &circ) const {
   if (method_ == Method::density_matrix || method_ == Method::superop ||
       method_ == Method::unitary) {
     return true;
+  }
+  if (method_ == Method::tensor_network) {
+    // if there are no save statevec ops, tensor network simulator runs as
+    // density matrix simulator
+    if ((!circ.opset().contains(Operations::OpType::save_statevec)) &&
+        (!circ.opset().contains(Operations::OpType::save_statevec_dict))) {
+      return true;
+    }
   }
 
   // If circuit contains a non-initial initialize that is not a full width

@@ -53,7 +53,8 @@ const std::unordered_map<Method, std::string> method_names_ = {
     {Method::stabilizer, "stabilizer"},
     {Method::extended_stabilizer, "extended_stabilizer"},
     {Method::unitary, "unitary"},
-    {Method::superop, "superop"}};
+    {Method::superop, "superop"},
+    {Method::tensor_network, "tensor_network"}};
 
 //-------------------------------------------------------------------------
 } // end namespace AER

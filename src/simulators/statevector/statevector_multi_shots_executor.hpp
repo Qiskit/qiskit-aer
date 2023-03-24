@@ -96,8 +96,8 @@ void MultiShotsExecutor<statevec_t>::apply_global_phase() {
     if (BaseExecutor::shot_omp_parallel_ && BaseExecutor::num_groups_ > 0) {
 #pragma omp parallel for
       for (int_t ig = 0; ig < BaseExecutor::num_groups_; ig++) {
-        for (int_t iChunk = BaseExecutor::top_shot_of_group_[ig];
-             iChunk < BaseExecutor::top_shot_of_group_[ig + 1]; iChunk++)
+        for (int_t iChunk = BaseExecutor::top_state_of_group_[ig];
+             iChunk < BaseExecutor::top_state_of_group_[ig + 1]; iChunk++)
           BaseExecutor::states_[iChunk].apply_diagonal_matrix(
               {0}, {BaseExecutor::global_phase_, BaseExecutor::global_phase_});
       }

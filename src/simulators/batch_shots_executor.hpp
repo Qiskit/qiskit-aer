@@ -53,7 +53,7 @@ protected:
   void set_parallelization(const Circuit &circ,
                            const Noise::NoiseModel &noise) override;
 
-  bool allocate_states(uint_t num_shots) override;
+  bool allocate_states(uint_t num_shots, const Config &config) override;
 
   void run_circuit_shots(Circuit &circ, const Noise::NoiseModel &noise,
                          const Config &config, ExperimentResult &result,
@@ -114,20 +114,23 @@ void BatchShotsExecutor<state_t>::set_parallelization(
   enable_batch_multi_shots_ = false;
   if (batched_shots_gpu_ && BaseExecutor::sim_device_ != Device::CPU) {
     enable_batch_multi_shots_ = true;
-    if (BaseExecutor::cuStateVec_enable_)
-      enable_batch_multi_shots_ = false;
     if (circ.num_qubits >= batched_shots_gpu_max_qubits_)
       enable_batch_multi_shots_ = false;
-    if (circ.shots == 1)
+    else if (circ.shots == 1)
       enable_batch_multi_shots_ = false;
   }
 
   if (!enable_batch_multi_shots_)
     BaseExecutor::set_parallelization(circ, noise);
+
+  //disable cuStateVec for batch-shots optimization
+  if(BaseExecutor::cuStateVec_enable_)
+    BaseExecutor::cuStateVec_enable_ = false;
 }
 
 template <class state_t>
-bool BatchShotsExecutor<state_t>::allocate_states(uint_t num_shots) {
+bool BatchShotsExecutor<state_t>::allocate_states(uint_t num_shots,
+                                                  const Config &config) {
   int_t i;
   bool init_states = true;
   bool ret = true;
@@ -151,17 +154,19 @@ bool BatchShotsExecutor<state_t>::allocate_states(uint_t num_shots) {
     }
 
     // allocate qregs
+    BaseExecutor::states_[0].set_config(config);
     BaseExecutor::states_[0].qreg().set_max_matrix_bits(
         BaseExecutor::max_matrix_qubits_);
     BaseExecutor::states_[0].qreg().set_num_threads_per_group(
         BaseExecutor::num_threads_per_group_);
+    BaseExecutor::states_[0].set_num_global_qubits(BaseExecutor::num_qubits_);
     BaseExecutor::states_[0].qreg().cuStateVec_enable(
         BaseExecutor::cuStateVec_enable_);
-    BaseExecutor::states_[0].set_num_global_qubits(BaseExecutor::num_qubits_);
     ret &= BaseExecutor::states_[0].qreg().chunk_setup(
         BaseExecutor::num_qubits_ * this->qubit_scale(),
         BaseExecutor::num_qubits_ * this->qubit_scale(), 0, num_shots);
     for (i = 1; i < num_shots; i++) {
+      BaseExecutor::states_[i].set_config(config);
       ret &= BaseExecutor::states_[i].qreg().chunk_setup(
           BaseExecutor::states_[0].qreg(), 0);
       BaseExecutor::states_[i].qreg().set_num_threads_per_group(
@@ -169,23 +174,23 @@ bool BatchShotsExecutor<state_t>::allocate_states(uint_t num_shots) {
       BaseExecutor::states_[i].set_num_global_qubits(BaseExecutor::num_qubits_);
     }
   }
-  BaseExecutor::num_active_shots_ = num_shots;
+  BaseExecutor::num_active_states_ = num_shots;
 
   // initialize groups
-  BaseExecutor::top_shot_of_group_.clear();
+  BaseExecutor::top_state_of_group_.clear();
   BaseExecutor::num_groups_ = 0;
   for (i = 0; i < num_shots; i++) {
     if (BaseExecutor::states_[i].qreg().top_of_group()) {
-      BaseExecutor::top_shot_of_group_.push_back(i);
+      BaseExecutor::top_state_of_group_.push_back(i);
       BaseExecutor::num_groups_++;
     }
   }
-  BaseExecutor::top_shot_of_group_.push_back(num_shots);
-  BaseExecutor::num_shots_in_group_.resize(BaseExecutor::num_groups_);
+  BaseExecutor::top_state_of_group_.push_back(num_shots);
+  BaseExecutor::num_states_in_group_.resize(BaseExecutor::num_groups_);
   for (i = 0; i < BaseExecutor::num_groups_; i++) {
-    BaseExecutor::num_shots_in_group_[i] =
-        BaseExecutor::top_shot_of_group_[i + 1] -
-        BaseExecutor::top_shot_of_group_[i];
+    BaseExecutor::num_states_in_group_[i] =
+        BaseExecutor::top_state_of_group_[i + 1] -
+        BaseExecutor::top_state_of_group_[i];
   }
 
   return ret;
@@ -254,22 +259,21 @@ void BatchShotsExecutor<state_t>::run_circuit_with_batched_multi_shots(
   int_t i_begin, n_shots;
 
   i_begin = 0;
-  while (i_begin < BaseExecutor::num_local_shots_) {
-    BaseExecutor::local_shot_index_ = i_begin;
+  while (i_begin < BaseExecutor::num_local_states_) {
+    BaseExecutor::local_state_index_ = i_begin;
 
     // loop for states can be stored in available memory
     n_shots =
-        std::min(BaseExecutor::num_local_shots_, BaseExecutor::num_max_shots_);
-    if (i_begin + n_shots > BaseExecutor::num_local_shots_) {
-      n_shots = BaseExecutor::num_local_shots_ - i_begin;
+        std::min(BaseExecutor::num_local_states_, BaseExecutor::num_max_shots_);
+    if (i_begin + n_shots > BaseExecutor::num_local_states_) {
+      n_shots = BaseExecutor::num_local_states_ - i_begin;
     }
 
     // allocate shots
-    allocate_states(n_shots);
+    allocate_states(n_shots, config);
 
     // Set state config
     for (i = 0; i < n_shots; i++) {
-      BaseExecutor::states_[i].set_config(config);
       BaseExecutor::states_[i].set_parallelization(
           BaseExecutor::parallel_state_update_);
       BaseExecutor::states_[i].set_global_phase(circ.global_phase_angle);
@@ -278,8 +282,8 @@ void BatchShotsExecutor<state_t>::run_circuit_with_batched_multi_shots(
 
     // initialization (equivalent to initialize_qreg + initialize_creg)
     auto init_group = [this](int_t ig) {
-      for (uint_t j = BaseExecutor::top_shot_of_group_[ig];
-           j < BaseExecutor::top_shot_of_group_[ig + 1]; j++) {
+      for (uint_t j = BaseExecutor::top_state_of_group_[ig];
+           j < BaseExecutor::top_state_of_group_[ig + 1]; j++) {
         // enabling batch shots optimization
         BaseExecutor::states_[j].qreg().enable_batch(true);
 
@@ -354,24 +358,24 @@ void BatchShotsExecutor<state_t>::apply_ops_batched_shots_for_group(
     int_t i_group, InputIterator first, InputIterator last,
     const Noise::NoiseModel &noise, ExperimentResult &result, uint_t rng_seed,
     bool final_ops) {
-  uint_t istate = BaseExecutor::top_shot_of_group_[i_group];
-  std::vector<RngEngine> rng(BaseExecutor::num_shots_in_group_[i_group]);
+  uint_t istate = BaseExecutor::top_state_of_group_[i_group];
+  std::vector<RngEngine> rng(BaseExecutor::num_states_in_group_[i_group]);
 #ifdef _OPENMP
   int num_inner_threads = omp_get_max_threads() / omp_get_num_threads();
 #else
   int num_inner_threads = 1;
 #endif
 
-  for (uint_t j = BaseExecutor::top_shot_of_group_[i_group];
-       j < BaseExecutor::top_shot_of_group_[i_group + 1]; j++)
-    rng[j - BaseExecutor::top_shot_of_group_[i_group]].set_seed(
-        rng_seed + BaseExecutor::global_shot_index_ +
-        BaseExecutor::local_shot_index_ + j);
+  for (uint_t j = BaseExecutor::top_state_of_group_[i_group];
+       j < BaseExecutor::top_state_of_group_[i_group + 1]; j++)
+    rng[j - BaseExecutor::top_state_of_group_[i_group]].set_seed(
+        rng_seed + BaseExecutor::global_state_index_ +
+        BaseExecutor::local_state_index_ + j);
 
   for (auto op = first; op != last; ++op) {
     if (op->type == Operations::OpType::sample_noise) {
       // sample error here
-      uint_t count = BaseExecutor::num_shots_in_group_[i_group];
+      uint_t count = BaseExecutor::num_states_in_group_[i_group];
       std::vector<std::vector<Operations::Op>> noise_ops(count);
 
       uint_t count_ops = 0;
@@ -426,13 +430,13 @@ void BatchShotsExecutor<state_t>::apply_ops_batched_shots_for_group(
       if (!apply_batched_op(istate, *op, result, rng,
                             final_ops && (op + 1 == last))) {
         // call apply_op for each state
-        for (uint_t j = BaseExecutor::top_shot_of_group_[i_group];
-             j < BaseExecutor::top_shot_of_group_[i_group + 1]; j++) {
+        for (uint_t j = BaseExecutor::top_state_of_group_[i_group];
+             j < BaseExecutor::top_state_of_group_[i_group + 1]; j++) {
           BaseExecutor::states_[j].qreg().enable_batch(false);
           BaseExecutor::states_[j].qreg().read_measured_data(
               BaseExecutor::states_[j].creg());
           BaseExecutor::states_[j].apply_op(
-              *op, result, rng[j - BaseExecutor::top_shot_of_group_[i_group]],
+              *op, result, rng[j - BaseExecutor::top_state_of_group_[i_group]],
               final_ops && (op + 1 == last));
           BaseExecutor::states_[j].qreg().enable_batch(true);
         }
@@ -446,7 +450,7 @@ void BatchShotsExecutor<state_t>::apply_batched_noise_ops(
     const int_t i_group, const std::vector<std::vector<Operations::Op>> &ops,
     ExperimentResult &result, std::vector<RngEngine> &rng) {
   int_t i, j, k, count, nop, pos = 0;
-  uint_t istate = BaseExecutor::top_shot_of_group_[i_group];
+  uint_t istate = BaseExecutor::top_state_of_group_[i_group];
   count = ops.size();
 
   reg_t mask(count);
@@ -520,11 +524,11 @@ void BatchShotsExecutor<state_t>::apply_batched_noise_ops(
           reg_pos[0] = cop.conditional_reg;
           BaseExecutor::states_[j].creg().store_measure(reg, mem_pos, reg_pos);
         }*/
-        for (uint_t j = BaseExecutor::top_shot_of_group_[i_group];
-             j < BaseExecutor::top_shot_of_group_[i_group + 1]; j++) {
+        for (uint_t j = BaseExecutor::top_state_of_group_[i_group];
+             j < BaseExecutor::top_state_of_group_[i_group + 1]; j++) {
           BaseExecutor::states_[j].qreg().enable_batch(false);
           BaseExecutor::states_[j].apply_op(
-              cop, result, rng[j - BaseExecutor::top_shot_of_group_[i_group]],
+              cop, result, rng[j - BaseExecutor::top_state_of_group_[i_group]],
               false);
           BaseExecutor::states_[j].qreg().enable_batch(true);
         }
