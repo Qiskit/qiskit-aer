@@ -427,12 +427,10 @@ class AerBackend(Backend, ABC):
         metadata_list = []
         for idx, circ in enumerate(circuits):
             if circ.metadata:
-                metadata = circ.metadata
+                circ.metadata = {"metadata_index": idx}
                 metadata_list.append(metadata)
-                circ.metadata = {}
-                circ.metadata["metadata_index"] = idx
             else:
-                metadata_list.append(None)
+                metadata_list.append({})
 
         # Run simulation
         aer_circuits = assemble_circuits(circuits)

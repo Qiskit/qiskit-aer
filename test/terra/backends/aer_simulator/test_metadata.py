@@ -37,7 +37,7 @@ class TestMetadata(SimulatorTestCase):
     def test_single_circuit_metadata(self, method, device):
         """Test circuits with object metadata."""
         backend = self.backend(method=method, device=device)
-        metadata = {1: object}
+        metadata = {1: object()}
         circuit = QuantumCircuit(1, name="circ0", metadata=metadata.copy())
         result = backend.run(circuit).result()
         self.assertSuccess(result)
