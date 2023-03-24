@@ -427,7 +427,7 @@ class AerBackend(Backend, ABC):
         metadata_list = []
         for idx, circ in enumerate(circuits):
             if circ.metadata:
-                metadata_list.append(metadata)
+                metadata_list.append(circ.metadata)
                 circ.metadata = {"metadata_index": idx}
             else:
                 metadata_list.append({})
