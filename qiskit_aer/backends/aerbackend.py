@@ -426,11 +426,13 @@ class AerBackend(Backend, ABC):
         # Take metadata from headers of experiments to work around JSON serialization error
         metadata_list = []
         for idx, circ in enumerate(circuits):
+            metadata_list.append(circ.metadata)
+            # TODO: we test for True-like on purpose here to condition against both None and {},
+            # which allows us to support versions of Terra before and after QuantumCircuit.metadata
+            # accepts None as a valid value. This logic should be revisited after terra>=0.24.0 is
+            # required.
             if circ.metadata:
-                metadata_list.append(circ.metadata)
                 circ.metadata = {"metadata_index": idx}
-            else:
-                metadata_list.append({})
 
         # Run simulation
         aer_circuits = assemble_circuits(circuits)
