@@ -12,10 +12,10 @@
  * that they have been altered from the originals.
  */
 
-#ifndef _multi_shots_executor_hpp_
-#define _multi_shots_executor_hpp_
+#ifndef _multi_state_executor_hpp_
+#define _multi_state_executor_hpp_
 
-#include "simulators/aer_executor.hpp"
+#include "simulators/circuit_executor.hpp"
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -29,14 +29,14 @@
 
 namespace AER {
 
-namespace Executor {
+namespace CircuitExecutor {
 
 //-------------------------------------------------------------------------
 // Multiple-shots executor class implementation
 //-------------------------------------------------------------------------
 template <class state_t>
-class MultiShotsExecutor : public Base<state_t> {
-  using BaseExecutor = Base<state_t>;
+class MultiStateExecutor : public Executor<state_t> {
+  using Base = Executor<state_t>;
 
 protected:
   std::vector<state_t> states_;
@@ -51,16 +51,7 @@ protected:
   uint_t global_state_index_; // beginning chunk index for this process
   reg_t state_index_begin_;   // beginning chunk index for each process
   reg_t state_index_end_;     // ending chunk index for each process
-  uint_t local_state_index_;  // local shot ID of current loop
   uint_t num_active_states_;  // number of active shots in current loop
-
-  uint_t myrank_;               // process ID
-  uint_t nprocs_;               // number of processes
-  uint_t distributed_rank_;     // process ID in communicator group
-  uint_t distributed_procs_;    // number of processes in communicator group
-  uint_t distributed_group_;    // group id of distribution
-  int_t distributed_proc_bits_; // distributed_procs_=2^distributed_proc_bits_
-                                // (if nprocs != power of 2, set -1)
 
   bool shot_omp_parallel_; // using thread parallel to process loop of chunks or
                            // not
@@ -87,11 +78,6 @@ protected:
       0; // number of total bits for creg (reserve for multi-shots)
   uint_t num_creg_registers_ = 0;
 
-#ifdef AER_MPI
-  // communicator group to simulate a circuit (for multi-experiments)
-  MPI_Comm distributed_comm_;
-#endif
-
   // OpenMP qubit threshold
   int omp_qubit_threshold_ = 14;
 
@@ -103,8 +89,8 @@ protected:
   complex_t global_phase_ = 1;
 
 public:
-  MultiShotsExecutor();
-  virtual ~MultiShotsExecutor();
+  MultiStateExecutor();
+  virtual ~MultiStateExecutor();
 
   size_t required_memory_mb(const Circuit &circuit,
                             const Noise::NoiseModel &noise) const override {
@@ -117,7 +103,7 @@ public:
 protected:
   void set_config(const Config &config) override;
 
-  void set_distribution(uint_t nprocs, uint_t num_parallel_shots);
+  void set_distribution(uint_t num_states);
 
   virtual uint_t qubit_scale(void) { return 1; }
 
@@ -134,8 +120,7 @@ protected:
                                        bool sample_noise);
 
   // apply op for shot-branching, return false if op is not applied in sub-class
-  virtual bool apply_branching_op(Executor::Branch &root,
-                                  const Operations::Op &op,
+  virtual bool apply_branching_op(Branch &root, const Operations::Op &op,
                                   ExperimentResult &result, bool final_op) {
     std::cout << "  base is called, implement for each method" << std::endl;
     return false;
@@ -145,48 +130,46 @@ protected:
   virtual void apply_global_phase() {}
   void set_global_phase(double theta);
 
-  // gather cregs over processes
-  void gather_creg_memory(void);
-
   void set_parallelization(const Circuit &circ,
                            const Noise::NoiseModel &noise) override;
 
   virtual bool shot_branching_supported(void) {
     return false; // return true in the sub-class if supports shot-branching
   }
+
+  template <typename InputIterator>
+  void measure_sampler(InputIterator first_meas, InputIterator last_meas,
+                       uint_t shots, Branch &branch, ExperimentResult &result,
+                       std::vector<RngEngine> &rng);
+
+  // sampling measure
+  virtual std::vector<reg_t> sample_measure(state_t &state, const reg_t &qubits,
+                                            uint_t shots,
+                                            std::vector<RngEngine> &rng) const {
+    // this is for single rng, impement in sub-class for multi-shots case
+    return state.sample_measure(qubits, shots, rng[0]);
+  }
 };
 
 template <class state_t>
-MultiShotsExecutor<state_t>::MultiShotsExecutor() {
+MultiStateExecutor<state_t>::MultiStateExecutor() {
   num_global_states_ = 0;
   num_local_states_ = 0;
-
-  myrank_ = 0;
-  nprocs_ = 1;
-
-  distributed_procs_ = 1;
-  distributed_rank_ = 0;
-  distributed_group_ = 0;
-  distributed_proc_bits_ = 0;
 
   shot_omp_parallel_ = false;
 
   shot_branching_enable_ = false;
-
-#ifdef AER_MPI
-  distributed_comm_ = MPI_COMM_WORLD;
-#endif
 }
 
 template <class state_t>
-MultiShotsExecutor<state_t>::~MultiShotsExecutor() {
+MultiStateExecutor<state_t>::~MultiStateExecutor() {
   states_.clear();
   cregs_.clear();
 }
 
 template <class state_t>
-void MultiShotsExecutor<state_t>::set_config(const Config &config) {
-  Base<state_t>::set_config(config);
+void MultiStateExecutor<state_t>::set_config(const Config &config) {
+  Base::set_config(config);
 
   // Set threshold for truncating states to be saved
   json_chop_threshold_ = config.zero_threshold;
@@ -197,10 +180,13 @@ void MultiShotsExecutor<state_t>::set_config(const Config &config) {
   // shot branching optimization
   shot_branching_enable_ = config.shot_branching_enable;
   runtime_noise_sampling_enable_ = config.runtime_noise_sampling_enable;
+
+  if (config.num_threads_per_device.has_value())
+    num_threads_per_group_ = config.num_threads_per_device.value();
 }
 
 template <class state_t>
-void MultiShotsExecutor<state_t>::set_global_phase(double theta) {
+void MultiStateExecutor<state_t>::set_global_phase(double theta) {
   if (Linalg::almost_equal(theta, 0.0)) {
     has_global_phase_ = false;
     global_phase_ = 1;
@@ -211,66 +197,31 @@ void MultiShotsExecutor<state_t>::set_global_phase(double theta) {
 }
 
 template <class state_t>
-void MultiShotsExecutor<state_t>::set_distribution(uint_t nprocs,
-                                                   uint_t num_parallel_shots) {
-  myrank_ = 0;
-  nprocs_ = 1;
-#ifdef AER_MPI
-  int t;
-  MPI_Comm_size(MPI_COMM_WORLD, &t);
-  nprocs_ = t;
-  MPI_Comm_rank(MPI_COMM_WORLD, &t);
-  myrank_ = t;
-#endif
+void MultiStateExecutor<state_t>::set_distribution(uint_t num_states) {
 
-  distributed_procs_ = nprocs;
-  distributed_rank_ = myrank_ % nprocs;
-  distributed_group_ = myrank_ / nprocs;
+  num_global_states_ = num_states;
 
-  distributed_proc_bits_ = 0;
-  int proc_bits = 0;
-  uint_t p = distributed_procs_;
-  while (p > 1) {
-    if ((p & 1) != 0) { // procs is not power of 2
-      distributed_proc_bits_ = -1;
-      break;
-    }
-    distributed_proc_bits_++;
-    p >>= 1;
+  state_index_begin_.resize(Base::distributed_procs_);
+  state_index_end_.resize(Base::distributed_procs_);
+  for (int_t i = 0; i < Base::distributed_procs_; i++) {
+    state_index_begin_[i] = num_global_states_ * i / Base::distributed_procs_;
+    state_index_end_[i] =
+        num_global_states_ * (i + 1) / Base::distributed_procs_;
   }
 
-#ifdef AER_MPI
-  if (nprocs != nprocs_) {
-    MPI_Comm_split(MPI_COMM_WORLD, (int)distributed_group_,
-                   (int)distributed_rank_, &distributed_comm_);
-  } else {
-    distributed_comm_ = MPI_COMM_WORLD;
-  }
-#endif
-
-  num_global_states_ = num_parallel_shots;
-
-  state_index_begin_.resize(distributed_procs_);
-  state_index_end_.resize(distributed_procs_);
-  for (int_t i = 0; i < distributed_procs_; i++) {
-    state_index_begin_[i] = num_global_states_ * i / distributed_procs_;
-    state_index_end_[i] = num_global_states_ * (i + 1) / distributed_procs_;
-  }
-
-  num_local_states_ =
-      state_index_end_[distributed_rank_] - state_index_begin_[distributed_rank_];
-  global_state_index_ = state_index_begin_[distributed_rank_];
-  local_state_index_ = 0;
+  num_local_states_ = state_index_end_[Base::distributed_rank_] -
+                      state_index_begin_[Base::distributed_rank_];
+  global_state_index_ = state_index_begin_[Base::distributed_rank_];
 }
 
 template <class state_t>
-void MultiShotsExecutor<state_t>::set_parallelization(
+void MultiStateExecutor<state_t>::set_parallelization(
     const Circuit &circ, const Noise::NoiseModel &noise) {
-  BaseExecutor::set_parallelization(circ, noise);
+  Base::set_parallelization(circ, noise);
 }
 
 template <class state_t>
-bool MultiShotsExecutor<state_t>::allocate_states(uint_t num_shots,
+bool MultiStateExecutor<state_t>::allocate_states(uint_t num_shots,
                                                   const Config &config) {
   int_t i;
   bool ret = true;
@@ -295,7 +246,7 @@ bool MultiShotsExecutor<state_t>::allocate_states(uint_t num_shots,
 }
 
 template <class state_t>
-void MultiShotsExecutor<state_t>::run_circuit_shots(
+void MultiStateExecutor<state_t>::run_circuit_shots(
     Circuit &circ, const Noise::NoiseModel &noise, const Config &config,
     ExperimentResult &result, bool sample_noise) {
   num_qubits_ = circ.num_qubits;
@@ -311,8 +262,8 @@ void MultiShotsExecutor<state_t>::run_circuit_shots(
     shot_omp_parallel_ = false;
   }
 
-  set_distribution(BaseExecutor::num_process_per_experiment_, circ.shots);
-  num_max_shots_ = BaseExecutor::get_max_parallel_shots(circ, noise);
+  set_distribution(circ.shots);
+  num_max_shots_ = Base::get_max_parallel_shots(circ, noise);
   if (num_max_shots_ == 0)
     num_max_shots_ = 1;
 
@@ -328,82 +279,18 @@ void MultiShotsExecutor<state_t>::run_circuit_shots(
     shot_branching = false;
 
   if (shot_branching) {
-    //disable cuStateVec if shot-branching is enabled
-    if(BaseExecutor::cuStateVec_enable_)
-      BaseExecutor::cuStateVec_enable_ = false;
+    // disable cuStateVec if shot-branching is enabled
+    if (Base::cuStateVec_enable_)
+      Base::cuStateVec_enable_ = false;
     return run_circuit_with_shot_branching(circ, noise, config, result,
                                            sample_noise);
-  }
-
-  // insert runtime noise sample ops here
-  RngEngine rng;
-  rng.set_seed(circ.seed);
-
-  int_t par_shots =
-      std::min((int_t)Base<state_t>::parallel_shots_, (int_t)num_max_shots_);
-  std::vector<ExperimentResult> par_results(par_shots);
-
-  auto run_circuit_lambda = [this, &par_results, circ, noise, config, par_shots,
-                             sample_noise](int_t i) {
-    Noise::NoiseModel dummy_noise;
-    state_t state;
-    uint_t i_shot, shot_end;
-    i_shot = num_local_states_ * i / par_shots;
-    shot_end = num_local_states_ * (i + 1) / par_shots;
-
-    auto fusion_pass = Base<state_t>::transpile_fusion(circ.opset(), config);
-
-    // Set state config
-    state.set_config(config);
-    state.set_parallelization(this->parallel_state_update_);
-    state.set_global_phase(circ.global_phase_angle);
-    state.enable_density_matrix(!BaseExecutor::has_statevector_ops_);
-
-    state.set_distribution(this->num_process_per_experiment_);
-    state.set_num_global_qubits(num_qubits_);
-
-    for (; i_shot < shot_end; i_shot++) {
-      RngEngine rng;
-      rng.set_seed(circ.seed + global_state_index_ + i_shot);
-
-      int max_matrix_qubits;
-      Circuit circ_opt;
-      if (sample_noise)
-        circ_opt = noise.sample_noise(circ, rng);
-      else
-        circ_opt = circ;
-      fusion_pass.optimize_circuit(circ_opt, dummy_noise, state.opset(),
-                                   par_results[i]);
-      max_matrix_qubits = BaseExecutor::get_max_matrix_qubits(circ_opt);
-      state.set_max_matrix_qubits(max_matrix_qubits);
-
-      state.allocate(num_qubits_, num_qubits_);
-      state.initialize_qreg(num_qubits_);
-      state.initialize_creg(circ.num_memory, circ.num_registers);
-
-      state.apply_ops(circ_opt.ops.cbegin(), circ_opt.ops.cend(),
-                      par_results[i], rng, true);
-      par_results[i].save_count_data(state.creg(),
-                                     BaseExecutor::save_creg_memory_);
-    }
-    state.add_metadata(par_results[i]);
-  };
-  Utils::apply_omp_parallel_for((par_shots > 1), 0, par_shots,
-                                run_circuit_lambda);
-
-  for (auto &res : par_results) {
-    result.combine(std::move(res));
-  }
-  if (BaseExecutor::sim_device_ == Device::GPU) {
-    if (par_shots >= BaseExecutor::num_gpus_)
-      result.metadata.add(BaseExecutor::num_gpus_, "gpu_parallel_shots_");
-    else
-      result.metadata.add(par_shots, "gpu_parallel_shots_");
+  } else {
+    return Base::run_circuit_shots(circ, noise, config, result, sample_noise);
   }
 }
 
 template <class state_t>
-void MultiShotsExecutor<state_t>::run_circuit_with_shot_branching(
+void MultiStateExecutor<state_t>::run_circuit_with_shot_branching(
     Circuit &circ, const Noise::NoiseModel &noise, const Config &config,
     ExperimentResult &result, bool sample_noise) {
   std::vector<std::shared_ptr<Branch>> branches;
@@ -418,20 +305,19 @@ void MultiShotsExecutor<state_t>::run_circuit_with_shot_branching(
   if (sample_noise) {
     circ_opt = noise.sample_noise(circ, dummy_rng,
                                   Noise::NoiseModel::Method::circuit, true);
-    auto fusion_pass =
-        Base<state_t>::transpile_fusion(circ_opt.opset(), config);
+    auto fusion_pass = Base::transpile_fusion(circ_opt.opset(), config);
     fusion_pass.optimize_circuit(circ_opt, dummy_noise, dummy_state.opset(),
                                  result);
     first = circ_opt.ops.cbegin();
     last = circ_opt.ops.cend();
-    max_matrix_qubits_ = BaseExecutor::get_max_matrix_qubits(circ_opt);
+    max_matrix_qubits_ = Base::get_max_matrix_qubits(circ_opt);
   } else {
-    auto fusion_pass = Base<state_t>::transpile_fusion(circ.opset(), config);
+    auto fusion_pass = Base::transpile_fusion(circ.opset(), config);
     fusion_pass.optimize_circuit(circ, dummy_noise, dummy_state.opset(),
                                  result);
     first = circ.ops.cbegin();
     last = circ.ops.cend();
-    max_matrix_qubits_ = BaseExecutor::get_max_matrix_qubits(circ);
+    max_matrix_qubits_ = Base::get_max_matrix_qubits(circ);
   }
 
   // check if there is sequence of measure at the end of operations
@@ -455,7 +341,11 @@ void MultiShotsExecutor<state_t>::run_circuit_with_shot_branching(
     measure_seq = last;
   }
 
-  cregs_.resize(circ.shots);
+#ifdef AER_MPI
+  // if shots are distributed to MPI processes, allocate cregs to be gathered
+  if (Base::num_process_per_experiment_ > 1)
+    cregs_.resize(circ.shots);
+#endif
 
   // reserve states
   allocate_states(num_max_shots_, config);
@@ -467,7 +357,7 @@ void MultiShotsExecutor<state_t>::run_circuit_with_shot_branching(
   }
 
   int_t par_shots =
-      std::min((int_t)Base<state_t>::parallel_shots_, (int_t)num_max_shots_);
+      std::min((int_t)Base::parallel_shots_, (int_t)num_max_shots_);
   std::vector<ExperimentResult> par_results(par_shots);
 
   uint_t num_shots_saved = 0;
@@ -481,12 +371,14 @@ void MultiShotsExecutor<state_t>::run_circuit_with_shot_branching(
     branches[0]->state_index() = 0;
     branches[0]->set_shots(shots_storage);
     branches[0]->op_iterator() = first;
+    branches[0]->shot_index() =
+        global_state_index_ + num_local_states_ - shots_storage.size();
     shots_storage.clear();
 
     // initialize initial state
     states_[0].set_parallelization(this->parallel_state_update_);
     states_[0].set_global_phase(circ.global_phase_angle);
-    states_[0].enable_density_matrix(!BaseExecutor::has_statevector_ops_);
+    states_[0].enable_density_matrix(!Base::has_statevector_ops_);
     states_[0].initialize_qreg(num_qubits_);
     states_[0].initialize_creg(num_creg_memory_, num_creg_registers_);
 
@@ -546,9 +438,11 @@ void MultiShotsExecutor<state_t>::run_circuit_with_shot_branching(
                 branches[i]->set_shots(branches[i]->branches()[j]->rng_shots());
                 branches[i]->additional_ops() =
                     branches[i]->branches()[j]->additional_ops();
+                branches[i]->shot_index() =
+                    branches[i]->branches()[j]->shot_index();
                 // save measured bits to state
                 states_[branches[i]->state_index()].creg() =
-                    branches[i]->branches()[j]->creg(); 
+                    branches[i]->branches()[j]->creg();
                 branches[i]->branches()[j].reset();
                 istart = j + 1;
                 break;
@@ -580,9 +474,11 @@ void MultiShotsExecutor<state_t>::run_circuit_with_shot_branching(
                   branches.push_back(branches[i]->branches()[j]);
                   branches[pos]->state_index() = pos;
                   // copy state to new branch
-                  states_[pos].set_parallelization(this->parallel_state_update_);
+                  states_[pos].set_parallelization(
+                      this->parallel_state_update_);
                   states_[pos].set_global_phase(circ.global_phase_angle);
-                  states_[pos].enable_density_matrix(!BaseExecutor::has_statevector_ops_);
+                  states_[pos].enable_density_matrix(
+                      !Base::has_statevector_ops_);
                   states_[pos].qreg().initialize(
                       states_[branches[i]->state_index()].qreg());
                   states_[pos].creg() = branches[pos]->creg();
@@ -610,7 +506,7 @@ void MultiShotsExecutor<state_t>::run_circuit_with_shot_branching(
                                      branches[istate]->additional_ops()[j],
                                      par_results[i], false)) {
                 // check if there are new branches
-                if (branches[istate]->num_branches() > 0) { 
+                if (branches[istate]->num_branches() > 0) {
                   // if there are additional ops remaining, queue them on new
                   // branches
                   for (int_t k = j + 1;
@@ -654,17 +550,15 @@ void MultiShotsExecutor<state_t>::run_circuit_with_shot_branching(
         state_end = branches.size() * (i + 1) / par_shots;
 
         for (; istate < state_end; istate++) {
-          BaseExecutor::measure_sampler(
-              measure_seq, last, branches[istate]->num_shots(),
-              states_[branches[istate]->state_index()], par_results[i],
-              branches[istate]->rng_shots(), true);
+          measure_sampler(measure_seq, last, branches[istate]->num_shots(),
+                          *branches[istate], par_results[i],
+                          branches[istate]->rng_shots());
         }
       };
-      bool can_parallel = par_shots > 1 && branches.size() > 1 &&
-                          !BaseExecutor::cuStateVec_enable_;
-      Utils::apply_omp_parallel_for(can_parallel, 0,
-                                    par_shots, sampling_measure_func,
-                                    par_shots);
+      bool can_parallel =
+          par_shots > 1 && branches.size() > 1 && !Base::cuStateVec_enable_;
+      Utils::apply_omp_parallel_for(can_parallel, 0, par_shots,
+                                    sampling_measure_func, par_shots);
     } else {
       // save cregs to result
       auto save_cregs = [this, &branches, &par_results, par_shots](int_t i) {
@@ -673,37 +567,26 @@ void MultiShotsExecutor<state_t>::run_circuit_with_shot_branching(
         state_end = branches.size() * (i + 1) / par_shots;
 
         for (; istate < state_end; istate++) {
-          std::string memory_hex =
-              states_[branches[istate]->state_index()].creg().memory_hex();
-          for (int_t j = 0; j < branches[istate]->num_shots(); j++)
-            par_results[i].data.add_accum(static_cast<uint_t>(1ULL), "counts",
-                                          memory_hex);
-          if (BaseExecutor::save_creg_memory_) {
+          if (Base::num_process_per_experiment_ > 1) {
+            for (int_t j = 0; j < branches[istate]->num_shots(); j++) {
+              cregs_[branches[istate]->shot_index() + j] =
+                  states_[branches[istate]->state_index()].creg();
+            }
+          } else {
+            std::string memory_hex =
+                states_[branches[istate]->state_index()].creg().memory_hex();
             for (int_t j = 0; j < branches[istate]->num_shots(); j++)
-              par_results[i].data.add_list(memory_hex, "memory");
+              par_results[i].data.add_accum(static_cast<uint_t>(1ULL), "counts",
+                                            memory_hex);
+            if (Base::save_creg_memory_) {
+              for (int_t j = 0; j < branches[istate]->num_shots(); j++)
+                par_results[i].data.add_list(memory_hex, "memory");
+            }
           }
         }
       };
       Utils::apply_omp_parallel_for((par_shots > 1), 0, par_shots, save_cregs,
                                     par_shots);
-
-      /*
-      reg_t creg_pos(branches.size());
-      for(int_t i=0;i<branches.size();i++){
-        creg_pos[i] = num_shots_saved;
-        num_shots_saved += branches[i]->num_shots();
-      }
-
-      //save cregs to array
-      auto save_creg_func = [this, &branches, &creg_pos](int_t i)
-      {
-        for(int_t j=0;j<branches[i]->num_shots();j++){
-          cregs_[creg_pos[i] + j] = states_[branches[i]->state_index()].creg();
-        }
-      };
-      Utils::apply_omp_parallel_for((par_shots > 1 && branches.size() > 1), 0,
-      branches.size(), save_creg_func, par_shots);
-      */
     }
 
     // clear
@@ -713,30 +596,31 @@ void MultiShotsExecutor<state_t>::run_circuit_with_shot_branching(
     branches.clear();
   }
 
-  /*
-  if(!can_sample){
-    gather_creg_memory();
+  // gather cregs on MPI processes and save to result
+  if (Base::num_process_per_experiment_ > 1) {
+    Base::gather_creg_memory(cregs_, state_index_begin_);
 
-    //save cregs to result
-    auto save_cregs = [this,&par_results, par_shots](int_t i){
-      uint_t i_shot,shot_end;
-      i_shot = num_global_states_*i/par_shots;
-      shot_end = num_global_states_*(i+1)/par_shots;
+    // save cregs to result
+    auto save_cregs = [this, &par_results, par_shots](int_t i) {
+      uint_t i_shot, shot_end;
+      i_shot = num_global_states_ * i / par_shots;
+      shot_end = num_global_states_ * (i + 1) / par_shots;
 
-      for(;i_shot<shot_end;i_shot++){
-        if(cregs_[i_shot].memory_size() > 0) {
+      for (; i_shot < shot_end; i_shot++) {
+        if (cregs_[i_shot].memory_size() > 0) {
           std::string memory_hex = cregs_[i_shot].memory_hex();
           par_results[i].data.add_accum(static_cast<uint_t>(1ULL), "counts",
-  memory_hex); if (BaseExecutor::save_creg_memory_) {
+                                        memory_hex);
+          if (Base::save_creg_memory_) {
             par_results[i].data.add_list(std::move(memory_hex), "memory");
           }
         }
       }
     };
-    Utils::apply_omp_parallel_for((par_shots > 1),0,par_shots, save_cregs,
-  par_shots);
+    Utils::apply_omp_parallel_for((par_shots > 1), 0, par_shots, save_cregs,
+                                  par_shots);
+    cregs_.clear();
   }
-  */
 
   for (auto &res : par_results) {
     result.combine(std::move(res));
@@ -747,63 +631,111 @@ void MultiShotsExecutor<state_t>::run_circuit_with_shot_branching(
 }
 
 template <class state_t>
-void MultiShotsExecutor<state_t>::gather_creg_memory(void) {
-#ifdef AER_MPI
-  int_t i, j;
-  uint_t n64, i64, ibit;
-
-  if (distributed_procs_ == 1)
-    return;
-  if (states_[0].creg()..memory_size() == 0)
-    return;
-
-  // number of 64-bit integers per memory
-  n64 = (states_[0].creg().memory_size() + 63) >> 6;
-
-  reg_t bin_memory(n64 * num_local_states_, 0);
-  // compress memory string to binary
-#pragma omp parallel for private(i, j, i64, ibit)
-  for (i = 0; i < num_local_shotss_; i++) {
-    for (j = 0; j < states_[0].creg().memory_size(); j++) {
-      i64 = j >> 6;
-      ibit = j & 63;
-      if (states_[global_state_index_ + i].creg().creg_memory()[j] == '1') {
-        bin_memory[i * n64 + i64] |= (1ull << ibit);
+template <typename InputIterator>
+void MultiStateExecutor<state_t>::measure_sampler(InputIterator first_meas,
+                                                  InputIterator last_meas,
+                                                  uint_t shots, Branch &branch,
+                                                  ExperimentResult &result,
+                                                  std::vector<RngEngine> &rng) {
+  state_t &state = states_[branch.state_index()];
+  // Check if meas_circ is empty, and if so return initial creg
+  if (first_meas == last_meas) {
+    for (int_t i = 0; i < shots; i++) {
+      if (Base::num_process_per_experiment_ > 1) {
+        cregs_[branch.shot_index() + i] = state.creg();
+      } else {
+        result.save_count_data(state.creg(), Base::save_creg_memory_);
       }
     }
+    return;
   }
 
-  reg_t recv(n64 * num_global_states_);
-  std::vector<int> recv_counts(distributed_procs_);
-  std::vector<int> recv_offset(distributed_procs_);
-
-  for (i = 0; i < distributed_procs_; i++) {
-    recv_offset[i] = num_global_states_ * i / distributed_procs_;
-    recv_counts[i] =
-        (num_global_states_ * (i + 1) / distributed_procs_) - recv_offset[i];
-  }
-
-  MPI_Allgatherv(&bin_memory[0], n64 * num_local_states_, MPI_UINT64_T, &recv[0],
-                 &recv_counts[0], &recv_offset[0], MPI_UINT64_T,
-                 distributed_comm_);
-
-  // store gathered memory
-#pragma omp parallel for private(i, j, i64, ibit)
-  for (i = 0; i < num_global_states_; i++) {
-    for (j = 0; j < states_[0].creg().memory_size(); j++) {
-      i64 = j >> 6;
-      ibit = j & 63;
-      if (((recv[i * n64 + i64] >> ibit) & 1) == 1)
-        states_[i].creg().creg_memory()[j] = '1';
-      else
-        states_[i].creg().creg_memory()[j] = '0';
+  std::vector<Operations::Op> meas_ops;
+  std::vector<Operations::Op> roerror_ops;
+  for (auto op = first_meas; op != last_meas; op++) {
+    if (op->type == Operations::OpType::roerror) {
+      roerror_ops.push_back(*op);
+    } else { /*(op.type == Operations::OpType::measure) */
+      meas_ops.push_back(*op);
     }
   }
-#endif
+
+  // Get measured qubits from circuit sort and delete duplicates
+  std::vector<uint_t> meas_qubits; // measured qubits
+  for (const auto &op : meas_ops) {
+    for (size_t j = 0; j < op.qubits.size(); ++j)
+      meas_qubits.push_back(op.qubits[j]);
+  }
+  sort(meas_qubits.begin(), meas_qubits.end());
+  meas_qubits.erase(unique(meas_qubits.begin(), meas_qubits.end()),
+                    meas_qubits.end());
+
+  // Generate the samples
+  auto timer_start = myclock_t::now();
+  std::vector<reg_t> all_samples;
+  all_samples = sample_measure(state, meas_qubits, shots, rng);
+  auto time_taken =
+      std::chrono::duration<double>(myclock_t::now() - timer_start).count();
+  result.metadata.add(time_taken, "sample_measure_time");
+
+  // Make qubit map of position in vector of measured qubits
+  std::unordered_map<uint_t, uint_t> qubit_map;
+  for (uint_t j = 0; j < meas_qubits.size(); ++j) {
+    qubit_map[meas_qubits[j]] = j;
+  }
+
+  // Maps of memory and register to qubit position
+  std::map<uint_t, uint_t> memory_map;
+  std::map<uint_t, uint_t> register_map;
+  for (const auto &op : meas_ops) {
+    for (size_t j = 0; j < op.qubits.size(); ++j) {
+      auto pos = qubit_map[op.qubits[j]];
+      if (!op.memory.empty())
+        memory_map[op.memory[j]] = pos;
+      if (!op.registers.empty())
+        register_map[op.registers[j]] = pos;
+    }
+  }
+
+  // Process samples
+  uint_t num_memory =
+      (memory_map.empty()) ? 0ULL : 1 + memory_map.rbegin()->first;
+  uint_t num_registers =
+      (register_map.empty()) ? 0ULL : 1 + register_map.rbegin()->first;
+  ClassicalRegister creg;
+  for (int_t i = 0; i < all_samples.size(); i++) {
+    creg = state.creg();
+
+    // process memory bit measurements
+    for (const auto &pair : memory_map) {
+      creg.store_measure(reg_t({all_samples[i][pair.second]}),
+                         reg_t({pair.first}), reg_t());
+    }
+    // process register bit measurements
+    for (const auto &pair : register_map) {
+      creg.store_measure(reg_t({all_samples[i][pair.second]}), reg_t(),
+                         reg_t({pair.first}));
+    }
+
+    // process read out errors for memory and registers
+    for (const Operations::Op &roerror : roerror_ops)
+      creg.apply_roerror(roerror, rng[i]);
+
+    // save creg to gather
+    if (Base::num_process_per_experiment_ > 1) {
+      for (int_t j = 0; j < shots; j++)
+        cregs_[branch.shot_index() + j] = creg;
+    } else {
+      std::string memory_hex = creg.memory_hex();
+      result.data.add_accum(static_cast<uint_t>(1ULL), "counts", memory_hex);
+      if (Base::save_creg_memory_)
+        result.data.add_list(memory_hex, "memory");
+    }
+  }
 }
 
 //-------------------------------------------------------------------------
-} // end namespace Executor
+} // end namespace CircuitExecutor
 //-------------------------------------------------------------------------
 } // end namespace AER
 //-------------------------------------------------------------------------

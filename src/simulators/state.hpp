@@ -223,8 +223,8 @@ public:
   // set creg bit counts before initialize creg
   virtual void set_num_creg_bits(uint_t num_memory, uint_t num_register) {}
 
-  //can apply density matrix (without statevector output required)
-  virtual void enable_density_matrix(bool flg){}
+  // can apply density matrix (without statevector output required)
+  virtual void enable_density_matrix(bool flg) {}
 
   void set_num_global_qubits(uint_t qubits) { num_global_qubits_ = qubits; }
 

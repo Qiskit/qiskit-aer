@@ -1,0 +1,21 @@
+---
+features:
+  - |
+    This release restructures ``State`` classes.
+    Adding circuit executor classes that runs a circuit and manages multiple
+    states for multi-shots simulations or multi-chunk simulations for large
+    number of qubits.
+    Previously ``StateChunk`` class manages multiple chunks for multi-shots or
+    multi-chunk simulations but now ``State`` class only has one state
+    and all the parallelization codes are moved to ``Executor`` classes.
+    Now all ``State`` classes are independent from parallelization.
+    Also some of the functions in ``Aer::Controller`` class are moved to
+    ``CircuitExecutor::Executor`` class.
+  - |
+    Shot-branching technique that decreases calculation of multi-shots
+    simulation is implemented with restructured ``Executor`` classes.
+    Shot-branching is currently applicable to statevector density matrix
+    and tensor-network methods.
+    By default ``shot_branching_enable`` is enabled.
+    And by setting ``runtime_noise_sampling_enable``, noise sampling is
+    done on the fly with shot-branching.

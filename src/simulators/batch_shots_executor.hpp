@@ -15,7 +15,7 @@
 #ifndef _batch_shots_executor_hpp_
 #define _batch_shots_executor_hpp_
 
-#include "simulators/multi_shots_executor.hpp"
+#include "simulators/parallel_state_executor.hpp"
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -27,14 +27,14 @@
 
 namespace AER {
 
-namespace Executor {
+namespace CircuitExecutor {
 
 //-------------------------------------------------------------------------
 // batched-shots executor class implementation
 //-------------------------------------------------------------------------
 template <class state_t>
-class BatchShotsExecutor : public MultiShotsExecutor<state_t> {
-  using BaseExecutor = MultiShotsExecutor<state_t>;
+class BatchShotsExecutor : public ParallelStateExecutor<state_t> {
+  using Base = ParallelStateExecutor<state_t>;
 
 protected:
   // config setting for multi-shot parallelization
@@ -43,7 +43,8 @@ protected:
       16; // multi-shot parallelization is applied if qubits is less than max
           // qubits
   bool enable_batch_multi_shots_ =
-      false; // multi-shot parallelization can be applied
+      false;                 // multi-shot parallelization can be applied
+  uint_t local_state_index_; // local shot ID of current loop
 public:
   BatchShotsExecutor();
   virtual ~BatchShotsExecutor();
@@ -52,8 +53,6 @@ protected:
   void set_config(const Config &config) override;
   void set_parallelization(const Circuit &circ,
                            const Noise::NoiseModel &noise) override;
-
-  bool allocate_states(uint_t num_shots, const Config &config) override;
 
   void run_circuit_shots(Circuit &circ, const Noise::NoiseModel &noise,
                          const Config &config, ExperimentResult &result,
@@ -97,103 +96,36 @@ BatchShotsExecutor<state_t>::~BatchShotsExecutor() {}
 
 template <class state_t>
 void BatchShotsExecutor<state_t>::set_config(const Config &config) {
-  BaseExecutor::set_config(config);
+  Base::set_config(config);
 
   // enable batched multi-shots/experiments optimization
   batched_shots_gpu_ = config.batched_shots_gpu;
 
   batched_shots_gpu_max_qubits_ = config.batched_shots_gpu_max_qubits;
-  if (BaseExecutor::method_ == Method::density_matrix ||
-      BaseExecutor::method_ == Method::unitary)
+  if (Base::method_ == Method::density_matrix ||
+      Base::method_ == Method::unitary)
     batched_shots_gpu_max_qubits_ /= 2;
 }
 
 template <class state_t>
 void BatchShotsExecutor<state_t>::set_parallelization(
     const Circuit &circ, const Noise::NoiseModel &noise) {
+  Base::set_parallelization(circ, noise);
+
   enable_batch_multi_shots_ = false;
-  if (batched_shots_gpu_ && BaseExecutor::sim_device_ != Device::CPU) {
+  if (batched_shots_gpu_ && Base::sim_device_ != Device::CPU) {
     enable_batch_multi_shots_ = true;
     if (circ.num_qubits >= batched_shots_gpu_max_qubits_)
       enable_batch_multi_shots_ = false;
     else if (circ.shots == 1)
       enable_batch_multi_shots_ = false;
+    else if (Base::multiple_chunk_required(circ, noise))
+      enable_batch_multi_shots_ = false;
   }
 
-  if (!enable_batch_multi_shots_)
-    BaseExecutor::set_parallelization(circ, noise);
-
-  //disable cuStateVec for batch-shots optimization
-  if(BaseExecutor::cuStateVec_enable_)
-    BaseExecutor::cuStateVec_enable_ = false;
-}
-
-template <class state_t>
-bool BatchShotsExecutor<state_t>::allocate_states(uint_t num_shots,
-                                                  const Config &config) {
-  int_t i;
-  bool init_states = true;
-  bool ret = true;
-  // deallocate qregs before reallocation
-  if (BaseExecutor::states_.size() > 0) {
-    if (BaseExecutor::states_.size() == num_shots)
-      init_states = false; // can reuse allocated chunks
-    else
-      BaseExecutor::states_.clear();
-  }
-  if (init_states) {
-    BaseExecutor::states_.resize(num_shots);
-
-    if (BaseExecutor::num_creg_memory_ != 0 ||
-        BaseExecutor::num_creg_registers_ != 0) {
-      for (i = 0; i < num_shots; i++) {
-        // set number of creg bits before actual initialization
-        BaseExecutor::states_[i].initialize_creg(
-            BaseExecutor::num_creg_memory_, BaseExecutor::num_creg_registers_);
-      }
-    }
-
-    // allocate qregs
-    BaseExecutor::states_[0].set_config(config);
-    BaseExecutor::states_[0].qreg().set_max_matrix_bits(
-        BaseExecutor::max_matrix_qubits_);
-    BaseExecutor::states_[0].qreg().set_num_threads_per_group(
-        BaseExecutor::num_threads_per_group_);
-    BaseExecutor::states_[0].set_num_global_qubits(BaseExecutor::num_qubits_);
-    BaseExecutor::states_[0].qreg().cuStateVec_enable(
-        BaseExecutor::cuStateVec_enable_);
-    ret &= BaseExecutor::states_[0].qreg().chunk_setup(
-        BaseExecutor::num_qubits_ * this->qubit_scale(),
-        BaseExecutor::num_qubits_ * this->qubit_scale(), 0, num_shots);
-    for (i = 1; i < num_shots; i++) {
-      BaseExecutor::states_[i].set_config(config);
-      ret &= BaseExecutor::states_[i].qreg().chunk_setup(
-          BaseExecutor::states_[0].qreg(), 0);
-      BaseExecutor::states_[i].qreg().set_num_threads_per_group(
-          BaseExecutor::num_threads_per_group_);
-      BaseExecutor::states_[i].set_num_global_qubits(BaseExecutor::num_qubits_);
-    }
-  }
-  BaseExecutor::num_active_states_ = num_shots;
-
-  // initialize groups
-  BaseExecutor::top_state_of_group_.clear();
-  BaseExecutor::num_groups_ = 0;
-  for (i = 0; i < num_shots; i++) {
-    if (BaseExecutor::states_[i].qreg().top_of_group()) {
-      BaseExecutor::top_state_of_group_.push_back(i);
-      BaseExecutor::num_groups_++;
-    }
-  }
-  BaseExecutor::top_state_of_group_.push_back(num_shots);
-  BaseExecutor::num_states_in_group_.resize(BaseExecutor::num_groups_);
-  for (i = 0; i < BaseExecutor::num_groups_; i++) {
-    BaseExecutor::num_states_in_group_[i] =
-        BaseExecutor::top_state_of_group_[i + 1] -
-        BaseExecutor::top_state_of_group_[i];
-  }
-
-  return ret;
+  // disable cuStateVec for batch-shots optimization
+  if (enable_batch_multi_shots_ && Base::cuStateVec_enable_)
+    Base::cuStateVec_enable_ = false;
 }
 
 template <class state_t>
@@ -201,33 +133,30 @@ void BatchShotsExecutor<state_t>::run_circuit_shots(
     Circuit &circ, const Noise::NoiseModel &noise, const Config &config,
     ExperimentResult &result, bool sample_noise) {
   state_t dummy_state;
-  if (!enable_batch_multi_shots_) { // if batched-shot is not applicable, use
-                                    // default shot distribution
-    return BaseExecutor::run_circuit_shots(circ, noise, config, result,
-                                           sample_noise);
+  // if batched-shot is not applicable, use base multi-shots executor
+  if (!enable_batch_multi_shots_) {
+    return Base::run_circuit_shots(circ, noise, config, result, sample_noise);
   }
 
   Noise::NoiseModel dummy_noise;
 
-  BaseExecutor::num_qubits_ = circ.num_qubits;
-  BaseExecutor::num_creg_memory_ = circ.num_memory;
-  BaseExecutor::num_creg_registers_ = circ.num_registers;
+  Base::num_qubits_ = circ.num_qubits;
+  Base::num_creg_memory_ = circ.num_memory;
+  Base::num_creg_registers_ = circ.num_registers;
 
-  if (BaseExecutor::sim_device_ == Device::GPU) {
+  if (Base::sim_device_ == Device::GPU) {
 #ifdef _OPENMP
     if (omp_get_num_threads() == 1)
-      BaseExecutor::shot_omp_parallel_ = true;
+      Base::shot_omp_parallel_ = true;
 #endif
-  } else if (BaseExecutor::sim_device_ == Device::ThrustCPU) {
-    BaseExecutor::shot_omp_parallel_ = false;
+  } else if (Base::sim_device_ == Device::ThrustCPU) {
+    Base::shot_omp_parallel_ = false;
   }
 
-  BaseExecutor::set_distribution(BaseExecutor::num_process_per_experiment_,
-                                 circ.shots);
-  BaseExecutor::num_max_shots_ =
-      BaseExecutor::get_max_parallel_shots(circ, noise);
-  if (BaseExecutor::num_max_shots_ == 0)
-    BaseExecutor::num_max_shots_ = 1;
+  Base::set_distribution(circ.shots);
+  Base::num_max_shots_ = Base::get_max_parallel_shots(circ, noise);
+  if (Base::num_max_shots_ == 0)
+    Base::num_max_shots_ = 1;
 
   RngEngine rng;
   rng.set_seed(circ.seed);
@@ -238,12 +167,11 @@ void BatchShotsExecutor<state_t>::run_circuit_shots(
         noise.sample_noise(circ, rng, Noise::NoiseModel::Method::circuit, true);
   else
     circ_opt = circ;
-  auto fusion_pass = Base<state_t>::transpile_fusion(circ_opt.opset(), config);
+  auto fusion_pass = Base::transpile_fusion(circ_opt.opset(), config);
 
   fusion_pass.optimize_circuit(circ_opt, dummy_noise, dummy_state.opset(),
                                result);
-  BaseExecutor::max_matrix_qubits_ =
-      BaseExecutor::get_max_matrix_qubits(circ_opt);
+  Base::max_matrix_qubits_ = Base::get_max_matrix_qubits(circ_opt);
 
   run_circuit_with_batched_multi_shots(circ_opt, noise, config, result);
 
@@ -258,56 +186,59 @@ void BatchShotsExecutor<state_t>::run_circuit_with_batched_multi_shots(
   int_t i;
   int_t i_begin, n_shots;
 
+#ifdef AER_MPI
+  // if shots are distributed to MPI processes, allocate cregs to be gathered
+  if (Base::num_process_per_experiment_ > 1)
+    Base::cregs_.resize(circ.shots);
+#endif
+
   i_begin = 0;
-  while (i_begin < BaseExecutor::num_local_states_) {
-    BaseExecutor::local_state_index_ = i_begin;
+  while (i_begin < Base::num_local_states_) {
+    local_state_index_ = Base::global_state_index_ + i_begin;
 
     // loop for states can be stored in available memory
-    n_shots =
-        std::min(BaseExecutor::num_local_states_, BaseExecutor::num_max_shots_);
-    if (i_begin + n_shots > BaseExecutor::num_local_states_) {
-      n_shots = BaseExecutor::num_local_states_ - i_begin;
+    n_shots = std::min(Base::num_local_states_, Base::num_max_shots_);
+    if (i_begin + n_shots > Base::num_local_states_) {
+      n_shots = Base::num_local_states_ - i_begin;
     }
 
     // allocate shots
-    allocate_states(n_shots, config);
+    Base::allocate_states(n_shots, config);
 
     // Set state config
     for (i = 0; i < n_shots; i++) {
-      BaseExecutor::states_[i].set_parallelization(
-          BaseExecutor::parallel_state_update_);
-      BaseExecutor::states_[i].set_global_phase(circ.global_phase_angle);
+      Base::states_[i].set_parallelization(Base::parallel_state_update_);
+      Base::states_[i].set_global_phase(circ.global_phase_angle);
     }
     this->set_global_phase(circ.global_phase_angle);
 
     // initialization (equivalent to initialize_qreg + initialize_creg)
     auto init_group = [this](int_t ig) {
-      for (uint_t j = BaseExecutor::top_state_of_group_[ig];
-           j < BaseExecutor::top_state_of_group_[ig + 1]; j++) {
+      for (uint_t j = Base::top_state_of_group_[ig];
+           j < Base::top_state_of_group_[ig + 1]; j++) {
         // enabling batch shots optimization
-        BaseExecutor::states_[j].qreg().enable_batch(true);
+        Base::states_[j].qreg().enable_batch(true);
 
         // initialize qreg here
-        BaseExecutor::states_[j].qreg().set_num_qubits(
-            BaseExecutor::num_qubits_);
-        BaseExecutor::states_[j].qreg().initialize();
+        Base::states_[j].qreg().set_num_qubits(Base::num_qubits_);
+        Base::states_[j].qreg().initialize();
 
         // initialize creg here
-        BaseExecutor::states_[j].qreg().initialize_creg(
-            BaseExecutor::num_creg_memory_, BaseExecutor::num_creg_registers_);
+        Base::states_[j].qreg().initialize_creg(Base::num_creg_memory_,
+                                                Base::num_creg_registers_);
       }
     };
     Utils::apply_omp_parallel_for(
-        (BaseExecutor::num_groups_ > 1 && BaseExecutor::shot_omp_parallel_), 0,
-        BaseExecutor::num_groups_, init_group);
+        (Base::num_groups_ > 1 && Base::shot_omp_parallel_), 0,
+        Base::num_groups_, init_group);
 
     this->apply_global_phase(); // this is parallelized in sub-classes
 
     // apply ops to multiple-shots
-    if (BaseExecutor::num_groups_ > 1 && BaseExecutor::shot_omp_parallel_) {
-      std::vector<ExperimentResult> par_results(BaseExecutor::num_groups_);
-#pragma omp parallel for num_threads(BaseExecutor::num_groups_)
-      for (i = 0; i < BaseExecutor::num_groups_; i++)
+    if (Base::num_groups_ > 1 && Base::shot_omp_parallel_) {
+      std::vector<ExperimentResult> par_results(Base::num_groups_);
+#pragma omp parallel for num_threads(Base::num_groups_)
+      for (i = 0; i < Base::num_groups_; i++)
         apply_ops_batched_shots_for_group(i, circ.ops.cbegin(), circ.ops.cend(),
                                           noise, par_results[i], circ.seed,
                                           true);
@@ -315,38 +246,44 @@ void BatchShotsExecutor<state_t>::run_circuit_with_batched_multi_shots(
       for (auto &res : par_results)
         result.combine(std::move(res));
     } else {
-      for (i = 0; i < BaseExecutor::num_groups_; i++)
+      for (i = 0; i < Base::num_groups_; i++)
         apply_ops_batched_shots_for_group(i, circ.ops.cbegin(), circ.ops.cend(),
                                           noise, result, circ.seed, true);
     }
 
     // collect measured bits and copy memory
     for (i = 0; i < n_shots; i++) {
-      BaseExecutor::states_[i].qreg().read_measured_data(
-          BaseExecutor::states_[i].creg());
-      result.save_count_data(BaseExecutor::states_[i].creg(),
-                             BaseExecutor::save_creg_memory_);
+      if (Base::num_process_per_experiment_ > 1) {
+        Base::states_[i].qreg().read_measured_data(
+            Base::cregs_[local_state_index_ + i]);
+      } else {
+        Base::states_[i].qreg().read_measured_data(Base::states_[i].creg());
+        result.save_count_data(Base::states_[i].creg(),
+                               Base::save_creg_memory_);
+      }
     }
 
     i_begin += n_shots;
   }
-  /*
-  BaseExecutor::gather_creg_memory();
 
-  for(i=0;i<BaseExecutor::num_global_shots_;i++)
-    result.save_count_data(BaseExecutor::states_[i].creg(),
-  BaseExecutor::save_creg_memory_);
-  */
+  // gather cregs on MPI processes and save to result
+  if (Base::num_process_per_experiment_ > 1) {
+    Base::gather_creg_memory(Base::cregs_, Base::state_index_begin_);
+
+    for (i = 0; i < circ.shots; i++)
+      result.save_count_data(Base::cregs_[i], Base::save_creg_memory_);
+    Base::cregs_.clear();
+  }
 
 #ifdef AER_THRUST_CUDA
-  if (BaseExecutor::sim_device_name_ == "GPU") {
+  if (Base::sim_device_ == Device::GPU) {
     int nDev;
     if (cudaGetDeviceCount(&nDev) != cudaSuccess) {
       cudaGetLastError();
       nDev = 0;
     }
-    if (nDev > BaseExecutor::num_groups_)
-      nDev = BaseExecutor::num_groups_;
+    if (nDev > Base::num_groups_)
+      nDev = Base::num_groups_;
     result.metadata.add(nDev, "batched_shots_optimization_parallel_gpus");
   }
 #endif
@@ -358,24 +295,23 @@ void BatchShotsExecutor<state_t>::apply_ops_batched_shots_for_group(
     int_t i_group, InputIterator first, InputIterator last,
     const Noise::NoiseModel &noise, ExperimentResult &result, uint_t rng_seed,
     bool final_ops) {
-  uint_t istate = BaseExecutor::top_state_of_group_[i_group];
-  std::vector<RngEngine> rng(BaseExecutor::num_states_in_group_[i_group]);
+  uint_t istate = Base::top_state_of_group_[i_group];
+  std::vector<RngEngine> rng(Base::num_states_in_group_[i_group]);
 #ifdef _OPENMP
   int num_inner_threads = omp_get_max_threads() / omp_get_num_threads();
 #else
   int num_inner_threads = 1;
 #endif
 
-  for (uint_t j = BaseExecutor::top_state_of_group_[i_group];
-       j < BaseExecutor::top_state_of_group_[i_group + 1]; j++)
-    rng[j - BaseExecutor::top_state_of_group_[i_group]].set_seed(
-        rng_seed + BaseExecutor::global_state_index_ +
-        BaseExecutor::local_state_index_ + j);
+  for (uint_t j = Base::top_state_of_group_[i_group];
+       j < Base::top_state_of_group_[i_group + 1]; j++)
+    rng[j - Base::top_state_of_group_[i_group]].set_seed(
+        rng_seed + local_state_index_ + j);
 
   for (auto op = first; op != last; ++op) {
     if (op->type == Operations::OpType::sample_noise) {
       // sample error here
-      uint_t count = BaseExecutor::num_states_in_group_[i_group];
+      uint_t count = Base::num_states_in_group_[i_group];
       std::vector<std::vector<Operations::Op>> noise_ops(count);
 
       uint_t count_ops = 0;
@@ -421,7 +357,7 @@ void BatchShotsExecutor<state_t>::apply_ops_batched_shots_for_group(
         continue; // do nothing
       }
       if (non_pauli_gate_count == 0) { // ptimization for Pauli error
-        BaseExecutor::states_[istate].qreg().apply_batched_pauli_ops(noise_ops);
+        Base::states_[istate].qreg().apply_batched_pauli_ops(noise_ops);
       } else {
         // otherwise execute each circuit
         apply_batched_noise_ops(i_group, noise_ops, result, rng);
@@ -430,15 +366,14 @@ void BatchShotsExecutor<state_t>::apply_ops_batched_shots_for_group(
       if (!apply_batched_op(istate, *op, result, rng,
                             final_ops && (op + 1 == last))) {
         // call apply_op for each state
-        for (uint_t j = BaseExecutor::top_state_of_group_[i_group];
-             j < BaseExecutor::top_state_of_group_[i_group + 1]; j++) {
-          BaseExecutor::states_[j].qreg().enable_batch(false);
-          BaseExecutor::states_[j].qreg().read_measured_data(
-              BaseExecutor::states_[j].creg());
-          BaseExecutor::states_[j].apply_op(
-              *op, result, rng[j - BaseExecutor::top_state_of_group_[i_group]],
-              final_ops && (op + 1 == last));
-          BaseExecutor::states_[j].qreg().enable_batch(true);
+        for (uint_t j = Base::top_state_of_group_[i_group];
+             j < Base::top_state_of_group_[i_group + 1]; j++) {
+          Base::states_[j].qreg().enable_batch(false);
+          Base::states_[j].qreg().read_measured_data(Base::states_[j].creg());
+          Base::states_[j].apply_op(*op, result,
+                                    rng[j - Base::top_state_of_group_[i_group]],
+                                    final_ops && (op + 1 == last));
+          Base::states_[j].qreg().enable_batch(true);
         }
       }
     }
@@ -450,7 +385,7 @@ void BatchShotsExecutor<state_t>::apply_batched_noise_ops(
     const int_t i_group, const std::vector<std::vector<Operations::Op>> &ops,
     ExperimentResult &result, std::vector<RngEngine> &rng) {
   int_t i, j, k, count, nop, pos = 0;
-  uint_t istate = BaseExecutor::top_state_of_group_[i_group];
+  uint_t istate = Base::top_state_of_group_[i_group];
   count = ops.size();
 
   reg_t mask(count);
@@ -500,9 +435,8 @@ void BatchShotsExecutor<state_t>::apply_batched_noise_ops(
     }
 
     // mask conditional register
-    int_t sys_reg =
-        BaseExecutor::states_[istate].qreg().set_batched_system_conditional(
-            cond_reg, mask);
+    int_t sys_reg = Base::states_[istate].qreg().set_batched_system_conditional(
+        cond_reg, mask);
 
     // batched execution on same ops
     for (k = 0; k < ops[i].size(); k++) {
@@ -519,18 +453,17 @@ void BatchShotsExecutor<state_t>::apply_batched_noise_ops(
           reg_t reg_pos(1);
           reg_t mem_pos;
           int bit =
-        BaseExecutor::states_[j].qreg().measured_cregister(cop.conditional_reg);
+        Base::states_[j].qreg().measured_cregister(cop.conditional_reg);
           const reg_t reg = Utils::int2reg(bit, 2, 1);
           reg_pos[0] = cop.conditional_reg;
-          BaseExecutor::states_[j].creg().store_measure(reg, mem_pos, reg_pos);
+          Base::states_[j].creg().store_measure(reg, mem_pos, reg_pos);
         }*/
-        for (uint_t j = BaseExecutor::top_state_of_group_[i_group];
-             j < BaseExecutor::top_state_of_group_[i_group + 1]; j++) {
-          BaseExecutor::states_[j].qreg().enable_batch(false);
-          BaseExecutor::states_[j].apply_op(
-              cop, result, rng[j - BaseExecutor::top_state_of_group_[i_group]],
-              false);
-          BaseExecutor::states_[j].qreg().enable_batch(true);
+        for (uint_t j = Base::top_state_of_group_[i_group];
+             j < Base::top_state_of_group_[i_group + 1]; j++) {
+          Base::states_[j].qreg().enable_batch(false);
+          Base::states_[j].apply_op(
+              cop, result, rng[j - Base::top_state_of_group_[i_group]], false);
+          Base::states_[j].qreg().enable_batch(true);
         }
       }
     }
@@ -540,7 +473,7 @@ void BatchShotsExecutor<state_t>::apply_batched_noise_ops(
 }
 
 //-------------------------------------------------------------------------
-} // end namespace Executor
+} // end namespace CircuitExecutor
 //-------------------------------------------------------------------------
 } // end namespace AER
 //-------------------------------------------------------------------------

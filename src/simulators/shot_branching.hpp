@@ -17,7 +17,7 @@
 
 namespace AER {
 
-namespace Executor {
+namespace CircuitExecutor {
 
 using OpItr = std::vector<Operations::Op>::const_iterator;
 
@@ -27,6 +27,8 @@ class Branch;
 class Branch {
 protected:
   uint_t state_index_; // state index
+
+  uint_t shot_index_; // starting shot index
 
   // creg to be stored to the state
   ClassicalRegister creg_;
@@ -59,6 +61,7 @@ public:
   }
 
   uint_t &state_index(void) { return state_index_; }
+  uint_t &shot_index(void) { return shot_index_; }
   ClassicalRegister &creg(void) { return creg_; }
   std::vector<RngEngine> &rng_shots(void) { return shots_; }
   OpItr &op_iterator(void) { return iter_; }
@@ -146,6 +149,12 @@ void Branch::branch_shots(reg_t &shots, int_t nbranch) {
   }
   for (int_t i = 0; i < shots.size(); i++) {
     branches_[shots[i]]->shots_.push_back(shots_[i]);
+  }
+  // update shot indices
+  uint_t index = shot_index_;
+  for (int_t i = 0; i < nbranch; i++) {
+    branches_[i]->shot_index_ = index;
+    index += branches_[i]->shots_.size();
   }
 }
 
@@ -254,7 +263,7 @@ bool Branch::apply_runtime_noise_sampling(const ClassicalRegister &creg,
 }
 
 //-------------------------------------------------------------------------
-} // namespace Executor
+} // namespace CircuitExecutor
 //-------------------------------------------------------------------------
 } // end namespace AER
 //-------------------------------------------------------------------------

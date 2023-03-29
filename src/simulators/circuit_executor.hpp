@@ -12,8 +12,8 @@
  * that they have been altered from the originals.
  */
 
-#ifndef _aer_executor_hpp_
-#define _aer_executor_hpp_
+#ifndef _circuit_executor_hpp_
+#define _circuit_executor_hpp_
 
 #include "framework/config.hpp"
 #include "framework/creg.hpp"
@@ -33,7 +33,7 @@
 
 namespace AER {
 
-namespace Executor {
+namespace CircuitExecutor {
 
 using OpItr = std::vector<Operations::Op>::const_iterator;
 
@@ -44,14 +44,13 @@ using myclock_t = std::chrono::high_resolution_clock;
 // Executor base class
 //-------------------------------------------------------------------------
 template <class state_t>
-class Base {
+class Executor {
 protected:
   // Simulation method
   Method method_;
 
   // Simulation device
   Device sim_device_ = Device::CPU;
-  std::string sim_device_name_ = "CPU";
 
   // Simulation precision
   Precision sim_precision_ = Precision::Double;
@@ -63,7 +62,6 @@ protected:
   int max_parallel_threads_;
 
   // Parameters for parallelization management in configuration
-  int max_parallel_experiments_;
   int max_parallel_shots_;
   size_t max_memory_mb_;
   size_t max_gpu_memory_mb_;
@@ -77,36 +75,32 @@ protected:
   int parallel_shots_;
   int parallel_state_update_;
 
-  bool parallel_nested_ = false;
-
-  // max number of states can be stored on memory for batched
-  // multi-shots/experiments optimization
-  int max_batched_states_;
-
-  // max number of qubits in given circuits
-  int max_qubits_;
-
   // results are stored independently in each process if true
   bool accept_distributed_results_ = true;
 
-  // process information (MPI)
-  int myrank_ = 0;
-  int num_processes_ = 1;
+  uint_t myrank_;               // process ID
+  uint_t nprocs_;               // number of processes
+  uint_t distributed_rank_;     // process ID in communicator group
+  uint_t distributed_procs_;    // number of processes in communicator group
+  uint_t distributed_group_;    // group id of distribution
+  int_t distributed_proc_bits_; // distributed_procs_=2^distributed_proc_bits_
+                                // (if nprocs != power of 2, set -1)
   int num_process_per_experiment_ = 1;
 
-  uint_t cache_block_qubit_ = 0;
-
-  // multi-chunks are required to simulate circuits
-  bool multi_chunk_required_ = false;
+#ifdef AER_MPI
+  // communicator group to simulate a circuit (for multi-experiments)
+  MPI_Comm distributed_comm_;
+#endif
 
   // settings for cuStateVec
   bool cuStateVec_enable_ = false;
 
-  //if circuit has statevector operations or not
+  // if circuit has statevector operations or not
   bool has_statevector_ops_;
+
 public:
-  Base();
-  virtual ~Base() {}
+  Executor();
+  virtual ~Executor() {}
 
   void run_circuit(Circuit &circ, const Noise::NoiseModel &noise,
                    const Config &config, const Method method,
@@ -117,11 +111,6 @@ protected:
   // method, circuit and config
   Transpile::Fusion transpile_fusion(const Operations::OpSet &opset,
                                      const Config &config) const;
-
-  // Return cache blocking transpiler pass
-  Transpile::CacheBlocking
-  transpile_cache_blocking(const Circuit &circ, const Noise::NoiseModel &noise,
-                           const Config &config) const;
 
   // return maximum number of qubits for matrix
   int_t get_max_matrix_qubits(const Circuit &circ) const;
@@ -148,9 +137,6 @@ protected:
   uint_t get_max_parallel_shots(const Circuit &circuit,
                                 const Noise::NoiseModel &noise) const;
 
-  bool multiple_chunk_required(const Circuit &circuit,
-                               const Noise::NoiseModel &noise) const;
-
   bool multiple_shots_required(const Circuit &circuit,
                                const Noise::NoiseModel &noise) const;
 
@@ -170,7 +156,7 @@ protected:
 
   virtual void run_circuit_shots(Circuit &circ, const Noise::NoiseModel &noise,
                                  const Config &config, ExperimentResult &result,
-                                 bool sample_noise) = 0;
+                                 bool sample_noise);
 
   bool validate_state(const Circuit &circ, const Noise::NoiseModel &noise,
                       bool throw_except) const;
@@ -182,44 +168,45 @@ protected:
   template <typename InputIterator>
   void measure_sampler(InputIterator first_meas, InputIterator last_meas,
                        uint_t shots, state_t &state, ExperimentResult &result,
-                       std::vector<RngEngine> &rng,
-                       bool shot_branching = false) const;
+                       RngEngine &rng) const;
 
-  // sampling measure
-  virtual std::vector<reg_t> sample_measure(state_t &state, const reg_t &qubits,
-                                            uint_t shots,
-                                            std::vector<RngEngine> &rng) const {
-    // this is for single rng, impement in sub-class for multi-shots case
-    return state.sample_measure(qubits, shots, rng[0]);
-  }
+  void gather_creg_memory(std::vector<ClassicalRegister> &cregs,
+                          reg_t &shot_index);
 };
 
 template <class state_t>
-Base<state_t>::Base() {
+Executor<state_t>::Executor() {
+  max_memory_mb_ = 0;
+  max_gpu_memory_mb_ = 0;
   max_parallel_threads_ = 0;
-  max_parallel_experiments_ = 1;
   max_parallel_shots_ = 0;
-  max_batched_states_ = 1;
 
-  parallel_experiments_ = 1;
   parallel_shots_ = 1;
   parallel_state_update_ = 1;
-  parallel_nested_ = false;
 
-  num_process_per_experiment_ = 1;
+  num_process_per_experiment_ = 0;
 
   num_gpus_ = 0;
 
   explicit_parallelization_ = false;
 
-  max_memory_mb_ = get_system_memory_mb();
-  max_gpu_memory_mb_ = get_gpu_memory_mb();
-
   has_statevector_ops_ = false;
+
+  myrank_ = 0;
+  nprocs_ = 1;
+
+  distributed_procs_ = 1;
+  distributed_rank_ = 0;
+  distributed_group_ = 0;
+  distributed_proc_bits_ = 0;
+
+#ifdef AER_MPI
+  Base::distributed_comm_ = MPI_COMM_WORLD;
+#endif
 }
 
 template <class state_t>
-void Base<state_t>::set_config(const Config &config) {
+void Executor<state_t>::set_config(const Config &config) {
   // Load config for memory (creg list data)
   if (config.memory.has_value())
     save_creg_memory_ = config.memory.value();
@@ -228,8 +215,6 @@ void Base<state_t>::set_config(const Config &config) {
   // Load OpenMP maximum thread settings
   if (config.max_parallel_threads.has_value())
     max_parallel_threads_ = config.max_parallel_threads.value();
-  if (config.max_parallel_experiments.has_value())
-    max_parallel_experiments_ = config.max_parallel_experiments.value();
   if (config.max_parallel_shots.has_value())
     max_parallel_shots_ = config.max_parallel_shots.value();
   // Limit max threads based on number of available OpenMP threads
@@ -241,20 +226,12 @@ void Base<state_t>::set_config(const Config &config) {
   // No OpenMP so we disable parallelization
   max_parallel_threads_ = 1;
   max_parallel_shots_ = 1;
-  max_parallel_experiments_ = 1;
-  parallel_nested_ = false;
 #endif
 
   // Load configurations for parallelization
 
   if (config.max_memory_mb.has_value())
     max_memory_mb_ = config.max_memory_mb.value();
-
-  // for debugging
-  if (config._parallel_experiments.has_value()) {
-    parallel_experiments_ = config._parallel_experiments.value();
-    explicit_parallelization_ = true;
-  }
 
   // for debugging
   if (config._parallel_shots.has_value()) {
@@ -269,7 +246,6 @@ void Base<state_t>::set_config(const Config &config) {
   }
 
   if (explicit_parallelization_) {
-    parallel_experiments_ = std::max<int>({parallel_experiments_, 1});
     parallel_shots_ = std::max<int>({parallel_shots_, 1});
     parallel_state_update_ = std::max<int>({parallel_state_update_, 1});
   }
@@ -277,81 +253,27 @@ void Base<state_t>::set_config(const Config &config) {
   if (config.accept_distributed_results.has_value())
     accept_distributed_results_ = config.accept_distributed_results.value();
 
-  // enable multiple qregs if cache blocking is enabled
-  cache_block_qubit_ = 0;
-  if (config.blocking_qubits.has_value())
-    cache_block_qubit_ = config.blocking_qubits.value();
-
   // cuStateVec configs
   cuStateVec_enable_ = false;
   if (config.cuStateVec_enable.has_value())
     cuStateVec_enable_ = config.cuStateVec_enable.value();
-
-  // Override automatic simulation method with a fixed method
-  sim_device_name_ = config.device;
-  if (sim_device_name_ == "CPU") {
-    sim_device_ = Device::CPU;
-  } else if (sim_device_name_ == "Thrust") {
-#ifndef AER_THRUST_CPU
-    throw std::runtime_error(
-        "Simulation device \"Thrust\" is not supported on this system");
-#else
-    sim_device_ = Device::ThrustCPU;
-#endif
-  } else if (sim_device_name_ == "GPU") {
-#ifndef AER_THRUST_CUDA
-    throw std::runtime_error(
-        "Simulation device \"GPU\" is not supported on this system");
-#else
-
-#ifndef AER_CUSTATEVEC
-    if (cuStateVec_enable_) {
-      // Aer is not built for cuStateVec
-      throw std::runtime_error("Simulation device \"GPU\" does not support "
-                               "cuStateVec on this system");
-    }
-#endif
-    int nDev;
-    if (cudaGetDeviceCount(&nDev) != cudaSuccess) {
-      cudaGetLastError();
-      throw std::runtime_error("No CUDA device available!");
-    }
-    num_gpus_ = nDev;
-    sim_device_ = Device::GPU;
-#endif
-  } else {
-    throw std::runtime_error(std::string("Invalid simulation device (\"") +
-                             sim_device_name_ + std::string("\")."));
-  }
-
-  if (method_ == Method::tensor_network) {
-#if defined(AER_THRUST_CUDA) && defined(AER_CUTENSORNET)
-    if (sim_device_ != Device::GPU)
-#endif
-      throw std::runtime_error(
-          "Invalid combination of simulation method and device, "
-          "\"tensor_network\" only supports \"device=GPU\"");
-  }
 
   std::string precision = config.precision;
   if (precision == "double") {
     sim_precision_ = Precision::Double;
   } else if (precision == "single") {
     sim_precision_ = Precision::Single;
-  } else {
-    throw std::runtime_error(std::string("Invalid simulation precision (") +
-                             precision + std::string(")."));
   }
 }
 
 template <class state_t>
-size_t Base<state_t>::get_system_memory_mb() {
+size_t Executor<state_t>::get_system_memory_mb() {
   size_t total_physical_memory = Utils::get_system_memory_mb();
 #ifdef AER_MPI
   // get minimum memory size per process
   uint64_t locMem, minMem;
   locMem = total_physical_memory;
-  MPI_Allreduce(&locMem, &minMem, 1, MPI_UINT64_T, MPI_MIN, MPI_COMM_WORLD);
+  MPI_Allreduce(&locMem, &minMem, 1, MPI_UINT64_T, MPI_MIN, distributed_comm_);
   total_physical_memory = minMem;
 #endif
 
@@ -359,7 +281,7 @@ size_t Base<state_t>::get_system_memory_mb() {
 }
 
 template <class state_t>
-size_t Base<state_t>::get_gpu_memory_mb() {
+size_t Executor<state_t>::get_gpu_memory_mb() {
   size_t total_physical_memory = 0;
 #ifdef AER_THRUST_CUDA
   int iDev, nDev, j;
@@ -380,42 +302,18 @@ size_t Base<state_t>::get_gpu_memory_mb() {
   // get minimum memory size per process
   uint64_t locMem, minMem;
   locMem = total_physical_memory;
-  MPI_Allreduce(&locMem, &minMem, 1, MPI_UINT64_T, MPI_MIN, MPI_COMM_WORLD);
+  MPI_Allreduce(&locMem, &minMem, 1, MPI_UINT64_T, MPI_MIN, distributed_comm_);
   total_physical_memory = minMem;
 
   int t = num_gpus_;
-  MPI_Allreduce(&t, &num_gpus_, 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
+  MPI_Allreduce(&t, &num_gpus_, 1, MPI_INT, MPI_MAX, distributed_comm_);
 #endif
 
   return total_physical_memory >> 20;
 }
 
 template <class state_t>
-bool Base<state_t>::multiple_chunk_required(
-    const Circuit &circ, const Noise::NoiseModel &noise) const {
-  if (circ.num_qubits < 3)
-    return false;
-  if (cache_block_qubit_ >= 2 && cache_block_qubit_ < circ.num_qubits)
-    return true;
-
-  if (num_process_per_experiment_ == 1 && sim_device_ == Device::GPU &&
-      num_gpus_ > 0) {
-    return (max_gpu_memory_mb_ / num_gpus_ < required_memory_mb(circ, noise));
-  }
-  if (num_process_per_experiment_ > 1) {
-    size_t total_mem = max_memory_mb_;
-    if (sim_device_ == Device::GPU)
-      total_mem += max_gpu_memory_mb_;
-    if (total_mem * num_process_per_experiment_ >
-        required_memory_mb(circ, noise))
-      return true;
-  }
-
-  return false;
-}
-
-template <class state_t>
-bool Base<state_t>::multiple_shots_required(
+bool Executor<state_t>::multiple_shots_required(
     const Circuit &circ, const Noise::NoiseModel &noise) const {
   if (circ.shots < 2)
     return false;
@@ -434,9 +332,8 @@ bool Base<state_t>::multiple_shots_required(
 }
 
 template <class state_t>
-uint_t
-Base<state_t>::get_max_parallel_shots(const Circuit &circ,
-                                      const Noise::NoiseModel &noise) const {
+uint_t Executor<state_t>::get_max_parallel_shots(
+    const Circuit &circ, const Noise::NoiseModel &noise) const {
   uint_t mem = required_memory_mb(circ, noise);
   if (mem == 0)
     return circ.shots;
@@ -449,13 +346,55 @@ Base<state_t>::get_max_parallel_shots(const Circuit &circ,
 }
 
 template <class state_t>
-void Base<state_t>::set_parallelization(const Circuit &circ,
-                                        const Noise::NoiseModel &noise) {
-  if (explicit_parallelization_)
-    return;
+void Executor<state_t>::set_parallelization(const Circuit &circ,
+                                            const Noise::NoiseModel &noise) {
+  // MPI setting
+  myrank_ = 0;
+  nprocs_ = 1;
+#ifdef AER_MPI
+  int t;
+  MPI_Comm_size(MPI_COMM_WORLD, &t);
+  nprocs_ = t;
+  MPI_Comm_rank(MPI_COMM_WORLD, &t);
+  myrank_ = t;
+#endif
+  if (num_process_per_experiment_ == 0)
+    num_process_per_experiment_ = nprocs_;
+
+  distributed_procs_ = num_process_per_experiment_;
+  distributed_rank_ = myrank_ % distributed_procs_;
+  distributed_group_ = myrank_ / distributed_procs_;
+
+  distributed_proc_bits_ = 0;
+  int proc_bits = 0;
+  uint_t p = distributed_procs_;
+  while (p > 1) {
+    if ((p & 1) != 0) { // procs is not power of 2
+      distributed_proc_bits_ = -1;
+      break;
+    }
+    distributed_proc_bits_++;
+    p >>= 1;
+  }
+
+#ifdef AER_MPI
+  if (num_process_per_experiment_ != nprocs_) {
+    MPI_Comm_split(MPI_COMM_WORLD, (int)distributed_group_,
+                   (int)distributed_rank_, &distributed_comm_);
+  } else {
+    distributed_comm_ = MPI_COMM_WORLD;
+  }
+#endif
+
+  if (max_memory_mb_ == 0)
+    max_memory_mb_ = get_system_memory_mb();
+  max_gpu_memory_mb_ = get_gpu_memory_mb();
 
   // number of threads for parallel loop of experiments
   parallel_experiments_ = omp_get_num_threads();
+
+  if (explicit_parallelization_)
+    return;
 
   // Check for trivial parallelization conditions
   switch (method_) {
@@ -527,9 +466,11 @@ void Base<state_t>::set_parallelization(const Circuit &circ,
 }
 
 template <class state_t>
-void Base<state_t>::run_circuit(Circuit &circ, const Noise::NoiseModel &noise,
-                                const Config &config, const Method method,
-                                const Device device, ExperimentResult &result) {
+void Executor<state_t>::run_circuit(Circuit &circ,
+                                    const Noise::NoiseModel &noise,
+                                    const Config &config, const Method method,
+                                    const Device device,
+                                    ExperimentResult &result) {
   // Start individual circuit timer
   auto timer_start = myclock_t::now(); // state circuit timer
 
@@ -539,6 +480,7 @@ void Base<state_t>::run_circuit(Circuit &circ, const Noise::NoiseModel &noise,
     // set configuration
     method_ = method;
     sim_device_ = device;
+
     set_config(config);
     set_parallelization(circ, noise);
 
@@ -549,12 +491,12 @@ void Base<state_t>::run_circuit(Circuit &circ, const Noise::NoiseModel &noise,
     // Output data container
     result.set_config(config);
     result.metadata.add(method_names_.at(method), "method");
-    if (method == Method::statevector || method == Method::density_matrix ||
-        method == Method::unitary || method == Method::tensor_network) {
-      result.metadata.add(sim_device_name_, "device");
-    } else {
+    if (sim_device_ == Device::GPU)
+      result.metadata.add("GPU", "device");
+    else if (sim_device_ == Device::ThrustCPU)
+      result.metadata.add("Thrust", "device");
+    else
       result.metadata.add("CPU", "device");
-    }
 
     // Circuit qubit metadata
     result.metadata.add(circ.num_qubits, "num_qubits");
@@ -633,7 +575,8 @@ void Base<state_t>::run_circuit(Circuit &circ, const Noise::NoiseModel &noise,
     result.metadata.add(parallel_shots_, "parallel_shots");
     result.metadata.add(parallel_state_update_, "parallel_state_update");
 #ifdef AER_CUSTATEVEC
-    result.metadata.add(cuStateVec_enable_, "cuStateVec_enable");
+    if (sim_device_ == Device::GPU)
+      result.metadata.add(cuStateVec_enable_, "cuStateVec_enable");
 #endif
 
     // Add timer data
@@ -650,9 +593,9 @@ void Base<state_t>::run_circuit(Circuit &circ, const Noise::NoiseModel &noise,
 }
 
 template <class state_t>
-void Base<state_t>::run_with_sampling(const Circuit &circ, state_t &state,
-                                      ExperimentResult &result, RngEngine &rng,
-                                      const uint_t shots) {
+void Executor<state_t>::run_with_sampling(const Circuit &circ, state_t &state,
+                                          ExperimentResult &result,
+                                          RngEngine &rng, const uint_t shots) {
   auto &ops = circ.ops;
   auto first_meas = circ.first_measure_pos; // Position of first measurement op
   bool final_ops = (first_meas == ops.size());
@@ -671,16 +614,14 @@ void Base<state_t>::run_with_sampling(const Circuit &circ, state_t &state,
                   final_ops);
 
   // Get measurement operations and set of measured qubits
-  std::vector<RngEngine> rngs;
-  rngs.push_back(rng);
   measure_sampler(circ.ops.begin() + first_meas, circ.ops.end(), shots, state,
-                  result, rngs);
+                  result, rng);
 }
 
 template <class state_t>
-void Base<state_t>::run_circuit_with_sampling(Circuit &circ,
-                                              const Config &config,
-                                              ExperimentResult &result) {
+void Executor<state_t>::run_circuit_with_sampling(Circuit &circ,
+                                                  const Config &config,
+                                                  ExperimentResult &result) {
   state_t state;
 
   // Optimize circuit
@@ -748,12 +689,131 @@ void Base<state_t>::run_circuit_with_sampling(Circuit &circ,
 }
 
 template <class state_t>
+void Executor<state_t>::run_circuit_shots(Circuit &circ,
+                                          const Noise::NoiseModel &noise,
+                                          const Config &config,
+                                          ExperimentResult &result,
+                                          bool sample_noise) {
+
+  // insert runtime noise sample ops here
+  RngEngine rng;
+  rng.set_seed(circ.seed);
+
+  int_t par_shots = (int_t)get_max_parallel_shots(circ, noise);
+  par_shots = std::min((int_t)parallel_shots_, par_shots);
+  std::vector<ExperimentResult> par_results(par_shots);
+
+  uint_t num_shots = circ.shots;
+  uint_t seed_begin = circ.seed;
+
+  // MPI distribution settings
+  std::vector<ClassicalRegister> cregs;
+  reg_t shot_begin(distributed_procs_);
+  reg_t shot_end(distributed_procs_);
+  for (int_t i = 0; i < distributed_procs_; i++) {
+    shot_begin[i] = circ.shots * i / distributed_procs_;
+    shot_end[i] = circ.shots * (i + 1) / distributed_procs_;
+  }
+  num_shots = shot_end[distributed_rank_] - shot_begin[distributed_rank_];
+  seed_begin += shot_begin[distributed_rank_];
+  cregs.resize(circ.shots);
+
+  // run each shot
+  auto run_circuit_lambda = [this, &par_results, circ, noise, config, par_shots,
+                             sample_noise, num_shots, seed_begin, shot_begin,
+                             &cregs](int_t i) {
+    Noise::NoiseModel dummy_noise;
+    state_t state;
+    uint_t i_shot, shot_end;
+    i_shot = num_shots * i / par_shots;
+    shot_end = num_shots * (i + 1) / par_shots;
+
+    auto fusion_pass = transpile_fusion(circ.opset(), config);
+
+    // Set state config
+    state.set_config(config);
+    state.set_parallelization(this->parallel_state_update_);
+    state.set_global_phase(circ.global_phase_angle);
+    state.enable_density_matrix(!has_statevector_ops_);
+
+    state.set_distribution(this->num_process_per_experiment_);
+    state.set_num_global_qubits(circ.num_qubits);
+
+    for (; i_shot < shot_end; i_shot++) {
+      RngEngine rng;
+      rng.set_seed(seed_begin + i_shot);
+
+      int max_matrix_qubits;
+      Circuit circ_opt;
+      if (sample_noise)
+        circ_opt = noise.sample_noise(circ, rng);
+      else
+        circ_opt = circ;
+      fusion_pass.optimize_circuit(circ_opt, dummy_noise, state.opset(),
+                                   par_results[i]);
+      max_matrix_qubits = get_max_matrix_qubits(circ_opt);
+      state.set_max_matrix_qubits(max_matrix_qubits);
+      state.enable_cuStateVec(cuStateVec_enable_);
+
+      state.allocate(circ.num_qubits, circ.num_qubits);
+      state.initialize_qreg(circ.num_qubits);
+      state.initialize_creg(circ.num_memory, circ.num_registers);
+
+      state.apply_ops(circ_opt.ops.cbegin(), circ_opt.ops.cend(),
+                      par_results[i], rng, true);
+      if (distributed_procs_ > 1) {
+        // save creg to be gathered
+        cregs[shot_begin[distributed_rank_] + i_shot] = state.creg();
+      } else {
+        par_results[i].save_count_data(state.creg(), save_creg_memory_);
+      }
+    }
+    state.add_metadata(par_results[i]);
+  };
+  Utils::apply_omp_parallel_for((par_shots > 1), 0, par_shots,
+                                run_circuit_lambda);
+
+  // gather cregs on MPI processes and save to result
+  if (num_process_per_experiment_ > 1) {
+    gather_creg_memory(cregs, shot_begin);
+
+    // save cregs to result
+    num_shots = circ.shots;
+    auto save_cregs = [this, &par_results, par_shots, num_shots,
+                       cregs](int_t i) {
+      uint_t i_shot, shot_end;
+      i_shot = num_shots * i / par_shots;
+      shot_end = num_shots * (i + 1) / par_shots;
+
+      for (; i_shot < shot_end; i_shot++) {
+        par_results[i].save_count_data(cregs[i_shot], save_creg_memory_);
+      }
+    };
+    Utils::apply_omp_parallel_for((par_shots > 1), 0, par_shots, save_cregs,
+                                  par_shots);
+  }
+
+  for (auto &res : par_results) {
+    result.combine(std::move(res));
+  }
+#ifdef AER_CUSTATEVEC
+  if (sim_device_ == Device::GPU) {
+    result.metadata.add(cuStateVec_enable_, "cuStateVec_enable");
+    if (par_shots >= num_gpus_)
+      result.metadata.add(num_gpus_, "gpu_parallel_shots_");
+    else
+      result.metadata.add(par_shots, "gpu_parallel_shots_");
+  }
+#endif
+}
+
+template <class state_t>
 template <typename InputIterator>
-void Base<state_t>::measure_sampler(InputIterator first_meas,
-                                    InputIterator last_meas, uint_t shots,
-                                    state_t &state, ExperimentResult &result,
-                                    std::vector<RngEngine> &rng,
-                                    bool shot_branching) const {
+void Executor<state_t>::measure_sampler(InputIterator first_meas,
+                                        InputIterator last_meas, uint_t shots,
+                                        state_t &state,
+                                        ExperimentResult &result,
+                                        RngEngine &rng) const {
   // Check if meas_circ is empty, and if so return initial creg
   if (first_meas == last_meas) {
     while (shots-- > 0) {
@@ -785,10 +845,7 @@ void Base<state_t>::measure_sampler(InputIterator first_meas,
   // Generate the samples
   auto timer_start = myclock_t::now();
   std::vector<reg_t> all_samples;
-  if (shot_branching)
-    all_samples = sample_measure(state, meas_qubits, shots, rng);
-  else
-    all_samples = state.sample_measure(meas_qubits, shots, rng[0]);
+  all_samples = state.sample_measure(meas_qubits, shots, rng);
   auto time_taken =
       std::chrono::duration<double>(myclock_t::now() - timer_start).count();
   result.metadata.add(time_taken, "sample_measure_time");
@@ -819,10 +876,7 @@ void Base<state_t>::measure_sampler(InputIterator first_meas,
       (register_map.empty()) ? 0ULL : 1 + register_map.rbegin()->first;
   ClassicalRegister creg;
   for (int_t i = 0; i < all_samples.size(); i++) {
-    if (shot_branching)
-      creg = state.creg();
-    else
-      creg.initialize(num_memory, num_registers);
+    creg.initialize(num_memory, num_registers);
 
     // process memory bit measurements
     for (const auto &pair : memory_map) {
@@ -835,32 +889,19 @@ void Base<state_t>::measure_sampler(InputIterator first_meas,
                          reg_t({pair.first}));
     }
 
-    if (shot_branching) {
-      // for shot-branching
+    // process read out errors for memory and registers
+    for (const Operations::Op &roerror : roerror_ops)
+      creg.apply_roerror(roerror, rng);
 
-      // process read out errors for memory and registers
-      for (const Operations::Op &roerror : roerror_ops)
-        creg.apply_roerror(roerror, rng[i]);
-
-      std::string memory_hex = creg.memory_hex();
-      result.data.add_accum(static_cast<uint_t>(1ULL), "counts", memory_hex);
-      if (save_creg_memory_)
-        result.data.add_list(memory_hex, "memory");
-    } else {
-      // process read out errors for memory and registers
-      for (const Operations::Op &roerror : roerror_ops)
-        creg.apply_roerror(roerror, rng[0]);
-
-      // Save count data
-      result.save_count_data(creg, save_creg_memory_);
-    }
+    // Save count data
+    result.save_count_data(creg, save_creg_memory_);
   }
 }
 
 template <class state_t>
-bool Base<state_t>::validate_state(const Circuit &circ,
-                                   const Noise::NoiseModel &noise,
-                                   bool throw_except) const {
+bool Executor<state_t>::validate_state(const Circuit &circ,
+                                       const Noise::NoiseModel &noise,
+                                       bool throw_except) const {
   std::stringstream error_msg;
   std::string circ_name;
   state_t state;
@@ -916,8 +957,8 @@ bool Base<state_t>::validate_state(const Circuit &circ,
 
 template <class state_t>
 Transpile::Fusion
-Base<state_t>::transpile_fusion(const Operations::OpSet &opset,
-                                const Config &config) const {
+Executor<state_t>::transpile_fusion(const Operations::OpSet &opset,
+                                    const Config &config) const {
   Transpile::Fusion fusion_pass;
   fusion_pass.set_parallelization(parallel_state_update_);
 
@@ -976,36 +1017,7 @@ Base<state_t>::transpile_fusion(const Operations::OpSet &opset,
 }
 
 template <class state_t>
-Transpile::CacheBlocking
-Base<state_t>::transpile_cache_blocking(const Circuit &circ,
-                                        const Noise::NoiseModel &noise,
-                                        const Config &config) const {
-  Transpile::CacheBlocking cache_block_pass;
-
-  const bool is_matrix =
-      (method_ == Method::density_matrix || method_ == Method::unitary);
-  const auto complex_size = (sim_precision_ == Precision::Single)
-                                ? sizeof(std::complex<float>)
-                                : sizeof(std::complex<double>);
-
-  cache_block_pass.set_num_processes(num_process_per_experiment_);
-  cache_block_pass.set_config(config);
-
-  if (!cache_block_pass.enabled()) {
-    // if blocking is not set by config, automatically set if required
-    if (multiple_chunk_required(circ, noise)) {
-      int nplace = num_process_per_experiment_;
-      if (sim_device_ == Device::GPU && num_gpus_ > 0)
-        nplace *= num_gpus_;
-      cache_block_pass.set_blocking(circ.num_qubits, get_min_memory_mb() << 20,
-                                    nplace, complex_size, is_matrix);
-    }
-  }
-  return cache_block_pass;
-}
-
-template <class state_t>
-bool Base<state_t>::check_measure_sampling_opt(const Circuit &circ) const {
+bool Executor<state_t>::check_measure_sampling_opt(const Circuit &circ) const {
   // Check if circuit has sampling flag disabled
   if (circ.can_sample == false) {
     return false;
@@ -1049,7 +1061,7 @@ bool Base<state_t>::check_measure_sampling_opt(const Circuit &circ) const {
 }
 
 template <class state_t>
-int_t Base<state_t>::get_matrix_bits(const Operations::Op &op) const {
+int_t Executor<state_t>::get_matrix_bits(const Operations::Op &op) const {
   int_t bit = 1;
   if (op.type == Operations::OpType::matrix ||
       op.type == Operations::OpType::diagonal_matrix ||
@@ -1066,7 +1078,7 @@ int_t Base<state_t>::get_matrix_bits(const Operations::Op &op) const {
 }
 
 template <class state_t>
-int_t Base<state_t>::get_max_matrix_qubits(const Circuit &circ) const {
+int_t Executor<state_t>::get_max_matrix_qubits(const Circuit &circ) const {
   int_t max_bits = 0;
   int_t i;
 
@@ -1081,14 +1093,81 @@ int_t Base<state_t>::get_max_matrix_qubits(const Circuit &circ) const {
 }
 
 template <class state_t>
-bool Base<state_t>::has_statevector_ops(const Circuit &circ) const {
+bool Executor<state_t>::has_statevector_ops(const Circuit &circ) const {
   return circ.opset().contains(Operations::OpType::save_statevec) ||
          circ.opset().contains(Operations::OpType::save_statevec_dict) ||
          circ.opset().contains(Operations::OpType::save_amps);
 }
 
+template <class state_t>
+void Executor<state_t>::gather_creg_memory(
+    std::vector<ClassicalRegister> &cregs, reg_t &shot_index) {
+#ifdef AER_MPI
+  int_t i, j;
+  uint_t n64, i64, ibit, num_local_shots;
+
+  if (distributed_procs_ == 0)
+    return;
+  if (cregs.size() == 0)
+    return;
+  int_t size = cregs[0].memory_size();
+  if (size == 0)
+    return;
+
+  if (distributed_rank_ == distributed_procs_ - 1)
+    num_local_shots = cregs.size() - shot_index[distributed_rank_];
+  else
+    num_local_shots =
+        shot_index[distributed_rank_ + 1] - shot_index[distributed_rank_];
+
+  // number of 64-bit integers per memory
+  n64 = (size + 63) >> 6;
+
+  reg_t bin_memory(n64 * num_local_shots, 0);
+  // compress memory string to binary
+#pragma omp parallel for private(i, j, i64, ibit)
+  for (i = 0; i < num_local_shots; i++) {
+    for (j = 0; j < size; j++) {
+      i64 = j >> 6;
+      ibit = j & 63;
+      if (cregs[shot_index[distributed_rank_] + i].creg_memory()[j] == '1') {
+        bin_memory[i * n64 + i64] |= (1ull << ibit);
+      }
+    }
+  }
+
+  reg_t recv(n64 * cregs.size());
+  std::vector<int> recv_counts(nprocs);
+  std::vector<int> recv_offset(nprocs);
+
+  for (i = 0; i < distributed_procs_ - 1; i++) {
+    recv_offset[i] = shot_index[i];
+    recv_counts[i] = shot_index[i + 1] - shot_index[i];
+  }
+  recv_offset[distributed_procs_ - 1] = shot_index[distributed_procs_ - 1];
+  recv_counts[i] = cregs.size() - shot_index[distributed_procs_ - 1];
+
+  MPI_Allgatherv(&bin_memory[0], n64 * num_local_shots, MPI_UINT64_T, &recv[0],
+                 &recv_counts[0], &recv_offset[0], MPI_UINT64_T,
+                 distributed_comm_);
+
+  // store gathered memory
+#pragma omp parallel for private(i, j, i64, ibit)
+  for (i = 0; i < cregs.size(); i++) {
+    for (j = 0; j < size; j++) {
+      i64 = j >> 6;
+      ibit = j & 63;
+      if (((recv[i * n64 + i64] >> ibit) & 1) == 1)
+        cregs_[i].creg_memory()[j] = '1';
+      else
+        cregs_[i].creg_memory()[j] = '0';
+    }
+  }
+#endif
+}
+
 //-------------------------------------------------------------------------
-} // end namespace Executor
+} // end namespace CircuitExecutor
 //-------------------------------------------------------------------------
 } // end namespace AER
 //-------------------------------------------------------------------------

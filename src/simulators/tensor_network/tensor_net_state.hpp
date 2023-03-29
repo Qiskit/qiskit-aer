@@ -23,7 +23,7 @@
 #include "framework/json.hpp"
 #include "framework/opset.hpp"
 #include "framework/utils.hpp"
-#include "simulators/state_chunk.hpp"
+#include "simulators/state.hpp"
 #include "tensor_net.hpp"
 
 #include "simulators/tensor_network/tensor_net.hpp"
