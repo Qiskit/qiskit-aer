@@ -402,7 +402,7 @@ class Estimator(BaseEstimator):
                 expectation_values.append(rng.normal(combined_expval, standard_error))
                 metadata.append(
                     {
-                        "variance": combined_var,
+                        "variance": np.real_if_close(combined_var).item(),
                         "shots": shots,
                         "simulator_metadata": result.results[i].metadata,
                     }
@@ -495,7 +495,7 @@ class _PostProcessing:
             combined_var += np.dot(variances, coeffs**2)
         metadata = {
             "shots": shots,
-            "variance": combined_var,
+            "variance": np.real_if_close(combined_var).item(),
             "simulator_metadata": simulator_metadata,
         }
         return combined_expval, metadata
