@@ -183,8 +183,10 @@ void bind_aer_controller(MODULE m) {
         config.num_threads_per_device.value(val);
       });
   // # multi-shot branching
-  aer_config.def_readwrite("shot_branching_enable", &Config::shot_branching_enable);
-  aer_config.def_readwrite("runtime_noise_sampling_enable", &Config::runtime_noise_sampling_enable);
+  aer_config.def_readwrite("shot_branching_enable",
+                           &Config::shot_branching_enable);
+  aer_config.def_readwrite("runtime_noise_sampling_enable",
+                           &Config::runtime_noise_sampling_enable);
   // # statevector options
   aer_config.def_readwrite("statevector_parallel_threshold",
                            &Config::statevector_parallel_threshold);
