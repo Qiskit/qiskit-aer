@@ -201,7 +201,7 @@ Executor<state_t>::Executor() {
   distributed_proc_bits_ = 0;
 
 #ifdef AER_MPI
-  Base::distributed_comm_ = MPI_COMM_WORLD;
+  distributed_comm_ = MPI_COMM_WORLD;
 #endif
 }
 
@@ -1137,8 +1137,8 @@ void Executor<state_t>::gather_creg_memory(
   }
 
   reg_t recv(n64 * cregs.size());
-  std::vector<int> recv_counts(nprocs);
-  std::vector<int> recv_offset(nprocs);
+  std::vector<int> recv_counts(distributed_procs_);
+  std::vector<int> recv_offset(distributed_procs_);
 
   for (i = 0; i < distributed_procs_ - 1; i++) {
     recv_offset[i] = shot_index[i];
@@ -1158,9 +1158,9 @@ void Executor<state_t>::gather_creg_memory(
       i64 = j >> 6;
       ibit = j & 63;
       if (((recv[i * n64 + i64] >> ibit) & 1) == 1)
-        cregs_[i].creg_memory()[j] = '1';
+        cregs[i].creg_memory()[j] = '1';
       else
-        cregs_[i].creg_memory()[j] = '0';
+        cregs[i].creg_memory()[j] = '0';
     }
   }
 #endif
