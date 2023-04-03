@@ -78,6 +78,9 @@ class AerProvider(Provider):
         # Instantiate a new backend instance so if config options
         # are set they will only last as long as that backend object exists
         backends = []
+
+        # pylint: disable=not-an-iterable
+        # pylint infers _get_backends to always return None
         for backend_name, backend_cls, method, device in self._get_backends():
             opts = {"provider": self}
             if method is not None:
