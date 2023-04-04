@@ -16,6 +16,7 @@ Compier to convert Qiskit control-flow to Aer backend.
 import itertools
 from copy import copy
 from typing import List
+from warnings import warn
 
 from qiskit.circuit import QuantumCircuit, Clbit, ParameterExpression
 from qiskit.extensions import Initialize
@@ -336,6 +337,83 @@ def compile_circuit(circuits, basis_gates=None, optypes=None):
     return AerCompiler().compile(circuits, basis_gates, optypes)
 
 
+BACKEND_RUN_ARG_TYPES = {
+    "shots": int,
+    "method": str,
+    "device": str,
+    "precision": str,
+    "max_job_size": int,
+    "max_shot_size": int,
+    "enable_truncation": bool,
+    # "executor": Executor,
+    "zero_threshold": float,
+    "validation_threshold": int,
+    "max_parallel_threads": int,
+    "max_parallel_experiments": int,
+    "max_parallel_shots": int,
+    "max_memory_mb": int,
+    "fusion_enable": bool,
+    "fusion_verbose": bool,
+    "fusion_max_qubit": int,
+    "fusion_threshold": int,
+    "accept_distributed_results": bool,
+    "memory": bool,
+    # "noise_model": NoiseModel,
+    "seed_simulator": int,
+    "cuStateVec_enable": int,
+    "blocking_qubits": int,
+    "blocking_enable": bool,
+    "chunk_swap_buffer_qubits": int,
+    "batched_shots_gpu": bool,
+    "batched_shots_gpu_max_qubits": int,
+    "num_threads_per_device": int,
+    "statevector_parallel_threshold": int,
+    "statevector_sample_measure_opt": int,
+    "stabilizer_max_snapshot_probabilities": int,
+    "extended_stabilizer_sampling_method": str,
+    "extended_stabilizer_metropolis_mixing_time": int,
+    "extended_stabilizer_approximation_error": float,
+    "extended_stabilizer_norm_estimation_samples": int,
+    "extended_stabilizer_norm_estimation_repetitions": int,
+    "extended_stabilizer_parallel_threshold": int,
+    "extended_stabilizer_probabilities_snapshot_samples": int,
+    "matrix_product_state_truncation_threshold": float,
+    "matrix_product_state_max_bond_dimension": int,
+    "mps_sample_measure_algorithm": str,
+    "mps_log_data": bool,
+    "mps_swap_direction": str,
+    "chop_threshold": float,
+    "mps_parallel_threshold": int,
+    "mps_omp_threads": int,
+    "tensor_network_num_sampling_qubits": int,
+    "use_cuTensorNet_autotuning": bool,
+}
+
+
+def _validate_option(k, v):
+    """validate backend.run arguments"""
+    if v is None:
+        return v
+    if k not in BACKEND_RUN_ARG_TYPES:
+        raise AerError(f"invalid argument: name={k}")
+    if isinstance(v, BACKEND_RUN_ARG_TYPES[k]):
+        return v
+    try:
+        ret = BACKEND_RUN_ARG_TYPES[k](v)
+        warn(
+            f'A type of an option "{k}" is {BACKEND_RUN_ARG_TYPES[k].__name__} '
+            "but {v.__class__.__name__} was specified."
+            "Implicit cast for an argument has been deprecated as of qiskit-aer 0.12.1.",
+            DeprecationWarning,
+            stacklevel=5,
+        )
+        return ret
+    except Exception:  # pylint: disable=broad-except
+        raise AerError(
+            f"invalid option type: name={k}, type={v.__class__}, expected={BACKEND_RUN_ARG_TYPES[k](v)}"
+        )
+
+
 def generate_aer_config(
     circuits: List[QuantumCircuit], backend_options: Options, **run_options
 ) -> AerConfig:
@@ -352,16 +430,32 @@ def generate_aer_config(
     num_qubits = max(circuit.num_qubits for circuit in circuits)
     memory_slots = max(circuit.num_clbits for circuit in circuits)
 
-    config = AerConfig()
-    config.memory_slots = memory_slots
-    config.n_qubits = num_qubits
-    for key, value in backend_options.__dict__.items():
-        if hasattr(config, key) and value is not None:
-            setattr(config, key, value)
-    for key, value in run_options.items():
-        if hasattr(config, key) and value is not None:
-            setattr(config, key, value)
-    return config
+    try:
+        config = AerConfig()
+        config.memory_slots = memory_slots
+        config.n_qubits = num_qubits
+        for key, value in backend_options.__dict__.items():
+            if hasattr(config, key) and value is not None:
+                setattr(config, key, value)
+        for key, value in run_options.items():
+            if hasattr(config, key) and value is not None:
+                setattr(config, key, value)
+        return config
+    except Exception:  # pylint: disable=broad-except
+        # generate AER::Config was failed.
+        # try again with type validation of arguments
+        config = AerConfig()
+        config.memory_slots = memory_slots
+        config.n_qubits = num_qubits
+        for key, value in backend_options.__dict__.items():
+            if hasattr(config, key) and value is not None:
+                value = _validate_option(key, value)
+                setattr(config, key, value)
+        for key, value in run_options.items():
+            if hasattr(config, key) and value is not None:
+                value = _validate_option(key, value)
+                setattr(config, key, value)
+        return config
 
 
 def assemble_circuit(circuit: QuantumCircuit):
