@@ -259,6 +259,7 @@ class TestEstimator(QiskitAerTestCase):
         ).result()
         self.assertIsInstance(result, EstimatorResult)
         np.testing.assert_allclose(result.values, [-1.3088991960117797])
+        self.assertIsInstance(result.metadata[0]["variance"], float)
 
     def test_with_shots_option_without_approximation(self):
         """test with shots option."""
@@ -268,6 +269,7 @@ class TestEstimator(QiskitAerTestCase):
         ).result()
         self.assertIsInstance(result, EstimatorResult)
         np.testing.assert_allclose(result.values, [-1.2895828299114598])
+        self.assertIsInstance(result.metadata[0]["variance"], float)
 
 
 if __name__ == "__main__":
