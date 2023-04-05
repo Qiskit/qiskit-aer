@@ -15,7 +15,7 @@ Compier to convert Qiskit control-flow to Aer backend.
 
 import itertools
 from copy import copy
-from typing import List, Dict
+from typing import List
 
 from qiskit.circuit import QuantumCircuit, Clbit, ParameterExpression
 from qiskit.extensions import Initialize
@@ -364,7 +364,7 @@ def generate_aer_config(
     return config
 
 
-def assemble_circuit(circuit: QuantumCircuit, metadata: Dict):
+def assemble_circuit(circuit: QuantumCircuit):
     """assemble circuit object mapped to AER::Circuit"""
 
     num_qubits = circuit.num_qubits
@@ -390,9 +390,6 @@ def assemble_circuit(circuit: QuantumCircuit, metadata: Dict):
         name=circuit.name,
         global_phase=global_phase,
     )
-
-    if metadata is not None:
-        header.metadata = metadata
 
     qubit_indices = {qubit: idx for idx, qubit in enumerate(circuit.qubits)}
     clbit_indices = {clbit: idx for idx, clbit in enumerate(circuit.clbits)}
@@ -588,12 +585,11 @@ def _assemble_op(aer_circ, inst, qubit_indices, clbit_indices, is_conditional, c
         raise AerError(f"unknown instruction: {name}")
 
 
-def assemble_circuits(circuits: List[QuantumCircuit], metadata_list: Dict) -> List[AerCircuit]:
+def assemble_circuits(circuits: List[QuantumCircuit]) -> List[AerCircuit]:
     """converts a list of Qiskit circuits into circuits mapped AER::Circuit
 
     Args:
         circuits: circuit(s) to be converted
-        metadata_list: list of metadata (dict) of circuits
 
     Returns:
         circuits to be run on the Aer backends
@@ -612,6 +608,4 @@ def assemble_circuits(circuits: List[QuantumCircuit], metadata_list: Dict) -> Li
             # Generate AerCircuit from the input circuit
             aer_qc_list = assemble_circuits(circuits=[qc])
     """
-    return [
-        assemble_circuit(circuit, metadata) for circuit, metadata in zip(circuits, metadata_list)
-    ]
+    return [assemble_circuit(circuit) for circuit in circuits]

@@ -81,6 +81,7 @@ Result controller_execute(std::vector<Circuit> &input_circs,
     // Load circuits
     for (size_t i = 0; i < num_circs; i++) {
       auto &circ = input_circs[i];
+      circ.index = i;
       if (param_table.empty() || param_table[i].empty()) {
         // Non parameterized circuit
         circ.set_params(truncate);

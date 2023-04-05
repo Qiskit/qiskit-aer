@@ -40,6 +40,7 @@ public:
   uint_t shots;
   uint_t seed;
   double time_taken;
+  uint_t circuit_index = 0;
 
   // Success and status
   Status status = Status::empty;

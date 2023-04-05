@@ -424,9 +424,7 @@ class AerBackend(Backend, ABC):
         start = time.time()
 
         # Run simulation
-        aer_circuits = assemble_circuits(
-            circuits, [{"metadata_index": idx} for idx in range(len(circuits))]
-        )
+        aer_circuits = assemble_circuits(circuits)
         output = self._execute_circuits(aer_circuits, noise_model, config)
 
         # Validate output
@@ -444,14 +442,11 @@ class AerBackend(Backend, ABC):
 
         # Push metadata to experiment headers
         for result in output["results"]:
-            if (
-                "header" in result
-                and "metadata" in result["header"]
-                and result["header"]["metadata"]
-                and "metadata_index" in result["header"]["metadata"]
-            ):
-                metadata_index = result["header"]["metadata"]["metadata_index"]
-                result["header"]["metadata"] = circuits[metadata_index].metadata
+            if "header" not in result:
+                continue
+            if "circuit_index" not in result:
+                continue
+            result["header"]["metadata"] = circuits[result["circuit_index"]].metadata
 
         # Add execution time
         output["time_taken"] = time.time() - start

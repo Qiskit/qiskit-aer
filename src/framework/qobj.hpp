@@ -133,11 +133,13 @@ Qobj::Qobj(const inputdata_t &input) {
     if (param_table.empty() || param_table[i].empty()) {
       // Get base circuit from qobj
       Circuit circuit(static_cast<inputdata_t>(circs[i]), config, truncation);
+      circuit.index = i;
       // Non parameterized circuit
       circuits.push_back(std::move(circuit));
     } else {
       // Get base circuit from qobj without truncation
       Circuit circuit(static_cast<inputdata_t>(circs[i]), config, false);
+      circuit.index = i;
       // Load different parameterizations of the initial circuit
       const auto circ_params = param_table[i];
       const size_t num_params = circ_params[0].second.size();

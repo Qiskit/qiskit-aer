@@ -1407,6 +1407,7 @@ void Controller::run_circuit_helper(const Circuit &circ,
     result.header = circ.header;
     result.shots = circ.shots;
     result.seed = circ.seed;
+    result.circuit_index = circ.index;
     result.metadata.add(parallel_shots_, "parallel_shots");
     result.metadata.add(parallel_state_update_, "parallel_state_update");
 
