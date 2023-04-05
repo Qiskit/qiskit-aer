@@ -171,3 +171,21 @@ class TestVariousCircuit(SimulatorTestCase):
         self.assertEqual(result.status, "PARTIAL COMPLETED")
         self.assertTrue(hasattr(result.results[1].data, "counts"))
         self.assertFalse(hasattr(result.results[0].data, "counts"))
+
+    def test_metadata_protected(self):
+        """Test metadata is consitently viewed from users"""
+
+        qc = QuantumCircuit(2)
+        qc.metadata = {"foo": "bar", "object": object}
+
+        circuits = [qc.copy() for _ in range(5)]
+
+        backend = self.backend()
+        job = backend.run(circuits)
+
+        for circuit in circuits:
+            self.assertTrue("foo" in circuit.metadata)
+            self.assertEqual(circuit.metadata["foo"], "bar")
+            self.assertEqual(circuit.metadata["object"], object)
+
+        job.result()

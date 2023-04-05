@@ -423,19 +423,10 @@ class AerBackend(Backend, ABC):
         # Start timer
         start = time.time()
 
-        # Take metadata from headers of experiments to work around JSON serialization error
-        metadata_list = []
-        for idx, circ in enumerate(circuits):
-            metadata_list.append(circ.metadata)
-            # TODO: we test for True-like on purpose here to condition against both None and {},
-            # which allows us to support versions of Terra before and after QuantumCircuit.metadata
-            # accepts None as a valid value. This logic should be revisited after terra>=0.24.0 is
-            # required.
-            if circ.metadata:
-                circ.metadata = {"metadata_index": idx}
-
         # Run simulation
-        aer_circuits = assemble_circuits(circuits)
+        aer_circuits = assemble_circuits(
+            circuits, [{"metadata_index": idx} for idx in range(len(circuits))]
+        )
         output = self._execute_circuits(aer_circuits, noise_model, config)
 
         # Validate output
@@ -460,10 +451,7 @@ class AerBackend(Backend, ABC):
                 and "metadata_index" in result["header"]["metadata"]
             ):
                 metadata_index = result["header"]["metadata"]["metadata_index"]
-                result["header"]["metadata"] = metadata_list[metadata_index]
-
-        for circ, metadata in zip(circuits, metadata_list):
-            circ.metadata = metadata
+                result["header"]["metadata"] = circuits[metadata_index].metadata
 
         # Add execution time
         output["time_taken"] = time.time() - start
