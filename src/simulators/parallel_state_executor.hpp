@@ -475,7 +475,7 @@ void ParallelStateExecutor<state_t>::run_circuit_shots(
     ExperimentResult &result, bool sample_noise) {
 
   if (!multiple_chunk_required(circ, noise)) {
-    return Executor<state_t>::run_circuit_shots(circ, noise, config, result,
+    return Base::run_circuit_shots(circ, noise, config, result,
                                                 sample_noise);
   }
 
