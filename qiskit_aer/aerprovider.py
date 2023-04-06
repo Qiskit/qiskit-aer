@@ -30,7 +30,8 @@ class AerProvider(Provider):
 
     _BACKENDS = None
 
-    def _get_backends(self):
+    @staticmethod
+    def _get_backends():
         if AerProvider._BACKENDS is None:
             # Populate the list of Aer simulator backends.
             methods = AerSimulator().available_methods()
