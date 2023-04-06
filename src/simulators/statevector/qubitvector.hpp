@@ -99,7 +99,7 @@ public:
   static std::string name() { return "statevector"; }
 
   // Set the size of the vector in terms of qubit number
-  void set_num_qubits(size_t num_qubits);
+  virtual void set_num_qubits(size_t num_qubits);
 
   // Returns the number of qubits for the current vector
   virtual uint_t num_qubits() const { return num_qubits_; }
