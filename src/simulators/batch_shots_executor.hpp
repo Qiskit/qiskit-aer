@@ -123,9 +123,11 @@ void BatchShotsExecutor<state_t>::set_parallelization(
       enable_batch_multi_shots_ = false;
   }
 
+#ifdef AER_CUSTATEVEC
   // disable cuStateVec for batch-shots optimization
   if (enable_batch_multi_shots_ && Base::cuStateVec_enable_)
     Base::cuStateVec_enable_ = false;
+#endif
 }
 
 template <class state_t>
@@ -267,6 +269,7 @@ void BatchShotsExecutor<state_t>::run_circuit_with_batched_multi_shots(
   }
 
   // gather cregs on MPI processes and save to result
+#ifdef AER_MPI
   if (Base::num_process_per_experiment_ > 1) {
     Base::gather_creg_memory(Base::cregs_, Base::state_index_begin_);
 
@@ -274,6 +277,7 @@ void BatchShotsExecutor<state_t>::run_circuit_with_batched_multi_shots(
       result.save_count_data(Base::cregs_[i], Base::save_creg_memory_);
     Base::cregs_.clear();
   }
+#endif
 
 #ifdef AER_THRUST_CUDA
   if (Base::sim_device_ == Device::GPU) {

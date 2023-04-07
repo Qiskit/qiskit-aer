@@ -28,7 +28,6 @@
 #include "transpile/cacheblocking.hpp"
 #include "transpile/fusion.hpp"
 
-#include "simulators/simulators.hpp"
 #include "simulators/state.hpp"
 
 namespace AER {
@@ -43,8 +42,30 @@ using myclock_t = std::chrono::high_resolution_clock;
 //-------------------------------------------------------------------------
 // Executor base class
 //-------------------------------------------------------------------------
+class Base {
+protected:
+public:
+  Base(){}
+  virtual ~Base() {}
+
+  virtual void run_circuit(Circuit &circ, const Noise::NoiseModel &noise,
+                   const Config &config, const Method method,
+                   const Device device, ExperimentResult &result) = 0;
+
+  // Return an estimate of the required memory for a circuit.
+  virtual size_t required_memory_mb(const Circuit &circuit,
+                                    const Noise::NoiseModel &noise) const = 0;
+  virtual size_t max_memory_mb(void) = 0;
+
+  virtual bool validate_state(const Circuit &circ, const Noise::NoiseModel &noise,
+                      bool throw_except) const =0;
+};
+
+//-------------------------------------------------------------------------
+// Simple Executor
+//-------------------------------------------------------------------------
 template <class state_t>
-class Executor {
+class Executor : public Base {
 protected:
   // Simulation method
   Method method_;
@@ -92,8 +113,10 @@ protected:
   MPI_Comm distributed_comm_;
 #endif
 
+#ifdef AER_CUSTATEVEC
   // settings for cuStateVec
   bool cuStateVec_enable_ = false;
+#endif
 
   // if circuit has statevector operations or not
   bool has_statevector_ops_;
@@ -104,8 +127,21 @@ public:
 
   void run_circuit(Circuit &circ, const Noise::NoiseModel &noise,
                    const Config &config, const Method method,
-                   const Device device, ExperimentResult &result);
+                   const Device device, ExperimentResult &result) override;
 
+  // Return an estimate of the required memory for a circuit.
+  size_t required_memory_mb(const Circuit &circuit,
+                                    const Noise::NoiseModel &noise) const override{
+    state_t tmp;
+    return tmp.required_memory_mb(circuit.num_qubits, circuit.ops);
+  }
+  size_t max_memory_mb(void) override
+  {
+    return max_memory_mb_;
+  }
+
+  bool validate_state(const Circuit &circ, const Noise::NoiseModel &noise,
+                      bool throw_except) const override;
 protected:
   // Return a fusion transpilation pass configured for the current
   // method, circuit and config
@@ -125,12 +161,6 @@ protected:
       return max_gpu_memory_mb_ / num_gpus_; // return per GPU memory size
     }
     return max_memory_mb_;
-  }
-  // Return an estimate of the required memory for a circuit.
-  virtual size_t required_memory_mb(const Circuit &circuit,
-                                    const Noise::NoiseModel &noise) const {
-    state_t tmp;
-    return tmp.required_memory_mb(circuit.num_qubits, circuit.ops);
   }
 
   // get max shots stored on memory
@@ -158,20 +188,15 @@ protected:
                                  const Config &config, ExperimentResult &result,
                                  bool sample_noise);
 
-  bool validate_state(const Circuit &circ, const Noise::NoiseModel &noise,
-                      bool throw_except) const;
-
-  void run_with_sampling(const Circuit &circ, state_t &state,
-                         ExperimentResult &result, RngEngine &rng,
-                         const uint_t shots);
-
   template <typename InputIterator>
   void measure_sampler(InputIterator first_meas, InputIterator last_meas,
                        uint_t shots, state_t &state, ExperimentResult &result,
                        RngEngine &rng) const;
 
+#ifdef AER_MPI
   void gather_creg_memory(std::vector<ClassicalRegister> &cregs,
                           reg_t &shot_index);
+#endif
 };
 
 template <class state_t>
@@ -253,10 +278,12 @@ void Executor<state_t>::set_config(const Config &config) {
   if (config.accept_distributed_results.has_value())
     accept_distributed_results_ = config.accept_distributed_results.value();
 
+#ifdef AER_CUSTATEVEC
   // cuStateVec configs
   cuStateVec_enable_ = false;
   if (config.cuStateVec_enable.has_value())
     cuStateVec_enable_ = config.cuStateVec_enable.value();
+#endif
 
   std::string precision = config.precision;
   if (precision == "double") {
@@ -593,32 +620,6 @@ void Executor<state_t>::run_circuit(Circuit &circ,
 }
 
 template <class state_t>
-void Executor<state_t>::run_with_sampling(const Circuit &circ, state_t &state,
-                                          ExperimentResult &result,
-                                          RngEngine &rng, const uint_t shots) {
-  auto &ops = circ.ops;
-  auto first_meas = circ.first_measure_pos; // Position of first measurement op
-  bool final_ops = (first_meas == ops.size());
-
-  // allocate qubit register
-  state.enable_cuStateVec(cuStateVec_enable_);
-  state.allocate(circ.num_qubits, circ.num_qubits);
-  state.set_num_global_qubits(circ.num_qubits);
-  state.enable_density_matrix(!has_statevector_ops_);
-
-  // Run circuit instructions before first measure
-  state.initialize_qreg(circ.num_qubits);
-  state.initialize_creg(circ.num_memory, circ.num_registers);
-
-  state.apply_ops(ops.cbegin(), ops.cbegin() + first_meas, result, rng,
-                  final_ops);
-
-  // Get measurement operations and set of measured qubits
-  measure_sampler(circ.ops.begin() + first_meas, circ.ops.end(), shots, state,
-                  result, rng);
-}
-
-template <class state_t>
 void Executor<state_t>::run_circuit_with_sampling(Circuit &circ,
                                                   const Config &config,
                                                   ExperimentResult &result) {
@@ -632,56 +633,39 @@ void Executor<state_t>::run_circuit_with_sampling(Circuit &circ,
 
   auto max_bits = get_max_matrix_qubits(circ);
 
-  // Implement measure sampler
-  if (parallel_shots_ <= 1) {
-    // Set state config
-    state.set_config(config);
-    state.set_parallelization(parallel_state_update_);
-    state.set_global_phase(circ.global_phase_angle);
+  // Set state config
+  state.set_config(config);
+  state.set_parallelization(parallel_state_update_);
+  state.set_global_phase(circ.global_phase_angle);
 
-    state.set_distribution(1);
-    state.set_max_matrix_qubits(max_bits);
+  state.set_distribution(1);
+  state.set_max_matrix_qubits(max_bits);
 
-    RngEngine rng;
-    rng.set_seed(circ.seed);
-    run_with_sampling(circ, state, result, rng, circ.shots);
-  } else {
-    // Vector to store parallel thread output data
-    std::vector<ExperimentResult> par_results(parallel_shots_);
+  RngEngine rng;
+  rng.set_seed(circ.seed);
 
-#pragma omp parallel for num_threads(parallel_shots_)
-    for (int i = 0; i < parallel_shots_; i++) {
-      uint_t i_shot = circ.shots * i / parallel_shots_;
-      uint_t shot_end = circ.shots * (i + 1) / parallel_shots_;
-      uint_t this_shot = shot_end - i_shot;
+  auto first_meas = circ.first_measure_pos; // Position of first measurement op
+  bool final_ops = (first_meas == circ.ops.size());
 
-      state_t shot_state;
-      // Set state config
-      shot_state.set_config(config);
-      shot_state.set_parallelization(parallel_state_update_);
-      shot_state.set_global_phase(circ.global_phase_angle);
-      shot_state.enable_density_matrix(!has_statevector_ops_);
+  // allocate qubit register
+#ifdef AER_CUSTATEVEC
+  state.enable_cuStateVec(cuStateVec_enable_);
+#endif
+  state.allocate(circ.num_qubits, circ.num_qubits);
+  state.set_num_global_qubits(circ.num_qubits);
+  state.enable_density_matrix(!has_statevector_ops_);
 
-      shot_state.set_max_matrix_qubits(max_bits);
+  // Run circuit instructions before first measure
+  state.initialize_qreg(circ.num_qubits);
+  state.initialize_creg(circ.num_memory, circ.num_registers);
 
-      RngEngine rng;
-      rng.set_seed(circ.seed + i);
+  state.apply_ops(circ.ops.cbegin(), circ.ops.cbegin() + first_meas, result, rng,
+                  final_ops);
 
-      run_with_sampling(circ, shot_state, par_results[i], rng, this_shot);
+  // Get measurement operations and set of measured qubits
+  measure_sampler(circ.ops.begin() + first_meas, circ.ops.end(), circ.shots, state,
+                  result, rng);
 
-      shot_state.add_metadata(par_results[i]);
-    }
-    for (auto &res : par_results) {
-      result.combine(std::move(res));
-    }
-
-    if (sim_device_ == Device::GPU) {
-      if (parallel_shots_ >= num_gpus_)
-        result.metadata.add(num_gpus_, "gpu_parallel_shots");
-      else
-        result.metadata.add(parallel_shots_, "gpu_parallel_shots");
-    }
-  }
   // Add measure sampling metadata
   result.metadata.add(true, "measure_sampling");
 
@@ -753,8 +737,9 @@ void Executor<state_t>::run_circuit_shots(Circuit &circ,
                                    par_results[i]);
       max_matrix_qubits = get_max_matrix_qubits(circ_opt);
       state.set_max_matrix_qubits(max_matrix_qubits);
+#ifdef AER_CUSTATEVEC
       state.enable_cuStateVec(cuStateVec_enable_);
-
+#endif
       state.allocate(circ.num_qubits, circ.num_qubits);
       state.initialize_qreg(circ.num_qubits);
       state.initialize_creg(circ.num_memory, circ.num_registers);
@@ -774,6 +759,7 @@ void Executor<state_t>::run_circuit_shots(Circuit &circ,
                                 run_circuit_lambda);
 
   // gather cregs on MPI processes and save to result
+#ifdef AER_MPI
   if (num_process_per_experiment_ > 1) {
     gather_creg_memory(cregs, shot_begin);
 
@@ -792,6 +778,7 @@ void Executor<state_t>::run_circuit_shots(Circuit &circ,
     Utils::apply_omp_parallel_for((par_shots > 1), 0, par_shots, save_cregs,
                                   par_shots);
   }
+#endif
 
   for (auto &res : par_results) {
     result.combine(std::move(res));
@@ -1099,10 +1086,10 @@ bool Executor<state_t>::has_statevector_ops(const Circuit &circ) const {
          circ.opset().contains(Operations::OpType::save_amps);
 }
 
+#ifdef AER_MPI
 template <class state_t>
 void Executor<state_t>::gather_creg_memory(
     std::vector<ClassicalRegister> &cregs, reg_t &shot_index) {
-#ifdef AER_MPI
   int_t i, j;
   uint_t n64, i64, ibit, num_local_shots;
 
@@ -1163,8 +1150,8 @@ void Executor<state_t>::gather_creg_memory(
         cregs[i].creg_memory()[j] = '0';
     }
   }
-#endif
 }
+#endif
 
 //-------------------------------------------------------------------------
 } // end namespace CircuitExecutor

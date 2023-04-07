@@ -280,8 +280,10 @@ void MultiStateExecutor<state_t>::run_circuit_shots(
 
   if (shot_branching) {
     // disable cuStateVec if shot-branching is enabled
+#ifdef AER_CUSTATEVEC
     if (Base::cuStateVec_enable_)
       Base::cuStateVec_enable_ = false;
+#endif
     return run_circuit_with_shot_branching(circ, noise, config, result,
                                            sample_noise);
   } else {
@@ -555,8 +557,10 @@ void MultiStateExecutor<state_t>::run_circuit_with_shot_branching(
                           branches[istate]->rng_shots());
         }
       };
-      bool can_parallel =
-          par_shots > 1 && branches.size() > 1 && !Base::cuStateVec_enable_;
+      bool can_parallel = par_shots > 1 && branches.size() > 1;
+#ifdef AER_CUSTATEVEC
+      can_parallel &= !Base::cuStateVec_enable_;
+#endif
       Utils::apply_omp_parallel_for(can_parallel, 0, par_shots,
                                     sampling_measure_func, par_shots);
     } else {
@@ -597,6 +601,7 @@ void MultiStateExecutor<state_t>::run_circuit_with_shot_branching(
   }
 
   // gather cregs on MPI processes and save to result
+#ifdef AER_MPI
   if (Base::num_process_per_experiment_ > 1) {
     Base::gather_creg_memory(cregs_, state_index_begin_);
 
@@ -621,6 +626,7 @@ void MultiStateExecutor<state_t>::run_circuit_with_shot_branching(
                                   par_shots);
     cregs_.clear();
   }
+#endif
 
   for (auto &res : par_results) {
     result.combine(std::move(res));

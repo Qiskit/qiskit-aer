@@ -289,9 +289,12 @@ bool ParallelStateExecutor<state_t>::allocate(uint_t num_qubits,
       chunk_omp_parallel_ = true;
 #endif
 
+    global_chunk_indexing_ = true; // cuStateVec does not handle global chunk
+                                   // index for diagonal matrix
+#ifdef AER_CUSTATEVEC
     if (!Base::cuStateVec_enable_)
-      global_chunk_indexing_ = true; // cuStateVec does not handle global chunk
-                                     // index for diagonal matrix
+      global_chunk_indexing_ = false;
+#endif
   } else if (Base::sim_device_ == Device::ThrustCPU) {
     global_chunk_indexing_ = true;
     chunk_omp_parallel_ = false;
@@ -349,7 +352,9 @@ bool ParallelStateExecutor<state_t>::allocate_states(uint_t num_states,
     Base::states_[0].qreg().set_num_threads_per_group(
         Base::num_threads_per_group_);
     Base::states_[0].set_num_global_qubits(Base::num_qubits_);
+#ifdef AER_CUSTATEVEC
     Base::states_[0].qreg().cuStateVec_enable(Base::cuStateVec_enable_);
+#endif
     ret &= Base::states_[0].qreg().chunk_setup(
         squbits, gqubits, Base::global_state_index_, num_states);
     for (i = 1; i < num_states; i++) {
