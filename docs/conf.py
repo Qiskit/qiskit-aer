@@ -53,6 +53,7 @@ release = '0.13.0'
 
 templates_path = ['_templates']
 
+
 # -- General configuration ---------------------------------------------------
 
 # If your documentation needs a minimal Sphinx version, state it here.
@@ -72,7 +73,8 @@ extensions = [
     'jupyter_sphinx',
     'reno.sphinxext',
     'matplotlib.sphinxext.plot_directive',
-    'sphinx.ext.intersphinx'
+    'sphinx.ext.intersphinx',
+    'nbsphinx'
 ]
 
 # -----------------------------------------------------------------------------

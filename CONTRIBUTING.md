@@ -186,7 +186,8 @@ https://github.com/Qiskit/qiskit/blob/master/docs/release_notes.rst)
 
 Building The release notes are part of the standard qiskit-aer documentation
 builds. To check what the rendered HTML output of the release notes will look
-like for the current state of the repo, you can run: `tox -edocs` which will
+like for the current state of the repo, you need to install 
+[pandoc](https://pandoc.org/installing.html), then you can run: `tox -edocs` which will
 build all the documentation into `docs/_build/html` and the release notes in
 particular will be located at `docs/_build/html/release_notes.html`
 
