@@ -421,11 +421,12 @@ class TestParameterizedQobj(common.QiskitAerTestCase):
         circuit.barrier()
         circuit.measure_all()
 
-        parameter_binds = [{theta: [pi/2], phi: [pi/2]}]
+        parameter_binds = [{theta: [pi / 2], phi: [pi / 2]}]
         res = backend.run([circuit], shots=1024, parameter_binds=parameter_binds).result()
 
         self.assertSuccess(res)
         self.assertEqual(res.get_counts(), {"111": 1024})
+
 
 if __name__ == "__main__":
     unittest.main()
