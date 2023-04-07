@@ -110,14 +110,13 @@ protected:
   virtual bool allocate_states(uint_t num_shots, const Config &config);
 
   void run_circuit_shots(Circuit &circ, const Noise::NoiseModel &noise,
-                         const Config &config, ExperimentResult &result,
-                         bool sample_noise) override;
+                         const Config &config, RngEngine &init_rng,
+                         ExperimentResult &result, bool sample_noise) override;
 
-  void run_circuit_with_shot_branching(Circuit &circ,
-                                       const Noise::NoiseModel &noise,
-                                       const Config &config,
-                                       ExperimentResult &result,
-                                       bool sample_noise);
+  void
+  run_circuit_with_shot_branching(Circuit &circ, const Noise::NoiseModel &noise,
+                                  const Config &config, RngEngine &init_rng,
+                                  ExperimentResult &result, bool sample_noise);
 
   // apply op for shot-branching, return false if op is not applied in sub-class
   virtual bool apply_branching_op(Branch &root, const Operations::Op &op,
@@ -248,7 +247,7 @@ bool MultiStateExecutor<state_t>::allocate_states(uint_t num_shots,
 template <class state_t>
 void MultiStateExecutor<state_t>::run_circuit_shots(
     Circuit &circ, const Noise::NoiseModel &noise, const Config &config,
-    ExperimentResult &result, bool sample_noise) {
+    RngEngine &init_rng, ExperimentResult &result, bool sample_noise) {
   num_qubits_ = circ.num_qubits;
   num_creg_memory_ = circ.num_memory;
   num_creg_registers_ = circ.num_registers;
@@ -284,17 +283,18 @@ void MultiStateExecutor<state_t>::run_circuit_shots(
     if (Base::cuStateVec_enable_)
       Base::cuStateVec_enable_ = false;
 #endif
-    return run_circuit_with_shot_branching(circ, noise, config, result,
-                                           sample_noise);
+    return run_circuit_with_shot_branching(circ, noise, config, init_rng,
+                                           result, sample_noise);
   } else {
-    return Base::run_circuit_shots(circ, noise, config, result, sample_noise);
+    return Base::run_circuit_shots(circ, noise, config, init_rng, result,
+                                   sample_noise);
   }
 }
 
 template <class state_t>
 void MultiStateExecutor<state_t>::run_circuit_with_shot_branching(
     Circuit &circ, const Noise::NoiseModel &noise, const Config &config,
-    ExperimentResult &result, bool sample_noise) {
+    RngEngine &init_rng, ExperimentResult &result, bool sample_noise) {
   std::vector<std::shared_ptr<Branch>> branches;
   Noise::NoiseModel dummy_noise;
   state_t dummy_state;
@@ -352,14 +352,24 @@ void MultiStateExecutor<state_t>::run_circuit_with_shot_branching(
   // reserve states
   allocate_states(num_max_shots_, config);
 
-  // initialize local shots
-  std::vector<RngEngine> shots_storage(num_local_states_);
-  for (int_t i = 0; i < num_local_states_; i++) {
-    shots_storage[i].set_seed(circ.seed + global_state_index_ + i);
-  }
-
   int_t par_shots =
       std::min((int_t)Base::parallel_shots_, (int_t)num_max_shots_);
+
+  // initialize local shots
+  std::vector<RngEngine> shots_storage(num_local_states_);
+  if (global_state_index_ == 0)
+    shots_storage[0] = init_rng;
+  else
+    shots_storage[0].set_seed(circ.seed + global_state_index_);
+  if (par_shots > 1) {
+#pragma omp parallel for num_threads(par_shots)
+    for (int_t i = 1; i < num_local_states_; i++)
+      shots_storage[i].set_seed(circ.seed + global_state_index_ + i);
+  } else {
+    for (int_t i = 1; i < num_local_states_; i++)
+      shots_storage[i].set_seed(circ.seed + global_state_index_ + i);
+  }
+
   std::vector<ExperimentResult> par_results(par_shots);
 
   uint_t num_shots_saved = 0;

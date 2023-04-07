@@ -45,20 +45,21 @@ using myclock_t = std::chrono::high_resolution_clock;
 class Base {
 protected:
 public:
-  Base(){}
+  Base() {}
   virtual ~Base() {}
 
   virtual void run_circuit(Circuit &circ, const Noise::NoiseModel &noise,
-                   const Config &config, const Method method,
-                   const Device device, ExperimentResult &result) = 0;
+                           const Config &config, const Method method,
+                           const Device device, ExperimentResult &result) = 0;
 
   // Return an estimate of the required memory for a circuit.
   virtual size_t required_memory_mb(const Circuit &circuit,
                                     const Noise::NoiseModel &noise) const = 0;
   virtual size_t max_memory_mb(void) = 0;
 
-  virtual bool validate_state(const Circuit &circ, const Noise::NoiseModel &noise,
-                      bool throw_except) const =0;
+  virtual bool validate_state(const Circuit &circ,
+                              const Noise::NoiseModel &noise,
+                              bool throw_except) const = 0;
 };
 
 //-------------------------------------------------------------------------
@@ -131,17 +132,15 @@ public:
 
   // Return an estimate of the required memory for a circuit.
   size_t required_memory_mb(const Circuit &circuit,
-                                    const Noise::NoiseModel &noise) const override{
+                            const Noise::NoiseModel &noise) const override {
     state_t tmp;
     return tmp.required_memory_mb(circuit.num_qubits, circuit.ops);
   }
-  size_t max_memory_mb(void) override
-  {
-    return max_memory_mb_;
-  }
+  size_t max_memory_mb(void) override { return max_memory_mb_; }
 
   bool validate_state(const Circuit &circ, const Noise::NoiseModel &noise,
                       bool throw_except) const override;
+
 protected:
   // Return a fusion transpilation pass configured for the current
   // method, circuit and config
@@ -182,11 +181,12 @@ protected:
                                    const Noise::NoiseModel &noise);
 
   virtual void run_circuit_with_sampling(Circuit &circ, const Config &config,
+                                         RngEngine &init_rng,
                                          ExperimentResult &result);
 
   virtual void run_circuit_shots(Circuit &circ, const Noise::NoiseModel &noise,
-                                 const Config &config, ExperimentResult &result,
-                                 bool sample_noise);
+                                 const Config &config, RngEngine &init_rng,
+                                 ExperimentResult &result, bool sample_noise);
 
   template <typename InputIterator>
   void measure_sampler(InputIterator first_meas, InputIterator last_meas,
@@ -580,16 +580,16 @@ void Executor<state_t>::run_circuit(Circuit &circ,
       }
 
       if (noise_sampling) {
-        run_circuit_shots(circ, noise, config, result, true);
+        run_circuit_shots(circ, noise, config, rng, result, true);
       } else {
         // Run multishot simulation without noise sampling
         bool can_sample = opt_circ.can_sample;
         can_sample &= check_measure_sampling_opt(opt_circ);
 
         if (can_sample)
-          run_circuit_with_sampling(opt_circ, config, result);
+          run_circuit_with_sampling(opt_circ, config, rng, result);
         else
-          run_circuit_shots(opt_circ, noise, config, result, false);
+          run_circuit_shots(opt_circ, noise, config, rng, result, false);
       }
     }
     // Report success
@@ -622,6 +622,7 @@ void Executor<state_t>::run_circuit(Circuit &circ,
 template <class state_t>
 void Executor<state_t>::run_circuit_with_sampling(Circuit &circ,
                                                   const Config &config,
+                                                  RngEngine &init_rng,
                                                   ExperimentResult &result) {
   state_t state;
 
@@ -641,8 +642,7 @@ void Executor<state_t>::run_circuit_with_sampling(Circuit &circ,
   state.set_distribution(1);
   state.set_max_matrix_qubits(max_bits);
 
-  RngEngine rng;
-  rng.set_seed(circ.seed);
+  RngEngine rng = init_rng;
 
   auto first_meas = circ.first_measure_pos; // Position of first measurement op
   bool final_ops = (first_meas == circ.ops.size());
@@ -659,12 +659,12 @@ void Executor<state_t>::run_circuit_with_sampling(Circuit &circ,
   state.initialize_qreg(circ.num_qubits);
   state.initialize_creg(circ.num_memory, circ.num_registers);
 
-  state.apply_ops(circ.ops.cbegin(), circ.ops.cbegin() + first_meas, result, rng,
-                  final_ops);
+  state.apply_ops(circ.ops.cbegin(), circ.ops.cbegin() + first_meas, result,
+                  rng, final_ops);
 
   // Get measurement operations and set of measured qubits
-  measure_sampler(circ.ops.begin() + first_meas, circ.ops.end(), circ.shots, state,
-                  result, rng);
+  measure_sampler(circ.ops.begin() + first_meas, circ.ops.end(), circ.shots,
+                  state, result, rng);
 
   // Add measure sampling metadata
   result.metadata.add(true, "measure_sampling");
@@ -673,16 +673,11 @@ void Executor<state_t>::run_circuit_with_sampling(Circuit &circ,
 }
 
 template <class state_t>
-void Executor<state_t>::run_circuit_shots(Circuit &circ,
-                                          const Noise::NoiseModel &noise,
-                                          const Config &config,
-                                          ExperimentResult &result,
-                                          bool sample_noise) {
+void Executor<state_t>::run_circuit_shots(
+    Circuit &circ, const Noise::NoiseModel &noise, const Config &config,
+    RngEngine &init_rng, ExperimentResult &result, bool sample_noise) {
 
   // insert runtime noise sample ops here
-  RngEngine rng;
-  rng.set_seed(circ.seed);
-
   int_t par_shots = (int_t)get_max_parallel_shots(circ, noise);
   par_shots = std::min((int_t)parallel_shots_, par_shots);
   std::vector<ExperimentResult> par_results(par_shots);
@@ -705,7 +700,7 @@ void Executor<state_t>::run_circuit_shots(Circuit &circ,
   // run each shot
   auto run_circuit_lambda = [this, &par_results, circ, noise, config, par_shots,
                              sample_noise, num_shots, seed_begin, shot_begin,
-                             &cregs](int_t i) {
+                             &cregs, init_rng](int_t i) {
     Noise::NoiseModel dummy_noise;
     state_t state;
     uint_t i_shot, shot_end;
@@ -725,7 +720,10 @@ void Executor<state_t>::run_circuit_shots(Circuit &circ,
 
     for (; i_shot < shot_end; i_shot++) {
       RngEngine rng;
-      rng.set_seed(seed_begin + i_shot);
+      if (i_shot == 0)
+        rng = init_rng;
+      else
+        rng.set_seed(seed_begin + i_shot);
 
       int max_matrix_qubits;
       Circuit circ_opt;

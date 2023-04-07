@@ -55,14 +55,8 @@ protected:
                            const Noise::NoiseModel &noise) override;
 
   void run_circuit_shots(Circuit &circ, const Noise::NoiseModel &noise,
-                         const Config &config, ExperimentResult &result,
-                         bool sample_noise) override;
-
-  // run circuit by using batched shots optimization (on GPU)
-  void run_circuit_with_batched_multi_shots(Circuit &circ,
-                                            const Noise::NoiseModel &noise,
-                                            const Config &config,
-                                            ExperimentResult &result);
+                         const Config &config, RngEngine &init_rng,
+                         ExperimentResult &result, bool sample_noise) override;
 
   // apply ops for multi-shots to one group
   template <typename InputIterator>
@@ -70,7 +64,8 @@ protected:
                                          InputIterator last,
                                          const Noise::NoiseModel &noise,
                                          ExperimentResult &result,
-                                         uint_t rng_seed, bool final_ops);
+                                         RngEngine &init_rng, uint_t rng_seed,
+                                         bool final_ops);
 
   // apply op to multiple shots , return flase if op is not supported to execute
   // in a batch
@@ -133,11 +128,12 @@ void BatchShotsExecutor<state_t>::set_parallelization(
 template <class state_t>
 void BatchShotsExecutor<state_t>::run_circuit_shots(
     Circuit &circ, const Noise::NoiseModel &noise, const Config &config,
-    ExperimentResult &result, bool sample_noise) {
+    RngEngine &init_rng, ExperimentResult &result, bool sample_noise) {
   state_t dummy_state;
   // if batched-shot is not applicable, use base multi-shots executor
   if (!enable_batch_multi_shots_) {
-    return Base::run_circuit_shots(circ, noise, config, result, sample_noise);
+    return Base::run_circuit_shots(circ, noise, config, init_rng, result,
+                                   sample_noise);
   }
 
   Noise::NoiseModel dummy_noise;
@@ -160,8 +156,7 @@ void BatchShotsExecutor<state_t>::run_circuit_shots(
   if (Base::num_max_shots_ == 0)
     Base::num_max_shots_ = 1;
 
-  RngEngine rng;
-  rng.set_seed(circ.seed);
+  RngEngine rng = init_rng;
 
   Circuit circ_opt;
   if (sample_noise)
@@ -175,23 +170,16 @@ void BatchShotsExecutor<state_t>::run_circuit_shots(
                                result);
   Base::max_matrix_qubits_ = Base::get_max_matrix_qubits(circ_opt);
 
-  run_circuit_with_batched_multi_shots(circ_opt, noise, config, result);
-
   // Add batched multi-shots optimizaiton metadata
   result.metadata.add(true, "batched_shots_optimization");
-}
 
-template <class state_t>
-void BatchShotsExecutor<state_t>::run_circuit_with_batched_multi_shots(
-    Circuit &circ, const Noise::NoiseModel &noise, const Config &config,
-    ExperimentResult &result) {
   int_t i;
   int_t i_begin, n_shots;
 
 #ifdef AER_MPI
   // if shots are distributed to MPI processes, allocate cregs to be gathered
   if (Base::num_process_per_experiment_ > 1)
-    Base::cregs_.resize(circ.shots);
+    Base::cregs_.resize(circ_opt.shots);
 #endif
 
   i_begin = 0;
@@ -212,7 +200,7 @@ void BatchShotsExecutor<state_t>::run_circuit_with_batched_multi_shots(
       Base::states_[i].set_parallelization(Base::parallel_state_update_);
       Base::states_[i].set_global_phase(circ.global_phase_angle);
     }
-    this->set_global_phase(circ.global_phase_angle);
+    this->set_global_phase(circ_opt.global_phase_angle);
 
     // initialization (equivalent to initialize_qreg + initialize_creg)
     auto init_group = [this](int_t ig) {
@@ -241,16 +229,17 @@ void BatchShotsExecutor<state_t>::run_circuit_with_batched_multi_shots(
       std::vector<ExperimentResult> par_results(Base::num_groups_);
 #pragma omp parallel for num_threads(Base::num_groups_)
       for (i = 0; i < Base::num_groups_; i++)
-        apply_ops_batched_shots_for_group(i, circ.ops.cbegin(), circ.ops.cend(),
-                                          noise, par_results[i], circ.seed,
-                                          true);
+        apply_ops_batched_shots_for_group(
+            i, circ_opt.ops.cbegin(), circ_opt.ops.cend(), noise,
+            par_results[i], rng, circ_opt.seed, true);
 
       for (auto &res : par_results)
         result.combine(std::move(res));
     } else {
       for (i = 0; i < Base::num_groups_; i++)
-        apply_ops_batched_shots_for_group(i, circ.ops.cbegin(), circ.ops.cend(),
-                                          noise, result, circ.seed, true);
+        apply_ops_batched_shots_for_group(i, circ_opt.ops.cbegin(),
+                                          circ_opt.ops.cend(), noise, result,
+                                          rng, circ_opt.seed, true);
     }
 
     // collect measured bits and copy memory
@@ -273,7 +262,7 @@ void BatchShotsExecutor<state_t>::run_circuit_with_batched_multi_shots(
   if (Base::num_process_per_experiment_ > 1) {
     Base::gather_creg_memory(Base::cregs_, Base::state_index_begin_);
 
-    for (i = 0; i < circ.shots; i++)
+    for (i = 0; i < circ_opt.shots; i++)
       result.save_count_data(Base::cregs_[i], Base::save_creg_memory_);
     Base::cregs_.clear();
   }
@@ -297,8 +286,8 @@ template <class state_t>
 template <typename InputIterator>
 void BatchShotsExecutor<state_t>::apply_ops_batched_shots_for_group(
     int_t i_group, InputIterator first, InputIterator last,
-    const Noise::NoiseModel &noise, ExperimentResult &result, uint_t rng_seed,
-    bool final_ops) {
+    const Noise::NoiseModel &noise, ExperimentResult &result,
+    RngEngine &init_rng, uint_t rng_seed, bool final_ops) {
   uint_t istate = Base::top_state_of_group_[i_group];
   std::vector<RngEngine> rng(Base::num_states_in_group_[i_group]);
 #ifdef _OPENMP
@@ -309,8 +298,12 @@ void BatchShotsExecutor<state_t>::apply_ops_batched_shots_for_group(
 
   for (uint_t j = Base::top_state_of_group_[i_group];
        j < Base::top_state_of_group_[i_group + 1]; j++)
-    rng[j - Base::top_state_of_group_[i_group]].set_seed(
-        rng_seed + local_state_index_ + j);
+    if (local_state_index_ + j == 0)
+      rng[j - Base::top_state_of_group_[i_group]] = init_rng;
+    else {
+      rng[j - Base::top_state_of_group_[i_group]].set_seed(
+          rng_seed + local_state_index_ + j);
+    }
 
   for (auto op = first; op != last; ++op) {
     if (op->type == Operations::OpType::sample_noise) {

@@ -84,11 +84,12 @@ protected:
   bool allocate_states(uint_t num_shots, const Config &config) override;
 
   void run_circuit_with_sampling(Circuit &circ, const Config &config,
+                                 RngEngine &init_rng,
                                  ExperimentResult &result) override;
 
   void run_circuit_shots(Circuit &circ, const Noise::NoiseModel &noise,
-                         const Config &config, ExperimentResult &result,
-                         bool sample_noise) override;
+                         const Config &config, RngEngine &init_rng,
+                         ExperimentResult &result, bool sample_noise) override;
 
   template <typename InputIterator>
   void measure_sampler(InputIterator first_meas, InputIterator last_meas,
@@ -413,7 +414,8 @@ uint_t ParallelStateExecutor<state_t>::mapped_index(const uint_t idx) {
 
 template <class state_t>
 void ParallelStateExecutor<state_t>::run_circuit_with_sampling(
-    Circuit &circ, const Config &config, ExperimentResult &result) {
+    Circuit &circ, const Config &config, RngEngine &init_rng,
+    ExperimentResult &result) {
 
   // Optimize circuit
   Noise::NoiseModel dummy_noise;
@@ -433,7 +435,8 @@ void ParallelStateExecutor<state_t>::run_circuit_with_sampling(
     cache_block = cache_block_pass.enabled();
   }
   if (!cache_block) {
-    return Executor<state_t>::run_circuit_with_sampling(circ, config, result);
+    return Executor<state_t>::run_circuit_with_sampling(circ, config, init_rng,
+                                                        result);
   }
   Base::max_matrix_qubits_ = Base::get_max_matrix_qubits(circ);
 
@@ -449,8 +452,7 @@ void ParallelStateExecutor<state_t>::run_circuit_with_sampling(
   Base::set_global_phase(circ.global_phase_angle);
 
   // run with multi-chunks
-  RngEngine rng;
-  rng.set_seed(circ.seed);
+  RngEngine rng = init_rng;
 
   auto &ops = circ.ops;
   auto first_meas = circ.first_measure_pos; // Position of first measurement op
@@ -477,10 +479,11 @@ void ParallelStateExecutor<state_t>::run_circuit_with_sampling(
 template <class state_t>
 void ParallelStateExecutor<state_t>::run_circuit_shots(
     Circuit &circ, const Noise::NoiseModel &noise, const Config &config,
-    ExperimentResult &result, bool sample_noise) {
+    RngEngine &init_rng, ExperimentResult &result, bool sample_noise) {
 
   if (!multiple_chunk_required(circ, noise)) {
-    return Base::run_circuit_shots(circ, noise, config, result, sample_noise);
+    return Base::run_circuit_shots(circ, noise, config, init_rng, result,
+                                   sample_noise);
   }
 
   uint_t nchunks =
@@ -492,7 +495,10 @@ void ParallelStateExecutor<state_t>::run_circuit_shots(
 
   for (int_t ishot = 0; ishot < circ.shots; ishot++) {
     RngEngine rng;
-    rng.set_seed(circ.seed + ishot);
+    if (ishot == 0)
+      rng = init_rng;
+    else
+      rng.set_seed(circ.seed + ishot);
 
     // Optimize circuit
     Noise::NoiseModel dummy_noise;

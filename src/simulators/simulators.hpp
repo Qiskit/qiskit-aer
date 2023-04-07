@@ -15,15 +15,14 @@
 #ifndef _aer_simulators_hpp_
 #define _aer_simulators_hpp_
 
-#include "simulators/statevector/statevector_state.hpp"
-#include "simulators/unitary/unitary_state.hpp"
 #include "simulators/density_matrix/densitymatrix_state.hpp"
-#include "simulators/superoperator/superoperator_state.hpp"
-#include "simulators/stabilizer/stabilizer_state.hpp"
 #include "simulators/extended_stabilizer/extended_stabilizer_state.hpp"
 #include "simulators/matrix_product_state/matrix_product_state.hpp"
+#include "simulators/stabilizer/stabilizer_state.hpp"
+#include "simulators/statevector/statevector_state.hpp"
+#include "simulators/superoperator/superoperator_state.hpp"
 #include "simulators/tensor_network/tensor_net_state.hpp"
-
+#include "simulators/unitary/unitary_state.hpp"
 
 namespace AER {
 
@@ -55,8 +54,6 @@ const std::unordered_map<Method, std::string> method_names_ = {
     {Method::unitary, "unitary"},
     {Method::superop, "superop"},
     {Method::tensor_network, "tensor_network"}};
-
-
 
 //-------------------------------------------------------------------------
 } // end namespace AER
