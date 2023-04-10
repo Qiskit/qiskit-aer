@@ -21,7 +21,15 @@ from qiskit.circuit import QuantumCircuit, Clbit, ParameterExpression
 from qiskit.extensions import Initialize
 from qiskit.providers.options import Options
 from qiskit.pulse import Schedule, ScheduleBlock
-from qiskit.circuit.controlflow import WhileLoopOp, ForLoopOp, IfElseOp, BreakLoopOp, ContinueLoopOp
+from qiskit.circuit.controlflow import (
+    WhileLoopOp,
+    ForLoopOp,
+    IfElseOp,
+    BreakLoopOp,
+    ContinueLoopOp,
+    SwitchCaseOp,
+    CASE_DEFAULT,
+)
 from qiskit.compiler import transpile
 from qiskit.qobj import QobjExperimentHeader
 from qiskit_aer.aererror import AerError
@@ -113,7 +121,14 @@ class AerCompiler:
         if not isinstance(circuit, QuantumCircuit):
             return False
 
-        controlflow_types = (WhileLoopOp, ForLoopOp, IfElseOp, BreakLoopOp, ContinueLoopOp)
+        controlflow_types = (
+            WhileLoopOp,
+            ForLoopOp,
+            IfElseOp,
+            BreakLoopOp,
+            ContinueLoopOp,
+            SwitchCaseOp,
+        )
 
         # Check via optypes
         if isinstance(optype, set):
@@ -157,6 +172,10 @@ class AerCompiler:
             elif isinstance(instruction.operation, IfElseOp):
                 ret.barrier()
                 self._inline_if_else_op(instruction, continue_label, break_label, ret, bit_map)
+                ret.barrier()
+            elif isinstance(instruction.operation, SwitchCaseOp):
+                ret.barrier()
+                self._inline_switch_case_op(instruction, continue_label, break_label, ret, bit_map)
                 ret.barrier()
             elif isinstance(instruction.operation, BreakLoopOp):
                 ret._append(
@@ -327,6 +346,95 @@ class AerCompiler:
             )
 
         parent.append(AerMark(if_end_label, len(qargs), len(mark_cargs)), qargs, mark_cargs)
+
+    def _inline_switch_case_op(self, instruction, continue_label, break_label, parent, bit_map):
+        """inline switch cases with jump and mark instructions"""
+        cases = instruction.operation.cases_specifier()
+
+        self._last_flow_id += 1
+        switch_id = self._last_flow_id
+        switch_name = f"switch_{switch_id}"
+
+        qargs = [bit_map[q] for q in instruction.qubits]
+        cargs = [bit_map[c] for c in instruction.clbits]
+        mark_cargs = cargs.copy()
+        mark_cargs.extend(
+            bit_map[c]
+            for c in (
+                (
+                    {instruction.operation.target}
+                    if isinstance(instruction.operation.target, Clbit)
+                    else set(instruction.operation.target)
+                )
+                - set(instruction.clbits)
+            )
+        )
+        case_labels = []
+        case_args_lists = []
+        case_bit_maps = []
+        case_bodies = []
+        case_default_label = None
+        for i, case in enumerate(cases):
+            if CASE_DEFAULT == case[0]:
+                case_default_label = f"{switch_name}_default"
+                case_labels.append(case_default_label)
+            else:
+                case_label = f"{switch_name}_{i}"
+                case_args_list = []
+                if isinstance(case[0], tuple):
+                    for switch_val in case[0]:
+                        if CASE_DEFAULT == switch_val:
+                            case_default_label = case_label
+                        else:
+                            case_args_list.append(
+                                self._convert_c_if_args(
+                                    (instruction.operation.target, switch_val), bit_map
+                                )
+                            )
+                else:
+                    case_args_list.append(
+                        self._convert_c_if_args((instruction.operation.target, case[0]), bit_map)
+                    )
+                case_labels.append(case_label)
+                case_args_lists.append(case_args_list)
+            case_bit_maps.append(
+                {
+                    inner: bit_map[outer]
+                    for inner, outer in itertools.chain(
+                        zip(case[1].qubits, instruction.qubits),
+                        zip(case[1].clbits, instruction.clbits),
+                    )
+                }
+            )
+            case_bodies.append(case[1])
+
+        switch_end_label = f"{switch_name}_end"
+        mark_cargs = set(mark_cargs) - set(instruction.clbits)
+
+        for case_label, case_args_list in zip(case_labels, case_args_lists):
+            for case_args in case_args_list:
+                parent.append(
+                    AerJump(case_label, len(qargs), len(mark_cargs)).c_if(*case_args),
+                    qargs,
+                    mark_cargs,
+                )
+        if case_default_label:
+            parent.append(
+                AerJump(case_default_label, len(qargs), len(mark_cargs)), qargs, mark_cargs
+            )
+        else:
+            parent.append(AerJump(switch_end_label, len(qargs), len(mark_cargs)), qargs, mark_cargs)
+
+        for case_body, case_label, case_bit_map in zip(case_bodies, case_labels, case_bit_maps):
+            parent.append(AerMark(case_label, len(qargs), len(mark_cargs)), qargs, mark_cargs)
+            parent.append(
+                self._inline_circuit(case_body, continue_label, break_label, case_bit_map),
+                qargs,
+                cargs,
+            )
+            parent.append(AerJump(switch_end_label, len(qargs), len(mark_cargs)), qargs, mark_cargs)
+
+        parent.append(AerMark(switch_end_label, len(qargs), len(mark_cargs)), qargs, mark_cargs)
 
 
 def compile_circuit(circuits, basis_gates=None, optypes=None):
