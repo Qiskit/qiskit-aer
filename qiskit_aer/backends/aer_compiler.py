@@ -27,8 +27,8 @@ from qiskit.circuit.controlflow import (
     IfElseOp,
     BreakLoopOp,
     ContinueLoopOp,
-    SwitchCaseOp,
-    CASE_DEFAULT,
+    #    SwitchCaseOp,
+    #    CASE_DEFAULT,
 )
 from qiskit.compiler import transpile
 from qiskit.qobj import QobjExperimentHeader
@@ -37,7 +37,7 @@ from qiskit_aer.aererror import AerError
 # pylint: disable=import-error, no-name-in-module
 from qiskit_aer.backends.controller_wrappers import AerCircuit, AerConfig
 from .backend_utils import circuit_optypes
-from ..library.control_flow_instructions import AerMark, AerJump
+from ..library.control_flow_instructions import AerMark, AerJump, SwitchCaseOp, CASE_DEFAULT
 
 
 class AerCompiler:

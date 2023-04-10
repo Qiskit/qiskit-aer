@@ -13,3 +13,4 @@
 
 from .jump import AerJump
 from .mark import AerMark
+from .switch_case import SwitchCaseOp, CASE_DEFAULT
