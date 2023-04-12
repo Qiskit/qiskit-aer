@@ -406,7 +406,6 @@ class TestParameterizedQobj(common.QiskitAerTestCase):
 
     def test_parameters_with_barrier(self):
         """Test parameterized circuit path with barrier"""
-        shots = 2000
         backend = AerSimulator()
         circuit = QuantumCircuit(3)
         theta = Parameter("theta")
