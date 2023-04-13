@@ -30,7 +30,8 @@ class AerProvider(Provider):
 
     _BACKENDS = None
 
-    def __init__(self):
+    @staticmethod
+    def _get_backends():
         if AerProvider._BACKENDS is None:
             # Populate the list of Aer simulator backends.
             methods = AerSimulator().available_methods()
@@ -60,6 +61,8 @@ class AerProvider(Provider):
             ]
             AerProvider._BACKENDS = backends
 
+        return AerProvider._BACKENDS
+
     def get_backend(self, name=None, **kwargs):
         if name == "pulse_simulator":
             warnings.warn(
@@ -76,7 +79,10 @@ class AerProvider(Provider):
         # Instantiate a new backend instance so if config options
         # are set they will only last as long as that backend object exists
         backends = []
-        for backend_name, backend_cls, method, device in self._BACKENDS:
+
+        # pylint: disable=not-an-iterable
+        # pylint infers _get_backends to always return None
+        for backend_name, backend_cls, method, device in self._get_backends():
             opts = {"provider": self}
             if method is not None:
                 opts["method"] = method
