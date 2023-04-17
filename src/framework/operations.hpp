@@ -868,6 +868,14 @@ inline Op make_mark(const reg_t &qubits,
   return op;
 }
 
+inline Op make_barrier(const reg_t &qubits) {
+  Op op;
+  op.type = OpType::barrier;
+  op.name = "barrier";
+  op.qubits = qubits;
+  return op;
+}
+
 inline Op make_measure(const reg_t &qubits, const reg_t &memory,
                        const reg_t &registers) {
   Op op;
