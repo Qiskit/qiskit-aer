@@ -360,15 +360,17 @@ void Executor<state_t>::apply_save_statevector(CircuitExecutor::Branch &root,
       (op.string_params[0] == "_method_") ? "statevector" : op.string_params[0];
 
   if (last_op) {
-    auto v = Base::states_[root.state_index()].move_to_vector();
-    result.save_data_pershot(Base::states_[root.state_index()].creg(), key,
-                             std::move(v), OpType::save_statevec, op.save_type,
-                             root.num_shots());
+    const auto v = Base::states_[root.state_index()].move_to_vector();
+    for (int_t i = 0; i < root.num_shots(); i++) {
+      result.save_data_pershot(Base::states_[root.state_index()].creg(), key, v,
+                               OpType::save_statevec, op.save_type);
+    }
   } else {
-    auto v = Base::states_[root.state_index()].copy_to_vector();
-    result.save_data_pershot(Base::states_[root.state_index()].creg(), key, v,
-                             OpType::save_statevec, op.save_type,
-                             root.num_shots());
+    const auto v = Base::states_[root.state_index()].copy_to_vector();
+    for (int_t i = 0; i < root.num_shots(); i++) {
+      result.save_data_pershot(Base::states_[root.state_index()].creg(), key, v,
+                               OpType::save_statevec, op.save_type);
+    }
   }
 }
 
@@ -387,9 +389,12 @@ void Executor<state_t>::apply_save_statevector_dict(
   for (auto const &it : state_ket) {
     result_state_ket[it.first] = it.second;
   }
-  result.save_data_pershot(Base::states_[root.state_index()].creg(),
-                           op.string_params[0], result_state_ket, op.type,
-                           op.save_type, root.num_shots());
+  for (int_t i = 0; i < root.num_shots(); i++) {
+    result.save_data_pershot(
+        Base::states_[root.state_index()].creg(), op.string_params[0],
+        (const std::map<std::string, complex_t> &)result_state_ket, op.type,
+        op.save_type);
+  }
 }
 
 template <class state_t>
@@ -407,9 +412,11 @@ void Executor<state_t>::apply_save_amplitudes(CircuitExecutor::Branch &root,
       amps[i] =
           Base::states_[root.state_index()].qreg().get_state(op.int_params[i]);
     }
-    result.save_data_pershot(Base::states_[root.state_index()].creg(),
-                             op.string_params[0], amps, op.type, op.save_type,
-                             root.num_shots());
+    for (int_t i = 0; i < root.num_shots(); i++) {
+      result.save_data_pershot(
+          Base::states_[root.state_index()].creg(), op.string_params[0],
+          (const Vector<complex_t> &)amps, op.type, op.save_type);
+    }
   } else {
     rvector_t amps_sq(size, 0);
     for (int_t i = 0; i < size; ++i) {

@@ -526,25 +526,13 @@ Result Controller::execute(std::vector<Circuit> &circuits,
       save_exception_to_results(result, e);
     }
 
-#ifdef _OPENMP
-    result.metadata.add(true, "omp_enabled");
-#else
-    result.metadata.add(false, "omp_enabled");
-#endif
     result.metadata.add(parallel_experiments_, "parallel_experiments");
     result.metadata.add(max_memory_mb_, "max_memory_mb");
     result.metadata.add(max_gpu_memory_mb_, "max_gpu_memory_mb");
 
-#ifdef AER_MPI
-    // store rank and number of processes, if no distribution rank=0 procs=1 is
-    // set
-    result.metadata.add(num_process_per_experiment_,
-                        "num_processes_per_experiments");
-    result.metadata.add(num_processes_, "num_mpi_processes");
-    result.metadata.add(myrank_, "mpi_rank");
-#endif
-
 #ifdef _OPENMP
+    result.metadata.add(true, "omp_enabled");
+
     // Check if circuit parallelism is nested with one of the others
     if (parallel_experiments_ > 1 &&
         parallel_experiments_ < max_parallel_threads_) {
@@ -562,9 +550,18 @@ Result Controller::execute(std::vector<Circuit> &circuits,
     } else {
       parallel_nested_ = false;
     }
+#else
+    result.metadata.add(false, "omp_enabled");
 #endif
 
 #ifdef AER_MPI
+    // store rank and number of processes, if no distribution rank=0 procs=1 is
+    // set
+    result.metadata.add(num_process_per_experiment_,
+                        "num_processes_per_experiments");
+    result.metadata.add(num_processes_, "num_mpi_processes");
+    result.metadata.add(myrank_, "mpi_rank");
+
     // average random seed to set the same seed to each process (when
     // seed_simulator is not set)
     if (num_processes_ > 1) {

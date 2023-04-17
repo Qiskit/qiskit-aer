@@ -103,6 +103,7 @@ public:
 protected:
   void set_config(const Config &config) override;
 
+  // distribute states on processes
   void set_distribution(uint_t num_states);
 
   virtual uint_t qubit_scale(void) { return 1; }
