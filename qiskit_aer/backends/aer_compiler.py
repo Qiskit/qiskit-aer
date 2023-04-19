@@ -14,11 +14,11 @@ Compier to convert Qiskit control-flow to Aer backend.
 """
 
 import itertools
-import numpy as np
 from copy import copy
 from typing import List
 from warnings import warn
 from concurrent.futures import Executor
+import numpy as np
 
 from qiskit.circuit import QuantumCircuit, Clbit, ParameterExpression
 from qiskit.extensions import Initialize
@@ -404,14 +404,14 @@ def _validate_option(k, v):
     if isinstance(v, BACKEND_RUN_ARG_TYPES[k]):
         return v
 
-    argType = BACKEND_RUN_ARG_TYPES[k][0]
+    expected_type = BACKEND_RUN_ARG_TYPES[k][0]
 
-    if argType in (int, float, bool, str):
+    if expected_type in (int, float, bool, str):
         try:
-            ret = argType(v)
+            ret = expected_type(v)
             if v.__class__ not in BACKEND_RUN_ARG_TYPES[k]:
                 warn(
-                    f'A type of an option "{k}" should be {argType.__name__} '
+                    f'A type of an option "{k}" should be {expected_type.__name__} '
                     "but {v.__class__.__name__} was specified."
                     "Implicit cast for an argument has been deprecated as of qiskit-aer 0.12.1.",
                     DeprecationWarning,
@@ -422,7 +422,8 @@ def _validate_option(k, v):
             pass
 
     raise TypeError(
-        f"invalid option type: name={k}, type={v.__class__.__name__}, expected={BACKEND_RUN_ARG_TYPES[k][0].__name__}"
+        f"invalid option type: name={k}, "
+        f"type={v.__class__.__name__}, expected={BACKEND_RUN_ARG_TYPES[k][0].__name__}"
     )
 
 
