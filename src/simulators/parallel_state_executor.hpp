@@ -33,7 +33,7 @@ namespace CircuitExecutor {
 // Parallel executor class implementation
 //-------------------------------------------------------------------------
 template <class state_t>
-class ParallelStateExecutor : public MultiStateExecutor<state_t> {
+class ParallelStateExecutor : public virtual MultiStateExecutor<state_t> {
   using Base = MultiStateExecutor<state_t>;
 
 protected:
@@ -1015,7 +1015,7 @@ void ParallelStateExecutor<state_t>::apply_save_expval(
 template <class state_t>
 void ParallelStateExecutor<state_t>::apply_global_phase() {
   if (Base::has_global_phase_) {
-    if (chunk_omp_parallel_ && Base::num_groups_ > 0) {
+    if (chunk_omp_parallel_ && Base::num_groups_ > 1) {
 #pragma omp parallel for
       for (int_t ig = 0; ig < Base::num_groups_; ig++) {
         for (int_t iChunk = Base::top_state_of_group_[ig];

@@ -89,7 +89,7 @@ void Executor<state_t>::initialize_qreg(uint_t num_qubits) {
     Base::states_[iChunk].qreg().set_num_qubits(Base::chunk_bits_);
   }
 
-  if (Base::chunk_omp_parallel_ && Base::num_groups_ > 0) {
+  if (Base::chunk_omp_parallel_ && Base::num_groups_ > 1) {
 #pragma omp parallel for private(iChunk)
     for (int_t ig = 0; ig < Base::num_groups_; ig++) {
       for (iChunk = Base::top_state_of_group_[ig];

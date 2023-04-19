@@ -33,8 +33,8 @@ namespace CircuitExecutor {
 // batched-shots executor class implementation
 //-------------------------------------------------------------------------
 template <class state_t>
-class BatchShotsExecutor : public ParallelStateExecutor<state_t> {
-  using Base = ParallelStateExecutor<state_t>;
+class BatchShotsExecutor : public virtual MultiStateExecutor<state_t> {
+  using Base = MultiStateExecutor<state_t>;
 
 protected:
   // config setting for multi-shot parallelization
@@ -114,8 +114,8 @@ void BatchShotsExecutor<state_t>::set_parallelization(
       enable_batch_multi_shots_ = false;
     else if (circ.shots == 1)
       enable_batch_multi_shots_ = false;
-    else if (Base::multiple_chunk_required(circ, noise))
-      enable_batch_multi_shots_ = false;
+    //    else if (Base::multiple_chunk_required(circ, noise))
+    //      enable_batch_multi_shots_ = false;
   }
 
 #ifdef AER_CUSTATEVEC
@@ -193,7 +193,7 @@ void BatchShotsExecutor<state_t>::run_circuit_shots(
     }
 
     // allocate shots
-    Base::allocate_states(n_shots, config);
+    this->allocate_states(n_shots, config);
 
     // Set state config
     for (i = 0; i < n_shots; i++) {

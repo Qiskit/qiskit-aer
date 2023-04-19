@@ -16,6 +16,7 @@
 #define _statevector_executor_hpp_
 
 #include "simulators/batch_shots_executor.hpp"
+#include "simulators/parallel_state_executor.hpp"
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -33,8 +34,11 @@ namespace Statevector {
 // Executor for statevector
 //-------------------------------------------------------------------------
 template <class state_t>
-class Executor : public CircuitExecutor::BatchShotsExecutor<state_t> {
-  using Base = CircuitExecutor::BatchShotsExecutor<state_t>;
+class Executor : public CircuitExecutor::ParallelStateExecutor<state_t>,
+                 public CircuitExecutor::BatchShotsExecutor<state_t> {
+  using Base = CircuitExecutor::MultiStateExecutor<state_t>;
+  using BasePar = CircuitExecutor::ParallelStateExecutor<state_t>;
+  using BaseBatch = CircuitExecutor::BatchShotsExecutor<state_t>;
 
 protected:
 public:
@@ -67,6 +71,14 @@ protected:
 
   auto move_to_vector(void);
   auto copy_to_vector(void);
+
+  void run_circuit_shots(Circuit &circ, const Noise::NoiseModel &noise,
+                         const Config &config, RngEngine &init_rng,
+                         ExperimentResult &result, bool sample_noise) override;
+
+  bool allocate_states(uint_t num_states, const Config &config) override {
+    return BasePar::allocate_states(num_states, config);
+  }
 
   //-----------------------------------------------------------------------
   // Apply instructions
@@ -189,14 +201,15 @@ protected:
 
 template <class state_t>
 void Executor<state_t>::set_config(const Config &config) {
-  Base::set_config(config);
+  BasePar::set_config(config);
+  BaseBatch::set_config(config);
 }
 
 template <class state_t>
 void Executor<state_t>::apply_global_phase() {
   if (Base::has_global_phase_) {
     int_t i;
-    if (Base::shot_omp_parallel_ && Base::num_groups_ > 0) {
+    if (Base::shot_omp_parallel_ && Base::num_groups_ > 1) {
 #pragma omp parallel for
       for (int_t ig = 0; ig < Base::num_groups_; ig++) {
         for (int_t iChunk = Base::top_state_of_group_[ig];
@@ -209,6 +222,20 @@ void Executor<state_t>::apply_global_phase() {
         Base::states_[i].apply_diagonal_matrix(
             {0}, {Base::global_phase_, Base::global_phase_});
     }
+  }
+}
+
+template <class state_t>
+void Executor<state_t>::run_circuit_shots(
+    Circuit &circ, const Noise::NoiseModel &noise, const Config &config,
+    RngEngine &init_rng, ExperimentResult &result, bool sample_noise) {
+  state_t dummy_state;
+  if (BasePar::multiple_chunk_required(circ, noise)) {
+    return BasePar::run_circuit_shots(circ, noise, config, init_rng, result,
+                                      sample_noise);
+  } else {
+    return BaseBatch::run_circuit_shots(circ, noise, config, init_rng, result,
+                                        sample_noise);
   }
 }
 
@@ -229,10 +256,10 @@ bool Executor<state_t>::apply_parallel_op(const Operations::Op &op,
       apply_measure(op.qubits, op.memory, op.registers, rng);
       break;
     case Operations::OpType::bfunc:
-      Base::apply_bfunc(op);
+      BasePar::apply_bfunc(op);
       break;
     case Operations::OpType::roerror:
-      Base::apply_roerror(op, rng);
+      BasePar::apply_roerror(op, rng);
       break;
     case Operations::OpType::kraus:
       apply_kraus(op.qubits, op.mats, rng);
@@ -242,7 +269,7 @@ bool Executor<state_t>::apply_parallel_op(const Operations::Op &op,
       break;
     case Operations::OpType::save_expval:
     case Operations::OpType::save_expval_var:
-      Base::apply_save_expval(op, result);
+      BasePar::apply_save_expval(op, result);
       break;
     case Operations::OpType::save_densmat:
       apply_save_density_matrix(op, result);
@@ -390,10 +417,10 @@ void Executor<state_t>::initialize_qreg(uint_t num_qubits) {
   int_t i;
 
   for (i = 0; i < Base::states_.size(); i++) {
-    Base::states_[i].qreg().set_num_qubits(Base::chunk_bits_);
+    Base::states_[i].qreg().set_num_qubits(BasePar::chunk_bits_);
   }
 
-  if (Base::chunk_omp_parallel_ && Base::num_groups_ > 0) {
+  if (BasePar::chunk_omp_parallel_ && Base::num_groups_ > 1) {
 #pragma omp parallel for
     for (int_t ig = 0; ig < Base::num_groups_; ig++) {
       for (int_t iChunk = Base::top_state_of_group_[ig];
@@ -417,14 +444,14 @@ void Executor<state_t>::initialize_qreg(uint_t num_qubits) {
     }
   }
 
-  Base::apply_global_phase();
+  BasePar::apply_global_phase();
 }
 
 template <class state_t>
 auto Executor<state_t>::move_to_vector(void) {
   size_t size_required =
       2 * (sizeof(std::complex<double>) << Base::num_qubits_) +
-      (sizeof(std::complex<double>) << Base::chunk_bits_) *
+      (sizeof(std::complex<double>) << BasePar::chunk_bits_) *
           Base::num_local_states_;
   if ((size_required >> 20) > Utils::get_system_memory_mb()) {
     throw std::runtime_error(
@@ -432,19 +459,19 @@ auto Executor<state_t>::move_to_vector(void) {
   }
   int_t iChunk;
   auto state = Base::states_[0].qreg().move_to_vector();
-  state.resize(Base::num_local_states_ << Base::chunk_bits_);
+  state.resize(Base::num_local_states_ << BasePar::chunk_bits_);
 
-#pragma omp parallel for if (Base::chunk_omp_parallel_) private(iChunk)
+#pragma omp parallel for if (BasePar::chunk_omp_parallel_) private(iChunk)
   for (iChunk = 1; iChunk < Base::states_.size(); iChunk++) {
     auto tmp = Base::states_[iChunk].qreg().move_to_vector();
-    uint_t j, offset = iChunk << Base::chunk_bits_;
+    uint_t j, offset = iChunk << BasePar::chunk_bits_;
     for (j = 0; j < tmp.size(); j++) {
       state[offset + j] = tmp[j];
     }
   }
 
 #ifdef AER_MPI
-  Base::gather_state(state);
+  BasePar::gather_state(state);
 #endif
   return state;
 }
@@ -453,7 +480,7 @@ template <class state_t>
 auto Executor<state_t>::copy_to_vector(void) {
   size_t size_required =
       2 * (sizeof(std::complex<double>) << Base::num_qubits_) +
-      (sizeof(std::complex<double>) << Base::chunk_bits_) *
+      (sizeof(std::complex<double>) << BasePar::chunk_bits_) *
           Base::num_local_states_;
   if ((size_required >> 20) > Utils::get_system_memory_mb()) {
     throw std::runtime_error(
@@ -461,19 +488,19 @@ auto Executor<state_t>::copy_to_vector(void) {
   }
   int_t iChunk;
   auto state = Base::states_[0].qreg().copy_to_vector();
-  state.resize(Base::num_local_states_ << Base::chunk_bits_);
+  state.resize(Base::num_local_states_ << BasePar::chunk_bits_);
 
-#pragma omp parallel for if (Base::chunk_omp_parallel_) private(iChunk)
+#pragma omp parallel for if (BasePar::chunk_omp_parallel_) private(iChunk)
   for (iChunk = 1; iChunk < Base::states_.size(); iChunk++) {
     auto tmp = Base::states_[iChunk].qreg().copy_to_vector();
-    uint_t j, offset = iChunk << Base::chunk_bits_;
+    uint_t j, offset = iChunk << BasePar::chunk_bits_;
     for (j = 0; j < tmp.size(); j++) {
       state[offset + j] = tmp[j];
     }
   }
 
 #ifdef AER_MPI
-  Base::gather_state(state);
+  BasePar::gather_state(state);
 #endif
   return state;
 }
@@ -512,7 +539,7 @@ double Executor<state_t>::expval_pauli(const reg_t &qubits,
   // get inner/outer chunk pauli string
   n = pauli.size();
   for (i = 0; i < n; i++) {
-    if (qubits[i] < Base::chunk_bits_) {
+    if (qubits[i] < BasePar::chunk_bits_) {
       qubits_in_chunk.push_back(qubits[i]);
       pauli_in_chunk.push_back(pauli[n - i - 1]);
     } else {
@@ -552,9 +579,9 @@ double Executor<state_t>::expval_pauli(const reg_t &qubits,
       }
 #endif
 
-      x_mask >>= Base::chunk_bits_;
-      z_mask >>= Base::chunk_bits_;
-      x_max -= Base::chunk_bits_;
+      x_mask >>= BasePar::chunk_bits_;
+      z_mask >>= BasePar::chunk_bits_;
+      x_max -= BasePar::chunk_bits_;
 
       const uint_t mask_u = ~((1ull << (x_max + 1)) - 1);
       const uint_t mask_l = (1ull << x_max) - 1;
@@ -581,13 +608,13 @@ double Executor<state_t>::expval_pauli(const reg_t &qubits,
           return expval;
         };
         expval += Utils::apply_omp_parallel_for_reduction(
-            (Base::chunk_omp_parallel_ && Base::num_groups_ > 1), 0,
+            (BasePar::chunk_omp_parallel_ && Base::num_groups_ > 1), 0,
             Base::num_global_states_ / 2, apply_expval_pauli_chunk);
       } else {
         for (int_t i = 0; i < Base::num_global_states_ / 2; i++) {
           uint_t iChunk = ((i << 1) & mask_u) | (i & mask_l);
           uint_t pair_chunk = iChunk ^ x_mask;
-          uint_t iProc = Base::get_process_by_chunk(pair_chunk);
+          uint_t iProc = BasePar::get_process_by_chunk(pair_chunk);
           if (Base::state_index_begin_[Base::distributed_rank_] <= iChunk &&
               Base::state_index_end_[Base::distributed_rank_] >
                   iChunk) { // on this process
@@ -606,7 +633,8 @@ double Executor<state_t>::expval_pauli(const reg_t &qubits,
                               .qreg(),
                           z_count, z_count_pair, phase);
             } else {
-              Base::recv_chunk(iChunk - Base::global_state_index_, pair_chunk);
+              BasePar::recv_chunk(iChunk - Base::global_state_index_,
+                                  pair_chunk);
               // refer receive buffer to calculate expectation value
               expval +=
                   Base::states_[iChunk - Base::global_state_index_]
@@ -619,13 +647,13 @@ double Executor<state_t>::expval_pauli(const reg_t &qubits,
             }
           } else if (iProc == Base::distributed_rank_) { // pair is on
                                                          // this process
-            Base::send_chunk(iChunk - Base::global_state_index_, pair_chunk);
+            BasePar::send_chunk(iChunk - Base::global_state_index_, pair_chunk);
           }
         }
       }
     } else { // no exchange between chunks
-      z_mask >>= Base::chunk_bits_;
-      if (Base::chunk_omp_parallel_ && Base::num_groups_ > 1) {
+      z_mask >>= BasePar::chunk_bits_;
+      if (BasePar::chunk_omp_parallel_ && Base::num_groups_ > 1) {
 #pragma omp parallel for reduction(+ : expval)
         for (int_t ig = 0; ig < Base::num_groups_; ig++) {
           double e_tmp = 0.0;
@@ -654,7 +682,7 @@ double Executor<state_t>::expval_pauli(const reg_t &qubits,
       }
     }
   } else { // all bits are inside chunk
-    if (Base::chunk_omp_parallel_ && Base::num_groups_ > 1) {
+    if (BasePar::chunk_omp_parallel_ && Base::num_groups_ > 1) {
 #pragma omp parallel for reduction(+ : expval)
       for (int_t ig = 0; ig < Base::num_groups_; ig++) {
         double e_tmp = 0.0;
@@ -670,7 +698,7 @@ double Executor<state_t>::expval_pauli(const reg_t &qubits,
   }
 
 #ifdef AER_MPI
-  Base::reduce_sum(expval);
+  BasePar::reduce_sum(expval);
 #endif
   return expval;
 }
@@ -727,7 +755,7 @@ void Executor<state_t>::apply_save_density_matrix(const Operations::Op &op,
     reduced_state = cmatrix_t(1, 1);
 
     double sum = 0.0;
-    if (Base::chunk_omp_parallel_) {
+    if (BasePar::chunk_omp_parallel_) {
 #pragma omp parallel for reduction(+ : sum)
       for (int_t i = 0; i < Base::states_.size(); i++)
         sum += Base::states_[i].qreg().norm();
@@ -736,7 +764,7 @@ void Executor<state_t>::apply_save_density_matrix(const Operations::Op &op,
         sum += Base::states_[i].qreg().norm();
     }
 #ifdef AER_MPI
-    Base::reduce_sum(sum);
+    BasePar::reduce_sum(sum);
 #endif
     reduced_state[0] = sum;
   } else {
@@ -758,18 +786,18 @@ void Executor<state_t>::apply_save_amplitudes(const Operations::Op &op,
   if (op.type == Operations::OpType::save_amps) {
     Vector<complex_t> amps(size, false);
     for (int_t i = 0; i < size; ++i) {
-      uint_t idx = Base::mapped_index(op.int_params[i]);
-      uint_t iChunk = idx >> Base::chunk_bits_;
+      uint_t idx = BasePar::mapped_index(op.int_params[i]);
+      uint_t iChunk = idx >> BasePar::chunk_bits_;
       amps[i] = 0.0;
       if (iChunk >= Base::global_state_index_ &&
           iChunk < Base::global_state_index_ + Base::states_.size()) {
         amps[i] =
             Base::states_[iChunk - Base::global_state_index_].qreg().get_state(
-                idx - (iChunk << Base::chunk_bits_));
+                idx - (iChunk << BasePar::chunk_bits_));
       }
 #ifdef AER_MPI
       complex_t amp = amps[i];
-      Base::reduce_sum(amp);
+      BasePar::reduce_sum(amp);
       amps[i] = amp;
 #endif
     }
@@ -778,17 +806,17 @@ void Executor<state_t>::apply_save_amplitudes(const Operations::Op &op,
   } else {
     rvector_t amps_sq(size, 0);
     for (int_t i = 0; i < size; ++i) {
-      uint_t idx = Base::mapped_index(op.int_params[i]);
-      uint_t iChunk = idx >> Base::chunk_bits_;
+      uint_t idx = BasePar::mapped_index(op.int_params[i]);
+      uint_t iChunk = idx >> BasePar::chunk_bits_;
       if (iChunk >= Base::global_state_index_ &&
           iChunk < Base::global_state_index_ + Base::states_.size()) {
         amps_sq[i] = Base::states_[iChunk - Base::global_state_index_]
                          .qreg()
-                         .probability(idx - (iChunk << Base::chunk_bits_));
+                         .probability(idx - (iChunk << BasePar::chunk_bits_));
       }
     }
 #ifdef AER_MPI
-    Base::reduce_sum(amps_sq);
+    BasePar::reduce_sum(amps_sq);
 #endif
     result.save_data_average(Base::states_[0].creg(), op.string_params[0],
                              std::move(amps_sq), op.type, op.save_type);
@@ -851,7 +879,7 @@ void Executor<state_t>::apply_measure(const reg_t &qubits, const reg_t &cmemory,
   // Implement measurement update
   measure_reset_update(qubits, meas.first, meas.first, meas.second);
   const reg_t outcome = Utils::int2reg(meas.first, 2, qubits.size());
-  Base::store_measure(outcome, cmemory, cregister);
+  BasePar::store_measure(outcome, cmemory, cregister);
 }
 
 template <class state_t>
@@ -862,11 +890,11 @@ rvector_t Executor<state_t>::measure_probs(const reg_t &qubits) const {
   reg_t qubits_in_chunk;
   reg_t qubits_out_chunk;
 
-  Chunk::get_qubits_inout(Base::chunk_bits_, qubits, qubits_in_chunk,
+  Chunk::get_qubits_inout(BasePar::chunk_bits_, qubits, qubits_in_chunk,
                           qubits_out_chunk);
 
   if (qubits_in_chunk.size() > 0) {
-    if (Base::chunk_omp_parallel_ && Base::num_groups_ > 0) {
+    if (BasePar::chunk_omp_parallel_ && Base::num_groups_ > 1) {
 #pragma omp parallel for private(i, j, k)
       for (int_t ig = 0; ig < Base::num_groups_; ig++) {
         for (int_t i = Base::top_state_of_group_[ig];
@@ -884,11 +912,12 @@ rvector_t Executor<state_t>::measure_probs(const reg_t &qubits) const {
               int idx = 0;
               int i_in = 0;
               for (k = 0; k < qubits.size(); k++) {
-                if (qubits[k] < Base::chunk_bits_) {
+                if (qubits[k] < BasePar::chunk_bits_) {
                   idx += (((j >> i_in) & 1) << k);
                   i_in++;
                 } else {
-                  if ((((i + Base::global_state_index_) << Base::chunk_bits_) >>
+                  if ((((i + Base::global_state_index_)
+                        << BasePar::chunk_bits_) >>
                        qubits[k]) &
                       1) {
                     idx += 1ull << k;
@@ -914,11 +943,12 @@ rvector_t Executor<state_t>::measure_probs(const reg_t &qubits) const {
             int idx = 0;
             int i_in = 0;
             for (k = 0; k < qubits.size(); k++) {
-              if (qubits[k] < Base::chunk_bits_) {
+              if (qubits[k] < BasePar::chunk_bits_) {
                 idx += (((j >> i_in) & 1) << k);
                 i_in++;
               } else {
-                if ((((i + Base::global_state_index_) << Base::chunk_bits_) >>
+                if ((((i + Base::global_state_index_)
+                      << BasePar::chunk_bits_) >>
                      qubits[k]) &
                     1) {
                   idx += 1ull << k;
@@ -931,7 +961,7 @@ rvector_t Executor<state_t>::measure_probs(const reg_t &qubits) const {
       }
     }
   } else { // there is no bit in chunk
-    if (Base::chunk_omp_parallel_ && Base::num_groups_ > 0) {
+    if (BasePar::chunk_omp_parallel_ && Base::num_groups_ > 1) {
 #pragma omp parallel for private(i, j, k)
       for (int_t ig = 0; ig < Base::num_groups_; ig++) {
         for (int_t i = Base::top_state_of_group_[ig];
@@ -939,7 +969,7 @@ rvector_t Executor<state_t>::measure_probs(const reg_t &qubits) const {
           auto nr = std::real(Base::states_[i].qreg().norm());
           int idx = 0;
           for (k = 0; k < qubits_out_chunk.size(); k++) {
-            if ((((i + Base::global_state_index_) << (Base::chunk_bits_)) >>
+            if ((((i + Base::global_state_index_) << (BasePar::chunk_bits_)) >>
                  qubits_out_chunk[k]) &
                 1) {
               idx += 1ull << k;
@@ -954,7 +984,7 @@ rvector_t Executor<state_t>::measure_probs(const reg_t &qubits) const {
         auto nr = std::real(Base::states_[i].qreg().norm());
         int idx = 0;
         for (k = 0; k < qubits_out_chunk.size(); k++) {
-          if ((((i + Base::global_state_index_) << (Base::chunk_bits_)) >>
+          if ((((i + Base::global_state_index_) << (BasePar::chunk_bits_)) >>
                qubits_out_chunk[k]) &
               1) {
             idx += 1ull << k;
@@ -966,7 +996,7 @@ rvector_t Executor<state_t>::measure_probs(const reg_t &qubits) const {
   }
 
 #ifdef AER_MPI
-  Base::reduce_sum(sum);
+  BasePar::reduce_sum(sum);
 #endif
 
   return sum;
@@ -1006,7 +1036,7 @@ void Executor<state_t>::measure_reset_update(const std::vector<uint_t> &qubits,
     cvector_t mdiag(2, 0.);
     mdiag[meas_state] = 1. / std::sqrt(meas_prob);
 
-    if (Base::chunk_omp_parallel_ && Base::num_groups_ > 1) {
+    if (BasePar::chunk_omp_parallel_ && Base::num_groups_ > 1) {
 #pragma omp parallel for
       for (int_t ig = 0; ig < Base::num_groups_; ig++) {
         for (int_t ic = Base::top_state_of_group_[ig];
@@ -1023,7 +1053,7 @@ void Executor<state_t>::measure_reset_update(const std::vector<uint_t> &qubits,
 
     // If it doesn't agree with the reset state update
     if (final_state != meas_state) {
-      Base::apply_chunk_x(qubits[0]);
+      BasePar::apply_chunk_x(qubits[0]);
     }
   }
   // Multi qubit case
@@ -1033,7 +1063,7 @@ void Executor<state_t>::measure_reset_update(const std::vector<uint_t> &qubits,
     cvector_t mdiag(dim, 0.);
     mdiag[meas_state] = 1. / std::sqrt(meas_prob);
 
-    if (Base::chunk_omp_parallel_ && Base::num_groups_ > 1) {
+    if (BasePar::chunk_omp_parallel_ && Base::num_groups_ > 1) {
 #pragma omp parallel for
       for (int_t ig = 0; ig < Base::num_groups_; ig++) {
         for (int_t ic = Base::top_state_of_group_[ig];
@@ -1054,7 +1084,7 @@ void Executor<state_t>::measure_reset_update(const std::vector<uint_t> &qubits,
       reg_t qubits_in_chunk;
       reg_t qubits_out_chunk;
 
-      Chunk::get_qubits_inout(Base::chunk_bits_, qubits, qubits_in_chunk,
+      Chunk::get_qubits_inout(BasePar::chunk_bits_, qubits, qubits_in_chunk,
                               qubits_out_chunk);
 
       if (qubits_in_chunk.size() == qubits.size()) { // all bits are inside
@@ -1068,7 +1098,7 @@ void Executor<state_t>::measure_reset_update(const std::vector<uint_t> &qubits,
             perm[j * dim + j] = 1.;
         }
         // apply permutation to swap state
-        if (Base::chunk_omp_parallel_ && Base::num_groups_ > 1) {
+        if (BasePar::chunk_omp_parallel_ && Base::num_groups_ > 1) {
 #pragma omp parallel for
           for (int_t ig = 0; ig < Base::num_groups_; ig++) {
             for (int_t ic = Base::top_state_of_group_[ig];
@@ -1085,7 +1115,7 @@ void Executor<state_t>::measure_reset_update(const std::vector<uint_t> &qubits,
       } else {
         for (int_t i = 0; i < qubits.size(); i++) {
           if (((final_state >> i) & 1) != ((meas_state >> i) & 1)) {
-            Base::apply_chunk_x(qubits[i]);
+            BasePar::apply_chunk_x(qubits[i]);
           }
         }
       }
@@ -1110,7 +1140,7 @@ std::vector<reg_t> Executor<state_t>::sample_measure(const reg_t &qubits,
   double sum, localSum;
 
   // calculate per chunk sum
-  if (Base::chunk_omp_parallel_ && Base::num_groups_ > 1) {
+  if (BasePar::chunk_omp_parallel_ && Base::num_groups_ > 1) {
 #pragma omp parallel for
     for (int_t ig = 0; ig < Base::num_groups_; ig++) {
       for (int_t ic = Base::top_state_of_group_[ig];
@@ -1149,7 +1179,7 @@ std::vector<reg_t> Executor<state_t>::sample_measure(const reg_t &qubits,
       procTotal[i] = localSum;
     }
 
-    Base::gather_value(procTotal);
+    BasePar::gather_value(procTotal);
 
     for (i = 0; i < Base::myrank_; i++) {
       globalSum += procTotal[i];
@@ -1180,14 +1210,14 @@ std::vector<reg_t> Executor<state_t>::sample_measure(const reg_t &qubits,
 
       for (j = 0; j < chunkSamples.size(); j++) {
         local_samples[vIdx[j]] =
-            ((Base::global_state_index_ + i) << Base::chunk_bits_) +
+            ((Base::global_state_index_ + i) << BasePar::chunk_bits_) +
             chunkSamples[j];
       }
     }
   }
 
 #ifdef AER_MPI
-  Base::reduce_sum(local_samples);
+  BasePar::reduce_sum(local_samples);
 #endif
   allbit_samples = local_samples;
 
@@ -1227,11 +1257,11 @@ void Executor<state_t>::apply_initialize(const reg_t &qubits,
   // Apply initialize_component
   reg_t qubits_in_chunk;
   reg_t qubits_out_chunk;
-  Chunk::get_qubits_inout(Base::chunk_bits_, qubits, qubits_in_chunk,
+  Chunk::get_qubits_inout(BasePar::chunk_bits_, qubits, qubits_in_chunk,
                           qubits_out_chunk);
 
   if (qubits_out_chunk.size() == 0) { // no qubits outside of chunk
-    if (Base::chunk_omp_parallel_ && Base::num_groups_ > 0) {
+    if (BasePar::chunk_omp_parallel_ && Base::num_groups_ > 1) {
 #pragma omp parallel for
       for (int_t ig = 0; ig < Base::num_groups_; ig++) {
         for (int_t i = Base::top_state_of_group_[ig];
@@ -1252,7 +1282,7 @@ void Executor<state_t>::apply_initialize(const reg_t &qubits,
         perm[i] = 1.0;
       }
 
-      if (Base::chunk_omp_parallel_) {
+      if (BasePar::chunk_omp_parallel_) {
 #pragma omp parallel for
         for (int_t i = 0; i < Base::states_.size(); i++)
           Base::states_[i].qreg().apply_matrix(qubits_in_chunk, perm);
@@ -1266,7 +1296,7 @@ void Executor<state_t>::apply_initialize(const reg_t &qubits,
       auto sorted_qubits_out = qubits_out_chunk;
       std::sort(sorted_qubits_out.begin(), sorted_qubits_out.end());
 
-      for (int_t i = 0; i < (1ull << (Base::num_qubits_ - Base::chunk_bits_ -
+      for (int_t i = 0; i < (1ull << (Base::num_qubits_ - BasePar::chunk_bits_ -
                                       qubits_out_chunk.size()));
            i++) {
         uint_t baseChunk = 0;
@@ -1278,13 +1308,13 @@ void Executor<state_t>::apply_initialize(const reg_t &qubits,
           ii = (ii - t) << 1;
         }
         baseChunk += ii;
-        baseChunk >>= Base::chunk_bits_;
+        baseChunk >>= BasePar::chunk_bits_;
 
         for (j = 1; j < (1ull << qubits_out_chunk.size()); j++) {
           int_t ic = baseChunk;
           for (t = 0; t < qubits_out_chunk.size(); t++) {
             if ((j >> t) & 1)
-              ic += (1ull << (qubits_out_chunk[t] - Base::chunk_bits_));
+              ic += (1ull << (qubits_out_chunk[t] - BasePar::chunk_bits_));
           }
 
           if (ic >= Base::state_index_begin_[Base::distributed_rank_] &&
@@ -1297,14 +1327,14 @@ void Executor<state_t>::apply_initialize(const reg_t &qubits,
                                                              // this process
               Base::states_[ic].qreg().initialize_from_data(
                   Base::states_[baseChunk].qreg().data(),
-                  1ull << Base::chunk_bits_);
+                  1ull << BasePar::chunk_bits_);
             } else {
-              Base::recv_chunk(ic, baseChunk);
+              BasePar::recv_chunk(ic, baseChunk);
               // using swap chunk function to release send/recv buffers for
               // Thrust
               reg_t swap(2);
-              swap[0] = Base::chunk_bits_;
-              swap[1] = Base::chunk_bits_;
+              swap[0] = BasePar::chunk_bits_;
+              swap[1] = BasePar::chunk_bits_;
               Base::states_[ic].qreg().apply_chunk_swap(swap, baseChunk);
             }
           } else if (baseChunk >=
@@ -1313,14 +1343,14 @@ void Executor<state_t>::apply_initialize(const reg_t &qubits,
                                      [Base::distributed_rank_]) { // base chunk
                                                                   // is on this
                                                                   // process
-            Base::send_chunk(baseChunk - Base::global_state_index_, ic);
+            BasePar::send_chunk(baseChunk - Base::global_state_index_, ic);
           }
         }
       }
     }
 
     // initialize by params
-    if (Base::chunk_omp_parallel_ && Base::num_groups_ > 0) {
+    if (BasePar::chunk_omp_parallel_ && Base::num_groups_ > 1) {
 #pragma omp parallel for
       for (int_t ig = 0; ig < Base::num_groups_; ig++) {
         for (int_t i = Base::top_state_of_group_[ig];
@@ -1336,14 +1366,14 @@ void Executor<state_t>::apply_initialize(const reg_t &qubits,
 
 template <class state_t>
 void Executor<state_t>::initialize_from_vector(const cvector_t &params) {
-  uint_t local_offset = Base::global_state_index_ << Base::chunk_bits_;
+  uint_t local_offset = Base::global_state_index_ << BasePar::chunk_bits_;
 
-#pragma omp parallel for if (Base::chunk_omp_parallel_)
+#pragma omp parallel for if (BasePar::chunk_omp_parallel_)
   for (int_t i = 0; i < Base::states_.size(); i++) {
     // copy part of state for this chunk
-    cvector_t tmp(1ull << Base::chunk_bits_);
-    std::copy(params.begin() + local_offset + (i << Base::chunk_bits_),
-              params.begin() + local_offset + ((i + 1) << Base::chunk_bits_),
+    cvector_t tmp(1ull << BasePar::chunk_bits_);
+    std::copy(params.begin() + local_offset + (i << BasePar::chunk_bits_),
+              params.begin() + local_offset + ((i + 1) << BasePar::chunk_bits_),
               tmp.begin());
     Base::states_[i].qreg().initialize_from_vector(tmp);
   }
@@ -1378,7 +1408,7 @@ void Executor<state_t>::apply_kraus(const reg_t &qubits,
     cvector_t vmat = Utils::vectorize_matrix(kmats[j]);
 
     p = 0.0;
-    if (Base::chunk_omp_parallel_ && Base::num_groups_ > 0) {
+    if (BasePar::chunk_omp_parallel_ && Base::num_groups_ > 1) {
 #pragma omp parallel for reduction(+ : p)
       for (int_t ig = 0; ig < Base::num_groups_; ig++) {
         for (int_t i = Base::top_state_of_group_[ig];
@@ -1391,7 +1421,7 @@ void Executor<state_t>::apply_kraus(const reg_t &qubits,
     }
 
 #ifdef AER_MPI
-    Base::reduce_sum(p);
+    BasePar::reduce_sum(p);
 #endif
     accum += p;
 
@@ -1400,7 +1430,7 @@ void Executor<state_t>::apply_kraus(const reg_t &qubits,
       // rescale vmat so projection is normalized
       Utils::scalar_multiply_inplace(vmat, 1 / std::sqrt(p));
       // apply Kraus projection operator
-      if (Base::chunk_omp_parallel_ && Base::num_groups_ > 1) {
+      if (BasePar::chunk_omp_parallel_ && Base::num_groups_ > 1) {
 #pragma omp parallel for
         for (int_t ig = 0; ig < Base::num_groups_; ig++) {
           for (int_t ic = Base::top_state_of_group_[ig];
@@ -1424,7 +1454,7 @@ void Executor<state_t>::apply_kraus(const reg_t &qubits,
     // Compute probability from accumulated
     complex_t renorm = 1 / std::sqrt(1. - accum);
     auto vmat = Utils::vectorize_matrix(renorm * kmats.back());
-    if (Base::chunk_omp_parallel_ && Base::num_groups_ > 1) {
+    if (BasePar::chunk_omp_parallel_ && Base::num_groups_ > 1) {
 #pragma omp parallel for
       for (int_t ig = 0; ig < Base::num_groups_; ig++) {
         for (int_t ic = Base::top_state_of_group_[ig];

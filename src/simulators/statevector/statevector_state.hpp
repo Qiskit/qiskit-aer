@@ -429,6 +429,8 @@ void State<statevec_t>::initialize_omp() {
   uint_t i;
 
   BaseState::qreg_.set_omp_threshold(omp_qubit_threshold_);
+  if (BaseState::threads_ > 0) // set allowed OMP threads in qubitvector
+    BaseState::qreg_.set_omp_threads(BaseState::threads_);
 }
 
 template <class statevec_t>
