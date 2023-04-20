@@ -13,6 +13,7 @@
 Compier to convert Qiskit control-flow to Aer backend.
 """
 
+import collections
 import itertools
 from copy import copy
 from typing import List
@@ -357,78 +358,61 @@ class AerCompiler:
 
         qargs = [bit_map[q] for q in instruction.qubits]
         cargs = [bit_map[c] for c in instruction.clbits]
-        mark_cargs = cargs.copy()
-        mark_cargs.extend(
-            bit_map[c]
-            for c in (
-                (
-                    {instruction.operation.target}
-                    if isinstance(instruction.operation.target, Clbit)
-                    else set(instruction.operation.target)
-                )
-                - set(instruction.clbits)
-            )
-        )
-        case_labels = []
-        case_args_lists = []
-        case_bit_maps = []
-        case_bodies = []
+        mark_cargs = (
+            set(cargs + [bit_map[instruction.operation.target]])
+            if isinstance(instruction.operation.target, Clbit)
+            else set(cargs + [bit_map[c] for c in instruction.operation.target])
+        ) - set(instruction.clbits)
+
+        switch_end_label = f"{switch_name}_end"
         case_default_label = None
+        CaseData = collections.namedtuple("CaseData", ["label", "args_list", "bit_map", "body"])
+        case_data_list = []
         for i, case in enumerate(cases):
-            if CASE_DEFAULT == case[0]:
-                case_default_label = f"{switch_name}_default"
-                case_labels.append(case_default_label)
-            else:
-                case_label = f"{switch_name}_{i}"
-                case_args_list = []
-                if isinstance(case[0], tuple):
-                    for switch_val in case[0]:
-                        if CASE_DEFAULT == switch_val:
-                            case_default_label = case_label
-                        else:
-                            case_args_list.append(
-                                self._convert_c_if_args(
-                                    (instruction.operation.target, switch_val), bit_map
-                                )
-                            )
-                else:
-                    case_args_list.append(
-                        self._convert_c_if_args((instruction.operation.target, case[0]), bit_map)
-                    )
-                case_labels.append(case_label)
-                case_args_lists.append(case_args_list)
-            case_bit_maps.append(
-                {
+            if case_default_label is not None:
+                raise AerError("cases after the default are unreachable")
+
+            case_data = CaseData(
+                label=f"{switch_name}_{i}",
+                args_list=[
+                    self._convert_c_if_args((instruction.operation.target, switch_val), bit_map)
+                    if switch_val != CASE_DEFAULT
+                    else []
+                    for switch_val in case[0]
+                ],
+                bit_map={
                     inner: bit_map[outer]
                     for inner, outer in itertools.chain(
                         zip(case[1].qubits, instruction.qubits),
                         zip(case[1].clbits, instruction.clbits),
                     )
-                }
+                },
+                body=case[1],
             )
-            case_bodies.append(case[1])
+            case_data_list.append(case_data)
+            if CASE_DEFAULT in case[0]:
+                case_default_label = case_data.label
 
-        switch_end_label = f"{switch_name}_end"
-        mark_cargs = set(mark_cargs) - set(instruction.clbits)
+        if case_default_label is None:
+            case_default_label = switch_end_label
 
-        for case_label, case_args_list in zip(case_labels, case_args_lists):
-            for case_args in case_args_list:
-                parent.append(
-                    AerJump(case_label, len(qargs), len(mark_cargs)).c_if(*case_args),
-                    qargs,
-                    mark_cargs,
-                )
-        if case_default_label:
+        for case_data in case_data_list:
+            for case_args in case_data.args_list:
+                if len(case_args) > 0:
+                    parent.append(
+                        AerJump(case_data.label, len(qargs), len(mark_cargs)).c_if(*case_args),
+                        qargs,
+                        mark_cargs,
+                    )
+
+        parent.append(AerJump(case_default_label, len(qargs), len(mark_cargs)), qargs, mark_cargs)
+
+        for case_data in case_data_list:
+            parent.append(AerMark(case_data.label, len(qargs), len(mark_cargs)), qargs, mark_cargs)
             parent.append(
-                AerJump(case_default_label, len(qargs), len(mark_cargs)), qargs, mark_cargs
-            )
-        else:
-            parent.append(AerJump(switch_end_label, len(qargs), len(mark_cargs)), qargs, mark_cargs)
-
-        for case_body, case_label, case_bit_map in zip(case_bodies, case_labels, case_bit_maps):
-            parent.append(AerMark(case_label, len(qargs), len(mark_cargs)), qargs, mark_cargs)
-            parent.append(
-                self._inline_circuit(case_body, continue_label, break_label, case_bit_map),
+                self._inline_circuit(
+                    case_data.body, continue_label, break_label, case_data.bit_map
+                ),
                 qargs,
                 cargs,
             )
