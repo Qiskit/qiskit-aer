@@ -59,7 +59,6 @@ public:
   json_t header;
   double global_phase_angle = 0;
   bool remapped_qubits = false; // True if qubits have been remapped
-  uint_t index = 0;
 
   // Constructor
   // The constructor automatically calculates the num_qubits, num_memory,
