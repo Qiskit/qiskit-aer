@@ -136,6 +136,8 @@ public:
   bool apply_runtime_noise_sampling(const ClassicalRegister &creg,
                                     const Operations::Op &op,
                                     const Noise::NoiseModel &noise);
+
+  void remove_empty_branches(void);
 };
 
 void Branch::branch_shots(reg_t &shots, int_t nbranch) {
@@ -260,6 +262,33 @@ bool Branch::apply_runtime_noise_sampling(const ClassicalRegister &creg,
   }
 
   return true;
+}
+
+void Branch::remove_empty_branches(void) {
+  int_t istart = 0;
+  for (int_t j = 0; j < branches_.size(); j++) {
+    if (branches_[j]->num_shots() > 0) {
+      // copy shots to the root
+      shots_ = branches_[j]->rng_shots();
+      additional_ops_ = branches_[j]->additional_ops();
+      shot_index_ = branches_[j]->shot_index();
+      creg_ = branches_[j]->creg();
+      branches_[j].reset();
+      istart = j + 1;
+      break;
+    }
+    branches_[j].reset();
+  }
+
+  std::vector<std::shared_ptr<Branch>> new_branches;
+
+  for (int_t j = istart; j < branches_.size(); j++) {
+    if (branches_[j]->num_shots() > 0)
+      new_branches.push_back(branches_[j]);
+    else
+      branches_[j].reset();
+  }
+  branches_ = new_branches;
 }
 
 //-------------------------------------------------------------------------

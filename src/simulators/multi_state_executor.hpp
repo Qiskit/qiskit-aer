@@ -395,75 +395,110 @@ void MultiStateExecutor<state_t>::run_circuit_with_shot_branching(
     states_[0].initialize_qreg(num_qubits_);
     states_[0].initialize_creg(num_creg_memory_, num_creg_registers_);
 
-    // functor for ops execution
-    auto apply_ops_func = [this, &branches, &dummy_rng, &noise, &par_results,
-                           measure_seq, par_shots, num_active_states](int_t i) {
-      uint_t istate, state_end;
-      istate = branches.size() * i / par_shots;
-      state_end = branches.size() * (i + 1) / par_shots;
-      uint_t nbranch = 0;
+    while (num_active_states > 0) { // loop until all branches execute all ops
+      // functor for ops execution
+      auto apply_ops_func = [this, &branches, &dummy_rng, &noise, &par_results,
+                             measure_seq, par_shots,
+                             num_active_states](int_t i) {
+        uint_t istate, state_end;
+        istate = branches.size() * i / par_shots;
+        state_end = branches.size() * (i + 1) / par_shots;
+        uint_t nbranch = 0;
 
-      for (; istate < state_end; istate++) {
-        while (branches[istate]->op_iterator() != measure_seq) {
-          if (!branches[istate]->apply_control_flow(
-                  states_[branches[istate]->state_index()].creg(),
-                  measure_seq)) {
-            if (!branches[istate]->apply_runtime_noise_sampling(
-                    states_[branches[istate]->state_index()].creg(),
-                    *branches[istate]->op_iterator(), noise)) {
-              if (!apply_branching_op(*branches[istate],
-                                      *branches[istate]->op_iterator(),
-                                      par_results[i], true)) {
-                states_[branches[istate]->state_index()].apply_op(
-                    *branches[istate]->op_iterator(), par_results[i], dummy_rng,
-                    true);
+        for (; istate < state_end; istate++) {
+          while (branches[istate]->op_iterator() != measure_seq ||
+                 branches[istate]->additional_ops().size() > 0) {
+            // execute additional ops first if avaiable
+            if (branches[istate]->additional_ops().size() > 0) {
+              int_t iadd = 0;
+              int_t num_add = branches[istate]->additional_ops().size();
+              while (iadd < num_add) {
+                if (apply_branching_op(*branches[istate],
+                                       branches[istate]->additional_ops()[iadd],
+                                       par_results[i], false)) {
+                  // check if there are new branches
+                  if (branches[istate]->num_branches() > 0) {
+                    // if there are additional ops remaining, queue them on new
+                    // branches
+                    for (int_t k = iadd + 1;
+                         k < branches[istate]->additional_ops().size(); k++) {
+                      for (int_t l = 0; l < branches[istate]->num_branches();
+                           l++)
+                        branches[istate]->branches()[l]->add_op_after_branch(
+                            branches[istate]->additional_ops()[k]);
+                    }
+                    branches[istate]->remove_empty_branches();
+                    states_[branches[istate]->state_index()].creg() =
+                        branches[istate]->creg();
+                    // if there are some branches still remaining
+                    if (branches[istate]->num_branches() > 0) {
+                      nbranch += branches[istate]->num_branches();
+                      break;
+                    }
+                    iadd = 0;
+                    num_add = branches[istate]->additional_ops().size();
+                  }
+                } else {
+                  states_[branches[istate]->state_index()].apply_op(
+                      branches[istate]->additional_ops()[iadd], par_results[i],
+                      dummy_rng, false);
+                }
+                iadd++;
+              }
+              branches[istate]->clear_additional_ops();
+              // if there are some branches still remaining
+              if (branches[istate]->num_branches() > 0) {
+                nbranch += branches[istate]->num_branches();
+                break;
               }
             }
-            branches[istate]->advance_iterator();
-            if (branches[istate]->num_branches() > 0) {
-              nbranch += branches[istate]->num_branches();
-              break;
+            // then execute ops
+            if (branches[istate]->op_iterator() != measure_seq) {
+              if (!branches[istate]->apply_control_flow(
+                      states_[branches[istate]->state_index()].creg(),
+                      measure_seq)) {
+                if (!branches[istate]->apply_runtime_noise_sampling(
+                        states_[branches[istate]->state_index()].creg(),
+                        *branches[istate]->op_iterator(), noise)) {
+                  if (!apply_branching_op(*branches[istate],
+                                          *branches[istate]->op_iterator(),
+                                          par_results[i], true)) {
+                    states_[branches[istate]->state_index()].apply_op(
+                        *branches[istate]->op_iterator(), par_results[i],
+                        dummy_rng, true);
+                  }
+                }
+                branches[istate]->advance_iterator();
+                if (branches[istate]->num_branches() > 0) {
+                  branches[istate]->remove_empty_branches();
+                  states_[branches[istate]->state_index()].creg() =
+                      branches[istate]->creg();
+
+                  // if there are some branches still remaining
+                  if (branches[istate]->num_branches() > 0) {
+                    nbranch += branches[istate]->num_branches();
+                    break;
+                  }
+                }
+              }
             }
           }
         }
-      }
-      return nbranch;
-    };
-
-    while (num_active_states > 0) { // loop until all branches execute all ops
-      uint_t nbranch = 0;
+        return nbranch;
+      };
 
       // apply ops until some branch operations are executed in some branches
-      nbranch = Utils::apply_omp_parallel_for_reduction_int(
+      uint_t nbranch = Utils::apply_omp_parallel_for_reduction_int(
           (par_shots > 1 && branches.size() > 1), 0, par_shots, apply_ops_func,
           par_shots);
 
       // repeat until new branch is available
-      while (nbranch > 0) {
+      if (nbranch > 0) {
         uint_t num_states_prev = branches.size();
         for (int_t i = 0; i < num_states_prev; i++) {
           // add new branches
           if (branches[i]->num_branches() > 0) {
-            int_t istart = 0;
             for (int_t j = 0; j < branches[i]->num_branches(); j++) {
-              if (branches[i]->branches()[j]->num_shots() > 0) {
-                // copy shots to the root
-                branches[i]->set_shots(branches[i]->branches()[j]->rng_shots());
-                branches[i]->additional_ops() =
-                    branches[i]->branches()[j]->additional_ops();
-                branches[i]->shot_index() =
-                    branches[i]->branches()[j]->shot_index();
-                // save measured bits to state
-                states_[branches[i]->state_index()].creg() =
-                    branches[i]->branches()[j]->creg();
-                branches[i]->branches()[j].reset();
-                istart = j + 1;
-                break;
-              }
-              branches[i]->branches()[j].reset();
-            }
-
-            for (int_t j = istart; j < branches[i]->num_branches(); j++) {
               if (branches[i]->branches()[j]->num_shots() > 0) {
                 // add new branched state
                 uint_t pos = branches.size();
@@ -500,56 +535,16 @@ void MultiStateExecutor<state_t>::run_circuit_with_shot_branching(
                 branches[i]->branches()[j].reset();
               }
             }
+            branches[i]->clear_branch();
           }
         }
-
-        // then execute ops applied after branching (reset, Kraus, noises, etc.)
-        auto apply_additional_ops_func = [this, &branches, &dummy_rng, &noise,
-                                          &par_results, par_shots](int_t i) {
-          uint_t istate, state_end;
-          istate = branches.size() * i / par_shots;
-          state_end = branches.size() * (i + 1) / par_shots;
-          uint_t nbranch = 0;
-
-          for (; istate < state_end; istate++) {
-            branches[istate]->clear_branch();
-            for (int_t j = 0; j < branches[istate]->additional_ops().size();
-                 j++) {
-              if (apply_branching_op(*branches[istate],
-                                     branches[istate]->additional_ops()[j],
-                                     par_results[i], false)) {
-                // check if there are new branches
-                if (branches[istate]->num_branches() > 0) {
-                  // if there are additional ops remaining, queue them on new
-                  // branches
-                  for (int_t k = j + 1;
-                       k < branches[istate]->additional_ops().size(); k++) {
-                    for (int_t l = 0; l < branches[istate]->num_branches(); l++)
-                      branches[istate]->branches()[l]->add_op_after_branch(
-                          branches[istate]->additional_ops()[k]);
-                  }
-                  nbranch += branches[istate]->num_branches();
-                  break;
-                }
-              } else {
-                states_[branches[istate]->state_index()].apply_op(
-                    branches[istate]->additional_ops()[j], par_results[i],
-                    dummy_rng, false);
-              }
-            }
-            branches[istate]->clear_additional_ops();
-          }
-          return nbranch;
-        };
-        nbranch = Utils::apply_omp_parallel_for_reduction_int(
-            (par_shots > 1 && branches.size() > 1), 0, par_shots,
-            apply_additional_ops_func, par_shots);
       }
 
       // check if there are remaining ops
       num_active_states = 0;
       for (int_t i = 0; i < branches.size(); i++) {
-        if (branches[i]->op_iterator() != measure_seq)
+        if (branches[i]->op_iterator() != measure_seq ||
+            branches[i]->additional_ops().size() > 0)
           num_active_states++;
       }
     }
