@@ -241,6 +241,10 @@ public:
     ops.push_back(Operations::make_mark(qubits, params));
   }
 
+  void barrier(const reg_t &qubits) {
+    ops.push_back(Operations::make_barrier(qubits));
+  }
+
   void measure(const reg_t &qubits, const reg_t &memory,
                const reg_t &registers) {
     ops.push_back(Operations::make_measure(qubits, memory, registers));

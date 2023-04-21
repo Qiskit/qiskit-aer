@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    :class:`~.AerCircuit` is created from a circuit by iterating its operations
+    while skipping barrier instructions. However, skipping barrier instructions
+    make wrong positionings of parameter bindings. This fix adds
+    :meth:`~.AerCircuit.barrier` and keeps parametr bindings correct.
