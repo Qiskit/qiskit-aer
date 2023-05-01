@@ -1,4 +1,4 @@
-find_package(PythonLibs REQUIRED)
+find_package(PythonLibs)
 
 message(STATUS ${PYTHON_INCLUDE_DIRS})
 message(STATUS "PYTHON EXECUTABLE: ${PYTHON_EXECUTABLE}")
