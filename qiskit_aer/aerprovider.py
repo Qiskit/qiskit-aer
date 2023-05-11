@@ -49,8 +49,7 @@ class AerProvider(Provider):
                         if device != "CPU":
                             new_name = f"{name}_{device}".lower()
                             device_name = device
-                            backends.append(
-                                (new_name, AerSimulator, method, device_name))
+                            backends.append((new_name, AerSimulator, method, device_name))
 
             # Add legacy backend names
             backends += [
