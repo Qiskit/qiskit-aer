@@ -15,14 +15,10 @@ from qiskit import QuantumRegister
 from qiskit.quantum_info import Operator, Statevector
 from qiskit.quantum_info.operators.predicates import matrix_equal
 
-from qiskit_aer.pulse.system_models.duffing_model_generators import duffing_system_model
-from qiskit.pulse import Schedule, Play, Acquire, Waveform, DriveChannel, AcquireChannel, MemorySlot
-
 from qiskit_aer import AerSimulator
 from qiskit_aer import QasmSimulator
 from qiskit_aer import StatevectorSimulator
 from qiskit_aer import UnitarySimulator
-from qiskit_aer import PulseSimulator
 
 # Backwards compatibility for Terra <= 0.13
 if not hasattr(QuantumCircuit, "i"):
@@ -53,7 +49,8 @@ def assertAlmostEqual(first, second, places=None, msg=None, delta=None):
         if diff <= delta:
             return
 
-        standardMsg = "%s != %s within %s delta (%s difference)" % (first, second, delta, diff)
+        standardMsg = "%s != %s within %s delta (%s difference)" % (
+            first, second, delta, diff)
     else:
         if places is None:
             places = 7
@@ -61,7 +58,8 @@ def assertAlmostEqual(first, second, places=None, msg=None, delta=None):
         if round(diff, places) == 0:
             return
 
-        standardMsg = "%s != %s within %r places (%s difference)" % (first, second, places, diff)
+        standardMsg = "%s != %s within %r places (%s difference)" % (
+            first, second, places, diff)
     raise Exception(standardMsg)
 
 
@@ -322,21 +320,29 @@ def cx_gate_unitary_deterministic():
     """CX-gate circuits reference unitaries."""
     targets = []
     # CX01, |00> state
-    targets.append(np.array([[1, 0, 0, 0], [0, 0, 0, 1], [0, 0, 1, 0], [0, 1, 0, 0]]))
+    targets.append(
+        np.array([[1, 0, 0, 0], [0, 0, 0, 1], [0, 0, 1, 0], [0, 1, 0, 0]]))
     # CX10, |00> state
-    targets.append(np.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 0, 1], [0, 0, 1, 0]]))
+    targets.append(
+        np.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 0, 1], [0, 0, 1, 0]]))
     # CX01.(X^I), |10> state
-    targets.append(np.array([[0, 0, 1, 0], [0, 1, 0, 0], [1, 0, 0, 0], [0, 0, 0, 1]]))
+    targets.append(
+        np.array([[0, 0, 1, 0], [0, 1, 0, 0], [1, 0, 0, 0], [0, 0, 0, 1]]))
     # CX10.(I^X), |01> state
-    targets.append(np.array([[0, 1, 0, 0], [1, 0, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]))
+    targets.append(
+        np.array([[0, 1, 0, 0], [1, 0, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]))
     # CX01.(I^X), |11> state
-    targets.append(np.array([[0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1], [1, 0, 0, 0]]))
+    targets.append(
+        np.array([[0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1], [1, 0, 0, 0]]))
     # CX10.(X^I), |11> state
-    targets.append(np.array([[0, 0, 1, 0], [0, 0, 0, 1], [0, 1, 0, 0], [1, 0, 0, 0]]))
+    targets.append(
+        np.array([[0, 0, 1, 0], [0, 0, 0, 1], [0, 1, 0, 0], [1, 0, 0, 0]]))
     # CX01.(X^X), |01> state
-    targets.append(np.array([[0, 0, 0, 1], [1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0]]))
+    targets.append(
+        np.array([[0, 0, 0, 1], [1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0]]))
     # CX10.(X^X), |10> state
-    targets.append(np.array([[0, 0, 0, 1], [0, 0, 1, 0], [1, 0, 0, 0], [0, 1, 0, 0]]))
+    targets.append(
+        np.array([[0, 0, 0, 1], [0, 0, 1, 0], [1, 0, 0, 0], [0, 1, 0, 0]]))
     return targets
 
 
@@ -351,7 +357,8 @@ def compare_statevector(result, circuits, targets, ignore_phase=False, atol=1e-8
         )
         if equiv:
             return
-        msg = "Circuit ({}/{}): {} != {}".format(pos + 1, len(circuits), output.data, target.data)
+        msg = "Circuit ({}/{}): {} != {}".format(pos + 1,
+                                                 len(circuits), output.data, target.data)
         raise Exception(msg)
 
 
@@ -366,48 +373,28 @@ def compare_unitary(result, circuits, targets, ignore_phase=False, atol=1e-8, rt
         )
         if equiv:
             return
-        msg = "Circuit ({}/{}): {} != {}".format(pos + 1, len(circuits), output.data, target.data)
+        msg = "Circuit ({}/{}): {} != {}".format(pos + 1,
+                                                 len(circuits), output.data, target.data)
         raise Exception(msg)
-
-
-def model_and_pi_schedule():
-    """Return a simple model and schedule for pulse simulation"""
-
-    # construct model
-    model = duffing_system_model(
-        dim_oscillators=2,
-        oscillator_freqs=[5.0],
-        anharm_freqs=[0],
-        drive_strengths=[0.01],
-        coupling_dict={},
-        dt=1.0,
-    )
-
-    # note: parameters set so that area under curve is 1/4
-    sample_pulse = Waveform(np.ones(50))
-
-    # construct schedule
-    schedule = Schedule(name="test_sched")
-    schedule |= Play(sample_pulse, DriveChannel(0))
-    schedule += Acquire(10, AcquireChannel(0), MemorySlot(0)) << schedule.duration
-
-    return model, schedule
 
 
 if __name__ == "__main__":
     # Run Aer simulator
     shots = 4000
     circuits = grovers_circuit(final_measure=True, allow_sampling=True)
-    targets = [{"0x0": 5 * shots / 8, "0x1": shots / 8, "0x2": shots / 8, "0x3": shots / 8}]
+    targets = [{"0x0": 5 * shots / 8, "0x1": shots /
+                8, "0x2": shots / 8, "0x3": shots / 8}]
     simulator = AerSimulator()
-    result = simulator.run(transpile(circuits, simulator), shots=shots).result()
+    result = simulator.run(
+        transpile(circuits, simulator), shots=shots).result()
     assert result.status == "COMPLETED"
     assert result.success is True
     compare_counts(result, circuits, targets, delta=0.05 * shots)
 
     # Run qasm simulator
     simulator = QasmSimulator()
-    result = simulator.run(transpile(circuits, simulator), shots=shots).result()
+    result = simulator.run(
+        transpile(circuits, simulator), shots=shots).result()
     assert result.status == "COMPLETED"
     assert result.success is True
     compare_counts(result, circuits, targets, delta=0.05 * shots)
@@ -429,19 +416,3 @@ if __name__ == "__main__":
     assert result.status == "COMPLETED"
     assert result.success is True
     compare_unitary(result, circuits, targets)
-
-    # Run pulse simulator
-    system_model, schedule = model_and_pi_schedule()
-    backend_sim = PulseSimulator()
-    qobj = assemble(
-        [schedule],
-        backend=backend_sim,
-        qubit_lo_freq=[5.0],
-        meas_level=1,
-        meas_return="avg",
-        shots=1,
-    )
-    results = backend_sim.run(qobj, system_model=system_model).result()
-    state = results.get_statevector(0)
-    assertAlmostEqual(state[0], 0, delta=10**-3)
-    assertAlmostEqual(state[1], -1j, delta=10**-3)

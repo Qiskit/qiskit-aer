@@ -32,7 +32,6 @@ Simulator Backends
     :toctree: ../stubs/
 
     AerSimulator
-    PulseSimulator
 
 Legacy Simulator Backends
 =========================
