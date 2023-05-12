@@ -29,7 +29,7 @@ from qiskit.circuit.controlflow import (
     BreakLoopOp,
     ContinueLoopOp,
     SwitchCaseOp,
-    CASE_DEFAULT
+    CASE_DEFAULT,
 )
 from qiskit.compiler import transpile
 from qiskit.qobj import QobjExperimentHeader
