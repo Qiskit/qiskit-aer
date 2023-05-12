@@ -24,9 +24,7 @@ from qiskit.circuit.controlflow import *
 from qiskit_aer.library.default_qubits import default_qubits
 from qiskit_aer.library.control_flow_instructions import (
     AerMark,
-    AerJump,
-    SwitchCaseOp,
-    CASE_DEFAULT,
+    AerJump
 )
 
 
