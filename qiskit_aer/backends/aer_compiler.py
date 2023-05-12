@@ -664,7 +664,7 @@ def _assemble_op(aer_circ, inst, qubit_indices, clbit_indices, is_conditional, c
     elif name == "superop":
         aer_circ.superop(qubits, params[0], conditional_reg)
     elif name == "barrier":
-        pass
+        aer_circ.barrier(qubits)
     elif name == "jump":
         aer_circ.jump(qubits, params, conditional_reg)
     elif name == "mark":

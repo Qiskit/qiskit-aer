@@ -404,6 +404,28 @@ class TestParameterizedQobj(common.QiskitAerTestCase):
         with self.assertRaises(AerError):
             res = backend.run(circuit, shots=shots, parameter_binds=parameter_binds).result()
 
+    def test_parameters_with_barrier(self):
+        """Test parameterized circuit path with barrier"""
+        backend = AerSimulator()
+        circuit = QuantumCircuit(3)
+        theta = Parameter("theta")
+        phi = Parameter("phi")
+        circuit.rx(theta, 0)
+        circuit.rx(theta, 1)
+        circuit.rx(theta, 2)
+        circuit.barrier()
+        circuit.rx(phi, 0)
+        circuit.rx(phi, 1)
+        circuit.rx(phi, 2)
+        circuit.barrier()
+        circuit.measure_all()
+
+        parameter_binds = [{theta: [pi / 2], phi: [pi / 2]}]
+        res = backend.run([circuit], shots=1024, parameter_binds=parameter_binds).result()
+
+        self.assertSuccess(res)
+        self.assertEqual(res.get_counts(), {"111": 1024})
+
 
 if __name__ == "__main__":
     unittest.main()
