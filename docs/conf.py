@@ -74,7 +74,8 @@ extensions = [
     'reno.sphinxext',
     'matplotlib.sphinxext.plot_directive',
     'sphinx.ext.intersphinx',
-    'nbsphinx'
+    'nbsphinx',
+    'qiskit_sphinx_theme'
 ]
 
 # -----------------------------------------------------------------------------
