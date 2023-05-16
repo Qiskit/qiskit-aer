@@ -19,7 +19,7 @@ import logging
 from test.terra.backends.simulator_test_case import SimulatorTestCase, supported_methods
 from qiskit_aer import AerSimulator
 from qiskit import QuantumCircuit, transpile
-from qiskit.circuit import Parameter, Qubit, QuantumRegister, ClassicalRegister
+from qiskit.circuit import Parameter, Qubit, Clbit, QuantumRegister, ClassicalRegister
 from qiskit.circuit.controlflow import *
 from qiskit_aer.library.default_qubits import default_qubits
 from qiskit_aer.library.control_flow_instructions import AerMark, AerJump
@@ -630,3 +630,236 @@ class TestControlFlow(SimulatorTestCase):
         transpiled = transpile(qc, backend)
         result = backend.run(transpiled, method=method, shots=100).result()
         self.assertEqual(result.get_counts(), {"1": 100})
+
+    @data("statevector", "density_matrix", "matrix_product_state")
+    def test_switch_clbit(self, method):
+        """Test that a switch statement can be constructed with a bit as a condition."""
+
+        backend = self.backend(method=method)
+
+        qubit = Qubit()
+        clbit = Clbit()
+        case0 = QuantumCircuit([qubit, clbit])
+        case0.x(0)
+        case1 = QuantumCircuit([qubit, clbit])
+        case1.h(0)
+
+        op = SwitchCaseOp(clbit, [(False, case0), (True, case1)])
+
+        qc0 = QuantumCircuit([qubit, clbit])
+        qc0.measure(qubit, clbit)
+        qc0.append(op, [qubit], [clbit])
+        qc0.measure_all()
+
+        qc0_expected = QuantumCircuit([qubit, clbit])
+        qc0_expected.measure(qubit, clbit)
+        qc0_expected.append(case0, [qubit], [clbit])
+        qc0_expected.measure_all()
+        qc0_expected = transpile(qc0_expected, backend)
+
+        ret0 = backend.run(qc0, shots=10000, seed_simulator=1).result()
+        ret0_expected = backend.run(qc0_expected, shots=10000, seed_simulator=1).result()
+        self.assertSuccess(ret0)
+        self.assertEqual(ret0.get_counts(), ret0_expected.get_counts())
+
+        qc1 = QuantumCircuit([qubit, clbit])
+        qc1.x(0)
+        qc1.measure(qubit, clbit)
+        qc1.append(op, [qubit], [clbit])
+        qc1.measure_all()
+
+        qc1_expected = QuantumCircuit([qubit, clbit])
+        qc1_expected.x(0)
+        qc1_expected.measure(qubit, clbit)
+        qc1_expected.append(case1, [qubit], [clbit])
+        qc1_expected.measure_all()
+        qc1_expected = transpile(qc1_expected, backend)
+
+        ret1 = backend.run(qc1, shots=10000, seed_simulator=1).result()
+        ret1_expected = backend.run(qc1_expected, shots=10000, seed_simulator=1).result()
+        self.assertSuccess(ret1)
+        self.assertEqual(ret1.get_counts(), ret1_expected.get_counts())
+
+    @data("statevector", "density_matrix", "matrix_product_state")
+    def test_switch_register(self, method):
+        """Test that a switch statement can be constructed with a register as a condition."""
+
+        backend = self.backend(method=method, seed_simulator=1)
+
+        qubit0 = Qubit()
+        qubit1 = Qubit()
+        qubit2 = Qubit()
+        creg = ClassicalRegister(2)
+        case1 = QuantumCircuit([qubit0, qubit1, qubit2], creg)
+        case1.x(0)
+        case2 = QuantumCircuit([qubit0, qubit1, qubit2], creg)
+        case2.x(1)
+        case3 = QuantumCircuit([qubit0, qubit1, qubit2], creg)
+        case3.x(2)
+
+        op = SwitchCaseOp(creg, [(0, case1), (1, case2), (2, case3)])
+
+        qc0 = QuantumCircuit([qubit0, qubit1, qubit2], creg)
+        qc0.measure(0, creg[0])
+        qc0.append(op, [qubit0, qubit1, qubit2], creg)
+        qc0.measure_all()
+
+        ret0 = backend.run(qc0, shots=100).result()
+        self.assertSuccess(ret0)
+        self.assertEqual(ret0.get_counts(), {"001 00": 100})
+
+        qc1 = QuantumCircuit([qubit0, qubit1, qubit2], creg)
+        qc1.x(0)
+        qc1.measure(0, creg[0])
+        qc1.append(op, [qubit0, qubit1, qubit2], creg)
+        qc1.measure_all()
+
+        ret1 = backend.run(qc1, shots=100).result()
+        self.assertSuccess(ret1)
+        self.assertEqual(ret1.get_counts(), {"011 01": 100})
+
+        qc2 = QuantumCircuit([qubit0, qubit1, qubit2], creg)
+        qc2.x(1)
+        qc2.measure(0, creg[0])
+        qc2.measure(1, creg[1])
+        qc2.append(op, [qubit0, qubit1, qubit2], creg)
+        qc2.measure_all()
+
+        ret2 = backend.run(qc2, shots=100).result()
+        self.assertSuccess(ret2)
+        self.assertEqual(ret2.get_counts(), {"110 10": 100})
+
+        qc3 = QuantumCircuit([qubit0, qubit1, qubit2], creg)
+        qc3.x(0)
+        qc3.x(1)
+        qc3.measure(0, creg[0])
+        qc3.measure(1, creg[1])
+        qc3.append(op, [qubit0, qubit1, qubit2], creg)
+        qc3.measure_all()
+
+        ret3 = backend.run(qc3, shots=100).result()
+        self.assertSuccess(ret3)
+        self.assertEqual(ret3.get_counts(), {"011 11": 100})
+
+    @data("statevector", "density_matrix", "matrix_product_state")
+    def test_switch_with_default(self, method):
+        """Test that a switch statement can be constructed with a default case at the end."""
+
+        backend = self.backend(method=method, seed_simulator=1)
+
+        qubit0 = Qubit()
+        qubit1 = Qubit()
+        qubit2 = Qubit()
+        creg = ClassicalRegister(2)
+        case1 = QuantumCircuit([qubit0, qubit1, qubit2], creg)
+        case1.x(0)
+        case2 = QuantumCircuit([qubit0, qubit1, qubit2], creg)
+        case2.x(1)
+        case3 = QuantumCircuit([qubit0, qubit1, qubit2], creg)
+        case3.x(2)
+
+        op = SwitchCaseOp(creg, [(0, case1), (1, case2), (CASE_DEFAULT, case3)])
+
+        qc0 = QuantumCircuit([qubit0, qubit1, qubit2], creg)
+        qc0.measure(0, creg[0])
+        qc0.append(op, [qubit0, qubit1, qubit2], creg)
+        qc0.measure_all()
+
+        ret0 = backend.run(qc0, shots=100).result()
+        self.assertSuccess(ret0)
+        self.assertEqual(ret0.get_counts(), {"001 00": 100})
+
+        qc1 = QuantumCircuit([qubit0, qubit1, qubit2], creg)
+        qc1.x(0)
+        qc1.measure(0, creg[0])
+        qc1.append(op, [qubit0, qubit1, qubit2], creg)
+        qc1.measure_all()
+
+        ret1 = backend.run(qc1, shots=100).result()
+        self.assertSuccess(ret1)
+        self.assertEqual(ret1.get_counts(), {"011 01": 100})
+
+        qc2 = QuantumCircuit([qubit0, qubit1, qubit2], creg)
+        qc2.x(1)
+        qc2.measure(0, creg[0])
+        qc2.measure(1, creg[1])
+        qc2.append(op, [qubit0, qubit1, qubit2], creg)
+        qc2.measure_all()
+
+        ret2 = backend.run(qc2, shots=100).result()
+        self.assertSuccess(ret2)
+        self.assertEqual(ret2.get_counts(), {"110 10": 100})
+
+        qc3 = QuantumCircuit([qubit0, qubit1, qubit2], creg)
+        qc3.x(0)
+        qc3.x(1)
+        qc3.measure(0, creg[0])
+        qc3.measure(1, creg[1])
+        qc3.append(op, [qubit0, qubit1, qubit2], creg)
+        qc3.measure_all()
+
+        ret3 = backend.run(qc3, shots=100).result()
+        self.assertSuccess(ret3)
+        self.assertEqual(ret3.get_counts(), {"111 11": 100})
+
+    @data("statevector", "density_matrix", "matrix_product_state")
+    def test_switch_multiple_cases_to_same_block(self, method):
+        """Test that it is possible to add multiple cases that apply to the same block, if they are
+        given as a compound value.  This is an allowed special case of block fall-through."""
+
+        backend = self.backend(method=method, seed_simulator=1)
+
+        qubit0 = Qubit()
+        qubit1 = Qubit()
+        qubit2 = Qubit()
+        creg = ClassicalRegister(2)
+        case1 = QuantumCircuit([qubit0, qubit1, qubit2], creg)
+        case1.x(0)
+        case2 = QuantumCircuit([qubit0, qubit1, qubit2], creg)
+        case2.x(1)
+
+        creg = ClassicalRegister(2)
+
+        op = SwitchCaseOp(creg, [(0, case1), ((1, 2), case2)])
+
+        qc0 = QuantumCircuit([qubit0, qubit1, qubit2], creg)
+        qc0.measure(0, creg[0])
+        qc0.append(op, [qubit0, qubit1, qubit2], creg)
+        qc0.measure_all()
+
+        ret0 = backend.run(qc0, shots=100).result()
+        self.assertSuccess(ret0)
+        self.assertEqual(ret0.get_counts(), {"001 00": 100})
+
+        qc1 = QuantumCircuit([qubit0, qubit1, qubit2], creg)
+        qc1.x(0)
+        qc1.measure(0, creg[0])
+        qc1.append(op, [qubit0, qubit1, qubit2], creg)
+        qc1.measure_all()
+
+        ret1 = backend.run(qc1, shots=100).result()
+        self.assertSuccess(ret1)
+        self.assertEqual(ret1.get_counts(), {"011 01": 100})
+
+        qc2 = QuantumCircuit([qubit0, qubit1, qubit2], creg)
+        qc2.x(1)
+        qc2.measure(0, creg[0])
+        qc2.measure(1, creg[1])
+        qc2.append(op, [qubit0, qubit1, qubit2], creg)
+        qc2.measure_all()
+
+        ret2 = backend.run(qc2, shots=100).result()
+        self.assertSuccess(ret2)
+        self.assertEqual(ret2.get_counts(), {"000 10": 100})
+
+        qc3 = QuantumCircuit([qubit0, qubit1, qubit2], creg)
+        qc3.x(0)
+        qc3.x(1)
+        qc3.measure(0, creg[0])
+        qc3.measure(1, creg[1])
+        qc3.append(op, [qubit0, qubit1, qubit2], creg)
+        qc3.measure_all()
+
+        ret3 = backend.run(qc3, shots=100).result()
+        self.assertSuccess(ret3)
+        self.assertEqual(ret3.get_counts(), {"011 11": 100})
