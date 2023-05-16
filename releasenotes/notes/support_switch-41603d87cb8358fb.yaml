@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    Add support of :class:`qiskit.circuit.controlflow.SwitchCaseOp` that was introduced
+    in qiskit-terra 0.24.0. The instruction is converted to multiple instructions of
+    :class:`~.AerMark` and :class:`~.AerJump` with `c_if` conditions.
