@@ -409,7 +409,7 @@ def _validate_option(k, v):
     if expected_type in (int, float, bool, str):
         try:
             ret = expected_type(v)
-            if v.__class__ not in BACKEND_RUN_ARG_TYPES[k]:
+            if not isinstance(v, BACKEND_RUN_ARG_TYPES[k]):
                 warn(
                     f'A type of an option "{k}" should be {expected_type.__name__} '
                     "but {v.__class__.__name__} was specified."
