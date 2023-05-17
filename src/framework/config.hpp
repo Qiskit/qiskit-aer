@@ -128,7 +128,7 @@ struct Config {
 
   // system configurations
   std::string library_dir = "";
-  using pos_t = std::pair<uint_t, uint_t>;
+  using pos_t = std::pair<int_t, int_t>;
   using exp_params_t = std::vector<std::pair<pos_t, std::vector<double>>>;
   std::vector<exp_params_t> param_table;
   optional<uint_t> n_qubits;

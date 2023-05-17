@@ -81,28 +81,34 @@ class AerBackend(Backend, ABC):
 
     def _convert_circuit_binds(self, circuit, binds):
         parameterizations = []
+
+        def append_param_values(index, bind_pos, param):
+            if param in binds:
+                parameterizations.append([(index, bind_pos), binds[param]])
+            elif isinstance(param, ParameterExpression):
+                # If parameter expression has no unbound parameters
+                # it's already bound and should be skipped
+                if not param.parameters:
+                    return
+                if not binds:
+                    raise AerError("The element of parameter_binds is empty.")
+                len_vals = len(next(iter(binds.values())))
+                bind_list = [
+                    {
+                        parameter: binds[parameter][i]
+                        for parameter in param.parameters & binds.keys()
+                    }
+                    for i in range(len_vals)
+                ]
+                bound_values = [float(param.bind(x)) for x in bind_list]
+                parameterizations.append([(index, bind_pos), bound_values])
+
+        append_param_values(-1, -1, circuit.global_phase)
+
         for index, instruction in enumerate(circuit.data):
             if instruction.operation.is_parameterized():
                 for bind_pos, param in enumerate(instruction.operation.params):
-                    if param in binds:
-                        parameterizations.append([(index, bind_pos), binds[param]])
-                    elif isinstance(param, ParameterExpression):
-                        # If parameter expression has no unbound parameters
-                        # it's already bound and should be skipped
-                        if not param.parameters:
-                            continue
-                        if not binds:
-                            raise AerError("The element of parameter_binds is empty.")
-                        len_vals = len(next(iter(binds.values())))
-                        bind_list = [
-                            {
-                                parameter: binds[parameter][i]
-                                for parameter in param.parameters & binds.keys()
-                            }
-                            for i in range(len_vals)
-                        ]
-                        bound_values = [float(param.bind(x)) for x in bind_list]
-                        parameterizations.append([(index, bind_pos), bound_values])
+                    append_param_values(index, bind_pos, param)
         return parameterizations
 
     def _convert_binds(self, circuits, parameter_binds):
