@@ -79,7 +79,8 @@ extensions = [
     'matplotlib.sphinxext.plot_directive',
     'sphinx.ext.intersphinx',
     'nbsphinx',
-    "sphinx_design"
+    "sphinx_design",
+    'qiskit_sphinx_theme'
 ]
 
 # -----------------------------------------------------------------------------
