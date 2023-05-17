@@ -13,18 +13,31 @@
 Compier to convert Qiskit control-flow to Aer backend.
 """
 
+import collections
 import itertools
 from copy import copy
 from typing import List
+from warnings import warn
+from concurrent.futures import Executor
+import numpy as np
 
 from qiskit.circuit import QuantumCircuit, Clbit, ParameterExpression
 from qiskit.extensions import Initialize
 from qiskit.providers.options import Options
 from qiskit.pulse import Schedule, ScheduleBlock
-from qiskit.circuit.controlflow import WhileLoopOp, ForLoopOp, IfElseOp, BreakLoopOp, ContinueLoopOp
+from qiskit.circuit.controlflow import (
+    WhileLoopOp,
+    ForLoopOp,
+    IfElseOp,
+    BreakLoopOp,
+    ContinueLoopOp,
+    SwitchCaseOp,
+    CASE_DEFAULT,
+)
 from qiskit.compiler import transpile
 from qiskit.qobj import QobjExperimentHeader
 from qiskit_aer.aererror import AerError
+from qiskit_aer.noise import NoiseModel
 
 # pylint: disable=import-error, no-name-in-module
 from qiskit_aer.backends.controller_wrappers import AerCircuit, AerConfig
@@ -113,7 +126,14 @@ class AerCompiler:
         if not isinstance(circuit, QuantumCircuit):
             return False
 
-        controlflow_types = (WhileLoopOp, ForLoopOp, IfElseOp, BreakLoopOp, ContinueLoopOp)
+        controlflow_types = (
+            WhileLoopOp,
+            ForLoopOp,
+            IfElseOp,
+            BreakLoopOp,
+            ContinueLoopOp,
+            SwitchCaseOp,
+        )
 
         # Check via optypes
         if isinstance(optype, set):
@@ -157,6 +177,10 @@ class AerCompiler:
             elif isinstance(instruction.operation, IfElseOp):
                 ret.barrier()
                 self._inline_if_else_op(instruction, continue_label, break_label, ret, bit_map)
+                ret.barrier()
+            elif isinstance(instruction.operation, SwitchCaseOp):
+                ret.barrier()
+                self._inline_switch_case_op(instruction, continue_label, break_label, ret, bit_map)
                 ret.barrier()
             elif isinstance(instruction.operation, BreakLoopOp):
                 ret._append(
@@ -328,12 +352,171 @@ class AerCompiler:
 
         parent.append(AerMark(if_end_label, len(qargs), len(mark_cargs)), qargs, mark_cargs)
 
+    def _inline_switch_case_op(self, instruction, continue_label, break_label, parent, bit_map):
+        """inline switch cases with jump and mark instructions"""
+        cases = instruction.operation.cases_specifier()
+
+        self._last_flow_id += 1
+        switch_id = self._last_flow_id
+        switch_name = f"switch_{switch_id}"
+
+        qargs = [bit_map[q] for q in instruction.qubits]
+        cargs = [bit_map[c] for c in instruction.clbits]
+        mark_cargs = (
+            set(cargs + [bit_map[instruction.operation.target]])
+            if isinstance(instruction.operation.target, Clbit)
+            else set(cargs + [bit_map[c] for c in instruction.operation.target])
+        ) - set(instruction.clbits)
+
+        switch_end_label = f"{switch_name}_end"
+        case_default_label = None
+        CaseData = collections.namedtuple("CaseData", ["label", "args_list", "bit_map", "body"])
+        case_data_list = []
+        for i, case in enumerate(cases):
+            if case_default_label is not None:
+                raise AerError("cases after the default are unreachable")
+
+            case_data = CaseData(
+                label=f"{switch_name}_{i}",
+                args_list=[
+                    self._convert_c_if_args((instruction.operation.target, switch_val), bit_map)
+                    if switch_val != CASE_DEFAULT
+                    else []
+                    for switch_val in case[0]
+                ],
+                bit_map={
+                    inner: bit_map[outer]
+                    for inner, outer in itertools.chain(
+                        zip(case[1].qubits, instruction.qubits),
+                        zip(case[1].clbits, instruction.clbits),
+                    )
+                },
+                body=case[1],
+            )
+            case_data_list.append(case_data)
+            if CASE_DEFAULT in case[0]:
+                case_default_label = case_data.label
+
+        if case_default_label is None:
+            case_default_label = switch_end_label
+
+        for case_data in case_data_list:
+            for case_args in case_data.args_list:
+                if len(case_args) > 0:
+                    parent.append(
+                        AerJump(case_data.label, len(qargs), len(mark_cargs)).c_if(*case_args),
+                        qargs,
+                        mark_cargs,
+                    )
+
+        parent.append(AerJump(case_default_label, len(qargs), len(mark_cargs)), qargs, mark_cargs)
+
+        for case_data in case_data_list:
+            parent.append(AerMark(case_data.label, len(qargs), len(mark_cargs)), qargs, mark_cargs)
+            parent.append(
+                self._inline_circuit(
+                    case_data.body, continue_label, break_label, case_data.bit_map
+                ),
+                qargs,
+                cargs,
+            )
+            parent.append(AerJump(switch_end_label, len(qargs), len(mark_cargs)), qargs, mark_cargs)
+
+        parent.append(AerMark(switch_end_label, len(qargs), len(mark_cargs)), qargs, mark_cargs)
+
 
 def compile_circuit(circuits, basis_gates=None, optypes=None):
     """
     compile a circuit that have control-flow instructions
     """
     return AerCompiler().compile(circuits, basis_gates, optypes)
+
+
+BACKEND_RUN_ARG_TYPES = {
+    "shots": (int, np.integer),
+    "method": (str),
+    "device": (str),
+    "precision": (str),
+    "max_job_size": (int, np.integer),
+    "max_shot_size": (int, np.integer),
+    "enable_truncation": (bool, np.bool_),
+    "executor": Executor,
+    "zero_threshold": (float, np.floating),
+    "validation_threshold": (int, np.integer),
+    "max_parallel_threads": (int, np.integer),
+    "max_parallel_experiments": (int, np.integer),
+    "max_parallel_shots": (int, np.integer),
+    "max_memory_mb": (int, np.integer),
+    "fusion_enable": (bool, np.bool_),
+    "fusion_verbose": (bool, np.bool_),
+    "fusion_max_qubit": (int, np.integer),
+    "fusion_threshold": (int, np.integer),
+    "accept_distributed_results": (bool, np.bool_),
+    "memory": (bool, np.bool_),
+    "noise_model": (NoiseModel),
+    "seed_simulator": (int, np.integer),
+    "cuStateVec_enable": (int, np.integer),
+    "blocking_qubits": (int, np.integer),
+    "blocking_enable": (bool, np.bool_),
+    "chunk_swap_buffer_qubits": (int, np.integer),
+    "batched_shots_gpu": (bool, np.bool_),
+    "batched_shots_gpu_max_qubits": (int, np.integer),
+    "num_threads_per_device": (int, np.integer),
+    "statevector_parallel_threshold": (int, np.integer),
+    "statevector_sample_measure_opt": (int, np.integer),
+    "stabilizer_max_snapshot_probabilities": (int, np.integer),
+    "extended_stabilizer_sampling_method": (str),
+    "extended_stabilizer_metropolis_mixing_time": (int, np.integer),
+    "extended_stabilizer_approximation_error": (float, np.floating),
+    "extended_stabilizer_norm_estimation_samples": (int, np.integer),
+    "extended_stabilizer_norm_estimation_repetitions": (int, np.integer),
+    "extended_stabilizer_parallel_threshold": (int, np.integer),
+    "extended_stabilizer_probabilities_snapshot_samples": (int, np.integer),
+    "matrix_product_state_truncation_threshold": (float, np.floating),
+    "matrix_product_state_max_bond_dimension": (int, np.integer),
+    "mps_sample_measure_algorithm": (str),
+    "mps_log_data": (bool, np.bool_),
+    "mps_swap_direction": (str),
+    "chop_threshold": (float, np.floating),
+    "mps_parallel_threshold": (int, np.integer),
+    "mps_omp_threads": (int, np.integer),
+    "tensor_network_num_sampling_qubits": (int, np.integer),
+    "use_cuTensorNet_autotuning": (bool, np.bool_),
+    "parameterizations": (list),
+    "fusion_parallelization_threshold": (int, np.integer),
+}
+
+
+def _validate_option(k, v):
+    """validate backend.run arguments"""
+    if v is None:
+        return v
+    if k not in BACKEND_RUN_ARG_TYPES:
+        raise AerError(f"invalid argument: name={k}")
+    if isinstance(v, BACKEND_RUN_ARG_TYPES[k]):
+        return v
+
+    expected_type = BACKEND_RUN_ARG_TYPES[k][0]
+
+    if expected_type in (int, float, bool, str):
+        try:
+            ret = expected_type(v)
+            if not isinstance(v, BACKEND_RUN_ARG_TYPES[k]):
+                warn(
+                    f'A type of an option "{k}" should be {expected_type.__name__} '
+                    "but {v.__class__.__name__} was specified."
+                    "Implicit cast for an argument has been deprecated as of qiskit-aer 0.12.1.",
+                    DeprecationWarning,
+                    stacklevel=5,
+                )
+            return ret
+        except Exception:  # pylint: disable=broad-except
+            pass
+
+    raise TypeError(
+        f"invalid option type: name={k}, "
+        f"type={v.__class__.__name__}, expected={BACKEND_RUN_ARG_TYPES[k][0].__name__}"
+    )
 
 
 def generate_aer_config(
@@ -357,9 +540,11 @@ def generate_aer_config(
     config.n_qubits = num_qubits
     for key, value in backend_options.__dict__.items():
         if hasattr(config, key) and value is not None:
+            value = _validate_option(key, value)
             setattr(config, key, value)
     for key, value in run_options.items():
         if hasattr(config, key) and value is not None:
+            value = _validate_option(key, value)
             setattr(config, key, value)
     return config
 
