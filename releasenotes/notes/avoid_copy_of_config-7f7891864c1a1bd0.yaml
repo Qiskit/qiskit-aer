@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Performance regression due to introduction of ``AER::Config`` is fixed.
+    This class has many fields but is frequently copied in ``AER::Transpile::CircuitOptimization``.
+    Originally ``json_t`` (former class for configuration) was also frequently copied but
+    it does have entries in most cases and then this copy overhead is not a problem.
+    With this fix, ``AER::Transpile::CircuitOptimization`` does not copy ``AER::Config``.

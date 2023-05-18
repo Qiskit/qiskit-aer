@@ -16,6 +16,7 @@ https://github.com/Qiskit/qiskit-aer
     :hidden: 
  
     API Documentation <apidocs/aer>
+    Tutorials <tutorials/index>
     Release Notes <release_notes>
 
 .. Hiding - Indices and tables

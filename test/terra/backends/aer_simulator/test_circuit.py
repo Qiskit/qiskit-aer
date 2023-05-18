@@ -14,6 +14,7 @@ AerSimulator Integration Tests
 """
 from math import sqrt
 from ddt import ddt
+import numpy as np
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
 from qiskit.circuit import CircuitInstruction
 from test.terra.reference import ref_algorithms
@@ -189,3 +190,45 @@ class TestVariousCircuit(SimulatorTestCase):
             self.assertEqual(circuit.metadata["object"], object)
 
         job.result()
+
+    def test_numpy_integer_shots(self):
+        """Test implicit cast of shot option from np.int_ to int."""
+
+        backend = self.backend()
+
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.measure_all()
+        shots = 333
+
+        for np_type in {
+            np.int_,
+            np.uint,
+            np.short,
+            np.ushort,
+            np.intc,
+            np.uintc,
+            np.longlong,
+            np.ulonglong,
+        }:
+            result = backend.run(qc, shots=np_type(shots), method="statevector").result()
+            self.assertSuccess(result)
+            self.assertEqual(sum([result.get_counts()[key] for key in result.get_counts()]), shots)
+
+    def test_floating_shots(self):
+        """Test implicit cast of shot option from float to int."""
+
+        backend = self.backend()
+
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.measure_all()
+
+        for shots in {1e4, "300"}:
+            with self.assertWarns(DeprecationWarning):
+                result = backend.run(qc, shots=shots, method="statevector").result()
+            shots = int(shots)
+            self.assertSuccess(result)
+            self.assertEqual(sum([result.get_counts()[key] for key in result.get_counts()]), shots)

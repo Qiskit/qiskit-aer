@@ -179,7 +179,7 @@ def depolarizing_error(param, num_qubits):
 
     with :math:`0 \le λ \le 4^n / (4^n - 1)`
 
-    where :math:`λ` is the depolarizing error param and :math`n` is the
+    where :math:`λ` is the depolarizing error param and :math:`n` is the
     number of qubits.
 
     * If :math:`λ = 0` this is the identity channel :math:`E(ρ) = ρ`
