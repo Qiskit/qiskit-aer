@@ -435,8 +435,8 @@ class NoiseModel:
                 t1s = [prop.t1 for prop in all_qubit_properties]
                 t2s = [_truncate_t2_value(prop.t1, prop.t2) for prop in all_qubit_properties]
                 delay_pass = RelaxationNoisePass(
-                    t1s=t1s,
-                    t2s=t2s,
+                    t1s=[np.inf if x is None else x for x in t1s],  # replace None with np.inf
+                    t2s=[np.inf if x is None else x for x in t2s],  # replace None with np.inf
                     dt=dt,
                     op_types=Delay,
                     excited_state_populations=excited_state_populations,
