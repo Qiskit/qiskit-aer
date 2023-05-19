@@ -24,6 +24,8 @@ from qiskit.circuit.library import QuantumVolume
 from qiskit.quantum_info.random import random_unitary
 from test.terra.backends.simulator_test_case import SimulatorTestCase, supported_methods
 
+import os
+
 SUPPORTED_METHODS = [
     "automatic",
     "stabilizer",
@@ -263,6 +265,22 @@ class TestMeasure(SimulatorTestCase):
             self.assertDictAlmostEqual(
                 result1.get_counts(circuit), result2.get_counts(circuit), delta=0.1 * shots
             )
+
+            # Test also parallel version
+            os.environ["PRL_PROB_MEAS"] = "1"
+            result2_prl = backend.run(
+                circuit, shots=shots, mps_sample_measure_algorithm="mps_probabilities"
+            ).result()
+            self.assertTrue(getattr(result2_prl, "success", "True"))
+            os.unsetenv("PRL_PROB_MEAS")
+
+            self.assertDictAlmostEqual(
+                result1.get_counts(circuit), result2_prl.get_counts(circuit), delta=0.1 * shots
+            )
+            self.assertDictAlmostEqual(
+                result2.get_counts(circuit), result2_prl.get_counts(circuit), delta=0.1 * shots
+            )
+
 
     def test_mps_measure_with_limited_bond_dimension(self):
         """Test MPS measure with limited bond dimension,
