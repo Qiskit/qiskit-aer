@@ -697,11 +697,20 @@ void Executor<state_t>::run_circuit_shots(
   seed_begin += shot_begin[distributed_rank_];
   cregs.resize(circ.shots);
 
+  int max_matrix_qubits;
+  if (!sample_noise) {
+    Noise::NoiseModel dummy_noise;
+    state_t dummy_state;
+    auto fusion_pass = transpile_fusion(circ.opset(), config);
+    fusion_pass.optimize_circuit(circ, dummy_noise, dummy_state.opset(),
+                                 result);
+    max_matrix_qubits = get_max_matrix_qubits(circ);
+  }
+
   // run each shot
   auto run_circuit_lambda = [this, &par_results, circ, noise, config, par_shots,
                              sample_noise, num_shots, seed_begin, shot_begin,
-                             &cregs, init_rng](int_t i) {
-    Noise::NoiseModel dummy_noise;
+                             &cregs, init_rng, max_matrix_qubits](int_t i) {
     state_t state;
     uint_t i_shot, shot_end;
     i_shot = num_shots * i / par_shots;
@@ -725,16 +734,16 @@ void Executor<state_t>::run_circuit_shots(
       else
         rng.set_seed(seed_begin + i_shot);
 
-      int max_matrix_qubits;
       Circuit circ_opt;
-      if (sample_noise)
+      if (sample_noise) {
+        Noise::NoiseModel dummy_noise;
         circ_opt = noise.sample_noise(circ, rng);
-      else
-        circ_opt = circ;
-      fusion_pass.optimize_circuit(circ_opt, dummy_noise, state.opset(),
-                                   par_results[i]);
-      max_matrix_qubits = get_max_matrix_qubits(circ_opt);
-      state.set_max_matrix_qubits(max_matrix_qubits);
+        fusion_pass.optimize_circuit(circ_opt, dummy_noise, state.opset(),
+                                     par_results[i]);
+        state.set_max_matrix_qubits(get_max_matrix_qubits(circ_opt));
+      } else
+        state.set_max_matrix_qubits(max_matrix_qubits);
+
 #ifdef AER_CUSTATEVEC
       state.enable_cuStateVec(cuStateVec_enable_);
 #endif
@@ -742,8 +751,13 @@ void Executor<state_t>::run_circuit_shots(
       state.initialize_qreg(circ.num_qubits);
       state.initialize_creg(circ.num_memory, circ.num_registers);
 
-      state.apply_ops(circ_opt.ops.cbegin(), circ_opt.ops.cend(),
-                      par_results[i], rng, true);
+      if (sample_noise) {
+        state.apply_ops(circ_opt.ops.cbegin(), circ_opt.ops.cend(),
+                        par_results[i], rng, true);
+      } else {
+        state.apply_ops(circ.ops.cbegin(), circ.ops.cend(), par_results[i], rng,
+                        true);
+      }
       if (distributed_procs_ > 1) {
         // save creg to be gathered
         cregs[shot_begin[distributed_rank_] + i_shot] = state.creg();

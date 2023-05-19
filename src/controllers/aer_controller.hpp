@@ -450,11 +450,6 @@ size_t Controller::get_gpu_memory_mb() {
 //-------------------------------------------------------------------------
 template <typename inputdata_t>
 Result Controller::execute(const inputdata_t &input_qobj) {
-#ifdef AER_MPI
-  MPI_Comm_size(MPI_COMM_WORLD, &num_processes_);
-  MPI_Comm_rank(MPI_COMM_WORLD, &myrank_);
-#endif
-
   // Load QOBJ in a try block so we can catch parsing errors and still return
   // a valid JSON output containing the error message.
   try {
@@ -506,6 +501,10 @@ Result Controller::execute(std::vector<Circuit> &circuits,
   // Start QOBJ timer
   auto timer_start = myclock_t::now();
 
+#ifdef AER_MPI
+  MPI_Comm_size(MPI_COMM_WORLD, &num_processes_);
+  MPI_Comm_rank(MPI_COMM_WORLD, &myrank_);
+#endif
   // Determine simulation method for each circuit
   // and enable required noise sampling methods
   auto methods = simulation_methods(circuits, noise_model);
