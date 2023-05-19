@@ -107,11 +107,12 @@ def basic_device_gate_errors(
         properties (BackendProperties): device backend properties.
         gate_error (bool): Include depolarizing gate errors (Default: True).
         thermal_relaxation (Bool): Include thermal relaxation errors (Default: True).
-                If ``T1`` or ``T2`` value is not supplied via ``target`` (i.e. None) for some qubits,
-                no thermal relaxation errors are added to the qubits even if this flag is True.
-                If ``frequency`` is not defined (i.e. None) for a qubit, no excitation is considered
-                in the thermal relaxation error on the qubit even if non-zero ``temperature``
-                is supplied.
+                If no ``t1`` and ``t2`` values are provided (i.e. None) in ``target`` for a qubit,
+                an identity ``QuantumError` (i.e. effectively no thermal relaxation error)
+                will be added to the qubit even if this flag is set to True.
+                If no ``frequency`` is not defined (i.e. None) in ``target`` for a qubit,
+                no excitation is considered in the thermal relaxation error on the qubit
+                even with non-zero ``temperature``.
         gate_lengths (list): Override device gate times with custom
                              values. If None use gate times from
                              backend properties. (Default: None).
