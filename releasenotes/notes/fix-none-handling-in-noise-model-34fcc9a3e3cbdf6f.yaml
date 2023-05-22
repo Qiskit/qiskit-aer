@@ -1,0 +1,10 @@
+---
+fixes:
+  - |
+    Fixed a bug in :meth:`~.NoiseModel.from_backend` that raised an error when
+    the backend has no T1 and T2 values (i.e. None) for a qubit in its qubit properties.
+    This commit updates :meth:`NoiseModel.from_backend` and :func:`basic_device_gate_errors`
+    so that they add an identity ``QuantumError`` (i.e. effectively no thermal relaxation error)
+    to a qubit with no T1 and T2 values for all gates acting on qubits including the qubit.
+    Fixed `#1779 <https://github.com/Qiskit/qiskit-aer/issues/1779>`__
+    and `#1815 <https://github.com/Qiskit/qiskit-aer/issues/1815>`__.
