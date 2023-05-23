@@ -33,6 +33,7 @@ from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.circuit.library.generalized_gates import PauliGate
 from qiskit.circuit.library.standard_gates import IGate, XGate
 from qiskit.compiler import transpile
+from qiskit.providers import QubitProperties
 from qiskit.providers.fake_provider import (
     FakeBackend,
     FakeAlmaden,
@@ -255,6 +256,25 @@ class TestNoiseModel(QiskitAerTestCase):
         noise_model = NoiseModel.from_backend(backend)
         self.assertEqual([0, 1, 2, 3, 4, 5, 6], noise_model.noise_qubits)
         circ = transpile(circ, backend, optimization_level=0)
+        result = AerSimulator().run(circ, noise_model=noise_model).result()
+        self.assertTrue(result.success)
+
+    def test_noise_model_from_backend_v2_with_non_operational_qubits(self):
+        """Test if possible to create a noise model from backend with non-operational qubits.
+        See issues #1779 and #1815 for the details."""
+        backend = FakeLagosV2()
+        # tweak target to have non-operational qubits
+        faulty_qubits = [0, 1]
+        for qubit in faulty_qubits:
+            backend.target.qubit_properties[qubit] = QubitProperties(t1=None, t2=None, frequency=0)
+
+        noise_model = NoiseModel.from_backend(backend)
+
+        circ = QuantumCircuit(2)
+        circ.h(0)
+        circ.cx(0, 1)
+        circ.measure_all()
+        circ = transpile(circ, backend, scheduling_method="alap")
         result = AerSimulator().run(circ, noise_model=noise_model).result()
         self.assertTrue(result.success)
 
