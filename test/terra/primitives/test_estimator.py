@@ -284,7 +284,6 @@ class TestEstimator(QiskitAerTestCase):
                 seed=15,
             ).result()
         self.assertIsInstance(result, EstimatorResult)
-        print(result.values[0])
         np.testing.assert_allclose(result.values, [-1.313831587508902])
         self.assertIsInstance(result.metadata[0]["variance"], float)
 
