@@ -19,6 +19,7 @@ from __future__ import annotations
 from collections import defaultdict
 from collections.abc import Sequence
 from copy import copy
+from warnings import warn
 
 import numpy as np
 from qiskit.circuit import QuantumCircuit
@@ -151,6 +152,14 @@ class Estimator(BaseEstimator):
         return job
 
     def _compute(self, circuits, observables, parameter_values, run_options):
+        if "shots" in run_options and run_options["shots"] is None:
+            warn(
+                "If `shots` is None and `approximation` is False, "
+                "the number of shots is automatically set to backend options' "
+                f"shots={self._backend.options.shots}.",
+                RuntimeWarning,
+            )
+
         # Key for cache
         key = (tuple(circuits), tuple(observables), self.approximation)
 
