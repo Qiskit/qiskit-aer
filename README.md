@@ -47,7 +47,7 @@ $ python
 
 ```python
 import qiskit
-from qiskit import IBMQ
+from qiskit import IBMQ, transpile
 from qiskit_aer import AerSimulator
 
 # Generate 3-qubit GHZ state
@@ -58,10 +58,11 @@ circ.cx(1, 2)
 circ.measure_all()
 
 # Construct an ideal simulator
-aersim = AerSimulator()
+backend = Aer.get_backend('qasm_simulator')
 
 # Perform an ideal simulation
-result_ideal = qiskit.execute(circ, aersim).result()
+transpiled_circuit = transpile(circ, backend=backend)  
+result_ideal = backend.run(transpiled_circuit).result()
 counts_ideal = result_ideal.get_counts(0)
 print('Counts(ideal):', counts_ideal)
 # Counts(ideal): {'000': 493, '111': 531}
@@ -74,7 +75,8 @@ backend = provider.get_backend('ibmq_athens')
 aersim_backend = AerSimulator.from_backend(backend)
 
 # Perform noisy simulation
-result_noise = qiskit.execute(circ, aersim_backend).result()
+transpiled_circuit = transpile(circ, backend=aersim_backend)  
+result_noise = aersim_backend.run(transpiled_circuit).result()
 counts_noise = result_noise.get_counts(0)
 
 print('Counts(noise):', counts_noise)
