@@ -42,7 +42,7 @@ details.
 
 .. code-block:: python
 
-    from qiskit import QuantumCircuit, execute
+    from qiskit import QuantumCircuit, transpile
     from qiskit import IBMQ, Aer
     from qiskit.visualization import plot_histogram
     from qiskit_aer.noise import NoiseModel
@@ -66,10 +66,12 @@ details.
     circ.measure([0, 1, 2], [0, 1, 2])
 
     # Perform a noise simulation
-    result = execute(circ, Aer.get_backend('qasm_simulator'),
-                     coupling_map=coupling_map,
-                     basis_gates=basis_gates,
-                     noise_model=noise_model).result()
+    backend = Aer.get_backend('qasm_simulator')
+    transpiled_circuit = transpile(circ, backend=backend, 
+                                   coupling_map=coupling_map, 
+                                   basis_gates=basis_gates)                                   
+    result = backend.run(transpiled_circuit, noise_model=noise_model).result()
+
     counts = result.get_counts(0)
     plot_histogram(counts)
 
@@ -88,7 +90,7 @@ documentation for the :class:`NoiseModel` class for additional details.
 
 .. code-block:: python
 
-    from qiskit import QuantumCircuit, execute, Aer
+    from qiskit import QuantumCircuit, transpile, Aer
     from qiskit.visualization import plot_histogram
     import qiskit_aer.noise as noise
 
@@ -116,9 +118,12 @@ documentation for the :class:`NoiseModel` class for additional details.
     circ.measure([0, 1, 2], [0, 1, 2])
 
     # Perform a noise simulation
-    result = execute(circ, Aer.get_backend('qasm_simulator'),
-                     basis_gates=basis_gates,
-                     noise_model=noise_model).result()
+    backend = Aer.get_backend('qasm_simulator')
+    transpiled_circuit = transpile(circ, backend=backend, 
+                                   coupling_map=coupling_map, 
+                                   basis_gates=basis_gates)    
+    result = backend.run(transpiled_circuit, noise_model=noise_model).result()
+    
     counts = result.get_counts(0)
     plot_histogram(counts)
 
