@@ -208,7 +208,6 @@ class AerSimulator(AerBackend):
       qubits which do not affect the simulation outcome from the simulated
       circuits (Default: True).
 
-
     * ``zero_threshold`` (double): Sets the threshold for truncating
       small values to zero in the result data (Default: 1e-10).
 
@@ -288,6 +287,8 @@ class AerSimulator(AerBackend):
       threads per GPU. This parameter is used to optimize Pauli noise
       simulation with multiple-GPUs (Default: 1).
 
+    * ``accept_distributed_results`` (bool)
+
     These backend options only apply when using the ``"statevector"``
     simulation method:
 
@@ -309,7 +310,7 @@ class AerSimulator(AerBackend):
 
     * ``stabilizer_max_snapshot_probabilities`` (int): set the maximum
       qubit number for the
-      `~qiskit_aer.extensions.SnapshotProbabilities`
+      `qiskit_aer.extensions.SnapshotProbabilities`
       instruction (Default: 32).
 
     These backend options only apply when using the ``"extended_stabilizer"``
@@ -406,6 +407,13 @@ class AerSimulator(AerBackend):
       qubits when internal swaps are inserted for a 2-qubit gate.
       Possible values are "mps_swap_right" and "mps_swap_left".
       (Default: "mps_swap_left")
+
+    * ``chop_threshold`` (float): Threshold for truncating snapshots 
+      (Default: 1e-8)
+
+    * ``mps_parallel_threshold`` (int): (Default: 14)
+
+    * ``mps_omp_threads`` (int): (Default: 1) 
 
     These backend options only apply when using the ``tensor_network``
     simulation method:
