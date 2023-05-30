@@ -408,12 +408,12 @@ class AerSimulator(AerBackend):
       Possible values are "mps_swap_right" and "mps_swap_left".
       (Default: "mps_swap_left")
 
-    * ``chop_threshold`` (float): Threshold for truncating snapshots 
+    * ``chop_threshold`` (float): Threshold for truncating snapshots
       (Default: 1e-8)
 
     * ``mps_parallel_threshold`` (int): (Default: 14)
 
-    * ``mps_omp_threads`` (int): (Default: 1) 
+    * ``mps_omp_threads`` (int): (Default: 1)
 
     These backend options only apply when using the ``tensor_network``
     simulation method:
