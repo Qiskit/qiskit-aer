@@ -186,8 +186,8 @@ class AerBackend(Backend, ABC):
                 for key, value in circuits.config.__dict__.items():
                     if key not in run_options and value is not None:
                         run_options[key] = value
-                if "parameter_binds" in run_options:
-                    parameter_binds = run_options.pop("parameter_binds")
+            if "parameter_binds" in run_options:
+                parameter_binds = run_options.pop("parameter_binds")
             return self._run_qobj(circuits, validate, parameter_binds, **run_options)
 
         only_circuits = True

@@ -15,7 +15,7 @@ AerSimulator Integration Tests
 from math import sqrt
 from ddt import ddt
 import numpy as np
-from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
+from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister, assemble
 from qiskit.circuit import CircuitInstruction
 from test.terra.reference import ref_algorithms
 
@@ -172,6 +172,29 @@ class TestVariousCircuit(SimulatorTestCase):
         self.assertEqual(result.status, "PARTIAL COMPLETED")
         self.assertTrue(hasattr(result.results[1].data, "counts"))
         self.assertFalse(hasattr(result.results[0].data, "counts"))
+
+    def test_run_qobj(self):
+        """Test qobj run"""
+
+        qubits = QuantumRegister(3)
+        clbits = ClassicalRegister(3)
+
+        circuit = QuantumCircuit(qubits, clbits)
+        circuit.h(qubits[0])
+        circuit.cx(qubits[0], qubits[1])
+        circuit.cx(qubits[0], qubits[2])
+
+        for q, c in zip(qubits, clbits):
+            circuit.measure(q, c)
+
+        backend = self.backend()
+
+        shots = 1000
+        with self.assertWarns(DeprecationWarning):
+            result = backend.run(assemble(circuit), shots=shots).result()
+
+        self.assertSuccess(result)
+        self.compare_counts(result, [circuit], [{"0x0": 500, "0x7": 500}], delta=0.05 * shots)
 
     def test_numpy_integer_shots(self):
         """Test implicit cast of shot option from np.int_ to int."""
