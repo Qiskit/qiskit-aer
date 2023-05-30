@@ -595,6 +595,7 @@ void lapack_csvd_wrapper(cmatrix_t &A, cmatrix_t &U, rvector_t &S, cmatrix_t &V)
   if (strcmp(getenv("QISKIT_LAPACK_SVD"), "DC") == 0) {
     int iwork[8*min_dim] = {0};
     double rwork[5*min_dim*min_dim+5*min_dim] = {0.0};
+    #ifndef MKL
     lwork = -1;
 
     zgesdd_(
@@ -603,7 +604,9 @@ void lapack_csvd_wrapper(cmatrix_t &A, cmatrix_t &U, rvector_t &S, cmatrix_t &V)
       rwork, iwork, &info);
 
     lwork = (int)work[0].real();
+    #endif
     complex_t work_[lwork] = {0.0};
+
     zgesdd_(
       "A", &m, &n, lapackA, &m, lapackS,
       lapackU, &m, lapackV, &n, work_, &lwork,
@@ -611,6 +614,7 @@ void lapack_csvd_wrapper(cmatrix_t &A, cmatrix_t &U, rvector_t &S, cmatrix_t &V)
   } else {
     // Default execution follows original method
     double rwork[5*min_dim] = {0.0};
+
     zgesvd_(
       "A", "A", &m, &n, lapackA, &m, lapackS,
       lapackU, &m, lapackV, &n, work, &lwork,
