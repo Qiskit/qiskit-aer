@@ -34,8 +34,10 @@ from ..noise.noise_model import NoiseModel, QuantumErrorLocation
 from ..noise.errors.quantum_error import QuantumChannelInstruction
 from .aer_compiler import compile_circuit, assemble_circuits, generate_aer_config
 from .backend_utils import format_save_type, circuit_optypes
+
 # pylint: disable=import-error, no-name-in-module
 from .controller_wrappers import AerConfig
+
 # Logger
 logger = logging.getLogger(__name__)
 

@@ -562,7 +562,7 @@ def assemble_circuit(circuit: QuantumCircuit):
         isinstance(circuit.global_phase, ParameterExpression)
         and len(circuit.global_phase.parameters) > 0
     ):
-        global_phase = .0
+        global_phase = 0.0
     else:
         global_phase = float(circuit.global_phase)
 
