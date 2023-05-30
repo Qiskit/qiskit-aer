@@ -34,7 +34,8 @@ from ..noise.noise_model import NoiseModel, QuantumErrorLocation
 from ..noise.errors.quantum_error import QuantumChannelInstruction
 from .aer_compiler import compile_circuit, assemble_circuits, generate_aer_config
 from .backend_utils import format_save_type, circuit_optypes
-
+# pylint: disable=import-error, no-name-in-module
+from .controller_wrappers import AerConfig
 # Logger
 logger = logging.getLogger(__name__)
 
@@ -103,7 +104,7 @@ class AerBackend(Backend, ABC):
                 bound_values = [float(param.bind(x)) for x in bind_list]
                 parameterizations.append([(index, bind_pos), bound_values])
 
-        append_param_values(-1, -1, circuit.global_phase)
+        append_param_values(AerConfig.GLOBAL_PHASE_POS, -1, circuit.global_phase)
 
         for index, instruction in enumerate(circuit.data):
             if instruction.operation.is_parameterized():

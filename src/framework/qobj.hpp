@@ -149,7 +149,7 @@ Qobj::Qobj(const inputdata_t &input) {
           const auto instr_pos = params.first.first;
           const auto param_pos = params.first.second;
           // Validation
-          if (instr_pos < 0) {
+          if (instr_pos == AER::Config::GLOBAL_PHASE_POS) {
             // negative position is for global phase
             circuit.global_phase_angle = params.second[j];
           } else {

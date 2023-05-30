@@ -128,6 +128,8 @@ struct Config {
 
   // system configurations
   std::string library_dir = "";
+  const static int_t GLOBAL_PHASE_POS =
+      -1; // special param position for global phase
   using pos_t = std::pair<int_t, int_t>;
   using exp_params_t = std::vector<std::pair<pos_t, std::vector<double>>>;
   std::vector<exp_params_t> param_table;
