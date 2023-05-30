@@ -237,4 +237,3 @@ class TestVariousCircuit(SimulatorTestCase):
             shots = int(shots)
             self.assertSuccess(result)
             self.assertEqual(sum([result.get_counts()[key] for key in result.get_counts()]), shots)
-
