@@ -47,7 +47,7 @@ $ python
 
 ```python
 import qiskit
-from qiskit import IBMQ, transpile
+from qiskit import IBMQ, transpile, Aer
 from qiskit_aer import AerSimulator
 
 # Generate 3-qubit GHZ state

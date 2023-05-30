@@ -26,30 +26,30 @@ Building Noise Models
 
 The :class:`NoiseModel` class is used to represent noise model for the
 :class:`~qiskit_aer.QasmSimulator`. It can be used to construct
-custom noise models for simulator, to to automatically generate a basic
-device noise model for an IBMQ backend.
+custom noise models for simulator, to automatically generate a basic
+device noise model for an `provider.fake_provider` backend.
 
 
 Device Noise Models
 -------------------
 
 A simplified approximate :class:`NoiseModel` can be generated automatically
-from the properties of real device backends from the IBMQ provider using the
-:meth:`NoiseModel.from_backend` method. See the method documentation for
-details.
+from the real noise data for an IBM Quantum device using the data stored in 
+`provider.fake_provider` using the :meth:`NoiseModel.from_backend` method. 
+See the method documentation for details.
 
 **Example: Basic device noise model**
 
 .. code-block:: python
 
     from qiskit import QuantumCircuit, transpile
-    from qiskit import IBMQ, Aer
+    from qiskit import Aer
     from qiskit.visualization import plot_histogram
     from qiskit_aer.noise import NoiseModel
+    from qiskit.providers.fake_provider import FakeVigo    
 
     # Build noise model from backend properties
-    provider = IBMQ.load_account()
-    backend = provider.get_backend('ibmq_vigo')
+    backend = FakeVigo()
     noise_model = NoiseModel.from_backend(backend)
 
     # Get coupling map from backend
