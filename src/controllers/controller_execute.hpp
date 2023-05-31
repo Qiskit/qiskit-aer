@@ -65,7 +65,7 @@ Result controller_execute(std::vector<Circuit> &input_circs,
   //    i is the instruction index in the experiment
   //    j is the param index in the instruction
   //    pars = [par0, par1, ...] is a list of different parameterizations
-  using pos_t = std::pair<uint_t, uint_t>;
+  using pos_t = std::pair<int_t, int_t>;
   using exp_params_t = std::vector<std::pair<pos_t, std::vector<double>>>;
   std::vector<exp_params_t> param_table = config.param_table;
 
@@ -101,21 +101,29 @@ Result controller_execute(std::vector<Circuit> &input_circs,
             const auto instr_pos = params.first.first;
             const auto param_pos = params.first.second;
             // Validation
-            if (instr_pos >= num_instr) {
-              throw std::invalid_argument(
-                  R"(Invalid parameterized qobj: instruction position out of range)");
+            if (instr_pos == AER::Config::GLOBAL_PHASE_POS) {
+              // negative position is for global phase
+              circ.global_phase_angle = params.second[j];
+            } else {
+              if (instr_pos >= num_instr) {
+                std::cout << "Invalid parameterization: instruction position "
+                             "out of range: "
+                          << instr_pos << std::endl;
+                throw std::invalid_argument(
+                    R"(Invalid parameterization: instruction position out of range)");
+              }
+              auto &op = param_circ.ops[instr_pos];
+              if (param_pos >= op.params.size()) {
+                throw std::invalid_argument(
+                    R"(Invalid parameterization: instruction param position out of range)");
+              }
+              if (j >= params.second.size()) {
+                throw std::invalid_argument(
+                    R"(Invalid parameterization: parameterization value out of range)");
+              }
+              // Update the param
+              op.params[param_pos] = params.second[j];
             }
-            auto &op = param_circ.ops[instr_pos];
-            if (param_pos >= op.params.size()) {
-              throw std::invalid_argument(
-                  R"(Invalid parameterized qobj: instruction param position out of range)");
-            }
-            if (j >= params.second.size()) {
-              throw std::invalid_argument(
-                  R"(Invalid parameterized qobj: parameterization value out of range)");
-            }
-            // Update the param
-            op.params[param_pos] = params.second[j];
           }
           // Run truncation.
           // TODO: Truncation should be performed and parameters should be

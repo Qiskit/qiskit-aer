@@ -35,6 +35,9 @@ from ..noise.errors.quantum_error import QuantumChannelInstruction
 from .aer_compiler import compile_circuit, assemble_circuits, generate_aer_config
 from .backend_utils import format_save_type, circuit_optypes
 
+# pylint: disable=import-error, no-name-in-module
+from .controller_wrappers import AerConfig
+
 # Logger
 logger = logging.getLogger(__name__)
 
@@ -81,28 +84,34 @@ class AerBackend(Backend, ABC):
 
     def _convert_circuit_binds(self, circuit, binds):
         parameterizations = []
+
+        def append_param_values(index, bind_pos, param):
+            if param in binds:
+                parameterizations.append([(index, bind_pos), binds[param]])
+            elif isinstance(param, ParameterExpression):
+                # If parameter expression has no unbound parameters
+                # it's already bound and should be skipped
+                if not param.parameters:
+                    return
+                if not binds:
+                    raise AerError("The element of parameter_binds is empty.")
+                len_vals = len(next(iter(binds.values())))
+                bind_list = [
+                    {
+                        parameter: binds[parameter][i]
+                        for parameter in param.parameters & binds.keys()
+                    }
+                    for i in range(len_vals)
+                ]
+                bound_values = [float(param.bind(x)) for x in bind_list]
+                parameterizations.append([(index, bind_pos), bound_values])
+
+        append_param_values(AerConfig.GLOBAL_PHASE_POS, -1, circuit.global_phase)
+
         for index, instruction in enumerate(circuit.data):
             if instruction.operation.is_parameterized():
                 for bind_pos, param in enumerate(instruction.operation.params):
-                    if param in binds:
-                        parameterizations.append([(index, bind_pos), binds[param]])
-                    elif isinstance(param, ParameterExpression):
-                        # If parameter expression has no unbound parameters
-                        # it's already bound and should be skipped
-                        if not param.parameters:
-                            continue
-                        if not binds:
-                            raise AerError("The element of parameter_binds is empty.")
-                        len_vals = len(next(iter(binds.values())))
-                        bind_list = [
-                            {
-                                parameter: binds[parameter][i]
-                                for parameter in param.parameters & binds.keys()
-                            }
-                            for i in range(len_vals)
-                        ]
-                        bound_values = [float(param.bind(x)) for x in bind_list]
-                        parameterizations.append([(index, bind_pos), bound_values])
+                    append_param_values(index, bind_pos, param)
         return parameterizations
 
     def _convert_binds(self, circuits, parameter_binds):
@@ -230,6 +239,8 @@ class AerBackend(Backend, ABC):
         circuits, noise_model = self._compile(circuits, **run_options)
         if parameter_binds:
             run_options["parameterizations"] = self._convert_binds(circuits, parameter_binds)
+        elif not all([len(circuit.parameters) == 0 for circuit in circuits]):
+            raise AerError("circuits have parameters but parameter_binds is not specified.")
         config = generate_aer_config(circuits, self.options, **run_options)
 
         # Submit job
