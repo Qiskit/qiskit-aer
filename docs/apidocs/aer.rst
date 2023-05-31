@@ -15,4 +15,3 @@ Qiskit Aer API Reference
     aer_utils
     aer_quantum_info
     circuit
-    parallel
