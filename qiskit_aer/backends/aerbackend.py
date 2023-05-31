@@ -239,6 +239,8 @@ class AerBackend(Backend, ABC):
         circuits, noise_model = self._compile(circuits, **run_options)
         if parameter_binds:
             run_options["parameterizations"] = self._convert_binds(circuits, parameter_binds)
+        elif not all([len(circuit.parameters) == 0 for circuit in circuits]):
+            raise AerError("circuits have parameters but parameter_binds is not specified.")
         config = generate_aer_config(circuits, self.options, **run_options)
 
         # Submit job
