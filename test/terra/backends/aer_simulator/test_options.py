@@ -294,7 +294,7 @@ class TestOptions(SimulatorTestCase):
         "matrix_product_state",
         "extended_stabilizer",
         "unitary",
-        "superop"
+        "superop",
     )
     def test_num_qubits(self, method):
         """Test number of qubits is correctly checked"""
