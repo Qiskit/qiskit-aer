@@ -558,7 +558,13 @@ def assemble_circuit(circuit: QuantumCircuit):
 
     qreg_sizes = []
     creg_sizes = []
-    global_phase = float(circuit.global_phase)
+    if (
+        isinstance(circuit.global_phase, ParameterExpression)
+        and len(circuit.global_phase.parameters) > 0
+    ):
+        global_phase = 0.0
+    else:
+        global_phase = float(circuit.global_phase)
 
     for qreg in circuit.qregs:
         qreg_sizes.append([qreg.name, qreg.size])

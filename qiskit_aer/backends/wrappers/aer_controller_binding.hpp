@@ -235,6 +235,9 @@ void bind_aer_controller(MODULE m) {
 
   // system configurations
   aer_config.def_readwrite("library_dir", &Config::library_dir);
+  aer_config.def_property_readonly_static(
+      "GLOBAL_PHASE_POS",
+      [](const py::object &) { return Config::GLOBAL_PHASE_POS; });
   aer_config.def_readwrite("parameterizations", &Config::param_table);
   aer_config.def_property(
       "n_qubits", [](const Config &config) { return config.n_qubits.val; },
