@@ -49,7 +49,6 @@ $ python
 import qiskit
 from qiskit_ibm_provider import IBMProvider
 from qiskit_aer import AerSimulator
-from qiskit_aer.noise import NoiseModel
 
 # Generate 3-qubit GHZ state
 circ = qiskit.QuantumCircuit(3)
@@ -70,25 +69,16 @@ print('Counts(ideal):', counts_ideal)
 # Construct a noisy simulator backend from an IBMQ backend
 # This simulator backend will be automatically configured
 # using the device configuration and noise model 
-provider = IBMProvider()
-hub = "ibm-q"
-group = "open"
-project = "main"
-backend_name = "ibmq_lima"
-backend = provider.get_backend(backend_name, instance=f"{hub}/{group}/{project}")
-
-from datetime import datetime, date
-dt = datetime.fromisoformat(str(date.today()))
-today = backend.properties(datetime=dt)
-backend_noise_model = NoiseModel.from_backend_properties(today)
-aersim_backend = AerSimulator(noise_model=backend_noise_model)
+from qiskit.providers.fake_provider import FakeVigo
+backend = FakeVigo()
+aersim_backend = AerSimulator.from_backend(backend)
 
 # Perform noisy simulation
-result_noise = aersim_backend.run(circ, shots=1000).result()
+result_noise = aersim_backend.run(circ).result()
 counts_noise = result_noise.get_counts(0)
 
 print('Counts(noise):', counts_noise)
-# Counts(noise): {'000': 492, '001': 6, '010': 8, '011': 14, '100': 3, '101': 14, '110': 18, '111': 469}
+# Counts(noise): {'101': 16, '110': 48, '100': 7, '001': 31, '010': 7, '000': 464, '011': 15, '111': 436}
 ```
 
 ## Contribution Guidelines
