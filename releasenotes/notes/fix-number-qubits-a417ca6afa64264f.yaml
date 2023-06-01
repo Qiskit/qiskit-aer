@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fix an issue even if the number of qubits is set by a coupling map 
+    or device's configuration, when the simulation method is configured, 
+    the number of qubits is overwritten in accordance with the method. 
+    Fixed `#1769 <https://github.com/Qiskit/qiskit-aer/issues/1769>`__
