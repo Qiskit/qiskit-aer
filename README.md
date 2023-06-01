@@ -61,7 +61,7 @@ circ.measure_all()
 aersim = AerSimulator()
 
 # Perform an ideal simulation
-result_ideal = aersim.run(circ, shots=1000).result()
+result_ideal = aersim.run(circ).result()
 counts_ideal = result_ideal.get_counts(0)
 print('Counts(ideal):', counts_ideal)
 # Counts(ideal): {'000': 493, '111': 531}
