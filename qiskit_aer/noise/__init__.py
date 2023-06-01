@@ -135,6 +135,7 @@ documentation for the :class:`NoiseModel` class for additional details.
 
     from qiskit import QuantumCircuit, transpile, Aer
     from qiskit.visualization import plot_histogram
+    from qiskit_aer import AerSimulator
     import qiskit_aer.noise as noise
 
     # Error probabilities
@@ -161,11 +162,11 @@ documentation for the :class:`NoiseModel` class for additional details.
     circ.measure([0, 1, 2], [0, 1, 2])
 
     # Perform a noise simulation
-    backend = Aer.get_backend('qasm_simulator')
-    transpiled_circuit = transpile(circ, backend=backend,
-                                   coupling_map=coupling_map,
-                                   basis_gates=basis_gates)
-    result = backend.run(transpiled_circuit, noise_model=noise_model).result()
+    backend = AerSimulator(noise_model=noise_model,
+                           coupling_map=coupling_map,
+                           basis_gates=basis_gates)
+    transpiled_circuit = transpile(circ, backend)
+    result = backend.run(transpiled_circuit).result()
 
     counts = result.get_counts(0)
     plot_histogram(counts)
