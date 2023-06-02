@@ -302,14 +302,14 @@ class AerSimulator(AerBackend):
     * ``statevector_sample_measure_opt`` (int): Sets the threshold that
       the number of qubits must be greater than to enable a large
       qubit optimized implementation of measurement sampling. Note
-      that setting this two low can reduce performance (Default: 10)
+      that setting this two low can reduce performance (Default: 10).
 
     These backend options only apply when using the ``"stabilizer"``
     simulation method:
 
     * ``stabilizer_max_snapshot_probabilities`` (int): set the maximum
       qubit number for the
-      `~qiskit_aer.extensions.SnapshotProbabilities`
+      `qiskit_aer.extensions.SnapshotProbabilities`
       instruction (Default: 32).
 
     These backend options only apply when using the ``"extended_stabilizer"``
