@@ -41,7 +41,7 @@ class Estimator(BaseEstimator):
 
     :Run Options:
         - **shots** (None or int) --
-          The number of shots. If None and approximation is True, it calculates the exact
+          The number of shots. If None and simulate_error is True, it calculates the exact
           expectation values. Otherwise, it calculates expectation values with sampling.
 
         - **seed** (int) --
@@ -55,7 +55,7 @@ class Estimator(BaseEstimator):
         3. ``seed_simulator`` of ``backend_options``.
         4. default.
 
-        ``seed`` is also used for sampling from a normal distribution when approximation is True.
+        ``seed`` is also used for sampling from a normal distribution when simulate_error is True.
     """
 
     def __init__(
@@ -64,7 +64,7 @@ class Estimator(BaseEstimator):
         backend_options: dict | None = None,
         transpile_options: dict | None = None,
         run_options: dict | None = None,
-        approximation: bool = False,
+        simulate_error: bool = False,
         skip_transpilation: bool = False,
         abelian_grouping: bool = True,
     ):
@@ -73,24 +73,24 @@ class Estimator(BaseEstimator):
             backend_options: Options passed to AerSimulator.
             transpile_options: Options passed to transpile.
             run_options: Options passed to run.
-            approximation: If True, it calculates expectation values with normal distribution
+            simulate_error: If True, it calculates expectation values with normal distribution
                 approximation.
             skip_transpilation: If True, transpilation is skipped.
             abelian_grouping: Whether the observable should be grouped into commuting.
-                If approximation is True, this parameter is ignored and assumed to be False.
+                If simulate_error is True, this parameter is ignored and assumed to be False.
         """
         super().__init__(options=run_options)
 
         backend_options = {} if backend_options is None else backend_options
         method = (
-            "density_matrix" if approximation and "noise_model" in backend_options else "automatic"
+            "density_matrix" if simulate_error and "noise_model" in backend_options else "automatic"
         )
         self._backend = AerSimulator(method=method)
         self._backend.set_options(**backend_options)
         self._transpile_options = Options()
         if transpile_options is not None:
             self._transpile_options.update_options(**transpile_options)
-        self.approximation = approximation
+        self.simulate_error = simulate_error
         self._skip_transpilation = skip_transpilation
         self._cache: dict[tuple[tuple[int], tuple[int], bool], tuple[dict, dict]] = {}
         self._transpiled_circuits: dict[int, QuantumCircuit] = {}
@@ -110,7 +110,7 @@ class Estimator(BaseEstimator):
         if seed is not None:
             run_options.setdefault("seed_simulator", seed)
 
-        if self.approximation:
+        if self.simulate_error:
             return self._compute_with_approximation(
                 circuits, observables, parameter_values, run_options, seed
             )
@@ -152,7 +152,7 @@ class Estimator(BaseEstimator):
 
     def _compute(self, circuits, observables, parameter_values, run_options):
         # Key for cache
-        key = (tuple(circuits), tuple(observables), self.approximation)
+        key = (tuple(circuits), tuple(observables), self.simulate_error)
 
         # Create expectation value experiments.
         if key in self._cache:  # Use a cache
@@ -343,7 +343,7 @@ class Estimator(BaseEstimator):
         self, circuits, observables, parameter_values, run_options, seed
     ):
         # Key for cache
-        key = (tuple(circuits), tuple(observables), self.approximation)
+        key = (tuple(circuits), tuple(observables), self.simulate_error)
         parameter_binds = []
         shots = run_options.pop("shots", None)
         # Create expectation value experiments.

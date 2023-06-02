@@ -250,11 +250,11 @@ class TestEstimator(QiskitAerTestCase):
             np.testing.assert_allclose(result.values, target.values)
 
     @data(True, False)
-    def test_with_shots_option_with_approximation(self, abelian_grouping):
+    def test_with_shots_option_with_simulate_error(self, abelian_grouping):
         """test with shots option."""
-        # Note: abelian_gropuing is ignored when approximation is True as documented.
+        # Note: abelian_gropuing is ignored when simulate_error is True as documented.
         # The purpose of this test is to make sure the results remain the same.
-        est = Estimator(approximation=True, abelian_grouping=abelian_grouping)
+        est = Estimator(simulate_error=True, abelian_grouping=abelian_grouping)
         result = est.run(
             self.ansatz, self.observable, parameter_values=[[0, 1, 1, 2, 3, 5]], shots=1024, seed=15
         ).result()
@@ -262,9 +262,9 @@ class TestEstimator(QiskitAerTestCase):
         np.testing.assert_allclose(result.values, [-1.3088991960117797])
         self.assertIsInstance(result.metadata[0]["variance"], float)
 
-    def test_with_shots_option_without_approximation(self):
+    def test_with_shots_option_without_simulate_error(self):
         """test with shots option."""
-        est = Estimator(approximation=False, abelian_grouping=False)
+        est = Estimator(simulate_error=False, abelian_grouping=False)
         result = est.run(
             self.ansatz, self.observable, parameter_values=[[0, 1, 1, 2, 3, 5]], shots=1024, seed=15
         ).result()
