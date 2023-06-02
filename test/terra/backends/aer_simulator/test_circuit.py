@@ -16,7 +16,8 @@ from math import sqrt
 from ddt import ddt
 import numpy as np
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister, assemble
-from qiskit.circuit import CircuitInstruction
+from qiskit.circuit.gate import Gate
+from qiskit.circuit.library.standard_gates import HGate
 from test.terra.reference import ref_algorithms
 
 from test.terra.backends.simulator_test_case import SimulatorTestCase, supported_methods
@@ -237,3 +238,28 @@ class TestVariousCircuit(SimulatorTestCase):
             shots = int(shots)
             self.assertSuccess(result)
             self.assertEqual(sum([result.get_counts()[key] for key in result.get_counts()]), shots)
+
+    def test_invalid_parameters(self):
+        """Test gates with invalid parameter length."""
+
+        backend = self.backend()
+
+        class Custom(Gate):
+            def __init__(self, label=None):
+                super().__init__("p", 1, [], label=label)
+
+            def _define(self):
+                q = QuantumRegister(1, "q")
+                qc = QuantumCircuit(q, name=self.name)
+                qc._append(HGate(), [q[0]], [])
+                self.definition = qc
+
+        qc = QuantumCircuit(1)
+        qc.append(Custom(), [0])
+        qc.measure_all()
+
+        try:
+            backend.run(qc).result()
+            self.fail("do not reach here")
+        except Exception as e:
+            self.assertTrue("\"params\" is incorrect length" in repr(e))
