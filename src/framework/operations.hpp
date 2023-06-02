@@ -363,17 +363,15 @@ inline void check_empty_params(const Op &op) {
 // Raise an exception if qubits is more than expected
 inline void check_length_qubits(const Op &op, const size_t size) {
   if (op.qubits.size() < size)
-    throw std::invalid_argument(
-        R"(Invalid operation ")" + op.name +
-        R"(" ("qubits" is incorrect length).)");
+    throw std::invalid_argument(R"(Invalid operation ")" + op.name +
+                                R"(" ("qubits" is incorrect length).)");
 }
 
 // Raise an exception if params is empty
 inline void check_length_params(const Op &op, const size_t size) {
   if (op.params.size() < size)
-    throw std::invalid_argument(
-        R"(Invalid operation ")" + op.name +
-        R"(" ("params" is incorrect length).)");
+    throw std::invalid_argument(R"(Invalid operation ")" + op.name +
+                                R"(" ("params" is incorrect length).)");
 }
 
 // Raise an exception if qubits list contains duplications
