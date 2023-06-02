@@ -78,7 +78,6 @@ method. See the method documentation for details.
 
     counts = result.get_counts(0)
     plot_histogram(counts)
-```
 
 
 **Example: Basic device noise model using a `fake_provider` backend**
@@ -170,6 +169,7 @@ documentation for the :class:`NoiseModel` class for additional details.
 
     counts = result.get_counts(0)
     plot_histogram(counts)
+
 
 Classes
 =======
