@@ -45,7 +45,7 @@ class AerSimulator(AerBackend):
 
     The `AerSimulator` supports multiple simulation methods and
     configurable options for each simulation method. These may be set using the
-    appropriate kwargs during initialization. They can also be set of updated
+    appropriate kwargs during initialization. They can also be set or updated
     using the :meth:`set_options` method.
 
     Run-time options may also be specified as kwargs using the :meth:`run` method.
@@ -83,7 +83,7 @@ class AerSimulator(AerBackend):
 
     **Simulation Method Option**
 
-    The simulation method is set using the ``method`` kwarg. A list supported
+    The simulation method is set using the ``method`` kwarg. A list of supported
     simulation methods can be returned using :meth:`available_methods`, these
     are
 
@@ -91,8 +91,8 @@ class AerSimulator(AerBackend):
       method automatically based on the circuit and noise model.
 
     * ``"statevector"``: A dense statevector simulation that can sample
-      measurement outcomes from *ideal* circuits with all measurements at
-      end of the circuit. For noisy simulations each shot samples a
+      measurement outcomes from *ideal* circuits with all measurements at the
+      end of the circuit. For noisy simulations, each shot samples a
       randomly sampled noisy circuit from the noise model.
 
     * ``"density_matrix"``: A dense density matrix simulation that may
@@ -116,7 +116,7 @@ class AerSimulator(AerBackend):
     * ``"unitary"``: A dense unitary matrix simulation of an ideal circuit.
       This simulates the unitary matrix of the circuit itself rather than
       the evolution of an initial quantum state. This method can only
-      simulate gates, it does not support measurement, reset, or noise.
+      simulate gates. It does not support measurement, reset, or noise.
 
     * ``"superop"``: A dense superoperator matrix simulation of an ideal or
       noisy circuit. This simulates the superoperator matrix of the circuit
@@ -195,16 +195,16 @@ class AerSimulator(AerBackend):
       to the executor as a single job (Default: None).
 
     * ``max_shot_size`` (int or None): If the number of shots of a noisy
-      circuit exceeds this value simulation will be split into multi
-      circuits for execution and the results accumulated. If ``None``
+      circuit exceeds this value, simulation will be split into multi
+      circuits for execution and the results accumulated. If ``None``,
       circuits will not be split based on shots. When splitting circuits
       use the ``max_job_size`` option to control how these split circuits
       should be submitted to the executor (Default: None).
 
-      a noise model exceeds this value simulation will be splitted into
-      sub-circuits. If ``None``  simulator does noting (Default: None).
+      If a noise model exceeds this value, simulation will be splitted into
+      sub-circuits. If ``None``  simulator does nothing (Default: None).
 
-    * ``enable_truncation`` (bool): If set to True this removes unnecessary
+    * ``enable_truncation`` (bool): If set to True, this removes unnecessary
       qubits which do not affect the simulation outcome from the simulated
       circuits (Default: True).
 
@@ -216,7 +216,7 @@ class AerSimulator(AerBackend):
       if initial states are valid (Default: 1e-8).
 
     * ``max_parallel_threads`` (int): Sets the maximum number of CPU
-      cores used by OpenMP for parallelization. If set to 0 the
+      cores used by OpenMP for parallelization. If set to 0, the
       maximum will be set to the number of CPU cores (Default: 0).
 
     * ``max_parallel_experiments`` (int): Sets the maximum number of
@@ -256,7 +256,7 @@ class AerSimulator(AerBackend):
       ``"statevector"``, ``"density_matrix"`` and ``"unitary"``.
       This option should be set when using option ``blocking_enable=True``
       (Default: 0).
-      If multiple GPUs are used for parallelization number of GPUs is
+      If multiple GPUs are used for parallelization, number of GPUs is
       reported to ``chunk_parallel_gpus`` in ``cacheblocking`` metadata.
 
     * ``chunk_swap_buffer_qubits`` (int): Sets the number of qubits of
@@ -287,7 +287,7 @@ class AerSimulator(AerBackend):
       threads per device. For GPU simulation, this value sets number of
       threads per GPU. This parameter is used to optimize Pauli noise
       simulation with multiple-GPUs (Default: 1).
-
+    <br>
     These backend options only apply when using the ``"statevector"``
     simulation method:
 
@@ -307,9 +307,9 @@ class AerSimulator(AerBackend):
     These backend options only apply when using the ``"stabilizer"``
     simulation method:
 
-    * ``stabilizer_max_snapshot_probabilities`` (int): set the maximum
+    * ``stabilizer_max_snapshot_probabilities`` (int): Sets the maximum
       qubit number for the
-      `~qiskit_aer.extensions.SnapshotProbabilities`
+      `qiskit_aer.extensions.SnapshotProbabilities`
       instruction (Default: 32).
 
     These backend options only apply when using the ``"extended_stabilizer"``
@@ -340,13 +340,13 @@ class AerSimulator(AerBackend):
         runtimes, but gives accurate results on circuits with sparse
         output distributions. The overall runtime scales as Sn^{3}m^{3}.
 
-    * ``extended_stabilizer_metropolis_mixing_time`` (int): Set how long the
+    * ``extended_stabilizer_metropolis_mixing_time`` (int): Sets how long the
       monte-carlo method runs before performing measurements. If the
       output distribution is strongly peaked, this can be decreased
       alongside setting extended_stabilizer_disable_measurement_opt
       to True (Default: 5000).
 
-    * ``extended_stabilizer_approximation_error`` (double): Set the error
+    * ``extended_stabilizer_approximation_error`` (double): Sets the error
       in the approximation for the extended_stabilizer method. A
       smaller error needs more memory and computational time
       (Default: 0.05).
@@ -357,13 +357,13 @@ class AerSimulator(AerBackend):
       measured, whichever is larger (Default: 100).
 
     * ``extended_stabilizer_norm_estimation_repetitions`` (int): The number
-      of times to repeat the norm estimation. The median of these reptitions
+      of times to repeat the norm estimation. The median of these repetitions
       is used to estimate and sample output strings (Default: 3).
 
-    * ``extended_stabilizer_parallel_threshold`` (int): Set the minimum
+    * ``extended_stabilizer_parallel_threshold`` (int): Sets the minimum
       size of the extended stabilizer decomposition before we enable
       OpenMP parallelization. If parallel circuit or shot execution
-      is enabled this will only use unallocated CPU cores up to
+      is enabled, this will only use unallocated CPU cores up to
       max_parallel_threads (Default: 100).
 
     * ``extended_stabilizer_probabilities_snapshot_samples`` (int): If using
@@ -398,7 +398,7 @@ class AerSimulator(AerBackend):
         shots, and a large number of qubits, with complexity around
         O(n * D^2) per shot.
 
-    * ``mps_log_data`` (str): if True, output logging data of the MPS
+    * ``mps_log_data`` (str): If True, outputs logging data of the MPS
       structure: bond dimensions and values discarded during approximation.
       (Default: False)
 
@@ -410,25 +410,25 @@ class AerSimulator(AerBackend):
     These backend options only apply when using the ``tensor_network``
     simulation method:
 
-    * ``tensor_network_num_sampling_qubits`` (int): is used to set number
+    * ``tensor_network_num_sampling_qubits`` (int): Sets the number
       of qubits to be sampled in single tensor network contraction when
       using sampling measure. (Default: 10)
 
-    * ``use_cuTensorNet_autotuning`` (bool): enables auto tuning of plan
+    * ``use_cuTensorNet_autotuning`` (bool): Enables auto tuning of plan
       in cuTensorNet API. It takes some time for tuning, so enable if the
       circuit is very large. (Default: False)
 
     These backend options apply in circuit optimization passes:
 
-    * ``fusion_enable`` (bool): Enable fusion optimization in circuit
+    * ``fusion_enable`` (bool): Enables fusion optimization in circuit
       optimization passes [Default: True]
-    * ``fusion_verbose`` (bool): Output gates generated in fusion optimization
+    * ``fusion_verbose`` (bool): Outputs gates generated in fusion optimization
       into metadata [Default: False]
     * ``fusion_max_qubit`` (int): Maximum number of qubits for a operation generated
       in a fusion optimization. A default value (``None``) automatically sets a value
       depending on the simulation method: [Default: None]
     * ``fusion_threshold`` (int): Threshold that number of qubits must be greater
-      than or equal to enable fusion optimization. A default value automatically sets
+      than or equal, to enable fusion optimization. A default value automatically sets
       a value depending on the simulation method [Default: None]
 
     ``fusion_enable`` and ``fusion_threshold`` are set as follows if their default
