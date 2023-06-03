@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Since 0.12.0, parameter values in circuits are temporarily replaced with constant values
+    and parameter values are assigned in C++ library. Therefore, if `parameter_binds` is specified,
+    simulator returns results with the constnat values as paramter values. With this commit,
+    Aer raises an error if `parameter_binds` is not specified though circuits have parameters.

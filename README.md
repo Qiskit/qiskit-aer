@@ -4,7 +4,7 @@
 
 **Qiskit** is an open-source framework for working with noisy quantum computers at the level of pulses, circuits, and algorithms.
 
-Qiskit is made up of elements that each work together to enable quantum computing. This element is **Aer**, which provides high-performance quantum computing simulators with realistic noise models.
+Qiskit is made up of elements that work together to enable quantum computing. This element is **Aer**, which provides high-performance quantum computing simulators with realistic noise models.
 
 ## Installation
 
@@ -14,7 +14,7 @@ We encourage installing Qiskit via the pip tool (a python package manager). The 
 pip install qiskit qiskit-aer
 ```
 
-Pip will handle all dependencies automatically for us and you will always install the latest (and well-tested) version.
+Pip will handle all dependencies automatically for us, and you will always install the latest (and well-tested) version.
 
 To install from source, follow the instructions in the [contribution guidelines](CONTRIBUTING.md).
 
@@ -34,7 +34,7 @@ the same functionality found in the canonical `qiskit-aer` package, plus the
 ability to run the GPU supported simulators: statevector, density matrix, and unitary.
 
 **Note**: This package is only available on x86_64 Linux. For other platforms
-that have CUDA support you will have to build from source. You can refer to
+that have CUDA support, you will have to build from source. You can refer to
 the [contributing guide](CONTRIBUTING.md#building-with-gpu-support)
 for instructions on doing this.
 
@@ -84,9 +84,9 @@ print('Counts(noise):', counts_noise)
 ## Contribution Guidelines
 
 If you'd like to contribute to Qiskit, please take a look at our
-[contribution guidelines](CONTRIBUTING.md). This project adheres to Qiskit's [code of conduct](CODE_OF_CONDUCT.md). By participating, you are expect to uphold to this code.
+[contribution guidelines](CONTRIBUTING.md). This project adheres to Qiskit's [code of conduct](CODE_OF_CONDUCT.md). By participating, you are expected to uphold this code.
 
-We use [GitHub issues](https://github.com/Qiskit/qiskit-aer/issues) for tracking requests and bugs. Please use our [slack](https://qiskit.slack.com) for discussion and simple questions. To join our Slack community use the [link](https://qiskit.slack.com/join/shared_invite/zt-fybmq791-hYRopcSH6YetxycNPXgv~A#/). For questions that are more suited for a forum we use the Qiskit tag in the [Stack Exchange](https://quantumcomputing.stackexchange.com/questions/tagged/qiskit).
+We use [GitHub issues](https://github.com/Qiskit/qiskit-aer/issues) for tracking requests and bugs. Please use our [slack](https://qiskit.slack.com) for discussion and simple questions. To join our Slack community use the [link](https://qiskit.slack.com/join/shared_invite/zt-fybmq791-hYRopcSH6YetxycNPXgv~A#/). For questions that are more suited for a forum, we use the Qiskit tag in the [Stack Exchange](https://quantumcomputing.stackexchange.com/questions/tagged/qiskit).
 
 ## Next Steps
 

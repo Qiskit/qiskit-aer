@@ -25,9 +25,9 @@
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #
-# import os
-# import sys
-# sys.path.insert(0, os.path.abspath('.'))
+import os
+import sys
+sys.path.insert(0, os.path.abspath('.'))
 
 """
 Sphinx documentation builder
@@ -38,6 +38,7 @@ import datetime
 # Set env flag so that we can doc functions that may otherwise not be loaded
 # see for example interactive visualizations in qiskit.visualization.
 os.environ['QISKIT_DOCS'] = 'TRUE'
+sys.path.insert(0, os.path.abspath('.'))
 
 # -- Project information -----------------------------------------------------
 project = 'Qiskit Aer'
@@ -45,6 +46,9 @@ copyright = f"2017-{datetime.date.today().year}, Qiskit Development Team"  # pyl
 author = 'Qiskit Development Team'
 
 import qiskit_sphinx_theme
+from custom_directives import (
+    CustomCalloutItemDirective
+)
 
 # The short X.Y version
 version = '0.13.0'
@@ -75,6 +79,7 @@ extensions = [
     'matplotlib.sphinxext.plot_directive',
     'sphinx.ext.intersphinx',
     'nbsphinx',
+    "sphinx_design",
     'qiskit_sphinx_theme'
 ]
 
@@ -157,3 +162,7 @@ intersphinx_mapping = {
     "matplotlib": ("https://matplotlib.org/stable/", None),
     "qiskit": ("https://qiskit.org/documentation/", None),
 }
+
+# -- Extension configuration -------------------------------------------------
+def setup(app):
+    app.add_directive("customcalloutitem", CustomCalloutItemDirective)
