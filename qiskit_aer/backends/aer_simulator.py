@@ -103,8 +103,8 @@ class AerSimulator(AerBackend):
       that can simulate noisy Clifford circuits if all errors in the noise
       model are also Clifford errors.
 
-    * ``"extended_stabilizer"``: An approximate simulated for Clifford + T
-      circuits based on a state decomposition into ranked-stabilizer state.
+    * ``"extended_stabilizer"``: An approximate simulator for Clifford + T
+      circuits based on a state decomposition into a ranked-stabilizer state.
       The number of terms grows with the number of non-Clifford (T) gates.
 
     * ``"matrix_product_state"``: A tensor-network statevector simulator that
@@ -125,7 +125,7 @@ class AerSimulator(AerBackend):
       measurement.
 
     * ``"tensor_network"``: A tensor-network based simulation that supports
-      both statevector and density matrix. Currently there is only available
+      both statevector and density matrix. Currently, there is only available
       for GPU and accelerated by using cuTensorNet APIs of cuQuantum.
 
     **GPU Simulation**
@@ -161,7 +161,7 @@ class AerSimulator(AerBackend):
     for the current system can be returned using :meth:`available_devices`.
 
     For multiple shots simulation, OpenMP threads should be exploited for
-    multi-GPUs. Number of GPUs used for multi-shots is reported in
+    multi-GPUs. The number of GPUs used for multi-shots is reported in
     metadata ``gpu_parallel_shots_`` or is batched execution is done reported
     in metadata ``batched_shots_optimization_parallel_gpus``.
     For large qubits circuits with multiple GPUs, number of GPUs is reported
@@ -176,7 +176,7 @@ class AerSimulator(AerBackend):
     The following simulator specific backend options are supported
 
     * ``method`` (str): Set the simulation method (Default: ``"automatic"``).
-      Use :meth:`available_methods` to return a list of all availabe methods.
+      Use :meth:`available_methods` to return a list of all available methods.
 
     * ``device`` (str): Set the simulation device (Default: ``"CPU"``).
       Use :meth:`available_devices` to return a list of devices supported
@@ -190,8 +190,8 @@ class AerSimulator(AerBackend):
       asynchronous running of simulation jobs (Default: None).
 
     * ``max_job_size`` (int or None): If the number of run circuits
-      exceeds this value simulation will be run as a set of of sub-jobs
-      on the executor. If ``None`` simulation of all circuits are submitted
+      exceeds this value simulation will be run as a set of sub-jobs
+      on the executor. If ``None`` simulation of all circuits is submitted
       to the executor as a single job (Default: None).
 
     * ``max_shot_size`` (int or None): If the number of shots of a noisy
@@ -357,7 +357,7 @@ class AerSimulator(AerBackend):
       measured, whichever is larger (Default: 100).
 
     * ``extended_stabilizer_norm_estimation_repetitions`` (int): The number
-      of times to repeat the norm estimation. The median of these reptitions
+      of times to repeat the norm estimation. The median of these repetitions
       is used to estimate and sample output strings (Default: 3).
 
     * ``extended_stabilizer_parallel_threshold`` (int): Set the minimum
