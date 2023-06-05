@@ -426,6 +426,19 @@ class TestParameterizedQobj(common.QiskitAerTestCase):
         self.assertSuccess(res)
         self.assertEqual(res.get_counts(), {"111": 1024})
 
+    def test_check_parameter_binds_exist(self):
+        """Test parameter_binds exists to simulate parameterized circuits"""
+
+        shots = 1000
+        backend = AerSimulator()
+        circuit = QuantumCircuit(2)
+        theta = Parameter("theta")
+        circuit.rx(theta, 0)
+        circuit.cx(0, 1)
+        circuit.measure_all()
+        with self.assertRaises(AerError):
+            res = backend.run(circuit, shots=shots).result()
+
     def test_global_phase_parameters(self):
         """Test parameterized global phase"""
         backend = AerSimulator()

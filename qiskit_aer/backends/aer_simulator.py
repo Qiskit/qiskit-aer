@@ -948,5 +948,9 @@ class AerSimulator(AerBackend):
             # Clear options to default
             description = None
             n_qubits = None
+
+        if self._configuration.coupling_map:
+            n_qubits = max(list(map(max, self._configuration.coupling_map))) + 1
+
         self._set_configuration_option("description", description)
         self._set_configuration_option("n_qubits", n_qubits)
