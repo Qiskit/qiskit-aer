@@ -262,4 +262,4 @@ class TestVariousCircuit(SimulatorTestCase):
             backend.run(qc).result()
             self.fail("do not reach here")
         except Exception as e:
-            self.assertTrue("\"params\" is incorrect length" in repr(e))
+            self.assertTrue('"params" is incorrect length' in repr(e))
