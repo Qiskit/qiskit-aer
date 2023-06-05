@@ -193,7 +193,7 @@ Ready to get going?...
    <div class="tutorials-callout-container">
       <div class="row">
 
-.. customcalloutitem::
+.. qiskit-call-to-action-item::
    :description: Find out about Qiskit Aer
    :header: Dive into the tutorials
    :button_link:  ./tutorials/index.html
