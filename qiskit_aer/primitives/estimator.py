@@ -51,12 +51,21 @@ class Estimator(BaseEstimator):
     .. note::
         Precedence of seeding for ``seed_simulator`` is as follows:
 
-        1. ``seed_simulator`` in runtime (i.e. in :meth:`__call__`)
-        2. ``seed`` in runtime (i.e. in :meth:`__call__`)
+        1. ``seed_simulator`` in runtime (i.e. in :meth:`run`)
+        2. ``seed`` in runtime (i.e. in :meth:`run`)
         3. ``seed_simulator`` of ``backend_options``.
         4. default.
 
         ``seed`` is also used for sampling from a normal distribution when approximation is True.
+
+        When combined with the approximation option, we get the expectation values as follows:
+
+        * shots is None and approximation=False: Return an expectation value with sampling-noise w/
+          warning.
+        * shots is int and approximation=False: Return an expectation value with sampling-noise.
+        * shots is None and approximation=True: Return an exact expectation value.
+        * shots is int and approximation=True: Return expectation value with sampling-noise using a
+          normal distribution approximation.
     """
 
     def __init__(
