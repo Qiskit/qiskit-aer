@@ -47,7 +47,6 @@ $ python
 
 ```python
 import qiskit
-from qiskit_ibm_provider import IBMProvider
 from qiskit_aer import AerSimulator
 from qiskit.providers.fake_provider import FakeManilaV2
 
