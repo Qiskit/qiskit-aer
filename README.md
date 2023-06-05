@@ -69,8 +69,8 @@ print('Counts(ideal):', counts_ideal)
 # Construct a noisy simulator backend from an IBMQ backend
 # This simulator backend will be automatically configured
 # using the device configuration and noise model 
-from qiskit.providers.fake_provider import FakeVigo
-backend = FakeVigo()
+from qiskit.providers.fake_provider import FakeManilaV2
+backend = FakeManilaV2()
 aersim_backend = AerSimulator.from_backend(backend)
 
 # Perform noisy simulation
