@@ -49,6 +49,7 @@ $ python
 import qiskit
 from qiskit_ibm_provider import IBMProvider
 from qiskit_aer import AerSimulator
+from qiskit.providers.fake_provider import FakeManilaV2
 
 # Generate 3-qubit GHZ state
 circ = qiskit.QuantumCircuit(3)
@@ -68,8 +69,7 @@ print('Counts(ideal):', counts_ideal)
 
 # Construct a noisy simulator backend from an IBMQ backend
 # This simulator backend will be automatically configured
-# using the device configuration and noise model 
-from qiskit.providers.fake_provider import FakeManilaV2
+# using the device configuration and noise model
 backend = FakeManilaV2()
 aersim_backend = AerSimulator.from_backend(backend)
 
