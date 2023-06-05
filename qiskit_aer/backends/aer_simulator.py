@@ -287,7 +287,7 @@ class AerSimulator(AerBackend):
       threads per device. For GPU simulation, this value sets number of
       threads per GPU. This parameter is used to optimize Pauli noise
       simulation with multiple-GPUs (Default: 1).
-    <br>
+
     These backend options only apply when using the ``"statevector"``
     simulation method:
 
