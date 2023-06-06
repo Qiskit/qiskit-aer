@@ -1,0 +1,5 @@
+---
+issues:
+  - |
+    Fix a bug that returns wrong expectation values in :class:`~Estimator` when
+    ``abelian_grouping=True``.
