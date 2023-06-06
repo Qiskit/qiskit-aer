@@ -130,6 +130,7 @@ public:
             const int_t cond_regidx = -1, const std::string label = "") {
     ops.push_back(Operations::make_gate(name, qubits, params, string_params,
                                         cond_regidx, label));
+    check_gate_params(ops.back());
   }
 
   void diagonal(const reg_t &qubits, const cvector_t &vec,
