@@ -74,6 +74,21 @@ class TestEstimator(QiskitAerTestCase):
             self.assertIsInstance(result, EstimatorResult)
             np.testing.assert_allclose(result.values, [1.728515625])
 
+        with self.subTest("SparsePauliOp with another grouping"):
+            observable = SparsePauliOp.from_list(
+                [
+                    ("YZ", 0.39793742484318045),
+                    ("ZI", -0.39793742484318045),
+                    ("ZZ", -0.01128010425623538),
+                    ("XX", 0.18093119978423156),
+                ]
+            )
+            ansatz = RealAmplitudes(num_qubits=2, reps=2)
+            est = Estimator(abelian_grouping=abelian_grouping)
+            result = est.run(ansatz, observable, parameter_values=[[0] * 6], seed=15).result()
+            self.assertIsInstance(result, EstimatorResult)
+            np.testing.assert_allclose(result.values, [-0.4], rtol=0.02)
+
     @data(True, False)
     def test_init_observable_from_operator(self, abelian_grouping):
         """test for evaluate without parameters"""
