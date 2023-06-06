@@ -349,23 +349,29 @@ inline void check_empty_name(const Op &op) {
 // Raise an exception if qubits list is empty
 inline void check_empty_qubits(const Op &op) {
   if (op.qubits.empty())
-    throw std::invalid_argument(R"(Invalid qobj ")" + op.name +
-                                R"(" instruction ("qubits" is empty).)");
+    throw std::invalid_argument(R"(Invalid operation ")" + op.name +
+                                R"(" ("qubits" is empty).)");
 }
 
 // Raise an exception if params is empty
 inline void check_empty_params(const Op &op) {
   if (op.params.empty())
-    throw std::invalid_argument(R"(Invalid qobj ")" + op.name +
-                                R"(" instruction ("params" is empty).)");
+    throw std::invalid_argument(R"(Invalid operation ")" + op.name +
+                                R"(" ("params" is empty).)");
+}
+
+// Raise an exception if qubits is more than expected
+inline void check_length_qubits(const Op &op, const size_t size) {
+  if (op.qubits.size() < size)
+    throw std::invalid_argument(R"(Invalid operation ")" + op.name +
+                                R"(" ("qubits" is incorrect length).)");
 }
 
 // Raise an exception if params is empty
 inline void check_length_params(const Op &op, const size_t size) {
-  if (op.params.size() != size)
-    throw std::invalid_argument(
-        R"(Invalid qobj ")" + op.name +
-        R"(" instruction ("params" is incorrect length).)");
+  if (op.params.size() < size)
+    throw std::invalid_argument(R"(Invalid operation ")" + op.name +
+                                R"(" ("params" is incorrect length).)");
 }
 
 // Raise an exception if qubits list contains duplications
@@ -373,8 +379,42 @@ inline void check_duplicate_qubits(const Op &op) {
   auto cpy = op.qubits;
   std::unique(cpy.begin(), cpy.end());
   if (cpy != op.qubits)
-    throw std::invalid_argument(R"(Invalid qobj ")" + op.name +
-                                R"(" instruction ("qubits" are not unique).)");
+    throw std::invalid_argument(R"(Invalid operation ")" + op.name +
+                                R"(" ("qubits" are not unique).)");
+}
+
+inline void check_gate_params(const Op &op) {
+  const stringmap_t<std::tuple<int_t, int_t>> param_tables(
+      {{"u1", {1, 1}},       {"u2", {1, 2}},     {"u3", {1, 3}},
+       {"u", {1, 3}},        {"U", {1, 3}},      {"CX", {2, 0}},
+       {"cx", {2, 0}},       {"cz", {2, 0}},     {"cy", {2, 0}},
+       {"cp", {2, 1}},       {"cu1", {2, 1}},    {"cu2", {2, 2}},
+       {"cu3", {2, 3}},      {"swap", {2, 0}},   {"id", {0, 0}},
+       {"p", {1, 1}},        {"x", {1, 0}},      {"y", {1, 0}},
+       {"z", {1, 0}},        {"h", {1, 0}},      {"s", {1, 0}},
+       {"sdg", {1, 0}},      {"t", {1, 0}},      {"tdg", {1, 0}},
+       {"r", {1, 2}},        {"rx", {1, 1}},     {"ry", {1, 1}},
+       {"rz", {1, 1}},       {"rxx", {2, 1}},    {"ryy", {2, 1}},
+       {"rzz", {2, 1}},      {"rzx", {2, 1}},    {"ccx", {3, 0}},
+       {"cswap", {3, 0}},    {"mcx", {1, 0}},    {"mcy", {1, 0}},
+       {"mcz", {1, 0}},      {"mcu1", {1, 1}},   {"mcu2", {1, 2}},
+       {"mcu3", {1, 3}},     {"mcswap", {2, 0}}, {"mcphase", {1, 1}},
+       {"mcr", {1, 1}},      {"mcrx", {1, 1}},   {"mcry", {1, 1}},
+       {"mcrz", {1, 1}},     {"sx", {1, 0}},     {"sxdg", {1, 0}},
+       {"csx", {2, 0}},      {"mcsx", {1, 0}},   {"csxdg", {2, 0}},
+       {"mcsxdg", {1, 0}},   {"delay", {1, 0}},  {"pauli", {1, 0}},
+       {"mcx_gray", {1, 0}}, {"cu", {2, 4}},     {"mcu", {1, 4}},
+       {"mcp", {1, 1}},      {"ecr", {2, 0}}});
+
+  auto it = param_tables.find(op.name);
+  if (it == param_tables.end()) {
+    std::stringstream msg;
+    msg << "Invalid gate name :\"" << op.name << "\"." << std::endl;
+    throw std::invalid_argument(msg.str());
+  } else {
+    check_length_qubits(op, std::get<0>(it->second));
+    check_length_params(op, std::get<1>(it->second));
+  }
 }
 
 //------------------------------------------------------------------------------
@@ -1155,12 +1195,8 @@ Op input_to_op_gate(const inputdata_t &input) {
   check_empty_name(op);
   check_empty_qubits(op);
   check_duplicate_qubits(op);
-  if (op.name == "u1")
-    check_length_params(op, 1);
-  else if (op.name == "u2")
-    check_length_params(op, 2);
-  else if (op.name == "u3")
-    check_length_params(op, 3);
+  check_gate_params(op);
+
   return op;
 }
 
@@ -1586,8 +1622,8 @@ Op input_to_op_save_expval(const inputdata_t &input, bool variance) {
   }
 
   // Check edge case of all coefficients being empty
-  // In this case the operator had all coefficients zero, or sufficiently close
-  // to zero that they were all truncated.
+  // In this case the operator had all coefficients zero, or sufficiently
+  // close to zero that they were all truncated.
   if (op.expval_params.empty()) {
     std::string pauli(op.qubits.size(), 'I');
     op.expval_params.emplace_back(pauli, 0., 0.);
