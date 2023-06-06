@@ -13,6 +13,6 @@ reno>=3.4.0
 ddt>=1.2.0,!=1.4.0
 matplotlib>=3.3
 seaborn>=0.9.0
-qiskit_sphinx_theme>=1.10
+qiskit_sphinx_theme~=1.12.0
 sphinx-design>=0.2.0
 nbsphinx
