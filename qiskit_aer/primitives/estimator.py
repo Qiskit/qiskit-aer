@@ -145,7 +145,11 @@ class Estimator(BaseEstimator):
                 self._observable_ids[_observable_key(observable)] = len(self._observables)
                 self._observables.append(observable)
         job = PrimitiveJob(
-            self._call, circuit_indices, observable_indices, parameter_values, **run_options
+            self._call,
+            circuit_indices,
+            observable_indices,
+            parameter_values,
+            **run_options,
         )
         job.submit()
         return job
@@ -299,14 +303,13 @@ class Estimator(BaseEstimator):
 
         result_index = 0
         for _circ_ind, basis_map in exp_map.items():
-            for _basis_ind, (_, param_vals) in basis_map.items():
+            for _basis_ind in range(len(basis_map)):
+                param_vals = basis_map[_basis_ind][1]
                 if circ_ind == _circ_ind and basis_ind == _basis_ind:
                     result_index += param_vals.index(param_val)
                     return result_index
                 result_index += len(param_vals)
-        raise AerError(
-            "Bug. Please report from isssue: https://github.com/Qiskit/qiskit-aer/issues"
-        )
+        raise AerError("Bug. Please report from issue: https://github.com/Qiskit/qiskit-aer/issues")
 
     def _create_post_processing(
         self, circuits, observables, parameter_values, obs_maps, exp_map
@@ -457,7 +460,10 @@ def _expval_with_variance(counts) -> tuple[float, float]:
 
 class _PostProcessing:
     def __init__(
-        self, result_indices: list[int], paulis: list[PauliList], coeffs: list[list[float]]
+        self,
+        result_indices: list[int],
+        paulis: list[PauliList],
+        coeffs: list[list[float]],
     ):
         self._result_indices = result_indices
         self._paulis = paulis
