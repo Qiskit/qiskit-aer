@@ -19,6 +19,7 @@ from __future__ import annotations
 from collections import defaultdict
 from collections.abc import Sequence
 from copy import copy
+from warnings import warn
 
 import numpy as np
 from qiskit.circuit import QuantumCircuit
@@ -50,12 +51,21 @@ class Estimator(BaseEstimator):
     .. note::
         Precedence of seeding for ``seed_simulator`` is as follows:
 
-        1. ``seed_simulator`` in runtime (i.e. in :meth:`__call__`)
-        2. ``seed`` in runtime (i.e. in :meth:`__call__`)
+        1. ``seed_simulator`` in runtime (i.e. in :meth:`run`)
+        2. ``seed`` in runtime (i.e. in :meth:`run`)
         3. ``seed_simulator`` of ``backend_options``.
         4. default.
 
         ``seed`` is also used for sampling from a normal distribution when approximation is True.
+
+        When combined with the approximation option, we get the expectation values as follows:
+
+        * shots is None and approximation=False: Return an expectation value with sampling-noise w/
+          warning.
+        * shots is int and approximation=False: Return an expectation value with sampling-noise.
+        * shots is None and approximation=True: Return an exact expectation value.
+        * shots is int and approximation=True: Return expectation value with sampling-noise using a
+          normal distribution approximation.
     """
 
     def __init__(
@@ -151,6 +161,14 @@ class Estimator(BaseEstimator):
         return job
 
     def _compute(self, circuits, observables, parameter_values, run_options):
+        if "shots" in run_options and run_options["shots"] is None:
+            warn(
+                "If `shots` is None and `approximation` is False, "
+                "the number of shots is automatically set to backend options' "
+                f"shots={self._backend.options.shots}.",
+                RuntimeWarning,
+            )
+
         # Key for cache
         key = (tuple(circuits), tuple(observables), self.approximation)
 

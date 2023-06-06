@@ -270,6 +270,21 @@ class TestEstimator(QiskitAerTestCase):
         self.assertIsInstance(result, EstimatorResult)
         np.testing.assert_allclose(result.values, [-1.2895828299114598])
 
+    def test_warn_shots_none_without_approximation(self):
+        """Test waning for shots=None without approximation."""
+        est = Estimator(approximation=False)
+        with self.assertWarns(RuntimeWarning):
+            result = est.run(
+                self.ansatz,
+                self.observable,
+                parameter_values=[[0, 1, 1, 2, 3, 5]],
+                shots=None,
+                seed=15,
+            ).result()
+        self.assertIsInstance(result, EstimatorResult)
+        np.testing.assert_allclose(result.values, [-1.313831587508902])
+        self.assertIsInstance(result.metadata[0]["variance"], float)
+
 
 if __name__ == "__main__":
     unittest.main()
