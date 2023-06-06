@@ -321,8 +321,7 @@ class Estimator(BaseEstimator):
 
         result_index = 0
         for _circ_ind, basis_map in exp_map.items():
-            for _basis_ind in range(len(basis_map)):
-                param_vals = basis_map[_basis_ind][1]
+            for _basis_ind, (_, (_, param_vals)) in enumerate(basis_map.items()):
                 if circ_ind == _circ_ind and basis_ind == _basis_ind:
                     result_index += param_vals.index(param_val)
                     return result_index
