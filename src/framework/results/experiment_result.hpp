@@ -15,6 +15,7 @@
 #ifndef _aer_framework_results_experiment_result_hpp_
 #define _aer_framework_results_experiment_result_hpp_
 
+#include "framework/circuit.hpp"
 #include "framework/config.hpp"
 #include "framework/creg.hpp"
 #include "framework/opset.hpp"
@@ -40,6 +41,7 @@ public:
   uint_t shots;
   uint_t seed;
   double time_taken;
+  std::shared_ptr<Circuit> circuit;
 
   // Success and status
   Status status = Status::empty;
