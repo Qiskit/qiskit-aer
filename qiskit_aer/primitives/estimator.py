@@ -364,36 +364,51 @@ class Estimator(BaseEstimator):
     ):
         # Key for cache
         key = (tuple(circuits), tuple(observables), self.approximation)
-        parameter_binds = []
+        parameter_binds = defaultdict(dict)
         shots = run_options.pop("shots", None)
         # Create expectation value experiments.
         if key in self._cache:  # Use a cache
             experiments, experiment_data = self._cache[key]
             for i, j, value in zip(circuits, observables, parameter_values):
                 self._validate_parameter_length(value, i)
-                parameter_binds.append({k: [v] for k, v in zip(self._parameters[i], value)})
+                for k, v in zip(self._parameters[i], value):
+                    if k in parameter_binds[(i, j)]:
+                        parameter_binds[(i, j)][k].append(v)
+                    else:
+                        parameter_binds[(i, j)][k] = [v]
+
         else:
             self._transpile_circuits(circuits)
-            experiments = []
+            experiments = {}
             experiment_data = []
             for i, j, value in zip(circuits, observables, parameter_values):
-                self._validate_parameter_length(value, i)
-                circuit = (
-                    self._circuits[i].copy()
-                    if self._skip_transpilation
-                    else self._transpiled_circuits[i].copy()
-                )
-                observable = self._observables[j]
-                experiment_data.append(observable)
-                if shots is None:
-                    circuit.save_expectation_value(observable, self._layouts[i])
+                if (i, j) not in experiments:
+                    self._validate_parameter_length(value, i)
+                    circuit = (
+                        self._circuits[i].copy()
+                        if self._skip_transpilation
+                        else self._transpiled_circuits[i].copy()
+                    )
+                    observable = self._observables[j]
+                    experiment_data.append(observable)
+                    if shots is None:
+                        circuit.save_expectation_value(observable, self._layouts[i])
+                    else:
+                        for term_ind, pauli in enumerate(observable.paulis):
+                            circuit.save_expectation_value(
+                                pauli, self._layouts[i], label=str(term_ind)
+                            )
+                    experiments[(i, j)] = circuit
+                    parameter_binds[(i, j)] = {k: [v] for k, v in zip(self._parameters[i], value)}
                 else:
-                    for term_ind, pauli in enumerate(observable.paulis):
-                        circuit.save_expectation_value(pauli, self._layouts[i], label=str(term_ind))
-                experiments.append(circuit)
-                parameter_binds.append({k: [v] for k, v in zip(self._parameters[i], value)})
+                    for k, v in zip(self._parameters[i], value):
+                        parameter_binds[(i, j)][k].append(v)
+
             self._cache[key] = (experiments, experiment_data)
         parameter_binds = parameter_binds if any(parameter_binds) else None
+        # TODO
+        experiments = list(experiments.values())
+        parameter_binds = list(parameter_binds.values())
         result = self._backend.run(
             experiments, parameter_binds=parameter_binds, **run_options
         ).result()
@@ -401,9 +416,15 @@ class Estimator(BaseEstimator):
         # Post processing (calculate expectation values)
         if shots is None:
             expectation_values = [result.data(i)["expectation_value"] for i in range(len(circuits))]
-            metadata = [
-                {"simulator_metadata": result.results[i].metadata} for i in range(len(experiments))
-            ]
+            metadata = (
+                [
+                    {"simulator_metadata": result.results[i].metadata}
+                    for i in range(len(experiments))
+                ]
+                * len(expectation_values)
+            )[
+                0 : len(expectation_values)
+            ]  # TOOD: workaround, it returns incorrect metadata now.
         else:
             expectation_values = []
             rng = np.random.default_rng(seed)
