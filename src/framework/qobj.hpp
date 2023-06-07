@@ -46,9 +46,9 @@ public:
   //----------------------------------------------------------------
   // Data
   //----------------------------------------------------------------
-  std::string id;                // qobj identifier passed to result
-  std::string type = "QASM";     // currently we only support QASM
-  std::vector<Circuit> circuits; // List of circuits
+  std::string id;            // qobj identifier passed to result
+  std::string type = "QASM"; // currently we only support QASM
+  std::vector<std::shared_ptr<Circuit>> circuits; // List of circuits
   json_t header;                 // (optional) passed through to result
   json_t config;                 // (optional) qobj level config data
   Noise::NoiseModel noise_model; // (optional) noise model
@@ -132,32 +132,34 @@ Qobj::Qobj(const inputdata_t &input) {
   for (size_t i = 0; i < num_circs; i++) {
     if (param_table.empty() || param_table[i].empty()) {
       // Get base circuit from qobj
-      Circuit circuit(static_cast<inputdata_t>(circs[i]), config, truncation);
+      auto circuit = std::make_shared<Circuit>(
+          static_cast<inputdata_t>(circs[i]), config, truncation);
       // Non parameterized circuit
-      circuits.push_back(std::move(circuit));
+      circuits.push_back(circuit);
     } else {
       // Get base circuit from qobj without truncation
-      Circuit circuit(static_cast<inputdata_t>(circs[i]), config, false);
+      auto circuit = std::make_shared<Circuit>(
+          static_cast<inputdata_t>(circs[i]), config, false);
       // Load different parameterizations of the initial circuit
       const auto circ_params = param_table[i];
       const size_t num_params = circ_params[0].second.size();
-      const size_t num_instr = circuit.ops.size();
+      const size_t num_instr = circuit->ops.size();
       for (size_t j = 0; j < num_params; j++) {
         // Make a copy of the initial circuit
-        Circuit param_circuit = circuit;
+        auto param_circuit = std::make_shared<Circuit>(*circuit);
         for (const auto &params : circ_params) {
           const auto instr_pos = params.first.first;
           const auto param_pos = params.first.second;
           // Validation
           if (instr_pos == AER::Config::GLOBAL_PHASE_POS) {
             // negative position is for global phase
-            circuit.global_phase_angle = params.second[j];
+            circuit->global_phase_angle = params.second[j];
           } else {
             if (instr_pos >= num_instr) {
               throw std::invalid_argument(
                   R"(Invalid parameterized qobj: instruction position out of range)");
             }
-            auto &op = param_circuit.ops[instr_pos];
+            auto &op = param_circuit->ops[instr_pos];
             if (param_pos >= op.params.size()) {
               throw std::invalid_argument(
                   R"(Invalid parameterized qobj: instruction param position out of range)");
@@ -176,8 +178,8 @@ Qobj::Qobj(const inputdata_t &input) {
         // instructions, which can be changed in truncation. Therefore, current
         // implementation performs truncation for each parameter set.
         if (truncation)
-          param_circuit.set_params(true);
-        circuits.push_back(std::move(param_circuit));
+          param_circuit->set_params(true);
+        circuits.push_back(param_circuit);
       }
     }
   }
@@ -185,10 +187,10 @@ Qobj::Qobj(const inputdata_t &input) {
   // We shift the seed for each successive experiment
   // So that results aren't correlated between experiments
   if (!has_simulator_seed) {
-    seed = circuits[0].seed;
+    seed = circuits[0]->seed;
   }
   for (auto &circuit : circuits) {
-    circuit.seed = seed + seed_shift;
+    circuit->seed = seed + seed_shift;
     seed_shift += 2113; // Shift the seed
   }
 }
