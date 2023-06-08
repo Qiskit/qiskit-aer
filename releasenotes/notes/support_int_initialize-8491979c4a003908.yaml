@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    :meth:``QuantumCircuit.initialize()`` with `int` value was not processed
+    correctly as reported in `#1821 <https://github.com/Qiskit/qiskit-aer/issues/1821>`.
+    This commit enables such initialization by decomposing initialize instructions.
