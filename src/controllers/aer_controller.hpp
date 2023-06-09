@@ -982,7 +982,7 @@ Result Controller::execute(std::vector<std::shared_ptr<Circuit>> &circuits,
       reg_t avg_seeds(circuits.size());
       for (int_t i = 0; i < circuits.size(); i++)
         seeds[i] = circuits[i]->seed;
-      MPI_Allreduce(seeds.data(), avg_seeds.data(), circuits->size(),
+      MPI_Allreduce(seeds.data(), avg_seeds.data(), circuits.size(),
                     MPI_UINT64_T, MPI_SUM, MPI_COMM_WORLD);
       for (int_t i = 0; i < circuits.size(); i++)
         circuits[i]->seed = avg_seeds[i] / num_processes_;
