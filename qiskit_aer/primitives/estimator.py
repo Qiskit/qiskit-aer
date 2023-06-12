@@ -19,6 +19,7 @@ from __future__ import annotations
 from collections import defaultdict
 from collections.abc import Sequence
 from copy import copy
+from dataclasses import dataclass, field
 from warnings import warn
 
 import numpy as np
@@ -364,11 +365,11 @@ class Estimator(BaseEstimator):
     ):
         # Key for cache
         key = (tuple(circuits), tuple(observables), self.approximation)
-        parameter_binds = defaultdict(dict)
         shots = run_options.pop("shots", None)
+
         # Create expectation value experiments.
         if key in self._cache:  # Use a cache
-            experiments, experiment_data = self._cache[key]
+            parameter_binds = defaultdict(dict)
             for i, j, value in zip(circuits, observables, parameter_values):
                 self._validate_parameter_length(value, i)
                 for k, v in zip(self._parameters[i], value):
@@ -376,21 +377,27 @@ class Estimator(BaseEstimator):
                         parameter_binds[(i, j)][k].append(v)
                     else:
                         parameter_binds[(i, j)][k] = [v]
-
+            experiment_manager = self._cache[key]
+            experiment_manager.parameter_binds = list(parameter_binds.values())
         else:
             self._transpile_circuits(circuits)
-            experiments = {}
-            experiment_data = []
+            experiment_manager = _ExperimentManager()
             for i, j, value in zip(circuits, observables, parameter_values):
-                if (i, j) not in experiments:
+                if (i, j) in experiment_manager.keys:
+                    self._validate_parameter_length(value, i)
+                    experiment_manager.append(
+                        key=(i, j),
+                        parameter_bind=dict(zip(self._parameters[i], value)),
+                    )
+                else:
                     self._validate_parameter_length(value, i)
                     circuit = (
                         self._circuits[i].copy()
                         if self._skip_transpilation
                         else self._transpiled_circuits[i].copy()
                     )
+
                     observable = self._observables[j]
-                    experiment_data.append(observable)
                     if shots is None:
                         circuit.save_expectation_value(observable, self._layouts[i])
                     else:
@@ -398,42 +405,40 @@ class Estimator(BaseEstimator):
                             circuit.save_expectation_value(
                                 pauli, self._layouts[i], label=str(term_ind)
                             )
-                    experiments[(i, j)] = circuit
-                    parameter_binds[(i, j)] = {k: [v] for k, v in zip(self._parameters[i], value)}
-                else:
-                    for k, v in zip(self._parameters[i], value):
-                        parameter_binds[(i, j)][k].append(v)
+                    experiment_manager.append(
+                        key=(i, j),
+                        parameter_bind=dict(zip(self._parameters[i], value)),
+                        experiment_circuit=circuit,
+                    )
 
-            self._cache[key] = (experiments, experiment_data)
-        parameter_binds = parameter_binds if any(parameter_binds) else None
-        # TODO
-        experiments = list(experiments.values())
-        parameter_binds = list(parameter_binds.values())
+            self._cache[key] = experiment_manager
         result = self._backend.run(
-            experiments, parameter_binds=parameter_binds, **run_options
+            experiment_manager.experiment_circuits,
+            parameter_binds=experiment_manager.parameter_binds,
+            **run_options,
         ).result()
 
         # Post processing (calculate expectation values)
         if shots is None:
-            expectation_values = [result.data(i)["expectation_value"] for i in range(len(circuits))]
-            metadata = (
-                [
-                    {"simulator_metadata": result.results[i].metadata}
-                    for i in range(len(experiments))
-                ]
-                * len(expectation_values)
-            )[
-                0 : len(expectation_values)
-            ]  # TOOD: workaround, it returns incorrect metadata now.
+            expectation_values = [
+                result.data(i)["expectation_value"] for i in experiment_manager.experiment_indices
+            ]
+            metadata = [
+                {"simulator_metadata": result.results[i].metadata}
+                for i in experiment_manager.experiment_indices
+            ]
         else:
             expectation_values = []
             rng = np.random.default_rng(seed)
             metadata = []
-            for i in range(len(experiments)):
+            experiment_indices = experiment_manager.experiment_indices
+            for i in range(len(experiment_manager)):
                 combined_expval = 0.0
                 combined_var = 0.0
-                coeffs = np.real_if_close(experiment_data[i].coeffs)
-                for term_ind, expval in result.data(i).items():
+                result_index = experiment_indices[i]
+                observable_key = experiment_manager.get_observable_key(i)
+                coeffs = np.real_if_close(self._observables[observable_key].coeffs)
+                for term_ind, expval in result.data(result_index).items():
                     var = 1 - expval**2
                     coeff = coeffs[int(term_ind)]
                     combined_expval += expval * coeff
@@ -445,7 +450,7 @@ class Estimator(BaseEstimator):
                     {
                         "variance": np.real_if_close(combined_var).item(),
                         "shots": shots,
-                        "simulator_metadata": result.results[i].metadata,
+                        "simulator_metadata": result.results[result_index].metadata,
                     }
                 )
 
@@ -596,3 +601,46 @@ def _paulis2basis(paulis: PauliList) -> Pauli:
             np.logical_or.reduce(paulis.x),  # pylint:disable=no-member
         )
     )
+
+
+@dataclass(slots=True)
+class _ExperimentManager:
+    keys: list[tuple[int, int]] = field(default_factory=list)
+    experiment_circuits: list[QuantumCircuit] = field(default_factory=list)
+    parameter_binds: list[dict[ParameterExpression, list[float]]] = field(default_factory=list)
+    _input_indices: list[list[int]] = field(default_factory=list)
+    _num_experiment: int = 0
+
+    def __len__(self):
+        return self._num_experiment
+
+    @property
+    def experiment_indices(self):
+        return sum(self._input_indices, [])
+
+    def append(
+        self,
+        key: tuple[int, int],
+        parameter_bind: dict[ParameterExpression, float],
+        experiment_circuit: QuantumCircuit | None = None,
+    ):
+        if experiment_circuit is not None:
+            self.experiment_circuits.append(experiment_circuit)
+
+        if key in self.keys:
+            key_index = self.keys.index(key)
+            for k, vs in self.parameter_binds[key_index].items():
+                vs.append(parameter_bind[k])
+            self._input_indices[key_index].append(self._num_experiment)
+        else:
+            self.keys.append(key)
+            self.parameter_binds.append({k: [v] for k, v in parameter_bind.items()})
+            self._input_indices.append([self._num_experiment])
+
+        self._num_experiment += 1
+
+    def get_observable_key(self, index):
+        for i, inputs in enumerate(self._input_indices):
+            if index in inputs:
+                return self.keys[i][1]
+        raise AerError("Unexpected behavior.")
