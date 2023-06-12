@@ -95,7 +95,9 @@ class AerCompiler:
             return circ
 
         for inst, _, _ in circ.data:
-            if isinstance(inst, Initialize) and not isinstance(inst.params[0], complex):
+            if isinstance(inst, Initialize) and (
+                (not isinstance(inst.params[0], complex)) or (len(inst.params) == 1)
+            ):
                 break
         else:
             return circ
@@ -103,7 +105,9 @@ class AerCompiler:
         new_circ = circ.copy()
         new_circ.data = []
         for inst, qargs, cargs in circ.data:
-            if isinstance(inst, Initialize) and not isinstance(inst.params[0], complex):
+            if isinstance(inst, Initialize) and (
+                (not isinstance(inst.params[0], complex)) or (len(inst.params) == 1)
+            ):
                 # Assume that the decomposed circuit of inst.definition consists of basis gates
                 new_circ.compose(inst.definition.decompose(), qargs, cargs, inplace=True)
             else:
