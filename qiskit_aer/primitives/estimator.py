@@ -19,11 +19,10 @@ from __future__ import annotations
 from collections import defaultdict
 from collections.abc import Sequence
 from copy import copy
-from dataclasses import dataclass, field
 from warnings import warn
 
 import numpy as np
-from qiskit.circuit import QuantumCircuit
+from qiskit.circuit import ParameterExpression, QuantumCircuit
 from qiskit.compiler import transpile
 from qiskit.opflow import PauliSumOp
 from qiskit.primitives import BaseEstimator, EstimatorResult
@@ -603,19 +602,20 @@ def _paulis2basis(paulis: PauliList) -> Pauli:
     )
 
 
-@dataclass(slots=True)
 class _ExperimentManager:
-    keys: list[tuple[int, int]] = field(default_factory=list)
-    experiment_circuits: list[QuantumCircuit] = field(default_factory=list)
-    parameter_binds: list[dict[ParameterExpression, list[float]]] = field(default_factory=list)
-    _input_indices: list[list[int]] = field(default_factory=list)
-    _num_experiment: int = 0
+    def __init__(self):
+        self.keys: list[tuple[int, int]] = []
+        self.experiment_circuits: list[QuantumCircuit] = []
+        self.parameter_binds: list[dict[ParameterExpression, list[float]]] = []
+        self._input_indices: list[list[int]] = []
+        self._num_experiment: int = 0
 
     def __len__(self):
         return self._num_experiment
 
     @property
     def experiment_indices(self):
+        """indices of experiments"""
         return sum(self._input_indices, [])
 
     def append(
@@ -624,6 +624,7 @@ class _ExperimentManager:
         parameter_bind: dict[ParameterExpression, float],
         experiment_circuit: QuantumCircuit | None = None,
     ):
+        """append experiments"""
         if experiment_circuit is not None:
             self.experiment_circuits.append(experiment_circuit)
 
@@ -640,6 +641,7 @@ class _ExperimentManager:
         self._num_experiment += 1
 
     def get_observable_key(self, index):
+        """return key of observables"""
         for i, inputs in enumerate(self._input_indices):
             if index in inputs:
                 return self.keys[i][1]
