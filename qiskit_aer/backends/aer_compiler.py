@@ -582,9 +582,6 @@ def assemble_circuit(circuit: QuantumCircuit):
         global_phase=global_phase,
     )
 
-    if circuit.metadata is not None:
-        header.metadata = circuit.metadata
-
     qubit_indices = {qubit: idx for idx, qubit in enumerate(circuit.qubits)}
     clbit_indices = {clbit: idx for idx, clbit in enumerate(circuit.clbits)}
 

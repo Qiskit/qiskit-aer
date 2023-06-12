@@ -85,8 +85,8 @@ public:
   template <typename inputdata_t>
   Result execute(const inputdata_t &qobj);
 
-  Result execute(std::vector<Circuit> &circuits, Noise::NoiseModel &noise_model,
-                 const Config &config);
+  Result execute(std::vector<std::shared_ptr<Circuit>> &circuits,
+                 Noise::NoiseModel &noise_model, const Config &config);
 
   //-----------------------------------------------------------------------
   // Config settings
@@ -262,7 +262,7 @@ protected:
   // The noise model will be modified to enable superop or kraus sampling
   // methods if required by the chosen methods.
   std::vector<Controller::Method>
-  simulation_methods(std::vector<Circuit> &circuits,
+  simulation_methods(std::vector<std::shared_ptr<Circuit>> &circuits,
                      Noise::NoiseModel &noise_model) const;
 
   // Return the simulation method to use based on the input circuit
@@ -297,9 +297,9 @@ protected:
   void clear_parallelization();
 
   // Set parallelization for experiments
-  void set_parallelization_experiments(const std::vector<Circuit> &circuits,
-                                       const Noise::NoiseModel &noise,
-                                       const std::vector<Method> &methods);
+  void set_parallelization_experiments(
+      const std::vector<std::shared_ptr<Circuit>> &circuits,
+      const Noise::NoiseModel &noise, const std::vector<Method> &methods);
 
   // Set circuit parallelization
   void set_parallelization_circuit(const Circuit &circ,
@@ -573,15 +573,15 @@ void Controller::clear_parallelization() {
 }
 
 void Controller::set_parallelization_experiments(
-    const std::vector<Circuit> &circuits, const Noise::NoiseModel &noise,
-    const std::vector<Method> &methods) {
+    const std::vector<std::shared_ptr<Circuit>> &circuits,
+    const Noise::NoiseModel &noise, const std::vector<Method> &methods) {
   std::vector<size_t> required_memory_mb_list(circuits.size());
   max_qubits_ = 0;
   for (size_t j = 0; j < circuits.size(); j++) {
-    if (circuits[j].num_qubits > max_qubits_)
-      max_qubits_ = circuits[j].num_qubits;
+    if (circuits[j]->num_qubits > max_qubits_)
+      max_qubits_ = circuits[j]->num_qubits;
     required_memory_mb_list[j] =
-        required_memory_mb(circuits[j], noise, methods[j]);
+        required_memory_mb(*circuits[j], noise, methods[j]);
   }
   std::sort(required_memory_mb_list.begin(), required_memory_mb_list.end(),
             std::greater<>());
@@ -897,7 +897,7 @@ Result Controller::execute(const inputdata_t &input_qobj) {
 // Experiment execution
 //-------------------------------------------------------------------------
 
-Result Controller::execute(std::vector<Circuit> &circuits,
+Result Controller::execute(std::vector<std::shared_ptr<Circuit>> &circuits,
                            Noise::NoiseModel &noise_model,
                            const Config &config) {
   // Start QOBJ timer
@@ -919,8 +919,8 @@ Result Controller::execute(std::vector<Circuit> &circuits,
     // check if multi-chunk distribution is required
     bool multi_chunk_required_ = false;
     for (size_t j = 0; j < circuits.size(); j++) {
-      if (circuits[j].num_qubits > 0) {
-        if (multiple_chunk_required(circuits[j], noise_model, methods[j]))
+      if (circuits[j]->num_qubits > 0) {
+        if (multiple_chunk_required(*circuits[j], noise_model, methods[j]))
           multi_chunk_required_ = true;
       }
     }
@@ -981,11 +981,11 @@ Result Controller::execute(std::vector<Circuit> &circuits,
       reg_t seeds(circuits.size());
       reg_t avg_seeds(circuits.size());
       for (int_t i = 0; i < circuits.size(); i++)
-        seeds[i] = circuits[i].seed;
+        seeds[i] = circuits[i]->seed;
       MPI_Allreduce(seeds.data(), avg_seeds.data(), circuits.size(),
                     MPI_UINT64_T, MPI_SUM, MPI_COMM_WORLD);
       for (int_t i = 0; i < circuits.size(); i++)
-        circuits[i].seed = avg_seeds[i] / num_processes_;
+        circuits[i]->seed = avg_seeds[i] / num_processes_;
     }
 #endif
 
@@ -995,14 +995,14 @@ Result Controller::execute(std::vector<Circuit> &circuits,
     // in #pragma omp)
     if (parallel_experiments_ == 1) {
       for (int j = 0; j < NUM_RESULTS; ++j) {
-        set_parallelization_circuit(circuits[j], noise_model, methods[j]);
-        run_circuit(circuits[j], noise_model, methods[j], config,
+        set_parallelization_circuit(*circuits[j], noise_model, methods[j]);
+        run_circuit(*circuits[j], noise_model, methods[j], config,
                     result.results[j]);
       }
     } else {
 #pragma omp parallel for num_threads(parallel_experiments_)
       for (int j = 0; j < NUM_RESULTS; ++j) {
-        run_circuit(circuits[j], noise_model, methods[j], config,
+        run_circuit(*circuits[j], noise_model, methods[j], config,
                     result.results[j]);
       }
     }
@@ -1844,7 +1844,7 @@ void Controller::measure_sampler(InputIterator first_meas,
 //-------------------------------------------------------------------------
 
 std::vector<Controller::Method>
-Controller::simulation_methods(std::vector<Circuit> &circuits,
+Controller::simulation_methods(std::vector<std::shared_ptr<Circuit>> &circuits,
                                Noise::NoiseModel &noise_model) const {
   // Does noise model contain kraus noise
   bool kraus_noise =
@@ -1856,7 +1856,8 @@ Controller::simulation_methods(std::vector<Circuit> &circuits,
     std::vector<Method> sim_methods;
     bool superop_enabled = false;
     bool kraus_enabled = false;
-    for (const auto &circ : circuits) {
+    for (const auto &_circ : circuits) {
+      const auto circ = *_circ;
       auto method = automatic_simulation_method(circ, noise_model);
       sim_methods.push_back(method);
       if (!superop_enabled &&
@@ -1886,7 +1887,7 @@ Controller::simulation_methods(std::vector<Circuit> &circuits,
   } else if (method_ == Method::tensor_network) {
     bool has_save_statevec = false;
     for (const auto &circ : circuits) {
-      has_save_statevec |= has_statevector_ops(circ);
+      has_save_statevec |= has_statevector_ops(*circ);
       if (has_save_statevec)
         break;
     }
