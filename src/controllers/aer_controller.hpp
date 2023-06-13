@@ -146,8 +146,9 @@ protected:
   // circuit and noise model.
   // The noise model will be modified to enable superop or kraus sampling
   // methods if required by the chosen methods.
-  std::vector<Method> simulation_methods(std::vector<std::shared_ptr<Circuit>> &circuits,
-                                         Noise::NoiseModel &noise_model) const;
+  std::vector<Method>
+  simulation_methods(std::vector<std::shared_ptr<Circuit>> &circuits,
+                     Noise::NoiseModel &noise_model) const;
 
   // Return the simulation method to use based on the input circuit
   // and noise model
@@ -353,8 +354,8 @@ void Controller::clear_parallelization() {
 }
 
 void Controller::set_parallelization_experiments(
-    const std::vector<std::shared_ptr<Circuit>> &circuits, const Noise::NoiseModel &noise,
-    const std::vector<Method> &methods) {
+    const std::vector<std::shared_ptr<Circuit>> &circuits,
+    const Noise::NoiseModel &noise, const std::vector<Method> &methods) {
   if (explicit_parallelization_)
     return;
 
