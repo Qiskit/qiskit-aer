@@ -106,21 +106,26 @@ def basic_device_gate_errors(
     Args:
         properties (BackendProperties): device backend properties.
         gate_error (bool): Include depolarizing gate errors (Default: True).
-        thermal_relaxation (Bool): Include thermal relaxation errors
-                                   (Default: True).
+        thermal_relaxation (Bool): Include thermal relaxation errors (Default: True).
+                If no ``t1`` and ``t2`` values are provided (i.e. None) in ``target`` for a qubit,
+                an identity ``QuantumError` (i.e. effectively no thermal relaxation error)
+                will be added to the qubit even if this flag is set to True.
+                If no ``frequency`` is not defined (i.e. None) in ``target`` for a qubit,
+                no excitation is considered in the thermal relaxation error on the qubit
+                even with non-zero ``temperature``.
         gate_lengths (list): Override device gate times with custom
                              values. If None use gate times from
                              backend properties. (Default: None).
-        gate_length_units (str): Time units for gate length values in gate_lengths.
+        gate_length_units (str): Time units for gate length values in ``gate_lengths``.
                                  Can be 'ns', 'ms', 'us', or 's' (Default: 'ns').
         temperature (double): qubit temperature in milli-Kelvin (mK)
                               (Default: 0).
         warnings (bool): DEPRECATED, Display warnings (Default: None).
         target (Target): device backend target (Default: None). When this is supplied,
                          several options are disabled:
-                         `properties`, `gate_lengths` and `gate_length_units` are not used
+                         ``properties``, ``gate_lengths`` and ``gate_length_units`` are not used
                          during the construction of gate errors.
-                         Default values are always used for `warnings`.
+                         Default values are always used for ``warnings``.
 
     Returns:
         list: A list of tuples ``(label, qubits, QuantumError)``, for gates
@@ -339,6 +344,10 @@ def _device_thermal_relaxation_error(
     for qubit in qubits:
         t1, t2, freq = relax_params[qubit]
         t2 = _truncate_t2_value(t1, t2)
+        if t1 is None:
+            t1 = inf
+        if t2 is None:
+            t2 = inf
         population = _excited_population(freq, temperature)
         if first:
             error = thermal_relaxation_error(t1, t2, gate_time, population)
@@ -351,14 +360,15 @@ def _device_thermal_relaxation_error(
 
 def _truncate_t2_value(t1, t2):
     """Return t2 value truncated to 2 * t1 (for t2 > 2 * t1)"""
-    new_t2 = t2
-    if t2 > 2 * t1:
-        new_t2 = 2 * t1
-    return new_t2
+    if t1 is None or t2 is None:
+        return t2
+    return min(t2, 2 * t1)
 
 
 def _excited_population(freq, temperature):
     """Return excited state population from freq [GHz] and temperature [mK]."""
+    if freq is None or temperature is None:
+        return 0
     population = 0
     if freq != inf and temperature != 0:
         # Compute the excited state population from qubit frequency and temperature

@@ -44,8 +44,6 @@ project = 'Qiskit Aer'
 copyright = f"2017-{datetime.date.today().year}, Qiskit Development Team"  # pylint: disable=redefined-builtin
 author = 'Qiskit Development Team'
 
-import qiskit_sphinx_theme
-
 # The short X.Y version
 version = '0.13.0'
 # The full version, including alpha/beta/rc tags
@@ -75,6 +73,7 @@ extensions = [
     'matplotlib.sphinxext.plot_directive',
     'sphinx.ext.intersphinx',
     'nbsphinx',
+    "sphinx_design",
     'qiskit_sphinx_theme'
 ]
 
