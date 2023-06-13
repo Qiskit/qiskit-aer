@@ -37,7 +37,7 @@ jobs:
           pip install -U pip virtualenv wheel
           pip install -U tox
           sudo apt-get update
-          sudo apt-get install -y build-essential libopenblas-dev
+          sudo apt-get install -y build-essential libopenblas-dev pandoc
         shell: bash
       - name: Run Docs Build
         run: tox -edocs
@@ -50,7 +50,7 @@ jobs:
     needs: [docs]
     strategy:
       matrix:
-        python-version: [3.7]
+        python-version: [3.8]
     steps:
       - uses: actions/checkout@v2
       - name: Set up Python ${{ matrix.python-version }}

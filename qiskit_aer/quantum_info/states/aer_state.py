@@ -14,6 +14,7 @@ State class that handles internal C++ state safely
 """
 from enum import Enum
 import numpy as np
+
 # pylint: disable=import-error, no-name-in-module
 from qiskit_aer.backends.controller_wrappers import AerStateWrapper
 from ...backends.aerbackend import AerError
@@ -69,57 +70,57 @@ class AerState:
 
     def _assert_initializing(self):
         if self._state != _STATE.INITIALIZING:
-            raise AerError('AerState was already initialized.')
+            raise AerError("AerState was already initialized.")
 
     def _assert_allocated_or_mapped_or_moved(self):
         if self._state == _STATE.INITIALIZING:
-            raise AerError('AerState has not been initialized yet.')
+            raise AerError("AerState has not been initialized yet.")
         if self._state == _STATE.CLOSED:
-            raise AerError('AerState has already been closed.')
+            raise AerError("AerState has already been closed.")
 
     def _assert_allocated_or_mapped(self):
         if self._state == _STATE.INITIALIZING:
-            raise AerError('AerState has not been initialized yet.')
+            raise AerError("AerState has not been initialized yet.")
         if self._state == _STATE.MOVED:
-            raise AerError('AerState has already been moved.')
+            raise AerError("AerState has already been moved.")
         if self._state == _STATE.CLOSED:
-            raise AerError('AerState has already been closed.')
+            raise AerError("AerState has already been closed.")
 
     def _assert_mapped_or_moved(self):
         if self._state == _STATE.INITIALIZING:
-            raise AerError('AerState has not been initialized yet.')
+            raise AerError("AerState has not been initialized yet.")
         if self._state == _STATE.ALLOCATED:
-            raise AerError('AerState has not been moved yet.')
+            raise AerError("AerState has not been moved yet.")
         if self._state == _STATE.CLOSED:
-            raise AerError('AerState has already been closed.')
+            raise AerError("AerState has already been closed.")
 
     def _assert_closed(self):
         if self._state != _STATE.CLOSED:
-            raise AerError('AerState is not closed.')
+            raise AerError("AerState is not closed.")
 
     def _allocated(self):
         if self._state != _STATE.INITIALIZING:
-            raise AerError('unexpected state transition: {self._state}->{_STATE.ALLOCATED}')
+            raise AerError("unexpected state transition: {self._state}->{_STATE.ALLOCATED}")
         self._state = _STATE.ALLOCATED
 
     def _mapped(self):
         if self._state != _STATE.INITIALIZING:
-            raise AerError('unexpected state transition: {self._state}->{_STATE.MAPPED}')
+            raise AerError("unexpected state transition: {self._state}->{_STATE.MAPPED}")
         self._state = _STATE.MAPPED
 
     def _released(self):
         if self._state != _STATE.MAPPED:
-            raise AerError('unexpected state transition: {self._state}->{_STATE.RELEASED}')
+            raise AerError("unexpected state transition: {self._state}->{_STATE.RELEASED}")
         self._state = _STATE.RELEASED
 
     def _moved(self):
         if self._state != _STATE.ALLOCATED:
-            raise AerError('unexpected state transition: {self._state}->{_STATE.MOVED}')
+            raise AerError("unexpected state transition: {self._state}->{_STATE.MOVED}")
         self._state = _STATE.MOVED
 
     def _closed(self):
         if self._state not in (_STATE.MOVED, _STATE.MAPPED, _STATE.RELEASED):
-            raise AerError('unexpected state transition: {self._state}->{_STATE.CLOSED}')
+            raise AerError("unexpected state transition: {self._state}->{_STATE.CLOSED}")
         self._state = _STATE.CLOSED
 
     def configure(self, key, value):
@@ -127,7 +128,7 @@ class AerState:
         self._assert_initializing()
 
         if not isinstance(key, str):
-            raise AerError('AerState is configured with a str key')
+            raise AerError("AerState is configured with a str key")
         if not isinstance(value, str):
             value = str(value)
 
@@ -146,7 +147,7 @@ class AerState:
         self._assert_initializing()
 
         if not self._method:
-            raise AerError('method is not configured yet.')
+            raise AerError("method is not configured yet.")
 
         if data is None:
             self._native_state.initialize()
@@ -155,22 +156,22 @@ class AerState:
         elif isinstance(data, np.ndarray):
             return self._initialize_with_ndarray(data, copy)
         else:
-            raise AerError(f'unsupported init data: {data.__class__}')
+            raise AerError(f"unsupported init data: {data.__class__}")
 
     def _initialize_with_ndarray(self, data, copy):
         if AerState._is_in_use(data) and not copy:
-            raise AerError('another AerState owns this data')
+            raise AerError("another AerState owns this data")
 
         num_of_qubits = int(np.log2(len(data)))
         if len(data) != np.power(2, num_of_qubits):
-            raise AerError('length of init data must be power of two')
+            raise AerError("length of init data must be power of two")
 
         init = False
-        if self._method == 'statevector':
+        if self._method == "statevector":
             init = self._native_state.initialize_statevector(num_of_qubits, data, copy)
-        elif self._method == 'density_matrix':
+        elif self._method == "density_matrix":
             if data.shape != (len(data), len(data)):
-                raise AerError('shape of init data must be a pair of power of two')
+                raise AerError("shape of init data must be a pair of power of two")
             init = self._native_state.initialize_density_matrix(num_of_qubits, data, copy)
 
         if init:
@@ -186,9 +187,9 @@ class AerState:
             self._native_state.initialize()
             if not data.flags.c_contiguous and not data.flags.f_contiguous:
                 data = np.ascontiguousarray(data)
-            if self._method == 'statevector':
+            if self._method == "statevector":
                 self._native_state.apply_initialize(range(num_of_qubits), data)
-            elif self._method == 'density_matrix':
+            elif self._method == "density_matrix":
                 self._native_state.set_density_matrix(range(num_of_qubits), data)
             else:
                 self._native_state.apply_initialize(range(num_of_qubits), data)
@@ -241,7 +242,7 @@ class AerState:
         elif self._state == _STATE.MOVED:
             ret = self._moved_data
         else:
-            if self._method == 'density_matrix':
+            if self._method == "density_matrix":
                 self._moved_data = self._native_state.move_to_matrix()
             else:
                 self._moved_data = self._native_state.move_to_ndarray()
@@ -253,16 +254,16 @@ class AerState:
         """allocate qubits."""
         self._assert_initializing()
         if num_of_qubits <= 0:
-            raise AerError(f'invalid number of qubits: {num_of_qubits}')
+            raise AerError(f"invalid number of qubits: {num_of_qubits}")
         allocated = self._native_state.allocate_qubits(num_of_qubits)
         self._last_qubit = allocated[len(allocated) - 1]
 
     def _assert_in_allocated_qubits(self, qubit):
-        if hasattr(qubit, '__iter__'):
+        if hasattr(qubit, "__iter__"):
             for q in qubit:
                 self._assert_in_allocated_qubits(q)
         elif qubit < 0 or qubit > self._last_qubit:
-            raise AerError(f'invalid qubit: index={qubit}')
+            raise AerError(f"invalid qubit: index={qubit}")
 
     @property
     def num_qubits(self):

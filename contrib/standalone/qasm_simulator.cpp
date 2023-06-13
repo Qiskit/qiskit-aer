@@ -12,7 +12,7 @@
  * that they have been altered from the originals.
  */
 
-//#define DEBUG // Uncomment for verbose debugging output
+// #define DEBUG // Uncomment for verbose debugging output
 #include <cstdio>
 #include <iostream>
 #include <string>
@@ -27,32 +27,28 @@
 /*******************************************************************************
  *
  * EXIT CODES:
- * 
+ *
  * 0: The Qobj was succesfully executed.
  *    Returns full result JSON.
- * 
+ *
  * 1: Command line invalid or Qobj JSON cannot be loaded.
  *    Returns JSON:
  *    {"success": false, "status": "ERROR: Invalid input (error msg)"}
- * 
+ *
  * 2: Qobj failed to load or execute.
  *    Returns JSON:
  *    {"success": false, "status": "ERROR: Failed to execute qobj (error msg)"}
- * 
+ *
  * 3: At least one experiment in Qobj failed to execute successfully.
  *    Returns parial result JSON with failed experiments returning:
  *    "{"success": false, "status": "ERROR: error msg"}
  *
  ******************************************************************************/
 
-enum class CmdArguments {
-  SHOW_VERSION,
-  INPUT_CONFIG,
-  INPUT_DATA
-};
+enum class CmdArguments { SHOW_VERSION, INPUT_CONFIG, INPUT_DATA };
 
-inline CmdArguments parse_cmd_options(const std::string& argv){
-  if(argv == "-v" || argv == "--version")
+inline CmdArguments parse_cmd_options(const std::string &argv) {
+  if (argv == "-v" || argv == "--version")
     return CmdArguments::SHOW_VERSION;
 
   if (argv == "-c" || argv == "--config")
@@ -61,22 +57,20 @@ inline CmdArguments parse_cmd_options(const std::string& argv){
   return CmdArguments::INPUT_DATA;
 }
 
-inline void show_version(){
-  std::cout << "Qiskit Aer: "
-  << AER_MAJOR_VERSION << "."
-  << AER_MINOR_VERSION << "."
-  << AER_PATCH_VERSION << "\n";
+inline void show_version() {
+  std::cout << "Qiskit Aer: " << AER_MAJOR_VERSION << "." << AER_MINOR_VERSION
+            << "." << AER_PATCH_VERSION << "\n";
 }
 
 inline void failed(const std::string &msg, std::ostream &o = std::cout,
-            int indent = -1){
+                   int indent = -1) {
   json_t ret;
   ret["success"] = false;
   ret["status"] = std::string("ERROR: ") + msg;
   o << ret.dump(indent) << std::endl;
 }
 
-inline void usage(const std::string& command, std::ostream &out){
+inline void usage(const std::string &command, std::ostream &out) {
   failed("Invalid command line", out);
   // Print usage message
   std::cerr << "\n\n";
@@ -85,7 +79,8 @@ inline void usage(const std::string& command, std::ostream &out){
   std::cerr << "Usage: \n";
   std::cerr << command << " [-v] [-c <config>] <file>\n";
   std::cerr << "    -v          : Show version\n";
-  std::cerr << "    -c <config> : Configuration file\n";;
+  std::cerr << "    -c <config> : Configuration file\n";
+  ;
   std::cerr << "    file        : qobj file\n";
 }
 
@@ -95,51 +90,51 @@ int main(int argc, char **argv) {
   int indent = 4;
   json_t qobj;
   json_t config;
-  int myrank=0;
+  int myrank = 0;
 
 #ifdef AER_MPI
   int prov;
-  int nprocs=1;
-  MPI_Init_thread(&argc,&argv,MPI_THREAD_MULTIPLE,&prov);
-  MPI_Comm_size(MPI_COMM_WORLD,&nprocs);
-  MPI_Comm_rank(MPI_COMM_WORLD,&myrank);
+  int nprocs = 1;
+  MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &prov);
+  MPI_Comm_size(MPI_COMM_WORLD, &nprocs);
+  MPI_Comm_rank(MPI_COMM_WORLD, &myrank);
 #endif
 
-  if(argc == 1){ // NOLINT
+  if (argc == 1) {                    // NOLINT
     usage(std::string(argv[0]), out); // NOLINT
     return 1;
   }
 
   // Parse command line options
-  for(auto pos = 1UL; pos < static_cast<unsigned int>(argc); ++pos){ // NOLINT
-    auto option = parse_cmd_options(std::string(argv[pos])); // NOLINT
-    switch(option){
-      case CmdArguments::SHOW_VERSION:
-        show_version();
-        return 0;
-      case CmdArguments::INPUT_CONFIG:
-        if (++pos == static_cast<unsigned int>(argc)) {
-          failed("Invalid config (no file is specified.)", out, indent);
-          return 1;
-        }
-        try {
-          config = JSON::load(std::string(argv[pos]));
-        }catch(std::exception &e){
-          std::string msg = "Invalid config (" +  std::string(e.what()) + ")";
-          failed(msg, out, indent);
-          return 1;
-        }
-        break;
-      case CmdArguments::INPUT_DATA:
-        try {
-          qobj = JSON::load(std::string(argv[pos])); // NOLINT
-          pos = argc; //Exit from the loop
-        }catch(std::exception &e){
-          std::string msg = "Invalid input (" +  std::string(e.what()) + ")";
-          failed(msg, out, indent);
-          return 1;
-        }
-        break;
+  for (auto pos = 1UL; pos < static_cast<unsigned int>(argc); ++pos) { // NOLINT
+    auto option = parse_cmd_options(std::string(argv[pos]));           // NOLINT
+    switch (option) {
+    case CmdArguments::SHOW_VERSION:
+      show_version();
+      return 0;
+    case CmdArguments::INPUT_CONFIG:
+      if (++pos == static_cast<unsigned int>(argc)) {
+        failed("Invalid config (no file is specified.)", out, indent);
+        return 1;
+      }
+      try {
+        config = JSON::load(std::string(argv[pos]));
+      } catch (std::exception &e) {
+        std::string msg = "Invalid config (" + std::string(e.what()) + ")";
+        failed(msg, out, indent);
+        return 1;
+      }
+      break;
+    case CmdArguments::INPUT_DATA:
+      try {
+        qobj = JSON::load(std::string(argv[pos])); // NOLINT
+        pos = argc;                                // Exit from the loop
+      } catch (std::exception &e) {
+        std::string msg = "Invalid input (" + std::string(e.what()) + ")";
+        failed(msg, out, indent);
+        return 1;
+      }
+      break;
     }
   }
 
@@ -148,7 +143,7 @@ int main(int argc, char **argv) {
 
     // Check for command line config
     // and if present add to qobj config
-    json_t& config_all = qobj["config"];
+    json_t &config_all = qobj["config"];
     if (!config.empty()) // NOLINT
       config_all.update(config.begin(), config.end());
 
@@ -166,7 +161,7 @@ int main(int argc, char **argv) {
     // Initialize simulator
     AER::Controller sim;
     auto result = sim.execute(qobj).to_json();
-    if(myrank == 0){
+    if (myrank == 0) {
       out << result.dump(4) << std::endl;
     }
 
@@ -179,9 +174,9 @@ int main(int argc, char **argv) {
 #ifdef AER_MPI
       MPI_Finalize();
 #endif
-      if(status == "COMPLETED")
+      if (status == "COMPLETED")
         return 3; // The simulation was was completed unsuccesfully.
-      return 2; // Failed to execute the Qobj
+      return 2;   // Failed to execute the Qobj
     }
   } catch (std::exception &e) {
     std::stringstream msg;

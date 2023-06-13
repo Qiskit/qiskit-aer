@@ -62,6 +62,7 @@ import warnings
 # before loading our simulators, so we force it using this ugly trick
 if platform.system() == "Darwin":
     import numpy as np
+
     np.dot(np.zeros(100), np.zeros(100))
 # ... ¯\_(ツ)_/¯
 

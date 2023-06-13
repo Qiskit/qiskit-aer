@@ -15,12 +15,12 @@ AerSimulator Integration Tests for circuit library standard gates
 
 from ddt import ddt
 from numpy.random import default_rng
-from test.terra.backends.simulator_test_case import (
-    SimulatorTestCase, supported_methods)
+from test.terra.backends.simulator_test_case import SimulatorTestCase, supported_methods
 
 from qiskit import transpile
 import qiskit.quantum_info as qi
 
+# fmt: off
 from qiskit.circuit.library.standard_gates import (
     CXGate, CYGate, CZGate, DCXGate, HGate, IGate, SGate, SXGate, SXdgGate,
     SdgGate, SwapGate, XGate, YGate, ZGate, TGate, TdgGate, iSwapGate, C3XGate,
@@ -111,27 +111,26 @@ class TestGates(SimulatorTestCase):
         backend = self.backend(**options)
 
         gate_cls, num_angles, has_ctrl_qubits = gates_dict[gate]
-        circuits = self.gate_circuits(gate_cls,
-                                      num_angles=num_angles,
-                                      has_ctrl_qubits=has_ctrl_qubits,
-                                      rng=self.RNG)
+        circuits = self.gate_circuits(
+            gate_cls, num_angles=num_angles, has_ctrl_qubits=has_ctrl_qubits, rng=self.RNG
+        )
 
-        label = 'final'
+        label = "final"
         method = backend.options.method
         for circuit in circuits:
-            if method == 'density_matrix':
+            if method == "density_matrix":
                 target = qi.DensityMatrix(circuit)
                 circuit.save_density_matrix(label=label)
                 fidelity_fn = qi.state_fidelity
-            elif method == 'stabilizer':
+            elif method == "stabilizer":
                 target = qi.StabilizerState(qi.Clifford(circuit))
                 circuit.save_stabilizer(label=label)
                 fidelity_fn = qi.process_fidelity
-            elif method == 'unitary':
+            elif method == "unitary":
                 target = qi.Operator(circuit)
                 circuit.save_unitary(label=label)
                 fidelity_fn = qi.process_fidelity
-            elif method == 'superop':
+            elif method == "superop":
                 target = qi.SuperOp(circuit)
                 circuit.save_superop(label=label)
                 fidelity_fn = qi.process_fidelity
@@ -140,11 +139,12 @@ class TestGates(SimulatorTestCase):
                 circuit.save_statevector(label=label)
                 fidelity_fn = qi.state_fidelity
 
-            result = backend.run(transpile(
-                circuit, backend, optimization_level=0), shots=1).result()
+            result = backend.run(
+                transpile(circuit, backend, optimization_level=0), shots=1
+            ).result()
 
             # Check results
-            success = getattr(result, 'success', False)
+            success = getattr(result, "success", False)
             self.assertTrue(success)
             data = result.data(0)
             self.assertIn(label, data)
@@ -153,36 +153,61 @@ class TestGates(SimulatorTestCase):
             self.assertGreater(fidelity, 0.9999)
 
     @supported_methods(
-        ["automatic", "stabilizer", "statevector", "density_matrix", "matrix_product_state",
-         "unitary", "superop", "tensor_network"],
-        CLIFFORD_GATES_DICT)
+        [
+            "automatic",
+            "stabilizer",
+            "statevector",
+            "density_matrix",
+            "matrix_product_state",
+            "unitary",
+            "superop",
+            "tensor_network",
+        ],
+        CLIFFORD_GATES_DICT,
+    )
     def test_clifford_gate(self, method, device, gate):
         """Test Clifford standard gates."""
         self._test_gate(gate, CLIFFORD_GATES_DICT, method=method, device=device)
 
-    @supported_methods(
-        ["statevector", "density_matrix"],
-        CLIFFORD_GATES_DICT)
+    @supported_methods(["statevector", "density_matrix"], CLIFFORD_GATES_DICT)
     def test_clifford_gate_cache_blocking(self, method, device, gate):
         """Test Clifford standard gates."""
-        self._test_gate(gate, CLIFFORD_GATES_DICT, method=method, device=device,
-                        blocking_qubits=2, max_parallel_threads=1)
+        self._test_gate(
+            gate,
+            CLIFFORD_GATES_DICT,
+            method=method,
+            device=device,
+            blocking_qubits=2,
+            max_parallel_threads=1,
+        )
 
     @supported_methods(
-        ["automatic", "statevector", "density_matrix", "matrix_product_state",
-         "unitary", "superop", "tensor_network"],
-        NONCLIFFORD_GATES_DICT)
+        [
+            "automatic",
+            "statevector",
+            "density_matrix",
+            "matrix_product_state",
+            "unitary",
+            "superop",
+            "tensor_network",
+        ],
+        NONCLIFFORD_GATES_DICT,
+    )
     def test_nonclifford_gate(self, method, device, gate):
         """Test non-Clifford standard gates."""
         self._test_gate(gate, NONCLIFFORD_GATES_DICT, method=method, device=device)
 
-    @supported_methods(
-        ["statevector", "density_matrix"],
-        NONCLIFFORD_GATES_DICT)
+    @supported_methods(["statevector", "density_matrix"], NONCLIFFORD_GATES_DICT)
     def test_nonclifford_gate_cache_blocking(self, method, device, gate):
         """Test non-Clifford standard gates."""
-        self._test_gate(gate, NONCLIFFORD_GATES_DICT, method=method, device=device,
-                        blocking_qubits=2, max_parallel_threads=1)
+        self._test_gate(
+            gate,
+            NONCLIFFORD_GATES_DICT,
+            method=method,
+            device=device,
+            blocking_qubits=2,
+            max_parallel_threads=1,
+        )
 
     @supported_methods(["automatic", "statevector", "unitary", "tensor_network"], MC_GATES_DICT)
     def test_multictrl_gate(self, method, device, gate):
@@ -192,5 +217,11 @@ class TestGates(SimulatorTestCase):
     @supported_methods(["statevector"], MC_GATES_DICT)
     def test_multictrl_gate_cache_blocking(self, method, device, gate):
         """Test multi-controlled standard gates."""
-        self._test_gate(gate, MC_GATES_DICT, method=method, device=device,
-                        blocking_qubits=2, max_parallel_threads=1)
+        self._test_gate(
+            gate,
+            MC_GATES_DICT,
+            method=method,
+            device=device,
+            blocking_qubits=2,
+            max_parallel_threads=1,
+        )

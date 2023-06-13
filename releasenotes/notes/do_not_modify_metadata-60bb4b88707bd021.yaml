@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Previously :class:`~.AerSimulator` modifies circuit metadata to maintain
+    consistency between input and output of simulation with side effect of
+    unexpected view of metadata from applicatiln in simiulation. This fix
+    avoids using circuit metadata to maintain consistency internaly and then
+    always provides consistent view of metadata to application.

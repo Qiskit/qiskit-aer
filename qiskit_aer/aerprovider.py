@@ -30,35 +30,38 @@ class AerProvider(Provider):
 
     _BACKENDS = None
 
-    def __init__(self):
+    @staticmethod
+    def _get_backends():
         if AerProvider._BACKENDS is None:
             # Populate the list of Aer simulator backends.
             methods = AerSimulator().available_methods()
             devices = AerSimulator().available_devices()
             backends = []
             for method in methods:
-                name = 'aer_simulator'
-                if method not in [None, 'automatic']:
-                    name += f'_{method}'
-                device_name = 'CPU'
+                name = "aer_simulator"
+                if method not in [None, "automatic"]:
+                    name += f"_{method}"
+                device_name = "CPU"
                 backends.append((name, AerSimulator, method, device_name))
 
                 # Add GPU device backends
-                if method in ['statevector', 'density_matrix', 'unitary']:
+                if method in ["statevector", "density_matrix", "unitary"]:
                     for device in devices:
-                        if device != 'CPU':
-                            new_name = f'{name}_{device}'.lower()
+                        if device != "CPU":
+                            new_name = f"{name}_{device}".lower()
                             device_name = device
                             backends.append((new_name, AerSimulator, method, device_name))
 
             # Add legacy backend names
             backends += [
-                ('qasm_simulator', QasmSimulator, None, None),
-                ('statevector_simulator', StatevectorSimulator, None, None),
-                ('unitary_simulator', UnitarySimulator, None, None),
-                ('pulse_simulator', PulseSimulator, None, None)
+                ("qasm_simulator", QasmSimulator, None, None),
+                ("statevector_simulator", StatevectorSimulator, None, None),
+                ("unitary_simulator", UnitarySimulator, None, None),
+                ("pulse_simulator", PulseSimulator, None, None),
             ]
             AerProvider._BACKENDS = backends
+
+        return AerProvider._BACKENDS
 
     def get_backend(self, name=None, **kwargs):
         if name == "pulse_simulator":
@@ -76,15 +79,18 @@ class AerProvider(Provider):
         # Instantiate a new backend instance so if config options
         # are set they will only last as long as that backend object exists
         backends = []
-        for backend_name, backend_cls, method, device in self._BACKENDS:
-            opts = {'provider': self}
+
+        # pylint: disable=not-an-iterable
+        # pylint infers _get_backends to always return None
+        for backend_name, backend_cls, method, device in self._get_backends():
+            opts = {"provider": self}
             if method is not None:
-                opts['method'] = method
+                opts["method"] = method
             if device is not None:
-                opts['device'] = device
+                opts["device"] = device
             if name is None or backend_name == name:
                 backends.append(backend_cls(**opts))
         return filter_backends(backends, filters=filters)
 
     def __str__(self):
-        return 'AerProvider'
+        return "AerProvider"

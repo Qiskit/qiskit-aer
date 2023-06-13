@@ -17,10 +17,9 @@ from qiskit import QuantumCircuit
 from test.terra.reference import ref_initialize
 
 import numpy as np
-from test.terra.backends.simulator_test_case import (
-    SimulatorTestCase, supported_methods)
+from test.terra.backends.simulator_test_case import SimulatorTestCase, supported_methods
 
-SUPPORTED_METHODS = ['automatic', 'statevector', 'matrix_product_state', 'tensor_network']
+SUPPORTED_METHODS = ["automatic", "statevector", "matrix_product_state", "tensor_network"]
 
 
 @ddt
@@ -35,7 +34,7 @@ class TestInitialize(SimulatorTestCase):
         """Test AerSimulator initialize"""
         backend = self.backend(method=method, device=device)
         shots = 100
-        if 'tensor_network' in method:
+        if "tensor_network" in method:
             shots = 10
         lst = [0, 1]
         init_states = [
@@ -43,12 +42,16 @@ class TestInitialize(SimulatorTestCase):
             np.array(lst, dtype=float),
             np.array(lst, dtype=np.float32),
             np.array(lst, dtype=complex),
-            np.array(lst, dtype=np.complex64) ]
+            np.array(lst, dtype=np.complex64),
+        ]
         circuits = []
-        [ circuits.extend(ref_initialize.initialize_circuits_w_1(init_state)) for init_state in init_states ]
+        [
+            circuits.extend(ref_initialize.initialize_circuits_w_1(init_state))
+            for init_state in init_states
+        ]
         result = backend.run(circuits, shots=shots).result()
         self.assertSuccess(result)
- 
+
     # ---------------------------------------------------------------------
     # Test initialize instr make it through the wrapper
     # ---------------------------------------------------------------------
@@ -57,7 +60,7 @@ class TestInitialize(SimulatorTestCase):
         """Test AerSimulator initialize"""
         backend = self.backend(method=method, device=device)
         shots = 100
-        if 'tensor_network' in method:
+        if "tensor_network" in method:
             shots = 10
         lst = [0, 1, 0, 0]
         init_states = [
@@ -65,9 +68,13 @@ class TestInitialize(SimulatorTestCase):
             np.array(lst, dtype=float),
             np.array(lst, dtype=np.float32),
             np.array(lst, dtype=complex),
-            np.array(lst, dtype=np.complex64) ]
+            np.array(lst, dtype=np.complex64),
+        ]
         circuits = []
-        [ circuits.extend(ref_initialize.initialize_circuits_w_2(init_state)) for init_state in init_states ]
+        [
+            circuits.extend(ref_initialize.initialize_circuits_w_2(init_state))
+            for init_state in init_states
+        ]
         result = backend.run(circuits, shots=shots).result()
         self.assertSuccess(result)
 
@@ -81,10 +88,10 @@ class TestInitialize(SimulatorTestCase):
         # For statevector output we can combine deterministic and non-deterministic
         # count output circuits
         shots = 1000
-        delta=0.05
-        if 'tensor_network' in method:
+        delta = 0.05
+        if "tensor_network" in method:
             shots = 50
-            delta=0.2
+            delta = 0.2
         circuits = ref_initialize.initialize_circuits_1(final_measure=True)
         targets = ref_initialize.initialize_counts_1(shots)
         result = backend.run(circuits, shots=shots).result()
@@ -98,10 +105,10 @@ class TestInitialize(SimulatorTestCase):
         # For statevector output we can combine deterministic and non-deterministic
         # count output circuits
         shots = 1000
-        delta=0.05
-        if 'tensor_network' in method:
+        delta = 0.05
+        if "tensor_network" in method:
             shots = 50
-            delta=0.2
+            delta = 0.2
         circuits = ref_initialize.initialize_circuits_2(final_measure=True)
         targets = ref_initialize.initialize_counts_2(shots)
         result = backend.run(circuits, shots=shots).result()
@@ -113,10 +120,10 @@ class TestInitialize(SimulatorTestCase):
         """Test sampling optimization"""
         backend = self.backend(method=method, device=device)
         shots = 1000
-        delta=0.05
-        if 'tensor_network' in method:
+        delta = 0.05
+        if "tensor_network" in method:
             shots = 50
-            delta=0.2
+            delta = 0.2
         circuits = ref_initialize.initialize_sampling_optimization()
         targets = ref_initialize.initialize_counts_sampling_optimization(shots)
         result = backend.run(circuits, shots=shots).result()
@@ -128,10 +135,10 @@ class TestInitialize(SimulatorTestCase):
         """Test initialize entangled qubits"""
         backend = self.backend(method=method, device=device)
         shots = 1000
-        delta=0.05
-        if 'tensor_network' in method:
+        delta = 0.05
+        if "tensor_network" in method:
             shots = 50
-            delta=0.2
+            delta = 0.2
         circuits = ref_initialize.initialize_entangled_qubits()
         targets = ref_initialize.initialize_counts_entangled_qubits(shots)
         result = backend.run(circuits, shots=shots).result()
@@ -150,7 +157,7 @@ class TestInitialize(SimulatorTestCase):
         circuit.measure_all()
         result = backend.run(circuit, shots=shots).result()
         self.assertSuccess(result)
-        sampling = result.results[0].metadata.get('measure_sampling', None)
+        sampling = result.results[0].metadata.get("measure_sampling", None)
         self.assertTrue(sampling)
 
     @supported_methods(SUPPORTED_METHODS)
@@ -164,7 +171,7 @@ class TestInitialize(SimulatorTestCase):
         circuit.measure_all()
         result = backend.run(circuit, shots=shots).result()
         self.assertSuccess(result)
-        sampling = result.results[0].metadata.get('measure_sampling', None)
+        sampling = result.results[0].metadata.get("measure_sampling", None)
         self.assertFalse(sampling)
 
     @supported_methods(SUPPORTED_METHODS)
@@ -173,9 +180,9 @@ class TestInitialize(SimulatorTestCase):
         backend = self.backend(method=method, device=device)
 
         circ = QuantumCircuit(4)
-        circ.initialize('+-rl')
+        circ.initialize("+-rl")
         circ.save_statevector()
-        if 'tensor_network' in method:
+        if "tensor_network" in method:
             actual = backend.run(circ, shots=50).result().get_statevector(circ)
         else:
             actual = backend.run(circ).result().get_statevector(circ)
@@ -184,5 +191,36 @@ class TestInitialize(SimulatorTestCase):
             for q3, p3 in enumerate([1, -1]):
                 for q2, p2 in enumerate([1, 1j]):
                     for q1, p1 in enumerate([1, -1j]):
-                        index = int('{}{}{}{}'.format(q4, q3, q2, q1), 2)
-                        self.assertAlmostEqual(actual[index], 0.25*p1*p2*p3*p4)
+                        index = int("{}{}{}{}".format(q4, q3, q2, q1), 2)
+                        self.assertAlmostEqual(actual[index], 0.25 * p1 * p2 * p3 * p4)
+
+    @supported_methods(SUPPORTED_METHODS)
+    def test_initialize_with_int(self, method, device):
+        """Test sampling with int"""
+        backend = self.backend(method=method, device=device)
+
+        circ = QuantumCircuit(4)
+        circ.initialize(5, [0, 1, 2])
+        circ.save_statevector()
+        if "tensor_network" in method:
+            actual = backend.run(circ, shots=50).result().get_statevector(circ)
+        else:
+            actual = backend.run(circ).result().get_statevector(circ)
+
+        self.assertAlmostEqual(actual[5], 1)
+
+    @supported_methods(SUPPORTED_METHODS)
+    def test_initialize_with_int_twice(self, method, device):
+        """Test sampling with int twice"""
+        backend = self.backend(method=method, device=device)
+
+        circ = QuantumCircuit(4)
+        circ.initialize(1, [0])
+        circ.initialize(1, [2])
+        circ.save_statevector()
+        if "tensor_network" in method:
+            actual = backend.run(circ, shots=50).result().get_statevector(circ)
+        else:
+            actual = backend.run(circ).result().get_statevector(circ)
+
+        self.assertAlmostEqual(actual[5], 1)

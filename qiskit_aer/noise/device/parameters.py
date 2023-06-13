@@ -17,8 +17,8 @@ Functions to extract device error parameters from backend properties.
 from numpy import inf
 
 # Time and frequency unit conversions
-_NANOSECOND_UNITS = {'s': 1e9, 'ms': 1e6, 'µs': 1e3, 'us': 1e3, 'ns': 1}
-_GHZ_UNITS = {'Hz': 1e-9, 'KHz': 1e-6, 'MHz': 1e-3, 'GHz': 1, 'THz': 1e3}
+_NANOSECOND_UNITS = {"s": 1e9, "ms": 1e6, "µs": 1e3, "us": 1e3, "ns": 1}
+_GHZ_UNITS = {"Hz": 1e-9, "KHz": 1e-6, "MHz": 1e-3, "GHz": 1, "THz": 1e3}
 
 
 def gate_param_values(properties):
@@ -39,16 +39,16 @@ def gate_param_values(properties):
         qubits = gate.qubits
         # Check for gate time information
         gate_length = None  # default value
-        time_param = _check_for_item(gate.parameters, 'gate_length')
-        if hasattr(time_param, 'value'):
+        time_param = _check_for_item(gate.parameters, "gate_length")
+        if hasattr(time_param, "value"):
             gate_length = time_param.value
-            if hasattr(time_param, 'unit'):
+            if hasattr(time_param, "unit"):
                 # Convert gate time to ns
                 gate_length *= _NANOSECOND_UNITS.get(time_param.unit, 1)
         # Check for gate error information
         gate_error = None  # default value
-        error_param = _check_for_item(gate.parameters, 'gate_error')
-        if hasattr(error_param, 'value'):
+        error_param = _check_for_item(gate.parameters, "gate_error")
+        if hasattr(error_param, "value"):
             gate_error = error_param.value
         values.append((name, qubits, gate_length, gate_error))
 
@@ -72,8 +72,8 @@ def gate_error_values(properties):
         name = gate.gate
         qubits = gate.qubits
         value = None  # default value
-        params = _check_for_item(gate.parameters, 'gate_error')
-        if hasattr(params, 'value'):
+        params = _check_for_item(gate.parameters, "gate_error")
+        if hasattr(params, "value"):
             value = params.value
         values.append((name, qubits, value))
     return values
@@ -98,10 +98,10 @@ def gate_length_values(properties):
         name = gate.gate
         qubits = gate.qubits
         value = None  # default value
-        params = _check_for_item(gate.parameters, 'gate_length')
-        if hasattr(params, 'value'):
+        params = _check_for_item(gate.parameters, "gate_length")
+        if hasattr(params, "value"):
             value = params.value
-            if hasattr(params, 'unit'):
+            if hasattr(params, "unit"):
                 # Convert gate time to ns
                 value *= _NANOSECOND_UNITS.get(params.unit, 1)
         values.append((name, qubits, value))
@@ -124,13 +124,13 @@ def readout_error_values(properties):
     for qubit_props in properties.qubits:
         value = None  # default value
 
-        params_roerror = _check_for_item(qubit_props, 'readout_error')
-        params_m1p0 = _check_for_item(qubit_props, 'prob_meas1_prep0')
-        params_m0p1 = _check_for_item(qubit_props, 'prob_meas0_prep1')
+        params_roerror = _check_for_item(qubit_props, "readout_error")
+        params_m1p0 = _check_for_item(qubit_props, "prob_meas1_prep0")
+        params_m0p1 = _check_for_item(qubit_props, "prob_meas0_prep1")
 
-        if hasattr(params_m1p0, 'value') and hasattr(params_m0p1, 'value'):
+        if hasattr(params_m1p0, "value") and hasattr(params_m0p1, "value"):
             value = [params_m1p0.value, params_m0p1.value]
-        elif hasattr(params_roerror, 'value'):
+        elif hasattr(params_roerror, "value"):
             value = [params_roerror.value, params_roerror.value]
         values.append(value)
     return values
@@ -161,24 +161,24 @@ def thermal_relaxation_values(properties):
         t1, t2, freq = inf, inf, inf
 
         # Get the readout error value
-        t1_params = _check_for_item(qubit_props, 'T1')
-        t2_params = _check_for_item(qubit_props, 'T2')
-        freq_params = _check_for_item(qubit_props, 'frequency')
+        t1_params = _check_for_item(qubit_props, "T1")
+        t2_params = _check_for_item(qubit_props, "T2")
+        freq_params = _check_for_item(qubit_props, "frequency")
 
         # Load values from parameters
-        if hasattr(t1_params, 'value'):
+        if hasattr(t1_params, "value"):
             t1 = t1_params.value
-            if hasattr(t1_params, 'unit'):
+            if hasattr(t1_params, "unit"):
                 # Convert to nanoseconds
                 t1 *= _NANOSECOND_UNITS.get(t1_params.unit, 1)
-        if hasattr(t2_params, 'value'):
+        if hasattr(t2_params, "value"):
             t2 = t2_params.value
-            if hasattr(t2_params, 'unit'):
+            if hasattr(t2_params, "unit"):
                 # Convert to nanoseconds
                 t2 *= _NANOSECOND_UNITS.get(t2_params.unit, 1)
-        if hasattr(freq_params, 'value'):
+        if hasattr(freq_params, "value"):
             freq = freq_params.value
-            if hasattr(freq_params, 'unit'):
+            if hasattr(freq_params, "unit"):
                 # Convert to Gigahertz
                 freq *= _GHZ_UNITS.get(freq_params.unit, 1)
 

@@ -17,8 +17,7 @@
 
 #include "json.hpp"
 
-
-namespace AER{
+namespace AER {
 // This structure is to avoid overload resolving to the wron function,
 // as py::objects can always be implicitly converted to json, though
 // can break at runtime, or even worse trasnform to json and then to c++
@@ -28,61 +27,57 @@ struct Parser {};
 
 template <>
 struct Parser<json_t> {
-    Parser() = delete;
+  Parser() = delete;
 
-    template <typename T>
-    static bool get_value(T &var, const std::string& key, const json_t &js){
-        return JSON::get_value(var, key, js);
+  template <typename T>
+  static bool get_value(T &var, const std::string &key, const json_t &js) {
+    return JSON::get_value(var, key, js);
+  }
+
+  static bool check_key(const std::string &key, const json_t &js) {
+    return JSON::check_key(key, js);
+  }
+
+  static const json_t &get_value(const std::string &key, const json_t &js) {
+    return JSON::get_value(key, js);
+  }
+
+  static bool check_keys(const std::vector<std::string> &keys,
+                         const json_t &js) {
+    return JSON::check_keys(keys, js);
+  }
+
+  static bool is_array(const json_t &js) { return js.is_array(); }
+
+  static bool is_array(const std::string &key, const json_t &js) {
+    return js[key].is_array();
+  }
+
+  static const json_t &get_as_list(const json_t &js) {
+    if (!is_array(js)) {
+      throw std::runtime_error("Object is not a list!");
     }
+    return js;
+  }
 
-    static bool check_key(const std::string& key, const json_t &js){
-        return JSON::check_key(key, js);
+  static const json_t &get_list(const std::string &key, const json_t &js) {
+    if (!is_array(key, js)) {
+      throw std::runtime_error("Object " + key + "is not a list!");
     }
+    return JSON::get_value(key, js);
+  }
 
-    static const json_t& get_value(const std::string& key, const json_t &js){
-        return JSON::get_value(key, js);
-    }
+  static bool is_number(const std::string &key, const json_t &js) {
+    return js[key].is_number();
+  }
 
-    static bool check_keys(const std::vector<std::string>& keys, const json_t &js) {
-        return JSON::check_keys(keys, js);
-    }
+  static std::string dump(const json_t &js) { return js.dump(); }
 
-    static bool is_array(const json_t &js){
-        return js.is_array();
-    }
-
-    static bool is_array(const std::string& key, const json_t &js){
-        return js[key].is_array();
-    }
-
-    static const json_t& get_as_list(const json_t& js){
-        if(!is_array(js)){
-            throw std::runtime_error("Object is not a list!");
-        }
-        return js;
-    }
-
-    static const json_t& get_list(const std::string& key, const json_t &js){
-        if(!is_array(key, js)){
-            throw std::runtime_error("Object " + key + "is not a list!");
-        }
-        return JSON::get_value(key, js);
-    }
-
-
-    static bool is_number(const std::string& key, const json_t &js){
-        return js[key].is_number();
-    }
-
-    static std::string dump(const json_t& js){
-        return js.dump();
-    }
-
-    template <typename T>
-    static T get_list_elem(const json_t& js, unsigned int i){
-        return js[i];
-    }
+  template <typename T>
+  static T get_list_elem(const json_t &js, unsigned int i) {
+    return js[i];
+  }
 };
-}
+} // namespace AER
 
 #endif // _aer_framework_json_parser_hpp_

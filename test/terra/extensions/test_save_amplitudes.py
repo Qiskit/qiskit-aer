@@ -27,40 +27,40 @@ class TestSaveAmplitudes(QiskitAerTestCase):
 
     def test_invalid_state_raises(self):
         """Test non-Hermitian op raises exception."""
-        self.assertRaises(ExtensionError, lambda: SaveAmplitudes(2, [4], 'key'))
+        self.assertRaises(ExtensionError, lambda: SaveAmplitudes(2, [4], "key"))
 
     def test_default_kwarg(self):
         """Test default kwargs"""
-        key = 'test_key'
+        key = "test_key"
         instr = SaveAmplitudes(2, [0], key)
-        self.assertEqual(instr.name, 'save_amplitudes')
+        self.assertEqual(instr.name, "save_amplitudes")
         self.assertEqual(instr._label, key)
-        self.assertEqual(instr._subtype, 'single')
+        self.assertEqual(instr._subtype, "single")
 
     def test_cond_kwarg(self):
         """Test conditional kwarg"""
-        key = 'test_key'
+        key = "test_key"
         instr = SaveAmplitudes(2, [0], key, conditional=True)
-        self.assertEqual(instr.name, 'save_amplitudes')
+        self.assertEqual(instr.name, "save_amplitudes")
         self.assertEqual(instr._label, key)
-        self.assertEqual(instr._subtype, 'c_single')
+        self.assertEqual(instr._subtype, "c_single")
 
     def test_pershot_kwarg(self):
         """Test pershot kwarg"""
-        key = 'test_key'
+        key = "test_key"
         instr = SaveAmplitudes(2, [0], key, pershot=True)
-        self.assertEqual(instr.name, 'save_amplitudes')
+        self.assertEqual(instr.name, "save_amplitudes")
         self.assertEqual(instr._label, key)
-        self.assertEqual(instr._subtype, 'list')
+        self.assertEqual(instr._subtype, "list")
 
     def test_pershot_cond_kwarg(self):
         """Test pershot, conditonal kwargs"""
-        key = 'test_key'
+        key = "test_key"
         instr = SaveAmplitudes(2, [0], key, conditional=True, pershot=True)
-        self.assertEqual(instr.name, 'save_amplitudes')
+        self.assertEqual(instr.name, "save_amplitudes")
         self.assertEqual(instr._label, key)
-        self.assertEqual(instr._subtype, 'c_list')
+        self.assertEqual(instr._subtype, "c_list")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

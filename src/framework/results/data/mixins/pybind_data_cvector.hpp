@@ -30,8 +30,7 @@ py::object to_python(AER::DataCVector &&data);
 // Move an DataCVector container object to an existing new Python dict
 void add_to_python(py::dict &pydata, AER::DataCVector &&data);
 
-} //end namespace AerToPy
-
+} // end namespace AerToPy
 
 //============================================================================
 // Implementations
@@ -44,14 +43,38 @@ py::object AerToPy::to_python(AER::DataCVector &&data) {
 }
 
 void AerToPy::add_to_python(py::dict &pydata, AER::DataCVector &&data) {
-  AerToPy::add_to_python(pydata, static_cast<AER::DataMap<AER::SingleData, AER::Vector<AER::complex_t>, 1>&&>(data));
-  AerToPy::add_to_python(pydata, static_cast<AER::DataMap<AER::SingleData, AER::Vector<AER::complexf_t>, 1>&&>(data));
-  AerToPy::add_to_python(pydata, static_cast<AER::DataMap<AER::SingleData, AER::Vector<AER::complex_t>, 2>&&>(data));
-  AerToPy::add_to_python(pydata, static_cast<AER::DataMap<AER::SingleData, AER::Vector<AER::complexf_t>, 2>&&>(data));
-  AerToPy::add_to_python(pydata, static_cast<AER::DataMap<AER::ListData, AER::Vector<AER::complex_t>, 1>&&>(data));
-  AerToPy::add_to_python(pydata, static_cast<AER::DataMap<AER::ListData, AER::Vector<AER::complexf_t>, 1>&&>(data));
-  AerToPy::add_to_python(pydata, static_cast<AER::DataMap<AER::ListData, AER::Vector<AER::complex_t>, 2>&&>(data));
-  AerToPy::add_to_python(pydata, static_cast<AER::DataMap<AER::ListData, AER::Vector<AER::complexf_t>, 2>&&>(data));
+  AerToPy::add_to_python(
+      pydata,
+      static_cast<AER::DataMap<AER::SingleData, AER::Vector<AER::complex_t>, 1>
+                      &&>(data));
+  AerToPy::add_to_python(
+      pydata,
+      static_cast<AER::DataMap<AER::SingleData, AER::Vector<AER::complexf_t>, 1>
+                      &&>(data));
+  AerToPy::add_to_python(
+      pydata,
+      static_cast<AER::DataMap<AER::SingleData, AER::Vector<AER::complex_t>, 2>
+                      &&>(data));
+  AerToPy::add_to_python(
+      pydata,
+      static_cast<AER::DataMap<AER::SingleData, AER::Vector<AER::complexf_t>, 2>
+                      &&>(data));
+  AerToPy::add_to_python(
+      pydata,
+      static_cast<AER::DataMap<AER::ListData, AER::Vector<AER::complex_t>, 1>
+                      &&>(data));
+  AerToPy::add_to_python(
+      pydata,
+      static_cast<AER::DataMap<AER::ListData, AER::Vector<AER::complexf_t>, 1>
+                      &&>(data));
+  AerToPy::add_to_python(
+      pydata,
+      static_cast<AER::DataMap<AER::ListData, AER::Vector<AER::complex_t>, 2>
+                      &&>(data));
+  AerToPy::add_to_python(
+      pydata,
+      static_cast<AER::DataMap<AER::ListData, AER::Vector<AER::complexf_t>, 2>
+                      &&>(data));
 }
 
 #endif

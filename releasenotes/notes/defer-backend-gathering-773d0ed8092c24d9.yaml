@@ -1,0 +1,4 @@
+---
+fixes:
+  - |
+    Available devices and methods are no longer queried when importing Aer.

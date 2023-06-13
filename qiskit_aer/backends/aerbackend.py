@@ -35,6 +35,9 @@ from ..noise.errors.quantum_error import QuantumChannelInstruction
 from .aer_compiler import compile_circuit, assemble_circuits, generate_aer_config
 from .backend_utils import format_save_type, circuit_optypes
 
+# pylint: disable=import-error, no-name-in-module
+from .controller_wrappers import AerConfig
+
 # Logger
 logger = logging.getLogger(__name__)
 
@@ -42,12 +45,9 @@ logger = logging.getLogger(__name__)
 class AerBackend(Backend, ABC):
     """Qiskit Aer Backend class."""
 
-    def __init__(self,
-                 configuration,
-                 properties=None,
-                 defaults=None,
-                 backend_options=None,
-                 provider=None):
+    def __init__(
+        self, configuration, properties=None, defaults=None, backend_options=None, provider=None
+    ):
         """Aer class for backends.
 
         This method should initialize the module and its configuration, and
@@ -84,28 +84,34 @@ class AerBackend(Backend, ABC):
 
     def _convert_circuit_binds(self, circuit, binds):
         parameterizations = []
+
+        def append_param_values(index, bind_pos, param):
+            if param in binds:
+                parameterizations.append([(index, bind_pos), binds[param]])
+            elif isinstance(param, ParameterExpression):
+                # If parameter expression has no unbound parameters
+                # it's already bound and should be skipped
+                if not param.parameters:
+                    return
+                if not binds:
+                    raise AerError("The element of parameter_binds is empty.")
+                len_vals = len(next(iter(binds.values())))
+                bind_list = [
+                    {
+                        parameter: binds[parameter][i]
+                        for parameter in param.parameters & binds.keys()
+                    }
+                    for i in range(len_vals)
+                ]
+                bound_values = [float(param.bind(x)) for x in bind_list]
+                parameterizations.append([(index, bind_pos), bound_values])
+
+        append_param_values(AerConfig.GLOBAL_PHASE_POS, -1, circuit.global_phase)
+
         for index, instruction in enumerate(circuit.data):
             if instruction.operation.is_parameterized():
                 for bind_pos, param in enumerate(instruction.operation.params):
-                    if param in binds:
-                        parameterizations.append([(index, bind_pos), binds[param]])
-                    elif isinstance(param, ParameterExpression):
-                        # If parameter expression has no unbound parameters
-                        # it's already bound and should be skipped
-                        if not param.parameters:
-                            continue
-                        if not binds:
-                            raise AerError("The element of parameter_binds is empty.")
-                        len_vals = len(next(iter(binds.values())))
-                        bind_list = [
-                            {
-                                parameter: binds[parameter][i]
-                                for parameter in param.parameters & binds.keys()
-                            }
-                            for i in range(len_vals)
-                        ]
-                        bound_values = [float(param.bind(x)) for x in bind_list]
-                        parameterizations.append([(index, bind_pos), bound_values])
+                    append_param_values(index, bind_pos, param)
         return parameterizations
 
     def _convert_binds(self, circuits, parameter_binds):
@@ -120,17 +126,13 @@ class AerBackend(Backend, ABC):
                 "parameter bind dictionaries"
             )
         parameterizations = [
-            self._convert_circuit_binds(
-                circuit, parameter_binds[idx]) for idx, circuit in enumerate(circuits)
+            self._convert_circuit_binds(circuit, parameter_binds[idx])
+            for idx, circuit in enumerate(circuits)
         ]
         return parameterizations
 
     # pylint: disable=arguments-differ
-    def run(self,
-            circuits,
-            validate=False,
-            parameter_binds=None,
-            **run_options):
+    def run(self, circuits, validate=False, parameter_binds=None, **run_options):
         """Run a qobj on the backend.
 
         Args:
@@ -172,11 +174,13 @@ class AerBackend(Backend, ABC):
 
         if isinstance(circuits, (QasmQobj, PulseQobj)):
             warnings.warn(
-                'Using a qobj for run() is deprecated as of qiskit-aer 0.9.0'
-                ' and will be removed no sooner than 3 months from that release'
-                ' date. Transpiled circuits should now be passed directly using'
-                ' `backend.run(circuits, **run_options).',
-                DeprecationWarning, stacklevel=2)
+                "Using a qobj for run() is deprecated as of qiskit-aer 0.9.0"
+                " and will be removed no sooner than 3 months from that release"
+                " date. Transpiled circuits should now be passed directly using"
+                " `backend.run(circuits, **run_options).",
+                DeprecationWarning,
+                stacklevel=2,
+            )
             if parameter_binds:
                 raise TypeError("Parameter binds can't be used with an input qobj")
             # A work around to support both qobj options and run options until
@@ -191,8 +195,8 @@ class AerBackend(Backend, ABC):
                 for key, value in circuits.config.__dict__.items():
                     if key not in run_options and value is not None:
                         run_options[key] = value
-                if 'parameter_binds' in run_options:
-                    parameter_binds = run_options.pop('parameter_binds')
+            if "parameter_binds" in run_options:
+                parameter_binds = run_options.pop("parameter_binds")
             return self._run_qobj(circuits, validate, parameter_binds, **run_options)
 
         only_circuits = True
@@ -203,12 +207,14 @@ class AerBackend(Backend, ABC):
 
         if only_circuits and not only_pulse:
             if validate:
-                raise TypeError("bad input to run() function;"
-                                "`validation` argument is only effective for input qobj")
+                raise TypeError(
+                    "bad input to run() function;"
+                    "`validation` argument is only effective for input qobj"
+                )
 
-            executor = run_options.get('executor', None)
-            if executor is None and 'executor' in self.options.__dict__:
-                executor = self.options.__dict__.get('executor', None)
+            executor = run_options.get("executor", None)
+            if executor is None and "executor" in self.options.__dict__:
+                executor = self.options.__dict__.get("executor", None)
             if executor:
                 # This path remains for DASK execution to split a qobj insttance
                 # into sub-qobj instances. This will be replaced with _run_circuits path
@@ -219,39 +225,41 @@ class AerBackend(Backend, ABC):
         elif not only_circuits and only_pulse:
             return self._run_qobj(circuits, validate, parameter_binds, **run_options)
         elif not only_circuits and not only_pulse:
-            raise TypeError("bad input to run() function;"
-                            "circuits and schedules cannot be mixed in a single run")
+            raise TypeError(
+                "bad input to run() function;"
+                "circuits and schedules cannot be mixed in a single run"
+            )
         else:
-            raise TypeError("bad input to run() function;"
-                            "circuits must be either circuits or schedules")
+            raise TypeError(
+                "bad input to run() function;" "circuits must be either circuits or schedules"
+            )
 
-    def _run_circuits(self,
-                      circuits,
-                      parameter_binds,
-                      **run_options):
-        """Run circuits by generating native circuits.
-        """
+    def _run_circuits(self, circuits, parameter_binds, **run_options):
+        """Run circuits by generating native circuits."""
         circuits, noise_model = self._compile(circuits, **run_options)
         if parameter_binds:
-            run_options['parameterizations'] = self._convert_binds(circuits, parameter_binds)
+            run_options["parameterizations"] = self._convert_binds(circuits, parameter_binds)
+        elif not all([len(circuit.parameters) == 0 for circuit in circuits]):
+            raise AerError("circuits have parameters but parameter_binds is not specified.")
         config = generate_aer_config(circuits, self.options, **run_options)
 
         # Submit job
         job_id = str(uuid.uuid4())
-        aer_job = AerJob(self, job_id, self._execute_circuits_job,
-                         circuits=circuits, noise_model=noise_model, config=config)
+        aer_job = AerJob(
+            self,
+            job_id,
+            self._execute_circuits_job,
+            circuits=circuits,
+            noise_model=noise_model,
+            config=config,
+        )
         aer_job.submit()
 
         return aer_job
 
     # pylint: disable=arguments-differ
-    def _run_qobj(self,
-                  circuits,
-                  validate=False,
-                  parameter_binds=None,
-                  **run_options):
-        """Run circuits by assembling qobj.
-        """
+    def _run_qobj(self, circuits, validate=False, parameter_binds=None, **run_options):
+        """Run circuits by assembling qobj."""
         qobj = self._assemble(circuits, parameter_binds=parameter_binds, **run_options)
 
         # Optional validation
@@ -259,19 +267,21 @@ class AerBackend(Backend, ABC):
             self._validate(qobj)
 
         # Get executor from qobj config and delete attribute so qobj can still be serialized
-        executor = getattr(qobj.config, 'executor', None)
-        if hasattr(qobj.config, 'executor'):
-            delattr(qobj.config, 'executor')
+        executor = getattr(qobj.config, "executor", None)
+        if hasattr(qobj.config, "executor"):
+            delattr(qobj.config, "executor")
 
         # Optionally split the job
         experiments = split_qobj(
-            qobj, max_size=getattr(qobj.config, 'max_job_size', None),
-            max_shot_size=getattr(qobj.config, 'max_shot_size', None))
+            qobj,
+            max_size=getattr(qobj.config, "max_job_size", None),
+            max_shot_size=getattr(qobj.config, "max_shot_size", None),
+        )
 
         # Temporarily remove any executor from options so that job submission
         # can work with Dask client executors which can't be pickled
-        opts_executor = getattr(self._options, 'executor', None)
-        if hasattr(self._options, 'executor'):
+        opts_executor = getattr(self._options, "executor", None)
+        if hasattr(self._options, "executor"):
             self._options.executor = None
 
         # Submit job
@@ -279,12 +289,13 @@ class AerBackend(Backend, ABC):
         if isinstance(experiments, list):
             aer_job = AerJobSet(self, job_id, self._execute_qobj_job, experiments, executor)
         else:
-            aer_job = AerJob(self, job_id, self._execute_qobj_job, qobj=experiments,
-                             executor=executor)
+            aer_job = AerJob(
+                self, job_id, self._execute_qobj_job, qobj=experiments, executor=executor
+            )
         aer_job.submit()
 
         # Restore removed executor after submission
-        if hasattr(self._options, 'executor'):
+        if hasattr(self._options, "executor"):
             self._options.executor = opts_executor
 
         return aer_job
@@ -300,7 +311,7 @@ class AerBackend(Backend, ABC):
             setattr(config, key, val)
         # If config has custom instructions add them to
         # basis gates to include them for the terra transpiler
-        if hasattr(config, 'custom_instructions'):
+        if hasattr(config, "custom_instructions"):
             config.basis_gates = config.basis_gates + config.custom_instructions
         return config
 
@@ -350,9 +361,10 @@ class AerBackend(Backend, ABC):
             backend_version=self.configuration().backend_version,
             operational=True,
             pending_jobs=0,
-            status_msg='')
+            status_msg="",
+        )
 
-    def _execute_qobj_job(self, qobj, job_id='', format_result=True):
+    def _execute_qobj_job(self, qobj, job_id="", format_result=True):
         """Run a qobj job"""
         # Start timer
         start = time.time()
@@ -385,9 +397,8 @@ class AerBackend(Backend, ABC):
         if not isinstance(output, dict):
             logger.error("%s: simulation failed.", self.name())
             if output:
-                logger.error('Output: %s', output)
-            raise AerError(
-                "simulation terminated without returning valid output.")
+                logger.error("Output: %s", output)
+            raise AerError("simulation terminated without returning valid output.")
 
         # Format results
         output["job_id"] = job_id
@@ -397,9 +408,11 @@ class AerBackend(Backend, ABC):
 
         # Push metadata to experiment headers
         for result in output["results"]:
-            if ("header" in result and
-                    "metadata" in result["header"] and
-                    "metadata_index" in result["header"]["metadata"]):
+            if (
+                "header" in result
+                and "metadata" in result["header"]
+                and "metadata_index" in result["header"]["metadata"]
+            ):
                 metadata_index = result["header"]["metadata"]["metadata_index"]
                 result["header"]["metadata"] = metadata_list[metadata_index]
 
@@ -416,34 +429,24 @@ class AerBackend(Backend, ABC):
             return self._format_results(output)
         return output
 
-    def _execute_circuits_job(self, circuits, noise_model, config, job_id='',
-                              format_result=True):
+    def _execute_circuits_job(self, circuits, noise_model, config, job_id="", format_result=True):
         """Run a job"""
         # Start timer
         start = time.time()
 
-        # Take metadata from headers of experiments to work around JSON serialization error
-        metadata_list = []
-        for idx, circ in enumerate(circuits):
-            if circ.metadata:
-                metadata = circ.metadata
-                metadata_list.append(metadata)
-                circ.metadata = {}
-                circ.metadata["metadata_index"] = idx
-            else:
-                metadata_list.append(None)
-
         # Run simulation
         aer_circuits = assemble_circuits(circuits)
+        metadata_map = {
+            aer_circuit: circuit.metadata for aer_circuit, circuit in zip(aer_circuits, circuits)
+        }
         output = self._execute_circuits(aer_circuits, noise_model, config)
 
         # Validate output
         if not isinstance(output, dict):
             logger.error("%s: simulation failed.", self.name())
             if output:
-                logger.error('Output: %s', output)
-            raise AerError(
-                "simulation terminated without returning valid output.")
+                logger.error("Output: %s", output)
+            raise AerError("simulation terminated without returning valid output.")
 
         # Format results
         output["job_id"] = job_id
@@ -453,14 +456,9 @@ class AerBackend(Backend, ABC):
 
         # Push metadata to experiment headers
         for result in output["results"]:
-            if ("header" in result and
-                    "metadata" in result["header"] and result["header"]["metadata"] and
-                    "metadata_index" in result["header"]["metadata"]):
-                metadata_index = result["header"]["metadata"]["metadata_index"]
-                result["header"]["metadata"] = metadata_list[metadata_index]
-
-        for circ, metadata in zip(circuits, metadata_list):
-            circ.metadata = metadata
+            if "header" not in result:
+                continue
+            result["header"]["metadata"] = metadata_map[result["circuit"]]
 
         # Add execution time
         output["time_taken"] = time.time() - start
@@ -496,13 +494,13 @@ class AerBackend(Backend, ABC):
 
         # Compile Qasm3 instructions
         circuits, optypes = compile_circuit(
-            circuits,
-            basis_gates=self.configuration().basis_gates,
-            optypes=optypes)
+            circuits, basis_gates=self.configuration().basis_gates, optypes=optypes
+        )
 
         # run option noise model
         circuits, noise_model, run_options = self._assemble_noise_model(
-            circuits, optypes, **run_options)
+            circuits, optypes, **run_options
+        )
 
         return circuits, noise_model
 
@@ -517,7 +515,7 @@ class AerBackend(Backend, ABC):
 
             # If noise model exists, add it to the run options
             if noise_model:
-                run_options['noise_model'] = noise_model
+                run_options["noise_model"] = noise_model
 
             if parameter_binds:
                 # Handle parameter binding
@@ -529,7 +527,8 @@ class AerBackend(Backend, ABC):
                         [circuit],
                         backend=self,
                         parameter_binds=[assemble_bind],
-                        parameterizations=parameterizations)
+                        parameterizations=parameterizations,
+                    )
                     if qobj:
                         qobj.experiments.append(qobj_tmp.experiments[0])
                     else:
@@ -557,8 +556,7 @@ class AerBackend(Backend, ABC):
         # This avoids unnecessarily copying the noise model for circuits
         # that do not contain a quantum error
         updated_noise = False
-        noise_model = run_options.get(
-            'noise_model', getattr(self.options, 'noise_model', None))
+        noise_model = run_options.get("noise_model", getattr(self.options, "noise_model", None))
 
         # Add custom pass noise only to QuantumCircuit objects that contain delay
         # instructions since this is the only instruction handled by the noise pass
@@ -567,9 +565,7 @@ class AerBackend(Backend, ABC):
             npm = noise_model._pass_manager()
             if npm is not None:
                 # Get indicies of circuits that need noise transpiling
-                transpile_idxs = [
-                    idx for idx, optype in enumerate(optypes) if Delay in optype
-                ]
+                transpile_idxs = [idx for idx, optype in enumerate(optypes) if Delay in optype]
 
                 # Transpile only the required circuits
                 transpiled_circuits = npm.run([run_circuits[i] for i in transpile_idxs])
@@ -584,7 +580,8 @@ class AerBackend(Backend, ABC):
         # Check if circuits contain quantum error instructions
         for idx, circ in enumerate(run_circuits):
             if QuantumChannelInstruction in optypes[idx] and not isinstance(
-                    circ, (Schedule, ScheduleBlock)):
+                circ, (Schedule, ScheduleBlock)
+            ):
                 updated_circ = False
                 new_data = []
                 for inst, qargs, cargs in circ.data:
@@ -618,10 +615,10 @@ class AerBackend(Backend, ABC):
 
     def _get_executor(self, **run_options):
         """Get the executor"""
-        if 'executor' in run_options:
-            return run_options['executor']
+        if "executor" in run_options:
+            return run_options["executor"]
         else:
-            return getattr(self._options, 'executor', None)
+            return getattr(self._options, "executor", None)
 
     @abstractmethod
     def _execute_qobj(self, qobj):
@@ -718,4 +715,4 @@ class AerBackend(Backend, ABC):
         """String representation of an AerBackend."""
         name = self.__class__.__name__
         display = f"'{self.name()}'"
-        return f'{name}({display})'
+        return f"{name}({display})"

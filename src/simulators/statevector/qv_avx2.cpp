@@ -12,12 +12,12 @@
  * that they have been altered from the originals.
  */
 #include "qv_avx2.hpp"
-#include <immintrin.h>
+#include <complex>
 #include <cstdint>
 #include <cstring>
+#include <immintrin.h>
 #include <type_traits>
 #include <utility>
-#include <complex>
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -48,10 +48,8 @@ void copy(T dest, const U orig, size_t size) {
 }
 
 template <size_t num_qubits>
-inline void fill_indices(uint64_t index0,
-                         uint64_t* indexes,
-                         const size_t indexes_size,
-                         const uint64_t* qregs) {
+inline void fill_indices(uint64_t index0, uint64_t *indexes,
+                         const size_t indexes_size, const uint64_t *qregs) {
   for (size_t i = 0; i < indexes_size; ++i)
     indexes[i] = index0;
 
@@ -126,9 +124,8 @@ const uint64_t MASKS[] = {0ULL,
                           4611686018427387903ULL,
                           9223372036854775807ULL};
 
-template<size_t num_qubits>
-inline uint64_t index0(const uint64_t* sorted_qubits,
-                       const uint64_t k) {
+template <size_t num_qubits>
+inline uint64_t index0(const uint64_t *sorted_qubits, const uint64_t k) {
   uint64_t lowbits, retval = k;
   for (size_t j = 0; j < num_qubits; j++) {
     lowbits = retval & MASKS[sorted_qubits[j]];
@@ -140,12 +137,9 @@ inline uint64_t index0(const uint64_t* sorted_qubits,
 }
 
 template <size_t num_qubits, typename Lambda, typename param_t>
-void avx_apply_lambda(const uint64_t data_size,
-                      const uint64_t skip,
-                      Lambda&& func,
-                      const uint64_t* sorted_qubits,
-                      const size_t omp_threads,
-                      const param_t& params) {
+void avx_apply_lambda(const uint64_t data_size, const uint64_t skip,
+                      Lambda &&func, const uint64_t *sorted_qubits,
+                      const size_t omp_threads, const param_t &params) {
   const int64_t END = data_size >> num_qubits;
 
 #pragma omp parallel for if (omp_threads > 1) num_threads(omp_threads)
@@ -156,11 +150,9 @@ void avx_apply_lambda(const uint64_t data_size,
 }
 
 template <typename Lambda, typename param_t>
-void avx_apply_lambda(const uint64_t data_size,
-                      const uint64_t skip,
-                      Lambda&& func,
-                      const size_t omp_threads,
-                      const param_t& params) {
+void avx_apply_lambda(const uint64_t data_size, const uint64_t skip,
+                      Lambda &&func, const size_t omp_threads,
+                      const param_t &params) {
 #pragma omp parallel for if (omp_threads > 1) num_threads(omp_threads)
   for (int64_t k = 0; k < data_size; k += skip) {
     std::forward<Lambda>(func)(k, params);
@@ -168,8 +160,8 @@ void avx_apply_lambda(const uint64_t data_size,
 }
 
 template <typename FloatType>
-using m256_t = typename std::
-    conditional<std::is_same<FloatType, double>::value, __m256d, __m256>::type;
+using m256_t = typename std::conditional<std::is_same<FloatType, double>::value,
+                                         __m256d, __m256>::type;
 
 // These Views are helpers for encapsulate access to real and imaginary parts of
 // the original source (QubitVector::data_). SIMD operations requires getting a
@@ -182,10 +174,10 @@ struct RealVectorView {
   RealVectorView() = delete;
   // Unfortunately, shared_ptr implies allocations and we cannot afford
   // them in this piece of code, so this is the reason to use raw pointers.
-  RealVectorView(FloatType* data) : data_(data) {}
-  inline FloatType* operator[](size_t i) { return &data_[i * 2]; }
-  inline const FloatType* operator[](size_t i) const { return &data_[i * 2]; }
-  FloatType* data_ = nullptr;
+  RealVectorView(FloatType *data) : data_(data) {}
+  inline FloatType *operator[](size_t i) { return &data_[i * 2]; }
+  inline const FloatType *operator[](size_t i) const { return &data_[i * 2]; }
+  FloatType *data_ = nullptr;
 };
 
 template <typename FloatType>
@@ -194,96 +186,86 @@ struct ImaginaryVectorView : std::false_type {};
 template <>
 struct ImaginaryVectorView<double> {
   ImaginaryVectorView() = delete;
-  ImaginaryVectorView(double* data) : data_(data) {}
+  ImaginaryVectorView(double *data) : data_(data) {}
   // SIMD vectorization takes n bytes depending on the underlaying type, so
   // for doubles, SIMD loads 4 consecutive values (4 * sizeof(double) = 32
   // bytes)
-  inline double* operator[](size_t i) { return &data_[i * 2 + 4]; }
-  inline const double* operator[](size_t i) const { return &data_[i * 2 + 4]; }
-  double* data_ = nullptr;
+  inline double *operator[](size_t i) { return &data_[i * 2 + 4]; }
+  inline const double *operator[](size_t i) const { return &data_[i * 2 + 4]; }
+  double *data_ = nullptr;
 };
 
 template <>
 struct ImaginaryVectorView<float> {
   ImaginaryVectorView() = delete;
-  ImaginaryVectorView(float* data) : data_(data) {}
+  ImaginaryVectorView(float *data) : data_(data) {}
   // SIMD vectorization takes n bytes depending on the underlaying type, so
   // for floats, SIMD loads 8 consecutive (8 * sizeof(float) = 32 bytes)
-  inline float* operator[](size_t i) { return &data_[i * 2 + 8]; }
-  inline const float* operator[](size_t i) const { return &data_[i * 2 + 8]; }
-  float* data_ = nullptr;
+  inline float *operator[](size_t i) { return &data_[i * 2 + 8]; }
+  inline const float *operator[](size_t i) const { return &data_[i * 2 + 8]; }
+  float *data_ = nullptr;
 };
 
-static auto _mm256_mul(const m256_t<double>& left,
-                       const m256_t<double>& right) {
+static auto _mm256_mul(const m256_t<double> &left,
+                       const m256_t<double> &right) {
   return _mm256_mul_pd(left, right);
 }
 
-static auto _mm256_mul(const m256_t<float>& left, const m256_t<float>& right) {
+static auto _mm256_mul(const m256_t<float> &left, const m256_t<float> &right) {
   return _mm256_mul_ps(left, right);
 }
 
-static auto _mm256_fnmadd(const m256_t<double>& left,
-                          const m256_t<double>& right,
-                          const m256_t<double>& ret) {
+static auto _mm256_fnmadd(const m256_t<double> &left,
+                          const m256_t<double> &right,
+                          const m256_t<double> &ret) {
   return _mm256_fnmadd_pd(left, right, ret);
 }
 
-static auto _mm256_fnmadd(const m256_t<float>& left,
-                          const m256_t<float>& right,
-                          const m256_t<float>& ret) {
+static auto _mm256_fnmadd(const m256_t<float> &left, const m256_t<float> &right,
+                          const m256_t<float> &ret) {
   return _mm256_fnmadd_ps(left, right, ret);
 }
 
-static auto _mm256_fmadd(const m256_t<double>& left,
-                         const m256_t<double>& right,
-                         const m256_t<double>& ret) {
+static auto _mm256_fmadd(const m256_t<double> &left,
+                         const m256_t<double> &right,
+                         const m256_t<double> &ret) {
   return _mm256_fmadd_pd(left, right, ret);
 }
 
-static auto _mm256_fmadd(const m256_t<float>& left,
-                         const m256_t<float>& right,
-                         const m256_t<float>& ret) {
+static auto _mm256_fmadd(const m256_t<float> &left, const m256_t<float> &right,
+                         const m256_t<float> &ret) {
   return _mm256_fmadd_ps(left, right, ret);
 }
 
-static auto _mm256_set1(double d) {
-  return _mm256_set1_pd(d);
-}
+static auto _mm256_set1(double d) { return _mm256_set1_pd(d); }
 
-static auto _mm256_set1(float f) {
-  return _mm256_set1_ps(f);
-}
+static auto _mm256_set1(float f) { return _mm256_set1_ps(f); }
 
-static auto _mm256_load(double const* d) {
-  return _mm256_load_pd(d);
-}
+static auto _mm256_load(double const *d) { return _mm256_load_pd(d); }
 
-static auto _mm256_load(float const* f) {
-  return _mm256_load_ps(f);
-}
+static auto _mm256_load(float const *f) { return _mm256_load_ps(f); }
 
-static void _mm256_store(float* f, const m256_t<float>& c) {
+static void _mm256_store(float *f, const m256_t<float> &c) {
   _mm256_store_ps(f, c);
 }
 
-static void _mm256_store(double* d, const m256_t<double>& c) {
+static void _mm256_store(double *d, const m256_t<double> &c) {
   _mm256_store_pd(d, c);
 }
 
-static m256_t<double>_mm256_hsub(m256_t<double>& vec1, m256_t<double>& vec2) {
+static m256_t<double> _mm256_hsub(m256_t<double> &vec1, m256_t<double> &vec2) {
   return _mm256_hsub_pd(vec1, vec2);
 }
 
-static m256_t<float> _mm256_hsub(m256_t<float>& vec1, m256_t<float>& vec2) {
+static m256_t<float> _mm256_hsub(m256_t<float> &vec1, m256_t<float> &vec2) {
   return _mm256_hsub_ps(vec1, vec2);
 }
 
-static m256_t<double> _mm256_swith_real_and_imag(m256_t<double>& vec) {
+static m256_t<double> _mm256_swith_real_and_imag(m256_t<double> &vec) {
   return _mm256_permute_pd(vec, 0b0101);
 }
 
-static m256_t<float> _mm256_swith_real_and_imag(m256_t<float>& vec) {
+static m256_t<float> _mm256_swith_real_and_imag(m256_t<float> &vec) {
   return _mm256_permute_ps(vec, _MM_SHUFFLE(2, 3, 0, 1));
 }
 
@@ -295,32 +277,29 @@ static m256_t<float> _mm256_neg(float dummy) {
   return _mm256_setr_ps(1.0, -1.0, 1.0, -1.0, 1.0, -1.0, 1.0, -1.0);
 }
 
-static m256_t<double> _mm256_align(m256_t<double>& vec) {
-  return vec;
-}
+static m256_t<double> _mm256_align(m256_t<double> &vec) { return vec; }
 
-static m256_t<float> _mm256_align(m256_t<float>& vec) {
+static m256_t<float> _mm256_align(m256_t<float> &vec) {
   return _mm256_permute_ps(vec, _MM_SHUFFLE(3, 1, 2, 0));
 }
 
 template <typename FloatType>
-static inline void _mm_complex_multiply(m256_t<FloatType>& vec1,
-                                        m256_t<FloatType>& vec2) {
+static inline void _mm_complex_multiply(m256_t<FloatType> &vec1,
+                                        m256_t<FloatType> &vec2) {
   m256_t<FloatType> vec3 = _mm256_mul(vec1, vec2);
   vec2 = _mm256_swith_real_and_imag(vec2);
-  vec2 = _mm256_mul(vec2, _mm256_neg((FloatType) .0));
+  vec2 = _mm256_mul(vec2, _mm256_neg((FloatType).0));
   m256_t<FloatType> vec4 = _mm256_mul(vec1, vec2);
   vec1 = _mm256_hsub(vec3, vec4);
   vec1 = _mm256_align(vec1);
 }
 
 template <typename FloatType>
-static inline void _mm_complex_multiply(m256_t<FloatType>& real_ret,
-                                        m256_t<FloatType>& imag_ret,
-                                        m256_t<FloatType>& real_left,
-                                        m256_t<FloatType>& imag_left,
-                                        const m256_t<FloatType>& real_right,
-                                        const m256_t<FloatType>& imag_right) {
+static inline void
+_mm_complex_multiply(m256_t<FloatType> &real_ret, m256_t<FloatType> &imag_ret,
+                     m256_t<FloatType> &real_left, m256_t<FloatType> &imag_left,
+                     const m256_t<FloatType> &real_right,
+                     const m256_t<FloatType> &imag_right) {
   real_ret = _mm256_mul(real_left, real_right);
   imag_ret = _mm256_mul(real_left, imag_right);
   real_ret = _mm256_fnmadd(imag_left, imag_right, real_ret);
@@ -329,12 +308,9 @@ static inline void _mm_complex_multiply(m256_t<FloatType>& real_ret,
 
 template <typename FloatType>
 static inline void _mm_complex_multiply_add(
-    m256_t<FloatType>& real_ret,
-    m256_t<FloatType>& imag_ret,
-    m256_t<FloatType>& real_left,
-    m256_t<FloatType>& imag_left,
-    const m256_t<FloatType>& real_right,
-    const m256_t<FloatType>& imag_right) {
+    m256_t<FloatType> &real_ret, m256_t<FloatType> &imag_ret,
+    m256_t<FloatType> &real_left, m256_t<FloatType> &imag_left,
+    const m256_t<FloatType> &real_right, const m256_t<FloatType> &imag_right) {
   real_ret = _mm256_fmadd(real_left, real_right, real_ret);
   imag_ret = _mm256_fmadd(real_left, imag_right, imag_ret);
   real_ret = _mm256_fnmadd(imag_left, imag_right, real_ret);
@@ -342,14 +318,11 @@ static inline void _mm_complex_multiply_add(
 }
 
 template <typename FloatType>
-static inline void _mm_complex_inner_product(size_t dim,
-                                             m256_t<FloatType> vreals[],
-                                             m256_t<FloatType> vimags[],
-                                             const FloatType* cmplxs,
-                                             m256_t<FloatType>& vret_real,
-                                             m256_t<FloatType>& vret_imag,
-                                             m256_t<FloatType>& vtmp_0,
-                                             m256_t<FloatType>& vtmp_1) {
+static inline void _mm_complex_inner_product(
+    size_t dim, m256_t<FloatType> vreals[], m256_t<FloatType> vimags[],
+    const FloatType *cmplxs, m256_t<FloatType> &vret_real,
+    m256_t<FloatType> &vret_imag, m256_t<FloatType> &vtmp_0,
+    m256_t<FloatType> &vtmp_1) {
   vtmp_0 = _mm256_set1(cmplxs[0]);
   vtmp_1 = _mm256_set1(cmplxs[1]);
   _mm_complex_multiply<FloatType>(vret_real, vret_imag, vreals[0], vimags[0],
@@ -362,10 +335,10 @@ static inline void _mm_complex_inner_product(size_t dim,
   }
 }
 
-static inline void _mm_load_twoarray_complex(const double* real_addr_0,
-                                             const double* imag_addr_1,
-                                             m256_t<double>& real_ret,
-                                             m256_t<double>& imag_ret) {
+static inline void _mm_load_twoarray_complex(const double *real_addr_0,
+                                             const double *imag_addr_1,
+                                             m256_t<double> &real_ret,
+                                             m256_t<double> &imag_ret) {
   real_ret = _mm256_load(real_addr_0);
   imag_ret = _mm256_load(imag_addr_1);
   auto tmp0 = _mm256_permute4x64_pd(real_ret, 2 * 64 + 3 * 16 + 0 * 4 + 1 * 1);
@@ -376,10 +349,10 @@ static inline void _mm_load_twoarray_complex(const double* real_addr_0,
   imag_ret = _mm256_permute4x64_pd(imag_ret, 3 * 64 + 1 * 16 + 2 * 4 + 0 * 1);
 }
 
-static inline void _mm_load_twoarray_complex(const float* real_addr_0,
-                                             const float* imag_addr_1,
-                                             m256_t<float>& real_ret,
-                                             m256_t<float>& imag_ret) {
+static inline void _mm_load_twoarray_complex(const float *real_addr_0,
+                                             const float *imag_addr_1,
+                                             m256_t<float> &real_ret,
+                                             m256_t<float> &imag_ret) {
   real_ret = _mm256_load(real_addr_0);
   imag_ret = _mm256_load(imag_addr_1);
   auto tmp0 = _mm256_permutevar8x32_ps(
@@ -394,10 +367,10 @@ static inline void _mm_load_twoarray_complex(const float* real_addr_0,
                                       _mm256_set_epi32(7, 5, 3, 1, 6, 4, 2, 0));
 }
 
-static inline void _mm_store_twoarray_complex(m256_t<float>& real_ret,
-                                              m256_t<float>& imag_ret,
-                                              float* cmplx_addr_0,
-                                              float* cmplx_addr_1) {
+static inline void _mm_store_twoarray_complex(m256_t<float> &real_ret,
+                                              m256_t<float> &imag_ret,
+                                              float *cmplx_addr_0,
+                                              float *cmplx_addr_1) {
   real_ret = _mm256_permutevar8x32_ps(real_ret,
                                       _mm256_set_epi32(7, 3, 6, 2, 5, 1, 4, 0));
   imag_ret = _mm256_permutevar8x32_ps(imag_ret,
@@ -412,10 +385,10 @@ static inline void _mm_store_twoarray_complex(m256_t<float>& real_ret,
   _mm256_store(cmplx_addr_1, imag_ret);
 }
 
-static inline void _mm_store_twoarray_complex(m256_t<double>& real_ret,
-                                              m256_t<double>& imag_ret,
-                                              double* cmplx_addr_0,
-                                              double* cmplx_addr_1) {
+static inline void _mm_store_twoarray_complex(m256_t<double> &real_ret,
+                                              m256_t<double> &imag_ret,
+                                              double *cmplx_addr_0,
+                                              double *cmplx_addr_1) {
   real_ret = _mm256_permute4x64_pd(real_ret, 3 * 64 + 1 * 16 + 2 * 4 + 0 * 1);
   imag_ret = _mm256_permute4x64_pd(imag_ret, 3 * 64 + 1 * 16 + 2 * 4 + 0 * 1);
   auto tmp0 = _mm256_permute4x64_pd(real_ret, 2 * 64 + 3 * 16 + 0 * 4 + 1 * 1);
@@ -427,10 +400,10 @@ static inline void _mm_store_twoarray_complex(m256_t<double>& real_ret,
 }
 
 template <typename FloatType, size_t num_qubits>
-inline void reorder(const uint64_t* qreg_orig, uint64_t* qreg, FloatType* mat) {
+inline void reorder(const uint64_t *qreg_orig, uint64_t *qreg, FloatType *mat) {
   constexpr auto DIMENSION = (1ULL << num_qubits);
 
-  auto sort = [](uint64_t* unordered, size_t size) {
+  auto sort = [](uint64_t *unordered, size_t size) {
     for (size_t i = 0; i < size; ++i) {
       for (size_t j = 0; j < size - 1 - i; ++j) {
         if (unordered[j] > unordered[j + 1]) {
@@ -443,7 +416,7 @@ inline void reorder(const uint64_t* qreg_orig, uint64_t* qreg, FloatType* mat) {
   };
   sort(qreg, num_qubits);
 
-  auto build_mask = [&](size_t* masks) {
+  auto build_mask = [&](size_t *masks) {
     for (size_t i = 0; i < num_qubits; ++i)
       for (size_t j = 0; j < num_qubits; ++j)
         if (qreg_orig[i] == qreg[j])
@@ -452,7 +425,7 @@ inline void reorder(const uint64_t* qreg_orig, uint64_t* qreg, FloatType* mat) {
   size_t masks[num_qubits];
   build_mask(masks);
 
-  auto build_index = [&](size_t* indexes) {
+  auto build_index = [&](size_t *indexes) {
     for (size_t i = 0; i < DIMENSION; ++i) {
       size_t index = 0U;
       for (size_t j = 0; j < num_qubits; ++j) {
@@ -478,16 +451,16 @@ inline void reorder(const uint64_t* qreg_orig, uint64_t* qreg, FloatType* mat) {
   }
 }
 
-}  // End anonymous namespace
+} // End anonymous namespace
 
 namespace AER {
 namespace QV {
 
 template <size_t num_qubits>
-inline void _apply_matrix_float_avx_q0q1q2(RealVectorView<float>& reals,
-                                           ImaginaryVectorView<float>& imags,
-                                           const float* mat,
-                                           const uint64_t* qregs,
+inline void _apply_matrix_float_avx_q0q1q2(RealVectorView<float> &reals,
+                                           ImaginaryVectorView<float> &imags,
+                                           const float *mat,
+                                           const uint64_t *qregs,
                                            const uint64_t index0) {
   constexpr auto indexes_size = (1ULL << num_qubits);
   uint64_t indexes[1ULL << num_qubits];
@@ -533,34 +506,34 @@ inline void _apply_matrix_float_avx_q0q1q2(RealVectorView<float>& reals,
       imag_ret1 = _mm256_permutevar8x32_ps(imag_ret1, _MASKS[j - 1]);
 
       switch (j) {
-        case 1:
-          real_ret = _mm256_blend_ps(real_ret, real_ret1, 0b00000010);
-          imag_ret = _mm256_blend_ps(imag_ret, imag_ret1, 0b00000010);
-          break;
-        case 2:
-          real_ret = _mm256_blend_ps(real_ret, real_ret1, 0b00000100);
-          imag_ret = _mm256_blend_ps(imag_ret, imag_ret1, 0b00000100);
-          break;
-        case 3:
-          real_ret = _mm256_blend_ps(real_ret, real_ret1, 0b00001000);
-          imag_ret = _mm256_blend_ps(imag_ret, imag_ret1, 0b00001000);
-          break;
-        case 4:
-          real_ret = _mm256_blend_ps(real_ret, real_ret1, 0b00010000);
-          imag_ret = _mm256_blend_ps(imag_ret, imag_ret1, 0b00010000);
-          break;
-        case 5:
-          real_ret = _mm256_blend_ps(real_ret, real_ret1, 0b00100000);
-          imag_ret = _mm256_blend_ps(imag_ret, imag_ret1, 0b00100000);
-          break;
-        case 6:
-          real_ret = _mm256_blend_ps(real_ret, real_ret1, 0b01000000);
-          imag_ret = _mm256_blend_ps(imag_ret, imag_ret1, 0b01000000);
-          break;
-        case 7:
-          real_ret = _mm256_blend_ps(real_ret, real_ret1, 0b10000000);
-          imag_ret = _mm256_blend_ps(imag_ret, imag_ret1, 0b10000000);
-          break;
+      case 1:
+        real_ret = _mm256_blend_ps(real_ret, real_ret1, 0b00000010);
+        imag_ret = _mm256_blend_ps(imag_ret, imag_ret1, 0b00000010);
+        break;
+      case 2:
+        real_ret = _mm256_blend_ps(real_ret, real_ret1, 0b00000100);
+        imag_ret = _mm256_blend_ps(imag_ret, imag_ret1, 0b00000100);
+        break;
+      case 3:
+        real_ret = _mm256_blend_ps(real_ret, real_ret1, 0b00001000);
+        imag_ret = _mm256_blend_ps(imag_ret, imag_ret1, 0b00001000);
+        break;
+      case 4:
+        real_ret = _mm256_blend_ps(real_ret, real_ret1, 0b00010000);
+        imag_ret = _mm256_blend_ps(imag_ret, imag_ret1, 0b00010000);
+        break;
+      case 5:
+        real_ret = _mm256_blend_ps(real_ret, real_ret1, 0b00100000);
+        imag_ret = _mm256_blend_ps(imag_ret, imag_ret1, 0b00100000);
+        break;
+      case 6:
+        real_ret = _mm256_blend_ps(real_ret, real_ret1, 0b01000000);
+        imag_ret = _mm256_blend_ps(imag_ret, imag_ret1, 0b01000000);
+        break;
+      case 7:
+        real_ret = _mm256_blend_ps(real_ret, real_ret1, 0b10000000);
+        imag_ret = _mm256_blend_ps(imag_ret, imag_ret1, 0b10000000);
+        break;
       }
     }
     _mm_store_twoarray_complex(real_ret, imag_ret, reals[index], imags[index]);
@@ -568,10 +541,10 @@ inline void _apply_matrix_float_avx_q0q1q2(RealVectorView<float>& reals,
 }
 
 template <size_t num_qubits>
-inline void _apply_matrix_float_avx_qLqL(RealVectorView<float>& reals,
-                                         ImaginaryVectorView<float>& imags,
-                                         const float* mat,
-                                         const uint64_t* qregs,
+inline void _apply_matrix_float_avx_qLqL(RealVectorView<float> &reals,
+                                         ImaginaryVectorView<float> &imags,
+                                         const float *mat,
+                                         const uint64_t *qregs,
                                          const uint64_t index0) {
   __m256i masks[3];
   __m256 real_ret, imag_ret, real_ret1, imag_ret1;
@@ -590,7 +563,7 @@ inline void _apply_matrix_float_avx_qLqL(RealVectorView<float>& reals,
     masks[0] = _mm256_set_epi32(7, 6, 5, 4, 2, 3, 0, 1);
     masks[1] = _mm256_set_epi32(7, 2, 5, 0, 3, 6, 1, 4);
     masks[2] = _mm256_set_epi32(2, 6, 0, 4, 3, 7, 1, 5);
-  } else {  // if (q0 == 1 && q1 == 2) {
+  } else { // if (q0 == 1 && q1 == 2) {
     masks[0] = _mm256_set_epi32(7, 6, 5, 4, 1, 0, 3, 2);
     masks[1] = _mm256_set_epi32(7, 6, 1, 0, 3, 2, 5, 4);
     masks[2] = _mm256_set_epi32(1, 0, 5, 4, 3, 2, 7, 6);
@@ -624,60 +597,60 @@ inline void _apply_matrix_float_avx_qLqL(RealVectorView<float>& reals,
       imag_ret1 = _mm256_permutevar8x32_ps(imag_ret1, masks[j]);
 
       switch (j) {
-        case 0:
-          real_ret = (qregs[1] == 1)
-                         ? _mm256_blend_ps(real_ret, real_ret1, 0b00100010)
-                         :  // (0,1)
-                         (qregs[0] == 0)
-                             ? _mm256_blend_ps(real_ret, real_ret1, 0b00001010)
-                             :  // (0,2)
-                             _mm256_blend_ps(real_ret, real_ret1,
-                                             0b00001100);  //  (1,2)
-          imag_ret = (qregs[1] == 1)
-                         ? _mm256_blend_ps(imag_ret, imag_ret1, 0b00100010)
-                         :  // (0,1)
-                         (qregs[0] == 0)
-                             ? _mm256_blend_ps(imag_ret, imag_ret1, 0b00001010)
-                             :  // (0,2)
-                             _mm256_blend_ps(imag_ret, imag_ret1,
-                                             0b00001100);  //  (1,2)
-          break;
-        case 1:
-          real_ret = (qregs[1] == 1)
-                         ? _mm256_blend_ps(real_ret, real_ret1, 0b01000100)
-                         :  // (0,1)
-                         (qregs[0] == 0)
-                             ? _mm256_blend_ps(real_ret, real_ret1, 0b01010000)
-                             :  // (0,2)
-                             _mm256_blend_ps(real_ret, real_ret1,
-                                             0b00110000);  //   (1,2)
-          imag_ret = (qregs[1] == 1)
-                         ? _mm256_blend_ps(imag_ret, imag_ret1, 0b01000100)
-                         :  // (0,1)
-                         (qregs[0] == 0)
-                             ? _mm256_blend_ps(imag_ret, imag_ret1, 0b01010000)
-                             :  // (0,2)
-                             _mm256_blend_ps(imag_ret, imag_ret1,
-                                             0b00110000);  //   (1,2)
-          break;
-        case 2:
-          real_ret = (qregs[1] == 1)
-                         ? _mm256_blend_ps(real_ret, real_ret1, 0b10001000)
-                         :  // (0,1)
-                         (qregs[0] == 0)
-                             ? _mm256_blend_ps(real_ret, real_ret1, 0b10100000)
-                             :  // (0,2)
-                             _mm256_blend_ps(real_ret, real_ret1,
-                                             0b11000000);  //  (1,2)
-          imag_ret = (qregs[1] == 1)
-                         ? _mm256_blend_ps(imag_ret, imag_ret1, 0b10001000)
-                         :  // (0,1)
-                         (qregs[0] == 0)
-                             ? _mm256_blend_ps(imag_ret, imag_ret1, 0b10100000)
-                             :  // (0,2)
-                             _mm256_blend_ps(imag_ret, imag_ret1,
-                                             0b11000000);  //  (1,2)
-          break;
+      case 0:
+        real_ret = (qregs[1] == 1)
+                       ? _mm256_blend_ps(real_ret, real_ret1, 0b00100010)
+                       : // (0,1)
+                       (qregs[0] == 0)
+                       ? _mm256_blend_ps(real_ret, real_ret1, 0b00001010)
+                       : // (0,2)
+                       _mm256_blend_ps(real_ret, real_ret1,
+                                       0b00001100); //  (1,2)
+        imag_ret = (qregs[1] == 1)
+                       ? _mm256_blend_ps(imag_ret, imag_ret1, 0b00100010)
+                       : // (0,1)
+                       (qregs[0] == 0)
+                       ? _mm256_blend_ps(imag_ret, imag_ret1, 0b00001010)
+                       : // (0,2)
+                       _mm256_blend_ps(imag_ret, imag_ret1,
+                                       0b00001100); //  (1,2)
+        break;
+      case 1:
+        real_ret = (qregs[1] == 1)
+                       ? _mm256_blend_ps(real_ret, real_ret1, 0b01000100)
+                       : // (0,1)
+                       (qregs[0] == 0)
+                       ? _mm256_blend_ps(real_ret, real_ret1, 0b01010000)
+                       : // (0,2)
+                       _mm256_blend_ps(real_ret, real_ret1,
+                                       0b00110000); //   (1,2)
+        imag_ret = (qregs[1] == 1)
+                       ? _mm256_blend_ps(imag_ret, imag_ret1, 0b01000100)
+                       : // (0,1)
+                       (qregs[0] == 0)
+                       ? _mm256_blend_ps(imag_ret, imag_ret1, 0b01010000)
+                       : // (0,2)
+                       _mm256_blend_ps(imag_ret, imag_ret1,
+                                       0b00110000); //   (1,2)
+        break;
+      case 2:
+        real_ret = (qregs[1] == 1)
+                       ? _mm256_blend_ps(real_ret, real_ret1, 0b10001000)
+                       : // (0,1)
+                       (qregs[0] == 0)
+                       ? _mm256_blend_ps(real_ret, real_ret1, 0b10100000)
+                       : // (0,2)
+                       _mm256_blend_ps(real_ret, real_ret1,
+                                       0b11000000); //  (1,2)
+        imag_ret = (qregs[1] == 1)
+                       ? _mm256_blend_ps(imag_ret, imag_ret1, 0b10001000)
+                       : // (0,1)
+                       (qregs[0] == 0)
+                       ? _mm256_blend_ps(imag_ret, imag_ret1, 0b10100000)
+                       : // (0,2)
+                       _mm256_blend_ps(imag_ret, imag_ret1,
+                                       0b11000000); //  (1,2)
+        break;
       }
     }
     _mm_store_twoarray_complex(real_ret, imag_ret, reals[index], imags[index]);
@@ -685,10 +658,9 @@ inline void _apply_matrix_float_avx_qLqL(RealVectorView<float>& reals,
 }
 
 template <size_t num_qubits>
-inline void _apply_matrix_float_avx_qL(RealVectorView<float>& reals,
-                                       ImaginaryVectorView<float>& imags,
-                                       const float* mat,
-                                       const uint64_t* qregs,
+inline void _apply_matrix_float_avx_qL(RealVectorView<float> &reals,
+                                       ImaginaryVectorView<float> &imags,
+                                       const float *mat, const uint64_t *qregs,
                                        const uint64_t index0) {
   __m256i mask;
   __m256 real_ret, imag_ret, real_ret1, imag_ret1;
@@ -703,7 +675,7 @@ inline void _apply_matrix_float_avx_qL(RealVectorView<float>& reals,
     mask = _mm256_set_epi32(6, 7, 4, 5, 2, 3, 0, 1);
   } else if (qregs[0] == 1) {
     mask = _mm256_set_epi32(5, 4, 7, 6, 1, 0, 3, 2);
-  } else {  // if (q0 == 2) {
+  } else { // if (q0 == 2) {
     mask = _mm256_set_epi32(3, 2, 1, 0, 7, 6, 5, 4);
   }
 
@@ -733,26 +705,25 @@ inline void _apply_matrix_float_avx_qL(RealVectorView<float>& reals,
 
     real_ret =
         (qregs[0] == 0) ? _mm256_blend_ps(real_ret, real_ret1, 0b10101010)
-                        :  // (0,H,H)
+                        : // (0,H,H)
             (qregs[0] == 1) ? _mm256_blend_ps(real_ret, real_ret1, 0b11001100)
-                            :                                      // (1,H,H)
-                _mm256_blend_ps(real_ret, real_ret1, 0b11110000);  //  (2,H,H)
+                            :                                 // (1,H,H)
+            _mm256_blend_ps(real_ret, real_ret1, 0b11110000); //  (2,H,H)
     imag_ret =
         (qregs[0] == 0) ? _mm256_blend_ps(imag_ret, imag_ret1, 0b10101010)
-                        :  // (0,H,H)
+                        : // (0,H,H)
             (qregs[0] == 1) ? _mm256_blend_ps(imag_ret, imag_ret1, 0b11001100)
-                            :                                      // (1,H,H)
-                _mm256_blend_ps(imag_ret, imag_ret1, 0b11110000);  //  (2,H,H)
+                            :                                 // (1,H,H)
+            _mm256_blend_ps(imag_ret, imag_ret1, 0b11110000); //  (2,H,H)
 
     _mm_store_twoarray_complex(real_ret, imag_ret, reals[index], imags[index]);
   }
 }
 
 template <size_t num_qubits>
-inline void _apply_matrix_float_avx(RealVectorView<float>& reals,
-                                    ImaginaryVectorView<float>& imags,
-                                    const float* mat,
-                                    const uint64_t* qregs,
+inline void _apply_matrix_float_avx(RealVectorView<float> &reals,
+                                    ImaginaryVectorView<float> &imags,
+                                    const float *mat, const uint64_t *qregs,
                                     const uint64_t index0) {
   __m256 real_ret, imag_ret;
   __m256 vreals[1ULL << num_qubits], vimags[1ULL << num_qubits];
@@ -779,10 +750,10 @@ inline void _apply_matrix_float_avx(RealVectorView<float>& reals,
 }
 
 template <size_t num_qubits>
-inline void _apply_matrix_double_avx_q0q1(RealVectorView<double>& reals,
-                                          ImaginaryVectorView<double>& imags,
-                                          const double* mat,
-                                          const uint64_t* qregs,
+inline void _apply_matrix_double_avx_q0q1(RealVectorView<double> &reals,
+                                          ImaginaryVectorView<double> &imags,
+                                          const double *mat,
+                                          const uint64_t *qregs,
                                           const uint64_t index0) {
   const int PERM_D_Q0Q1_0 = 3 * 64 + 2 * 16 + 0 * 4 + 1 * 1;
   const int PERM_D_Q0Q1_1 = 3 * 64 + 0 * 16 + 1 * 4 + 2 * 1;
@@ -801,18 +772,18 @@ inline void _apply_matrix_double_avx_q0q1(RealVectorView<double>& reals,
     _mm_load_twoarray_complex(reals[index], imags[index], vreals[i], vimags[i]);
     for (size_t j = 1; j < 4; ++j) {
       switch (j) {
-        case 1:
-          vreals[i + j] = _mm256_permute4x64_pd(vreals[i], PERM_D_Q0Q1_0);
-          vimags[i + j] = _mm256_permute4x64_pd(vimags[i], PERM_D_Q0Q1_0);
-          break;
-        case 2:
-          vreals[i + j] = _mm256_permute4x64_pd(vreals[i], PERM_D_Q0Q1_1);
-          vimags[i + j] = _mm256_permute4x64_pd(vimags[i], PERM_D_Q0Q1_1);
-          break;
-        case 3:
-          vreals[i + j] = _mm256_permute4x64_pd(vreals[i], PERM_D_Q0Q1_2);
-          vimags[i + j] = _mm256_permute4x64_pd(vimags[i], PERM_D_Q0Q1_2);
-          break;
+      case 1:
+        vreals[i + j] = _mm256_permute4x64_pd(vreals[i], PERM_D_Q0Q1_0);
+        vimags[i + j] = _mm256_permute4x64_pd(vimags[i], PERM_D_Q0Q1_0);
+        break;
+      case 2:
+        vreals[i + j] = _mm256_permute4x64_pd(vreals[i], PERM_D_Q0Q1_1);
+        vimags[i + j] = _mm256_permute4x64_pd(vimags[i], PERM_D_Q0Q1_1);
+        break;
+      case 3:
+        vreals[i + j] = _mm256_permute4x64_pd(vreals[i], PERM_D_Q0Q1_2);
+        vimags[i + j] = _mm256_permute4x64_pd(vimags[i], PERM_D_Q0Q1_2);
+        break;
       }
     }
   }
@@ -830,24 +801,24 @@ inline void _apply_matrix_double_avx_q0q1(RealVectorView<double>& reals,
                                         tmp0, tmp1);
       mindex += (1ULL << (num_qubits + 1));
       switch (j) {
-        case 1:
-          real_ret1 = _mm256_permute4x64_pd(real_ret1, PERM_D_Q0Q1_0);
-          imag_ret1 = _mm256_permute4x64_pd(imag_ret1, PERM_D_Q0Q1_0);
-          real_ret = _mm256_blend_pd(real_ret, real_ret1, 0b0010);
-          imag_ret = _mm256_blend_pd(imag_ret, imag_ret1, 0b0010);
-          break;
-        case 2:
-          real_ret1 = _mm256_permute4x64_pd(real_ret1, PERM_D_Q0Q1_1);
-          imag_ret1 = _mm256_permute4x64_pd(imag_ret1, PERM_D_Q0Q1_1);
-          real_ret = _mm256_blend_pd(real_ret, real_ret1, 0b0100);
-          imag_ret = _mm256_blend_pd(imag_ret, imag_ret1, 0b0100);
-          break;
-        case 3:
-          real_ret1 = _mm256_permute4x64_pd(real_ret1, PERM_D_Q0Q1_2);
-          imag_ret1 = _mm256_permute4x64_pd(imag_ret1, PERM_D_Q0Q1_2);
-          real_ret = _mm256_blend_pd(real_ret, real_ret1, 0b1000);
-          imag_ret = _mm256_blend_pd(imag_ret, imag_ret1, 0b1000);
-          break;
+      case 1:
+        real_ret1 = _mm256_permute4x64_pd(real_ret1, PERM_D_Q0Q1_0);
+        imag_ret1 = _mm256_permute4x64_pd(imag_ret1, PERM_D_Q0Q1_0);
+        real_ret = _mm256_blend_pd(real_ret, real_ret1, 0b0010);
+        imag_ret = _mm256_blend_pd(imag_ret, imag_ret1, 0b0010);
+        break;
+      case 2:
+        real_ret1 = _mm256_permute4x64_pd(real_ret1, PERM_D_Q0Q1_1);
+        imag_ret1 = _mm256_permute4x64_pd(imag_ret1, PERM_D_Q0Q1_1);
+        real_ret = _mm256_blend_pd(real_ret, real_ret1, 0b0100);
+        imag_ret = _mm256_blend_pd(imag_ret, imag_ret1, 0b0100);
+        break;
+      case 3:
+        real_ret1 = _mm256_permute4x64_pd(real_ret1, PERM_D_Q0Q1_2);
+        imag_ret1 = _mm256_permute4x64_pd(imag_ret1, PERM_D_Q0Q1_2);
+        real_ret = _mm256_blend_pd(real_ret, real_ret1, 0b1000);
+        imag_ret = _mm256_blend_pd(imag_ret, imag_ret1, 0b1000);
+        break;
       }
     }
     _mm_store_twoarray_complex(real_ret, imag_ret, reals[index], imags[index]);
@@ -855,10 +826,10 @@ inline void _apply_matrix_double_avx_q0q1(RealVectorView<double>& reals,
 }
 
 template <size_t num_qubits>
-inline void _apply_matrix_double_avx_qL(RealVectorView<double>& reals,
-                                        ImaginaryVectorView<double>& imags,
-                                        const double* mat,
-                                        const uint64_t* qregs,
+inline void _apply_matrix_double_avx_qL(RealVectorView<double> &reals,
+                                        ImaginaryVectorView<double> &imags,
+                                        const double *mat,
+                                        const uint64_t *qregs,
                                         const uint64_t index0) {
   const int PERM_D_Q0 = 2 * 64 + 3 * 16 + 0 * 4 + 1 * 1;
   const int PERM_D_Q1 = 1 * 64 + 0 * 16 + 3 * 4 + 2 * 1;
@@ -912,10 +883,9 @@ inline void _apply_matrix_double_avx_qL(RealVectorView<double>& reals,
 }
 
 template <size_t num_qubits>
-inline void _apply_matrix_double_avx(RealVectorView<double>& reals,
-                                     ImaginaryVectorView<double>& imags,
-                                     const double* mat,
-                                     const uint64_t* qregs,
+inline void _apply_matrix_double_avx(RealVectorView<double> &reals,
+                                     ImaginaryVectorView<double> &imags,
+                                     const double *mat, const uint64_t *qregs,
                                      const uint64_t index0) {
   __m256d real_ret, imag_ret;
   __m256d vreals[1ULL << num_qubits], vimags[1ULL << num_qubits];
@@ -942,37 +912,35 @@ inline void _apply_matrix_double_avx(RealVectorView<double>& reals,
 }
 
 template <size_t num_qubits>
-inline Avx _apply_avx_kernel(const uint64_t* qregs,
-                             float* data,
-                             const uint64_t data_size,
-                             const float* mat,
+inline Avx _apply_avx_kernel(const uint64_t *qregs, float *data,
+                             const uint64_t data_size, const float *mat,
                              const size_t omp_threads) {
   RealVectorView<float> real = {data};
   ImaginaryVectorView<float> img = {data};
 
   if (num_qubits > 2 && qregs[2] == 2) {
-    auto lambda = [&](const uint64_t index0, const float* m) -> void {
+    auto lambda = [&](const uint64_t index0, const float *m) -> void {
       _apply_matrix_float_avx_q0q1q2<num_qubits>(real, img, m, qregs, index0);
     };
 
     avx_apply_lambda<num_qubits>(data_size, 1, lambda, qregs, omp_threads, mat);
 
   } else if (num_qubits > 1 && qregs[1] < 3) {
-    auto lambda = [&](const uint64_t index0, const float* m) -> void {
+    auto lambda = [&](const uint64_t index0, const float *m) -> void {
       _apply_matrix_float_avx_qLqL<num_qubits>(real, img, m, qregs, index0);
     };
 
     avx_apply_lambda<num_qubits>(data_size, 2, lambda, qregs, omp_threads, mat);
 
   } else if (qregs[0] < 3) {
-    auto lambda = [&](const uint64_t index0, const float* m) -> void {
+    auto lambda = [&](const uint64_t index0, const float *m) -> void {
       _apply_matrix_float_avx_qL<num_qubits>(real, img, m, qregs, index0);
     };
 
     avx_apply_lambda<num_qubits>(data_size, 4, lambda, qregs, omp_threads, mat);
 
   } else {
-    auto lambda = [&](const uint64_t index0, const float* m) -> void {
+    auto lambda = [&](const uint64_t index0, const float *m) -> void {
       _apply_matrix_float_avx<num_qubits>(real, img, m, qregs, index0);
     };
 
@@ -982,30 +950,28 @@ inline Avx _apply_avx_kernel(const uint64_t* qregs,
 }
 
 template <size_t num_qubits>
-inline Avx _apply_avx_kernel(const uint64_t* qregs,
-                             double* data,
-                             const size_t data_size,
-                             const double* mat,
+inline Avx _apply_avx_kernel(const uint64_t *qregs, double *data,
+                             const size_t data_size, const double *mat,
                              const size_t omp_threads) {
   RealVectorView<double> real = {data};
   ImaginaryVectorView<double> img = {data};
 
   if (num_qubits > 1 && qregs[1] == 1) {
-    auto lambda = [&](const uint64_t index0, const double* m) -> void {
+    auto lambda = [&](const uint64_t index0, const double *m) -> void {
       _apply_matrix_double_avx_q0q1<num_qubits>(real, img, m, qregs, index0);
     };
 
     avx_apply_lambda<num_qubits>(data_size, 1, lambda, qregs, omp_threads, mat);
 
   } else if (qregs[0] < 2) {
-    auto lambda = [&](const uint64_t index0, const double* m) -> void {
+    auto lambda = [&](const uint64_t index0, const double *m) -> void {
       _apply_matrix_double_avx_qL<num_qubits>(real, img, m, qregs, index0);
     };
 
     avx_apply_lambda<num_qubits>(data_size, 2, lambda, qregs, omp_threads, mat);
 
   } else {
-    auto lambda = [&](const uint64_t index0, const double* m) -> void {
+    auto lambda = [&](const uint64_t index0, const double *m) -> void {
       _apply_matrix_double_avx<num_qubits>(real, img, m, qregs, index0);
     };
 
@@ -1031,15 +997,13 @@ is_simd_applicable(uint64_t data_size) {
 }
 
 template <typename FloatType, size_t num_qubits>
-inline Avx apply_matrix_avx(FloatType* data,
-                            const uint64_t data_size,
-                            const uint64_t* qregs,
-                            const FloatType* mat,
+inline Avx apply_matrix_avx(FloatType *data, const uint64_t data_size,
+                            const uint64_t *qregs, const FloatType *mat,
                             const size_t omp_threads) {
   if (!is_simd_applicable<FloatType>(data_size))
     return Avx::NotApplied;
 
-  auto transpose = [](const FloatType* matrix, FloatType* transposed) {
+  auto transpose = [](const FloatType *matrix, FloatType *transposed) {
     for (size_t i = 0; i < (1U << num_qubits); ++i) {
       for (size_t j = 0; j < (1U << num_qubits); ++j) {
         // This is for accessing the real part of the vector of complex numbers,
@@ -1068,82 +1032,73 @@ inline Avx apply_matrix_avx(FloatType* data,
 }
 
 template <typename FloatType>
-Avx apply_matrix_avx(FloatType* qv_data,
-                     const uint64_t data_size,
-                     const uint64_t* qregs,
-                     const size_t qregs_size,
-                     const FloatType* mat,
-                     const size_t omp_threads) {
+Avx apply_matrix_avx(FloatType *qv_data, const uint64_t data_size,
+                     const uint64_t *qregs, const size_t qregs_size,
+                     const FloatType *mat, const size_t omp_threads) {
   switch (qregs_size) {
-    case 1:
-      return apply_matrix_avx<FloatType, 1>(qv_data, data_size, qregs, mat,
-                                            omp_threads);
-    case 2:
-      return apply_matrix_avx<FloatType, 2>(qv_data, data_size, qregs, mat,
-                                            omp_threads);
-    case 3:
-      return apply_matrix_avx<FloatType, 3>(qv_data, data_size, qregs, mat,
-                                            omp_threads);
-    case 4:
-      return apply_matrix_avx<FloatType, 4>(qv_data, data_size, qregs, mat,
-                                            omp_threads);
-    case 5:
-      return apply_matrix_avx<FloatType, 5>(qv_data, data_size, qregs, mat,
-                                            omp_threads);
-    case 6:
-      return apply_matrix_avx<FloatType, 6>(qv_data, data_size, qregs, mat,
-                                            omp_threads);
-    default:
-      return Avx::NotApplied;
+  case 1:
+    return apply_matrix_avx<FloatType, 1>(qv_data, data_size, qregs, mat,
+                                          omp_threads);
+  case 2:
+    return apply_matrix_avx<FloatType, 2>(qv_data, data_size, qregs, mat,
+                                          omp_threads);
+  case 3:
+    return apply_matrix_avx<FloatType, 3>(qv_data, data_size, qregs, mat,
+                                          omp_threads);
+  case 4:
+    return apply_matrix_avx<FloatType, 4>(qv_data, data_size, qregs, mat,
+                                          omp_threads);
+  case 5:
+    return apply_matrix_avx<FloatType, 5>(qv_data, data_size, qregs, mat,
+                                          omp_threads);
+  case 6:
+    return apply_matrix_avx<FloatType, 6>(qv_data, data_size, qregs, mat,
+                                          omp_threads);
+  default:
+    return Avx::NotApplied;
   }
 }
 
-template Avx apply_matrix_avx<double>(double*,
-                                      const uint64_t data_size,
-                                      const uint64_t* qregs,
+template Avx apply_matrix_avx<double>(double *, const uint64_t data_size,
+                                      const uint64_t *qregs,
                                       const size_t qregs_size,
-                                      const double* mat,
+                                      const double *mat,
                                       const size_t omp_threads);
 
-template Avx apply_matrix_avx<float>(float* data,
-                                     const uint64_t data_size,
-                                     const uint64_t* qregs,
-                                     const size_t qregs_size,
-                                     const float* mat,
+template Avx apply_matrix_avx<float>(float *data, const uint64_t data_size,
+                                     const uint64_t *qregs,
+                                     const size_t qregs_size, const float *mat,
                                      const size_t omp_threads);
 
 template <typename data_t>
-std::complex<data_t>* _to_complex(data_t* vec) {
-  return reinterpret_cast<std::complex<data_t>*>(vec);
+std::complex<data_t> *_to_complex(data_t *vec) {
+  return reinterpret_cast<std::complex<data_t> *>(vec);
 }
 
 template <typename data_t>
-const std::complex<data_t>* _to_complex(const data_t* vec) {
-  return reinterpret_cast<const std::complex<data_t>*>(vec);
+const std::complex<data_t> *_to_complex(const data_t *vec) {
+  return reinterpret_cast<const std::complex<data_t> *>(vec);
 }
 
-static m256_t<double> _load_diagonal_input(const std::complex<double>* input_vec,
-                                           std::complex<double>* tmp,
-                                           const uint64_t i,
-                                           const uint64_t* qregs,
-                                           const size_t qregs_size,
-                                           const size_t q0_mask) {
+static m256_t<double>
+_load_diagonal_input(const std::complex<double> *input_vec,
+                     std::complex<double> *tmp, const uint64_t i,
+                     const uint64_t *qregs, const size_t qregs_size,
+                     const size_t q0_mask) {
   uint64_t vec_idx0 = 0;
   for (size_t j = 0; j < qregs_size; ++j)
     if (i & (MASKS[qregs[j]] + 1UL))
       vec_idx0 += (MASKS[j] + 1UL);
   tmp[0] = input_vec[vec_idx0];
   tmp[1] = input_vec[vec_idx0 | q0_mask];
-  return _mm256_load(reinterpret_cast<double*>(tmp));
+  return _mm256_load(reinterpret_cast<double *>(tmp));
 }
 
-static m256_t<float> _load_diagonal_input(const std::complex<float>* input_vec,
-                                          std::complex<float>* tmp,
-                                          const uint64_t i,
-                                          const uint64_t* qregs,
-                                          const size_t qregs_size,
-                                          const size_t q0_mask,
-                                          const size_t q1_mask) {
+static m256_t<float>
+_load_diagonal_input(const std::complex<float> *input_vec,
+                     std::complex<float> *tmp, const uint64_t i,
+                     const uint64_t *qregs, const size_t qregs_size,
+                     const size_t q0_mask, const size_t q1_mask) {
   uint64_t vec_idx0 = 0;
   for (size_t j = 0; j < qregs_size; ++j)
     if (i & (MASKS[qregs[j]] + 1UL))
@@ -1152,16 +1107,13 @@ static m256_t<float> _load_diagonal_input(const std::complex<float>* input_vec,
   tmp[1] = input_vec[vec_idx0 | q0_mask];
   tmp[2] = input_vec[vec_idx0 | q1_mask];
   tmp[3] = input_vec[vec_idx0 | q0_mask | q1_mask];
-  return _mm256_load(reinterpret_cast<float*>(tmp));
+  return _mm256_load(reinterpret_cast<float *>(tmp));
 }
 
 template <>
-Avx apply_diagonal_matrix_avx<double>(double* qv_data_,
-                                      const uint64_t data_size,
-                                      const uint64_t* qregs,
-                                      const size_t qregs_size,
-                                      const double* vec_,
-                                      const size_t omp_threads) {
+Avx apply_diagonal_matrix_avx<double>(
+    double *qv_data_, const uint64_t data_size, const uint64_t *qregs,
+    const size_t qregs_size, const double *vec_, const size_t omp_threads) {
 
   auto qv_data = _to_complex(qv_data_);
   const auto input_vec = _to_complex(vec_);
@@ -1171,37 +1123,40 @@ Avx apply_diagonal_matrix_avx<double>(double* qv_data_,
   {
 #endif
 #if !defined(_WIN64) && !defined(_WIN32)
-  void* data = nullptr;
-  posix_memalign(&data, 64, sizeof(std::complex<double>) * 2);
-  auto double_tmp = reinterpret_cast<std::complex<double>*>(data);
+    void *data = nullptr;
+    posix_memalign(&data, 64, sizeof(std::complex<double>) * 2);
+    auto double_tmp = reinterpret_cast<std::complex<double> *>(data);
 #else
-  auto double_tmp = reinterpret_cast<std::complex<double>*>(malloc(sizeof(std::complex<double>) * 2));
+  auto double_tmp = reinterpret_cast<std::complex<double> *>(
+      malloc(sizeof(std::complex<double>) * 2));
 #endif
 
-  size_t q0_mask_ = 0;
-  for (int i = 0; i < qregs_size; ++i) {
-    if (qregs[i] == 0) {
-      q0_mask_ = 1UL << i;
-      break;
+    size_t q0_mask_ = 0;
+    for (int i = 0; i < qregs_size; ++i) {
+      if (qregs[i] == 0) {
+        q0_mask_ = 1UL << i;
+        break;
+      }
     }
-  }
 
-  const size_t q0_mask = q0_mask_;
-  const auto batch = (data_size <= (1UL << 5) ? 0 : 4);
-  const int64_t END = data_size >> (batch + 1);
+    const size_t q0_mask = q0_mask_;
+    const auto batch = (data_size <= (1UL << 5) ? 0 : 4);
+    const int64_t END = data_size >> (batch + 1);
 
-  #pragma omp for
-  for (int64_t k = 0; k < END; k += 1) {
-    const auto base = k << (batch + 1);
-    const auto until = base + (1UL << (batch + 1));
-    for (auto i = base; i < until; i+=2) {
-      auto tgt_qv_data = _mm256_load(reinterpret_cast<double*>(&(qv_data[i])));
-      auto input_data = _load_diagonal_input(input_vec, double_tmp, i, qregs, qregs_size, q0_mask);
-      _mm_complex_multiply<double>(tgt_qv_data, input_data);
-      _mm256_store(reinterpret_cast<double*>(&(qv_data[i])), tgt_qv_data);
+#pragma omp for
+    for (int64_t k = 0; k < END; k += 1) {
+      const auto base = k << (batch + 1);
+      const auto until = base + (1UL << (batch + 1));
+      for (auto i = base; i < until; i += 2) {
+        auto tgt_qv_data =
+            _mm256_load(reinterpret_cast<double *>(&(qv_data[i])));
+        auto input_data = _load_diagonal_input(input_vec, double_tmp, i, qregs,
+                                               qregs_size, q0_mask);
+        _mm_complex_multiply<double>(tgt_qv_data, input_data);
+        _mm256_store(reinterpret_cast<double *>(&(qv_data[i])), tgt_qv_data);
+      }
     }
-  }
-  free(double_tmp);
+    free(double_tmp);
 #if defined(_OPENMP)
   }
 #endif
@@ -1210,11 +1165,9 @@ Avx apply_diagonal_matrix_avx<double>(double* qv_data_,
 }
 
 template <>
-Avx apply_diagonal_matrix_avx<float>(float* qv_data_,
-                                     const uint64_t data_size,
-                                     const uint64_t* qregs,
-                                     const size_t qregs_size,
-                                     const float* vec_,
+Avx apply_diagonal_matrix_avx<float>(float *qv_data_, const uint64_t data_size,
+                                     const uint64_t *qregs,
+                                     const size_t qregs_size, const float *vec_,
                                      const size_t omp_threads) {
 
   if (data_size < (1UL << 2))
@@ -1227,44 +1180,48 @@ Avx apply_diagonal_matrix_avx<float>(float* qv_data_,
 #pragma omp parallel if (omp_threads > 1) num_threads(omp_threads)
   {
 #if !defined(_WIN64) && !defined(_WIN32)
-  void* data = nullptr;
-  posix_memalign(&data, 64, sizeof(std::complex<float>) * 4);
-  auto float_tmp = reinterpret_cast<std::complex<float>*>(data);
+    void *data = nullptr;
+    posix_memalign(&data, 64, sizeof(std::complex<float>) * 4);
+    auto float_tmp = reinterpret_cast<std::complex<float> *>(data);
 #else
-  auto float_tmp = reinterpret_cast<std::complex<float>*>(malloc(sizeof(std::complex<float>) * 4));
+    auto float_tmp = reinterpret_cast<std::complex<float> *>(
+        malloc(sizeof(std::complex<float>) * 4));
 #endif
 #else
-  auto float_tmp = reinterpret_cast<std::complex<float>*>(malloc(sizeof(std::complex<float>) * 4));
+  auto float_tmp = reinterpret_cast<std::complex<float> *>(
+      malloc(sizeof(std::complex<float>) * 4));
 #endif
 
-  size_t q0_mask_ = 0;
-  size_t q1_mask_ = 0;
-  for (size_t i = 0; i < qregs_size; ++i) {
-    if (qregs[i] == 0) {
-      q0_mask_ = 1UL << i;
-    } else if (qregs[i] == 1) {
-      q1_mask_ = 1UL << i;
+    size_t q0_mask_ = 0;
+    size_t q1_mask_ = 0;
+    for (size_t i = 0; i < qregs_size; ++i) {
+      if (qregs[i] == 0) {
+        q0_mask_ = 1UL << i;
+      } else if (qregs[i] == 1) {
+        q1_mask_ = 1UL << i;
+      }
     }
-  }
 
-  const size_t q0_mask = q0_mask_;
-  const size_t q1_mask = q1_mask_;
-  const auto batch = (data_size <= (1UL << 6) ? 0 : 4);
-  const int64_t END = data_size >> (batch + 1);
+    const size_t q0_mask = q0_mask_;
+    const size_t q1_mask = q1_mask_;
+    const auto batch = (data_size <= (1UL << 6) ? 0 : 4);
+    const int64_t END = data_size >> (batch + 1);
 
-  #pragma omp for
-  for (int64_t k = 0; k < END; k += 1) {
-    const auto base = k << (batch + 2);
-    const auto until = base + (1UL << (batch + 2));
-    for (auto i = base; i < until; i+=4) {
-      m256_t<float> tgt_qv_data = _mm256_load(reinterpret_cast<float*>(&(qv_data[i])));
-      auto input_data = _load_diagonal_input(input_vec, float_tmp, i, qregs, qregs_size, q0_mask, q1_mask);
-      _mm_complex_multiply<float>(tgt_qv_data, input_data);
-      _mm256_store(reinterpret_cast<float*>(&(qv_data[i])), tgt_qv_data);
-    }
-  };
+#pragma omp for
+    for (int64_t k = 0; k < END; k += 1) {
+      const auto base = k << (batch + 2);
+      const auto until = base + (1UL << (batch + 2));
+      for (auto i = base; i < until; i += 4) {
+        m256_t<float> tgt_qv_data =
+            _mm256_load(reinterpret_cast<float *>(&(qv_data[i])));
+        auto input_data = _load_diagonal_input(input_vec, float_tmp, i, qregs,
+                                               qregs_size, q0_mask, q1_mask);
+        _mm_complex_multiply<float>(tgt_qv_data, input_data);
+        _mm256_store(reinterpret_cast<float *>(&(qv_data[i])), tgt_qv_data);
+      }
+    };
 
-  free(float_tmp);
+    free(float_tmp);
 #if defined(_OPENMP)
   }
 #endif

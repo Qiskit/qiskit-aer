@@ -47,8 +47,7 @@ class TestQuantumError(QiskitAerTestCase):
 
     def test_init_with_operators(self):
         """Test construction with mixture of operators."""
-        kraus = Kraus([np.sqrt(0.7) * np.eye(2),
-                       np.sqrt(0.3) * np.diag([1, -1])])
+        kraus = Kraus([np.sqrt(0.7) * np.eye(2), np.sqrt(0.3) * np.diag([1, -1])])
         self.assertEqual(QuantumError(kraus).size, 1)
         self.assertEqual(QuantumError([(kraus, 0.7), (kraus, 0.3)]).size, 2)
 
@@ -61,23 +60,26 @@ class TestQuantumError(QiskitAerTestCase):
         """Test construction with mixture of instructions."""
         self.assertEqual(QuantumError(Reset()).size, 1)
         self.assertEqual(QuantumError([(IGate(), 0.7), (Reset(), 0.3)]).size, 2)
-        mixed_insts = QuantumError([((IGate(), [1]), 0.4),
-                                   (ZGate(), 0.3),
-                                   ([(Reset(), [0])], 0.2),
-                                   ([(Reset(), [0]), (XGate(), [0])], 0.1)])
+        mixed_insts = QuantumError(
+            [
+                ((IGate(), [1]), 0.4),
+                (ZGate(), 0.3),
+                ([(Reset(), [0])], 0.2),
+                ([(Reset(), [0]), (XGate(), [0])], 0.1),
+            ]
+        )
         self.assertEqual(mixed_insts.size, 4)
 
         self.assertEqual(QuantumError(XGate()).size, 1)
         self.assertEqual(QuantumError([(IGate(), 0.7), (ZGate(), 0.3)]).size, 2)
-        mixed_gates = QuantumError([((IGate(), [0]), 0.6),
-                                    ((XGate(), [1]), 0.4)])
+        mixed_gates = QuantumError([((IGate(), [0]), 0.6), ((XGate(), [1]), 0.4)])
         self.assertEqual(mixed_gates.size, 2)
 
-        mixed_ops = QuantumError([(IGate(), 0.7),          # Gate
-                                  (Pauli("Z"), 0.3)])      # Operator
+        mixed_ops = QuantumError([(IGate(), 0.7), (Pauli("Z"), 0.3)])  # Gate  # Operator
         self.assertEqual(mixed_ops.size, 2)
-        mixed_ops = QuantumError([(IGate(), 0.7),          # Instruction
-                                  ((Reset(), [1]), 0.3)])  # Tuple[Instruction, List[int]
+        mixed_ops = QuantumError(
+            [(IGate(), 0.7), ((Reset(), [1]), 0.3)]  # Instruction
+        )  # Tuple[Instruction, List[int]
         self.assertEqual(mixed_ops.size, 2)
 
     def test_raise_if_invalid_op_type_for_init(self):
@@ -112,10 +114,8 @@ class TestQuantumError(QiskitAerTestCase):
 
     def test_raise_unnormalized_probabilities_nonunitary_kraus(self):
         """Test exception is raised for non-unitary kraus probs greater than 1."""
-        a_0 = np.sqrt(0.9) * np.array([[1, 0], [0, np.sqrt(1 - 0.3)]],
-                                      dtype=complex)
-        a_1 = np.sqrt(0.2) * np.array([[0, np.sqrt(0.3)], [0, 0]],
-                                      dtype=complex)
+        a_0 = np.sqrt(0.9) * np.array([[1, 0], [0, np.sqrt(1 - 0.3)]], dtype=complex)
+        a_1 = np.sqrt(0.2) * np.array([[0, np.sqrt(0.3)], [0, 0]], dtype=complex)
         with self.assertRaises(NoiseError):
             QuantumError(Kraus([a_0, a_1]))
 
@@ -149,8 +149,7 @@ class TestQuantumError(QiskitAerTestCase):
 
     def test_to_quantum_channel(self):
         """Test conversion into quantum channel."""
-        meas_kraus = Kraus([np.diag([1, 0]),
-                            np.diag([0, 1])])
+        meas_kraus = Kraus([np.diag([1, 0]), np.diag([0, 1])])
         actual = QuantumError(meas_kraus).to_quantumchannel()
         expected = SuperOp(np.diag([1, 0, 0, 1]))
         self.assertEqual(actual, expected)
@@ -160,10 +159,14 @@ class TestQuantumError(QiskitAerTestCase):
         noise_x = QuantumError([((IGate(), [0]), 0.9), ((XGate(), [0]), 0.1)])
         noise_y = QuantumError([((IGate(), [0]), 0.8), ((YGate(), [0]), 0.2)])
         actual = noise_x.compose(noise_y)
-        expected = QuantumError([([(IGate(), [0]), (IGate(), [0])], 0.9 * 0.8),
-                                 ([(IGate(), [0]), (YGate(), [0])], 0.9 * 0.2),
-                                 ([(XGate(), [0]), (IGate(), [0])], 0.1 * 0.8),
-                                 ([(XGate(), [0]), (YGate(), [0])], 0.1 * 0.2)])
+        expected = QuantumError(
+            [
+                ([(IGate(), [0]), (IGate(), [0])], 0.9 * 0.8),
+                ([(IGate(), [0]), (YGate(), [0])], 0.9 * 0.2),
+                ([(XGate(), [0]), (IGate(), [0])], 0.1 * 0.8),
+                ([(XGate(), [0]), (YGate(), [0])], 0.1 * 0.2),
+            ]
+        )
         self.assertEqual(actual, expected)
 
     def test_dot(self):
@@ -171,10 +174,14 @@ class TestQuantumError(QiskitAerTestCase):
         noise_x = QuantumError([((IGate(), [0]), 0.9), ((XGate(), [0]), 0.1)])
         noise_y = QuantumError([((IGate(), [0]), 0.8), ((YGate(), [0]), 0.2)])
         actual = noise_y.dot(noise_x)  # reversed order of compose
-        expected = QuantumError([([(IGate(), [0]), (IGate(), [0])], 0.9 * 0.8),
-                                 ([(IGate(), [0]), (YGate(), [0])], 0.9 * 0.2),
-                                 ([(XGate(), [0]), (IGate(), [0])], 0.1 * 0.8),
-                                 ([(XGate(), [0]), (YGate(), [0])], 0.1 * 0.2)])
+        expected = QuantumError(
+            [
+                ([(IGate(), [0]), (IGate(), [0])], 0.9 * 0.8),
+                ([(IGate(), [0]), (YGate(), [0])], 0.9 * 0.2),
+                ([(XGate(), [0]), (IGate(), [0])], 0.1 * 0.8),
+                ([(XGate(), [0]), (YGate(), [0])], 0.1 * 0.2),
+            ]
+        )
         self.assertEqual(actual, expected)
 
     def test_compose_one_with_different_num_qubits(self):
@@ -182,20 +189,27 @@ class TestQuantumError(QiskitAerTestCase):
         noise_1q = QuantumError([((IGate(), [0]), 0.9), ((XGate(), [0]), 0.1)])
         noise_2q = QuantumError([((IGate(), [0]), 0.8), ((XGate(), [1]), 0.2)])
         actual = noise_1q.compose(noise_2q)
-        expected = QuantumError([([(IGate(), [0]), (IGate(), [0])], 0.9 * 0.8),
-                                 ([(IGate(), [0]), (XGate(), [1])], 0.9 * 0.2),
-                                 ([(XGate(), [0]), (IGate(), [0])], 0.1 * 0.8),
-                                 ([(XGate(), [0]), (XGate(), [1])], 0.1 * 0.2)])
+        expected = QuantumError(
+            [
+                ([(IGate(), [0]), (IGate(), [0])], 0.9 * 0.8),
+                ([(IGate(), [0]), (XGate(), [1])], 0.9 * 0.2),
+                ([(XGate(), [0]), (IGate(), [0])], 0.1 * 0.8),
+                ([(XGate(), [0]), (XGate(), [1])], 0.1 * 0.2),
+            ]
+        )
         self.assertEqual(actual, expected)
 
     def test_compose_with_different_type_of_operator(self):
         """Test compose with Kraus operator."""
         noise_x = QuantumError([((IGate(), [0]), 0.9), ((XGate(), [0]), 0.1)])
-        meas_kraus = Kraus([np.diag([1, 0]),
-                            np.diag([0, 1])])
+        meas_kraus = Kraus([np.diag([1, 0]), np.diag([0, 1])])
         actual = noise_x.compose(meas_kraus)
-        expected = QuantumError([([(IGate(), [0]), (meas_kraus.to_instruction(), [0])], 0.9),
-                                 ([(XGate(), [0]), (meas_kraus.to_instruction(), [0])], 0.1)])
+        expected = QuantumError(
+            [
+                ([(IGate(), [0]), (meas_kraus.to_instruction(), [0])], 0.9),
+                ([(XGate(), [0]), (meas_kraus.to_instruction(), [0])], 0.1),
+            ]
+        )
         self.assertEqual(actual, expected)
 
     def test_tensor(self):
@@ -203,10 +217,14 @@ class TestQuantumError(QiskitAerTestCase):
         noise_x = QuantumError([((IGate(), [0]), 0.9), ((XGate(), [0]), 0.1)])
         noise_y = QuantumError([((IGate(), [0]), 0.8), ((YGate(), [0]), 0.2)])
         actual = noise_x.tensor(noise_y)
-        expected = QuantumError([([(IGate(), [1]), (IGate(), [0])], 0.9 * 0.8),
-                                 ([(IGate(), [1]), (YGate(), [0])], 0.9 * 0.2),
-                                 ([(XGate(), [1]), (IGate(), [0])], 0.1 * 0.8),
-                                 ([(XGate(), [1]), (YGate(), [0])], 0.1 * 0.2)])
+        expected = QuantumError(
+            [
+                ([(IGate(), [1]), (IGate(), [0])], 0.9 * 0.8),
+                ([(IGate(), [1]), (YGate(), [0])], 0.9 * 0.2),
+                ([(XGate(), [1]), (IGate(), [0])], 0.1 * 0.8),
+                ([(XGate(), [1]), (YGate(), [0])], 0.1 * 0.2),
+            ]
+        )
         self.assertEqual(actual, expected)
 
     def test_expand(self):
@@ -214,22 +232,29 @@ class TestQuantumError(QiskitAerTestCase):
         noise_x = QuantumError([((IGate(), [0]), 0.9), ((XGate(), [0]), 0.1)])
         noise_y = QuantumError([((IGate(), [0]), 0.8), ((YGate(), [0]), 0.2)])
         actual = noise_y.expand(noise_x)  # reversed order of expand
-        expected = QuantumError([([(IGate(), [1]), (IGate(), [0])], 0.9 * 0.8),
-                                 ([(IGate(), [1]), (YGate(), [0])], 0.9 * 0.2),
-                                 ([(XGate(), [1]), (IGate(), [0])], 0.1 * 0.8),
-                                 ([(XGate(), [1]), (YGate(), [0])], 0.1 * 0.2)])
+        expected = QuantumError(
+            [
+                ([(IGate(), [1]), (IGate(), [0])], 0.9 * 0.8),
+                ([(IGate(), [1]), (YGate(), [0])], 0.9 * 0.2),
+                ([(XGate(), [1]), (IGate(), [0])], 0.1 * 0.8),
+                ([(XGate(), [1]), (YGate(), [0])], 0.1 * 0.2),
+            ]
+        )
         self.assertEqual(actual, expected)
 
     def test_tensor_with_different_type_of_operator(self):
         """Test tensor with Kraus operator."""
         noise_x = QuantumError([((IGate(), [0]), 0.9), ((XGate(), [0]), 0.1)])
-        meas_kraus = Kraus([np.diag([1, 0]),
-                            np.diag([0, 1])])
+        meas_kraus = Kraus([np.diag([1, 0]), np.diag([0, 1])])
         actual = noise_x.tensor(meas_kraus)
-        expected = QuantumError([([(IGate(), [1]), (meas_kraus.to_instruction(), [0])], 0.9),
-                                 ([(XGate(), [1]), (meas_kraus.to_instruction(), [0])], 0.1)])
+        expected = QuantumError(
+            [
+                ([(IGate(), [1]), (meas_kraus.to_instruction(), [0])], 0.9),
+                ([(XGate(), [1]), (meas_kraus.to_instruction(), [0])], 0.1),
+            ]
+        )
         self.assertEqual(actual, expected)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

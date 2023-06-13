@@ -43,7 +43,7 @@ class SetStatevector(Instruction):
             state = Statevector(state)
         if not state.num_qubits or not state.is_valid():
             raise ExtensionError("The input statevector is not valid")
-        super().__init__('set_statevector', state.num_qubits, 0, [state.data])
+        super().__init__("set_statevector", state.num_qubits, 0, [state.data])
 
 
 def set_statevector(self, state):
@@ -71,7 +71,8 @@ def set_statevector(self, state):
             "The size of the statevector for the set_statevector"
             " instruction must be equal to the number of qubits"
             f" in the circuit (state.num_qubits ({state.num_qubits})"
-            f" != QuantumCircuit.num_qubits ({self.num_qubits})).")
+            f" != QuantumCircuit.num_qubits ({self.num_qubits}))."
+        )
     return self.append(SetStatevector(state), qubits)
 
 

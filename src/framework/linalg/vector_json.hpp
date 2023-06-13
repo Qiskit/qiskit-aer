@@ -24,23 +24,23 @@ namespace AER {
 // Implementation: JSON Conversion
 //------------------------------------------------------------------------------
 
-  
-template <typename T> void to_json(nlohmann::json &js, const Vector<T> &vec) {
+template <typename T>
+void to_json(nlohmann::json &js, const Vector<T> &vec) {
   js = nlohmann::json();
   for (size_t i = 0; i < vec.size(); i++) {
     js.push_back(vec[i]);
   }
 }
 
-
-template <typename T> void from_json(const nlohmann::json &js, Vector<T> &vec) {
+template <typename T>
+void from_json(const nlohmann::json &js, Vector<T> &vec) {
   // Check JSON is an array
-  if(!js.is_array()) {
+  if (!js.is_array()) {
     throw std::invalid_argument(
         std::string("JSON: invalid Vector (not array)."));
   }
   // Check if JSON is empty
-  if(js.empty()) {
+  if (js.empty()) {
     return;
   }
 

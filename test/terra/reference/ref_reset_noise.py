@@ -21,7 +21,7 @@ from qiskit_aer.noise import NoiseModel
 from qiskit_aer.noise.errors.standard_errors import reset_error
 
 # Backwards compatibility for Terra <= 0.13
-if not hasattr(QuantumCircuit, 'i'):
+if not hasattr(QuantumCircuit, "i"):
     QuantumCircuit.i = QuantumCircuit.iden
 
 
@@ -29,13 +29,14 @@ if not hasattr(QuantumCircuit, 'i'):
 # Reset Gate Errors
 # ==========================================================================
 
+
 def reset_gate_error_circuits():
     """Reset gate error noise model circuits"""
     circuits = []
 
     # 50% reset to 0 state on qubit 0
-    qr = QuantumRegister(2, 'qr')
-    cr = ClassicalRegister(2, 'cr')
+    qr = QuantumRegister(2, "qr")
+    cr = ClassicalRegister(2, "cr")
     circuit = QuantumCircuit(qr, cr)
     circuit.x(qr)
     circuit.barrier(qr)
@@ -43,8 +44,8 @@ def reset_gate_error_circuits():
     circuits.append(circuit)
 
     # 25% reset to 0 state on qubit 1
-    qr = QuantumRegister(2, 'qr')
-    cr = ClassicalRegister(2, 'cr')
+    qr = QuantumRegister(2, "qr")
+    cr = ClassicalRegister(2, "cr")
     circuit = QuantumCircuit(qr, cr)
     circuit.x(qr)
     circuit.barrier(qr)
@@ -52,8 +53,8 @@ def reset_gate_error_circuits():
     circuits.append(circuit)
 
     # 100% reset error to 0 on all qubits
-    qr = QuantumRegister(1, 'qr')
-    cr = ClassicalRegister(1, 'cr')
+    qr = QuantumRegister(1, "qr")
+    cr = ClassicalRegister(1, "cr")
     circuit = QuantumCircuit(qr, cr)
     circuit.x(qr)
     circuit.barrier(qr)
@@ -61,8 +62,8 @@ def reset_gate_error_circuits():
     circuits.append(circuit)
 
     # 100% reset error to 1 on all qubits
-    qr = QuantumRegister(1, 'qr')
-    cr = ClassicalRegister(1, 'cr')
+    qr = QuantumRegister(1, "qr")
+    cr = ClassicalRegister(1, "cr")
     circuit = QuantumCircuit(qr, cr)
     circuit.i(qr)
     circuit.barrier(qr)
@@ -70,8 +71,8 @@ def reset_gate_error_circuits():
     circuits.append(circuit)
 
     # 25% reset error to 0 and 1 on all qubits
-    qr = QuantumRegister(2, 'qr')
-    cr = ClassicalRegister(2, 'cr')
+    qr = QuantumRegister(2, "qr")
+    cr = ClassicalRegister(2, "cr")
     circuit = QuantumCircuit(qr, cr)
     circuit.i(qr[0])
     circuit.x(qr[1])
@@ -89,31 +90,31 @@ def reset_gate_error_noise_models():
     # 50% reset to 0 state on qubit 0
     error = reset_error(0.5)
     noise_model = NoiseModel()
-    noise_model.add_quantum_error(error, 'x', [0])
+    noise_model.add_quantum_error(error, "x", [0])
     noise_models.append(noise_model)
 
     # 25% reset to 0 state on qubit 1
     error = reset_error(0.25)
     noise_model = NoiseModel()
-    noise_model.add_quantum_error(error, 'x', [1])
+    noise_model.add_quantum_error(error, "x", [1])
     noise_models.append(noise_model)
 
     # 100% reset error to 0 on all qubits
     error = reset_error(1)
     noise_model = NoiseModel()
-    noise_model.add_all_qubit_quantum_error(error, ['id', 'x'])
+    noise_model.add_all_qubit_quantum_error(error, ["id", "x"])
     noise_models.append(noise_model)
 
     # 100% reset error to 1 on all qubits
     error = reset_error(0, 1)
     noise_model = NoiseModel()
-    noise_model.add_all_qubit_quantum_error(error, ['id', 'x'])
+    noise_model.add_all_qubit_quantum_error(error, ["id", "x"])
     noise_models.append(noise_model)
 
     # 25% reset error to 0 and 1 on all qubits
     error = reset_error(0.25, 0.25)
     noise_model = NoiseModel()
-    noise_model.add_all_qubit_quantum_error(error, ['id', 'x'])
+    noise_model.add_all_qubit_quantum_error(error, ["id", "x"])
     noise_models.append(noise_model)
 
     return noise_models

@@ -43,8 +43,7 @@ class SetSuperOp(Instruction):
             state = SuperOp(state)
         if not state.num_qubits or not state.is_cptp():
             raise ExtensionError("The input quantum channel is not CPTP")
-        super().__init__('set_superop', state.num_qubits, 0,
-                         [state.data])
+        super().__init__("set_superop", state.num_qubits, 0, [state.data])
 
 
 def set_superop(self, state):
@@ -73,7 +72,8 @@ def set_superop(self, state):
             "The size of the quantum channel for the set_superop"
             " instruction must be equal to the number of qubits"
             f" in the circuit (state.num_qubits ({state.num_qubits})"
-            f" != QuantumCircuit.num_qubits ({self.num_qubits})).")
+            f" != QuantumCircuit.num_qubits ({self.num_qubits}))."
+        )
     return self.append(SetSuperOp(state), qubits)
 
 

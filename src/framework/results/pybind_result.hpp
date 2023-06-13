@@ -26,13 +26,14 @@
 namespace AerToPy {
 
 // Move an ExperimentResult object to a Python dict
-template <> py::object to_python(AER::ExperimentResult &&result);
+template <>
+py::object to_python(AER::ExperimentResult &&result);
 
 // Move a Result object to a Python dict
-template <> py::object to_python(AER::Result &&result);
+template <>
+py::object to_python(AER::Result &&result);
 
-} //end namespace AerToPy
-
+} // end namespace AerToPy
 
 //============================================================================
 // Implementations
@@ -43,21 +44,23 @@ py::object AerToPy::to_python(AER::ExperimentResult &&result) {
   py::dict pyexperiment;
 
   pyexperiment["shots"] = result.shots;
+  pyexperiment["circuit"] = result.circuit;
   pyexperiment["seed_simulator"] = result.seed;
 
-  pyexperiment["data"] =  AerToPy::to_python(std::move(result.data));
+  pyexperiment["data"] = AerToPy::to_python(std::move(result.data));
   pyexperiment["metadata"] = AerToPy::to_python(std::move(result.metadata));
 
-  pyexperiment["success"] = (result.status == AER::ExperimentResult::Status::completed);
+  pyexperiment["success"] =
+      (result.status == AER::ExperimentResult::Status::completed);
   switch (result.status) {
-    case AER::ExperimentResult::Status::completed:
-      pyexperiment["status"] = "DONE";
-      break;
-    case AER::ExperimentResult::Status::error:
-      pyexperiment["status"] = std::string("ERROR: ") + result.message;
-      break;
-    case AER::ExperimentResult::Status::empty:
-      pyexperiment["status"] = "EMPTY";
+  case AER::ExperimentResult::Status::completed:
+    pyexperiment["status"] = "DONE";
+    break;
+  case AER::ExperimentResult::Status::error:
+    pyexperiment["status"] = std::string("ERROR: ") + result.message;
+    break;
+  case AER::ExperimentResult::Status::empty:
+    pyexperiment["status"] = "EMPTY";
   }
   pyexperiment["time_taken"] = result.time_taken;
 
@@ -68,7 +71,6 @@ py::object AerToPy::to_python(AER::ExperimentResult &&result) {
   }
   return std::move(pyexperiment);
 }
-
 
 template <>
 py::object AerToPy::to_python(AER::Result &&result) {
@@ -81,7 +83,7 @@ py::object AerToPy::to_python(AER::Result &&result) {
   pyresult["job_id"] = result.job_id;
 
   py::list exp_results;
-  for(AER::ExperimentResult& exp : result.results)
+  for (AER::ExperimentResult &exp : result.results)
     exp_results.append(AerToPy::to_python(std::move(exp)));
   pyresult["results"] = std::move(exp_results);
   pyresult["metadata"] = AerToPy::to_python(std::move(result.metadata));
@@ -94,17 +96,17 @@ py::object AerToPy::to_python(AER::Result &&result) {
   }
   pyresult["success"] = (result.status == AER::Result::Status::completed);
   switch (result.status) {
-    case AER::Result::Status::completed:
-      pyresult["status"] = "COMPLETED";
-      break;
-    case AER::Result::Status::partial_completed:
-      pyresult["status"] = "PARTIAL COMPLETED";
-      break;
-    case AER::Result::Status::error:
-      pyresult["status"] = std::string("ERROR: ") + result.message;
-      break;
-    case AER::Result::Status::empty:
-      pyresult["status"] = "EMPTY";
+  case AER::Result::Status::completed:
+    pyresult["status"] = "COMPLETED";
+    break;
+  case AER::Result::Status::partial_completed:
+    pyresult["status"] = "PARTIAL COMPLETED";
+    break;
+  case AER::Result::Status::error:
+    pyresult["status"] = std::string("ERROR: ") + result.message;
+    break;
+  case AER::Result::Status::empty:
+    pyresult["status"] = "EMPTY";
   }
   return std::move(pyresult);
 }

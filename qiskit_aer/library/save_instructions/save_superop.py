@@ -20,6 +20,7 @@ from ..default_qubits import default_qubits
 
 class SaveSuperOp(SaveSingleData):
     """Save a SuperOp matrix."""
+
     def __init__(self, num_qubits, label="superop", pershot=False):
         """Create new instruction to save the superop simulator state.
 

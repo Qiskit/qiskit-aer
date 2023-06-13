@@ -15,13 +15,12 @@
 #ifndef _aer_circuit_optimization_hpp_
 #define _aer_circuit_optimization_hpp_
 
-#include <vector>
 #include <algorithm>
+#include <vector>
 
-#include "framework/opset.hpp"
 #include "framework/config.hpp"
+#include "framework/opset.hpp"
 #include "noise/noise_model.hpp"
-
 
 namespace AER {
 namespace Transpile {
@@ -34,24 +33,17 @@ using reg_t = std::vector<uint_t>;
 
 class CircuitOptimization {
 public:
-
   CircuitOptimization() = default;
   virtual ~CircuitOptimization() = default;
 
-  virtual void optimize_circuit(Circuit& circ,
-                                Noise::NoiseModel& noise,
+  virtual void optimize_circuit(Circuit &circ, Noise::NoiseModel &noise,
                                 const Operations::OpSet &opset,
                                 ExperimentResult &result) const = 0;
 
-  virtual void set_config(const Config &config);
+  virtual void set_config(const Config &config){};
 
 protected:
-  Config config_;
 };
-
-void CircuitOptimization::set_config(const Config& config) {
-  config_ = config;
-}
 
 //-------------------------------------------------------------------------
 } // end namespace Transpile
