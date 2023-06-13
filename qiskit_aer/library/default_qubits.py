@@ -48,8 +48,10 @@ def default_qubits(circuit, qubits=None):
         for tuple_element in tuples:
             if isinstance(tuple_element, QuantumRegister):
                 for j in range(tuple_element.size):
-                    qubits.append(tuple_element[j])
+                    if tuple_element[j] not in qubits:
+                        qubits.append(tuple_element[j])
             else:
-                qubits.append(tuple_element)
+                if tuple_element not in qubits:
+                    qubits.append(tuple_element)
 
     return qubits
