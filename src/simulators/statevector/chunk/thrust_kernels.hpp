@@ -1340,7 +1340,7 @@ public:
     m0 = mat[0];
     m1 = mat[1];
 
-    mask = (1ull << qubits[nqubits - 1]) - 1;
+    mask = (1ull << qubits[nqubits - 1]);
     cmask = 0;
     for (i = 0; i < nqubits - 1; i++) {
       cmask |= (1ull << qubits[i]);
