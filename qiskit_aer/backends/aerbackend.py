@@ -458,7 +458,7 @@ class AerBackend(Backend, ABC):
         for result in output["results"]:
             if "header" not in result:
                 continue
-            result["header"]["metadata"] = metadata_map[result["circuit"]]
+            result["header"]["metadata"] = metadata_map[result.pop("circuit")]
 
         # Add execution time
         output["time_taken"] = time.time() - start

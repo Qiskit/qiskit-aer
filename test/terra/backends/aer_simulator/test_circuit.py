@@ -13,6 +13,7 @@
 AerSimulator Integration Tests
 """
 from math import sqrt
+from copy import deepcopy
 from ddt import ddt
 import numpy as np
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister, assemble
@@ -190,7 +191,7 @@ class TestVariousCircuit(SimulatorTestCase):
             self.assertEqual(circuit.metadata["foo"], "bar")
             self.assertEqual(circuit.metadata["object"], object)
 
-        job.result()
+        deepcopy(job.result())
 
     def test_run_qobj(self):
         """Test qobj run"""

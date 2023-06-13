@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Results of ``backend.run()`` were not serializable because they include :class:`.AerCircuit`\ s.
+    This commit makes the results serializable by removing :class:`.AerCircuit`\ s from metadata.
