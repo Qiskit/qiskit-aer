@@ -19,6 +19,7 @@ from __future__ import annotations
 from collections import defaultdict
 from collections.abc import Sequence
 from copy import copy
+from warnings import warn
 
 import numpy as np
 from qiskit.circuit import QuantumCircuit
@@ -50,12 +51,21 @@ class Estimator(BaseEstimator):
     .. note::
         Precedence of seeding for ``seed_simulator`` is as follows:
 
-        1. ``seed_simulator`` in runtime (i.e. in :meth:`__call__`)
-        2. ``seed`` in runtime (i.e. in :meth:`__call__`)
+        1. ``seed_simulator`` in runtime (i.e. in :meth:`run`)
+        2. ``seed`` in runtime (i.e. in :meth:`run`)
         3. ``seed_simulator`` of ``backend_options``.
         4. default.
 
         ``seed`` is also used for sampling from a normal distribution when approximation is True.
+
+        When combined with the approximation option, we get the expectation values as follows:
+
+        * shots is None and approximation=False: Return an expectation value with sampling-noise w/
+          warning.
+        * shots is int and approximation=False: Return an expectation value with sampling-noise.
+        * shots is None and approximation=True: Return an exact expectation value.
+        * shots is int and approximation=True: Return expectation value with sampling-noise using a
+          normal distribution approximation.
     """
 
     def __init__(
@@ -145,12 +155,24 @@ class Estimator(BaseEstimator):
                 self._observable_ids[_observable_key(observable)] = len(self._observables)
                 self._observables.append(observable)
         job = PrimitiveJob(
-            self._call, circuit_indices, observable_indices, parameter_values, **run_options
+            self._call,
+            circuit_indices,
+            observable_indices,
+            parameter_values,
+            **run_options,
         )
         job.submit()
         return job
 
     def _compute(self, circuits, observables, parameter_values, run_options):
+        if "shots" in run_options and run_options["shots"] is None:
+            warn(
+                "If `shots` is None and `approximation` is False, "
+                "the number of shots is automatically set to backend options' "
+                f"shots={self._backend.options.shots}.",
+                RuntimeWarning,
+            )
+
         # Key for cache
         key = (tuple(circuits), tuple(observables), self.approximation)
 
@@ -299,14 +321,12 @@ class Estimator(BaseEstimator):
 
         result_index = 0
         for _circ_ind, basis_map in exp_map.items():
-            for _basis_ind, (_, param_vals) in basis_map.items():
+            for _basis_ind, (_, (_, param_vals)) in enumerate(basis_map.items()):
                 if circ_ind == _circ_ind and basis_ind == _basis_ind:
                     result_index += param_vals.index(param_val)
                     return result_index
                 result_index += len(param_vals)
-        raise AerError(
-            "Bug. Please report from isssue: https://github.com/Qiskit/qiskit-aer/issues"
-        )
+        raise AerError("Bug. Please report from issue: https://github.com/Qiskit/qiskit-aer/issues")
 
     def _create_post_processing(
         self, circuits, observables, parameter_values, obs_maps, exp_map
@@ -344,36 +364,51 @@ class Estimator(BaseEstimator):
     ):
         # Key for cache
         key = (tuple(circuits), tuple(observables), self.approximation)
-        parameter_binds = []
+        parameter_binds = defaultdict(dict)
         shots = run_options.pop("shots", None)
         # Create expectation value experiments.
         if key in self._cache:  # Use a cache
             experiments, experiment_data = self._cache[key]
             for i, j, value in zip(circuits, observables, parameter_values):
                 self._validate_parameter_length(value, i)
-                parameter_binds.append({k: [v] for k, v in zip(self._parameters[i], value)})
+                for k, v in zip(self._parameters[i], value):
+                    if k in parameter_binds[(i, j)]:
+                        parameter_binds[(i, j)][k].append(v)
+                    else:
+                        parameter_binds[(i, j)][k] = [v]
+
         else:
             self._transpile_circuits(circuits)
-            experiments = []
+            experiments = {}
             experiment_data = []
             for i, j, value in zip(circuits, observables, parameter_values):
-                self._validate_parameter_length(value, i)
-                circuit = (
-                    self._circuits[i].copy()
-                    if self._skip_transpilation
-                    else self._transpiled_circuits[i].copy()
-                )
-                observable = self._observables[j]
-                experiment_data.append(observable)
-                if shots is None:
-                    circuit.save_expectation_value(observable, self._layouts[i])
+                if (i, j) not in experiments:
+                    self._validate_parameter_length(value, i)
+                    circuit = (
+                        self._circuits[i].copy()
+                        if self._skip_transpilation
+                        else self._transpiled_circuits[i].copy()
+                    )
+                    observable = self._observables[j]
+                    experiment_data.append(observable)
+                    if shots is None:
+                        circuit.save_expectation_value(observable, self._layouts[i])
+                    else:
+                        for term_ind, pauli in enumerate(observable.paulis):
+                            circuit.save_expectation_value(
+                                pauli, self._layouts[i], label=str(term_ind)
+                            )
+                    experiments[(i, j)] = circuit
+                    parameter_binds[(i, j)] = {k: [v] for k, v in zip(self._parameters[i], value)}
                 else:
-                    for term_ind, pauli in enumerate(observable.paulis):
-                        circuit.save_expectation_value(pauli, self._layouts[i], label=str(term_ind))
-                experiments.append(circuit)
-                parameter_binds.append({k: [v] for k, v in zip(self._parameters[i], value)})
+                    for k, v in zip(self._parameters[i], value):
+                        parameter_binds[(i, j)][k].append(v)
+
             self._cache[key] = (experiments, experiment_data)
         parameter_binds = parameter_binds if any(parameter_binds) else None
+        # TODO
+        experiments = list(experiments.values())
+        parameter_binds = list(parameter_binds.values())
         result = self._backend.run(
             experiments, parameter_binds=parameter_binds, **run_options
         ).result()
@@ -381,9 +416,15 @@ class Estimator(BaseEstimator):
         # Post processing (calculate expectation values)
         if shots is None:
             expectation_values = [result.data(i)["expectation_value"] for i in range(len(circuits))]
-            metadata = [
-                {"simulator_metadata": result.results[i].metadata} for i in range(len(experiments))
-            ]
+            metadata = (
+                [
+                    {"simulator_metadata": result.results[i].metadata}
+                    for i in range(len(experiments))
+                ]
+                * len(expectation_values)
+            )[
+                0 : len(expectation_values)
+            ]  # TOOD: workaround, it returns incorrect metadata now.
         else:
             expectation_values = []
             rng = np.random.default_rng(seed)
@@ -457,7 +498,10 @@ def _expval_with_variance(counts) -> tuple[float, float]:
 
 class _PostProcessing:
     def __init__(
-        self, result_indices: list[int], paulis: list[PauliList], coeffs: list[list[float]]
+        self,
+        result_indices: list[int],
+        paulis: list[PauliList],
+        coeffs: list[list[float]],
     ):
         self._result_indices = result_indices
         self._paulis = paulis

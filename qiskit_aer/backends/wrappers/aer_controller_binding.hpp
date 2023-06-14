@@ -405,6 +405,12 @@ void bind_aer_controller(MODULE m) {
       [](Config &config, uint_t val) {
         config.extended_stabilizer_norm_estimation_default_samples.value(val);
       });
+  aer_config.def_property(
+      "runtime_parameter_bind_enable",
+      [](const Config &config) { return config.runtime_parameter_bind_enable.val; },
+      [](Config &config, bool val) {
+        config.runtime_parameter_bind_enable.value(val);
+      });
 
   aer_config.def(py::pickle(
       [](const AER::Config &config) {
@@ -491,7 +497,8 @@ void bind_aer_controller(MODULE m) {
             write_value(78, config.memory_blocking_bits),
             write_value(
                 79,
-                config.extended_stabilizer_norm_estimation_default_samples));
+                config.extended_stabilizer_norm_estimation_default_samples),
+            write_value(80, config.runtime_parameter_bind_enable));
       },
       [](py::tuple t) {
         AER::Config config;
@@ -582,6 +589,7 @@ void bind_aer_controller(MODULE m) {
         read_value(t, 78, config.memory_blocking_bits);
         read_value(t, 79,
                    config.extended_stabilizer_norm_estimation_default_samples);
+        read_value(t, 80, config.runtime_parameter_bind_enable);
         return config;
       }));
 }

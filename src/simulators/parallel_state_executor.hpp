@@ -85,11 +85,11 @@ protected:
 
   void run_circuit_with_sampling(Circuit &circ, const Config &config,
                                  RngEngine &init_rng,
-                                 ExperimentResult &result) override;
+                                 ResultItr result_it) override;
 
   void run_circuit_shots(Circuit &circ, const Noise::NoiseModel &noise,
                          const Config &config, RngEngine &init_rng,
-                         ExperimentResult &result, bool sample_noise) override;
+                         ResultItr result_it, bool sample_noise) override;
 
   template <typename InputIterator>
   void measure_sampler(InputIterator first_meas, InputIterator last_meas,
@@ -415,7 +415,7 @@ uint_t ParallelStateExecutor<state_t>::mapped_index(const uint_t idx) {
 template <class state_t>
 void ParallelStateExecutor<state_t>::run_circuit_with_sampling(
     Circuit &circ, const Config &config, RngEngine &init_rng,
-    ExperimentResult &result) {
+    ResultItr result_it) {
 
   // Optimize circuit
   Noise::NoiseModel dummy_noise;
@@ -425,18 +425,18 @@ void ParallelStateExecutor<state_t>::run_circuit_with_sampling(
   if (multiple_chunk_required(circ, dummy_noise)) {
     auto fusion_pass = Base::transpile_fusion(circ.opset(), config);
     fusion_pass.optimize_circuit(circ, dummy_noise, dummy_state.opset(),
-                                 result);
+                                 *result_it);
 
     // Cache blocking pass
     auto cache_block_pass = transpile_cache_blocking(circ, dummy_noise, config);
     cache_block_pass.set_sample_measure(true);
     cache_block_pass.optimize_circuit(circ, dummy_noise, dummy_state.opset(),
-                                      result);
+                                      *result_it);
     cache_block = cache_block_pass.enabled();
   }
   if (!cache_block) {
     return Executor<state_t>::run_circuit_with_sampling(circ, config, init_rng,
-                                                        result);
+                                                        result_it);
   }
   Base::max_matrix_qubits_ = Base::get_max_matrix_qubits(circ);
 
@@ -464,25 +464,25 @@ void ParallelStateExecutor<state_t>::run_circuit_with_sampling(
   }
 
   // Run circuit instructions before first measure
-  apply_ops_chunks(ops.cbegin(), ops.cbegin() + first_meas, result, rng,
+  apply_ops_chunks(ops.cbegin(), ops.cbegin() + first_meas, *result_it, rng,
                    final_ops);
 
   // Get measurement operations and set of measured qubits
   measure_sampler(circ.ops.begin() + first_meas, circ.ops.end(), circ.shots,
-                  result, rng);
+                  *result_it, rng);
 
   // Add measure sampling metadata
-  result.metadata.add(true, "measure_sampling");
-  Base::states_[0].add_metadata(result);
+  result_it->metadata.add(true, "measure_sampling");
+  Base::states_[0].add_metadata(*result_it);
 }
 
 template <class state_t>
 void ParallelStateExecutor<state_t>::run_circuit_shots(
     Circuit &circ, const Noise::NoiseModel &noise, const Config &config,
-    RngEngine &init_rng, ExperimentResult &result, bool sample_noise) {
+    RngEngine &init_rng, ResultItr result_it, bool sample_noise) {
 
   if (!multiple_chunk_required(circ, noise)) {
-    return Base::run_circuit_shots(circ, noise, config, init_rng, result,
+    return Base::run_circuit_shots(circ, noise, config, init_rng, result_it,
                                    sample_noise);
   }
 
@@ -511,13 +511,13 @@ void ParallelStateExecutor<state_t>::run_circuit_shots(
       circ_opt = circ;
     }
     fusion_pass.optimize_circuit(circ_opt, dummy_noise, dummy_state.opset(),
-                                 result);
+                                 *result_it);
     Base::max_matrix_qubits_ = Base::get_max_matrix_qubits(circ_opt);
 
     // Cache blocking pass
     cache_block_pass.set_sample_measure(false);
     cache_block_pass.optimize_circuit(circ_opt, dummy_noise,
-                                      dummy_state.opset(), result);
+                                      dummy_state.opset(), *result_it);
     allocate(circ.num_qubits, config);
 
     // Set state config
@@ -532,11 +532,11 @@ void ParallelStateExecutor<state_t>::run_circuit_shots(
       Base::states_[i].initialize_creg(circ.num_memory, circ.num_registers);
     }
 
-    apply_ops_chunks(circ_opt.ops.cbegin(), circ_opt.ops.cend(), result, rng,
+    apply_ops_chunks(circ_opt.ops.cbegin(), circ_opt.ops.cend(), *result_it, rng,
                      true);
-    result.save_count_data(Base::states_[0].creg(), Base::save_creg_memory_);
+    result_it->save_count_data(Base::states_[0].creg(), Base::save_creg_memory_);
   }
-  Base::states_[0].add_metadata(result);
+  Base::states_[0].add_metadata(*result_it);
 }
 
 template <class state_t>

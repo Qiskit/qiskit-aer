@@ -30,6 +30,8 @@ namespace AER {
 
 namespace Statevector {
 
+using ResultItr = std::vector<ExperimentResult>::iterator;
+
 //-------------------------------------------------------------------------
 // Executor for statevector
 //-------------------------------------------------------------------------
@@ -59,7 +61,7 @@ protected:
   // apply op to multiple shots , return flase if op is not supported to execute
   // in a batch
   bool apply_batched_op(const int_t istate, const Operations::Op &op,
-                        ExperimentResult &result, std::vector<RngEngine> &rng,
+                        ResultItr result, std::vector<RngEngine> &rng,
                         bool final_op = false) override;
 
   bool apply_branching_op(CircuitExecutor::Branch &root,
@@ -72,9 +74,13 @@ protected:
   auto move_to_vector(void);
   auto copy_to_vector(void);
 
+  void run_circuit_with_sampling(Circuit &circ, const Config &config,
+                                         RngEngine &init_rng,
+                                         ResultItr result) override;
+
   void run_circuit_shots(Circuit &circ, const Noise::NoiseModel &noise,
                          const Config &config, RngEngine &init_rng,
-                         ExperimentResult &result, bool sample_noise) override;
+                         ResultItr result_it, bool sample_noise) override;
 
   bool allocate_states(uint_t num_states, const Config &config) override {
     return BasePar::allocate_states(num_states, config);
@@ -226,15 +232,29 @@ void Executor<state_t>::apply_global_phase() {
 }
 
 template <class state_t>
+void Executor<state_t>::run_circuit_with_sampling(
+    Circuit &circ, const Config &config, RngEngine &init_rng,
+    ResultItr result_it)
+{
+  Noise::NoiseModel dummy_noise;
+  if (BasePar::multiple_chunk_required(circ, dummy_noise)) {
+    return BasePar::run_circuit_with_sampling(circ, config, init_rng, result_it);
+  }
+  else{
+    return BaseBatch::run_circuit_with_sampling(circ, config, init_rng, result_it);
+  }
+
+}
+
+template <class state_t>
 void Executor<state_t>::run_circuit_shots(
     Circuit &circ, const Noise::NoiseModel &noise, const Config &config,
-    RngEngine &init_rng, ExperimentResult &result, bool sample_noise) {
-  state_t dummy_state;
+    RngEngine &init_rng, ResultItr result_it, bool sample_noise) {
   if (BasePar::multiple_chunk_required(circ, noise)) {
-    return BasePar::run_circuit_shots(circ, noise, config, init_rng, result,
+    return BasePar::run_circuit_shots(circ, noise, config, init_rng, result_it,
                                       sample_noise);
   } else {
-    return BaseBatch::run_circuit_shots(circ, noise, config, init_rng, result,
+    return BaseBatch::run_circuit_shots(circ, noise, config, init_rng, result_it,
                                         sample_noise);
   }
 }
@@ -299,11 +319,21 @@ bool Executor<state_t>::apply_parallel_op(const Operations::Op &op,
 template <class state_t>
 bool Executor<state_t>::apply_batched_op(const int_t istate,
                                          const Operations::Op &op,
-                                         ExperimentResult &result,
+                                         ResultItr result,
                                          std::vector<RngEngine> &rng,
-                                         bool final_op) {
+                                         bool final_op) 
+{
   if (op.conditional) {
     Base::states_[istate].qreg().set_conditional(op.conditional_reg);
+  }
+
+  //parameterization
+  if(op.has_bind_params){
+    if(op.type == Operations::OpType::diagonal_matrix)
+      Base::states_[istate].qreg().apply_batched_diagonal_matrix(op.qubits, op.params, Base::num_bind_params_, Base::num_shots_per_bind_param_);
+    else
+      Base::states_[istate].qreg().apply_batched_matrix(op.qubits, op.params, Base::num_bind_params_, Base::num_shots_per_bind_param_);
+    return true;
   }
 
   switch (op.type) {
@@ -344,6 +374,10 @@ bool Executor<state_t>::apply_batched_op(const int_t istate,
     break;
   case Operations::OpType::kraus:
     Base::states_[istate].qreg().apply_batched_kraus(op.qubits, op.mats, rng);
+    break;
+  case Operations::OpType::save_expval:
+  case Operations::OpType::save_expval_var:
+    BaseBatch::apply_batched_expval(istate, op, result);
     break;
   case Operations::OpType::sim_op:
     if (op.name == "begin_register_blocking") {

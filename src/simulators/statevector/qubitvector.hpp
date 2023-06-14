@@ -348,6 +348,9 @@ public:
   void apply_batched_kraus(const reg_t &qubits,
                            const std::vector<cmatrix_t> &kmats,
                            std::vector<RngEngine> &rng) {}
+  // apply matrices to each chunk in a batch
+  void apply_batched_matrix(const reg_t &qubits, const cvector_t<double> &mat, const uint_t num_matrices, const uint_t num_shots_per_matrix){}
+  void apply_batched_diagonal_matrix(const reg_t &qubits, const cvector_t<double> &mat, const uint_t num_matrices, const uint_t num_shots_per_matrix){}
 
   //-----------------------------------------------------------------------
   // Norms
@@ -401,6 +404,9 @@ public:
                       const uint_t z_count, const uint_t z_count_pair,
                       const complex_t initial_phase = 1.0) const;
 
+  void batched_expval_pauli(std::vector<double>& val, const reg_t &qubits,
+                            const std::string &pauli, bool variance, std::complex<double> param, bool last,
+                            const complex_t initial_phase = 1.0) const{}
   //-----------------------------------------------------------------------
   // JSON configuration settings
   //-----------------------------------------------------------------------

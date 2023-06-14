@@ -64,6 +64,8 @@ struct Metadata : public DataMap<SingleData, json_t, 1>,
 
   // Combine stored data
   Metadata &combine(Metadata &&other);
+
+  Metadata &copy(Metadata &other);
 };
 
 //------------------------------------------------------------------------------
@@ -74,6 +76,13 @@ Metadata &Metadata::combine(Metadata &&other) {
   DataMap<SingleData, json_t, 1>::combine(std::move(other));
   DataMap<SingleData, json_t, 2>::combine(std::move(other));
   DataMap<SingleData, json_t, 3>::combine(std::move(other));
+  return *this;
+}
+
+Metadata &Metadata::copy(Metadata &other) {
+  DataMap<SingleData, json_t, 1>::copy(other);
+  DataMap<SingleData, json_t, 2>::copy(other);
+  DataMap<SingleData, json_t, 3>::copy(other);
   return *this;
 }
 

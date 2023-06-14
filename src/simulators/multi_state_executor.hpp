@@ -112,7 +112,7 @@ protected:
 
   void run_circuit_shots(Circuit &circ, const Noise::NoiseModel &noise,
                          const Config &config, RngEngine &init_rng,
-                         ExperimentResult &result, bool sample_noise) override;
+                         ResultItr result_it, bool sample_noise) override;
 
   void
   run_circuit_with_shot_branching(Circuit &circ, const Noise::NoiseModel &noise,
@@ -248,7 +248,7 @@ bool MultiStateExecutor<state_t>::allocate_states(uint_t num_shots,
 template <class state_t>
 void MultiStateExecutor<state_t>::run_circuit_shots(
     Circuit &circ, const Noise::NoiseModel &noise, const Config &config,
-    RngEngine &init_rng, ExperimentResult &result, bool sample_noise) {
+    RngEngine &init_rng, ResultItr result_it, bool sample_noise) {
   num_qubits_ = circ.num_qubits;
   num_creg_memory_ = circ.num_memory;
   num_creg_registers_ = circ.num_registers;
@@ -285,9 +285,9 @@ void MultiStateExecutor<state_t>::run_circuit_shots(
       Base::cuStateVec_enable_ = false;
 #endif
     return run_circuit_with_shot_branching(circ, noise, config, init_rng,
-                                           result, sample_noise);
+                                           *result_it, sample_noise);
   } else {
-    return Base::run_circuit_shots(circ, noise, config, init_rng, result,
+    return Base::run_circuit_shots(circ, noise, config, init_rng, result_it,
                                    sample_noise);
   }
 }
