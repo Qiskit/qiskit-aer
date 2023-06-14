@@ -104,7 +104,9 @@ class AerCompiler:
             return circ
 
         for inst, _, _ in circ.data:
-            if isinstance(inst, Initialize) and not isinstance(inst.params[0], complex):
+            if isinstance(inst, Initialize) and (
+                (not isinstance(inst.params[0], complex)) or (len(inst.params) == 1)
+            ):
                 break
         else:
             return circ
@@ -112,7 +114,9 @@ class AerCompiler:
         new_circ = circ.copy()
         new_circ.data = []
         for inst, qargs, cargs in circ.data:
-            if isinstance(inst, Initialize) and not isinstance(inst.params[0], complex):
+            if isinstance(inst, Initialize) and (
+                (not isinstance(inst.params[0], complex)) or (len(inst.params) == 1)
+            ):
                 # Assume that the decomposed circuit of inst.definition consists of basis gates
                 new_circ.compose(inst.definition.decompose(), qargs, cargs, inplace=True)
             else:
@@ -582,9 +586,6 @@ def assemble_circuit(circuit: QuantumCircuit):
         global_phase=global_phase,
     )
 
-    if circuit.metadata is not None:
-        header.metadata = circuit.metadata
-
     qubit_indices = {qubit: idx for idx, qubit in enumerate(circuit.qubits)}
     clbit_indices = {clbit: idx for idx, clbit in enumerate(circuit.clbits)}
 
@@ -636,62 +637,13 @@ def _assemble_op(aer_circ, inst, qubit_indices, clbit_indices, is_conditional, c
                 copied = True
             params[i] = 0.0
 
+    # fmt: off
     if name in {
-        "ccx",
-        "ccz",
-        "cp",
-        "cswap",
-        "csx",
-        "cx",
-        "cy",
-        "cz",
-        "delay",
-        "ecr",
-        "h",
-        "id",
-        "mcp",
-        "mcphase",
-        "mcr",
-        "mcrx",
-        "mcry",
-        "mcrz",
-        "mcswap",
-        "mcsx",
-        "mcu",
-        "mcu1",
-        "mcu2",
-        "mcu3",
-        "mcx",
-        "mcx_gray",
-        "mcy",
-        "mcz",
-        "p",
-        "r",
-        "rx",
-        "rxx",
-        "ry",
-        "ryy",
-        "rz",
-        "rzx",
-        "rzz",
-        "s",
-        "sdg",
-        "swap",
-        "sx",
-        "sxdg",
-        "t",
-        "tdg",
-        "u",
-        "x",
-        "y",
-        "z",
-        "u1",
-        "u2",
-        "u3",
-        "cu",
-        "cu1",
-        "cu2",
-        "cu3",
+        "ccx", "ccz", "cp", "cswap", "csx", "cx", "cy", "cz", "delay", "ecr", "h",
+        "id", "mcp", "mcphase", "mcr", "mcrx", "mcry", "mcrz", "mcswap", "mcsx",
+        "mcu", "mcu1", "mcu2", "mcu3", "mcx", "mcx_gray", "mcy", "mcz", "p", "r",
+        "rx", "rxx", "ry", "ryy", "rz", "rzx", "rzz", "s", "sdg", "swap", "sx", "sxdg",
+        "t", "tdg", "u", "x", "y", "z", "u1", "u2", "u3", "cu", "cu1", "cu2", "cu3",
     }:
         aer_circ.gate(name, qubits, params, [], conditional_reg, label if label else name)
     elif name == "measure":
