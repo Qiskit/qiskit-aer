@@ -34,8 +34,8 @@ class AerJob(Job):
         fn,
         qobj=None,
         circuits=None,
-        noise_model=None,
-        config=None,
+        parameter_binds=None,
+        run_options=None,
         executor=None,
     ):
         """Initializes the asynchronous job.
@@ -49,9 +49,9 @@ class AerJob(Job):
             qobj(QasmQobj): qobj to execute
             circuits(list of QuantumCircuit): circuits to execute.
                 If `qobj` is set, this argument is ignored.
-            noise_model(NoiseModel): noise_model to execute.
+            parameter_binds(list): parameters for circuits.
                 If `qobj` is set, this argument is ignored.
-            config(dict): configuration to execute.
+            run_options(dict): run_options to execute.
                 If `qobj` is set, this argument is ignored.
             executor(ThreadPoolExecutor or dask.distributed.client):
                 The executor to be used to submit the job.
@@ -64,13 +64,13 @@ class AerJob(Job):
         if qobj:
             self._qobj = qobj
             self._circuits = None
-            self._noise_model = None
-            self._config = None
+            self._parameter_binds = None
+            self._run_options = None
         elif circuits:
             self._qobj = None
             self._circuits = circuits
-            self._noise_model = noise_model
-            self._config = config
+            self._parameter_binds = parameter_binds
+            self._run_options = run_options
         else:
             raise JobError("AerJob needs a qobj or circuits")
         self._executor = executor or DEFAULT_EXECUTOR
@@ -90,7 +90,7 @@ class AerJob(Job):
             self._future = self._executor.submit(self._fn, self._qobj, self._job_id)
         else:
             self._future = self._executor.submit(
-                self._fn, self._circuits, self._noise_model, self._config, self._job_id
+                self._fn, self._circuits, self._parameter_binds, self._run_options, self._job_id
             )
 
     @requires_submit

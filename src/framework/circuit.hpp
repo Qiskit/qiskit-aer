@@ -36,6 +36,9 @@ public:
   using Op = Operations::Op;
   using OpType = Operations::OpType;
 
+  // circuit id
+  int circ_id = 0;
+
   // Circuit operations
   std::vector<Op> ops;
 

@@ -41,7 +41,7 @@ public:
   uint_t shots;
   uint_t seed;
   double time_taken;
-  std::shared_ptr<Circuit> circuit;
+  int circ_id;
 
   // Success and status
   Status status = Status::empty;
