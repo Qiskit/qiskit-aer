@@ -142,7 +142,7 @@ Qobj::Qobj(const inputdata_t &input) {
           static_cast<inputdata_t>(circs[i]), config, false);
       // Load different parameterizations of the initial circuit
       const auto circ_params = param_table[i];
-      const size_t num_params = circ_params[0].second.size();
+      const size_t num_params = circ_params[0].second.size(); 
       const size_t num_instr = circuit->ops.size();
       for (size_t j = 0; j < num_params; j++) {
         // Make a copy of the initial circuit
@@ -153,7 +153,7 @@ Qobj::Qobj(const inputdata_t &input) {
           // Validation
           if (instr_pos == AER::Config::GLOBAL_PHASE_POS) {
             // negative position is for global phase
-            circuit->global_phase_angle = params.second[j];
+            param_circuit->global_phase_angle = params.second[j];
           } else {
             if (instr_pos >= num_instr) {
               throw std::invalid_argument(
