@@ -119,7 +119,7 @@ class AerBackend(Backend, ABC):
             if len(parameter_binds) > 1:
                 raise AerError("More than 1 parameter table provided for a single circuit")
 
-            return [self._convert_circuit_binds(circuits, parameter_binds[0])]
+            return [self._convert_circuit_binds(circuits, parameter_binds[0], None)]
         elif len(parameter_binds) != len(circuits):
             raise AerError(
                 "Number of input circuits does not match number of input "
