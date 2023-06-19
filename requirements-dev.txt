@@ -16,3 +16,4 @@ seaborn>=0.9.0
 qiskit_sphinx_theme~=1.12.0
 sphinx-design>=0.2.0
 nbsphinx
+qiskit_qasm3_import
