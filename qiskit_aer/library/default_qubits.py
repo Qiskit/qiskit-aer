@@ -38,20 +38,8 @@ def default_qubits(circuit, qubits=None):
     if isinstance(qubits, QuantumRegister):
         qubits = qubits[:]
     if not qubits:
-        tuples = []
-        if isinstance(circuit, QuantumCircuit):
-            for register in circuit.qregs:
-                tuples.append(register)
-        if not tuples:
+        qubits = list(circuit.qubits)
+        if len(qubits) == 0:
             raise ExtensionError("no qubits for snapshot")
-        qubits = []
-        for tuple_element in tuples:
-            if isinstance(tuple_element, QuantumRegister):
-                for j in range(tuple_element.size):
-                    if tuple_element[j] not in qubits:
-                        qubits.append(tuple_element[j])
-            else:
-                if tuple_element not in qubits:
-                    qubits.append(tuple_element)
 
     return qubits
