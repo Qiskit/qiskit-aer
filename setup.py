@@ -14,8 +14,8 @@ PACKAGE_NAME = os.getenv("QISKIT_AER_PACKAGE_NAME", "qiskit-aer")
 
 extras_requirements = {"dask": ["dask", "distributed"]}
 
-if 'gpu' in PACKAGE_NAME:
-    if 'cu11' in PACKAGE_NAME:
+if "gpu" in PACKAGE_NAME:
+    if "cu11" in PACKAGE_NAME:
         requirements = [
             "qiskit-terra>=0.21.0",
             "numpy>=1.16.3",
