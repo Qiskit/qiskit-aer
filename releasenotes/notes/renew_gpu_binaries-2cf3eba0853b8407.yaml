@@ -1,0 +1,7 @@
+---
+upgrade:
+  - |
+    Changed supported CUDA version for GPU simulator to 11.2 or higher.
+    Now GPU binaries are including cuQuantum support. There are separate
+    binaries for CUDA 11 and 12. qiskit-aer-gpu-cu11 for CUDA 11 and
+    qiskit-aer-gpu-cu12 for CUDA 12.

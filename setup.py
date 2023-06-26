@@ -14,11 +14,35 @@ PACKAGE_NAME = os.getenv("QISKIT_AER_PACKAGE_NAME", "qiskit-aer")
 
 extras_requirements = {"dask": ["dask", "distributed"]}
 
-requirements = [
-    "qiskit-terra>=0.21.0",
-    "numpy>=1.16.3",
-    "scipy>=1.0",
-]
+if 'gpu' in PACKAGE_NAME:
+    if 'cu11' in PACKAGE_NAME:
+        requirements = [
+            "qiskit-terra>=0.21.0",
+            "numpy>=1.16.3",
+            "scipy>=1.0",
+            "nvidia-cuda-runtime-cu11>=11.8.89",
+            "nvidia-cublas-cu11>=11.11.3.6",
+            "nvidia-cusolver-cu11>=11.4.1.48",
+            "nvidia-cusparse-cu11>=11.7.5.86",
+            "cuquantum-cu11>=23.3.0",
+        ]
+    else:
+        requirements = [
+            "qiskit-terra>=0.21.0",
+            "numpy>=1.16.3",
+            "scipy>=1.0",
+            "nvidia-cuda-runtime-cu12>=12.1.105",
+            "nvidia-cublas-cu12>=12.1.3.1",
+            "nvidia-cusolver-cu12>=11.4.5.107",
+            "nvidia-cusparse-cu12>=12.1.0.106",
+            "cuquantum-cu12>=23.3.0",
+        ]
+else:
+    requirements = [
+        "qiskit-terra>=0.21.0",
+        "numpy>=1.16.3",
+        "scipy>=1.0",
+    ]
 
 VERSION_PATH = os.path.join(os.path.dirname(__file__), "qiskit_aer", "VERSION.txt")
 with open(VERSION_PATH, "r") as version_file:
