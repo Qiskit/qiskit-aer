@@ -648,18 +648,18 @@ AER_THRUST_BACKEND=CUDA
 
 For example,
 
-    qiskit-aer$ python ./setup.py bdist_wheel -- -DAER_THRUST_BACKEND=CUDA
+    qiskit-aer$ python ./setup.py bdist_wheel -- -DAER_THRUST_BACKEND=CUDA --
 
 If you want to specify the CUDA® architecture instead of letting the build system 
 auto detect it, you can use the AER_CUDA_ARCH flag (can also be set as an ENV variable
 with the same name, although the flag takes precedence). For example:
 
-    qiskit-aer$ python ./setup.py bdist_wheel -- -DAER_THRUST_BACKEND=CUDA -DAER_CUDA_ARCH="7.0"
+    qiskit-aer$ python ./setup.py bdist_wheel -- -DAER_THRUST_BACKEND=CUDA -DAER_CUDA_ARCH="7.0" --
 
 or
 
     qiskit-aer$ export AER_CUDA_ARCH="7.0"
-    qiskit-aer$ python ./setup.py bdist_wheel -- -DAER_THRUST_BACKEND=CUDA
+    qiskit-aer$ python ./setup.py bdist_wheel -- -DAER_THRUST_BACKEND=CUDA --
 
 This will reduce the amount of compilation time when, for example, the architecture auto detection
 fails and the build system compiles all common architectures.
@@ -673,7 +673,7 @@ Few notes on GPU builds:
 Qiskit Aer now supports cuQuantum optimized Quantum computing APIs from NVIDIA®.
 cuStateVec APIs can be exploited to accelerate statevector, density_matrix and unitary methods.
 cuTensorNet APIs can be exploited to tensor_network merthod.
-This implementation requires CUDA toolkit version 11.2 or higher and Volta or Ampare architecture GPUs.
+This implementation requires CUDA® toolkit version 11.2 or higher and Volta or Ampare architecture GPUs.
 
 Before building Qiskit Aer with cuQuantum support, install required components via pip install as following.
 
@@ -686,7 +686,7 @@ Then to build with cuQuantum support, set the value `AER_PYTHON_CUDA_ROOT=<root 
     qiskit-aer$ python ./setup.py bdist_wheel -- -DAER_THRUST_BACKEND=CUDA -DAER_PYTHON_CUDA_ROOT=qiskit-aer-venv --
 
 
-If you want to link cuQuantum library statically, cuQuantum SDK and cuTENSOR should be installed in your system from NVIDIA.
+If you want to link cuQuantum library statically, cuQuantum SDK and cuTENSOR should be installed in your system from NVIDIA®.
 Then set `CUQUANTUM_ROOT` `CUTENSOR_ROOT` and `CUQUANTUM_STATIC` to setup.py. 
 
 For example,
@@ -739,7 +739,7 @@ AER_DISABLE_GDR=True
 
 For example,
 
-    qiskit-aer$ python ./setup.py bdist_wheel -- -DAER_MPI=True -DAER_DISABLE_GDR=True
+    qiskit-aer$ python ./setup.py bdist_wheel -- -DAER_MPI=True -DAER_DISABLE_GDR=True --
 
 ### Running with multiple-GPUs and/or multiple nodes
 

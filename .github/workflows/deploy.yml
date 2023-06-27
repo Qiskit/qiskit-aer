@@ -159,10 +159,10 @@ jobs:
       - name: Publish Wheels
         env:
           TWINE_PASSWORD: ${{ secrets.TWINE_PASSWORD }}
-          TWINE_USERNAME: doichan
+          TWINE_USERNAME: qiskit
         run : |
           pip install -U twine
-          twine upload --repository testpypi wheelhouse/*
+          twine upload wheelhouse/*
   gpu-build-cuda12:
     name: Build qiskit-aer-gpu-cu12 wheels
     runs-on: ubuntu-latest
@@ -203,10 +203,10 @@ jobs:
       - name: Publish Wheels
         env:
           TWINE_PASSWORD: ${{ secrets.TWINE_PASSWORD }}
-          TWINE_USERNAME: doichan
+          TWINE_USERNAME: qiskit
         run : |
           pip install -U twine
-          twine upload --repository testpypi wheelhouse/*
+          twine upload wheelhouse/*
   build_wheels_s390x:
     name: Build wheels on s390x
     runs-on: ${{ matrix.os }}
