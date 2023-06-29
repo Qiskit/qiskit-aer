@@ -576,6 +576,7 @@ void lapack_csvd_wrapper(cmatrix_t &A, cmatrix_t &U, rvector_t &S, cmatrix_t &V)
 #ifdef DEBUG
   cmatrix_t tempA = A;
 #endif
+
   const size_t m = A.GetRows(), n = A.GetColumns();
   const size_t min_dim = std::min(m, n);
   const size_t lda = std::max(m, n);
@@ -589,15 +590,17 @@ void lapack_csvd_wrapper(cmatrix_t &A, cmatrix_t &U, rvector_t &S, cmatrix_t &V)
       *lapackV = V.move_to_buffer();
 
   double lapackS[min_dim];
-  complex_t work[lwork] = {0.0};
+  complex_t work[lwork];
   int info;
 
   if (strcmp(getenv("QISKIT_LAPACK_SVD"), "DC") == 0) {
-    int iwork[8*min_dim] = {0};
-    double rwork[5*min_dim*min_dim+5*min_dim] = {0.0};
+    int iwork[8*min_dim];
+    int rwork_size = std::max(
+        5*min_dim*min_dim + 5*min_dim,
+        2*m*n + 2*min_dim*min_dim + min_dim);
+    double *rwork = (double*)calloc(rwork_size, sizeof(double));
     #ifndef MKL
     lwork = -1;
-
     zgesdd_(
       "A", &m, &n, lapackA, &m, lapackS,
       lapackU, &m, lapackV, &n, work, &lwork,
@@ -605,22 +608,22 @@ void lapack_csvd_wrapper(cmatrix_t &A, cmatrix_t &U, rvector_t &S, cmatrix_t &V)
 
     lwork = (int)work[0].real();
     #endif
-    complex_t work_[lwork] = {0.0};
-
+    complex_t *work_= (complex_t*)calloc(lwork, sizeof(complex_t));
     zgesdd_(
       "A", &m, &n, lapackA, &m, lapackS,
       lapackU, &m, lapackV, &n, work_, &lwork,
       rwork, iwork, &info);
+
+    free(rwork);
+    free(work_);
   } else {
     // Default execution follows original method
     double rwork[5*min_dim] = {0.0};
-
     zgesvd_(
       "A", "A", &m, &n, lapackA, &m, lapackS,
       lapackU, &m, lapackV, &n, work, &lwork,
       rwork, &info);
   }
-
   A = cmatrix_t::move_from_buffer(m, n, lapackA);
   U = cmatrix_t::move_from_buffer(m, m, lapackU);
   V = cmatrix_t::move_from_buffer(n, n, lapackV);
