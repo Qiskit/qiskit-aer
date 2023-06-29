@@ -598,8 +598,8 @@ void lapack_csvd_wrapper(cmatrix_t &A, cmatrix_t &U, rvector_t &S, cmatrix_t &V)
     int rwork_size = std::max(
         5*min_dim*min_dim + 5*min_dim,
         2*m*n + 2*min_dim*min_dim + min_dim);
-
     double *rwork = (double*)calloc(rwork_size, sizeof(double));
+    #ifndef MKL
     lwork = -1;
     zgesdd_(
       "A", &m, &n, lapackA, &m, lapackS,
@@ -607,8 +607,8 @@ void lapack_csvd_wrapper(cmatrix_t &A, cmatrix_t &U, rvector_t &S, cmatrix_t &V)
       rwork, iwork, &info);
 
     lwork = (int)work[0].real();
+    #endif
     complex_t *work_= (complex_t*)calloc(lwork, sizeof(complex_t));
-
     zgesdd_(
       "A", &m, &n, lapackA, &m, lapackS,
       lapackU, &m, lapackV, &n, work_, &lwork,
