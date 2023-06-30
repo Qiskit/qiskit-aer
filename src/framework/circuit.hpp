@@ -63,6 +63,7 @@ public:
   //for runtime parameter bind, number of parameters per circuit
   uint_t num_bind_params = 1;
   reg_t seed_for_params;   //random seed for each parameter
+  rvector_t global_phase_for_params; //global phase angles for each param
 
   // Constructor
   // The constructor automatically calculates the num_qubits, num_memory,
@@ -134,6 +135,7 @@ public:
             const int_t cond_regidx = -1, const std::string label = "") {
     ops.push_back(Operations::make_gate(name, qubits, params, string_params,
                                         cond_regidx, label));
+    check_gate_params(ops.back());
   }
 
   void diagonal(const reg_t &qubits, const cvector_t &vec,

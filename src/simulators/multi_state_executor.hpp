@@ -84,10 +84,6 @@ protected:
   // Threshold for chopping small values to zero in JSON
   double json_chop_threshold_ = 1e-10;
 
-  // Set a global phase exp(1j * theta) for the state
-  bool has_global_phase_ = false;
-  complex_t global_phase_ = 1;
-
 public:
   MultiStateExecutor();
   virtual ~MultiStateExecutor();
@@ -128,7 +124,6 @@ protected:
 
   // Apply the global phase
   virtual void apply_global_phase() {}
-  void set_global_phase(double theta);
 
   void set_parallelization(const Circuit &circ,
                            const Noise::NoiseModel &noise) override;
@@ -183,17 +178,6 @@ void MultiStateExecutor<state_t>::set_config(const Config &config) {
 
   if (config.num_threads_per_device.has_value())
     num_threads_per_group_ = config.num_threads_per_device.value();
-}
-
-template <class state_t>
-void MultiStateExecutor<state_t>::set_global_phase(double theta) {
-  if (Linalg::almost_equal(theta, 0.0)) {
-    has_global_phase_ = false;
-    global_phase_ = 1;
-  } else {
-    has_global_phase_ = true;
-    global_phase_ = std::exp(complex_t(0.0, theta));
-  }
 }
 
 template <class state_t>

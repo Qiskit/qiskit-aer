@@ -66,7 +66,6 @@ class Sampler(BaseSampler):
             skip_transpilation: if True, transpilation is skipped.
         """
         super().__init__(options=run_options)
-        self._is_closed = False
         self._backend = AerSimulator()
         backend_options = {} if backend_options is None else backend_options
         self._backend.set_options(**backend_options)
@@ -82,9 +81,6 @@ class Sampler(BaseSampler):
         parameter_values: Sequence[Sequence[float]],
         **run_options,
     ) -> SamplerResult:
-        if self._is_closed:
-            raise QiskitError("The primitive has been closed.")
-
         seed = run_options.pop("seed", None)
         if seed is not None:
             run_options.setdefault("seed_simulator", seed)
@@ -157,9 +153,6 @@ class Sampler(BaseSampler):
         job = PrimitiveJob(self._call, circuit_indices, parameter_values, **run_options)
         job.submit()
         return job
-
-    def close(self):
-        self._is_closed = True
 
     @staticmethod
     def _preprocess_circuit(circuit: QuantumCircuit):

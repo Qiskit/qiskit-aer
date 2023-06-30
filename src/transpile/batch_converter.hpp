@@ -13,7 +13,7 @@
  */
 
 /*
-This transpiler converts parameterized gates into matrix operations.
+This transpiler converts circuit suitable for batched shots executor for GPU
 This transpiler is called after gate fusion, because the parameterized gates
 may be fused and transpiled to matrix operations in gate fusion.
 
@@ -26,8 +26,8 @@ but CPU does not. So there is option to convert to matrix including
 control qubits for CPU.
 */
 
-#ifndef _aer_parameter2matrix_hpp_
-#define _aer_parameter2matrix_hpp_
+#ifndef _aer_batche_converter_hpp_
+#define _aer_batche_converter_hpp_
 
 #include "framework/config.hpp"
 #include "framework/utils.hpp"
@@ -51,10 +51,10 @@ enum class ParamGates {
   mcu,
 };
 
-class Parameter2Matrix : public CircuitOptimization {
+class BatchConverter : public CircuitOptimization {
 public:
-  Parameter2Matrix(){}
-  ~Parameter2Matrix() {}
+  BatchConverter(){}
+  ~BatchConverter() {}
 
   void optimize_circuit(Circuit &circ, Noise::NoiseModel &noise,
                         const opset_t &allowed_opset,
@@ -75,7 +75,7 @@ protected:
   const static stringmap_t<ParamGates> gateset_;
 };
 
-const stringmap_t<ParamGates> Parameter2Matrix::gateset_(
+const stringmap_t<ParamGates> BatchConverter::gateset_(
   {
     {"p", ParamGates::mcp},
     {"r", ParamGates::mcr},
@@ -110,17 +110,15 @@ const stringmap_t<ParamGates> Parameter2Matrix::gateset_(
   }
 );
 
-void Parameter2Matrix::set_config(const Config &config) {
+void BatchConverter::set_config(const Config &config) {
   CircuitOptimization::set_config(config);
 }
 
-void Parameter2Matrix::optimize_circuit(Circuit &circ, Noise::NoiseModel &noise,
+void BatchConverter::optimize_circuit(Circuit &circ, Noise::NoiseModel &noise,
                                      const opset_t &allowed_opset,
                                      ExperimentResult &result) const 
 {
-  if(circ.num_bind_params <= 1)
-    return;
-
+  //convert operations for batch shots execution
   for(int_t i=0;i<circ.ops.size();i++){
     if(circ.ops[i].has_bind_params){
       if(circ.ops[i].type == Operations::OpType::gate){
@@ -139,10 +137,45 @@ void Parameter2Matrix::optimize_circuit(Circuit &circ, Noise::NoiseModel &noise,
     }
   }
 
+  //convert global phase to diagonal matrix
+  if(circ.global_phase_for_params.size() == circ.num_bind_params){
+    bool has_global_phase = false;
+    for(int_t j=0;j<circ.num_bind_params;j++){
+      if (!Linalg::almost_equal(circ.global_phase_for_params[j], 0.0)) {
+        has_global_phase = true;
+        break;
+      }
+    }
+    if(has_global_phase){
+      //global phase parameter binding
+      Operations::Op phase_op;
+      phase_op.type = Operations::OpType::diagonal_matrix;
+      phase_op.has_bind_params = true;
+      phase_op.params.resize(2 * circ.num_bind_params);
+      for(int_t j=0;j<circ.num_bind_params;j++){
+        auto t = std::exp(complex_t(0.0, circ.global_phase_for_params[j]));
+        phase_op.params[j*2] = t;
+        phase_op.params[j*2 + 1] = t;
+      }
+      circ.ops.insert(circ.ops.begin(), phase_op);
+    }
+  }
+  else{
+    if (!Linalg::almost_equal(circ.global_phase_angle, 0.0)) {
+      Operations::Op phase_op;
+      phase_op.type = Operations::OpType::diagonal_matrix;
+      phase_op.params.resize(2);
+      auto t = std::exp(complex_t(0.0, circ.global_phase_angle));
+      phase_op.params[0] = t;
+      phase_op.params[1] = t;
+      circ.ops.insert(circ.ops.begin(), phase_op);
+    }
+  }
+
   circ.set_params();
 }
 
-void Parameter2Matrix::gate_to_matrix(Operations::Op& op, uint_t num_params) const
+void BatchConverter::gate_to_matrix(Operations::Op& op, uint_t num_params) const
 {
   auto it = gateset_.find(op.name);
   if (it == gateset_.end())

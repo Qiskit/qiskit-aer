@@ -196,7 +196,7 @@ protected:
   void run_circuit_with_parameter_binding(state_t& state, OpItr first, OpItr last, 
                                           ExperimentResult &result, 
                                           RngEngine &rng,
-                                          const uint_t iparam, const uint_t num_params,
+                                          const uint_t iparam,
                                           bool final_op);
 
   template <typename InputIterator>
@@ -693,6 +693,8 @@ void Executor<state_t>::run_circuit_with_sampling(Circuit &circ,
   par_shots = std::min((int_t)parallel_shots_, par_shots);
   circ.shots = circ_shots;
 
+  num_bind_params_ = circ.num_bind_params;
+
   auto run_circuit_lambda = [this, circ, &result_it, &fusion_result, config, init_rng, max_bits, first_meas, final_ops, par_shots](int_t i) {
     uint_t iparam, param_end;
     iparam = circ.num_bind_params * i / par_shots;
@@ -702,7 +704,6 @@ void Executor<state_t>::run_circuit_with_sampling(Circuit &circ,
     state_t state;
     state.set_config(config);
     state.set_parallelization(parallel_state_update_);
-    state.set_global_phase(circ.global_phase_angle);
 
     state.set_distribution(1);
     state.set_max_matrix_qubits(max_bits);
@@ -715,6 +716,11 @@ void Executor<state_t>::run_circuit_with_sampling(Circuit &circ,
         rng = init_rng;
       else
         rng.set_seed(circ.seed_for_params[iparam]);
+
+      if(circ.global_phase_for_params.size() == num_bind_params_)
+        state.set_global_phase(circ.global_phase_for_params[iparam]);
+      else
+        state.set_global_phase(circ.global_phase_angle);
 
     // allocate qubit register
 #ifdef AER_CUSTATEVEC
@@ -730,7 +736,7 @@ void Executor<state_t>::run_circuit_with_sampling(Circuit &circ,
 
       if(circ.num_bind_params > 1){
         run_circuit_with_parameter_binding(state, circ.ops.cbegin(), circ.ops.cbegin() + first_meas,
-                                           result, rng, iparam, circ.num_bind_params, final_ops);
+                                           result, rng, iparam, final_ops);
       }
       else{
         state.apply_ops(circ.ops.cbegin(), circ.ops.cbegin() + first_meas, result,
@@ -770,7 +776,6 @@ void Executor<state_t>::run_circuit_shots(
   }
   num_shots = shot_end[distributed_rank_] - shot_begin[distributed_rank_];
 
-
   int max_matrix_qubits;
   if (!sample_noise) {
     Noise::NoiseModel dummy_noise;
@@ -785,8 +790,9 @@ void Executor<state_t>::run_circuit_shots(
     }
     max_matrix_qubits = get_max_matrix_qubits(circ);
   }
+  num_bind_params_ = circ.num_bind_params;
 
-  for(uint_t iparam=0;iparam<circ.num_bind_params;iparam++){
+  for(uint_t iparam=0;iparam<num_bind_params_;iparam++){
     //TO DO : make shots x params loop to be distributed
     std::vector<ExperimentResult> par_results(par_shots);
     ExperimentResult& result = *(result_it + iparam);
@@ -808,7 +814,10 @@ void Executor<state_t>::run_circuit_shots(
       // Set state config
       state.set_config(config);
       state.set_parallelization(this->parallel_state_update_);
-      state.set_global_phase(circ.global_phase_angle);
+      if(circ.global_phase_for_params.size() == circ.num_bind_params)
+        state.set_global_phase(circ.global_phase_for_params[iparam]);
+      else
+        state.set_global_phase(circ.global_phase_angle);
       state.enable_density_matrix(!has_statevector_ops_);
 
       state.set_distribution(this->num_process_per_experiment_);
@@ -847,7 +856,7 @@ void Executor<state_t>::run_circuit_shots(
         if (sample_noise) {
           if(circ.num_bind_params > 1){
             run_circuit_with_parameter_binding(state, circ_opt.ops.cbegin(), circ_opt.ops.cend(),
-                                               par_results[i], rng, iparam, circ.num_bind_params, true);
+                                               par_results[i], rng, iparam, true);
           }
           else{
             state.apply_ops(circ_opt.ops.cbegin(), circ_opt.ops.cend(),
@@ -856,7 +865,7 @@ void Executor<state_t>::run_circuit_shots(
         } else {
           if(circ.num_bind_params > 1){
             run_circuit_with_parameter_binding(state, circ.ops.cbegin(), circ.ops.cend(),
-                                               par_results[i], rng, iparam, circ.num_bind_params, true);
+                                               par_results[i], rng, iparam, true);
           }
           else{
             state.apply_ops(circ.ops.cbegin(), circ.ops.cend(), par_results[i], rng,
@@ -915,7 +924,7 @@ template <class state_t>
 void Executor<state_t>::run_circuit_with_parameter_binding(state_t& state, OpItr first, OpItr last, 
                                           ExperimentResult &result, 
                                           RngEngine &rng,
-                                          const uint_t iparam, const uint_t num_params,
+                                          const uint_t iparam,
                                           bool final_op)
 {
   OpItr op_begin = first;
@@ -931,7 +940,7 @@ void Executor<state_t>::run_circuit_with_parameter_binding(state_t& state, OpItr
       }
 
       std::vector<Operations::Op> binded_op(1);
-      binded_op[0] = Operations::make_parameter_bind(*op, iparam, num_params);
+      binded_op[0] = Operations::make_parameter_bind(*op, iparam, num_bind_params_);
       state.apply_ops(binded_op.cbegin(), binded_op.cend(),
                       result, rng, final_op && (op == last - 1));
       op_begin = op + 1;

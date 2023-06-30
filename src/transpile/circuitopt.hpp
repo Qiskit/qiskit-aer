@@ -40,13 +40,10 @@ public:
                                 const Operations::OpSet &opset,
                                 ExperimentResult &result) const = 0;
 
-  virtual void set_config(const Config &config);
+  virtual void set_config(const Config &config){};
 
 protected:
-  Config config_;
 };
-
-void CircuitOptimization::set_config(const Config &config) { config_ = config; }
 
 //-------------------------------------------------------------------------
 } // end namespace Transpile

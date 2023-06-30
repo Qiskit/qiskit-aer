@@ -142,9 +142,9 @@ public:
                             const cvector_t<double> &state);
 
   // chunk setup
-  bool chunk_setup(int chunk_bits, int num_qubits, uint_t chunk_index,
+  uint_t chunk_setup(int chunk_bits, int num_qubits, uint_t chunk_index,
                    uint_t num_local_chunks);
-  bool chunk_setup(const QubitVectorThrust<data_t> &base,
+  uint_t chunk_setup(const QubitVectorThrust<data_t> &base,
                    const uint_t chunk_index);
   uint_t chunk_index(void) { return chunk_index_; }
 
@@ -864,9 +864,10 @@ void QubitVectorThrust<data_t>::zero() {
 }
 
 template <typename data_t>
-bool QubitVectorThrust<data_t>::chunk_setup(int chunk_bits, int num_qubits,
+uint_t QubitVectorThrust<data_t>::chunk_setup(int chunk_bits, int num_qubits,
                                             uint_t chunk_index,
                                             uint_t num_local_chunks) {
+  uint_t num_chunks_allocated = 0;
   // set global chunk ID / shot ID
   chunk_index_ = chunk_index;
 
@@ -890,8 +891,8 @@ bool QubitVectorThrust<data_t>::chunk_setup(int chunk_bits, int num_qubits,
     chunk_manager_ = std::make_shared<Chunk::ChunkManager<data_t>>();
     chunk_manager_->set_num_threads_per_group(num_threads_per_group_);
     chunk_manager_->set_num_creg_bits(num_creg_bits_ + num_cmem_bits_);
-    chunk_manager_->Allocate(chunk_bits, num_qubits, num_local_chunks,
-                             chunk_index_, max_matrix_bits_,
+    num_chunks_allocated = chunk_manager_->Allocate(chunk_bits, num_qubits,
+                             num_local_chunks, chunk_index_, max_matrix_bits_,
                              is_density_matrix(), cuStateVec_enable_);
   }
 
@@ -911,11 +912,11 @@ bool QubitVectorThrust<data_t>::chunk_setup(int chunk_bits, int num_qubits,
   bool mapped = chunk_manager_->MapChunk(chunk_, 0);
   chunk_.set_chunk_index(chunk_index_);
 
-  return mapped;
+  return num_chunks_allocated;
 }
 
 template <typename data_t>
-bool QubitVectorThrust<data_t>::chunk_setup(
+uint_t QubitVectorThrust<data_t>::chunk_setup(
     const QubitVectorThrust<data_t> &base, const uint_t chunk_index) {
   multi_chunk_distribution_ = base.multi_chunk_distribution_;
   cuStateVec_enable_ = base.cuStateVec_enable_;
@@ -936,7 +937,7 @@ bool QubitVectorThrust<data_t>::chunk_setup(
   chunk_manager_ = base.chunk_manager_;
   bool mapped = chunk_manager_->MapChunk(chunk_, 0);
 
-  return mapped;
+  return chunk_manager_->num_chunks();
 }
 
 template <typename data_t>

@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    This is fix for library path setting in CMakeLists.txt for cuQuantum SDK.
+    Because the latest cuQuantum includes libraries for CUDA 11.x and 12.x,
+    this fix uses CUDA version returned from FindCUDA to the path of libraries
+    of cuQuantum and cuTENSOR.

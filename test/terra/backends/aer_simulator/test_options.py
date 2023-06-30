@@ -19,6 +19,9 @@ from qiskit_aer.noise import NoiseModel
 from test.terra.backends.simulator_test_case import SimulatorTestCase, supported_methods
 from qiskit.quantum_info.random import random_unitary
 from qiskit.quantum_info import state_fidelity
+from qiskit.providers.fake_provider import FakeMontreal
+
+from qiskit_aer import AerSimulator
 
 
 @ddt
@@ -282,3 +285,20 @@ class TestOptions(SimulatorTestCase):
             "Required memory: {}".format(2 ** (n - 20) * 16) in result.results[0].status
         )
         self.assertTrue("max memory: {}".format(max_memory_mb) in result.results[0].status)
+
+    @data(
+        "automatic",
+        "stabilizer",
+        "statevector",
+        "density_matrix",
+        "matrix_product_state",
+        "extended_stabilizer",
+        "unitary",
+        "superop",
+    )
+    def test_num_qubits(self, method):
+        """Test number of qubits is correctly checked"""
+
+        num_qubits = FakeMontreal().configuration().num_qubits
+        backend = AerSimulator.from_backend(FakeMontreal(), method=method)
+        self.assertGreaterEqual(backend.configuration().num_qubits, num_qubits)

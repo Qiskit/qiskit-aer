@@ -85,8 +85,8 @@ public:
   template <typename inputdata_t>
   Result execute(const inputdata_t &qobj);
 
-  Result execute(std::vector<Circuit> &circuits, Noise::NoiseModel &noise_model,
-                 const Config &config);
+  Result execute(std::vector<std::shared_ptr<Circuit>> &circuits,
+                 Noise::NoiseModel &noise_model, const Config &config);
 
   //-----------------------------------------------------------------------
   // Config settings
@@ -146,8 +146,9 @@ protected:
   // circuit and noise model.
   // The noise model will be modified to enable superop or kraus sampling
   // methods if required by the chosen methods.
-  std::vector<Method> simulation_methods(std::vector<Circuit> &circuits,
-                                         Noise::NoiseModel &noise_model) const;
+  std::vector<Method>
+  simulation_methods(std::vector<std::shared_ptr<Circuit>> &circuits,
+                     Noise::NoiseModel &noise_model) const;
 
   // Return the simulation method to use based on the input circuit
   // and noise model
@@ -164,9 +165,9 @@ protected:
   void clear_parallelization();
 
   // Set parallelization for experiments
-  void set_parallelization_experiments(const std::vector<Circuit> &circuits,
-                                       const Noise::NoiseModel &noise,
-                                       const std::vector<Method> &methods);
+  void set_parallelization_experiments(
+      const std::vector<std::shared_ptr<Circuit>> &circuits,
+      const Noise::NoiseModel &noise, const std::vector<Method> &methods);
 
   void save_exception_to_results(Result &result, const std::exception &e) const;
 
@@ -360,8 +361,8 @@ void Controller::clear_parallelization() {
 }
 
 void Controller::set_parallelization_experiments(
-    const std::vector<Circuit> &circuits, const Noise::NoiseModel &noise,
-    const std::vector<Method> &methods) {
+    const std::vector<std::shared_ptr<Circuit>> &circuits,
+    const Noise::NoiseModel &noise, const std::vector<Method> &methods) {
   if (explicit_parallelization_)
     return;
 
@@ -389,7 +390,7 @@ void Controller::set_parallelization_experiments(
     std::shared_ptr<CircuitExecutor::Base> executor =
         make_circuit_executor(methods[j]);
     required_memory_mb_list[j] =
-        executor->required_memory_mb(circuits[j], noise);
+        executor->required_memory_mb(*circuits[j], noise);
     executor.reset();
   }
   std::sort(required_memory_mb_list.begin(), required_memory_mb_list.end(),
@@ -502,7 +503,7 @@ Result Controller::execute(const inputdata_t &input_qobj) {
 // Experiment execution
 //-------------------------------------------------------------------------
 
-Result Controller::execute(std::vector<Circuit> &circuits,
+Result Controller::execute(std::vector<std::shared_ptr<Circuit>> &circuits,
                            Noise::NoiseModel &noise_model,
                            const Config &config) {
   // Start QOBJ timer
@@ -522,7 +523,7 @@ Result Controller::execute(std::vector<Circuit> &circuits,
   result_size = 0;
   for (int_t i = 0; i < circuits.size(); i++){
     result_offset[i] = result_size;
-    result_size += circuits[i].num_bind_params;
+    result_size += circuits[i]->num_bind_params;
   }
   Result result(result_size);
 
@@ -582,23 +583,23 @@ Result Controller::execute(std::vector<Circuit> &circuits,
       reg_t avg_seeds(result_size);
       int_t iseed = 0;
       for (int_t i = 0; i < circuits.size(); i++){
-        if(circuits[i].num_bind_params > 1){
-          for (int_t j = 0; i < circuits[i].num_bind_params; i++)
-            seeds[iseed++] =  circuits[i].seed_for_params[j];
+        if(circuits[i]->num_bind_params > 1){
+          for (int_t j = 0; i < circuits[i]->num_bind_params; i++)
+            seeds[iseed++] =  circuits[i]->seed_for_params[j];
         }
         else
-          seeds[iseed++] = circuits[i].seed;
+          seeds[iseed++] = circuits[i]->seed;
       }
       MPI_Allreduce(seeds.data(), avg_seeds.data(), result_size,
                     MPI_UINT64_T, MPI_SUM, MPI_COMM_WORLD);
       iseed = 0;
       for (int_t i = 0; i < circuits.size(); i++){
-        if(circuits[i].num_bind_params > 1){
-          for (int_t j = 0; i < circuits[i].num_bind_params; i++)
-            circuits[i].seed_for_params[j] = avg_seeds[iseed++] / num_processes_;
+        if(circuits[i]->num_bind_params > 1){
+          for (int_t j = 0; i < circuits[i]->num_bind_params; i++)
+            circuits[i]->seed_for_params[j] = avg_seeds[iseed++] / num_processes_;
         }
         else
-          circuits[i].seed = avg_seeds[iseed++] / num_processes_;
+          circuits[i]->seed = avg_seeds[iseed++] / num_processes_;
       }
     }
 #endif
@@ -610,7 +611,7 @@ Result Controller::execute(std::vector<Circuit> &circuits,
       for (int j = 0; j < circuits.size(); ++j) {
         std::shared_ptr<CircuitExecutor::Base> executor =
             make_circuit_executor(methods[j]);
-        executor->run_circuit(circuits[j], noise_model, config, methods[j],
+        executor->run_circuit(*circuits[j], noise_model, config, methods[j],
                               sim_device_, result.results.begin() + result_offset[j]);
         executor.reset();
       }
@@ -619,7 +620,7 @@ Result Controller::execute(std::vector<Circuit> &circuits,
       for (int j = 0; j < circuits.size(); ++j) {
         std::shared_ptr<CircuitExecutor::Base> executor =
             make_circuit_executor(methods[j]);
-        executor->run_circuit(circuits[j], noise_model, config, methods[j],
+        executor->run_circuit(*circuits[j], noise_model, config, methods[j],
                               sim_device_, result.results.begin() + result_offset[j]);
         executor.reset();
       }
@@ -781,7 +782,7 @@ Controller::make_circuit_executor(const Method method) const {
 }
 
 std::vector<Method>
-Controller::simulation_methods(std::vector<Circuit> &circuits,
+Controller::simulation_methods(std::vector<std::shared_ptr<Circuit>> &circuits,
                                Noise::NoiseModel &noise_model) const {
   // Does noise model contain kraus noise
   bool kraus_noise =
@@ -793,7 +794,8 @@ Controller::simulation_methods(std::vector<Circuit> &circuits,
     std::vector<Method> sim_methods;
     bool superop_enabled = false;
     bool kraus_enabled = false;
-    for (const auto &circ : circuits) {
+    for (const auto &_circ : circuits) {
+      const auto circ = *_circ;
       auto method = automatic_simulation_method(circ, noise_model);
       sim_methods.push_back(method);
       if (!superop_enabled &&
@@ -823,7 +825,7 @@ Controller::simulation_methods(std::vector<Circuit> &circuits,
   } else if (method_ == Method::tensor_network) {
     bool has_save_statevec = false;
     for (const auto &circ : circuits) {
-      has_save_statevec |= has_statevector_ops(circ);
+      has_save_statevec |= has_statevector_ops(*circ);
       if (has_save_statevec)
         break;
     }

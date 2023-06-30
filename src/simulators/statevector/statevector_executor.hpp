@@ -50,8 +50,6 @@ public:
 protected:
   void set_config(const Config &config) override;
 
-  void apply_global_phase() override;
-
   bool shot_branching_supported(void) override { return true; }
 
   // apply parallel operations
@@ -209,26 +207,6 @@ template <class state_t>
 void Executor<state_t>::set_config(const Config &config) {
   BasePar::set_config(config);
   BaseBatch::set_config(config);
-}
-
-template <class state_t>
-void Executor<state_t>::apply_global_phase() {
-  if (Base::has_global_phase_) {
-    int_t i;
-    if (Base::shot_omp_parallel_ && Base::num_groups_ > 1) {
-#pragma omp parallel for
-      for (int_t ig = 0; ig < Base::num_groups_; ig++) {
-        for (int_t iChunk = Base::top_state_of_group_[ig];
-             iChunk < Base::top_state_of_group_[ig + 1]; iChunk++)
-          Base::states_[iChunk].apply_diagonal_matrix(
-              {0}, {Base::global_phase_, Base::global_phase_});
-      }
-    } else {
-      for (i = 0; i < Base::states_.size(); i++)
-        Base::states_[i].apply_diagonal_matrix(
-            {0}, {Base::global_phase_, Base::global_phase_});
-    }
-  }
 }
 
 template <class state_t>

@@ -131,6 +131,7 @@ public:
   virtual ~ChunkContainer() {}
 
   int_t chunk_bits(void) { return chunk_bits_; }
+  int_t num_qubits(void) { return num_qubits_; }
   int_t place(void) { return place_id_; }
   void set_place(int_t id, int_t n) {
     place_id_ = id;

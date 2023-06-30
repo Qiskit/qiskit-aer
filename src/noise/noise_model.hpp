@@ -382,22 +382,40 @@ NoiseModel::NoiseOps NoiseModel::sample_noise_op(const Operations::Op &op,
 
 void NoiseModel::enable_superop_method(int num_threads) {
   if (enabled_methods_.find(Method::superop) == enabled_methods_.end()) {
+    std::vector<std::exception_ptr> exs;
+    exs.resize(std::max(num_threads, 1));
 #pragma omp parallel for if (num_threads > 1 && quantum_errors_.size() > 10)   \
     num_threads(num_threads)
     for (int i = 0; i < quantum_errors_.size(); i++) {
-      quantum_errors_[i].compute_superoperator();
+      try {
+        quantum_errors_[i].compute_superoperator();
+      } catch (...) {
+        exs[omp_get_num_threads()] = std::current_exception();
+      }
     }
+    for (const auto &ex : exs)
+      if (ex)
+        std::rethrow_exception(ex);
     enabled_methods_.insert(Method::superop);
   }
 }
 
 void NoiseModel::enable_kraus_method(int num_threads) {
   if (enabled_methods_.find(Method::kraus) == enabled_methods_.end()) {
+    std::vector<std::exception_ptr> exs;
+    exs.resize(std::max(num_threads, 1));
 #pragma omp parallel for if (num_threads > 1 && quantum_errors_.size() > 10)   \
     num_threads(num_threads)
     for (int i = 0; i < quantum_errors_.size(); i++) {
-      quantum_errors_[i].compute_kraus();
+      try {
+        quantum_errors_[i].compute_kraus();
+      } catch (...) {
+        exs[omp_get_num_threads()] = std::current_exception();
+      }
     }
+    for (const auto &ex : exs)
+      if (ex)
+        std::rethrow_exception(ex);
     enabled_methods_.insert(Method::kraus);
   }
 }

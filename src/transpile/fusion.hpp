@@ -832,7 +832,7 @@ void Fusion::set_config(const Config &config) {
     threshold = config.fusion_threshold.value();
 
   for (std::shared_ptr<Fuser> &fuser : fusers)
-    fuser->set_config(config_);
+    fuser->set_config(config);
 
   if (config.fusion_allow_kraus.has_value())
     allow_kraus = config.fusion_allow_kraus.value();

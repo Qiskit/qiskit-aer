@@ -40,7 +40,7 @@ using namespace AER;
 
 template <typename MODULE>
 void bind_aer_circuit(MODULE m) {
-  py::class_<Circuit> aer_circuit(m, "AerCircuit");
+  py::class_<Circuit, std::shared_ptr<Circuit>> aer_circuit(m, "AerCircuit");
   aer_circuit.def(py::init());
   aer_circuit.def("__repr__", [](const Circuit &circ) {
     std::stringstream ss;
