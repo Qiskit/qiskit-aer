@@ -642,12 +642,13 @@ void ParallelStateExecutor<state_t>::store_measure(const reg_t &outcome,
     int_t iChunk = Base::top_state_of_group_[iGroup];
     int_t nChunk = 1;
 #ifdef AER_CUSTATEVEC
-    if(Base::cuStateVec_enable_){
+    if (Base::cuStateVec_enable_) {
       nChunk = Base::num_states_in_group_[iGroup];
     }
 #endif
-    for(int_t i=0;i<nChunk;i++)
-      Base::states_[iChunk + i].creg().store_measure(outcome, memory, registers);
+    for (int_t i = 0; i < nChunk; i++)
+      Base::states_[iChunk + i].creg().store_measure(outcome, memory,
+                                                     registers);
   };
   Utils::apply_omp_parallel_for((chunk_omp_parallel_ && Base::num_groups_ > 1),
                                 0, Base::num_groups_, apply_store_measure);
@@ -659,11 +660,11 @@ void ParallelStateExecutor<state_t>::apply_bfunc(const Operations::Op &op) {
     int_t iChunk = Base::top_state_of_group_[iGroup];
     int_t nChunk = 1;
 #ifdef AER_CUSTATEVEC
-    if(Base::cuStateVec_enable_){
+    if (Base::cuStateVec_enable_) {
       nChunk = Base::num_states_in_group_[iGroup];
     }
 #endif
-    for(int_t i=0;i<nChunk;i++)
+    for (int_t i = 0; i < nChunk; i++)
       Base::states_[iChunk + i].creg().apply_bfunc(op);
   };
   Utils::apply_omp_parallel_for((chunk_omp_parallel_ && Base::num_groups_ > 1),
@@ -677,11 +678,11 @@ void ParallelStateExecutor<state_t>::apply_roerror(const Operations::Op &op,
     int_t iChunk = Base::top_state_of_group_[iGroup];
     int_t nChunk = 1;
 #ifdef AER_CUSTATEVEC
-    if(Base::cuStateVec_enable_){
+    if (Base::cuStateVec_enable_) {
       nChunk = Base::num_states_in_group_[iGroup];
     }
 #endif
-    for(int_t i=0;i<nChunk;i++)
+    for (int_t i = 0; i < nChunk; i++)
       Base::states_[iChunk + i].creg().apply_roerror(op, rng);
   };
   Utils::apply_omp_parallel_for((chunk_omp_parallel_ && Base::num_groups_ > 1),
