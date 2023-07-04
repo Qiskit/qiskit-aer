@@ -97,7 +97,6 @@ public:
   void initialize_from_matrix(const matrix<std::complex<T>> &mat);
   void initialize_from_matrix(const matrix<std::complex<data_t>> &mat);
 
-
   //-----------------------------------------------------------------------
   // Identity checking
   //-----------------------------------------------------------------------
