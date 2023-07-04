@@ -97,10 +97,6 @@ public:
   void initialize_from_matrix(const matrix<std::complex<T>> &mat);
   void initialize_from_matrix(const matrix<std::complex<data_t>> &mat);
 
-  // Apply a N-qubit diagonal matrix to the state vector.
-  // The matrix is input as vector of the matrix diagonal.
-  void apply_diagonal_matrix(const reg_t &qubits,
-                             const cvector_t<double> &mat) override;
 
   //-----------------------------------------------------------------------
   // Identity checking
@@ -312,17 +308,6 @@ std::complex<double> UnitaryMatrixThrust<data_t>::trace() const {
 #endif
 
   return sum;
-}
-
-template <typename data_t>
-void UnitaryMatrixThrust<data_t>::apply_diagonal_matrix(
-    const reg_t &qubits, const cvector_t<double> &diag) {
-  reg_t qubits_chunk = qubits;
-  for (uint_t i = 0; i < qubits.size(); i++) {
-    if (qubits_chunk[i] >= num_qubits_)
-      qubits_chunk[i] += num_qubits_;
-  }
-  BaseVector::apply_diagonal_matrix(qubits_chunk, diag);
 }
 
 //------------------------------------------------------------------------------

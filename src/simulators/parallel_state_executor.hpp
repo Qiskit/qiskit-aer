@@ -639,10 +639,15 @@ void ParallelStateExecutor<state_t>::store_measure(const reg_t &outcome,
                                                    const reg_t &memory,
                                                    const reg_t &registers) {
   auto apply_store_measure = [this, outcome, memory, registers](int_t iGroup) {
-    // store creg to the all top states of groups so that conditional ops can be
-    // applied correctly
-    Base::states_[Base::top_state_of_group_[iGroup]].creg().store_measure(
-        outcome, memory, registers);
+    int_t iChunk = Base::top_state_of_group_[iGroup];
+    int_t nChunk = 1;
+#ifdef AER_CUSTATEVEC
+    if(Base::cuStateVec_enable_){
+      nChunk = Base::num_states_in_group_[iGroup];
+    }
+#endif
+    for(int_t i=0;i<nChunk;i++)
+      Base::states_[iChunk + i].creg().store_measure(outcome, memory, registers);
   };
   Utils::apply_omp_parallel_for((chunk_omp_parallel_ && Base::num_groups_ > 1),
                                 0, Base::num_groups_, apply_store_measure);
@@ -651,9 +656,15 @@ void ParallelStateExecutor<state_t>::store_measure(const reg_t &outcome,
 template <class state_t>
 void ParallelStateExecutor<state_t>::apply_bfunc(const Operations::Op &op) {
   auto bfunc_kernel = [this, op](int_t iGroup) {
-    // store creg to the all top states of groups so that conditional ops can be
-    // applied correctly
-    Base::states_[Base::top_state_of_group_[iGroup]].creg().apply_bfunc(op);
+    int_t iChunk = Base::top_state_of_group_[iGroup];
+    int_t nChunk = 1;
+#ifdef AER_CUSTATEVEC
+    if(Base::cuStateVec_enable_){
+      nChunk = Base::num_states_in_group_[iGroup];
+    }
+#endif
+    for(int_t i=0;i<nChunk;i++)
+      Base::states_[iChunk + i].creg().apply_bfunc(op);
   };
   Utils::apply_omp_parallel_for((chunk_omp_parallel_ && Base::num_groups_ > 1),
                                 0, Base::num_groups_, bfunc_kernel);
@@ -663,10 +674,15 @@ template <class state_t>
 void ParallelStateExecutor<state_t>::apply_roerror(const Operations::Op &op,
                                                    RngEngine &rng) {
   auto roerror_kernel = [this, op, &rng](int_t iGroup) {
-    // store creg to the all top states of groups so that conditional ops can be
-    // applied correctly
-    Base::states_[Base::top_state_of_group_[iGroup]].creg().apply_roerror(op,
-                                                                          rng);
+    int_t iChunk = Base::top_state_of_group_[iGroup];
+    int_t nChunk = 1;
+#ifdef AER_CUSTATEVEC
+    if(Base::cuStateVec_enable_){
+      nChunk = Base::num_states_in_group_[iGroup];
+    }
+#endif
+    for(int_t i=0;i<nChunk;i++)
+      Base::states_[iChunk + i].creg().apply_roerror(op, rng);
   };
   Utils::apply_omp_parallel_for((chunk_omp_parallel_ && Base::num_groups_ > 1),
                                 0, Base::num_groups_, roerror_kernel);
