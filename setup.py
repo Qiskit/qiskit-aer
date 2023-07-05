@@ -18,7 +18,7 @@ if "gpu" in PACKAGE_NAME:
     if "cu11" in PACKAGE_NAME:
         requirements = [
             "qiskit-terra>=0.21.0",
-            "numpy>=1.16.3",
+            "numpy>=1.16.3,<1.25",
             "scipy>=1.0",
             "nvidia-cuda-runtime-cu11>=11.8.89",
             "nvidia-cublas-cu11>=11.11.3.6",
@@ -29,7 +29,7 @@ if "gpu" in PACKAGE_NAME:
     else:
         requirements = [
             "qiskit-terra>=0.21.0",
-            "numpy>=1.16.3",
+            "numpy>=1.16.3,<1.25",
             "scipy>=1.0",
             "nvidia-cuda-runtime-cu12>=12.1.105",
             "nvidia-cublas-cu12>=12.1.3.1",
