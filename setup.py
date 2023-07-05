@@ -40,7 +40,7 @@ if "gpu" in PACKAGE_NAME:
 else:
     requirements = [
         "qiskit-terra>=0.21.0",
-        "numpy>=1.16.3",
+        "numpy>=1.16.3,<1.25",
         "scipy>=1.0",
     ]
 
