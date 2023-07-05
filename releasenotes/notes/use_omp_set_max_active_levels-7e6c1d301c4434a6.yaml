@@ -1,0 +1,4 @@
+---
+fixes:
+  - |
+    Aer will now use ``omp_set_max_active_levels()`` instead of the deprecated ``omp_set_nested()`` when compiled against recent versions of OpenMP.

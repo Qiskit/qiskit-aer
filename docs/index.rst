@@ -15,7 +15,10 @@ https://github.com/Qiskit/qiskit-aer
 .. toctree:: 
     :hidden: 
  
+    Getting Started <getting_started>
     API Documentation <apidocs/aer>
+    Tutorials <tutorials/index>
+    How-Tos <howtos/index>
     Release Notes <release_notes>
 
 .. Hiding - Indices and tables

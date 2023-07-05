@@ -20,8 +20,8 @@ please ensure that:
    which will run these checks and report any issues.
 
    If your code fails the local style checks, you can use `tox -eblack`
-   and `tox -eclang` to automatically fix update the code formatting
-   in python and C++ respectively.
+   and `tox -eclang` to automatically fix and update the code formatting
+   in python and C++, respectively.
 
 2. The documentation has been updated accordingly. In particular, if a
    function or class has been modified during the PR, please update the
@@ -39,7 +39,7 @@ automation. This works through a combination of the git log and the pull
 request. When a release is tagged and pushed to GitHub, the release automation
 bot looks at all commit messages from the git log for the release. It takes the
 PR numbers from the git log (assuming a squash merge) and checks if that PR had
-a `Changelog:` label on it. If there is a label it will add the git commit
+a `Changelog:` label on it. If there is a label, it will add the git commit
 message summary line from the git log for the release to the changelog.
 
 If there are multiple `Changelog:` tags on a PR, the git commit message summary
@@ -69,7 +69,7 @@ understand if they need to update their program which uses Qiskit, and how they
 would go about doing that. It ideally should explain why they need to make
 this change too, to provide the necessary context.
 
-To make sure we don't forget a release note or if the details of user-facing
+To make sure we don't forget a release note if the details of user-facing
 changes over a release cycle, we require that all user facing changes include
 documentation at the same time as the code. To accomplish this, we use the
 [reno](https://docs.openstack.org/reno/latest/) tool which enables a git-based
@@ -186,20 +186,21 @@ https://github.com/Qiskit/qiskit/blob/master/docs/release_notes.rst)
 
 Building The release notes are part of the standard qiskit-aer documentation
 builds. To check what the rendered HTML output of the release notes will look
-like for the current state of the repo, you can run: `tox -edocs` which will
+like for the current state of the repo, you need to install 
+[pandoc](https://pandoc.org/installing.html), then you can run: `tox -edocs` which will
 build all the documentation into `docs/_build/html` and the release notes in
 particular will be located at `docs/_build/html/release_notes.html`
 
 ## Style and lint
 
-Qiskit Aer uses 3 tools for verify code formatting and lint checking. The
+Qiskit Aer uses 3 tools for verifying code formatting and lint checking. The
 first tool is [black](https://github.com/psf/black) which is a Python code formatting
 tool that will automatically update the code formatting to a consistent style.
 The second tool is [pylint](https://www.pylint.org/) which is a code linter
 which does a deeper analysis of the Python code to find both style issues and
 potential bugs and other common issues in Python. The third tool is
 [clang-format](https://clang.llvm.org/docs/ClangFormat.html) which is a
-C++ code formatting tool that will automatically update codes with a consitent style.
+C++ code formatting tool that will automatically update codes with a consistent style.
 
 You can check that your local modifications conform to the style rules
 by running `tox -elint` which will run `black`, `pylint` and `clang-format`
@@ -239,7 +240,7 @@ When it is time to release a new minor version of qiskit-aer, we will:
 1.  Create a new tag with the version number and push it to github
 2.  Change the `main` version to the next release version.
 
-The release automation processes will be triggered by the new tag and perform
+The release automation processes will be triggered by the new tag and will perform
 the following steps:
 
 1.  Create a stable branch for the new minor version from the release tag
@@ -462,7 +463,7 @@ As any other Python package, we can install from source code by just running:
     qiskit-aer$ pip install .
 
 This will build and install `Aer` with the default options which is probably suitable for most of the users.
-There's another Pythonic approach to build and install software: build the wheels distributable file.
+There's another Pythonic approach to building and installing software: build the wheels distributable file.
 
 
     qiskit-aer$ python ./setup.py bdist_wheel
@@ -565,7 +566,7 @@ As any other Python package, we can install from source code by just running:
     (QiskitDevEnv) qiskit-aer > pip install .
 
 This will build and install `Aer` with the default options which is probably suitable for most of the users.
-There's another Pythonic approach to build and install software: build the wheels distributable file.
+There's another Pythonic approach to building and installing software: build the wheels distributable file.
 
 
     (QiskitDevEnv) qiskit-aer > python ./setup.py bdist_wheel

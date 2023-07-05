@@ -130,6 +130,7 @@ public:
             const int_t cond_regidx = -1, const std::string label = "") {
     ops.push_back(Operations::make_gate(name, qubits, params, string_params,
                                         cond_regidx, label));
+    check_gate_params(ops.back());
   }
 
   void diagonal(const reg_t &qubits, const cvector_t &vec,
@@ -239,6 +240,10 @@ public:
 
   void mark(const reg_t &qubits, const std::vector<std::string> &params) {
     ops.push_back(Operations::make_mark(qubits, params));
+  }
+
+  void barrier(const reg_t &qubits) {
+    ops.push_back(Operations::make_barrier(qubits));
   }
 
   void measure(const reg_t &qubits, const reg_t &memory,

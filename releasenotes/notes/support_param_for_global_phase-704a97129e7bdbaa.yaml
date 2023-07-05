@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    :class:`~qiskit.circuit.QuantumCircuit` supports parameterization for its `global_phase`.
+    However, Aer has not allowed such parameterization and failed when transpiler generates
+    parameterized global phases. This commit supports parameterization of `global_phase` and
+    resolve issues related to https://github.com/Qiskit/qiskit-aer/issues/1795,
+    https://github.com/Qiskit/qiskit-aer/issues/1781, and https://github.com/Qiskit/qiskit-aer/issues/1798.
