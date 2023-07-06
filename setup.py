@@ -9,10 +9,8 @@ import platform
 import setuptools
 from skbuild import setup
 
-
 PACKAGE_NAME = os.getenv("QISKIT_AER_PACKAGE_NAME", "qiskit-aer")
 CUDA_MAJOR = os.getenv("QISKIT_AER_CUDA_MAJOR", "12")
-
 
 extras_requirements = {"dask": ["dask", "distributed"]}
 
@@ -22,7 +20,7 @@ requirements = [
     "scipy>=1.0",
 ]
 
-classifiers=[
+classifiers = [
     "Environment :: Console",
     "License :: OSI Approved :: Apache Software License",
     "Intended Audience :: Developers",
@@ -40,8 +38,8 @@ classifiers=[
     "Topic :: Scientific/Engineering",
 ]
 
-if 'gpu' in PACKAGE_NAME:
-    if '11' in CUDA_MAJOR:
+if "gpu" in PACKAGE_NAME:
+    if "11" in CUDA_MAJOR:
         requirements_cuda = [
             "nvidia-cuda-runtime-cu11>=11.8.89",
             "nvidia-cublas-cu11>=11.11.3.6",
