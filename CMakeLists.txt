@@ -483,8 +483,7 @@ else() # Standalone build
 
 	install(TARGETS qasm_simulator DESTINATION bin)
 
-	# build libaer.so (currently, Linux on x86 is supportted)
-	if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
+	if (CMAKE_SYSTEM_NAME STREQUAL "Linux" OR CMAKE_SYSTEM_NAME STREQUAL "Darwin")
 		set(AER_RUNTIME_SOURCE "${PROJECT_SOURCE_DIR}/contrib/runtime/aer_runtime.cpp")
 		if(CUDA_FOUND AND AER_THRUST_BACKEND STREQUAL "CUDA")
 			build_cuda(aer ${AER_RUNTIME_SOURCE} FALSE)
