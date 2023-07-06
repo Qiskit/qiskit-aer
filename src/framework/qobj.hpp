@@ -153,7 +153,7 @@ Qobj::Qobj(const inputdata_t &input) {
           // Validation
           if (instr_pos == AER::Config::GLOBAL_PHASE_POS) {
             // negative position is for global phase
-            circuit->global_phase_angle = params.second[j];
+            param_circuit->global_phase_angle = params.second[j];
           } else {
             if (instr_pos >= num_instr) {
               throw std::invalid_argument(
