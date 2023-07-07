@@ -29,7 +29,7 @@ If you want to install our GPU supported simulators, you have to install this ot
 pip install qiskit-aer-gpu
 ```
 
-The package avobe is for CUDA&reg 12, so if your system has CUDA&reg; 11 installed, install separate package:
+The package above is for CUDA&reg 12, so if your system has CUDA&reg; 11 installed, install separate package:
 ```bash
 pip install qiskit-aer-gpu-cu11
 ```
