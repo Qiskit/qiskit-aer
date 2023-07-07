@@ -597,6 +597,8 @@ def assemble_circuit(circuit: QuantumCircuit):
     aer_circ.num_memory = num_memory
     aer_circ.global_phase_angle = global_phase
 
+    num_of_aer_ops = 0
+    index_map = []
     for inst in circuit.data:
         # To convert to a qobj-style conditional, insert a bfunc prior
         # to the conditional instruction to map the creg ?= val condition
@@ -616,11 +618,15 @@ def assemble_circuit(circuit: QuantumCircuit):
                         val |= ((ctrl_val >> list(ctrl_reg).index(clbit)) & 1) << idx
             conditional_reg = num_memory + max_conditional_idx
             aer_circ.bfunc(f"0x{mask:X}", f"0x{val:X}", "==", conditional_reg)
+            num_of_aer_ops += 1
             max_conditional_idx += 1
 
-        _assemble_op(aer_circ, inst, qubit_indices, clbit_indices, is_conditional, conditional_reg)
+        num_of_aer_ops += _assemble_op(
+            aer_circ, inst, qubit_indices, clbit_indices, is_conditional, conditional_reg
+        )
+        index_map.append(num_of_aer_ops - 1)
 
-    return aer_circ
+    return aer_circ, index_map
 
 
 def _assemble_op(aer_circ, inst, qubit_indices, clbit_indices, is_conditional, conditional_reg):
@@ -639,6 +645,7 @@ def _assemble_op(aer_circ, inst, qubit_indices, clbit_indices, is_conditional, c
                 copied = True
             params[i] = 0.0
 
+    num_of_aer_ops = 1
     # fmt: off
     if name in {
         "ccx", "ccz", "cp", "cswap", "csx", "cx", "cy", "cz", "delay", "ecr", "h",
@@ -717,7 +724,7 @@ def _assemble_op(aer_circ, inst, qubit_indices, clbit_indices, is_conditional, c
     elif name == "superop":
         aer_circ.superop(qubits, params[0], conditional_reg)
     elif name == "barrier":
-        aer_circ.barrier(qubits)
+        num_of_aer_ops = 0
     elif name == "jump":
         aer_circ.jump(qubits, params, conditional_reg)
     elif name == "mark":
@@ -732,6 +739,8 @@ def _assemble_op(aer_circ, inst, qubit_indices, clbit_indices, is_conditional, c
     else:
         raise AerError(f"unknown instruction: {name}")
 
+    return num_of_aer_ops
+
 
 def assemble_circuits(circuits: List[QuantumCircuit]) -> List[AerCircuit]:
     """converts a list of Qiskit circuits into circuits mapped AER::Circuit
@@ -740,7 +749,8 @@ def assemble_circuits(circuits: List[QuantumCircuit]) -> List[AerCircuit]:
         circuits: circuit(s) to be converted
 
     Returns:
-        circuits to be run on the Aer backends
+        a list of circuits to be run on the Aer backends and
+        a list of index mapping from Qiskit instructions to Aer operations of the circuits
 
     Examples:
 
@@ -754,6 +764,7 @@ def assemble_circuits(circuits: List[QuantumCircuit]) -> List[AerCircuit]:
             qc.cx(0, 1)
             qc.measure_all()
             # Generate AerCircuit from the input circuit
-            aer_qc_list = assemble_circuits(circuits=[qc])
+            aer_qc_list, idx_maps = assemble_circuits(circuits=[qc])
     """
-    return [assemble_circuit(circuit) for circuit in circuits]
+    aer_circuits, idx_maps = zip(*[assemble_circuit(circuit) for circuit in circuits])
+    return list(aer_circuits), list(idx_maps)
