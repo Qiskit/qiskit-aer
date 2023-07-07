@@ -13,7 +13,7 @@
 Helper function
 """
 
-from qiskit.circuit import QuantumCircuit, QuantumRegister
+from qiskit.circuit import QuantumRegister
 from qiskit.extensions.exceptions import ExtensionError
 
 
