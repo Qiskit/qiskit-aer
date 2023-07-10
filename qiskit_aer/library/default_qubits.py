@@ -13,7 +13,7 @@
 Helper function
 """
 
-from qiskit.circuit import QuantumCircuit, QuantumRegister
+from qiskit.circuit import QuantumRegister
 from qiskit.extensions.exceptions import ExtensionError
 
 
@@ -38,18 +38,8 @@ def default_qubits(circuit, qubits=None):
     if isinstance(qubits, QuantumRegister):
         qubits = qubits[:]
     if not qubits:
-        tuples = []
-        if isinstance(circuit, QuantumCircuit):
-            for register in circuit.qregs:
-                tuples.append(register)
-        if not tuples:
+        qubits = list(circuit.qubits)
+        if len(qubits) == 0:
             raise ExtensionError("no qubits for snapshot")
-        qubits = []
-        for tuple_element in tuples:
-            if isinstance(tuple_element, QuantumRegister):
-                for j in range(tuple_element.size):
-                    qubits.append(tuple_element[j])
-            else:
-                qubits.append(tuple_element)
 
     return qubits

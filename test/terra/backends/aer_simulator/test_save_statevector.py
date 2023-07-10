@@ -13,10 +13,12 @@
 Integration Tests for SaveStatevector instruction
 """
 
+import sys
 from ddt import ddt
 import qiskit.quantum_info as qi
 from qiskit import QuantumCircuit, transpile
 from test.terra.backends.simulator_test_case import SimulatorTestCase, supported_methods
+from qiskit.qasm3 import dumps, loads
 
 
 @ddt
@@ -189,6 +191,47 @@ class TestSaveStatevector(SimulatorTestCase):
 
         # Target statevector
         target = qi.Statevector(circ)
+
+        # Add save to circuit
+        label = "state"
+        circ.save_statevector(label=label)
+
+        # Run
+        result = backend.run(transpile(circ, backend, optimization_level=0), shots=1).result()
+        self.assertTrue(result.success)
+        simdata = result.data(0)
+        self.assertIn(label, simdata)
+        value = simdata[label]
+        self.assertEqual(value, target)
+
+    @supported_methods(
+        [
+            "automatic",
+            "statevector",
+            "matrix_product_state",
+            "extended_stabilizer",
+            "tensor_network",
+        ]
+    )
+    def test_save_statevector_for_qasm3_circuit(self, method, device):
+        """Test save statevector instruction"""
+        # qiskit_qasm3_import, which is used in qiskit.qasm3 does not support 3.7
+        if sys.version_info < (3, 8):
+            return
+
+        backend = self.backend(method=method, device=device)
+
+        # Stabilizer test circuit
+        circ = QuantumCircuit(3)
+        circ.h(0)
+        circ.sdg(0)
+        circ.cx(0, 1)
+        circ.cx(0, 2)
+
+        # Target statevector
+        target = qi.Statevector(circ)
+
+        circ = loads(dumps(circ))
 
         # Add save to circuit
         label = "state"
