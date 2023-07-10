@@ -13,6 +13,7 @@
 Integration Tests for SaveStatevector instruction
 """
 
+import sys
 from ddt import ddt
 import qiskit.quantum_info as qi
 from qiskit import QuantumCircuit, transpile
@@ -214,6 +215,10 @@ class TestSaveStatevector(SimulatorTestCase):
     )
     def test_save_statevector_for_qasm3_circuit(self, method, device):
         """Test save statevector instruction"""
+        # qiskit_qasm3_import, which is used in qiskit.qasm3 does not support 3.7
+        if sys.version_info < (3, 8):
+            return
+
         backend = self.backend(method=method, device=device)
 
         # Stabilizer test circuit
