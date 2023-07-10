@@ -922,7 +922,7 @@ bool QubitVectorThrust<data_t>::chunk_setup(
   send_chunk_.unmap();
   recv_chunk_.unmap();
 
-  if (chunk_.is_mapped()){
+  if (chunk_.is_mapped()) {
     return true;
   }
 
