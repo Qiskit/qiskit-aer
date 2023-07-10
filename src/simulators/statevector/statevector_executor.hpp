@@ -440,6 +440,7 @@ void Executor<state_t>::initialize_qreg(uint_t num_qubits) {
         if (Base::global_state_index_ + iChunk == 0 ||
             this->num_qubits_ == this->chunk_bits_) {
           Base::states_[iChunk].qreg().initialize();
+          Base::states_[iChunk].apply_global_phase();
         } else {
           Base::states_[iChunk].qreg().zero();
         }
@@ -450,13 +451,12 @@ void Executor<state_t>::initialize_qreg(uint_t num_qubits) {
       if (Base::global_state_index_ + i == 0 ||
           this->num_qubits_ == this->chunk_bits_) {
         Base::states_[i].qreg().initialize();
+        Base::states_[i].apply_global_phase();
       } else {
         Base::states_[i].qreg().zero();
       }
     }
   }
-
-  BasePar::apply_global_phase();
 }
 
 template <class state_t>

@@ -222,6 +222,8 @@ public:
   // Return the reduced density matrix for the simulator
   cmatrix_t density_matrix(const reg_t &qubits);
 
+  // Apply the global phase
+  void apply_global_phase();
 protected:
   //-----------------------------------------------------------------------
   // Save data instructions
@@ -303,8 +305,6 @@ protected:
   // Config Settings
   //-----------------------------------------------------------------------
 
-  // Apply the global phase
-  void apply_global_phase();
 
   // OpenMP qubit threshold
   int omp_qubit_threshold_ = 14;
@@ -906,7 +906,8 @@ void State<statevec_t>::apply_matrix(const reg_t &qubits,
 
 template <class statevec_t>
 void State<statevec_t>::apply_diagonal_matrix(const reg_t &qubits,
-                                              const cvector_t &diag) {
+                                              const cvector_t &diag) 
+{
   if (BaseState::num_global_qubits_ > BaseState::qreg_.num_qubits() &&
       !BaseState::qreg_.support_global_indexing()) {
     reg_t qubits_in = qubits;

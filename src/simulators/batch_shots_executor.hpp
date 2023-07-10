@@ -354,7 +354,7 @@ void BatchShotsExecutor<state_t>::run_circuit_shots(
   //convert parameters into matrix in cvector_t format
   Transpile::BatchConverter batch_converter;
   batch_converter.set_config(config);
-  batch_converter.optimize_circuit(circ, dummy_noise, dummy_state.opset(),
+  batch_converter.optimize_circuit(circ_opt, dummy_noise, dummy_state.opset(),
                              fusion_result);
 
   Base::max_matrix_qubits_ = Base::get_max_matrix_qubits(circ_opt);

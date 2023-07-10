@@ -99,8 +99,10 @@ void Executor<state_t>::initialize_qreg(uint_t num_qubits) {
                ((Base::num_qubits_ - Base::chunk_bits_));
         icol = (Base::global_state_index_ + iChunk) -
                (irow << ((Base::num_qubits_ - Base::chunk_bits_)));
-        if (irow == icol)
+        if (irow == icol){
           Base::states_[iChunk].qreg().initialize();
+          Base::states_[iChunk].apply_global_phase();
+        }
         else
           Base::states_[iChunk].qreg().zero();
       }
@@ -112,14 +114,14 @@ void Executor<state_t>::initialize_qreg(uint_t num_qubits) {
              ((Base::num_qubits_ - Base::chunk_bits_));
       icol = (Base::global_state_index_ + iChunk) -
              (irow << ((Base::num_qubits_ - Base::chunk_bits_)));
-      if (irow == icol)
+      if (irow == icol){
         Base::states_[iChunk].qreg().initialize();
+        Base::states_[iChunk].apply_global_phase();
+      }
       else
         Base::states_[iChunk].qreg().zero();
     }
   }
-
-  Base::apply_global_phase();
 }
 
 template <class state_t>

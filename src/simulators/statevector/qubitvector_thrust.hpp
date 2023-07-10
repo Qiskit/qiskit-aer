@@ -705,10 +705,8 @@ void QubitVectorThrust<data_t>::copy_qv(const QubitVectorThrust<data_t> &obj) {
   num_threads_per_group_ = obj.num_threads_per_group_;
   max_matrix_bits_ = obj.max_matrix_bits_;
 
-  if (!chunk_setup(obj, obj.chunk_index_)) {
-    throw std::runtime_error(
-        "QubitVectorThrust: can not allocate chunk for copy");
-  }
+  chunk_setup(obj, obj.chunk_index_);
+
   set_num_qubits(obj.num_qubits());
 
   chunk_.CopyIn(obj.chunk_);
@@ -881,7 +879,7 @@ uint_t QubitVectorThrust<data_t>::chunk_setup(int chunk_bits, int num_qubits,
         chunk_manager_->num_qubits() == num_qubits) {
       bool mapped = chunk_manager_->MapChunk(chunk_, 0);
       chunk_.set_chunk_index(chunk_index_);
-      return mapped;
+      return num_local_chunks;
     }
     chunk_manager_.reset();
   }
@@ -923,21 +921,22 @@ uint_t QubitVectorThrust<data_t>::chunk_setup(
 
   // set global chunk ID / shot ID
   chunk_index_ = chunk_index;
+  chunk_.set_chunk_index(chunk_index_);
 
-  if (chunk_.is_mapped())
-    chunk_manager_->UnmapChunk(chunk_);
   if (buffer_chunk_.is_mapped())
     chunk_manager_->UnmapBufferChunk(buffer_chunk_);
   send_chunk_.unmap();
   recv_chunk_.unmap();
 
-  chunk_.set_chunk_index(chunk_index_);
+  if (chunk_.is_mapped()) {
+    return 0;
+  }
 
   // mapping/setting chunk
   chunk_manager_ = base.chunk_manager_;
   bool mapped = chunk_manager_->MapChunk(chunk_, 0);
 
-  return chunk_manager_->num_chunks();
+  return 0;
 }
 
 template <typename data_t>

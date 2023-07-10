@@ -136,6 +136,8 @@ public:
   auto move_to_matrix();
   auto copy_to_matrix();
 
+  // Apply the global phase
+  void apply_global_phase();
 protected:
   //-----------------------------------------------------------------------
   // Apply Instructions
@@ -188,9 +190,6 @@ protected:
   //-----------------------------------------------------------------------
   // Config Settings
   //-----------------------------------------------------------------------
-
-  // Apply the global phase
-  void apply_global_phase();
 
   // OpenMP qubit threshold
   int omp_qubit_threshold_ = 6;

@@ -1033,14 +1033,14 @@ uint_t QubitVector<data_t>::chunk_setup(int chunk_bits, int num_qubits,
                                       uint_t chunk_index,
                                       uint_t num_local_chunks) {
   chunk_index_ = chunk_index;
-  return 1;
+  return num_local_chunks;
 }
 
 template <typename data_t>
 uint_t QubitVector<data_t>::chunk_setup(QubitVector<data_t> &base,
                                       const uint_t chunk_index) {
   chunk_index_ = chunk_index;
-  return 1;
+  return 0;
 }
 
 // prepare buffer for MPI send/recv
