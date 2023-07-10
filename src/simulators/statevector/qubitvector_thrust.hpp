@@ -915,15 +915,16 @@ bool QubitVectorThrust<data_t>::chunk_setup(
 
   // set global chunk ID / shot ID
   chunk_index_ = chunk_index;
+  chunk_.set_chunk_index(chunk_index_);
 
-  if (chunk_.is_mapped())
-    chunk_manager_->UnmapChunk(chunk_);
   if (buffer_chunk_.is_mapped())
     chunk_manager_->UnmapBufferChunk(buffer_chunk_);
   send_chunk_.unmap();
   recv_chunk_.unmap();
 
-  chunk_.set_chunk_index(chunk_index_);
+  if (chunk_.is_mapped()){
+    return true;
+  }
 
   // mapping/setting chunk
   chunk_manager_ = base.chunk_manager_;

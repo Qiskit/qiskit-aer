@@ -27,6 +27,7 @@ class Branch;
 class Branch {
 protected:
   uint_t state_index_; // state index
+  uint_t root_state_index_;
 
   uint_t shot_index_; // starting shot index
 
@@ -61,6 +62,7 @@ public:
   }
 
   uint_t &state_index(void) { return state_index_; }
+  uint_t &root_state_index(void) { return root_state_index_; }
   uint_t &shot_index(void) { return shot_index_; }
   ClassicalRegister &creg(void) { return creg_; }
   std::vector<RngEngine> &rng_shots(void) { return shots_; }
