@@ -664,10 +664,7 @@ def _assemble_op(aer_circ, inst, qubit_indices, clbit_indices, is_conditional, c
         else:
             aer_circ.measure(qubits, clbits, [])
     elif name == "reset":
-        if is_conditional:
-            aer_circ.reset(qubits, conditional_reg)
-        else:
-            aer_circ.reset(qubits, [])
+        aer_circ.reset(qubits, conditional_reg)
     elif name == "diagonal":
         _check_no_conditional(name, conditional_reg)
         aer_circ.diagonal(qubits, params, label if label else "diagonal")
