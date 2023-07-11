@@ -651,11 +651,17 @@ inline Op make_u3(uint_t qubit, T theta, T phi, T lam) {
   return op;
 }
 
-inline Op make_reset(const reg_t &qubits, uint_t state = 0) {
+inline Op make_reset(const reg_t &qubits, const int_t conditional) {
   Op op;
   op.type = OpType::reset;
   op.name = "reset";
   op.qubits = qubits;
+
+  if (conditional >= 0) {
+    op.conditional = true;
+    op.conditional_reg = conditional;
+  }
+
   return op;
 }
 

@@ -329,3 +329,34 @@ class TestConditionalSuperOp(SimulatorTestCase):
         result = backend.run(circuits, shots=shots).result()
         self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, hex_counts=False, delta=0)
+
+
+@ddt
+class TestConditionalReset(SimulatorTestCase):
+    """AerSimulator conditional unitary tests."""
+
+    SUPPORTED_METHODS = [
+        "automatic",
+        "statevector",
+        "density_matrix",
+        "matrix_product_state",
+        "tensor_network",
+    ]
+
+    # ---------------------------------------------------------------------
+    # Test conditional
+    # ---------------------------------------------------------------------
+    @supported_methods(SUPPORTED_METHODS)
+    def test_conditional_reset_1bit(self, method, device):
+        """Test conditional reset on 1-bit conditional register."""
+        shots = 100
+        backend = self.backend(method=method, device=device)
+        backend.set_options(max_parallel_experiments=0)
+
+        circuits = ref_conditionals.conditional_circuits_1bit(
+            final_measure=True, conditional_type="reset"
+        )
+        targets = ref_conditionals.conditional_counts_1bit_with_reset(shots)
+        result = backend.run(circuits, shots=shots).result()
+        self.assertSuccess(result)
+        self.compare_counts(result, circuits, targets, delta=0)

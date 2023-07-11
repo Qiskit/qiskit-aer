@@ -254,8 +254,8 @@ public:
     ops.push_back(Operations::make_measure(qubits, memory, registers));
   }
 
-  void reset(const reg_t &qubits) {
-    ops.push_back(Operations::make_reset(qubits));
+  void reset(const reg_t &qubits, const int_t cond_regidx = -1) {
+    ops.push_back(Operations::make_reset(qubits, cond_regidx));
   }
 
 private:

@@ -44,6 +44,9 @@ def add_conditional_x(circuit, qreg, creg, val, conditional_type):
         circuit.append(x_kraus, [qreg]).c_if(creg, val)
     elif conditional_type == "superop":
         circuit.append(x_superop, [qreg]).c_if(creg, val)
+    elif conditional_type == "reset":
+        circuit.x(qreg).c_if(creg, val)
+        circuit.reset(qreg).c_if(creg, val)
     else:
         circuit.x(qreg).c_if(creg, val)
 
@@ -130,6 +133,30 @@ def conditional_counts_1bit(shots, hex_counts=True):
         targets.append({"0 0": shots})
         # Conditional on 1 (cond = 1), # result "1 1"
         targets.append({"1 1": shots})
+    return targets
+
+
+def conditional_counts_1bit_with_reset(shots, hex_counts=True):
+    """Conditional circuits reference counts."""
+    targets = []
+    if hex_counts:
+        # Conditional on 0 (cond = 0), "0 1" -> "0 0"
+        targets.append({"0x0": shots})
+        # Conditional on 0 (cond = 1), result "1 0" -> "1 0"
+        targets.append({"0x2": shots})
+        # Conditional on 1 (cond = 0), # result "0 0" -> "0 0"
+        targets.append({"0x0": shots})
+        # Conditional on 1 (cond = 1), # result "1 1" -> "1 0"
+        targets.append({"0x2": shots})
+    else:
+        # Conditional on 0 (cond = 0), "0 1" -> "0 0"
+        targets.append({"0 0": shots})
+        # Conditional on 0 (cond = 1), result "1 0" -> "1 0"
+        targets.append({"1 0": shots})
+        # Conditional on 1 (cond = 0), # result "0 0" -> "0 0"
+        targets.append({"0 0": shots})
+        # Conditional on 1 (cond = 1), # result "1 1" -> "1 0"
+        targets.append({"1 0": shots})
     return targets
 
 
