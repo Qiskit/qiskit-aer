@@ -51,7 +51,11 @@ import numpy as np
 SUPPORTED_METHODS = [
     "statevector",
     "density_matrix",
-#    "tensor_network",  #tensor_network is tested in other test cases by setting shot_branching_enable by default
+]
+# tensor_network is tested in other test cases by setting shot_branching_enable by default
+
+SUPPORTED_METHODS_INITIALIZE = [
+    "statevector",
 ]
 
 
@@ -71,7 +75,9 @@ class TestShotBranching(SimulatorTestCase):
         shots = 4000
         circuits = ref_measure.measure_circuits_nondeterministic(allow_sampling=True)
         targets = ref_measure.measure_counts_nondeterministic(shots)
-        result = backend.run(circuits, shots=shots, shot_branching_enable=True, shot_branching_sampling_enable=True).result()
+        result = backend.run(
+            circuits, shots=shots, shot_branching_enable=True, shot_branching_sampling_enable=True
+        ).result()
         self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
         # Test sampling was enabled
@@ -121,19 +127,25 @@ class TestShotBranching(SimulatorTestCase):
     # Test multi-qubit measure qobj instruction
     # ---------------------------------------------------------------------
     @supported_methods(SUPPORTED_METHODS)
-    def test_shot_branching_measure_nondeterministic_multi_qubit_with_sampling(self, method, device):
+    def test_shot_branching_measure_nondeterministic_multi_qubit_with_sampling(
+        self, method, device
+    ):
         """Test AerSimulator measure with non-deterministic counts"""
         backend = self.backend(method=method, device=device)
         shots = 4000
         circuits = ref_measure.multiqubit_measure_circuits_nondeterministic(allow_sampling=True)
         targets = ref_measure.multiqubit_measure_counts_nondeterministic(shots)
-        result = backend.run(circuits, shots=shots, shot_branching_enable=True, shot_branching_sampling_enable=True).result()
+        result = backend.run(
+            circuits, shots=shots, shot_branching_enable=True, shot_branching_sampling_enable=True
+        ).result()
         self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
         self.compare_result_metadata(result, circuits, "measure_sampling", True)
 
     @supported_methods(SUPPORTED_METHODS)
-    def test_shot_branching_measure_nondeterministic_multi_qubit_without_sampling(self, method, device):
+    def test_shot_branching_measure_nondeterministic_multi_qubit_without_sampling(
+        self, method, device
+    ):
         """Test AerSimulator measure with non-deterministic counts"""
         backend = self.backend(method=method, device=device)
         shots = 4000
@@ -144,7 +156,6 @@ class TestShotBranching(SimulatorTestCase):
         self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=delta * shots)
         self.compare_result_metadata(result, circuits, "measure_sampling", False)
-
 
     # ---------------------------------------------------------------------
     # Test reset
@@ -188,7 +199,7 @@ class TestShotBranching(SimulatorTestCase):
     # ---------------------------------------------------------------------
     # Test initialize instr make it through the wrapper
     # ---------------------------------------------------------------------
-    @supported_methods(["statevector"])
+    @supported_methods(SUPPORTED_METHODS_INITIALIZE)
     def test_shot_branching_initialize_wrapper_1(self, method, device):
         """Test AerSimulator initialize"""
         backend = self.backend(method=method, device=device)
@@ -208,13 +219,15 @@ class TestShotBranching(SimulatorTestCase):
             circuits.extend(ref_initialize.initialize_circuits_w_1(init_state))
             for init_state in init_states
         ]
-        result = backend.run(circuits, shots=shots, shot_branching_enable=True, shot_branching_sampling_enable=True).result()
+        result = backend.run(
+            circuits, shots=shots, shot_branching_enable=True, shot_branching_sampling_enable=True
+        ).result()
         self.assertSuccess(result)
 
     # ---------------------------------------------------------------------
     # Test initialize instr make it through the wrapper
     # ---------------------------------------------------------------------
-    @supported_methods(["statevector"])
+    @supported_methods(SUPPORTED_METHODS_INITIALIZE)
     def test_shot_branching_initialize_wrapper_2(self, method, device):
         """Test AerSimulator initialize"""
         backend = self.backend(method=method, device=device)
@@ -232,13 +245,15 @@ class TestShotBranching(SimulatorTestCase):
             circuits.extend(ref_initialize.initialize_circuits_w_2(init_state))
             for init_state in init_states
         ]
-        result = backend.run(circuits, shots=shots, shot_branching_enable=True, shot_branching_sampling_enable=True).result()
+        result = backend.run(
+            circuits, shots=shots, shot_branching_enable=True, shot_branching_sampling_enable=True
+        ).result()
         self.assertSuccess(result)
 
     # ---------------------------------------------------------------------
     # Test initialize
     # ---------------------------------------------------------------------
-    @supported_methods(["statevector"])
+    @supported_methods(SUPPORTED_METHODS_INITIALIZE)
     def test_shot_branching_initialize_1(self, method, device):
         """Test AerSimulator initialize"""
         backend = self.backend(method=method, device=device)
@@ -248,11 +263,13 @@ class TestShotBranching(SimulatorTestCase):
         delta = 0.05
         circuits = ref_initialize.initialize_circuits_1(final_measure=True)
         targets = ref_initialize.initialize_counts_1(shots)
-        result = backend.run(circuits, shots=shots, shot_branching_enable=True, shot_branching_sampling_enable=True).result()
+        result = backend.run(
+            circuits, shots=shots, shot_branching_enable=True, shot_branching_sampling_enable=True
+        ).result()
         self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=delta * shots)
 
-    @supported_methods(["statevector"])
+    @supported_methods(SUPPORTED_METHODS_INITIALIZE)
     def test_shot_branching_initialize_2(self, method, device):
         """Test AerSimulator initialize"""
         backend = self.backend(method=method, device=device)
@@ -262,11 +279,13 @@ class TestShotBranching(SimulatorTestCase):
         delta = 0.05
         circuits = ref_initialize.initialize_circuits_2(final_measure=True)
         targets = ref_initialize.initialize_counts_2(shots)
-        result = backend.run(circuits, shots=shots, shot_branching_enable=True, shot_branching_sampling_enable=True).result()
+        result = backend.run(
+            circuits, shots=shots, shot_branching_enable=True, shot_branching_sampling_enable=True
+        ).result()
         self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=delta * shots)
 
-    @supported_methods(["statevector"])
+    @supported_methods(SUPPORTED_METHODS_INITIALIZE)
     def test_shot_branching_initialize_entangled_qubits(self, method, device):
         """Test initialize entangled qubits"""
         backend = self.backend(method=method, device=device)
@@ -274,11 +293,13 @@ class TestShotBranching(SimulatorTestCase):
         delta = 0.05
         circuits = ref_initialize.initialize_entangled_qubits()
         targets = ref_initialize.initialize_counts_entangled_qubits(shots)
-        result = backend.run(circuits, shots=shots, shot_branching_enable=True, shot_branching_sampling_enable=True).result()
+        result = backend.run(
+            circuits, shots=shots, shot_branching_enable=True, shot_branching_sampling_enable=True
+        ).result()
         self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=delta * shots)
 
-    @supported_methods(["statevector"])
+    @supported_methods(SUPPORTED_METHODS_INITIALIZE)
     def test_shot_branching_initialize_sampling_opt_disabled(self, method, device):
         """Test sampling optimization"""
         backend = self.backend(method=method, device=device)
@@ -287,12 +308,14 @@ class TestShotBranching(SimulatorTestCase):
         circuit.h([0, 1])
         circuit.initialize([0, 1], [1])
         circuit.measure_all()
-        result = backend.run(circuit, shots=shots, shot_branching_enable=True, shot_branching_sampling_enable=True).result()
+        result = backend.run(
+            circuit, shots=shots, shot_branching_enable=True, shot_branching_sampling_enable=True
+        ).result()
         self.assertSuccess(result)
         sampling = result.results[0].metadata.get("measure_sampling", None)
         self.assertFalse(sampling)
 
-    @supported_methods(["statevector"])
+    @supported_methods(SUPPORTED_METHODS_INITIALIZE)
     def test_shot_branching_initialize_with_labels(self, method, device):
         """Test sampling optimization"""
         backend = self.backend(method=method, device=device)
@@ -300,7 +323,11 @@ class TestShotBranching(SimulatorTestCase):
         circ = QuantumCircuit(4)
         circ.initialize("+-rl")
         circ.save_statevector()
-        actual = backend.run(circ, shot_branching_enable=True, shot_branching_sampling_enable=True).result().get_statevector(circ)
+        actual = (
+            backend.run(circ, shot_branching_enable=True, shot_branching_sampling_enable=True)
+            .result()
+            .get_statevector(circ)
+        )
 
         for q4, p4 in enumerate([1, 1]):
             for q3, p3 in enumerate([1, -1]):
@@ -309,7 +336,7 @@ class TestShotBranching(SimulatorTestCase):
                         index = int("{}{}{}{}".format(q4, q3, q2, q1), 2)
                         self.assertAlmostEqual(actual[index], 0.25 * p1 * p2 * p3 * p4)
 
-    @supported_methods(["statevector"])
+    @supported_methods(SUPPORTED_METHODS_INITIALIZE)
     def test_shot_branching_initialize_with_int(self, method, device):
         """Test sampling with int"""
         backend = self.backend(method=method, device=device)
@@ -317,11 +344,15 @@ class TestShotBranching(SimulatorTestCase):
         circ = QuantumCircuit(4)
         circ.initialize(5, [0, 1, 2])
         circ.save_statevector()
-        actual = backend.run(circ, shot_branching_enable=True, shot_branching_sampling_enable=True).result().get_statevector(circ)
+        actual = (
+            backend.run(circ, shot_branching_enable=True, shot_branching_sampling_enable=True)
+            .result()
+            .get_statevector(circ)
+        )
 
         self.assertAlmostEqual(actual[5], 1)
 
-    @supported_methods(["statevector"])
+    @supported_methods(SUPPORTED_METHODS_INITIALIZE)
     def test_shot_branching_initialize_with_int_twice(self, method, device):
         """Test sampling with int twice"""
         backend = self.backend(method=method, device=device)
@@ -330,7 +361,11 @@ class TestShotBranching(SimulatorTestCase):
         circ.initialize(1, [0])
         circ.initialize(1, [2])
         circ.save_statevector()
-        actual = backend.run(circ, shot_branching_enable=True, shot_branching_sampling_enable=True).result().get_statevector(circ)
+        actual = (
+            backend.run(circ, shot_branching_enable=True, shot_branching_sampling_enable=True)
+            .result()
+            .get_statevector(circ)
+        )
 
         self.assertAlmostEqual(actual[5], 1)
 
@@ -343,7 +378,9 @@ class TestShotBranching(SimulatorTestCase):
         backend = self.backend(method=method, device=device)
         noise_model = noise.NoiseModel()
         noise_model.add_all_qubit_quantum_error(noise.depolarizing_error(0.1, 1), ["x"])
-        result = backend.run(QuantumCircuit(), shots=1, noise_model=noise_model, shot_branching_enable=True).result()
+        result = backend.run(
+            QuantumCircuit(), shots=1, noise_model=noise_model, shot_branching_enable=True
+        ).result()
         self.assertSuccess(result)
 
     @supported_methods(SUPPORTED_METHODS)
@@ -552,7 +589,6 @@ class TestShotBranching(SimulatorTestCase):
         self.assertDictAlmostEqual(target_probs0, probs[0], delta=0.1)
         self.assertDictAlmostEqual(target_probs1, probs[1], delta=0.1)
 
-
     # ---------------------------------------------------------------------
     # Test conditional
     # ---------------------------------------------------------------------
@@ -744,7 +780,3 @@ class TestShotBranching(SimulatorTestCase):
     # ---------------------------------------------------------------------
     # Test control flow
     # ---------------------------------------------------------------------
-
-
-
-
