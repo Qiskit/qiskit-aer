@@ -66,7 +66,7 @@ protected:
 
   // shot branching
   bool shot_branching_enable_ = true;
-  bool runtime_noise_sampling_enable_ = false;
+  bool shot_branching_sampling_enable_ = false;
 
   // group of states (GPU devices)
   uint_t num_groups_; // number of groups of chunks
@@ -181,7 +181,7 @@ void MultiStateExecutor<state_t>::set_config(const Config &config) {
 
   // shot branching optimization
   shot_branching_enable_ = config.shot_branching_enable;
-  runtime_noise_sampling_enable_ = config.runtime_noise_sampling_enable;
+  shot_branching_sampling_enable_ = config.shot_branching_sampling_enable;
 
   if (config.num_threads_per_device.has_value())
     num_threads_per_group_ = config.num_threads_per_device.value();
@@ -271,10 +271,6 @@ void MultiStateExecutor<state_t>::run_circuit_shots(
   if (shot_branching_enable_ && num_local_states_ > 1 &&
       shot_branching_supported() && num_max_shots_ > 1) {
     shot_branching = true;
-    if (sample_noise) {
-      if (!runtime_noise_sampling_enable_)
-        shot_branching = false;
-    }
   } else
     shot_branching = false;
 
@@ -388,7 +384,6 @@ void MultiStateExecutor<state_t>::run_circuit_shots(
 #endif
 
   result.metadata.add(true, "shot_branching_enabled");
-  result.metadata.add(sample_noise, "runtime_noise_sampling_enabled");
 }
 
 template <class state_t>
@@ -409,19 +404,21 @@ void MultiStateExecutor<state_t>::run_circuit_with_shot_branching(
   OpItr it = last - 1;
   int_t num_measure = 0;
 
-  do {
-    if (it->type != Operations::OpType::measure) {
-      measure_seq = it + 1;
-      break;
-    }
-    num_measure += it->qubits.size();
-    it--;
-  } while (it != first);
+  if(shot_branching_sampling_enable_){
+    do {
+      if (it->type != Operations::OpType::measure) {
+        measure_seq = it + 1;
+        break;
+      }
+      num_measure += it->qubits.size();
+      it--;
+    } while (it != first);
 
-  if (num_measure >= num_qubits_ && measure_seq != last) {
-    can_sample = true;
-  } else {
-    measure_seq = last;
+    if (num_measure >= num_qubits_ && measure_seq != last) {
+      can_sample = true;
+    } else {
+      measure_seq = last;
+    }
   }
 
   uint_t top_state = top_state_of_group_[i_group];
@@ -655,6 +652,8 @@ void MultiStateExecutor<state_t>::run_circuit_with_shot_branching(
 #endif
       Utils::apply_omp_parallel_for(can_parallel, 0, par_shots,
                                     sampling_measure_func, par_shots);
+
+      result.metadata.add(true, "shot_branching_sampling_enabled");
     } else {
       // save cregs to result
       auto save_cregs = [this, &branches, &par_results, par_shots](int_t i) {

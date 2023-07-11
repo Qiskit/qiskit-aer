@@ -42,6 +42,10 @@ class SimulatorTestCase(QiskitAerTestCase):
                 sim_options["batched_shots_gpu"] = True
             else:
                 sim_options[key] = val
+            # enable shot_branching is method is tensor_network
+            if "method" == key and "tensor_network" in val:
+                sim_options["shot_branching_enable"] = True
+                sim_options["shot_branching_sampling_enable"] = True
         return self.BACKEND(**sim_options)
 
 

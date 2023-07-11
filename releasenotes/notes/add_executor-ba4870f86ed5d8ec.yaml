@@ -12,10 +12,14 @@ features:
     Also some of the functions in ``Aer::Controller`` class are moved to
     ``CircuitExecutor::Executor`` class.
   - |
-    Shot-branching technique that decreases calculation of multi-shots
-    simulation is implemented with restructured ``Executor`` classes.
-    Shot-branching is currently applicable to statevector density matrix
-    and tensor-network methods.
-    By default ``shot_branching_enable`` is enabled.
-    And by setting ``runtime_noise_sampling_enable``, noise sampling is
-    done on the fly with shot-branching.
+    Shot-branching technique that accelerates dynamic circuits simulations
+    is implemented with restructured ``Executor`` classes.
+    Shot-branching is currently applicable to statevector density_matrix
+    and tensor_network methods.
+    Shot-branching provides dynamic distribution of multi-shots
+    by branching states when applying dynamic operations
+    (measure, reset, initialize, noises)
+    By default ``shot_branching_enable`` is disabled.
+    And by setting ``shot_branching_sampling_enable``, final measures will be
+    done by sampling measure that will speed up to get counts for multiple shots
+    sharing the same state.
