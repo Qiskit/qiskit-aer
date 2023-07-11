@@ -9,8 +9,8 @@ import platform
 import setuptools
 from skbuild import setup
 
-
 PACKAGE_NAME = os.getenv("QISKIT_AER_PACKAGE_NAME", "qiskit-aer")
+CUDA_MAJOR = os.getenv("QISKIT_AER_CUDA_MAJOR", "12")
 
 extras_requirements = {"dask": ["dask", "distributed"]}
 
@@ -19,6 +19,50 @@ requirements = [
     "numpy>=1.16.3,<1.25",
     "scipy>=1.0",
 ]
+
+classifiers = [
+    "Environment :: Console",
+    "License :: OSI Approved :: Apache Software License",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "Operating System :: Microsoft :: Windows",
+    "Operating System :: MacOS",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: C++",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: Scientific/Engineering",
+]
+
+if "gpu" in PACKAGE_NAME:
+    if "11" in CUDA_MAJOR:
+        requirements_cuda = [
+            "nvidia-cuda-runtime-cu11>=11.8.89",
+            "nvidia-cublas-cu11>=11.11.3.6",
+            "nvidia-cusolver-cu11>=11.4.1.48",
+            "nvidia-cusparse-cu11>=11.7.5.86",
+            "cuquantum-cu11>=23.3.0",
+        ]
+        classifiers_cuda = [
+            "Environment :: GPU :: NVIDIA CUDA :: 11",
+        ]
+    else:
+        requirements_cuda = [
+            "nvidia-cuda-runtime-cu12>=12.1.105",
+            "nvidia-cublas-cu12>=12.1.3.1",
+            "nvidia-cusolver-cu12>=11.4.5.107",
+            "nvidia-cusparse-cu12>=12.1.0.106",
+            "cuquantum-cu12>=23.3.0",
+        ]
+        classifiers_cuda = [
+            "Environment :: GPU :: NVIDIA CUDA :: 12",
+        ]
+    requirements.extend(requirements_cuda)
+    classifiers.extend(classifiers_cuda)
 
 VERSION_PATH = os.path.join(os.path.dirname(__file__), "qiskit_aer", "VERSION.txt")
 with open(VERSION_PATH, "r") as version_file:
@@ -46,23 +90,7 @@ setup(
     author="AER Development Team",
     author_email="hello@qiskit.org",
     license="Apache 2.0",
-    classifiers=[
-        "Environment :: Console",
-        "License :: OSI Approved :: Apache Software License",
-        "Intended Audience :: Developers",
-        "Intended Audience :: Science/Research",
-        "Operating System :: Microsoft :: Windows",
-        "Operating System :: MacOS",
-        "Operating System :: POSIX :: Linux",
-        "Programming Language :: C++",
-        "Programming Language :: Python :: 3 :: Only",
-        "Programming Language :: Python :: 3.7",
-        "Programming Language :: Python :: 3.8",
-        "Programming Language :: Python :: 3.9",
-        "Programming Language :: Python :: 3.10",
-        "Programming Language :: Python :: 3.11",
-        "Topic :: Scientific/Engineering",
-    ],
+    classifiers=classifiers,
     python_requires=">=3.7",
     install_requires=requirements,
     include_package_data=False,
