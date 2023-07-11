@@ -404,7 +404,7 @@ void MultiStateExecutor<state_t>::run_circuit_with_shot_branching(
   OpItr it = last - 1;
   int_t num_measure = 0;
 
-  if(shot_branching_sampling_enable_){
+  if (shot_branching_sampling_enable_) {
     do {
       if (it->type != Operations::OpType::measure) {
         measure_seq = it + 1;
