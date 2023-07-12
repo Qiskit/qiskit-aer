@@ -16,7 +16,7 @@ extras_requirements = {"dask": ["dask", "distributed"]}
 
 requirements = [
     "qiskit-terra>=0.21.0",
-    "numpy>=1.16.3,<1.25",
+    "numpy>=1.16.3",
     "scipy>=1.0",
 ]
 
