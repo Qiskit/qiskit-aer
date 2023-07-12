@@ -47,7 +47,7 @@ author = 'Qiskit Development Team'
 # The short X.Y version
 version = '0.12.2'
 # The full version, including alpha/beta/rc tags
-release = '0.12.1'
+release = '0.12.2'
 
 templates_path = ['_templates']
 
