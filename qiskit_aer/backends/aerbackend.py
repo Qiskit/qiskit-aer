@@ -82,7 +82,7 @@ class AerBackend(Backend, ABC):
         if backend_options is not None:
             self.set_options(**backend_options)
 
-    def _convert_circuit_binds(self, circuit, binds):
+    def _convert_circuit_binds(self, circuit, binds, idx_map):
         parameterizations = []
 
         def append_param_values(index, bind_pos, param):
@@ -111,22 +111,22 @@ class AerBackend(Backend, ABC):
         for index, instruction in enumerate(circuit.data):
             if instruction.operation.is_parameterized():
                 for bind_pos, param in enumerate(instruction.operation.params):
-                    append_param_values(index, bind_pos, param)
+                    append_param_values(idx_map[index] if idx_map else index, bind_pos, param)
         return parameterizations
 
-    def _convert_binds(self, circuits, parameter_binds):
+    def _convert_binds(self, circuits, parameter_binds, idx_maps=None):
         if isinstance(circuits, QuantumCircuit):
             if len(parameter_binds) > 1:
                 raise AerError("More than 1 parameter table provided for a single circuit")
 
-            return [self._convert_circuit_binds(circuits, parameter_binds[0])]
+            return [self._convert_circuit_binds(circuits, parameter_binds[0], None)]
         elif len(parameter_binds) != len(circuits):
             raise AerError(
                 "Number of input circuits does not match number of input "
                 "parameter bind dictionaries"
             )
         parameterizations = [
-            self._convert_circuit_binds(circuit, parameter_binds[idx])
+            self._convert_circuit_binds(circuit, parameter_binds[idx], idx_maps[idx])
             for idx, circuit in enumerate(circuits)
         ]
         return parameterizations
@@ -236,22 +236,15 @@ class AerBackend(Backend, ABC):
 
     def _run_circuits(self, circuits, parameter_binds, **run_options):
         """Run circuits by generating native circuits."""
-        circuits, noise_model = self._compile(circuits, **run_options)
-        if parameter_binds:
-            run_options["parameterizations"] = self._convert_binds(circuits, parameter_binds)
-        elif not all([len(circuit.parameters) == 0 for circuit in circuits]):
-            raise AerError("circuits have parameters but parameter_binds is not specified.")
-        config = generate_aer_config(circuits, self.options, **run_options)
-
         # Submit job
         job_id = str(uuid.uuid4())
         aer_job = AerJob(
             self,
             job_id,
             self._execute_circuits_job,
+            parameter_binds=parameter_binds,
             circuits=circuits,
-            noise_model=noise_model,
-            config=config,
+            run_options=run_options,
         )
         aer_job.submit()
 
@@ -429,15 +422,33 @@ class AerBackend(Backend, ABC):
             return self._format_results(output)
         return output
 
-    def _execute_circuits_job(self, circuits, noise_model, config, job_id="", format_result=True):
+    def _execute_circuits_job(
+        self, circuits, parameter_binds, run_options, job_id="", format_result=True
+    ):
         """Run a job"""
         # Start timer
         start = time.time()
 
+        # Compile circuits
+        circuits, noise_model = self._compile(circuits, **run_options)
+
+        aer_circuits, idx_maps = assemble_circuits(circuits)
+        if parameter_binds:
+            run_options["parameterizations"] = self._convert_binds(
+                circuits, parameter_binds, idx_maps
+            )
+        elif not all([len(circuit.parameters) == 0 for circuit in circuits]):
+            raise AerError("circuits have parameters but parameter_binds is not specified.")
+
+        for circ_id, aer_circuit in enumerate(aer_circuits):
+            aer_circuit.circ_id = circ_id
+
+        config = generate_aer_config(circuits, self.options, **run_options)
+
         # Run simulation
-        aer_circuits = assemble_circuits(circuits)
         metadata_map = {
-            aer_circuit: circuit.metadata for aer_circuit, circuit in zip(aer_circuits, circuits)
+            aer_circuit.circ_id: circuit.metadata
+            for aer_circuit, circuit in zip(aer_circuits, circuits)
         }
         output = self._execute_circuits(aer_circuits, noise_model, config)
 
@@ -458,7 +469,7 @@ class AerBackend(Backend, ABC):
         for result in output["results"]:
             if "header" not in result:
                 continue
-            result["header"]["metadata"] = metadata_map[result["circuit"]]
+            result["header"]["metadata"] = metadata_map[result.pop("circ_id")]
 
         # Add execution time
         output["time_taken"] = time.time() - start
