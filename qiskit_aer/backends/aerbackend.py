@@ -23,7 +23,8 @@ from abc import ABC, abstractmethod
 
 from qiskit.circuit import QuantumCircuit, ParameterExpression, Delay
 from qiskit.compiler import assemble
-from qiskit.providers import BackendV1 as Backend
+from qiskit.providers import BackendV2 as Backend
+from qiskit.providers import convert_to_target
 from qiskit.providers.models import BackendStatus
 from qiskit.pulse import Schedule, ScheduleBlock
 from qiskit.qobj import QasmQobj, PulseQobj
@@ -45,8 +46,11 @@ logger = logging.getLogger(__name__)
 class AerBackend(Backend, ABC):
     """Qiskit Aer Backend class."""
 
+    #def __init__(
+    #    self, configuration, properties=None, defaults=None, backend_options=None, provider=None
+    #):
     def __init__(
-        self, configuration, properties=None, defaults=None, backend_options=None, provider=None
+        self, configuration, properties=None, defaults=None, backend_options=None, provider=None, mapping=None
     ):
         """Aer class for backends.
 
@@ -67,21 +71,24 @@ class AerBackend(Backend, ABC):
         # Init configuration and provider in Backend
         configuration.simulator = True
         configuration.local = True
-        super().__init__(configuration, provider=provider)
+        super().__init__(provider=provider, name=configuration.backend_name, description=configuration.description, backend_version=configuration.backend_version)
 
         # Initialize backend properties and pulse defaults.
         self._properties = properties
         self._defaults = defaults
+        self._configuration = configuration
 
         # Custom option values for config, properties, and defaults
         self._options_configuration = {}
         self._options_defaults = {}
         self._options_properties = {}
+        self._target = None
+        self._mapping = mapping
 
         # Set options from backend_options dictionary
         if backend_options is not None:
             self.set_options(**backend_options)
-
+        
     def _convert_circuit_binds(self, circuit, binds):
         parameterizations = []
 
@@ -313,6 +320,7 @@ class AerBackend(Backend, ABC):
         # basis gates to include them for the terra transpiler
         if hasattr(config, "custom_instructions"):
             config.basis_gates = config.basis_gates + config.custom_instructions
+        ######debug
         return config
 
     def properties(self):
@@ -338,6 +346,15 @@ class AerBackend(Backend, ABC):
         for key, val in self._options_defaults.items():
             setattr(defaults, key, val)
         return defaults
+
+    @property
+    def max_circuits(self):
+        return self.configuration.max_experiments
+
+    @property
+    def target(self):
+        self._target = convert_to_target(self._configuration, self._properties, self._defaults, self._mapping)
+        return self._target
 
     @classmethod
     def _default_options(cls):
@@ -451,7 +468,7 @@ class AerBackend(Backend, ABC):
         # Format results
         output["job_id"] = job_id
         output["date"] = datetime.datetime.now().isoformat()
-        output["backend_name"] = self.name()
+        output["backend_name"] = self.name
         output["backend_version"] = self.configuration().backend_version
 
         # Push metadata to experiment headers
