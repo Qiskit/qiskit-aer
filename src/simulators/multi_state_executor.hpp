@@ -88,6 +88,9 @@ protected:
   bool has_global_phase_ = false;
   complex_t global_phase_ = 1;
 
+  // number of threads for inner loop of shot-branching
+  int_t shot_branch_parallel_ = 1;
+
 public:
   MultiStateExecutor();
   virtual ~MultiStateExecutor();
@@ -114,12 +117,10 @@ protected:
                          const Config &config, RngEngine &init_rng,
                          ExperimentResult &result, bool sample_noise) override;
 
-  void run_circuit_with_shot_branching(int_t i_group, Circuit &circ,
-                                       const Noise::NoiseModel &noise,
-                                       const Config &config,
-                                       RngEngine &init_rng, uint_t ishot,
-                                       uint_t nshots, ExperimentResult &result,
-                                       bool sample_noise);
+  void run_circuit_with_shot_branching(
+      uint_t top_state, uint_t num_states, Circuit &circ,
+      const Noise::NoiseModel &noise, const Config &config, RngEngine &init_rng,
+      uint_t ishot, uint_t nshots, ExperimentResult &result, bool sample_noise);
 
   // apply op for shot-branching, return false if op is not applied in sub-class
   virtual bool apply_branching_op(Branch &root, const Operations::Op &op,
@@ -312,50 +313,49 @@ void MultiStateExecutor<state_t>::run_circuit_shots(
   // reserve states
   allocate_states(num_max_shots_, config);
 
-  if (Base::sim_device_ == Device::GPU && num_groups_ > 1) {
-    shot_omp_parallel_ = false;
-    // for multi-GPU, distribute shots
-#pragma omp parallel for
-    for (int_t igroup = 0; igroup < num_groups_; igroup++) {
-      uint_t ishot = igroup * num_local_states_ / num_groups_;
-      uint_t nshots = (igroup + 1) * num_local_states_ / num_groups_;
-      nshots -= ishot;
+  int_t par_shots;
+  if (Base::sim_device_ == Device::GPU) {
+    par_shots = std::min((int_t)Base::parallel_shots_, (int_t)num_groups_);
+  } else {
+    par_shots =
+        std::min((int_t)Base::parallel_shots_, (int_t)num_local_states_);
+  }
+  shot_branch_parallel_ = Base::parallel_shots_ / par_shots;
+  std::vector<ExperimentResult> par_results(par_shots);
+
+  auto parallel_shot_branching = [this, &par_results, par_shots, &circ,
+                                  &circ_opt, noise, config, &init_rng,
+                                  sample_noise](int_t i) {
+    // shot distribution
+    uint_t ishot = i * num_local_states_ / par_shots;
+    uint_t nshots = (i + 1) * num_local_states_ / par_shots;
+    nshots -= ishot;
+
+    // state distribution
+    uint_t istate = i * num_active_states_ / par_shots;
+    uint_t nstates = (i + 1) * num_active_states_ / par_shots;
+    nstates -= istate;
+
+    if (nshots > 0) {
       if (sample_noise) {
-        run_circuit_with_shot_branching(igroup, circ_opt, noise, config,
-                                        init_rng, ishot, nshots, result,
-                                        sample_noise);
+        run_circuit_with_shot_branching(istate, nstates, circ_opt, noise,
+                                        config, init_rng, ishot, nshots,
+                                        par_results[i], sample_noise);
       } else {
-        run_circuit_with_shot_branching(igroup, circ, noise, config, init_rng,
-                                        ishot, nshots, result, sample_noise);
+        run_circuit_with_shot_branching(istate, nstates, circ, noise, config,
+                                        init_rng, ishot, nshots, par_results[i],
+                                        sample_noise);
       }
     }
-  } else {
-    // otherwise, use 1 group
-    num_groups_ = 1;
-    top_state_of_group_.resize(2);
-    num_states_in_group_.resize(1);
-    top_state_of_group_[0] = 0;
-    top_state_of_group_[1] = num_active_states_;
-    num_states_in_group_[0] = num_active_states_;
-
-    if (sample_noise) {
-      run_circuit_with_shot_branching(0, circ_opt, noise, config, init_rng, 0,
-                                      num_local_states_, result, sample_noise);
-    } else {
-      run_circuit_with_shot_branching(0, circ, noise, config, init_rng, 0,
-                                      num_local_states_, result, sample_noise);
-    }
-  }
+  };
+  Utils::apply_omp_parallel_for((par_shots > 1), 0, par_shots,
+                                parallel_shot_branching, par_shots);
 
   // gather cregs on MPI processes and save to result
 #ifdef AER_MPI
   if (Base::num_process_per_experiment_ > 1) {
     Base::gather_creg_memory(cregs_, state_index_begin_);
 
-    int_t par_shots =
-        std::min((int_t)Base::parallel_shots_, (int_t)num_global_states_);
-
-    std::vector<ExperimentResult> par_results(par_shots);
     // save cregs to result
     auto save_cregs = [this, &par_results, par_shots](int_t i) {
       uint_t i_shot, shot_end;
@@ -376,21 +376,21 @@ void MultiStateExecutor<state_t>::run_circuit_shots(
     Utils::apply_omp_parallel_for((par_shots > 1), 0, par_shots, save_cregs,
                                   par_shots);
     cregs_.clear();
-
-    for (auto &res : par_results) {
-      result.combine(std::move(res));
-    }
   }
 #endif
+
+  for (auto &res : par_results) {
+    result.combine(std::move(res));
+  }
 
   result.metadata.add(true, "shot_branching_enabled");
 }
 
 template <class state_t>
 void MultiStateExecutor<state_t>::run_circuit_with_shot_branching(
-    int_t i_group, Circuit &circ, const Noise::NoiseModel &noise,
-    const Config &config, RngEngine &init_rng, uint_t ishot, uint_t nshots,
-    ExperimentResult &result, bool sample_noise) {
+    uint_t top_state, uint_t num_states, Circuit &circ,
+    const Noise::NoiseModel &noise, const Config &config, RngEngine &init_rng,
+    uint_t ishot, uint_t nshots, ExperimentResult &result, bool sample_noise) {
   std::vector<std::shared_ptr<Branch>> branches;
   OpItr first;
   OpItr last;
@@ -421,9 +421,7 @@ void MultiStateExecutor<state_t>::run_circuit_with_shot_branching(
     }
   }
 
-  uint_t top_state = top_state_of_group_[i_group];
-  uint_t num_states = num_states_in_group_[i_group];
-  int_t par_shots = std::min((int_t)Base::parallel_shots_, (int_t)num_states);
+  int_t par_shots = std::min(shot_branch_parallel_, (int_t)num_states);
 
   // initialize local shots
   std::vector<RngEngine> shots_storage(nshots);
@@ -433,11 +431,11 @@ void MultiStateExecutor<state_t>::run_circuit_with_shot_branching(
     shots_storage[0].set_seed(circ.seed + global_state_index_ + ishot);
   if (par_shots > 1) {
 #pragma omp parallel for num_threads(par_shots)
-    for (int_t i = ishot + 1; i < nshots; i++)
-      shots_storage[i].set_seed(circ.seed + global_state_index_ + i);
+    for (int_t i = 1; i < nshots; i++)
+      shots_storage[i].set_seed(circ.seed + global_state_index_ + ishot + i);
   } else {
-    for (int_t i = ishot + 1; i < nshots; i++)
-      shots_storage[i].set_seed(circ.seed + global_state_index_ + i);
+    for (int_t i = 1; i < nshots; i++)
+      shots_storage[i].set_seed(circ.seed + global_state_index_ + ishot + i);
   }
 
   std::vector<ExperimentResult> par_results(par_shots);

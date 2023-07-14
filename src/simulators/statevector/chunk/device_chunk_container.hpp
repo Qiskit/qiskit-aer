@@ -103,10 +103,11 @@ public:
   void Deallocate(void) override;
 
   void StoreMatrix(const std::vector<std::complex<double>> &mat,
-                   uint_t iChunk) override;
+                   uint_t iChunk) const override;
   void StoreMatrix(const std::complex<double> *mat, uint_t iChunk,
-                   uint_t size) override;
-  void StoreUintParams(const std::vector<uint_t> &prm, uint_t iChunk) override;
+                   uint_t size) const override;
+  void StoreUintParams(const std::vector<uint_t> &prm,
+                       uint_t iChunk) const override;
   void ResizeMatrixBuffers(int bits) override;
 
   void calculate_matrix_buffer_size(int bits);
@@ -538,7 +539,7 @@ void DeviceChunkContainer<data_t>::ResizeMatrixBuffers(int bits) {
 
 template <typename data_t>
 void DeviceChunkContainer<data_t>::StoreMatrix(
-    const std::vector<std::complex<double>> &mat, uint_t iChunk) {
+    const std::vector<std::complex<double>> &mat, uint_t iChunk) const {
   set_device();
 
 #ifdef AER_THRUST_CUDA
@@ -569,7 +570,8 @@ void DeviceChunkContainer<data_t>::StoreMatrix(
 
 template <typename data_t>
 void DeviceChunkContainer<data_t>::StoreMatrix(const std::complex<double> *mat,
-                                               uint_t iChunk, uint_t size) {
+                                               uint_t iChunk,
+                                               uint_t size) const {
   set_device();
 
 #ifdef AER_THRUST_CUDA
@@ -601,7 +603,7 @@ void DeviceChunkContainer<data_t>::StoreMatrix(const std::complex<double> *mat,
 
 template <typename data_t>
 void DeviceChunkContainer<data_t>::StoreUintParams(
-    const std::vector<uint_t> &prm, uint_t iChunk) {
+    const std::vector<uint_t> &prm, uint_t iChunk) const {
   set_device();
 
 #ifdef AER_THRUST_CUDA

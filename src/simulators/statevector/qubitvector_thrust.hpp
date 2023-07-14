@@ -385,27 +385,11 @@ public:
   // expectation value of A^\dagger A, and could probably be removed because
   // of this
 
-  // Return the norm for of the vector obtained after apply the 1-qubit
-  // matrix mat to the vector.
-  // The matrix is input as vector of the column-major vectorized 1-qubit
-  // matrix.
-  double norm(const uint_t qubit, const cvector_t<double> &mat) const;
-
   // Return the norm for of the vector obtained after apply the N-qubit
   // matrix mat to the vector.
   // The matrix is input as vector of the column-major vectorized N-qubit
   // matrix.
   double norm(const reg_t &qubits, const cvector_t<double> &mat) const;
-
-  // Return the norm for of the vector obtained after apply the 1-qubit
-  // diagonal matrix mat to the vector.
-  // The matrix is input as vector of the matrix diagonal.
-  double norm_diagonal(const uint_t qubit, const cvector_t<double> &mat) const;
-
-  // Return the norm for of the vector obtained after apply the N-qubit
-  // diagonal matrix mat to the vector.
-  // The matrix is input as vector of the matrix diagonal.
-  double norm_diagonal(const reg_t &qubits, const cvector_t<double> &mat) const;
 
   //-----------------------------------------------------------------------
   // Expectation Value
@@ -538,7 +522,7 @@ protected:
                            bool async = false) const;
 
   // get number of chunk to be applied
-  uint_t get_chunk_count(void);
+  uint_t get_chunk_count(void) const;
 
   // copy from other qv
   void copy_qv(const QubitVectorThrust<data_t> &obj);
@@ -1185,7 +1169,7 @@ bool QubitVectorThrust<data_t>::enable_batch(bool flg) const {
 }
 
 template <typename data_t>
-uint_t QubitVectorThrust<data_t>::get_chunk_count(void) {
+uint_t QubitVectorThrust<data_t>::get_chunk_count(void) const {
   if (multi_chunk_distribution_) {
     if (chunk_.device() < 0 || cuStateVec_enable_)
       return 1;
@@ -1948,65 +1932,19 @@ double QubitVectorThrust<data_t>::norm() const {
 template <typename data_t>
 double QubitVectorThrust<data_t>::norm(const reg_t &qubits,
                                        const cvector_t<double> &mat) const {
-  const size_t N = qubits.size();
-
-  if (N == 1) {
-    return norm(qubits[0], mat);
-  } else {
-    auto qubits_sorted = qubits;
-    std::sort(qubits_sorted.begin(), qubits_sorted.end());
-    for (int_t i = 0; i < N; i++) {
-      qubits_sorted.push_back(qubits[i]);
+  uint_t count = 1;
+#ifdef AER_THRUST_CUDA
+  if (!cuStateVec_enable_ &&
+      ((multi_chunk_distribution_ && chunk_.device() >= 0 &&
+        num_qubits_ == num_qubits()) ||
+       (enable_batch_))) {
+    if (chunk_.pos() != 0) {
+      return 0.0;
     }
-
-    chunk_.StoreMatrix(mat);
-    chunk_.StoreUintParams(qubits_sorted);
-
-    double ret;
-    apply_function_sum(&ret, Chunk::NormMatrixMultNxN<data_t>(N));
-    return ret;
+    count = chunk_.container()->num_chunks();
   }
-}
-
-template <typename data_t>
-double
-QubitVectorThrust<data_t>::norm_diagonal(const reg_t &qubits,
-                                         const cvector_t<double> &mat) const {
-
-  const uint_t N = qubits.size();
-
-  if (N == 1) {
-    return norm_diagonal(qubits[0], mat);
-  } else {
-    chunk_.StoreMatrix(mat);
-    chunk_.StoreUintParams(qubits);
-
-    double ret;
-    apply_function_sum(&ret, Chunk::NormDiagonalMultNxN<data_t>(qubits));
-    return ret;
-  }
-}
-
-//------------------------------------------------------------------------------
-// Single-qubit specialization
-//------------------------------------------------------------------------------
-template <typename data_t>
-double QubitVectorThrust<data_t>::norm(const uint_t qubit,
-                                       const cvector_t<double> &mat) const {
-  double ret;
-  apply_function_sum(&ret, Chunk::NormMatrixMult2x2<data_t>(mat, qubit));
-
-  return ret;
-}
-
-template <typename data_t>
-double
-QubitVectorThrust<data_t>::norm_diagonal(const uint_t qubit,
-                                         const cvector_t<double> &mat) const {
-  double ret;
-  apply_function_sum(&ret, Chunk::NormDiagonalMult2x2<data_t>(mat, qubit));
-
-  return ret;
+#endif
+  return chunk_.expval_matrix(qubits, mat, count);
 }
 
 /*******************************************************************************
@@ -2030,8 +1968,6 @@ std::vector<double> QubitVectorThrust<data_t>::probabilities() const {
   DebugMsg("calling probabilities");
 #endif
 
-#pragma omp parallel for if (num_qubits_ > omp_threshold_ && omp_threads_ > 1) \
-    num_threads(omp_threads_)
   for (int_t j = 0; j < END; j++) {
     probs[j] = probability(j);
   }
