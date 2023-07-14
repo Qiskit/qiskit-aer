@@ -31,13 +31,17 @@ namespace Chunk {
 template <typename data_t>
 class DeviceChunkContainer : public ChunkContainer<data_t> {
 protected:
-  AERDeviceVector<thrust::complex<data_t>>
-      data_; // device vector to chunks and buffers
-  AERDeviceVector<thrust::complex<double>> matrix_; // storage for large matrix
-  mutable AERDeviceVector<uint_t> params_; // storage for additional parameters
-  AERDeviceVector<double> reduce_buffer_;  // buffer for reduction
-  AERDeviceVector<double>
-      probability_buffer_; // buffer used for measure probability
+  // device vector to chunks and buffers
+  AERDeviceVector<thrust::complex<data_t>> data_;
+  // storage for large matrix
+  mutable AERDeviceVector<thrust::complex<double>> matrix_;
+  // storage for additional parameters
+  mutable AERDeviceVector<uint_t> params_;
+  // buffer for reduction
+  AERDeviceVector<double> reduce_buffer_;
+  // buffer used for measure probability
+  AERDeviceVector<double> probability_buffer_; 
+
   AERDeviceVector<uint_t> cregs_;
   AERHostVector<uint_t> cregs_host_;
   int device_id_;                 // device index
