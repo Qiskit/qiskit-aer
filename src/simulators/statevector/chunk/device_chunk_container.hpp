@@ -40,7 +40,7 @@ protected:
   // buffer for reduction
   AERDeviceVector<double> reduce_buffer_;
   // buffer used for measure probability
-  AERDeviceVector<double> probability_buffer_; 
+  AERDeviceVector<double> probability_buffer_;
 
   AERDeviceVector<uint_t> cregs_;
   AERHostVector<uint_t> cregs_host_;
