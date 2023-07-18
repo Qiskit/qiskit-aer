@@ -12,7 +12,7 @@
 
 # pylint: disable=invalid-name
 """
-Qiskit Aer simulator backend utils
+Qiskit Aer simulator name mapping for Target object
 """
 from qiskit.circuit import ControlledGate, Parameter
 from qiskit.circuit.reset import Reset
@@ -73,8 +73,13 @@ from ..library import (
 from ..noise.errors import ReadoutError
 from ..noise.noise_model import QuantumErrorLocation
 
+
 def get_gate_name_mapping():
+    """
+    Return gate name mapping Class
+    """
     class MCSXGate(ControlledGate):
+        """mcsx gate"""
         def __init__(self, num_ctrl_qubits, ctrl_state=None):
             super().__init__(
                 "mcsx",
@@ -84,9 +89,10 @@ def get_gate_name_mapping():
                 num_ctrl_qubits,
                 ctrl_state=ctrl_state,
                 base_gate=SXGate(),
-                )
+            )
 
     class MCYGate(ControlledGate):
+        """mcy gate"""
         def __init__(self, num_ctrl_qubits, ctrl_state=None):
             super().__init__(
                 "mcy",
@@ -99,6 +105,7 @@ def get_gate_name_mapping():
             )
 
     class MCZGate(ControlledGate):
+        """mcz gate"""
         def __init__(self, num_ctrl_qubits, ctrl_state=None):
             super().__init__(
                 "mcz",
@@ -111,6 +118,7 @@ def get_gate_name_mapping():
             )
 
     class MCRXGate(ControlledGate):
+        """mcrx gate"""
         def __init__(self, theta, num_ctrl_qubits, ctrl_state=None):
             super().__init__(
                 "mcrx",
@@ -123,6 +131,7 @@ def get_gate_name_mapping():
             )
 
     class MCRYGate(ControlledGate):
+        """mcry gate"""
         def __init__(self, theta, num_ctrl_qubits, ctrl_state=None):
             super().__init__(
                 "mcry",
@@ -135,6 +144,7 @@ def get_gate_name_mapping():
             )
 
     class MCRZGate(ControlledGate):
+        """mcrz gate"""
         def __init__(self, theta, num_ctrl_qubits, ctrl_state=None):
             super().__init__(
                 "mcrz",
@@ -147,6 +157,7 @@ def get_gate_name_mapping():
             )
 
     class MCRGate(ControlledGate):
+        """mcr gate"""
         def __init__(self, theta, phi, num_ctrl_qubits, ctrl_state=None):
             super().__init__(
                 "mcr",
@@ -159,6 +170,7 @@ def get_gate_name_mapping():
             )
 
     class MCU1Gate(ControlledGate):
+        """mcu1 gate"""
         def __init__(self, theta, num_ctrl_qubits, ctrl_state=None):
             super().__init__(
                 "mcu1",
@@ -171,6 +183,7 @@ def get_gate_name_mapping():
             )
 
     class MCU2Gate(ControlledGate):
+        """mcu2 gate"""
         def __init__(self, theta, lam, num_ctrl_qubits, ctrl_state=None):
             super().__init__(
                 "mcu2",
@@ -183,6 +196,7 @@ def get_gate_name_mapping():
             )
 
     class MCU3Gate(ControlledGate):
+        """mcu3 gate"""
         def __init__(self, theta, lam, phi, num_ctrl_qubits, ctrl_state=None):
             super().__init__(
                 "mcu3",
@@ -195,6 +209,7 @@ def get_gate_name_mapping():
             )
 
     class MCUGate(ControlledGate):
+        """mcu gate"""
         def __init__(self, theta, lam, phi, num_ctrl_qubits, ctrl_state=None):
             super().__init__(
                 "mcu",
@@ -207,6 +222,7 @@ def get_gate_name_mapping():
             )
 
     class MCSwapGate(ControlledGate):
+        """mcswap gate"""
         def __init__(self, num_ctrl_qubits, ctrl_state=None):
             super().__init__(
                 "mcswap",

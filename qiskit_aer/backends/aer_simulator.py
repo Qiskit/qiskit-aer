@@ -670,7 +670,7 @@ class AerSimulator(AerBackend):
         self._cached_basis_gates = self._BASIS_GATES["automatic"]
 
         super().__init__(
-           configuration, properties=properties, provider=provider, backend_options=backend_options
+            configuration, properties=properties, provider=provider, backend_options=backend_options
         )
 
     @classmethod
@@ -745,7 +745,7 @@ class AerSimulator(AerBackend):
         pad = " " * (len(self.__class__.__name__) + 1)
         return f"{display[:-1]}\n{pad}noise_model={repr(noise_model)})"
 
-    def name(self):
+    def _name(self):
         """Format backend name string for simulator"""
         name = self._configuration.backend_name
         method = getattr(self.options, "method", None)
@@ -828,7 +828,7 @@ class AerSimulator(AerBackend):
         ]
         config.basis_gates = self._cached_basis_gates + config.custom_instructions
         # Update simulator name
-        config.backend_name = self.name
+        config.backend_name = self._name()
         return config
 
     def _execute_circuits(self, aer_circuits, noise_model, config):

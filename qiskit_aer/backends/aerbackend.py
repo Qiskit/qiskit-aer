@@ -69,7 +69,12 @@ class AerBackend(Backend, ABC):
         # Init configuration and provider in Backend
         configuration.simulator = True
         configuration.local = True
-        super().__init__(provider=provider, name=configuration.backend_name, description=configuration.description, backend_version=configuration.backend_version)
+        super().__init__(
+            provider=provider,
+            name=configuration.backend_name,
+            description=configuration.description,
+            backend_version=configuration.backend_version,
+        )
 
         # Initialize backend properties and pulse defaults.
         self._properties = properties
@@ -339,12 +344,14 @@ class AerBackend(Backend, ABC):
 
     @property
     def max_circuits(self):
-        return self.configuration.max_experiments
+        return self.configuration().max_experiments
 
     @property
     def target(self):
         self.set_option("basis_gates", self.configuration().basis_gates + ["reset"])
-        self._target = convert_to_target(self.configuration(), self.properties(), self.defaults(), self._mapping)
+        self._target = convert_to_target(
+            self.configuration(), self.properties(), self.defaults(), self._mapping
+        )
         return self._target
 
     @classmethod
@@ -365,7 +372,7 @@ class AerBackend(Backend, ABC):
             BackendStatus: the status of the backend.
         """
         return BackendStatus(
-            backend_name=self.name(),
+            backend_name=self.name,
             backend_version=self.configuration().backend_version,
             operational=True,
             pending_jobs=0,
