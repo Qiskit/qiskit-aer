@@ -30,7 +30,6 @@ from .backend_utils import (
     MAX_QUBITS_STATEVECTOR,
     BASIS_GATES,
 )
-from .name_mapping import get_gate_name_mapping
 
 # pylint: disable=import-error, no-name-in-module
 from .controller_wrappers import aer_controller_execute
@@ -669,10 +668,9 @@ class AerSimulator(AerBackend):
         # Cache basis gates since computing the intersection
         # of noise model, method, and config gates is expensive.
         self._cached_basis_gates = self._BASIS_GATES["automatic"]
-        self._mapping = get_gate_name_mapping()
 
         super().__init__(
-           configuration, properties=properties, provider=provider, backend_options=backend_options, mapping=self._mapping,  
+           configuration, properties=properties, provider=provider, backend_options=backend_options
         )
 
     @classmethod
@@ -776,6 +774,7 @@ class AerSimulator(AerBackend):
                 max_shots=int(1e6),
                 coupling_map=list(backend.coupling_map.get_edges()),
                 max_experiments=backend.max_circuits,
+                description=backend.description,
             )
             properties = target_to_backend_properties(backend.target)
         elif isinstance(backend, BackendV1):

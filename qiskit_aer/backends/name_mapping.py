@@ -15,6 +15,7 @@
 Qiskit Aer simulator backend utils
 """
 from qiskit.circuit import ControlledGate, Parameter
+from qiskit.circuit.reset import Reset
 from qiskit.circuit.library import (
     SXGate,
     MCPhaseGate,
@@ -44,6 +45,7 @@ from qiskit.extensions import Initialize, UnitaryGate
 from qiskit.extensions.quantum_initializer import DiagonalGate, UCGate
 from qiskit.quantum_info.operators.channel.kraus import Kraus
 from qiskit.quantum_info.operators.channel import SuperOp
+from qiskit.quantum_info.operators.channel.quantum_channel import QuantumChannel
 
 from ..library import (
     SaveExpectationValue,
@@ -223,6 +225,7 @@ def get_gate_name_mapping():
         "mcp": MCPhaseGate,
         "mcphase": MCPhaseGate,
         "initialize": Initialize,
+        "quantum_channel": QuantumChannel,
         "save_expval": SaveExpectationValue,
         "diagonal": DiagonalGate,
         "save_amplitudes": SaveAmplitudes,
@@ -271,7 +274,9 @@ def get_gate_name_mapping():
         "set_stabilizer": SetStabilizer,
         "save_amplitudes_sq": SaveAmplitudesSquared,
         "save_probabilities_dict": SaveProbabilitiesDict,
+        "save_probs_ket": SaveProbabilitiesDict,
+        "save_probs": SaveProbabilities,
         "cu2": U2Gate(phi, lam).control(),
+        "reset": Reset(),
     }
-
     return name_mapping

@@ -35,6 +35,7 @@ from ..noise.noise_model import NoiseModel, QuantumErrorLocation
 from ..noise.errors.quantum_error import QuantumChannelInstruction
 from .aer_compiler import compile_circuit, assemble_circuits, generate_aer_config
 from .backend_utils import format_save_type, circuit_optypes
+from .name_mapping import get_gate_name_mapping
 
 # pylint: disable=import-error, no-name-in-module
 from .controller_wrappers import AerConfig
@@ -46,11 +47,8 @@ logger = logging.getLogger(__name__)
 class AerBackend(Backend, ABC):
     """Qiskit Aer Backend class."""
 
-    #def __init__(
-    #    self, configuration, properties=None, defaults=None, backend_options=None, provider=None
-    #):
     def __init__(
-        self, configuration, properties=None, defaults=None, backend_options=None, provider=None, mapping=None
+        self, configuration, properties=None, defaults=None, backend_options=None, provider=None
     ):
         """Aer class for backends.
 
@@ -83,7 +81,7 @@ class AerBackend(Backend, ABC):
         self._options_defaults = {}
         self._options_properties = {}
         self._target = None
-        self._mapping = mapping
+        self._mapping = get_gate_name_mapping()
 
         # Set options from backend_options dictionary
         if backend_options is not None:
@@ -313,7 +311,6 @@ class AerBackend(Backend, ABC):
         # basis gates to include them for the terra transpiler
         if hasattr(config, "custom_instructions"):
             config.basis_gates = config.basis_gates + config.custom_instructions
-        ######debug
         return config
 
     def properties(self):
@@ -346,7 +343,8 @@ class AerBackend(Backend, ABC):
 
     @property
     def target(self):
-        self._target = convert_to_target(self._configuration, self._properties, self._defaults, self._mapping)
+        self.set_option("basis_gates", self.configuration().basis_gates + ["reset"])
+        self._target = convert_to_target(self.configuration(), self.properties(), self.defaults(), self._mapping)
         return self._target
 
     @classmethod
@@ -405,7 +403,7 @@ class AerBackend(Backend, ABC):
 
         # Validate output
         if not isinstance(output, dict):
-            logger.error("%s: simulation failed.", self.name())
+            logger.error("%s: simulation failed.", self.name)
             if output:
                 logger.error("Output: %s", output)
             raise AerError("simulation terminated without returning valid output.")
@@ -413,7 +411,7 @@ class AerBackend(Backend, ABC):
         # Format results
         output["job_id"] = job_id
         output["date"] = datetime.datetime.now().isoformat()
-        output["backend_name"] = self.name()
+        output["backend_name"] = self.name
         output["backend_version"] = self.configuration().backend_version
 
         # Push metadata to experiment headers
@@ -471,7 +469,7 @@ class AerBackend(Backend, ABC):
 
         # Validate output
         if not isinstance(output, dict):
-            logger.error("%s: simulation failed.", self.name())
+            logger.error("%s: simulation failed.", self.name)
             if output:
                 logger.error("Output: %s", output)
             raise AerError("simulation terminated without returning valid output.")
@@ -742,5 +740,5 @@ class AerBackend(Backend, ABC):
     def __repr__(self):
         """String representation of an AerBackend."""
         name = self.__class__.__name__
-        display = f"'{self.name()}'"
+        display = f"'{self.name}'"
         return f"{name}({display})"
