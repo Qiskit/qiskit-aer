@@ -77,7 +77,8 @@ complex_t *aer_release_statevector(void *handler) {
 };
 
 // u3 gate
-void aer_apply_u3(void* handler, uint_t qubit, double theta, double phi, double lambda) {
+void aer_apply_u3(void *handler, uint_t qubit, double theta, double phi,
+                  double lambda) {
   AER::AerState *state = reinterpret_cast<AER::AerState *>(handler);
   state->apply_u(qubit, theta, phi, lambda);
 }
