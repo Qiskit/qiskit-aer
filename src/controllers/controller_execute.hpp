@@ -105,7 +105,7 @@ Result controller_execute(std::vector<std::shared_ptr<Circuit>> &input_circs,
             // Validation
             if (instr_pos == AER::Config::GLOBAL_PHASE_POS) {
               // negative position is for global phase
-              circ->global_phase_angle = params.second[j];
+              param_circ->global_phase_angle = params.second[j];
             } else {
               if (instr_pos >= num_instr) {
                 std::cout << "Invalid parameterization: instruction position "
@@ -169,7 +169,7 @@ Result controller_execute(std::vector<std::shared_ptr<Circuit>> &input_circs,
   auto ret = controller.execute(circs, noise_model, config);
 
   for (size_t i = 0; i < ret.results.size(); ++i)
-    ret.results[i].circuit = template_circs[i];
+    ret.results[i].circ_id = template_circs[i]->circ_id;
 
   return ret;
 }
