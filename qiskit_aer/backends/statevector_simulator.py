@@ -213,6 +213,7 @@ class StatevectorSimulator(AerBackend):
                 "initialize",
                 "delay",
                 "pauli",
+                "reset",
             ]
         ),
         "custom_instructions": sorted(

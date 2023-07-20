@@ -365,6 +365,7 @@ class QasmSimulator(AerBackend):
             "pauli",
             "mcx_gray",
             "ecr",
+            "reset",
         ]
     )
 

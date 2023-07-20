@@ -109,6 +109,7 @@ BASIS_GATES = {
             "pauli",
             "mcx_gray",
             "ecr",
+            "reset",
         ]
     ),
     "density_matrix": sorted(
@@ -149,6 +150,7 @@ BASIS_GATES = {
             "delay",
             "pauli",
             "ecr",
+            "reset",
         ]
     ),
     "matrix_product_state": sorted(
@@ -191,6 +193,7 @@ BASIS_GATES = {
             "cswap",
             "diagonal",
             "initialize",
+            "reset",
         ]
     ),
     "stabilizer": sorted(
@@ -210,6 +213,7 @@ BASIS_GATES = {
             "swap",
             "delay",
             "pauli",
+            "reset",
         ]
     ),
     "extended_stabilizer": sorted(
@@ -235,6 +239,7 @@ BASIS_GATES = {
             "ccz",
             "delay",
             "pauli",
+            "reset",
         ]
     ),
     "unitary": sorted(
@@ -296,6 +301,7 @@ BASIS_GATES = {
             "delay",
             "pauli",
             "ecr",
+            "reset",
         ]
     ),
     "superop": sorted(
@@ -335,6 +341,7 @@ BASIS_GATES = {
             "diagonal",
             "delay",
             "pauli",
+            "reset",
         ]
     ),
     "tensor_network": sorted(
@@ -397,6 +404,7 @@ BASIS_GATES = {
             "delay",
             "pauli",
             "mcx_gray",
+            "reset",
         ]
     ),
 }

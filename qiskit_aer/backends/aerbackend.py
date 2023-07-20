@@ -348,11 +348,36 @@ class AerBackend(Backend, ABC):
 
     @property
     def target(self):
-        self.set_option("basis_gates", self.configuration().basis_gates + ["reset"])
         self._target = convert_to_target(
             self.configuration(), self.properties(), self.defaults(), self._mapping
         )
         return self._target
+
+    @property
+    def dtm(self):
+        if hasattr(self.configuration(), "dtm"):
+            return self.configuration().dtm
+        else:
+            return None
+
+    @property
+    def meas_map(self):
+        if hasattr(self.configuration(), "meas_map"):
+            return self.configuration().meas_map
+        else:
+            return None
+
+    def acquire_channel(self):
+        return None
+
+    def control_channel(self):
+        return None
+
+    def drive_channel(self):
+        return None
+
+    def measure_channel(self):
+        return None
 
     @classmethod
     def _default_options(cls):
