@@ -344,7 +344,10 @@ class AerBackend(Backend, ABC):
 
     @property
     def max_circuits(self):
-        return self.configuration().max_experiments
+        if hasattr(self.configuration(), "max_experiments"):
+            return self.configuration().max_experiments
+        else:
+            return None
 
     @property
     def target(self):

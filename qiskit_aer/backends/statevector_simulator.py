@@ -355,7 +355,7 @@ class StatevectorSimulator(AerBackend):
         1. Set shots=1.
         2. Check number of qubits will fit in local memory.
         """
-        name = self.name()
+        name = self.name
         if getattr(qobj.config, "noise_model", None) is not None:
             raise AerError(f"{name} does not support noise.")
 

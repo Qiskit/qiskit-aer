@@ -342,7 +342,7 @@ class UnitarySimulator(AerBackend):
         2. No measurements or reset
         3. Check number of qubits will fit in local memory.
         """
-        name = self.name()
+        name = self.name
         if getattr(qobj.config, "noise_model", None) is not None:
             raise AerError(f"{name} does not support noise.")
 
