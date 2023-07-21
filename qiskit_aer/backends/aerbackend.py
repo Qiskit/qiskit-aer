@@ -35,7 +35,7 @@ from ..noise.noise_model import NoiseModel, QuantumErrorLocation
 from ..noise.errors.quantum_error import QuantumChannelInstruction
 from .aer_compiler import compile_circuit, assemble_circuits, generate_aer_config
 from .backend_utils import format_save_type, circuit_optypes
-from .name_mapping import get_gate_name_mapping
+from .name_mapping import NAME_MAPPING
 
 # pylint: disable=import-error, no-name-in-module
 from .controller_wrappers import AerConfig
@@ -86,7 +86,7 @@ class AerBackend(Backend, ABC):
         self._options_defaults = {}
         self._options_properties = {}
         self._target = None
-        self._mapping = get_gate_name_mapping()
+        self._mapping = NAME_MAPPING
 
         # Set options from backend_options dictionary
         if backend_options is not None:
