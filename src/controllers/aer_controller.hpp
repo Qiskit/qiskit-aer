@@ -963,9 +963,9 @@ Result Controller::execute(std::vector<std::shared_ptr<Circuit>> &circuits,
 
       // nested should be set to zero if num_threads clause will be used
 #if _OPENMP >= 200805
-      omp_set_max_active_levels(0);
+      omp_set_max_active_levels(2);
 #else
-      omp_set_nested(0);
+      omp_set_nested(1);
 #endif
 
       result.metadata.add(parallel_nested_, "omp_nested");
@@ -1002,6 +1002,7 @@ Result Controller::execute(std::vector<std::shared_ptr<Circuit>> &circuits,
     } else {
 #pragma omp parallel for num_threads(parallel_experiments_)
       for (int j = 0; j < NUM_RESULTS; ++j) {
+        set_parallelization_circuit(*circuits[j], noise_model, methods[j]);
         run_circuit(*circuits[j], noise_model, methods[j], config,
                     result.results[j]);
       }
@@ -1408,6 +1409,10 @@ void Controller::run_circuit_helper(const Circuit &circ,
     result.seed = circ.seed;
     result.metadata.add(parallel_shots_, "parallel_shots");
     result.metadata.add(parallel_state_update_, "parallel_state_update");
+    if(parallel_shots_ > 1 && parallel_state_update_ > 1)
+      result.metadata.add(True, "omp_nested");
+    else
+      result.metadata.add(False, "omp_nested");
 
     // Add timer data
     auto timer_stop = myclock_t::now(); // stop timer
