@@ -1409,7 +1409,7 @@ void Controller::run_circuit_helper(const Circuit &circ,
     result.seed = circ.seed;
     result.metadata.add(parallel_shots_, "parallel_shots");
     result.metadata.add(parallel_state_update_, "parallel_state_update");
-    if(parallel_shots_ > 1 && parallel_state_update_ > 1)
+    if (parallel_shots_ > 1 && parallel_state_update_ > 1)
       result.metadata.add(true, "omp_nested");
     else
       result.metadata.add(false, "omp_nested");
