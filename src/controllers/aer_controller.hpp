@@ -1410,9 +1410,9 @@ void Controller::run_circuit_helper(const Circuit &circ,
     result.metadata.add(parallel_shots_, "parallel_shots");
     result.metadata.add(parallel_state_update_, "parallel_state_update");
     if(parallel_shots_ > 1 && parallel_state_update_ > 1)
-      result.metadata.add(True, "omp_nested");
+      result.metadata.add(true, "omp_nested");
     else
-      result.metadata.add(False, "omp_nested");
+      result.metadata.add(false, "omp_nested");
 
     // Add timer data
     auto timer_stop = myclock_t::now(); // stop timer
