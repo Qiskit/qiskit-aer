@@ -1,0 +1,19 @@
+---
+upgrade:
+ - |
+    Qiskit Aer now requires CUDA version for GPU simulator to 11.2 or
+    higher.  Previously, CUDA 10.1 was the minimum supported version.
+    This change was necessary because of changes in the upstream CUDA
+    ecosystem, including cuQuantum support. To support users running
+    with different versions of CUDA there is now a separate package available
+    for running with CUDA 11:  ``qiskit-aer-gpu-cu11`` and using the
+    ``qiskit-aer-gpu`` package now requires CUDA 12. If you're an existing
+    user of the ``qiskit-aer-gpu`` package and want to use CUDA 11
+    you will need to run::
+    
+        pip uninstall qiskit-aer-gpu && pip install -U qiskit-aer-gpu-cu11
+    
+    to go from the previously CUDA 10.x compatible ``qiskit-aer-gpu``
+    package's releases to upgrade to the new CUDA 11 compatible
+    package. If you're running CUDA 12 locally already you can upgrade
+    the ``qiskit-aer-gpu`` package as normal.
