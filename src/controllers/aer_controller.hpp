@@ -541,9 +541,9 @@ Result Controller::execute(std::vector<std::shared_ptr<Circuit>> &circuits,
 
       // nested should be set to zero if num_threads clause will be used
 #if _OPENMP >= 200805
-      omp_set_max_active_levels(0);
+      omp_set_max_active_levels(2);
 #else
-      omp_set_nested(0);
+      omp_set_nested(1);
 #endif
 
       result.metadata.add(parallel_nested_, "omp_nested");
@@ -591,11 +591,17 @@ Result Controller::execute(std::vector<std::shared_ptr<Circuit>> &circuits,
     } else {
 #pragma omp parallel for num_threads(parallel_experiments_)
       for (int j = 0; j < NUM_RESULTS; ++j) {
+<<<<<<< HEAD
         std::shared_ptr<CircuitExecutor::Base> executor =
             make_circuit_executor(methods[j]);
         executor->run_circuit(*circuits[j], noise_model, config, methods[j],
                               sim_device_, result.results[j]);
         executor.reset();
+=======
+        set_parallelization_circuit(*circuits[j], noise_model, methods[j]);
+        run_circuit(*circuits[j], noise_model, methods[j], config,
+                    result.results[j]);
+>>>>>>> dfb7a4e4 (Fix OpenMP nested parallel (#1880))
       }
     }
 
