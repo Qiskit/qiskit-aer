@@ -391,7 +391,6 @@ template <class densmat_t>
 size_t State<densmat_t>::required_memory_mb(
     uint_t num_qubits, const std::vector<Operations::Op> &ops) const {
   (void)ops; // avoid unused variable compiler warning
-  (void)ops; // avoid unused variable compiler warning
   densmat_t tmp;
   return tmp.required_memory_mb(2 * num_qubits);
 }
