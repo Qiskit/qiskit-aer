@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixing binary distribution package for GPU support, adding some  missing
+    dynamic link pathes for CUDA and cuQuantum libraries.
+    By this fix, Qiskit Aer can be executed without setting LD_LIBRARY_PATH.
