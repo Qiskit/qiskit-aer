@@ -50,7 +50,7 @@ public:
 #endif
   }
 
-  py::object execute(std::vector<Circuit> &circuits,
+  py::object execute(std::vector<std::shared_ptr<Circuit>> &circuits,
                      Noise::NoiseModel &noise_model,
                      AER::Config &config) const {
     return AerToPy::to_python(
@@ -91,7 +91,7 @@ void bind_aer_controller(MODULE m) {
                });
   aer_ctrl.def("execute",
                [aer_ctrl](ControllerExecutor<Controller> &self,
-                          std::vector<Circuit> &circuits,
+                          std::vector<std::shared_ptr<Circuit>> &circuits,
                           py::object noise_model, AER::Config &config) {
                  Noise::NoiseModel noise_model_native;
                  if (noise_model)

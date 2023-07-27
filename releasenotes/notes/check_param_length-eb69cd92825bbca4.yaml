@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Previously, parameters for gates are not validate in C++. If parameters are shorter than
+    expected (due to custom gate), segmentaion faults are thrown. This commit adds checks
+    whether parameter lenght is expceted. This commit will fix issues reported in #1612.
+    https://github.com/Qiskit/qiskit-aer/issues/1612

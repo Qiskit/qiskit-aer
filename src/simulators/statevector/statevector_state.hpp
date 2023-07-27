@@ -70,7 +70,7 @@ const Operations::OpSet StateOpSet(
      "sdg",  "t",     "tdg",    "r",     "rx",    "ry",       "rz",
      "rxx",  "ryy",   "rzz",    "rzx",   "ccx",   "cswap",    "mcx",
      "mcy",  "mcz",   "mcu1",   "mcu2",  "mcu3",  "mcswap",   "mcphase",
-     "mcr",  "mcrx",  "mcry",   "mcry",  "sx",    "sxdg",     "csx",
+     "mcr",  "mcrx",  "mcry",   "mcrz",  "sx",    "sxdg",     "csx",
      "mcsx", "csxdg", "mcsxdg", "delay", "pauli", "mcx_gray", "cu",
      "mcu",  "mcp",   "ecr"});
 

@@ -20,8 +20,8 @@ please ensure that:
    which will run these checks and report any issues.
 
    If your code fails the local style checks, you can use `tox -eblack`
-   and `tox -eclang` to automatically fix update the code formatting
-   in python and C++ respectively.
+   and `tox -eclang` to automatically fix and update the code formatting
+   in python and C++, respectively.
 
 2. The documentation has been updated accordingly. In particular, if a
    function or class has been modified during the PR, please update the
@@ -39,7 +39,7 @@ automation. This works through a combination of the git log and the pull
 request. When a release is tagged and pushed to GitHub, the release automation
 bot looks at all commit messages from the git log for the release. It takes the
 PR numbers from the git log (assuming a squash merge) and checks if that PR had
-a `Changelog:` label on it. If there is a label it will add the git commit
+a `Changelog:` label on it. If there is a label, it will add the git commit
 message summary line from the git log for the release to the changelog.
 
 If there are multiple `Changelog:` tags on a PR, the git commit message summary
@@ -69,7 +69,7 @@ understand if they need to update their program which uses Qiskit, and how they
 would go about doing that. It ideally should explain why they need to make
 this change too, to provide the necessary context.
 
-To make sure we don't forget a release note or if the details of user-facing
+To make sure we don't forget a release note if the details of user-facing
 changes over a release cycle, we require that all user facing changes include
 documentation at the same time as the code. To accomplish this, we use the
 [reno](https://docs.openstack.org/reno/latest/) tool which enables a git-based
@@ -193,14 +193,14 @@ particular will be located at `docs/_build/html/release_notes.html`
 
 ## Style and lint
 
-Qiskit Aer uses 3 tools for verify code formatting and lint checking. The
+Qiskit Aer uses 3 tools for verifying code formatting and lint checking. The
 first tool is [black](https://github.com/psf/black) which is a Python code formatting
 tool that will automatically update the code formatting to a consistent style.
 The second tool is [pylint](https://www.pylint.org/) which is a code linter
 which does a deeper analysis of the Python code to find both style issues and
 potential bugs and other common issues in Python. The third tool is
 [clang-format](https://clang.llvm.org/docs/ClangFormat.html) which is a
-C++ code formatting tool that will automatically update codes with a consitent style.
+C++ code formatting tool that will automatically update codes with a consistent style.
 
 You can check that your local modifications conform to the style rules
 by running `tox -elint` which will run `black`, `pylint` and `clang-format`
@@ -240,7 +240,7 @@ When it is time to release a new minor version of qiskit-aer, we will:
 1.  Create a new tag with the version number and push it to github
 2.  Change the `main` version to the next release version.
 
-The release automation processes will be triggered by the new tag and perform
+The release automation processes will be triggered by the new tag and will perform
 the following steps:
 
 1.  Create a stable branch for the new minor version from the release tag
@@ -463,7 +463,7 @@ As any other Python package, we can install from source code by just running:
     qiskit-aer$ pip install .
 
 This will build and install `Aer` with the default options which is probably suitable for most of the users.
-There's another Pythonic approach to build and install software: build the wheels distributable file.
+There's another Pythonic approach to building and installing software: build the wheels distributable file.
 
 
     qiskit-aer$ python ./setup.py bdist_wheel
@@ -566,7 +566,7 @@ As any other Python package, we can install from source code by just running:
     (QiskitDevEnv) qiskit-aer > pip install .
 
 This will build and install `Aer` with the default options which is probably suitable for most of the users.
-There's another Pythonic approach to build and install software: build the wheels distributable file.
+There's another Pythonic approach to building and installing software: build the wheels distributable file.
 
 
     (QiskitDevEnv) qiskit-aer > python ./setup.py bdist_wheel
@@ -637,7 +637,7 @@ options we have on `Aer` to CMake, we use its native mechanism:
 
 Qiskit Aer can exploit GPU's horsepower to accelerate some simulations, specially the larger ones.
 GPU access is supported via CUDA® (NVIDIA® chipset), so to build with GPU support, you need
-to have CUDA® >= 10.1 preinstalled. See install instructions [here](https://developer.nvidia.com/cuda-toolkit-archive)
+to have CUDA® >= 11.2 preinstalled. See install instructions [here](https://developer.nvidia.com/cuda-toolkit-archive)
 Please note that we only support GPU acceleration on Linux platforms at the moment.
 
 Once CUDA® is properly installed, you only need to set a flag so the build system knows what to do:
@@ -648,43 +648,51 @@ AER_THRUST_BACKEND=CUDA
 
 For example,
 
-    qiskit-aer$ python ./setup.py bdist_wheel -- -DAER_THRUST_BACKEND=CUDA
+    qiskit-aer$ python ./setup.py bdist_wheel -- -DAER_THRUST_BACKEND=CUDA --
 
 If you want to specify the CUDA® architecture instead of letting the build system 
 auto detect it, you can use the AER_CUDA_ARCH flag (can also be set as an ENV variable
 with the same name, although the flag takes precedence). For example:
 
-    qiskit-aer$ python ./setup.py bdist_wheel -- -DAER_THRUST_BACKEND=CUDA -DAER_CUDA_ARCH="5.2"
+    qiskit-aer$ python ./setup.py bdist_wheel -- -DAER_THRUST_BACKEND=CUDA -DAER_CUDA_ARCH="7.0" --
 
 or
 
-    qiskit-aer$ export AER_CUDA_ARCH="5.2"
-    qiskit-aer$ python ./setup.py bdist_wheel -- -DAER_THRUST_BACKEND=CUDA
+    qiskit-aer$ export AER_CUDA_ARCH="7.0"
+    qiskit-aer$ python ./setup.py bdist_wheel -- -DAER_THRUST_BACKEND=CUDA --
 
 This will reduce the amount of compilation time when, for example, the architecture auto detection
 fails and the build system compiles all common architectures.
 
 Few notes on GPU builds:
 1. Building takes considerable more time than non-GPU build, so be patient :)
-2. CUDA® >= 10.1 imposes the restriction of building with g++ version not newer than 8
+2. CUDA® >= 11.2 imposes the restriction of building with g++ version not newer than 8
 3. We don't need NVIDIA® drivers for building, but we need them for running simulations
 4. Only Linux platforms are supported
 
 Qiskit Aer now supports cuQuantum optimized Quantum computing APIs from NVIDIA®.
 cuStateVec APIs can be exploited to accelerate statevector, density_matrix and unitary methods.
 cuTensorNet APIs can be exploited to tensor_network merthod.
-This implementation requires CUDA toolkit version 11.2 or higher and Volta or Ampare architecture GPUs.
+This implementation requires CUDA® toolkit version 11.2 or higher and Volta or Ampare architecture GPUs.
 
-To build Qiskit Aer with cuQuantum support, please set the path to cuQuantum root directory to CUQUANTUM_ROOT
-and directory to cuTensor to CUTENSOR_ROOT then set AER_ENABLE_CUQUANTUM=true.
-as following.
+Before building Qiskit Aer with cuQuantum support, install required components via pip install as following.
+
+    qiskit-aer$ pip install nvidia-cuda-runtime-cu11 nvidia-cublas-cu11 nvidia-cusolver-cu11 nvidia-cusparse-cu11 cuquantum-cu11
+
+This example is for CUDA 11. Please replace cu11 to cu12 if your system has CUDA 12.
+
+Then to build with cuQuantum support, set the value `AER_PYTHON_CUDA_ROOT=<root of Python env>` as following example.
+
+    qiskit-aer$ python ./setup.py bdist_wheel -- -DAER_THRUST_BACKEND=CUDA -DAER_PYTHON_CUDA_ROOT=qiskit-aer-venv --
+
+
+If you want to link cuQuantum library statically, cuQuantum SDK and cuTENSOR should be installed in your system from NVIDIA®.
+Then set `CUQUANTUM_ROOT` `CUTENSOR_ROOT` and `CUQUANTUM_STATIC` to setup.py. 
 
 For example,
 
-    qiskit-aer$ python ./setup.py bdist_wheel -- -DAER_THRUST_BACKEND=CUDA -DCUQUANTUM_ROOT=path_to_cuQuantum -DCUTENSOR_ROOT=path_to_cuTENSOR -DAER_ENABLE_CUQUANTUM=true --
+    qiskit-aer$ python ./setup.py bdist_wheel -- -DAER_THRUST_BACKEND=CUDA -DCUQUANTUM_ROOT=path_to_cuQuantum -DCUTENSOR_ROOT=path_to_cuTENSOR -DAER_ENABLE_CUQUANTUM=true -DCUQUANTUM_STATIC=true --
 
-if you want to link cuQuantum library statically, set `CUQUANTUM_STATIC` to setup.py. 
-Otherwise you also have to set environmental variable LD_LIBRARY_PATH to indicate path to the cuQuantum libraries.
 
 To run with cuStateVec, set `device='GPU'` to AerSimulator option and set `cuStateVec_enable=True` to option in execute method.
 
@@ -731,7 +739,7 @@ AER_DISABLE_GDR=True
 
 For example,
 
-    qiskit-aer$ python ./setup.py bdist_wheel -- -DAER_MPI=True -DAER_DISABLE_GDR=True
+    qiskit-aer$ python ./setup.py bdist_wheel -- -DAER_MPI=True -DAER_DISABLE_GDR=True --
 
 ### Running with multiple-GPUs and/or multiple nodes
 

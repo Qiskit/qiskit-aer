@@ -40,7 +40,7 @@ class AerDensityMatrix(DensityMatrix):
                   AerDensityMatrix or QuantumCircuit or qiskit.circuit.Instruction):
                 Data from which the densitymatrix can be constructed. This can be either a complex
                 vector, another densitymatrix or statevector or a ``QuantumCircuit`` or
-                ``Instruction`` (``Operator`` is not supportted in the current implementation).
+                ``Instruction`` (``Operator`` is not supported in the current implementation).
                 If the data is a circuit or instruction, the densitymatrix is constructed by
                 assuming that all qubits are initialized to the zero state.
             dims (int or tuple or list): Optional. The subsystem dimension of
