@@ -1,0 +1,4 @@
+---
+features:
+  - |
+    `aer_apply_u3` is added to `aer_runtime_api.h`
