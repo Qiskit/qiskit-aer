@@ -434,6 +434,8 @@ public:
   // cuStateVec
   void cuStateVec_enable(bool flg) {}
 
+  void set_target_gpus(reg_t& t) {}
+
   //-----------------------------------------------------------------------
   // Optimization configuration settings
   //-----------------------------------------------------------------------
@@ -447,6 +449,7 @@ public:
   virtual bool enable_batch(bool flg) const { return false; }
 
   bool support_global_indexing(void) { return false; }
+  
 
 protected:
   //-----------------------------------------------------------------------

@@ -54,6 +54,8 @@ public:
   virtual void
   allocate_sampling_buffers(uint_t size = AER_TENSOR_NET_MAX_SAMPLING) = 0;
   virtual void deallocate_sampling_buffers(void) = 0;
+
+  virtual void set_target_gpus(reg_t& t) {}
 };
 
 template <typename data_t = double>

@@ -88,6 +88,7 @@ protected:
   size_t max_memory_mb_;
   size_t max_gpu_memory_mb_;
   int num_gpus_; // max number of GPU per process
+  reg_t target_gpus_;  //GPUs to be used
 
   // use explicit parallelization
   bool explicit_parallelization_;
@@ -291,6 +292,29 @@ void Executor<state_t>::set_config(const Config &config) {
   } else if (precision == "single") {
     sim_precision_ = Precision::Single;
   }
+
+  //set target GPUs
+#ifdef AER_THRUST_CUDA
+  int nDev = 0;
+  if (cudaGetDeviceCount(&nDev) != cudaSuccess) {
+    cudaGetLastError();
+    nDev = 0;
+  }
+#endif
+  if (config.target_gpus.has_value()) {
+    target_gpus_ = config.target_gpus.value();
+    if( nDev < target_gpus_.size()){
+      throw std::invalid_argument(
+        "target_gpus has more GPUs than available.");
+    }
+    num_gpus_ = target_gpus_.size();
+  }
+  else{
+    num_gpus_ = nDev;
+    target_gpus_.resize(num_gpus_);
+    for(int_t i=0;i<num_gpus_;i++)
+      target_gpus_[i] = i;
+  }
 }
 
 template <class state_t>
@@ -311,18 +335,12 @@ template <class state_t>
 size_t Executor<state_t>::get_gpu_memory_mb() {
   size_t total_physical_memory = 0;
 #ifdef AER_THRUST_CUDA
-  int iDev, nDev, j;
-  if (cudaGetDeviceCount(&nDev) != cudaSuccess) {
-    cudaGetLastError();
-    nDev = 0;
-  }
-  for (iDev = 0; iDev < nDev; iDev++) {
+  for (int_t iDev = 0; iDev < target_gpus_.size(); iDev++) {
     size_t freeMem, totalMem;
-    cudaSetDevice(iDev);
+    cudaSetDevice(target_gpus_[iDev]);
     cudaMemGetInfo(&freeMem, &totalMem);
     total_physical_memory += totalMem;
   }
-  num_gpus_ = nDev;
 #endif
 
 #ifdef AER_MPI
@@ -605,6 +623,8 @@ void Executor<state_t>::run_circuit(Circuit &circ,
     if (sim_device_ == Device::GPU)
       result.metadata.add(cuStateVec_enable_, "cuStateVec_enable");
 #endif
+    if (sim_device_ == Device::GPU)
+      result.metadata.add(target_gpus_, "target_gpus");
 
     // Add timer data
     auto timer_stop = myclock_t::now(); // stop timer

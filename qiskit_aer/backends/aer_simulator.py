@@ -170,6 +170,10 @@ class AerSimulator(AerBackend):
     If AerSimulator is built with cuStateVec support, cuStateVec APIs are enabled
     by setting ``cuStateVec_enable=True``.
 
+    * ``target_gpus`` (list): List of GPU's IDs starting from 0 sets
+      the target GPUs used for the simulation.
+      If this option is not specified, all the available GPUs are used for
+      chunks/shots distribution.
 
     **Additional Backend Options**
 

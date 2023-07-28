@@ -490,6 +490,7 @@ BACKEND_RUN_ARG_TYPES = {
     "use_cuTensorNet_autotuning": (bool, np.bool_),
     "parameterizations": (list),
     "fusion_parallelization_threshold": (int, np.integer),
+    "target_gpus": (list),
 }
 
 

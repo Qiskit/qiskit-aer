@@ -842,6 +842,7 @@ protected:
   int nprocs_ = 1;
   int myrank_ = 0;
 
+  reg_t target_gpus_;
 public:
   TensorNetContractor_cuTensorNet();
   ~TensorNetContractor_cuTensorNet();
@@ -872,6 +873,7 @@ public:
   allocate_sampling_buffers(uint_t size = AER_TENSOR_NET_MAX_SAMPLING) override;
   void deallocate_sampling_buffers(void) override;
 
+  void set_target_gpus(reg_t& t) override { target_gpus_ = t; }
 protected:
   void remove_additional_tensors(void);
 
@@ -903,10 +905,19 @@ void TensorNetContractor_cuTensorNet<data_t>::set_network(
   // allocate tensor data storage for each device
   if (cudaGetDeviceCount(&num_devices_) != cudaSuccess)
     cudaGetLastError();
+  if(target_gpus_.size() > 0){
+    num_devices_ = target_gpus_.size();
+  }
+  else{
+    target_gpus_.resize(num_devices_);
+    for (int_t i = 0; i < num_devices_; i++)
+      target_gpus_[i] = i;
+  }
+
   tensor_data_.clear();
   tensor_data_.resize(num_devices_);
   for (int_t i = 0; i < num_devices_; i++) {
-    tensor_data_[i].set_device(i);
+    tensor_data_[i].set_device(target_gpus_[i]);
   }
 
   // count number of tensors
@@ -1022,7 +1033,7 @@ void TensorNetContractor_cuTensorNet<data_t>::setup_contraction(
 
   // allocate work buffer on GPU
   if (!tensor_data_[0].work_allocated()) {
-    cudaSetDevice(0);
+    cudaSetDevice(target_gpus_[0]);
     HANDLE_CUDA_ERROR(cudaMemGetInfo(&freeMem, &totalMem));
     work_size = (freeMem / nid) * 0.9;
     tensor_data_[0].allocate_work(work_size);
@@ -1049,7 +1060,7 @@ void TensorNetContractor_cuTensorNet<data_t>::setup_contraction(
       if (ns > 0) {
         // setup for the device
         if (!tensor_data_[i].work_allocated()) {
-          cudaSetDevice(i);
+          cudaSetDevice(target_gpus_[i]);
           HANDLE_CUDA_ERROR(cudaMemGetInfo(&freeMem, &totalMem));
           work_size = (freeMem / nid) * 0.9;
           tensor_data_[i].allocate_work(work_size);

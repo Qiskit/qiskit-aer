@@ -444,6 +444,7 @@ public:
 
   bool support_global_indexing(void) { return (!cuStateVec_enable_); }
 
+  void set_target_gpus(reg_t& t) { target_gpus_ = t;}
   //-----------------------------------------------------------------------
   // Optimization configuration settings
   //-----------------------------------------------------------------------
@@ -473,6 +474,7 @@ protected:
   bool multi_chunk_distribution_;
   mutable bool enable_batch_;
   bool cuStateVec_enable_ = false;
+  reg_t target_gpus_;
 
   bool register_blocking_;
 
@@ -869,7 +871,7 @@ bool QubitVectorThrust<data_t>::chunk_setup(int chunk_bits, int num_qubits,
     chunk_manager_->set_num_creg_bits(num_creg_bits_ + num_cmem_bits_);
     chunk_manager_->Allocate(chunk_bits, num_qubits, num_local_chunks,
                              chunk_index_, max_matrix_bits_,
-                             is_density_matrix(), cuStateVec_enable_);
+                             is_density_matrix(), target_gpus_, cuStateVec_enable_);
   }
 
   multi_chunk_distribution_ = false;
@@ -896,6 +898,7 @@ bool QubitVectorThrust<data_t>::chunk_setup(
     const QubitVectorThrust<data_t> &base, const uint_t chunk_index) {
   multi_chunk_distribution_ = base.multi_chunk_distribution_;
   cuStateVec_enable_ = base.cuStateVec_enable_;
+  target_gpus_ = base.target_gpus_;
 
   // set global chunk ID / shot ID
   chunk_index_ = chunk_index;

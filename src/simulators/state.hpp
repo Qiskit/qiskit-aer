@@ -259,10 +259,16 @@ protected:
   uint_t num_global_qubits_; // used for chunk parallelization
 
   bool cuStateVec_enable_ = false;
+
+  reg_t target_gpus_;
 };
 
 void Base::set_config(const Config &config) {
   sim_device_name_ = config.device;
+
+  if (config.target_gpus.has_value()) {
+    target_gpus_ = config.target_gpus.value();
+  }
 }
 
 std::vector<reg_t> Base::sample_measure(const reg_t &qubits, uint_t shots,

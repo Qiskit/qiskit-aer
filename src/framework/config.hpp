@@ -170,6 +170,7 @@ struct Config {
   optional<uint_t> unitary_parallel_threshold;
   optional<uint_t> memory_blocking_bits;
   optional<uint_t> extended_stabilizer_norm_estimation_default_samples;
+  optional<reg_t>  target_gpus;
 
   void clear() {
     shots = 1024;
@@ -269,6 +270,7 @@ struct Config {
     unitary_parallel_threshold.clear();
     memory_blocking_bits.clear();
     extended_stabilizer_norm_estimation_default_samples.clear();
+    target_gpus.clear();
   }
 
   void merge(const Config &other) {
@@ -410,6 +412,8 @@ struct Config {
     if (other.extended_stabilizer_norm_estimation_default_samples.has_value())
       extended_stabilizer_norm_estimation_default_samples.value(
           other.extended_stabilizer_norm_estimation_default_samples.value());
+    if (other.target_gpus.has_value())
+      target_gpus.value(other.target_gpus.value());
   }
 };
 
@@ -524,6 +528,7 @@ inline void from_json(const json_t &js, Config &config) {
   get_value(config.memory_blocking_bits, "memory_blocking_bits", js);
   get_value(config.extended_stabilizer_norm_estimation_default_samples,
             "extended_stabilizer_norm_estimation_default_samples", js);
+  get_value(config.target_gpus, "target_gpus", js);
 }
 
 } // namespace AER
