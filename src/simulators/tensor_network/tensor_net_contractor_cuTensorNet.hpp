@@ -843,6 +843,7 @@ protected:
   int myrank_ = 0;
 
   reg_t target_gpus_;
+
 public:
   TensorNetContractor_cuTensorNet();
   ~TensorNetContractor_cuTensorNet();
@@ -873,7 +874,8 @@ public:
   allocate_sampling_buffers(uint_t size = AER_TENSOR_NET_MAX_SAMPLING) override;
   void deallocate_sampling_buffers(void) override;
 
-  void set_target_gpus(reg_t& t) override { target_gpus_ = t; }
+  void set_target_gpus(reg_t &t) override { target_gpus_ = t; }
+
 protected:
   void remove_additional_tensors(void);
 
@@ -905,10 +907,9 @@ void TensorNetContractor_cuTensorNet<data_t>::set_network(
   // allocate tensor data storage for each device
   if (cudaGetDeviceCount(&num_devices_) != cudaSuccess)
     cudaGetLastError();
-  if(target_gpus_.size() > 0){
+  if (target_gpus_.size() > 0) {
     num_devices_ = target_gpus_.size();
-  }
-  else{
+  } else {
     target_gpus_.resize(num_devices_);
     for (int_t i = 0; i < num_devices_; i++)
       target_gpus_[i] = i;
