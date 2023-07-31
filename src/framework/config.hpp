@@ -170,7 +170,7 @@ struct Config {
   optional<uint_t> unitary_parallel_threshold;
   optional<uint_t> memory_blocking_bits;
   optional<uint_t> extended_stabilizer_norm_estimation_default_samples;
-  optional<reg_t>  target_gpus;
+  optional<reg_t> target_gpus;
 
   void clear() {
     shots = 1024;
