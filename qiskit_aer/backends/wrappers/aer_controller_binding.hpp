@@ -410,12 +410,8 @@ void bind_aer_controller(MODULE m) {
       });
   aer_config.def_property(
       "target_gpus",
-      [](const Config &config) {
-        return config.target_gpus.val;
-      },
-      [](Config &config, reg_t val) {
-        config.target_gpus.value(val);
-      });
+      [](const Config &config) { return config.target_gpus.val; },
+      [](Config &config, reg_t val) { config.target_gpus.value(val); });
 
   aer_config.def(py::pickle(
       [](const AER::Config &config) {
@@ -501,8 +497,7 @@ void bind_aer_controller(MODULE m) {
             write_value(77, config.unitary_parallel_threshold),
             write_value(78, config.memory_blocking_bits),
             write_value(
-                79,
-                config.extended_stabilizer_norm_estimation_default_samples),
+                79, config.extended_stabilizer_norm_estimation_default_samples),
             write_value(80, config.shot_branching_enable),
             write_value(81, config.shot_branching_sampling_enable),
             write_value(82, config.target_gpus));
