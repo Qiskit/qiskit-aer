@@ -292,7 +292,6 @@ void Executor<state_t>::set_config(const Config &config) {
   } else if (precision == "single") {
     sim_precision_ = Precision::Single;
   }
-
   // set target GPUs
 #ifdef AER_THRUST_CUDA
   int nDev = 0;
