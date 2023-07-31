@@ -321,28 +321,24 @@ uint_t DeviceChunkContainer<data_t>::Allocate(int idev, int chunk_bits,
   set_device();
 
 #ifdef AER_THRUST_CUDA
-  if (!multi_shots) {
-    int ip, nd;
-    cudaGetDeviceCount(&nd);
-    peer_access_.resize(nd);
-    for (i = 0; i < nd; i++) {
-      ip = 1;
-      if (i != device_id_) {
-        cudaDeviceCanAccessPeer(&ip, device_id_, i);
-      }
-      if (ip) {
-        if (cudaDeviceEnablePeerAccess(i, 0) != cudaSuccess)
-          cudaGetLastError();
-        peer_access_[i] = true;
-      } else
-        peer_access_[i] = false;
+  int ip, nd;
+  cudaGetDeviceCount(&nd);
+  peer_access_.resize(nd);
+  for (i = 0; i < nd; i++) {
+    ip = 1;
+    if (i != device_id_) {
+      cudaDeviceCanAccessPeer(&ip, device_id_, i);
     }
-  } else {
-#endif
-    peer_access_.resize(1);
-    peer_access_[0] = true;
-#ifdef AER_THRUST_CUDA
+    if (ip) {
+      if (cudaDeviceEnablePeerAccess(i, 0) != cudaSuccess)
+        cudaGetLastError();
+      peer_access_[i] = true;
+    } else
+      peer_access_[i] = false;
   }
+#else
+  peer_access_.resize(1);
+  peer_access_[0] = true;
 #endif
 
   this->num_buffers_ = buffers;

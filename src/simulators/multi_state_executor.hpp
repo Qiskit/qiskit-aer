@@ -234,15 +234,15 @@ bool MultiStateExecutor<state_t>::allocate_states(uint_t num_shots,
   num_active_states_ = num_shots;
 
   // initialize groups
-  top_state_of_group_.resize(num_shots);
-  num_states_in_group_.resize(num_shots);
-  num_groups_ = num_shots;
+  top_state_of_group_.resize(1);
+  num_states_in_group_.resize(1);
+  num_groups_ = 1;
+  top_state_of_group_[0] = 0;
+  num_states_in_group_[0] = num_shots;
+
   for (i = 0; i < num_shots; i++) {
     states_[i].set_config(config);
     states_[i].set_num_global_qubits(num_qubits_);
-
-    top_state_of_group_[i] = i;
-    num_states_in_group_[i] = 1;
   }
 
   return ret;
@@ -315,7 +315,7 @@ void MultiStateExecutor<state_t>::run_circuit_shots(
 
   int_t par_shots;
   if (Base::sim_device_ == Device::GPU) {
-    par_shots = std::min((int_t)Base::parallel_shots_, (int_t)num_groups_);
+    par_shots = num_groups_;
   } else {
     par_shots =
         std::min((int_t)Base::parallel_shots_, (int_t)num_local_states_);
@@ -332,9 +332,15 @@ void MultiStateExecutor<state_t>::run_circuit_shots(
     nshots -= ishot;
 
     // state distribution
-    uint_t istate = i * num_active_states_ / par_shots;
-    uint_t nstates = (i + 1) * num_active_states_ / par_shots;
-    nstates -= istate;
+    uint_t istate, nstates;
+    if (Base::sim_device_ == Device::GPU) {
+      istate = top_state_of_group_[i];
+      nstates = num_states_in_group_[i];
+    } else {
+      istate = i * num_active_states_ / par_shots;
+      nstates = (i + 1) * num_active_states_ / par_shots;
+      nstates -= istate;
+    }
 
     if (nshots > 0) {
       if (sample_noise) {
@@ -422,6 +428,8 @@ void MultiStateExecutor<state_t>::run_circuit_with_shot_branching(
   }
 
   int_t par_shots = std::min(shot_branch_parallel_, (int_t)num_states);
+  if (par_shots == 0)
+    par_shots = 1;
 
   // initialize local shots
   std::vector<RngEngine> shots_storage(nshots);

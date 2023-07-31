@@ -541,9 +541,9 @@ Result Controller::execute(std::vector<std::shared_ptr<Circuit>> &circuits,
 
       // nested should be set to zero if num_threads clause will be used
 #if _OPENMP >= 200805
-      omp_set_max_active_levels(0);
+      omp_set_max_active_levels(2);
 #else
-      omp_set_nested(0);
+      omp_set_nested(1);
 #endif
 
       result.metadata.add(parallel_nested_, "omp_nested");

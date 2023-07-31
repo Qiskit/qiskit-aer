@@ -321,12 +321,9 @@ void State<unitary_matrix_t>::apply_op(const Operations::Op &op,
 template <class unitary_matrix_t>
 size_t State<unitary_matrix_t>::required_memory_mb(
     uint_t num_qubits, const std::vector<Operations::Op> &ops) const {
-  // An n-qubit unitary as 2^2n complex doubles
-  // where each complex double is 16 bytes
   (void)ops; // avoid unused variable compiler warning
-  size_t shift_mb = std::max<int_t>(0, num_qubits + 4 - 20);
-  size_t mem_mb = 1ULL << (2 * shift_mb);
-  return mem_mb;
+  unitary_matrix_t tmp;
+  return tmp.required_memory_mb(2 * num_qubits);
 }
 
 template <class unitary_matrix_t>

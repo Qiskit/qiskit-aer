@@ -434,7 +434,7 @@ public:
   // cuStateVec
   void cuStateVec_enable(bool flg) {}
 
-  void set_target_gpus(reg_t& t) {}
+  void set_target_gpus(reg_t &t) {}
 
   //-----------------------------------------------------------------------
   // Optimization configuration settings
@@ -449,7 +449,6 @@ public:
   virtual bool enable_batch(bool flg) const { return false; }
 
   bool support_global_indexing(void) { return false; }
-  
 
 protected:
   //-----------------------------------------------------------------------
@@ -971,6 +970,8 @@ size_t QubitVector<data_t>::required_memory_mb(uint_t num_qubits) const {
 
   size_t unit = std::log2(sizeof(std::complex<data_t>));
   size_t shift_mb = std::max<int_t>(0, num_qubits + unit - 20);
+  if (shift_mb >= 63)
+    return SIZE_MAX;
   size_t mem_mb = 1ULL << shift_mb;
   return mem_mb;
 }

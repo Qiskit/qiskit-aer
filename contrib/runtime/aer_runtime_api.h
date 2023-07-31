@@ -45,6 +45,9 @@ double complex aer_amplitude(void* state, uint_t outcome);
 // returned pointer must be freed in the caller
 double complex* aer_release_statevector(void* state);
 
+// u3 gate
+void aer_apply_u3(void* state, uint_t qubit, double theta, double phi, double lambda);
+
 // phase gate
 void aer_apply_p(void* state, uint_t qubit, double lambda);
 

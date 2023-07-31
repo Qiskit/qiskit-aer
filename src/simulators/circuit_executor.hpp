@@ -87,8 +87,8 @@ protected:
   int max_parallel_shots_;
   size_t max_memory_mb_;
   size_t max_gpu_memory_mb_;
-  int num_gpus_; // max number of GPU per process
-  reg_t target_gpus_;  //GPUs to be used
+  int num_gpus_;      // max number of GPU per process
+  reg_t target_gpus_; // GPUs to be used
 
   // use explicit parallelization
   bool explicit_parallelization_;
@@ -293,7 +293,7 @@ void Executor<state_t>::set_config(const Config &config) {
     sim_precision_ = Precision::Single;
   }
 
-  //set target GPUs
+  // set target GPUs
 #ifdef AER_THRUST_CUDA
   int nDev = 0;
   if (cudaGetDeviceCount(&nDev) != cudaSuccess) {
@@ -303,16 +303,14 @@ void Executor<state_t>::set_config(const Config &config) {
 #endif
   if (config.target_gpus.has_value()) {
     target_gpus_ = config.target_gpus.value();
-    if( nDev < target_gpus_.size()){
-      throw std::invalid_argument(
-        "target_gpus has more GPUs than available.");
+    if (nDev < target_gpus_.size()) {
+      throw std::invalid_argument("target_gpus has more GPUs than available.");
     }
     num_gpus_ = target_gpus_.size();
-  }
-  else{
+  } else {
     num_gpus_ = nDev;
     target_gpus_.resize(num_gpus_);
-    for(int_t i=0;i<num_gpus_;i++)
+    for (int_t i = 0; i < num_gpus_; i++)
       target_gpus_[i] = i;
   }
 }
