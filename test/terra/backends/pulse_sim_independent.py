@@ -4,8 +4,6 @@ Independent/manual construction and solving of DEs for verification of pulse sim
 
 import numpy as np
 from scipy.linalg import expm
-from qiskit_aer.pulse.de.DE_Methods import ScipyODE
-from qiskit_aer.pulse.de.DE_Options import DE_Options
 
 I = np.eye(2, dtype=complex)
 X = np.array([[0.0, 1.0], [1.0, 0.0]])
@@ -65,53 +63,6 @@ def generator_in_frame(drift, control_ops, chan_vals, diag_frame, t):
     U_inv = U.conj()
 
     return np.diag(U_inv) @ G @ np.diag(U)
-
-
-def simulate_system(y0, drift, control_ops, channel_freqs, channel_samples, dt, diag_frame):
-    """Simulate the DE y' = G(t) @ y, where G(t) = drift + a0(t) * A0 + ... + ak(t) Ak, where
-    control_ops = [A0, ..., Ak], and the aj(t) are the values of the signals specified
-    by channel_freqs, channel_samples, and dt
-
-    Args:
-        y0 (array): initial state
-        drift (array): 2d drift generator
-        control_ops (array): 3d array representing a list of control operators
-        channel_freqs (array): 1d array of channel frequencies
-        channel_samples (array): 2d array of channel samples, the first index being time step and
-                                 the second index indexing channel
-        dt (float): size of each sample
-        diag_frame (array): 1d array representing an already diagonalized frame operator
-                            assumed to be purely imaginary
-
-    Returns:
-        array: final state of the DE
-    """
-
-    # if all channel freqs are 0 simulate using matrix exponentiation
-    if all(channel_freqs == 0):
-        yf = y0
-        for t_idx in range(len(channel_samples)):
-            yf = expm(generator(drift, control_ops, channel_samples[t_idx]) * dt) @ yf
-
-        return yf
-
-    # else, simulate using standard ODE solver
-    else:
-        # set up rhs function in frame
-        def rhs(t, y):
-            chan_vals = channel_values(channel_freqs, channel_samples, dt, t)
-            gen = generator_in_frame(drift, control_ops, chan_vals, diag_frame, t)
-            return gen @ y
-
-        de_options = DE_Options(method="RK45")
-        ode_method = ScipyODE(t0=0.0, y0=y0, rhs=rhs, options=de_options)
-
-        T = len(channel_samples) * dt
-        ode_method.integrate(T)
-        yf = np.exp(diag_frame * T) * ode_method.y
-
-        return yf
-
 
 def simulate_1q_model(y0, q_freq, r, drive_freqs, drive_samples, dt):
     """Simulate a basic 1 qubit model H(t) = 2 pi q_freq Z / 2 + 2 pi r D(t) * X / 2,
