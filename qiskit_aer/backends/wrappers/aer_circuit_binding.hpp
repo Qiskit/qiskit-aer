@@ -62,6 +62,7 @@ void bind_aer_circuit(MODULE m) {
     return ss.str();
   });
 
+  aer_circuit.def_readwrite("circ_id", &Circuit::circ_id);
   aer_circuit.def_readwrite("shots", &Circuit::shots);
   aer_circuit.def_readwrite("num_qubits", &Circuit::num_qubits);
   aer_circuit.def_readwrite("num_memory", &Circuit::num_memory);

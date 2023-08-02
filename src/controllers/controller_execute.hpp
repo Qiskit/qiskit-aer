@@ -236,7 +236,7 @@ Result controller_execute(std::vector<std::shared_ptr<Circuit>> &input_circs,
   auto ret = controller.execute(circs, noise_model, config);
 
   for (size_t i = 0; i < ret.results.size(); ++i)
-    ret.results[i].circuit = template_circs[i];
+    ret.results[i].circ_id = template_circs[i]->circ_id;
 
   return ret;
 }

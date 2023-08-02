@@ -13,6 +13,7 @@
  */
 #include "controllers/state_controller.hpp"
 #include <cmath>
+#include <stdio.h>
 
 // initialize and return state
 extern "C" {
@@ -51,8 +52,7 @@ uint_t aer_allocate_qubits(void *handler, uint_t num_qubits) {
 // measure qubits
 uint_t aer_apply_measure(void *handler, uint_t *qubits_, size_t num_qubits) {
   AER::AerState *state = reinterpret_cast<AER::AerState *>(handler);
-  std::vector<uint_t> qubits;
-  qubits.insert(qubits.end(), &(qubits_[0]), &(qubits[num_qubits - 1]));
+  std::vector<uint_t> qubits(qubits_, qubits_ + num_qubits);
   return state->apply_measure(qubits);
 };
 
