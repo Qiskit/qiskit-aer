@@ -418,7 +418,6 @@ set(AER_COMPILER_DEFINITIONS ${AER_COMPILER_DEFINITIONS} ${CONAN_DEFINES})
 if(SKBUILD) # Terra Addon build
 	set(AER_LIBRARIES ${AER_LIBRARIES} AER_DEPENDENCY_PKG::muparserx)
 	add_subdirectory(qiskit_aer/backends/wrappers)
-	add_subdirectory(src/open_pulse)
 else() # Standalone build
 	set(AER_LIBRARIES
 		${AER_LIBRARIES}

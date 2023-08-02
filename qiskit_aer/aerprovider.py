@@ -13,7 +13,6 @@
 # pylint: disable=invalid-name
 """Provider for Qiskit Aer backends."""
 
-import warnings
 
 from qiskit.providers import ProviderV1 as Provider
 from qiskit.providers.providerutils import filter_backends
@@ -22,7 +21,6 @@ from .backends.aer_simulator import AerSimulator
 from .backends.qasm_simulator import QasmSimulator
 from .backends.statevector_simulator import StatevectorSimulator
 from .backends.unitary_simulator import UnitarySimulator
-from .backends.pulse_simulator import PulseSimulator
 
 
 class AerProvider(Provider):
@@ -57,21 +55,12 @@ class AerProvider(Provider):
                 ("qasm_simulator", QasmSimulator, None, None),
                 ("statevector_simulator", StatevectorSimulator, None, None),
                 ("unitary_simulator", UnitarySimulator, None, None),
-                ("pulse_simulator", PulseSimulator, None, None),
             ]
             AerProvider._BACKENDS = backends
 
         return AerProvider._BACKENDS
 
     def get_backend(self, name=None, **kwargs):
-        if name == "pulse_simulator":
-            warnings.warn(
-                "The Pulse simulator backend in Qiskit Aer is deprecated and will "
-                "be removed in a future release. Instead the qiskit-dynamics "
-                "library should be used instead for simulating at the pulse level.",
-                DeprecationWarning,
-                stacklevel=2,
-            )
         return super().get_backend(name=name, **kwargs)
 
     def backends(self, name=None, filters=None, **kwargs):

@@ -12,7 +12,6 @@ Qiskit Aer API Reference
     aer_library
     aer_noise
     aer_primitives
-    aer_pulse
     aer_utils
     aer_quantum_info
     circuit
