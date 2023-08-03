@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    A function ``aer_state_initialize()`` in C API wrongly takes no argument though
+    it initializes a state created by ``aer_state()``. Example codes pass ``handler``
+    and rouboustness of C compiler allows its compilation. This commit corrects for
+    ``aer_state_initialize()`` to take an argument ``handler`` to be initialized.

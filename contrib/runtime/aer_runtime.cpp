@@ -23,10 +23,9 @@ void *aer_state() {
   return handler;
 };
 
-void *aer_state_initialize(void *handler) {
+void aer_state_initialize(void *handler) {
   AER::AerState *state = reinterpret_cast<AER::AerState *>(handler);
   state->initialize();
-  return handler;
 };
 
 // finalize state
