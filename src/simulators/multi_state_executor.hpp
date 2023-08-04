@@ -736,12 +736,8 @@ void MultiStateExecutor<state_t>::measure_sampler(InputIterator first_meas,
                     meas_qubits.end());
 
   // Generate the samples
-  auto timer_start = myclock_t::now();
   std::vector<reg_t> all_samples;
   all_samples = sample_measure(state, meas_qubits, shots, rng);
-  auto time_taken =
-      std::chrono::duration<double>(myclock_t::now() - timer_start).count();
-  result.metadata.add(time_taken, "sample_measure_time");
 
   // Make qubit map of position in vector of measured qubits
   std::unordered_map<uint_t, uint_t> qubit_map;
@@ -767,9 +763,8 @@ void MultiStateExecutor<state_t>::measure_sampler(InputIterator first_meas,
       (memory_map.empty()) ? 0ULL : 1 + memory_map.rbegin()->first;
   uint_t num_registers =
       (register_map.empty()) ? 0ULL : 1 + register_map.rbegin()->first;
-  ClassicalRegister creg;
   for (int_t i = 0; i < all_samples.size(); i++) {
-    creg = state.creg();
+    ClassicalRegister creg = state.creg();
 
     // process memory bit measurements
     for (const auto &pair : memory_map) {
@@ -788,8 +783,7 @@ void MultiStateExecutor<state_t>::measure_sampler(InputIterator first_meas,
 
     // save creg to gather
     if (Base::num_process_per_experiment_ > 1) {
-      for (int_t j = 0; j < shots; j++)
-        cregs_[branch.shot_index() + j] = creg;
+      cregs_[branch.shot_index() + i] = creg;
     } else {
       std::string memory_hex = creg.memory_hex();
       result.data.add_accum(static_cast<uint_t>(1ULL), "counts", memory_hex);
