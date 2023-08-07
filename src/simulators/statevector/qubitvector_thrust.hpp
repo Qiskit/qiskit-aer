@@ -946,8 +946,9 @@ size_t QubitVectorThrust<data_t>::required_memory_mb(uint_t num_qubits) const {
 
   size_t unit = std::log2(sizeof(std::complex<data_t>));
   size_t shift_mb = std::max<int_t>(0, num_qubits + unit - 20);
+  if (shift_mb >= 63)
+    return SIZE_MAX;
   size_t mem_mb = 1ULL << shift_mb;
-
   return mem_mb;
 }
 

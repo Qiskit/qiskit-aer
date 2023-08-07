@@ -16,6 +16,7 @@ Tests for utility functions to create device noise model.
 
 from test.terra.common import QiskitAerTestCase
 
+from qiskit.providers import QubitProperties
 from qiskit.providers.fake_provider import FakeNairobi, FakeNairobiV2
 from qiskit_aer.noise.device.models import basic_device_gate_errors
 
@@ -32,6 +33,24 @@ class TestDeviceNoiseModel(QiskitAerTestCase):
         self.assertEqual(len(errors_on_measure), 0)
         self.assertEqual(len(errors_on_reset), 7)
         self.assertEqual(len(gate_errors), 40)
+
+    def test_basic_device_gate_errors_from_target_with_non_operational_qubits(self):
+        """Test if no thermal relaxation errors are generated for qubits with undefined T1 and T2."""
+        target = FakeNairobiV2().target
+        # tweak target to have non-operational qubits
+        faulty_qubits = (1, 2)
+        for q in faulty_qubits:
+            target.qubit_properties[q] = QubitProperties(t1=None, t2=None, frequency=0)
+        # build gate errors with only relaxation errors i.e. without depolarizing errors
+        gate_errors = basic_device_gate_errors(target=target, gate_error=False)
+        errors_on_sx = {qubits: error for name, qubits, error in gate_errors if name == "sx"}
+        errors_on_cx = {qubits: error for name, qubits, error in gate_errors if name == "cx"}
+        self.assertEqual(len(gate_errors), 40)
+        # check if no errors are added on sx gates on qubits without T1 and T2 definitions
+        for q in faulty_qubits:
+            self.assertTrue(errors_on_sx[(q,)].ideal())
+        # check if no error is added on cx gate on a qubit pair without T1 and T2 definitions
+        self.assertTrue(errors_on_cx[faulty_qubits].ideal())
 
     def test_basic_device_gate_errors_from_target_and_properties(self):
         """Test if the device same gate errors are produced both from target and properties"""

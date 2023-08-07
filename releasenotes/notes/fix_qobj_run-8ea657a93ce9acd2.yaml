@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Aer still supports Qobj as an argument of :meth:`~.AerSimulator.run` though
+    it was deprecated. However, since 0.12.0, it always fails if no ``run_options``
+    is specified. This fix enables simulation of Qobj without ``run_options``.

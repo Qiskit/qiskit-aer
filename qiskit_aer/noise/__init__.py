@@ -26,30 +26,72 @@ Building Noise Models
 
 The :class:`NoiseModel` class is used to represent noise model for the
 :class:`~qiskit_aer.QasmSimulator`. It can be used to construct
-custom noise models for simulator, to to automatically generate a basic
-device noise model for an IBMQ backend.
+custom noise models for simulator, to automatically generate a basic
+device noise model for an IBMQ or fake backend.
 
 
 Device Noise Models
 -------------------
 
 A simplified approximate :class:`NoiseModel` can be generated automatically
-from the properties of real device backends from the IBMQ provider using the
-:meth:`NoiseModel.from_backend` method. See the method documentation for
-details.
+from the properties of real device backends from the IBMQ provider or
+fake backends of the `fake_provider` using the :meth:`NoiseModel.from_backend`
+method. See the method documentation for details.
+
 
 **Example: Basic device noise model**
 
 .. code-block:: python
 
-    from qiskit import QuantumCircuit, execute
-    from qiskit import IBMQ, Aer
+    from qiskit import IBMQ
+    from qiskit.providers.aer.noise import NoiseModel
+    from qiskit import QuantumCircuit, transpile
+    from qiskit_aer import AerSimulator
     from qiskit.visualization import plot_histogram
     from qiskit_aer.noise import NoiseModel
 
-    # Build noise model from backend properties
+    # Make a circuit
+    circ = QuantumCircuit(3, 3)
+    circ.h(0)
+    circ.cx(0, 1)
+    circ.cx(1, 2)
+    circ.measure([0, 1, 2], [0, 1, 2])
+
+    # Get the noise model of ibmq_lima
     provider = IBMQ.load_account()
-    backend = provider.get_backend('ibmq_vigo')
+    provider = IBMQ.get_provider(hub='ibm-q', group='open', project='main')
+    backend_lima = provider.get_backend('ibmq_lima')
+    noise_model = NoiseModel.from_backend(backend_lima)
+
+    # Get coupling map from backend
+    coupling_map = backend_lima.configuration().coupling_map
+
+    # Get basis gates from noise model
+    basis_gates = noise_model.basis_gates
+
+    # Perform a noise simulation
+    backend = AerSimulator(noise_model=noise_model,
+                           coupling_map=coupling_map,
+                           basis_gates=basis_gates)
+    transpiled_circuit = transpile(circ, backend)
+    result = backend.run(transpiled_circuit).result()
+
+    counts = result.get_counts(0)
+    plot_histogram(counts)
+
+
+**Example: Basic device noise model using a `fake_provider` backend**
+
+.. code-block:: python
+
+    from qiskit import QuantumCircuit, transpile
+    from qiskit_aer import AerSimulator
+    from qiskit.visualization import plot_histogram
+    from qiskit_aer.noise import NoiseModel
+    from qiskit.providers.fake_provider import FakeVigo
+
+    # Build noise model from backend properties
+    backend = FakeVigo()
     noise_model = NoiseModel.from_backend(backend)
 
     # Get coupling map from backend
@@ -66,10 +108,12 @@ details.
     circ.measure([0, 1, 2], [0, 1, 2])
 
     # Perform a noise simulation
-    result = execute(circ, Aer.get_backend('qasm_simulator'),
-                     coupling_map=coupling_map,
-                     basis_gates=basis_gates,
-                     noise_model=noise_model).result()
+    backend = AerSimulator(noise_model=noise_model,
+                           coupling_map=coupling_map,
+                           basis_gates=basis_gates)
+    transpiled_circuit = transpile(circ, backend)
+    result = backend.run(transpiled_circuit).result()
+
     counts = result.get_counts(0)
     plot_histogram(counts)
 
@@ -88,8 +132,9 @@ documentation for the :class:`NoiseModel` class for additional details.
 
 .. code-block:: python
 
-    from qiskit import QuantumCircuit, execute, Aer
+    from qiskit import QuantumCircuit, transpile, Aer
     from qiskit.visualization import plot_histogram
+    from qiskit_aer import AerSimulator
     import qiskit_aer.noise as noise
 
     # Error probabilities
@@ -116,11 +161,15 @@ documentation for the :class:`NoiseModel` class for additional details.
     circ.measure([0, 1, 2], [0, 1, 2])
 
     # Perform a noise simulation
-    result = execute(circ, Aer.get_backend('qasm_simulator'),
-                     basis_gates=basis_gates,
-                     noise_model=noise_model).result()
+    backend = AerSimulator(noise_model=noise_model,
+                           coupling_map=coupling_map,
+                           basis_gates=basis_gates)
+    transpiled_circuit = transpile(circ, backend)
+    result = backend.run(transpiled_circuit).result()
+
     counts = result.get_counts(0)
     plot_histogram(counts)
+
 
 Classes
 =======

@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    When BLAS calls are failed, because omp threads do not handle exceptions,
+    Aer crashes without any error messages. This fix is for omp threads to catch
+    exceptions correctly and then rethrow them outside of omp loops.

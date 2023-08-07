@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    :meth:``QuantumCircuit.save_statevector()`` does not work if the circuit
+    is generated from OpenQASM3 text because its quantum registers have duplicated
+    qubit instances. With this commit, :meth:``QuantumCircuit.save_statevector()``
+    uses :data:``QuantumCircuit.qubits`` to get qubits to be saved.

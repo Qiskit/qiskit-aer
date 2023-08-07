@@ -426,6 +426,66 @@ class TestParameterizedQobj(common.QiskitAerTestCase):
         self.assertSuccess(res)
         self.assertEqual(res.get_counts(), {"111": 1024})
 
+    def test_parameters_with_conditional(self):
+        """Test parameterized circuit path with conditional"""
+        backend = AerSimulator()
+        circuit = QuantumCircuit(3, 3)
+        theta = Parameter("theta")
+        phi = Parameter("phi")
+        circuit.rx(theta, 0).c_if(1, False)
+        circuit.rx(theta, 1).c_if(2, False)
+        circuit.rx(theta, 2).c_if(0, False)
+        circuit.rx(phi, 0)
+        circuit.rx(phi, 1)
+        circuit.rx(phi, 2)
+        circuit.measure_all()
+
+        parameter_binds = [{theta: [pi / 2], phi: [pi / 2]}]
+        res = backend.run([circuit], shots=1024, parameter_binds=parameter_binds).result()
+
+        self.assertSuccess(res)
+        self.assertEqual(res.get_counts(), {"111 000": 1024})
+
+    def test_check_parameter_binds_exist(self):
+        """Test parameter_binds exists to simulate parameterized circuits"""
+
+        shots = 1000
+        backend = AerSimulator()
+        circuit = QuantumCircuit(2)
+        theta = Parameter("theta")
+        circuit.rx(theta, 0)
+        circuit.cx(0, 1)
+        circuit.measure_all()
+        with self.assertRaises(AerError):
+            res = backend.run(circuit, shots=shots).result()
+
+    def test_global_phase_parameters(self):
+        """Test parameterized global phase"""
+        backend = AerSimulator(method="extended_stabilizer")
+
+        theta = Parameter("theta")
+        circ = QuantumCircuit(2)
+        circ.ry(theta, 0)
+        circ.ry(theta, 1)
+        circ.measure_all()
+
+        circ = transpile(circ, backend)
+
+        parameter_binds = [{theta: [1, 2, 3]}]
+        res = backend.run(
+            [circ], shots=10, parameter_binds=parameter_binds, seed_simulator=100
+        ).result()
+
+        self.assertSuccess(res)
+
+        circs = []
+        for v in [1, 2, 3]:
+            circs.append(circ.bind_parameters({theta: v}))
+
+        expected = backend.run(circs, shots=10, seed_simulator=100).result()
+
+        self.assertEqual(res.get_counts(), expected.get_counts())
+
 
 if __name__ == "__main__":
     unittest.main()
