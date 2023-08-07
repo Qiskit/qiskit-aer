@@ -542,7 +542,9 @@ void MPS::apply_swap_internal(uint_t index_A, uint_t index_B, bool swap_gate) {
     // to the left
     std::swap(qubit_ordering_.order_[index_A], qubit_ordering_.order_[index_B]);
     // For logging purposes:
+#ifdef DEBUG
     print_to_log_internal_swap(index_A, index_B);
+#endif
 
     // update qubit locations after all the swaps
     for (uint_t i = 0; i < num_qubits_; i++)
@@ -664,8 +666,10 @@ void MPS::common_apply_2_qubit_gate(
   rvector_t lambda;
   double discarded_value =
       MPS_Tensor::Decompose(temp, left_gamma, lambda, right_gamma);
+#ifdef DEBUG
   if (discarded_value > json_chop_threshold_)
     MPS::print_to_log("discarded_value=", discarded_value, ", ");
+#endif
 
   if (A != 0)
     left_gamma.div_Gamma_by_left_Lambda(lambda_reg_[A - 1]);
@@ -1786,7 +1790,12 @@ void MPS::initialize_from_matrix(uint_t num_qubits, const cmatrix_t &mat) {
     if (first_iter) {
       remaining_matrix = mat;
     } else {
-      cmatrix_t temp = mul_matrix_by_lambda(V, S);
+      cmatrix_t temp;
+      if (getenv("QISKIT_LAPACK_SVD")) {
+        temp = mul_matrix_by_lambda(AER::Utils::dagger(V), S);
+      } else {
+        temp = mul_matrix_by_lambda(V, S);
+      }
       remaining_matrix = AER::Utils::dagger(temp);
     }
     reshaped_matrix = reshape_matrix(remaining_matrix);
@@ -1811,7 +1820,12 @@ void MPS::initialize_from_matrix(uint_t num_qubits, const cmatrix_t &mat) {
     first_iter = false;
   }
   // step 4 - create the rightmost gamma and update q_reg_
-  std::vector<cmatrix_t> right_data = reshape_V_after_SVD(V);
+  std::vector<cmatrix_t> right_data;
+  if (getenv("QISKIT_LAPACK_SVD")) {
+    right_data = reshape_VH_after_SVD(V);
+  } else {
+    right_data = reshape_V_after_SVD(V);
+  }
 
   MPS_Tensor right_gamma(right_data[0], right_data[1]);
   q_reg_.push_back(right_gamma);
