@@ -208,7 +208,6 @@ class AerSimulator(AerBackend):
       qubits which do not affect the simulation outcome from the simulated
       circuits (Default: True).
 
-
     * ``zero_threshold`` (double): Sets the threshold for truncating
       small values to zero in the result data (Default: 1e-10).
 
@@ -288,6 +287,9 @@ class AerSimulator(AerBackend):
       threads per GPU. This parameter is used to optimize Pauli noise
       simulation with multiple-GPUs (Default: 1).
 
+    * ``accept_distributed_results`` (bool): This option enables storing
+      results independently in each process (Default: None).
+
     These backend options only apply when using the ``"statevector"``
     simulation method:
 
@@ -308,9 +310,7 @@ class AerSimulator(AerBackend):
     simulation method:
 
     * ``stabilizer_max_snapshot_probabilities`` (int): set the maximum
-      qubit number for the
-      `~qiskit_aer.extensions.SnapshotProbabilities`
-      instruction (Default: 32).
+      qubit number for the :class:`~qiskit_aer.library.SaveProbabilities` instruction (Default: 32).
 
     These backend options only apply when using the ``"extended_stabilizer"``
     simulation method:
@@ -406,6 +406,13 @@ class AerSimulator(AerBackend):
       qubits when internal swaps are inserted for a 2-qubit gate.
       Possible values are "mps_swap_right" and "mps_swap_left".
       (Default: "mps_swap_left")
+
+    * ``chop_threshold`` (float): This option sets a threshold for
+      truncating snapshots (Default: 1e-8).
+
+    * ``mps_parallel_threshold`` (int): This option sets OMP number threshold (Default: 14).
+
+    * ``mps_omp_threads`` (int): This option sets the number of OMP threads (Default: 1).
 
     These backend options only apply when using the ``tensor_network``
     simulation method:
@@ -940,5 +947,9 @@ class AerSimulator(AerBackend):
             # Clear options to default
             description = None
             n_qubits = None
+
+        if self._configuration.coupling_map:
+            n_qubits = max(list(map(max, self._configuration.coupling_map))) + 1
+
         self._set_configuration_option("description", description)
         self._set_configuration_option("n_qubits", n_qubits)

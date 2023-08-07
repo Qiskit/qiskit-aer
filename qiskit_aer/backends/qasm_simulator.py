@@ -200,9 +200,7 @@ class QasmSimulator(AerBackend):
     simulation method:
 
     * ``stabilizer_max_snapshot_probabilities`` (int): set the maximum
-      qubit number for the
-      `~qiskit_aer.extensions.SnapshotProbabilities`
-      instruction (Default: 32).
+      qubit number for the :class:`~qiskit_aer.library.SaveProbabilities` instruction (Default: 32).
 
     These backend options only apply when using the ``"extended_stabilizer"``
     simulation method:
