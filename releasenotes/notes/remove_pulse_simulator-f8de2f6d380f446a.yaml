@@ -1,0 +1,6 @@
+---
+upgrade:
+  - |
+    Qiskit Aer 0.13 has dropped support for ``PulseSimulator`` following deprecation warnings started in
+    Qiskit Aer 0.12. Use Qiskit Dynamics to run pulse-level simulation.
+    https://qiskit.org/ecosystem/dynamics/

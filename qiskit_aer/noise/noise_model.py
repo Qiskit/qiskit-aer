@@ -435,8 +435,8 @@ class NoiseModel:
                 t1s = [prop.t1 for prop in all_qubit_properties]
                 t2s = [_truncate_t2_value(prop.t1, prop.t2) for prop in all_qubit_properties]
                 delay_pass = RelaxationNoisePass(
-                    t1s=t1s,
-                    t2s=t2s,
+                    t1s=[np.inf if x is None else x for x in t1s],  # replace None with np.inf
+                    t2s=[np.inf if x is None else x for x in t2s],  # replace None with np.inf
                     dt=dt,
                     op_types=Delay,
                     excited_state_populations=excited_state_populations,
@@ -474,10 +474,14 @@ class NoiseModel:
         Args:
             backend_properties (BackendProperties): The property of backend.
             gate_error (Bool): Include depolarizing gate errors (Default: True).
-            readout_error (Bool): Include readout errors in model
-                                  (Default: True).
-            thermal_relaxation (Bool): Include thermal relaxation errors
-                                       (Default: True).
+            readout_error (Bool): Include readout errors in model (Default: True).
+            thermal_relaxation (Bool): Include thermal relaxation errors (Default: True).
+                If no ``t1`` and ``t2`` values are provided (i.e. None) in ``target`` for a qubit,
+                an identity ``QuantumError` (i.e. effectively no thermal relaxation error)
+                will be added to the qubit even if this flag is set to True.
+                If no ``frequency`` is not defined (i.e. None) in ``target`` for a qubit,
+                no excitation is considered in the thermal relaxation error on the qubit
+                even with non-zero ``temperature``.
             temperature (double): qubit temperature in milli-Kelvin (mK) for
                                   thermal relaxation errors (Default: 0).
             gate_lengths (Optional[list]): Custom gate times for thermal relaxation errors.
