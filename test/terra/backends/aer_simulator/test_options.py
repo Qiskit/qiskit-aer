@@ -302,3 +302,40 @@ class TestOptions(SimulatorTestCase):
         num_qubits = FakeMontreal().configuration().num_qubits
         backend = AerSimulator.from_backend(FakeMontreal(), method=method)
         self.assertGreaterEqual(backend.configuration().num_qubits, num_qubits)
+
+    def test_mps_svd_method(self):
+        """Test env. variabe to change MPS SVD method"""
+        # based on test_mps_options test
+        import os
+        shots = 4000
+        method = "matrix_product_state"
+        backend_swap = self.backend(method=method)
+
+        n = 10
+        circuit = QuantumCircuit(n)
+        for times in range(2):
+            for i in range(0, n, 2):
+                circuit.unitary(random_unitary(4), [i, i + 1])
+            for i in range(1, n - 1):
+                circuit.cx(0, i)
+        circuit.save_statevector("sv")
+
+        result_swap = backend_swap.run(circuit, shots=shots).result()
+        original_sv = result_swap.data(0)["sv"]
+
+        # run with lapack svd method
+        os.environ["QISKIT_LAPACK_SVD"] = "1"
+        result_swap = backend_swap.run(circuit, shots=shots).result()
+        lapack_sv = result_swap.data(0)["sv"]
+
+        # run with lapack svd D&C approach
+        os.environ["QISKIT_LAPACK_SVD"] = "DC"
+        result_swap = backend_swap.run(circuit, shots=shots).result()
+        lapack_dc_sv = result_swap.data(0)["sv"]
+        os.unsetenv("QISKIT_LAPACK_SVD")
+
+        # should give the same state vector
+        self.assertAlmostEqual(state_fidelity(original_sv, lapack_sv), 1.0)
+
+        # should give the same state vector
+        self.assertAlmostEqual(state_fidelity(original_sv, lapack_dc_sv), 1.0)
