@@ -123,12 +123,14 @@ class TestAlgorithms(SimulatorTestCase):
         for i in range(1, nqubits):
             circ.cx(i - 1, i)
         circ.measure_all()
-        circ = transpile(circ, backend)
+        # circ = transpile(circ, backend)
 
         target = {
             nqubits * "0": shots * (0.5 + sqrt(2) / 4.0),
             nqubits * "1": shots * (0.5 - sqrt(2) / 4.0),
         }
+        print(circ)
         result = backend.run(circ, shots=shots).result()
+        print(result)
         self.assertSuccess(result)
         self.compare_counts(result, [circ], [target], hex_counts=False, delta=0.1 * shots)
