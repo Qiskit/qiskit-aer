@@ -1,0 +1,11 @@
+---
+fixes:
+  - |
+    OpenMP parallel nested was not correctly set when number of input circuits
+    is less than number of threads.
+    Also parallel state update was not correctly set if number of input circuits
+    is more than 1.
+    This release fixes these settings to get more speed up with OpenMP.
+    For single circuit with multiple-shots run, when nested parallel is used
+    `omp_nested=True` is set in the metadata of result for a circuit.
+
