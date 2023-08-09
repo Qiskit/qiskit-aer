@@ -58,6 +58,7 @@ protected:
   uint_t num_creg_bits_ = 0;
 
   reg_t target_gpus_;
+
 public:
   ChunkManager();
 
@@ -72,7 +73,7 @@ public:
 
   uint_t Allocate(int chunk_bits, int nqubits, uint_t nchunks,
                   uint_t chunk_index, int matrix_bit, bool density_mat,
-                  reg_t& gpus, bool enable_cuStatevec);
+                  reg_t &gpus, bool enable_cuStatevec);
   void Free(void);
 
   int num_devices(void) { return num_devices_; }
@@ -161,8 +162,7 @@ template <typename data_t>
 uint_t ChunkManager<data_t>::Allocate(int chunk_bits, int nqubits,
                                       uint_t nchunks, uint_t chunk_index,
                                       int matrix_bit, bool density_mat,
-                                      reg_t& gpus, bool enable_cuStatevec) 
-{
+                                      reg_t &gpus, bool enable_cuStatevec) {
   uint_t num_buffers;
   int iDev;
   uint_t is, ie, nc;
@@ -186,14 +186,13 @@ uint_t ChunkManager<data_t>::Allocate(int chunk_bits, int nqubits,
 
   enable_cuStatevec_ = enable_cuStatevec;
   target_gpus_ = gpus;
-  if(target_gpus_.size() > 0){
+  if (target_gpus_.size() > 0) {
     num_devices_ = target_gpus_.size();
-    if(num_devices_ > 1)
+    if (num_devices_ > 1)
       multi_gpu = true;
-  }
-  else{
+  } else {
     target_gpus_.resize(num_devices_);
-    for(iDev=0;iDev<num_devices_;iDev++){
+    for (iDev = 0; iDev < num_devices_; iDev++) {
       target_gpus_[iDev] = iDev;
     }
   }
@@ -309,12 +308,12 @@ uint_t ChunkManager<data_t>::Allocate(int chunk_bits, int nqubits,
           chunk_index_ +
           chunks_allocated); // set first chunk index for the container
       chunks_[iDev]->set_num_creg_bits(num_creg_bits_);
-      if (num_devices_ > 0){
+      if (num_devices_ > 0) {
         int id = target_gpus_[(iDev + idev_start) % num_devices_];
-        chunks_allocated += chunks_[iDev]->Allocate(id, chunk_bits, nqubits,
-            nc, num_buffers, multi_shots_, matrix_bit, density_matrix_);
-      }
-      else{
+        chunks_allocated +=
+            chunks_[iDev]->Allocate(id, chunk_bits, nqubits, nc, num_buffers,
+                                    multi_shots_, matrix_bit, density_matrix_);
+      } else {
         chunks_allocated +=
             chunks_[iDev]->Allocate(iDev, chunk_bits, nqubits, nc, num_buffers,
                                     multi_shots_, matrix_bit, density_matrix_);
