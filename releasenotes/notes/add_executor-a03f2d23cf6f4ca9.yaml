@@ -23,3 +23,8 @@ features:
     And by setting ``shot_branching_sampling_enable``, final measures will be
     done by sampling measure that will speed up to get counts for multiple shots
     sharing the same state.
+  - |
+    A new option ``target_gpus`` is added to select GPUs used for the
+    simulation. A list of target GPU's ID is passed for example
+    ``target_gpus=[0, 2]`` select 2 GPUs to be used.
+    Without this option, all the available GPUs are used.
