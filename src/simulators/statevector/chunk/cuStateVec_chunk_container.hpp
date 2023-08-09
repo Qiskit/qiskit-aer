@@ -142,7 +142,7 @@ uint_t cuStateVecChunkContainer<data_t>::Allocate(
     throw std::runtime_error(str.str());
   }
 
-  err = custatevecSetStream(custatevec_handle_, BaseContainer::stream_);
+  err = custatevecSetStream(custatevec_handle_, BaseContainer::stream(0));
   if (err != CUSTATEVEC_STATUS_SUCCESS) {
     std::stringstream str;
     str << "cuStateVecChunkContainer::allocate::custatevecSetStream : "
@@ -214,13 +214,13 @@ reg_t cuStateVecChunkContainer<data_t>::sample_measure(
     reg_t samples(SHOTS, 0);
 
     BaseContainer::set_device();
-    custatevecSetStream(custatevec_handle_, BaseContainer::stream_);
+    custatevecSetStream(custatevec_handle_, BaseContainer::stream(0));
 
     custatevecStatus_t err;
     custatevecSamplerDescriptor_t sampler;
     size_t extSize;
 
-    cudaStreamSynchronize(BaseContainer::stream_);
+    cudaStreamSynchronize(BaseContainer::stream(0));
 
     cudaDataType_t state_type;
     if (sizeof(data_t) == sizeof(double))

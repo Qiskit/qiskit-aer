@@ -174,11 +174,11 @@ public:
   virtual thrust::complex<data_t> Get(uint_t i) const = 0;
 
   virtual void StoreMatrix(const std::vector<std::complex<double>> &mat,
-                           uint_t iChunk) = 0;
+                           uint_t iChunk) const = 0;
   virtual void StoreMatrix(const std::complex<double> *mat, uint_t iChunk,
-                           uint_t size) = 0;
+                           uint_t size) const = 0;
   virtual void StoreUintParams(const std::vector<uint_t> &prm,
-                               uint_t iChunk) = 0;
+                               uint_t iChunk) const = 0;
   virtual void ResizeMatrixBuffers(int bits) = 0;
 
   virtual void CopyIn(Chunk<data_t> &src, uint_t iChunk) = 0;
@@ -309,6 +309,11 @@ public:
   // get probabilities of chunk
   virtual void probabilities(std::vector<double> &probs, const uint_t iChunk,
                              const reg_t &qubits) const;
+
+  // get norm of matrix multiplication
+  virtual double expval_matrix(const uint_t iChunk, const reg_t &qubits,
+                               const cvector_t<double> &mat,
+                               const uint_t count) const;
 
   // Pauli expectation values
   virtual double expval_pauli(const uint_t iChunk, const reg_t &qubits,
@@ -1005,6 +1010,32 @@ double ChunkContainer<data_t>::trace(uint_t iChunk, uint_t row,
                                      uint_t count) const {
   double ret;
   ExecuteSum(&ret, trace_func<data_t>(row), iChunk, count);
+
+  return ret;
+}
+
+template <typename data_t>
+double ChunkContainer<data_t>::expval_matrix(const uint_t iChunk,
+                                             const reg_t &qubits,
+                                             const cvector_t<double> &mat,
+                                             const uint_t count) const {
+  double ret;
+  const size_t N = qubits.size();
+
+  if (N == 1)
+    ExecuteSum(&ret, NormMatrixMult2x2<data_t>(mat, qubits[0]), iChunk, count);
+  else {
+    auto qubits_sorted = qubits;
+    std::sort(qubits_sorted.begin(), qubits_sorted.end());
+    for (int_t i = 0; i < N; i++) {
+      qubits_sorted.push_back(qubits[i]);
+    }
+
+    StoreMatrix(mat, iChunk);
+    StoreUintParams(qubits_sorted, iChunk);
+
+    ExecuteSum(&ret, NormMatrixMultNxN<data_t>(N), iChunk, count);
+  }
 
   return ret;
 }
