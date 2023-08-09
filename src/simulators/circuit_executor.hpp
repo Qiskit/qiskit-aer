@@ -300,7 +300,6 @@ void Executor<state_t>::set_config(const Config &config) {
     cudaGetLastError();
     nDev = 0;
   }
-#endif
   if (config.target_gpus.has_value()) {
     target_gpus_ = config.target_gpus.value();
     if (nDev < target_gpus_.size()) {
@@ -313,6 +312,7 @@ void Executor<state_t>::set_config(const Config &config) {
     for (int_t i = 0; i < num_gpus_; i++)
       target_gpus_[i] = i;
   }
+#endif
 }
 
 template <class state_t>
