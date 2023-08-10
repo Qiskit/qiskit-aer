@@ -307,6 +307,7 @@ class TestOptions(SimulatorTestCase):
         """Test env. variabe to change MPS SVD method"""
         # based on test_mps_options test
         import os
+
         shots = 4000
         method = "matrix_product_state"
         backend_swap = self.backend(method=method)

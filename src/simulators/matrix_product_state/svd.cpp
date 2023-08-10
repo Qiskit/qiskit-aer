@@ -65,8 +65,7 @@ std::vector<cmatrix_t> reshape_V_after_SVD(const cmatrix_t V) {
   AER::Utils::split(AER::Utils::dagger(V), Res[0], Res[1], 1);
   return Res;
 }
-std::vector<cmatrix_t> reshape_VH_after_SVD(const cmatrix_t V)
-{
+std::vector<cmatrix_t> reshape_VH_after_SVD(const cmatrix_t V) {
   std::vector<cmatrix_t> Res(2);
   AER::Utils::split(V, Res[0], Res[1], 1);
   return Res;
@@ -538,7 +537,8 @@ void csvd_wrapper(cmatrix_t &A, cmatrix_t &U, rvector_t &S, cmatrix_t &V) {
   }
 }
 
-void qiskit_csvd_wrapper(cmatrix_t &A, cmatrix_t &U, rvector_t &S, cmatrix_t &V) {
+void qiskit_csvd_wrapper(cmatrix_t &A, cmatrix_t &U, rvector_t &S,
+                         cmatrix_t &V) {
   cmatrix_t copied_A = A;
   int times = 0;
 #ifdef DEBUG
@@ -571,8 +571,8 @@ void qiskit_csvd_wrapper(cmatrix_t &A, cmatrix_t &U, rvector_t &S, cmatrix_t &V)
     S[k] /= pow(mul_factor, times);
 }
 
-void lapack_csvd_wrapper(cmatrix_t &A, cmatrix_t &U, rvector_t &S, cmatrix_t &V)
-{
+void lapack_csvd_wrapper(cmatrix_t &A, cmatrix_t &U, rvector_t &S,
+                         cmatrix_t &V) {
 #ifdef DEBUG
   cmatrix_t tempA = A;
 #endif
@@ -585,51 +585,43 @@ void lapack_csvd_wrapper(cmatrix_t &A, cmatrix_t &U, rvector_t &S, cmatrix_t &V)
   U.resize(m, m);
   V.resize(n, n);
 
-  complex_t *lapackA = A.move_to_buffer(),
-      *lapackU = U.move_to_buffer(),
-      *lapackV = V.move_to_buffer();
+  complex_t *lapackA = A.move_to_buffer(), *lapackU = U.move_to_buffer(),
+            *lapackV = V.move_to_buffer();
 
   double lapackS[min_dim];
   complex_t work[lwork];
   int info;
 
   if (strcmp(getenv("QISKIT_LAPACK_SVD"), "DC") == 0) {
-    int iwork[8*min_dim];
-    int rwork_size = std::max(
-        5*min_dim*min_dim + 5*min_dim,
-        2*m*n + 2*min_dim*min_dim + min_dim);
+    int iwork[8 * min_dim];
+    int rwork_size = std::max(5 * min_dim * min_dim + 5 * min_dim,
+                              2 * m * n + 2 * min_dim * min_dim + min_dim);
 
-    double *rwork = (double*)calloc(rwork_size, sizeof(double));
+    double *rwork = (double *)calloc(rwork_size, sizeof(double));
     lwork = -1;
-    zgesdd_(
-      "A", &m, &n, lapackA, &m, lapackS,
-      lapackU, &m, lapackV, &n, work, &lwork,
-      rwork, iwork, &info);
+    zgesdd_("A", &m, &n, lapackA, &m, lapackS, lapackU, &m, lapackV, &n, work,
+            &lwork, rwork, iwork, &info);
 
     lwork = (int)work[0].real();
-    complex_t *work_= (complex_t*)calloc(lwork, sizeof(complex_t));
+    complex_t *work_ = (complex_t *)calloc(lwork, sizeof(complex_t));
 
-    zgesdd_(
-      "A", &m, &n, lapackA, &m, lapackS,
-      lapackU, &m, lapackV, &n, work_, &lwork,
-      rwork, iwork, &info);
+    zgesdd_("A", &m, &n, lapackA, &m, lapackS, lapackU, &m, lapackV, &n, work_,
+            &lwork, rwork, iwork, &info);
 
     free(rwork);
     free(work_);
   } else {
     // Default execution follows original method
-    double rwork[5*min_dim] = {0.0};
-    zgesvd_(
-      "A", "A", &m, &n, lapackA, &m, lapackS,
-      lapackU, &m, lapackV, &n, work, &lwork,
-      rwork, &info);
+    double rwork[5 * min_dim] = {0.0};
+    zgesvd_("A", "A", &m, &n, lapackA, &m, lapackS, lapackU, &m, lapackV, &n,
+            work, &lwork, rwork, &info);
   }
   A = cmatrix_t::move_from_buffer(m, n, lapackA);
   U = cmatrix_t::move_from_buffer(m, m, lapackU);
   V = cmatrix_t::move_from_buffer(n, n, lapackV);
 
   S.clear();
-  for (int i = 0; i<min_dim; i++)
+  for (int i = 0; i < min_dim; i++)
     S.push_back(lapackS[i]);
 
 #ifdef DEBUG
@@ -644,6 +636,5 @@ void lapack_csvd_wrapper(cmatrix_t &A, cmatrix_t &U, rvector_t &S, cmatrix_t &V)
     throw std::runtime_error(ss.str());
   }
 }
-
 
 } // namespace AER

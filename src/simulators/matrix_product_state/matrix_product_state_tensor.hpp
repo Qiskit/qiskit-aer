@@ -604,7 +604,7 @@ double MPS_Tensor::Decompose(MPS_Tensor &temp, MPS_Tensor &left_gamma,
   left_gamma.data_ = reshape_U_after_SVD(U);
   lambda = S;
   if (getenv("QISKIT_LAPACK_SVD")) {
-      right_gamma.data_ = reshape_VH_after_SVD(V);
+    right_gamma.data_ = reshape_VH_after_SVD(V);
   } else {
     right_gamma.data_ = reshape_V_after_SVD(V);
   }
