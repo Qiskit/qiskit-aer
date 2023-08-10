@@ -15,13 +15,12 @@
 #ifndef SVD_HPP_
 #define SVD_HPP_
 
+#include "framework/lapack_protos.hpp"
 #include "framework/types.hpp"
 #include "framework/utils.hpp"
-#include "framework/lapack_protos.hpp"
 
 #include <complex>
 #include <vector>
-
 
 #define CHOP_THRESHOLD 1e-16
 
@@ -43,9 +42,11 @@ status csvd(cmatrix_t &C, cmatrix_t &U, rvector_t &S, cmatrix_t &V);
 // Entry point for the SVD calculation
 void csvd_wrapper(cmatrix_t &C, cmatrix_t &U, rvector_t &S, cmatrix_t &V);
 // Original qiskit call
-void qiskit_csvd_wrapper(cmatrix_t &C, cmatrix_t &U, rvector_t &S, cmatrix_t &V);
+void qiskit_csvd_wrapper(cmatrix_t &C, cmatrix_t &U, rvector_t &S,
+                         cmatrix_t &V);
 // Lapack call
-void lapack_csvd_wrapper(cmatrix_t &C, cmatrix_t &U, rvector_t &S, cmatrix_t &V);
+void lapack_csvd_wrapper(cmatrix_t &C, cmatrix_t &U, rvector_t &S,
+                         cmatrix_t &V);
 
 void validate_SVD_result(const cmatrix_t &A, const cmatrix_t &U,
                          const rvector_t &S, const cmatrix_t &V);

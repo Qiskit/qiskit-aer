@@ -37,9 +37,9 @@ Multiplication is done with the C wrapper of the fortran blas library.
 #include <vector>
 
 #ifdef MKL
-  #include "framework/mklblas_protos.hpp"
+#include "framework/mklblas_protos.hpp"
 #else
-  #include "framework/blas_protos.hpp"
+#include "framework/blas_protos.hpp"
 #endif
 #include "framework/linalg/enable_if_numeric.hpp"
 

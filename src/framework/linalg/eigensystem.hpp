@@ -16,9 +16,9 @@
 #define _aer_framework_linalg_eigensystem_hpp_
 
 #ifdef MKL
-  #include "framework/mklblas_protos.hpp"
+#include "framework/mklblas_protos.hpp"
 #else
-  #include "framework/blas_protos.hpp"
+#include "framework/blas_protos.hpp"
 #endif
 #include "framework/matrix.hpp"
 #include <type_traits>
@@ -71,23 +71,23 @@ void eigensystem_hermitian(const matrix<std::complex<T>> &hermitian_matrix,
     throw std::runtime_error("Input matrix in eigensystem_hermitian "
                              "function is not a square matrix.");
   }
-  #ifdef MKL
-    size_t n = static_cast<int>(hermitian_matrix.GetLD());
-    size_t ldz{n}, lda{n}, lwork{2 * n};
-    size_t il{0}, iu{0};   // not referenced if range='A'
-    size_t m{0}; // number of eigenvalues found
-    size_t info{0};
-    auto iwork = std::vector<size_t>(5 * n, 0);
-    auto ifail = std::vector<size_t>(n, 0);
-  #else
-    int n = static_cast<int>(hermitian_matrix.GetLD());
-    int ldz{n}, lda{n}, lwork{2 * n};
-    int il{0}, iu{0};   // not referenced if range='A'
-    int m{0}; // number of eigenvalues found
-    int info{0};
-    auto iwork = std::vector<int>(5 * n, 0);
-    auto ifail = std::vector<int>(n, 0);
-  #endif
+#ifdef MKL
+  size_t n = static_cast<int>(hermitian_matrix.GetLD());
+  size_t ldz{n}, lda{n}, lwork{2 * n};
+  size_t il{0}, iu{0}; // not referenced if range='A'
+  size_t m{0};         // number of eigenvalues found
+  size_t info{0};
+  auto iwork = std::vector<size_t>(5 * n, 0);
+  auto ifail = std::vector<size_t>(n, 0);
+#else
+  int n = static_cast<int>(hermitian_matrix.GetLD());
+  int ldz{n}, lda{n}, lwork{2 * n};
+  int il{0}, iu{0}; // not referenced if range='A'
+  int m{0};         // number of eigenvalues found
+  int info{0};
+  auto iwork = std::vector<int>(5 * n, 0);
+  auto ifail = std::vector<int>(n, 0);
+#endif
 
   T vl{0.0}, vu{0.0}; // not referenced if range='A'
   char cmach{'S'};
@@ -99,7 +99,7 @@ void eigensystem_hermitian(const matrix<std::complex<T>> &hermitian_matrix,
   matrix<std::complex<T>> heevx_copy{hermitian_matrix};
   auto work = std::vector<std::complex<T>>(lwork, {0.0, 0.0});
   auto rwork = std::vector<T>(7 * n, 0.0);
-  
+
   HeevxFuncs<T>::heevx(&AerBlas::Jobz[0], &AerBlas::Range[0], &AerBlas::UpLo[0],
                        &n, heevx_copy.data(), &lda, &vl, &vu, &il, &iu, &abstol,
                        &m, eigenvalues.data(), eigenvectors.data(), &ldz,
