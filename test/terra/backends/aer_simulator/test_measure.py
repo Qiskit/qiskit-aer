@@ -281,7 +281,6 @@ class TestMeasure(SimulatorTestCase):
                 result2.get_counts(circuit), result2_prl.get_counts(circuit), delta=0.1 * shots
             )
 
-
     def test_mps_measure_with_limited_bond_dimension(self):
         """Test MPS measure with limited bond dimension,
         where the qubits are not in sorted order

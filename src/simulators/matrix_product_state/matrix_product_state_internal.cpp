@@ -1640,7 +1640,7 @@ reg_t MPS::sample_measure(uint_t shots, RngEngine &rng) const {
   reg_t current_measure(num_qubits_);
   cmatrix_t mat;
   rvector_t rnds(num_qubits_);
-  #pragma omp critical
+#pragma omp critical
   {
     for (uint_t i = 0; i < num_qubits_; ++i) {
       rnds[i] = rng.rand(0., 1.);
