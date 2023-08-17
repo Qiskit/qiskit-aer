@@ -13,6 +13,7 @@
 AerSimulator Integration Tests for SaveMatrixProductState instruction
 """
 from ddt import ddt
+import math
 import numpy as np
 from qiskit import QuantumCircuit, transpile
 from test.terra.backends.simulator_test_case import SimulatorTestCase, supported_methods
@@ -36,7 +37,7 @@ class TestSaveMatrixProductStateTests(SimulatorTestCase):
         target_qreg.append((np.array([[1]], dtype=complex), np.array([[0]], dtype=complex)))
 
         target_lambda_reg = []
-        target_lambda_reg.append(np.array([1 / np.math.sqrt(2)], dtype=float))
+        target_lambda_reg.append(np.array([1 / math.sqrt(2)], dtype=float))
         target_lambda_reg.append(np.array([1], dtype=float))
 
         # Matrix product state test circuit

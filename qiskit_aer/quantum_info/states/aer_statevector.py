@@ -281,7 +281,7 @@ class AerStatevector(Statevector):
 
     @staticmethod
     def from_int(i, dims):
-        size = np.product(dims)
+        size = np.prod(dims)
         state = np.zeros(size, dtype=complex)
         state[i] = 1.0
         return AerStatevector(state, dims=dims)
