@@ -243,6 +243,20 @@ class TestCliffords(SimulatorTestCase):
         self.compare_counts(result, circuits, targets, delta=0)
 
     # ---------------------------------------------------------------------
+    # Test ecr gate
+    # ---------------------------------------------------------------------
+    @supported_methods(SUPPORTED_METHODS)
+    def test_ecr_gate_deterministic(self, method, device):
+        """Test ecr gate circuits"""
+        backend = self.backend(method=method, device=device, seed_simulator=self.SEED)
+        shots = 100
+        circuits = ref_2q_clifford.ecr_gate_circuits_deterministic(final_measure=True)
+        targets = ref_2q_clifford.ecr_gate_counts_deterministic(shots)
+        result = backend.run(circuits, shots=shots).result()
+        self.assertSuccess(result)
+        self.compare_counts(result, circuits, targets, delta=0)
+
+    # ---------------------------------------------------------------------
     # Test identity gate
     # ---------------------------------------------------------------------
     @supported_methods(SUPPORTED_METHODS)

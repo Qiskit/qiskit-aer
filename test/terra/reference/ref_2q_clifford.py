@@ -687,3 +687,82 @@ def swap_gate_unitary_nondeterministic():
         / np.sqrt(2)
     )
     return targets
+
+
+# ==========================================================================
+# ECR gate
+# ==========================================================================
+
+
+def ecr_gate_circuits_deterministic(final_measure=True):
+    """ECR-gate test circuits with deterministic counts."""
+    circuits = []
+    qr = QuantumRegister(2)
+    qr = QuantumRegister(2)
+    if final_measure:
+        cr = ClassicalRegister(2)
+        regs = (qr, cr)
+    else:
+        regs = (qr,)
+
+    # ECR, |00> state
+    circuit = QuantumCircuit(*regs)
+    circuit.ecr(qr[0], qr[1])
+    if final_measure:
+        circuit.barrier(qr)
+        circuit.measure(qr, cr)
+    circuits.append(circuit)
+
+    # ECR, |01> state
+    circuit = QuantumCircuit(*regs)
+    circuit.x(qr[0])
+    circuit.ecr(qr[0], qr[1])
+    if final_measure:
+        circuit.barrier(qr)
+        circuit.measure(qr, cr)
+    circuits.append(circuit)
+ 
+    # ECR, |10> state
+    circuit = QuantumCircuit(*regs)
+    circuit.x(qr[1])
+    circuit.ecr(qr[0], qr[1])
+    if final_measure:
+        circuit.barrier(qr)
+        circuit.measure(qr, cr)
+    circuits.append(circuit)
+
+    # ECR, |11> state
+    circuit = QuantumCircuit(*regs)
+    circuit.x(qr[0])
+    circuit.x(qr[1])
+    circuit.ecr(qr[0], qr[1])
+    if final_measure:
+        circuit.barrier(qr)
+        circuit.measure(qr, cr)
+    circuits.append(circuit)
+    return circuits
+
+
+def ecr_gate_counts_deterministic(shots, hex_counts=True):
+    """ECR-gate circuits reference counts."""
+    targets = []
+    if hex_counts:
+        # ECR, |00> state
+        targets.append({"0x1": shots / 2, "0x3": shots / 2})
+        # ECR, |01> state
+        targets.append({"0x0": shots / 2, "0x2": shots / 2})
+        # ECR, |10> state
+        targets.append({"0x1": shots / 2, "0x3": shots / 2})
+        # ECR, |11> state
+        targets.append({"0x0": shots / 2, "0x2": shots / 2})
+        
+    else:
+        # ECR, |00> state
+        targets.append({"01": shots / 2, "11": shots / 2})
+        # ECR, |01> state
+        targets.append({"00": shots / 2, "10": shots / 2})
+        # ECR, |10> state
+        targets.append({"01": shots / 2, "11": shots / 2})
+        # ECR, |11> state
+        targets.append({"00": shots / 2, "10": shots / 2})
+    return targets
