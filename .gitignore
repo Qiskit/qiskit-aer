@@ -38,3 +38,8 @@ docs/api/
 
 # Ignore DASK temporary files
 dask-worker-space/*
+
+#Eclipse synchronized project
+.ptp-sync-folder
+.ptp-sync/
+.pydevproject
