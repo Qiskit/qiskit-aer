@@ -440,6 +440,8 @@ public:
   // cuStateVec
   void cuStateVec_enable(bool flg) {}
 
+  void set_target_gpus(reg_t &t) {}
+
   //-----------------------------------------------------------------------
   // Optimization configuration settings
   //-----------------------------------------------------------------------

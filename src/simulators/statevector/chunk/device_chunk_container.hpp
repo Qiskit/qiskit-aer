@@ -31,13 +31,17 @@ namespace Chunk {
 template <typename data_t>
 class DeviceChunkContainer : public ChunkContainer<data_t> {
 protected:
-  AERDeviceVector<thrust::complex<data_t>>
-      data_; // device vector to chunks and buffers
-  AERDeviceVector<thrust::complex<double>> matrix_; // storage for large matrix
-  mutable AERDeviceVector<uint_t> params_; // storage for additional parameters
-  AERDeviceVector<double> reduce_buffer_;  // buffer for reduction
-  AERDeviceVector<double>
-      probability_buffer_; // buffer used for measure probability
+  // device vector to chunks and buffers
+  AERDeviceVector<thrust::complex<data_t>> data_;
+  // storage for large matrix
+  mutable AERDeviceVector<thrust::complex<double>> matrix_;
+  // storage for additional parameters
+  mutable AERDeviceVector<uint_t> params_;
+  // buffer for reduction
+  AERDeviceVector<double> reduce_buffer_;
+  // buffer used for measure probability
+  AERDeviceVector<double> probability_buffer_;
+
   AERDeviceVector<uint_t> cregs_;
   AERHostVector<uint_t> cregs_host_;
   int device_id_;                 // device index
@@ -103,10 +107,11 @@ public:
   void Deallocate(void) override;
 
   void StoreMatrix(const std::vector<std::complex<double>> &mat,
-                   uint_t iChunk) override;
+                   uint_t iChunk) const override;
   void StoreMatrix(const std::complex<double> *mat, uint_t iChunk,
-                   uint_t size) override;
-  void StoreUintParams(const std::vector<uint_t> &prm, uint_t iChunk) override;
+                   uint_t size) const override;
+  void StoreUintParams(const std::vector<uint_t> &prm,
+                       uint_t iChunk) const override;
   void ResizeMatrixBuffers(int bits) override;
 
   void calculate_matrix_buffer_size(int bits);
@@ -317,28 +322,24 @@ uint_t DeviceChunkContainer<data_t>::Allocate(int idev, int chunk_bits,
   set_device();
 
 #ifdef AER_THRUST_CUDA
-  if (!multi_shots) {
-    int ip, nd;
-    cudaGetDeviceCount(&nd);
-    peer_access_.resize(nd);
-    for (i = 0; i < nd; i++) {
-      ip = 1;
-      if (i != device_id_) {
-        cudaDeviceCanAccessPeer(&ip, device_id_, i);
-      }
-      if (ip) {
-        if (cudaDeviceEnablePeerAccess(i, 0) != cudaSuccess)
-          cudaGetLastError();
-        peer_access_[i] = true;
-      } else
-        peer_access_[i] = false;
+  int ip, nd;
+  cudaGetDeviceCount(&nd);
+  peer_access_.resize(nd);
+  for (i = 0; i < nd; i++) {
+    ip = 1;
+    if (i != device_id_) {
+      cudaDeviceCanAccessPeer(&ip, device_id_, i);
     }
-  } else {
-#endif
-    peer_access_.resize(1);
-    peer_access_[0] = true;
-#ifdef AER_THRUST_CUDA
+    if (ip) {
+      if (cudaDeviceEnablePeerAccess(i, 0) != cudaSuccess)
+        cudaGetLastError();
+      peer_access_[i] = true;
+    } else
+      peer_access_[i] = false;
   }
+#else
+  peer_access_.resize(1);
+  peer_access_[0] = true;
 #endif
 
   this->num_buffers_ = buffers;
@@ -539,7 +540,7 @@ void DeviceChunkContainer<data_t>::ResizeMatrixBuffers(int bits) {
 
 template <typename data_t>
 void DeviceChunkContainer<data_t>::StoreMatrix(
-    const std::vector<std::complex<double>> &mat, uint_t iChunk) {
+    const std::vector<std::complex<double>> &mat, uint_t iChunk) const {
   set_device();
 
 #ifdef AER_THRUST_CUDA
@@ -570,7 +571,8 @@ void DeviceChunkContainer<data_t>::StoreMatrix(
 
 template <typename data_t>
 void DeviceChunkContainer<data_t>::StoreMatrix(const std::complex<double> *mat,
-                                               uint_t iChunk, uint_t size) {
+                                               uint_t iChunk,
+                                               uint_t size) const {
   set_device();
 
 #ifdef AER_THRUST_CUDA
@@ -602,7 +604,7 @@ void DeviceChunkContainer<data_t>::StoreMatrix(const std::complex<double> *mat,
 
 template <typename data_t>
 void DeviceChunkContainer<data_t>::StoreUintParams(
-    const std::vector<uint_t> &prm, uint_t iChunk) {
+    const std::vector<uint_t> &prm, uint_t iChunk) const {
   set_device();
 
 #ifdef AER_THRUST_CUDA

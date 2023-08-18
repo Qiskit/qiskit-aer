@@ -101,8 +101,8 @@ struct Config {
   uint_t batched_shots_gpu_max_qubits = 16;
   optional<uint_t> num_threads_per_device;
   // # multi-shot branching
-  bool shot_branching_enable = true;
-  bool runtime_noise_sampling_enable = false;
+  bool shot_branching_enable = false;
+  bool shot_branching_sampling_enable = false;
   // # statevector options
   uint_t statevector_parallel_threshold = 14;
   uint_t statevector_sample_measure_opt = 10;
@@ -170,6 +170,7 @@ struct Config {
   optional<uint_t> unitary_parallel_threshold;
   optional<uint_t> memory_blocking_bits;
   optional<uint_t> extended_stabilizer_norm_estimation_default_samples;
+  optional<reg_t> target_gpus;
 
   optional<bool> runtime_parameter_bind_enable;
 
@@ -207,8 +208,8 @@ struct Config {
     batched_shots_gpu_max_qubits = 16;
     num_threads_per_device.clear();
     // # multi-shot branching
-    shot_branching_enable = true;
-    runtime_noise_sampling_enable = false;
+    shot_branching_enable = false;
+    shot_branching_sampling_enable = false;
     // # statevector options
     statevector_parallel_threshold = 14;
     statevector_sample_measure_opt = 10;
@@ -272,6 +273,7 @@ struct Config {
     memory_blocking_bits.clear();
     extended_stabilizer_norm_estimation_default_samples.clear();
 
+    target_gpus.clear();
     runtime_parameter_bind_enable.clear();
   }
 
@@ -324,7 +326,7 @@ struct Config {
       num_threads_per_device.value(other.num_threads_per_device.value());
     // # multi-shot branching
     shot_branching_enable = other.shot_branching_enable;
-    runtime_noise_sampling_enable = other.runtime_noise_sampling_enable;
+    shot_branching_sampling_enable = other.shot_branching_sampling_enable;
     // # statevector options
     statevector_parallel_threshold = other.statevector_parallel_threshold;
     statevector_sample_measure_opt = other.statevector_sample_measure_opt;
@@ -415,6 +417,8 @@ struct Config {
       extended_stabilizer_norm_estimation_default_samples.value(
           other.extended_stabilizer_norm_estimation_default_samples.value());
 
+    if (other.target_gpus.has_value())
+      target_gpus.value(other.target_gpus.value());
     if (other.runtime_parameter_bind_enable.has_value())
       runtime_parameter_bind_enable.value(
           other.runtime_parameter_bind_enable.value());
@@ -459,8 +463,8 @@ inline void from_json(const json_t &js, Config &config) {
   get_value(config.num_threads_per_device, "num_threads_per_device", js);
   // # multi-shot branching
   get_value(config.shot_branching_enable, "shot_branching_enable", js);
-  get_value(config.runtime_noise_sampling_enable,
-            "runtime_noise_sampling_enable", js);
+  get_value(config.shot_branching_sampling_enable,
+            "shot_branching_sampling_enable", js);
   // # statevector options
   get_value(config.statevector_parallel_threshold,
             "statevector_parallel_threshold", js);
@@ -532,6 +536,7 @@ inline void from_json(const json_t &js, Config &config) {
   get_value(config.memory_blocking_bits, "memory_blocking_bits", js);
   get_value(config.extended_stabilizer_norm_estimation_default_samples,
             "extended_stabilizer_norm_estimation_default_samples", js);
+  get_value(config.target_gpus, "target_gpus", js);
   get_value(config.runtime_parameter_bind_enable,
             "runtime_parameter_bind_enable", js);
 }

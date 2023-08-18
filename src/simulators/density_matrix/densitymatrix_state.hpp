@@ -133,6 +133,10 @@ public:
   std::vector<reg_t> sample_measure(const reg_t &qubits, uint_t shots,
                                     RngEngine &rng) override;
 
+  // Helper function for computing expectation value
+  double expval_pauli(const reg_t &qubits,
+                              const std::string &pauli) override;
+
   //-----------------------------------------------------------------------
   // Additional methods
   //-----------------------------------------------------------------------
@@ -145,6 +149,9 @@ public:
 
   auto move_to_matrix();
   auto copy_to_matrix();
+
+  // Return the reduced density matrix for the simulator
+  cmatrix_t reduced_density_matrix(const reg_t &qubits, bool last_op = false);
 
   template <typename list_t>
   void initialize_from_vector(const list_t &vec);
@@ -210,12 +217,7 @@ protected:
   void apply_save_amplitudes_sq(const Operations::Op &op,
                                 ExperimentResult &result);
 
-  // Helper function for computing expectation value
-  virtual double expval_pauli(const reg_t &qubits,
-                              const std::string &pauli) override;
-
   // Return the reduced density matrix for the simulator
-  cmatrix_t reduced_density_matrix(const reg_t &qubits, bool last_op = false);
   cmatrix_t reduced_density_matrix_helper(const reg_t &qubits,
                                           const reg_t &qubits_sorted);
 
@@ -340,6 +342,7 @@ bool State<densmat_t>::allocate(uint_t num_qubits, uint_t block_bits,
   if (BaseState::max_matrix_qubits_ > 0)
     BaseState::qreg_.set_max_matrix_bits(BaseState::max_matrix_qubits_);
 
+  BaseState::qreg_.set_target_gpus(BaseState::target_gpus_);
   BaseState::qreg_.chunk_setup(block_bits * 2, block_bits * 2, 0, 1);
 
   return true;

@@ -481,6 +481,33 @@ class TestRuntimeParameterization(SimulatorTestCase):
         self.assertEqual(counts, counts_pre_bind)
 
     @supported_methods(SUPPORTED_METHODS)
+    def test_dynamic_circuit_with_shot_branching(self, method, device):
+        """Test parameterized dynamic circuit"""
+        shots = 1000
+        backend = self.backend(method=method, device=device)
+        circuit = QuantumCircuit(2)
+        theta = Parameter("theta")
+        theta_squared = theta * theta
+        circuit.h(0)
+        circuit.rx(theta, 0)
+        circuit.cx(0, 1)
+        circuit.reset(0)
+        circuit.rz(theta_squared, 1)
+        circuit.u(theta, theta_squared, theta, 1)
+        circuit.measure_all()
+        parameter_binds = [{theta: [0, pi, 2 * pi]}]
+
+        result = backend.run(circuit, shots=shots, parameter_binds=parameter_binds, shot_branching_enable=True, runtime_parameter_bind_enable=True).result()
+        self.assertSuccess(result)
+        counts = result.get_counts()
+
+        result_pre_bind = backend.run(circuit, shots=shots, parameter_binds=parameter_binds, shot_branching_enable=False, runtime_parameter_bind_enable=False).result()
+        self.assertSuccess(result_pre_bind)
+        counts_pre_bind = result_pre_bind.get_counts()
+
+        self.assertEqual(counts, counts_pre_bind)
+
+    @supported_methods(SUPPORTED_METHODS)
     def test_fusion(self, method, device):
         """Test parameterized circuit with fusion"""
         shots = 1000
@@ -550,6 +577,66 @@ class TestRuntimeParameterization(SimulatorTestCase):
         noise_model.add_all_qubit_quantum_error(error, ["h", "rx", "rz", "u"])
 
         result = backend.run(circuit, noise_model=noise_model, shots=shots, parameter_binds=parameter_binds, shot_branching_enable=False, runtime_parameter_bind_enable=True).result()
+        self.assertSuccess(result)
+        counts = result.get_counts()
+
+        result_pre_bind = backend.run(circuit, noise_model=noise_model, shots=shots, parameter_binds=parameter_binds, shot_branching_enable=False, runtime_parameter_bind_enable=False).result()
+        self.assertSuccess(result_pre_bind)
+        counts_pre_bind = result_pre_bind.get_counts()
+
+        self.assertEqual(counts, counts_pre_bind)
+
+    @supported_methods(SUPPORTED_METHODS)
+    def test_pauli_noise_with_shot_branching(self, method, device):
+        """Test parameterized circuit with Pauli noise"""
+        shots = 1000
+        backend = self.backend(method=method, device=device)
+        circuit = QuantumCircuit(2)
+        theta = Parameter("theta")
+        theta_squared = theta * theta
+        circuit.h(0)
+        circuit.rx(theta, 0)
+        circuit.cx(0, 1)
+        circuit.rz(theta_squared, 1)
+        circuit.u(theta, theta_squared, theta, 1)
+        circuit.measure_all()
+        parameter_binds = [{theta: [0, pi, 2 * pi]}]
+
+        error = pauli_error([("X", 0.2), ("Y", 0.2), ("Z", 0.2), ("I", 0.4)])
+        noise_model = NoiseModel()
+        noise_model.add_all_qubit_quantum_error(error, ["h", "rx", "rz", "u"])
+
+        result = backend.run(circuit, noise_model=noise_model, shots=shots, parameter_binds=parameter_binds, shot_branching_enable=True, runtime_parameter_bind_enable=True).result()
+        self.assertSuccess(result)
+        counts = result.get_counts()
+
+        result_pre_bind = backend.run(circuit, noise_model=noise_model, shots=shots, parameter_binds=parameter_binds, shot_branching_enable=False, runtime_parameter_bind_enable=False).result()
+        self.assertSuccess(result_pre_bind)
+        counts_pre_bind = result_pre_bind.get_counts()
+
+        self.assertEqual(counts, counts_pre_bind)
+
+    @supported_methods(SUPPORTED_METHODS)
+    def test_kraus_noise_with_shot_branching(self, method, device):
+        """Test parameterized circuit with Kraus noise"""
+        shots = 1000
+        backend = self.backend(method=method, device=device)
+        circuit = QuantumCircuit(2)
+        theta = Parameter("theta")
+        theta_squared = theta * theta
+        circuit.h(0)
+        circuit.rx(theta, 0)
+        circuit.cx(0, 1)
+        circuit.rz(theta_squared, 1)
+        circuit.u(theta, theta_squared, theta, 1)
+        circuit.measure_all()
+        parameter_binds = [{theta: [0, pi, 2 * pi]}]
+
+        error = amplitude_damping_error(0.75, 0.25)
+        noise_model = NoiseModel()
+        noise_model.add_all_qubit_quantum_error(error, ["h", "rx", "rz", "u"])
+
+        result = backend.run(circuit, noise_model=noise_model, shots=shots, parameter_binds=parameter_binds, shot_branching_enable=True, runtime_parameter_bind_enable=True).result()
         self.assertSuccess(result)
         counts = result.get_counts()
 

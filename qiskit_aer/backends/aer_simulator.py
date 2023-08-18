@@ -170,6 +170,10 @@ class AerSimulator(AerBackend):
     If AerSimulator is built with cuStateVec support, cuStateVec APIs are enabled
     by setting ``cuStateVec_enable=True``.
 
+    * ``target_gpus`` (list): List of GPU's IDs starting from 0 sets
+      the target GPUs used for the simulation.
+      If this option is not specified, all the available GPUs are used for
+      chunks/shots distribution.
 
     **Additional Backend Options**
 
@@ -288,17 +292,28 @@ class AerSimulator(AerBackend):
       simulation with multiple-GPUs (Default: 1).
 
     * ``shot_branching_enable`` (bool): This option enables/disables
-      optimized multi-shots simulation starting from single state and
-      state will be branched when some operations with randomness
-      (i.e. measure, reset, noises, etc.) is applied (Default: True).
+      applying shot-branching technique to speed up multi-shots of dynamic
+      circutis simulations or circuits simulations with noise models.
+      (Default: False).
+      Starting from single state shared with multiple shots and
+      state will be branched dynamically at runtime.
       This option can decrease runs of shots if there will be less branches
-      than number of shots.
-      This option is available for ``"statevector"``, ``"density_matrix"``.
-      For GPU, ``cuStateVec_enable`` is not supported for this option.
+      than number of total shots.
+      This option is available for ``"statevector"``, ``"density_matrix"``
+      and ``"tensor_network"``.
 
-    * ``runtime_noise_sampling_enable`` (bool): This option enables/disables
-      runtime noise sampling. This option is only applicable when
-      ``shot_branching_enable`` is also True. (Default: False).
+    * ``shot_branching_sampling_enable`` (bool): This option enables/disables
+      applying sampling measure if the input circuit has all the measure
+      operations at the end of the circuit. (Default: False).
+      Because measure operation branches state into 2 states, it is not
+      efficient to apply branching for measure.
+      Sampling measure improves speed to get counts for multiple-shots
+      sharing the same state.
+      Note that the counts obtained by sampling measure may not be as same as
+      the counts calculated by multiple measure operations,
+      becuase sampling measure takes only one randome number per shot.
+      This option is available for ``"statevector"``, ``"density_matrix"``
+      and ``"tensor_network"``.
 
     * ``accept_distributed_results`` (bool): This option enables storing
       results independently in each process (Default: None).
@@ -729,8 +744,8 @@ class AerSimulator(AerBackend):
             batched_shots_gpu_max_qubits=16,
             num_threads_per_device=1,
             # multi-shot branching
-            shot_branching_enable=True,
-            runtime_noise_sampling_enable=False,
+            shot_branching_enable=False,
+            shot_branching_sampling_enable=False,
             # statevector options
             statevector_parallel_threshold=14,
             statevector_sample_measure_opt=10,

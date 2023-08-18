@@ -89,7 +89,8 @@ protected:
   size_t max_memory_mb_;
   size_t max_gpu_memory_mb_;
   size_t min_gpu_memory_mb_;  //minimum size per GPU
-  int num_gpus_;
+  int num_gpus_;      // max number of GPU per process
+  reg_t target_gpus_; // GPUs to be used
 
   // use explicit parallelization
   bool explicit_parallelization_;
@@ -302,6 +303,26 @@ void Executor<state_t>::set_config(const Config &config) {
   } else if (precision == "single") {
     sim_precision_ = Precision::Single;
   }
+  // set target GPUs
+#ifdef AER_THRUST_CUDA
+  int nDev = 0;
+  if (cudaGetDeviceCount(&nDev) != cudaSuccess) {
+    cudaGetLastError();
+    nDev = 0;
+  }
+  if (config.target_gpus.has_value()) {
+    target_gpus_ = config.target_gpus.value();
+    if (nDev < target_gpus_.size()) {
+      throw std::invalid_argument("target_gpus has more GPUs than available.");
+    }
+    num_gpus_ = target_gpus_.size();
+  } else {
+    num_gpus_ = nDev;
+    target_gpus_.resize(num_gpus_);
+    for (int_t i = 0; i < num_gpus_; i++)
+      target_gpus_[i] = i;
+  }
+#endif
 }
 
 template <class state_t>
@@ -322,14 +343,9 @@ template <class state_t>
 size_t Executor<state_t>::get_gpu_memory_mb() {
   size_t total_physical_memory = 0;
 #ifdef AER_THRUST_CUDA
-  int iDev, nDev, j;
-  if (cudaGetDeviceCount(&nDev) != cudaSuccess) {
-    cudaGetLastError();
-    nDev = 0;
-  }
-  for (iDev = 0; iDev < nDev; iDev++) {
+  for (int_t iDev = 0; iDev < target_gpus_.size(); iDev++) {
     size_t freeMem, totalMem;
-    cudaSetDevice(iDev);
+    cudaSetDevice(target_gpus_[iDev]);
     cudaMemGetInfo(&freeMem, &totalMem);
     if(iDev == 0)
       min_gpu_memory_mb_ = totalMem;
@@ -337,7 +353,7 @@ size_t Executor<state_t>::get_gpu_memory_mb() {
       min_gpu_memory_mb_ = totalMem;
     total_physical_memory += totalMem;
   }
-  num_gpus_ = nDev;
+
   min_gpu_memory_mb_ >>= 20;
 #endif
 
@@ -645,8 +661,10 @@ void Executor<state_t>::run_circuit(Circuit &circ,
         result.metadata.add(circ.seed_for_params, "runtime_parameter_bind_seeds");
       }
 #ifdef AER_CUSTATEVEC
-      if (sim_device_ == Device::GPU)
+      if (sim_device_ == Device::GPU){
         result.metadata.add(cuStateVec_enable_, "cuStateVec_enable");
+        result.metadata.add(target_gpus_, "target_gpus");
+      }
 #endif
     }
 
@@ -700,14 +718,6 @@ void Executor<state_t>::run_circuit_with_sampling(Circuit &circ,
     iparam = circ.num_bind_params * i / par_shots;
     param_end = circ.num_bind_params * (i + 1) / par_shots;
 
-    // Set state config
-    state_t state;
-    state.set_config(config);
-    state.set_parallelization(parallel_state_update_);
-
-    state.set_distribution(1);
-    state.set_max_matrix_qubits(max_bits);
-
     for (; iparam < param_end; iparam++) {
       ExperimentResult& result = *(result_it + iparam);
       result.metadata.copy(fusion_result.metadata);
@@ -716,6 +726,14 @@ void Executor<state_t>::run_circuit_with_sampling(Circuit &circ,
         rng = init_rng;
       else
         rng.set_seed(circ.seed_for_params[iparam]);
+
+      // Set state config
+      state_t state;
+      state.set_config(config);
+      state.set_parallelization(parallel_state_update_);
+
+      state.set_distribution(1);
+      state.set_max_matrix_qubits(max_bits);
 
       if(circ.global_phase_for_params.size() == num_bind_params_)
         state.set_global_phase(circ.global_phase_for_params[iparam]);
@@ -777,6 +795,7 @@ void Executor<state_t>::run_circuit_shots(
   num_shots = shot_end[distributed_rank_] - shot_begin[distributed_rank_];
 
   int max_matrix_qubits;
+  auto fusion_pass = transpile_fusion(circ.opset(), config);
   if (!sample_noise) {
     Noise::NoiseModel dummy_noise;
     state_t dummy_state;
@@ -789,6 +808,9 @@ void Executor<state_t>::run_circuit_shots(
       result.metadata.copy(fusion_result.metadata);
     }
     max_matrix_qubits = get_max_matrix_qubits(circ);
+  } else {
+    max_matrix_qubits = get_max_matrix_qubits(circ);
+    max_matrix_qubits = std::max(max_matrix_qubits, (int)fusion_pass.max_qubit);
   }
   num_bind_params_ = circ.num_bind_params;
 

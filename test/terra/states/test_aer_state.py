@@ -513,7 +513,6 @@ class TestAerState(common.QiskitAerTestCase):
         circuit.save_statevector()
 
         aer_simulator = AerSimulator(method="statevector", seed_simulator=seed)
-        aer_simulator.set_options(shot_branching_enable=False)
         result = aer_simulator.run(circuit).result()
         expected = result.get_statevector(0)
 
@@ -539,7 +538,6 @@ class TestAerState(common.QiskitAerTestCase):
         circuit.save_statevector()
 
         aer_simulator = AerSimulator(method="statevector", seed_simulator=seed)
-        aer_simulator.set_options(shot_branching_enable=False)
         result = aer_simulator.run(circuit).result()
         expected = result.get_statevector(0)
 
@@ -601,7 +599,6 @@ class TestAerState(common.QiskitAerTestCase):
         init_state = random_statevector(2**5, seed=111)
 
         aer_simulator = AerSimulator(method="statevector")
-        aer_simulator.set_options(shot_branching_enable=False)
         circuit = QuantumCircuit(5)
         circuit.initialize(init_state.data)
         circuit.measure_all()

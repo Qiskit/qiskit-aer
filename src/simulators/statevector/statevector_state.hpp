@@ -156,6 +156,9 @@ public:
   virtual std::vector<reg_t> sample_measure(const reg_t &qubits, uint_t shots,
                                             RngEngine &rng) override;
 
+  // Helper function for computing expectation value
+  virtual double expval_pauli(const reg_t &qubits,
+                              const std::string &pauli) override;
   //-----------------------------------------------------------------------
   // Additional methods
   //-----------------------------------------------------------------------
@@ -251,9 +254,6 @@ protected:
   void apply_save_amplitudes(const Operations::Op &op,
                              ExperimentResult &result);
 
-  // Helper function for computing expectation value
-  virtual double expval_pauli(const reg_t &qubits,
-                              const std::string &pauli) override;
   //-----------------------------------------------------------------------
   // Measurement Helpers
   //-----------------------------------------------------------------------
@@ -439,6 +439,7 @@ bool State<statevec_t>::allocate(uint_t num_qubits, uint_t block_bits,
   if (BaseState::max_matrix_qubits_ > 0)
     BaseState::qreg_.set_max_matrix_bits(BaseState::max_matrix_qubits_);
 
+  BaseState::qreg_.set_target_gpus(BaseState::target_gpus_);
   BaseState::qreg_.chunk_setup(block_bits, num_qubits, 0, 1);
 
   return true;
