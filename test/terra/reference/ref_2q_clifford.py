@@ -721,7 +721,7 @@ def ecr_gate_circuits_deterministic(final_measure=True):
         circuit.barrier(qr)
         circuit.measure(qr, cr)
     circuits.append(circuit)
- 
+
     # ECR, |10> state
     circuit = QuantumCircuit(*regs)
     circuit.x(qr[1])
@@ -755,7 +755,7 @@ def ecr_gate_counts_deterministic(shots, hex_counts=True):
         targets.append({"0x1": shots / 2, "0x3": shots / 2})
         # ECR, |11> state
         targets.append({"0x0": shots / 2, "0x2": shots / 2})
-        
+
     else:
         # ECR, |00> state
         targets.append({"01": shots / 2, "11": shots / 2})
