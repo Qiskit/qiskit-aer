@@ -21,6 +21,10 @@ DISABLE_WARNING_PUSH
 #include <cuda.h>
 #include <cuda_runtime.h>
 #endif
+#ifdef AER_THRUST_ROCM
+#include <hip/hip_runtime.h>
+#include "misc/hipify.hpp"
+#endif
 DISABLE_WARNING_POP
 
 #include "misc/wrap_thrust.hpp"

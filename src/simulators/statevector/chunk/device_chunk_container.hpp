@@ -23,7 +23,9 @@
 #ifdef AER_THRUST_CUDA
   namespace thrust_gpu = thrust::cuda;
 #endif
-
+#ifdef AER_THRUST_ROCM
+  namespace thrust_gpu = thrust::hip;
+#endif
 
 namespace AER {
 namespace QV {
