@@ -292,7 +292,7 @@ NoiseModel::NoiseOps NoiseModel::sample_noise_loc(const Operations::Op &op,
     for (auto &noise_op : noise_ops) {
       noise_op.conditional = op.conditional;
       noise_op.conditional_reg = op.conditional_reg;
-      noise_op.bfunc = op.bfunc;
+      noise_op.binary_op = op.binary_op;
     }
   }
   return noise_ops;
@@ -372,7 +372,7 @@ NoiseModel::NoiseOps NoiseModel::sample_noise_op(const Operations::Op &op,
     for (auto &noise_op : noise_ops) {
       noise_op.conditional = op.conditional;
       noise_op.conditional_reg = op.conditional_reg;
-      noise_op.bfunc = op.bfunc;
+      noise_op.binary_op = op.binary_op;
     }
   }
   return noise_ops;

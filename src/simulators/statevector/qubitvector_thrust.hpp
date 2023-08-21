@@ -3094,10 +3094,10 @@ template <typename data_t>
 class bfunc_kernel : public Chunk::GateFuncBase<data_t> {
 protected:
   uint_t bfunc_num_regs_;
-  Operations::RegComparison bfunc_;
+  Operations::BinaryOperand bfunc_;
 
 public:
-  bfunc_kernel(uint_t n, Operations::RegComparison bfunc) {
+  bfunc_kernel(uint_t n, Operations::BinaryOperand bfunc) {
     bfunc_num_regs_ = n; // number of registers to be updated
     bfunc_ = bfunc;
   }
@@ -3123,26 +3123,26 @@ public:
       comp = (this->cregs_[iChunk * n64 + n64 - j - 1] & mask[n64 - j - 1]) -
              target[n64 - j - 1];
       if (comp < 0) {
-        if (bfunc_ == Operations::RegComparison::Less ||
-            bfunc_ == Operations::RegComparison::LessEqual) {
+        if (bfunc_ == Operations::BinaryOperand::Less ||
+            bfunc_ == Operations::BinaryOperand::LessEqual) {
           break;
-        } else if (bfunc_ == Operations::RegComparison::Equal ||
-                   bfunc_ == Operations::RegComparison::Greater ||
-                   bfunc_ == Operations::RegComparison::GreaterEqual) {
+        } else if (bfunc_ == Operations::BinaryOperand::Equal ||
+                   bfunc_ == Operations::BinaryOperand::Greater ||
+                   bfunc_ == Operations::BinaryOperand::GreaterEqual) {
           ret = false;
           break;
         }
       } else if (comp > 0) {
-        if (bfunc_ == Operations::RegComparison::Greater ||
-            bfunc_ == Operations::RegComparison::GreaterEqual) {
+        if (bfunc_ == Operations::BinaryOperand::Greater ||
+            bfunc_ == Operations::BinaryOperand::GreaterEqual) {
           break;
-        } else if (bfunc_ == Operations::RegComparison::Equal ||
-                   bfunc_ == Operations::RegComparison::Less ||
-                   bfunc_ == Operations::RegComparison::LessEqual) {
+        } else if (bfunc_ == Operations::BinaryOperand::Equal ||
+                   bfunc_ == Operations::BinaryOperand::Less ||
+                   bfunc_ == Operations::BinaryOperand::LessEqual) {
           ret = false;
           break;
         }
-      } else if (bfunc_ == Operations::RegComparison::NotEqual &&
+      } else if (bfunc_ == Operations::BinaryOperand::NotEqual &&
                  mask[n64 - j - 1] != 0) {
         ret = false;
         break;
@@ -3207,7 +3207,7 @@ void QubitVectorThrust<data_t>::apply_bfunc(const Operations::Op &op) {
 
   chunk_.StoreUintParams(params);
 
-  apply_function(bfunc_kernel<data_t>(op.registers.size(), op.bfunc));
+  apply_function(bfunc_kernel<data_t>(op.registers.size(), op.binary_op));
 
   chunk_.container()->request_creg_update();
 }

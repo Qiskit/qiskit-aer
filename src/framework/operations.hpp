@@ -30,10 +30,20 @@
 namespace AER {
 namespace Operations {
 
-// Comparisons enum class used for Boolean function operation.
-// these are used to compare two hexadecimal strings and return a bool
-// for now we only have one comparison Equal, but others will be added
-enum class RegComparison {
+// Operator enum class used for unary classical expression.
+enum class UnaryOperand {
+  BitNot,
+  LogicNot
+};
+
+// Operator enum class used for binary classical expression or boolean
+// function operation.
+enum class BinaryOperand {
+  BitAnd,
+  BitOr,
+  BitXor,
+  LogicAnd,
+  LogicOr,
   Equal,
   NotEqual,
   Less,
@@ -41,6 +51,41 @@ enum class RegComparison {
   Greater,
   GreaterEqual
 };
+
+enum class ExprType {
+  Expr,
+  Var,
+  Value,
+  Cast,
+  Unary,
+  Binary
+};
+
+enum class ValueType {
+  Bool,
+  Uint
+};
+
+class Expr {
+public:
+  Expr(const ExprType expr_type_): expr_type(expr_type_) {}
+
+public:
+  const ExprType expr_type;
+};
+
+class CastExpr: public Expr {
+public:
+  CastExpr(ValueType value_type_, std::shared_ptr<Expr> operand_): Expr(ExprType::Cast), value_type(value_type_), operand(operand_) {}
+
+public:
+  const ValueType value_type;
+  const std::shared_ptr<Expr> operand;
+};
+
+class VarExpr: public Expr {
+  VarExpr(): Expr(ExprType::Var) {}
+}
 
 // Enum class for operation types
 enum class OpType {
@@ -87,7 +132,9 @@ enum class OpType {
   set_mps,
   // Control Flow
   jump,
-  mark
+  mark,
+  unary_expr,
+  binary_expr
 };
 
 enum class DataSubType {
@@ -229,6 +276,12 @@ inline std::ostream &operator<<(std::ostream &stream, const OpType &type) {
   case OpType::jump:
     stream << "jump";
     break;
+  case OpType::unary_expr:
+    stream << "unary_expr";
+    break;
+  case OpType::binary_expr:
+    stream << "binary_expr";
+    break;
   default:
     stream << "unknown";
   }
@@ -287,7 +340,7 @@ struct Op {
   bool conditional = false; // is gate conditional gate
   uint_t conditional_reg; // (opt) the (single) register location to look up for
                           // conditional
-  RegComparison bfunc;    // (opt) boolean function relation
+  BinaryOperand binary_op;    // (opt) boolean function relation
 
   // Measurement
   reg_t memory;    // (opt) register operation it acts on (measure)
@@ -575,13 +628,13 @@ inline Op make_bfunc(const std::string &mask, const std::string &val,
   Utils::format_hex_inplace(op.string_params[0]);
   Utils::format_hex_inplace(op.string_params[1]);
 
-  const stringmap_t<RegComparison> comp_table({
-      {"==", RegComparison::Equal},
-      {"!=", RegComparison::NotEqual},
-      {"<", RegComparison::Less},
-      {"<=", RegComparison::LessEqual},
-      {">", RegComparison::Greater},
-      {">=", RegComparison::GreaterEqual},
+  const stringmap_t<BinaryOperand> comp_table({
+      {"==", BinaryOperand::Equal},
+      {"!=", BinaryOperand::NotEqual},
+      {"<", BinaryOperand::Less},
+      {"<=", BinaryOperand::LessEqual},
+      {">", BinaryOperand::Greater},
+      {">=", BinaryOperand::GreaterEqual},
   });
 
   auto it = comp_table.find(relation);
@@ -591,7 +644,7 @@ inline Op make_bfunc(const std::string &mask, const std::string &val,
         << std::endl;
     throw std::invalid_argument(msg.str());
   } else {
-    op.bfunc = it->second;
+    op.binary_op = it->second;
   }
 
   return op;
@@ -1341,13 +1394,13 @@ Op input_to_op_bfunc(const inputdata_t &input) {
   Utils::format_hex_inplace(op.string_params[0]);
   Utils::format_hex_inplace(op.string_params[1]);
 
-  const stringmap_t<RegComparison> comp_table({
-      {"==", RegComparison::Equal},
-      {"!=", RegComparison::NotEqual},
-      {"<", RegComparison::Less},
-      {"<=", RegComparison::LessEqual},
-      {">", RegComparison::Greater},
-      {">=", RegComparison::GreaterEqual},
+  const stringmap_t<BinaryOperand> comp_table({
+      {"==", BinaryOperand::Equal},
+      {"!=", BinaryOperand::NotEqual},
+      {"<", BinaryOperand::Less},
+      {"<=", BinaryOperand::LessEqual},
+      {">", BinaryOperand::Greater},
+      {">=", BinaryOperand::GreaterEqual},
   });
 
   auto it = comp_table.find(relation);
@@ -1357,7 +1410,7 @@ Op input_to_op_bfunc(const inputdata_t &input) {
         << std::endl;
     throw std::invalid_argument(msg.str());
   } else {
-    op.bfunc = it->second;
+    op.binary_op = it->second;
   }
 
   // Conditional
