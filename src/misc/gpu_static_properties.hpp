@@ -19,6 +19,6 @@
 #define _WS 32
 // Maximum number of threads in a block.
 #define _MAX_THD 1024
-#endif //AER_THRUST_CUDA
+#endif // AER_THRUST_CUDA
 
 #endif //__GPU_STATIC_PRIORITIES_H__
