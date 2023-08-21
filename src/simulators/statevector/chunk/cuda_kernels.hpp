@@ -57,7 +57,7 @@ template <typename data_t, typename kernel_t>
 __global__ void dev_apply_function_sum(double *pReduceBuffer, kernel_t func,
                                        uint_t buf_size, uint_t count) {
   // One cache entry per warp/wavefront
-  __shared__ double cache[_MAX_THD/_WS];
+  __shared__ double cache[_MAX_THD / _WS];
   double sum;
   uint_t i, j, iChunk, nw;
 
@@ -79,7 +79,7 @@ __global__ void dev_apply_function_sum(double *pReduceBuffer, kernel_t func,
 
   if (blockDim.x > _WS) {
     // reduce in thread block
-    if ((threadIdx.x & (_WS-1)) == 0) {
+    if ((threadIdx.x & (_WS - 1)) == 0) {
       cache[(threadIdx.x / _WS)] = sum;
     }
     __syncthreads();
@@ -135,7 +135,7 @@ dev_apply_function_sum_with_cache(double *pReduceBuffer, kernel_t func,
   if (blockDim.x > _WS) {
     // reduce in thread block
     __syncthreads();
-    if ((threadIdx.x & (_WS-1)) == 0) {
+    if ((threadIdx.x & (_WS - 1)) == 0) {
       ((double *)cache)[(threadIdx.x / _WS)] = sum;
     }
     __syncthreads();
@@ -160,7 +160,7 @@ dev_apply_function_sum_with_cache(double *pReduceBuffer, kernel_t func,
 __global__ void dev_reduce_sum(double *pReduceBuffer, uint_t n,
                                uint_t buf_size) {
   // One cache entry per warp/wavefront
-  __shared__ double cache[_MAX_THD/_WS];
+  __shared__ double cache[_MAX_THD / _WS];
   double sum;
   uint_t i, j, iChunk, nw;
 
@@ -180,7 +180,7 @@ __global__ void dev_reduce_sum(double *pReduceBuffer, uint_t n,
 
   if (blockDim.x > _WS) {
     // reduce in thread block
-    if ((threadIdx.x & (_WS-1)) == 0) {
+    if ((threadIdx.x & (_WS - 1)) == 0) {
       cache[(threadIdx.x / _WS)] = sum;
     }
     __syncthreads();
@@ -207,7 +207,7 @@ __global__ void
 dev_apply_function_sum_complex(thrust::complex<double> *pReduceBuffer,
                                kernel_t func, uint_t buf_size, uint_t count) {
   // One cache entry per warp/wavefront
-  __shared__ thrust::complex<double> cache[_MAX_THD/_WS];
+  __shared__ thrust::complex<double> cache[_MAX_THD / _WS];
   thrust::complex<double> sum;
   double tr, ti;
   uint_t i, j, iChunk, nw;
@@ -232,7 +232,7 @@ dev_apply_function_sum_complex(thrust::complex<double> *pReduceBuffer,
 
   if (blockDim.x > _WS) {
     // reduce in thread block
-    if ((threadIdx.x & (_WS-1)) == 0) {
+    if ((threadIdx.x & (_WS - 1)) == 0) {
       cache[(threadIdx.x / _WS)] = sum;
     }
     __syncthreads();
@@ -259,7 +259,7 @@ dev_apply_function_sum_complex(thrust::complex<double> *pReduceBuffer,
 __global__ void dev_reduce_sum_complex(thrust::complex<double> *pReduceBuffer,
                                        uint_t n, uint_t buf_size) {
   // One cache entry per warp/wavefront
-  __shared__ thrust::complex<double> cache[_MAX_THD/_WS];
+  __shared__ thrust::complex<double> cache[_MAX_THD / _WS];
   thrust::complex<double> sum;
   double tr, ti;
   uint_t i, j, iChunk, nw;
@@ -282,7 +282,7 @@ __global__ void dev_reduce_sum_complex(thrust::complex<double> *pReduceBuffer,
 
   if (blockDim.x > _WS) {
     // reduce in thread block
-    if ((threadIdx.x & (_WS-1)) == 0) {
+    if ((threadIdx.x & (_WS - 1)) == 0) {
       cache[(threadIdx.x / _WS)] = sum;
     }
     __syncthreads();
@@ -309,7 +309,7 @@ __global__ void dev_reduce_sum_complex(thrust::complex<double> *pReduceBuffer,
 __global__ void dev_reduce_sum_uint(uint_t *pReduceBuffer, uint_t n,
                                     uint_t buf_size) {
   // One cache entry per warp/wavefront
-  __shared__ uint_t cache[_MAX_THD/_WS];
+  __shared__ uint_t cache[_MAX_THD / _WS];
   uint_t sum;
   uint_t i, j, iChunk, nw;
 
@@ -329,7 +329,7 @@ __global__ void dev_reduce_sum_uint(uint_t *pReduceBuffer, uint_t n,
 
   if (blockDim.x > _WS) {
     // reduce in thread block
-    if ((threadIdx.x & (_WS-1)) == 0) {
+    if ((threadIdx.x & (_WS - 1)) == 0) {
       cache[(threadIdx.x / _WS)] = sum;
     }
     __syncthreads();
