@@ -694,8 +694,8 @@ def swap_gate_unitary_nondeterministic():
 # ==========================================================================
 
 
-def ecr_gate_circuits_deterministic(final_measure=True):
-    """ECR-gate test circuits with deterministic counts."""
+def ecr_gate_circuits_nondeterministic(final_measure=True):
+    """ECR-gate test circuits with nondeterministic counts."""
     circuits = []
     qr = QuantumRegister(2)
     qr = QuantumRegister(2)
@@ -743,7 +743,7 @@ def ecr_gate_circuits_deterministic(final_measure=True):
     return circuits
 
 
-def ecr_gate_counts_deterministic(shots, hex_counts=True):
+def ecr_gate_counts_nondeterministic(shots, hex_counts=True):
     """ECR-gate circuits reference counts."""
     targets = []
     if hex_counts:
