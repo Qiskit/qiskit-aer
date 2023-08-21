@@ -29,8 +29,8 @@ class HostChunkContainer : public ChunkContainer<data_t> {
 protected:
   AERHostVector<thrust::complex<data_t>>
       data_; // host vector for chunks + buffers
-  std::vector<thrust::complex<double> *> matrix_; // pointer to matrix
-  std::vector<uint_t *> params_; // pointer to additional parameters
+  mutable std::vector<thrust::complex<double> *> matrix_; // pointer to matrix
+  mutable std::vector<uint_t *> params_; // pointer to additional parameters
 public:
   HostChunkContainer() {}
   ~HostChunkContainer();
@@ -47,15 +47,16 @@ public:
   void Deallocate(void) override;
 
   void StoreMatrix(const std::vector<std::complex<double>> &mat,
-                   uint_t iChunk) override {
+                   uint_t iChunk) const override {
     matrix_[iChunk] = (thrust::complex<double> *)&mat[0];
   }
   void StoreMatrix(const std::complex<double> *mat, uint_t iChunk,
-                   uint_t size) override {
+                   uint_t size) const override {
     matrix_[iChunk] = (thrust::complex<double> *)mat;
   }
 
-  void StoreUintParams(const std::vector<uint_t> &prm, uint_t iChunk) override {
+  void StoreUintParams(const std::vector<uint_t> &prm,
+                       uint_t iChunk) const override {
     params_[iChunk] = (uint_t *)&prm[0];
   }
   void ResizeMatrixBuffers(int bits) {}

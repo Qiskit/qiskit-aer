@@ -804,7 +804,7 @@ reg_t AerState::initialize_statevector(uint_t num_of_qubits, complex_t *data,
   auto qv = QV::QubitVector<double>();
   qv.move_from_vector(std::move(vec));
 
-  state->initialize_qreg(num_of_qubits_, std::move(qv));
+  state->initialize_statevector(num_of_qubits_, std::move(qv));
   state->initialize_creg(num_of_qubits_, num_of_qubits_);
   initialized_ = true;
 
