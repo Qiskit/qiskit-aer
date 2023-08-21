@@ -21,10 +21,10 @@
 #include "misc/gpu_static_properties.hpp"
 
 #ifdef AER_THRUST_CUDA
-  namespace thrust_gpu = thrust::cuda;
+namespace thrust_gpu = thrust::cuda;
 #endif
 #ifdef AER_THRUST_ROCM
-  namespace thrust_gpu = thrust::hip;
+namespace thrust_gpu = thrust::hip;
 #endif
 
 namespace AER {
@@ -1109,7 +1109,7 @@ dev_apply_register_blocked_gates(thrust::complex<data_t> *data, int num_gates,
   thrust::complex<double> *matrix_load;
 
   i = blockIdx.x * blockDim.x + threadIdx.x;
-  laneID = i & (_WS-1);
+  laneID = i & (_WS - 1);
 
   // index for this thread
   idx = 0;
@@ -1231,8 +1231,8 @@ dev_apply_shared_memory_blocked_gates(thrust::complex<data_t> *data,
       // warp shuffle to get pair amplitude
       qr = q.real();
       qi = q.imag();
-      qr = __shfl_sync(0xffffffff, qr, iPair & (_WS-1), 32);
-      qi = __shfl_sync(0xffffffff, qi, iPair & (_WS-1), 32);
+      qr = __shfl_sync(0xffffffff, qr, iPair & (_WS - 1), 32);
+      qi = __shfl_sync(0xffffffff, qi, iPair & (_WS - 1), 32);
       qp = thrust::complex<data_t>(qr, qi);
     } else {
       __syncthreads();
