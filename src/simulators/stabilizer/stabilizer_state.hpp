@@ -39,9 +39,25 @@ const Operations::OpSet StateOpSet(
      OpType::save_state, OpType::set_stabilizer, OpType::jump, OpType::mark},
     // Gates
     {"CX", "cx", "cy", "cz", "swap", "id", "x", "y", "z", "h", "s", "sdg", "sx",
-     "sxdg", "delay", "pauli"});
+     "sxdg", "delay", "pauli", "ecr"});
 
-enum class Gates { id, x, y, z, h, s, sdg, sx, sxdg, cx, cy, cz, swap, pauli };
+enum class Gates {
+  id,
+  x,
+  y,
+  z,
+  h,
+  s,
+  sdg,
+  sx,
+  sxdg,
+  cx,
+  cy,
+  cz,
+  swap,
+  pauli,
+  ecr
+};
 
 //============================================================================
 // Stabilizer Table state class
@@ -181,12 +197,13 @@ const stringmap_t<Gates> State::gateset_({
     {"sx", Gates::sx},     // Sqrt X gate.
     {"sxdg", Gates::sxdg}, // Inverse Sqrt X gate.
     // Two-qubit gates
-    {"CX", Gates::cx},      // Controlled-X gate (CNOT)
-    {"cx", Gates::cx},      // Controlled-X gate (CNOT),
-    {"cy", Gates::cy},      // Controlled-Y gate
-    {"cz", Gates::cz},      // Controlled-Z gate
-    {"swap", Gates::swap},  // SWAP gate
-    {"pauli", Gates::pauli} // Pauli gate
+    {"CX", Gates::cx},       // Controlled-X gate (CNOT)
+    {"cx", Gates::cx},       // Controlled-X gate (CNOT),
+    {"cy", Gates::cy},       // Controlled-Y gate
+    {"cz", Gates::cz},       // Controlled-Z gate
+    {"swap", Gates::swap},   // SWAP gate
+    {"pauli", Gates::pauli}, // Pauli gate
+    {"ecr", Gates::ecr}      // ECR gate
 });
 
 //============================================================================
@@ -341,6 +358,16 @@ void State::apply_gate(const Operations::Op &op) {
     break;
   case Gates::pauli:
     apply_pauli(op.qubits, op.string_params[0]);
+    break;
+  case Gates::ecr:
+    BaseState::qreg_.append_h(op.qubits[1]);
+    BaseState::qreg_.append_s(op.qubits[0]);
+    BaseState::qreg_.append_z(op.qubits[1]); // sdg(1)
+    BaseState::qreg_.append_s(op.qubits[1]); // sdg(1)
+    BaseState::qreg_.append_h(op.qubits[1]);
+    BaseState::qreg_.append_cx(op.qubits[0], op.qubits[1]);
+    BaseState::qreg_.append_x(op.qubits[0]);
+    BaseState::qreg_.append_x(op.qubits[1]);
     break;
   default:
     // We shouldn't reach here unless there is a bug in gateset

@@ -785,6 +785,7 @@ class QasmSimulator(AerBackend):
                     "swap",
                     "delay",
                     "pauli",
+                    "ecr",
                 ]
             )
         if method == "extended_stabilizer":
