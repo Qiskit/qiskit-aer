@@ -375,8 +375,8 @@ void MultiStateExecutor<state_t>::run_circuit_shots(
         uint_t ip = i_shot / Base::num_shots_per_bind_param_;
         if (cregs_[i_shot].memory_size() > 0) {
           std::string memory_hex = cregs_[i_shot].memory_hex();
-          par_results[i][ip].data.add_accum(static_cast<uint_t>(1ULL),
-                                        "counts", memory_hex);
+          par_results[i][ip].data.add_accum(static_cast<uint_t>(1ULL), "counts",
+                                            memory_hex);
           if (Base::save_creg_memory_) {
             par_results[i][ip].data.add_list(std::move(memory_hex), "memory");
           }
