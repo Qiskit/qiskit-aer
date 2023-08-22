@@ -41,6 +41,7 @@ class MultiStateExecutor : public Executor<state_t> {
 protected:
   std::vector<state_t> states_;
   std::vector<ClassicalRegister> cregs_; // classical registers for all shots
+  reg_t circuit_seeds_;
 
   // number of qubits for the circuit
   uint_t num_qubits_;
@@ -84,10 +85,6 @@ protected:
   // Threshold for chopping small values to zero in JSON
   double json_chop_threshold_ = 1e-10;
 
-  // Set a global phase exp(1j * theta) for the state
-  bool has_global_phase_ = false;
-  complex_t global_phase_ = 1;
-
   // number of threads for inner loop of shot-branching
   int_t shot_branch_parallel_ = 1;
 
@@ -115,23 +112,26 @@ protected:
 
   void run_circuit_shots(Circuit &circ, const Noise::NoiseModel &noise,
                          const Config &config, RngEngine &init_rng,
-                         ExperimentResult &result, bool sample_noise) override;
+                         ResultItr result_it, bool sample_noise) override;
 
   void run_circuit_with_shot_branching(
       uint_t top_state, uint_t num_states, Circuit &circ,
       const Noise::NoiseModel &noise, const Config &config, RngEngine &init_rng,
-      uint_t ishot, uint_t nshots, ExperimentResult &result, bool sample_noise);
+      uint_t ishot, uint_t nshots, ResultItr result_it, bool sample_noise);
 
   // apply op for shot-branching, return false if op is not applied in sub-class
   virtual bool apply_branching_op(Branch &root, const Operations::Op &op,
-                                  ExperimentResult &result, bool final_op) {
+                                  ResultItr result_it, bool final_op) {
     std::cout << "  base is called, implement for each method" << std::endl;
     return false;
   }
 
+  // apply op with runtime parameterization
+  virtual void apply_runtime_parameterization(Branch &root,
+                                              const Operations::Op &op);
+
   // Apply the global phase
   virtual void apply_global_phase() {}
-  void set_global_phase(double theta);
 
   void set_parallelization(const Circuit &circ,
                            const Noise::NoiseModel &noise) override;
@@ -142,8 +142,7 @@ protected:
 
   template <typename InputIterator>
   void measure_sampler(InputIterator first_meas, InputIterator last_meas,
-                       uint_t shots, Branch &branch, ExperimentResult &result,
-                       std::vector<RngEngine> &rng);
+                       Branch &branch, ResultItr result_it);
 
   // sampling measure
   virtual std::vector<reg_t> sample_measure(state_t &state, const reg_t &qubits,
@@ -152,6 +151,9 @@ protected:
     // this is for single rng, impement in sub-class for multi-shots case
     return state.sample_measure(qubits, shots, rng[0]);
   }
+
+  void apply_save_expval(Branch &root, const Operations::Op &op,
+                         ResultItr result);
 };
 
 template <class state_t>
@@ -186,17 +188,6 @@ void MultiStateExecutor<state_t>::set_config(const Config &config) {
 
   if (config.num_threads_per_device.has_value())
     num_threads_per_group_ = config.num_threads_per_device.value();
-}
-
-template <class state_t>
-void MultiStateExecutor<state_t>::set_global_phase(double theta) {
-  if (Linalg::almost_equal(theta, 0.0)) {
-    has_global_phase_ = false;
-    global_phase_ = 1;
-  } else {
-    has_global_phase_ = true;
-    global_phase_ = std::exp(complex_t(0.0, theta));
-  }
 }
 
 template <class state_t>
@@ -251,10 +242,19 @@ bool MultiStateExecutor<state_t>::allocate_states(uint_t num_shots,
 template <class state_t>
 void MultiStateExecutor<state_t>::run_circuit_shots(
     Circuit &circ, const Noise::NoiseModel &noise, const Config &config,
-    RngEngine &init_rng, ExperimentResult &result, bool sample_noise) {
+    RngEngine &init_rng, ResultItr result_it, bool sample_noise) {
   num_qubits_ = circ.num_qubits;
   num_creg_memory_ = circ.num_memory;
   num_creg_registers_ = circ.num_registers;
+  Base::num_bind_params_ = circ.num_bind_params;
+  Base::num_shots_per_bind_param_ = circ.shots;
+
+  if (circ.num_bind_params > 1)
+    circuit_seeds_ = circ.seed_for_params;
+  else {
+    circuit_seeds_.resize(1);
+    circuit_seeds_[0] = circ.seed;
+  }
 
   if (this->sim_device_ == Device::GPU) {
 #ifdef _OPENMP
@@ -264,8 +264,7 @@ void MultiStateExecutor<state_t>::run_circuit_shots(
   } else if (this->sim_device_ == Device::ThrustCPU) {
     shot_omp_parallel_ = false;
   }
-
-  set_distribution(circ.shots);
+  set_distribution(circ.shots * Base::num_bind_params_);
   num_max_shots_ = Base::get_max_parallel_shots(circ, noise);
 
   bool shot_branching = false;
@@ -276,7 +275,7 @@ void MultiStateExecutor<state_t>::run_circuit_shots(
     shot_branching = false;
 
   if (!shot_branching) {
-    return Base::run_circuit_shots(circ, noise, config, init_rng, result,
+    return Base::run_circuit_shots(circ, noise, config, init_rng, result_it,
                                    sample_noise);
   }
   // disable cuStateVec if shot-branching is enabled
@@ -287,6 +286,8 @@ void MultiStateExecutor<state_t>::run_circuit_shots(
 
   Noise::NoiseModel dummy_noise;
   state_t dummy_state;
+  RngEngine dummy_rng;
+  dummy_rng.set_seed(circ.seed); // this is not used actually
 
   Circuit circ_opt;
   if (sample_noise) {
@@ -295,19 +296,19 @@ void MultiStateExecutor<state_t>::run_circuit_shots(
                                   Noise::NoiseModel::Method::circuit, true);
     auto fusion_pass = Base::transpile_fusion(circ_opt.opset(), config);
     fusion_pass.optimize_circuit(circ_opt, dummy_noise, dummy_state.opset(),
-                                 result);
+                                 *result_it);
     max_matrix_qubits_ = Base::get_max_matrix_qubits(circ_opt);
   } else {
     auto fusion_pass = Base::transpile_fusion(circ.opset(), config);
     fusion_pass.optimize_circuit(circ, dummy_noise, dummy_state.opset(),
-                                 result);
+                                 *result_it);
     max_matrix_qubits_ = Base::get_max_matrix_qubits(circ);
   }
 
 #ifdef AER_MPI
   // if shots are distributed to MPI processes, allocate cregs to be gathered
   if (Base::num_process_per_experiment_ > 1)
-    cregs_.resize(circ.shots);
+    cregs_.resize(circ.shots * Base::num_bind_params_);
 #endif
 
   // reserve states
@@ -321,7 +322,8 @@ void MultiStateExecutor<state_t>::run_circuit_shots(
         std::min((int_t)Base::parallel_shots_, (int_t)num_local_states_);
   }
   shot_branch_parallel_ = Base::parallel_shots_ / par_shots;
-  std::vector<ExperimentResult> par_results(par_shots);
+
+  std::vector<std::vector<ExperimentResult>> par_results(par_shots);
 
   auto parallel_shot_branching = [this, &par_results, par_shots, &circ,
                                   &circ_opt, noise, config, &init_rng,
@@ -330,6 +332,7 @@ void MultiStateExecutor<state_t>::run_circuit_shots(
     uint_t ishot = i * num_local_states_ / par_shots;
     uint_t nshots = (i + 1) * num_local_states_ / par_shots;
     nshots -= ishot;
+    par_results[i].resize(Base::num_bind_params_);
 
     // state distribution
     uint_t istate, nstates;
@@ -346,11 +349,11 @@ void MultiStateExecutor<state_t>::run_circuit_shots(
       if (sample_noise) {
         run_circuit_with_shot_branching(istate, nstates, circ_opt, noise,
                                         config, init_rng, ishot, nshots,
-                                        par_results[i], sample_noise);
+                                        par_results[i].begin(), sample_noise);
       } else {
         run_circuit_with_shot_branching(istate, nstates, circ, noise, config,
-                                        init_rng, ishot, nshots, par_results[i],
-                                        sample_noise);
+                                        init_rng, ishot, nshots,
+                                        par_results[i].begin(), sample_noise);
       }
     }
   };
@@ -369,12 +372,13 @@ void MultiStateExecutor<state_t>::run_circuit_shots(
       shot_end = num_global_states_ * (i + 1) / par_shots;
 
       for (; i_shot < shot_end; i_shot++) {
+        uint_t ip = i_shot / Base::num_shots_per_bind_param_;
         if (cregs_[i_shot].memory_size() > 0) {
           std::string memory_hex = cregs_[i_shot].memory_hex();
-          par_results[i].data.add_accum(static_cast<uint_t>(1ULL), "counts",
-                                        memory_hex);
+          par_results[i][ip].data.add_accum(static_cast<uint_t>(1ULL), "counts",
+                                            memory_hex);
           if (Base::save_creg_memory_) {
-            par_results[i].data.add_list(std::move(memory_hex), "memory");
+            par_results[i][ip].data.add_list(std::move(memory_hex), "memory");
           }
         }
       }
@@ -386,17 +390,23 @@ void MultiStateExecutor<state_t>::run_circuit_shots(
 #endif
 
   for (auto &res : par_results) {
-    result.combine(std::move(res));
+    for (int_t i = 0; i < Base::num_bind_params_; i++) {
+      (result_it + i)->combine(std::move(res[i]));
+    }
   }
 
-  result.metadata.add(true, "shot_branching_enabled");
+  for (int_t i = 0; i < Base::num_bind_params_; i++) {
+    (result_it + i)->metadata.add(true, "shot_branching_enabled");
+    (result_it + i)
+        ->metadata.add(sample_noise, "runtime_noise_sampling_enabled");
+  }
 }
 
 template <class state_t>
 void MultiStateExecutor<state_t>::run_circuit_with_shot_branching(
     uint_t top_state, uint_t num_states, Circuit &circ,
     const Noise::NoiseModel &noise, const Config &config, RngEngine &init_rng,
-    uint_t ishot, uint_t nshots, ExperimentResult &result, bool sample_noise) {
+    uint_t ishot, uint_t nshots, ResultItr result_it, bool sample_noise) {
   std::vector<std::shared_ptr<Branch>> branches;
   OpItr first;
   OpItr last;
@@ -431,49 +441,94 @@ void MultiStateExecutor<state_t>::run_circuit_with_shot_branching(
   if (par_shots == 0)
     par_shots = 1;
 
-  // initialize local shots
+  // initialize local shots and parameter indices
   std::vector<RngEngine> shots_storage(nshots);
-  if (global_state_index_ + ishot == 0)
-    shots_storage[0] = init_rng;
-  else
-    shots_storage[0].set_seed(circ.seed + global_state_index_ + ishot);
-  if (par_shots > 1) {
+  std::vector<std::shared_ptr<Branch>> waiting_branches;
+
+  // TO DO : parameter index is only needed at the first parameter bind
+  // store parameter indices
+  if (Base::num_bind_params_ > 1) {
+    if (par_shots > 1) {
 #pragma omp parallel for num_threads(par_shots)
-    for (int_t i = 1; i < nshots; i++)
-      shots_storage[i].set_seed(circ.seed + global_state_index_ + ishot + i);
+      for (int_t i = 0; i < nshots; i++) {
+        uint_t gid = global_state_index_ + ishot + i;
+        uint_t ip = gid / Base::num_shots_per_bind_param_;
+        shots_storage[i].set_seed(circ.seed_for_params[ip] +
+                                  (gid % Base::num_shots_per_bind_param_));
+      }
+    } else {
+      for (int_t i = 0; i < nshots; i++) {
+        uint_t gid = global_state_index_ + ishot + i;
+        uint_t ip = gid / Base::num_shots_per_bind_param_;
+        shots_storage[i].set_seed(circ.seed_for_params[ip] +
+                                  (gid % Base::num_shots_per_bind_param_));
+      }
+    }
   } else {
-    for (int_t i = 1; i < nshots; i++)
-      shots_storage[i].set_seed(circ.seed + global_state_index_ + ishot + i);
+    if (global_state_index_ + ishot == 0)
+      shots_storage[0] = init_rng;
+    else
+      shots_storage[0].set_seed(circ.seed + global_state_index_ + ishot);
+    if (par_shots > 1) {
+#pragma omp parallel for num_threads(par_shots)
+      for (int_t i = 1; i < nshots; i++)
+        shots_storage[i].set_seed(circ.seed + global_state_index_ + ishot + i);
+    } else {
+      for (int_t i = 1; i < nshots; i++)
+        shots_storage[i].set_seed(circ.seed + global_state_index_ + ishot + i);
+    }
   }
 
-  std::vector<ExperimentResult> par_results(par_shots);
+  // initial state
+  waiting_branches.push_back(std::make_shared<Branch>());
+  waiting_branches[0]->set_shots(shots_storage);
+  waiting_branches[0]->op_iterator() = first;
+  if (Base::num_bind_params_ > 1) {
+    waiting_branches[0]->set_param_index(global_state_index_ + ishot,
+                                         Base::num_shots_per_bind_param_);
+  } else {
+    waiting_branches[0]->set_param_index(0, 0);
+  }
+  shots_storage.clear();
 
-  uint_t num_shots_saved = 0;
+  std::vector<std::vector<ExperimentResult>> par_results(par_shots);
+  for (int_t i = 0; i < par_shots; i++) {
+    par_results[i].resize(Base::num_bind_params_);
+  }
+
+  reg_t num_shots_saved(Base::num_bind_params_, 0);
 
   // loop until all local shots are simulated
-  while (shots_storage.size() > 0) {
+  while (waiting_branches.size() > 0) {
     uint_t num_active_states = 1;
 
-    // initial state
-    branches.push_back(std::make_shared<Branch>());
-    branches[0]->state_index() = top_state;
-    branches[0]->set_shots(shots_storage);
-    branches[0]->op_iterator() = first;
-    branches[0]->shot_index() =
-        global_state_index_ + nshots - shots_storage.size();
-    shots_storage.clear();
+    // set branches
+    for (int_t i = 0; i < waiting_branches.size(); i++) {
+      if (i > num_states)
+        break;
+      uint_t sid = top_state + i;
+      waiting_branches[i]->state_index() = sid;
+      waiting_branches[i]->op_iterator() = first;
+      branches.push_back(waiting_branches[i]);
 
-    // initialize initial state
-    states_[top_state].set_parallelization(this->parallel_state_update_);
-    states_[top_state].set_global_phase(circ.global_phase_angle);
-    states_[top_state].enable_density_matrix(!Base::has_statevector_ops_);
-    states_[top_state].initialize_qreg(num_qubits_);
-    states_[top_state].initialize_creg(num_creg_memory_, num_creg_registers_);
+      // initialize state
+      states_[sid].set_parallelization(this->parallel_state_update_);
+      states_[sid].set_global_phase(circ.global_phase_angle);
+      states_[sid].enable_density_matrix(!Base::has_statevector_ops_);
+      states_[sid].initialize_qreg(num_qubits_);
+      states_[sid].initialize_creg(num_creg_memory_, num_creg_registers_);
+    }
+    if (waiting_branches.size() < num_states)
+      waiting_branches.clear();
+    else {
+      waiting_branches.erase(waiting_branches.begin(),
+                             waiting_branches.begin() + num_states);
+    }
 
     while (num_active_states > 0) { // loop until all branches execute all ops
       // functor for ops execution
       auto apply_ops_func = [this, &branches, &noise, &par_results, measure_seq,
-                             par_shots, num_active_states](int_t i) {
+                             last, par_shots, num_active_states](int_t i) {
         uint_t istate, state_end;
         istate = branches.size() * i / par_shots;
         state_end = branches.size() * (i + 1) / par_shots;
@@ -481,6 +536,8 @@ void MultiStateExecutor<state_t>::run_circuit_with_shot_branching(
         RngEngine dummy_rng;
 
         for (; istate < state_end; istate++) {
+          state_t &state = states_[branches[istate]->state_index()];
+
           while (branches[istate]->op_iterator() != measure_seq ||
                  branches[istate]->additional_ops().size() > 0) {
             // execute additional ops first if avaiable
@@ -490,7 +547,7 @@ void MultiStateExecutor<state_t>::run_circuit_with_shot_branching(
               while (iadd < num_add) {
                 if (apply_branching_op(*branches[istate],
                                        branches[istate]->additional_ops()[iadd],
-                                       par_results[i], false)) {
+                                       par_results[i].begin(), false)) {
                   // check if there are new branches
                   if (branches[istate]->num_branches() > 0) {
                     // if there are additional ops remaining, queue them on new
@@ -503,8 +560,8 @@ void MultiStateExecutor<state_t>::run_circuit_with_shot_branching(
                             branches[istate]->additional_ops()[k]);
                     }
                     branches[istate]->remove_empty_branches();
-                    states_[branches[istate]->state_index()].creg() =
-                        branches[istate]->creg();
+                    state.creg() = branches[istate]->creg();
+
                     // if there are some branches still remaining
                     if (branches[istate]->num_branches() > 0) {
                       nbranch += branches[istate]->num_branches();
@@ -514,9 +571,8 @@ void MultiStateExecutor<state_t>::run_circuit_with_shot_branching(
                     num_add = branches[istate]->additional_ops().size();
                   }
                 } else {
-                  states_[branches[istate]->state_index()].apply_op(
-                      branches[istate]->additional_ops()[iadd], par_results[i],
-                      dummy_rng, false);
+                  state.apply_op(branches[istate]->additional_ops()[iadd],
+                                 par_results[i][0], dummy_rng, false);
                 }
                 iadd++;
               }
@@ -527,34 +583,44 @@ void MultiStateExecutor<state_t>::run_circuit_with_shot_branching(
                 break;
               }
             }
-            // then execute ops
-            if (branches[istate]->op_iterator() != measure_seq) {
-              if (!branches[istate]->apply_control_flow(
-                      states_[branches[istate]->state_index()].creg(),
-                      measure_seq)) {
-                if (!branches[istate]->apply_runtime_noise_sampling(
-                        states_[branches[istate]->state_index()].creg(),
-                        *branches[istate]->op_iterator(), noise)) {
-                  if (!apply_branching_op(*branches[istate],
-                                          *branches[istate]->op_iterator(),
-                                          par_results[i], true)) {
-                    states_[branches[istate]->state_index()].apply_op(
-                        *branches[istate]->op_iterator(), par_results[i],
-                        dummy_rng, true);
-                  }
-                }
-                branches[istate]->advance_iterator();
-                if (branches[istate]->num_branches() > 0) {
-                  branches[istate]->remove_empty_branches();
-                  states_[branches[istate]->state_index()].creg() =
-                      branches[istate]->creg();
+            OpItr op = branches[istate]->op_iterator();
+            if (op == measure_seq)
+              break;
 
-                  // if there are some branches still remaining
-                  if (branches[istate]->num_branches() > 0) {
-                    nbranch += branches[istate]->num_branches();
-                    break;
-                  }
-                }
+            // then execute ops
+            if (!state.creg().check_conditional(*op)) {
+              branches[istate]->advance_iterator();
+              continue;
+            }
+            if (branches[istate]->apply_control_flow(state.creg(), measure_seq))
+              continue;
+
+            // runtime noise sampling
+            if (op->type == Operations::OpType::sample_noise) {
+              branches[istate]->apply_runtime_noise_sampling(state.creg(), *op,
+                                                             noise);
+            }
+            // runtime parameterizaion
+            else if (op->has_bind_params) {
+              apply_runtime_parameterization(*branches[istate], *op);
+            } else {
+              if (!apply_branching_op(*branches[istate], *op,
+                                      par_results[i].begin(),
+                                      (op + 1 == last))) {
+                state.apply_op(*op, par_results[i][0], dummy_rng,
+                               (op + 1 == last));
+              }
+            }
+
+            branches[istate]->advance_iterator();
+            if (branches[istate]->num_branches() > 0) {
+              branches[istate]->remove_empty_branches();
+              state.creg() = branches[istate]->creg();
+
+              // if there are some branches still remaining
+              if (branches[istate]->num_branches() > 0) {
+                nbranch += branches[istate]->num_branches();
+                break;
               }
             }
           }
@@ -577,22 +643,10 @@ void MultiStateExecutor<state_t>::run_circuit_with_shot_branching(
               if (branches[i]->branches()[j]->num_shots() > 0) {
                 // add new branched state
                 uint_t pos = branches.size();
-                if (pos >= num_states) { // if there is not enough memory to
-                                         // allocate copied state, shots are
-                                         // reserved to the next iteration
-                  // reset seed to reproduce same results
-                  for (int_t k = 0; k < branches[i]->branches()[j]->num_shots();
-                       k++) {
-                    branches[i]->branches()[j]->rng_shots()[k].set_seed(
-                        branches[i]
-                            ->branches()[j]
-                            ->rng_shots()[k]
-                            .initial_seed());
-                  }
-                  shots_storage.insert(
-                      shots_storage.end(),
-                      branches[i]->branches()[j]->rng_shots().begin(),
-                      branches[i]->branches()[j]->rng_shots().end());
+                if (pos >= num_states) {
+                  // if there is not enough memory, add to waiting list
+                  branches[i]->branches()[j]->reset_branch();
+                  waiting_branches.push_back(branches[i]->branches()[j]);
                 } else {
                   branches.push_back(branches[i]->branches()[j]);
                   branches[pos]->state_index() = top_state + pos;
@@ -647,9 +701,8 @@ void MultiStateExecutor<state_t>::run_circuit_with_shot_branching(
         state_end = branches.size() * (i + 1) / par_shots;
 
         for (; istate < state_end; istate++) {
-          measure_sampler(measure_seq, last, branches[istate]->num_shots(),
-                          *branches[istate], par_results[i],
-                          branches[istate]->rng_shots());
+          measure_sampler(measure_seq, last, *branches[istate],
+                          par_results[i].begin());
         }
       };
       bool can_parallel = par_shots > 1 && branches.size() > 1;
@@ -659,7 +712,8 @@ void MultiStateExecutor<state_t>::run_circuit_with_shot_branching(
       Utils::apply_omp_parallel_for(can_parallel, 0, par_shots,
                                     sampling_measure_func, par_shots);
 
-      result.metadata.add(true, "shot_branching_sampling_enabled");
+      for (int_t i = 0; i < Base::num_bind_params_; i++)
+        (result_it + i)->metadata.add(true, "shot_branching_sampling_enabled");
     } else {
       // save cregs to result
       auto save_cregs = [this, &branches, &par_results, par_shots](int_t i) {
@@ -670,18 +724,25 @@ void MultiStateExecutor<state_t>::run_circuit_with_shot_branching(
         for (; istate < state_end; istate++) {
           if (Base::num_process_per_experiment_ > 1) {
             for (int_t j = 0; j < branches[istate]->num_shots(); j++) {
-              cregs_[branches[istate]->shot_index() + j] =
-                  states_[branches[istate]->state_index()].creg();
+              uint_t idx = branches[istate]->rng_shots()[j].initial_seed();
+              uint_t ip = branches[istate]->param_index(j);
+              idx += ip * Base::num_shots_per_bind_param_;
+              idx -= circuit_seeds_[ip];
+              cregs_[idx] = states_[branches[istate]->state_index()].creg();
             }
           } else {
             std::string memory_hex =
                 states_[branches[istate]->state_index()].creg().memory_hex();
-            for (int_t j = 0; j < branches[istate]->num_shots(); j++)
-              par_results[i].data.add_accum(static_cast<uint_t>(1ULL), "counts",
-                                            memory_hex);
+            for (int_t j = 0; j < branches[istate]->num_shots(); j++) {
+              uint_t ip = branches[istate]->param_index(j);
+              par_results[i][ip].data.add_accum(static_cast<uint_t>(1ULL),
+                                                "counts", memory_hex);
+            }
             if (Base::save_creg_memory_) {
-              for (int_t j = 0; j < branches[istate]->num_shots(); j++)
-                par_results[i].data.add_list(memory_hex, "memory");
+              for (int_t j = 0; j < branches[istate]->num_shots(); j++) {
+                uint_t ip = branches[istate]->param_index(j);
+                par_results[i][ip].data.add_list(memory_hex, "memory");
+              }
             }
           }
         }
@@ -699,7 +760,34 @@ void MultiStateExecutor<state_t>::run_circuit_with_shot_branching(
   }
 
   for (auto &res : par_results) {
-    result.combine(std::move(res));
+    for (int_t i = 0; i < Base::num_bind_params_; i++) {
+      (result_it + i)->combine(std::move(res[i]));
+    }
+  }
+}
+
+template <class state_t>
+void MultiStateExecutor<state_t>::apply_runtime_parameterization(
+    Branch &root, const Operations::Op &op) {
+  uint_t nparams = root.num_params();
+
+  root.creg() = states_[root.state_index()].creg();
+  if (nparams == 1) {
+    uint_t ip = root.param_index(0);
+    Operations::Op bind_op =
+        Operations::make_parameter_bind(op, ip, Base::num_bind_params_);
+    root.add_op_after_branch(bind_op);
+  } else {
+    // branch shots
+    root.branch_shots_by_params();
+
+    // add binded op after branch
+    for (int_t i = 0; i < nparams; i++) {
+      uint_t ip = root.branches()[i]->param_index(0);
+      Operations::Op bind_op =
+          Operations::make_parameter_bind(op, ip, Base::num_bind_params_);
+      root.branches()[i]->add_op_after_branch(bind_op);
+    }
   }
 }
 
@@ -707,17 +795,26 @@ template <class state_t>
 template <typename InputIterator>
 void MultiStateExecutor<state_t>::measure_sampler(InputIterator first_meas,
                                                   InputIterator last_meas,
-                                                  uint_t shots, Branch &branch,
-                                                  ExperimentResult &result,
-                                                  std::vector<RngEngine> &rng) {
+                                                  Branch &branch,
+                                                  ResultItr result) {
   state_t &state = states_[branch.state_index()];
+  std::vector<RngEngine> &rng = branch.rng_shots();
+  uint_t shots = branch.num_shots();
+
   // Check if meas_circ is empty, and if so return initial creg
   if (first_meas == last_meas) {
-    for (int_t i = 0; i < shots; i++) {
-      if (Base::num_process_per_experiment_ > 1) {
-        cregs_[branch.shot_index() + i] = state.creg();
-      } else {
-        result.save_count_data(state.creg(), Base::save_creg_memory_);
+    if (Base::num_process_per_experiment_ > 1) {
+      for (int_t i = 0; i < shots; i++) {
+        uint_t idx = branch.rng_shots()[i].initial_seed();
+        uint_t ip = branch.param_index(i);
+        idx += ip * Base::num_shots_per_bind_param_;
+        idx -= circuit_seeds_[ip];
+        cregs_[idx] = state.creg();
+      }
+    } else {
+      for (int_t i = 0; i < shots; i++) {
+        uint_t ip = branch.param_index(i);
+        (result + ip)->save_count_data(state.creg(), Base::save_creg_memory_);
       }
     }
     return;
@@ -744,12 +841,8 @@ void MultiStateExecutor<state_t>::measure_sampler(InputIterator first_meas,
                     meas_qubits.end());
 
   // Generate the samples
-  auto timer_start = myclock_t::now();
   std::vector<reg_t> all_samples;
   all_samples = sample_measure(state, meas_qubits, shots, rng);
-  auto time_taken =
-      std::chrono::duration<double>(myclock_t::now() - timer_start).count();
-  result.metadata.add(time_taken, "sample_measure_time");
 
   // Make qubit map of position in vector of measured qubits
   std::unordered_map<uint_t, uint_t> qubit_map;
@@ -775,9 +868,8 @@ void MultiStateExecutor<state_t>::measure_sampler(InputIterator first_meas,
       (memory_map.empty()) ? 0ULL : 1 + memory_map.rbegin()->first;
   uint_t num_registers =
       (register_map.empty()) ? 0ULL : 1 + register_map.rbegin()->first;
-  ClassicalRegister creg;
   for (int_t i = 0; i < all_samples.size(); i++) {
-    creg = state.creg();
+    ClassicalRegister creg = state.creg();
 
     // process memory bit measurements
     for (const auto &pair : memory_map) {
@@ -796,13 +888,72 @@ void MultiStateExecutor<state_t>::measure_sampler(InputIterator first_meas,
 
     // save creg to gather
     if (Base::num_process_per_experiment_ > 1) {
-      for (int_t j = 0; j < shots; j++)
-        cregs_[branch.shot_index() + j] = creg;
+      uint_t idx = branch.rng_shots()[i].initial_seed();
+      uint_t ip = branch.param_index(i);
+      idx += ip * Base::num_shots_per_bind_param_;
+      idx -= circuit_seeds_[ip];
+      cregs_[idx] = creg;
     } else {
+      uint_t ip = branch.param_index(i);
       std::string memory_hex = creg.memory_hex();
-      result.data.add_accum(static_cast<uint_t>(1ULL), "counts", memory_hex);
+      (result + ip)
+          ->data.add_accum(static_cast<uint_t>(1ULL), "counts", memory_hex);
       if (Base::save_creg_memory_)
-        result.data.add_list(memory_hex, "memory");
+        (result + ip)->data.add_list(memory_hex, "memory");
+    }
+  }
+}
+
+template <class state_t>
+void MultiStateExecutor<state_t>::apply_save_expval(Branch &root,
+                                                    const Operations::Op &op,
+                                                    ResultItr result) {
+  // Check empty edge case
+  if (op.expval_params.empty()) {
+    throw std::invalid_argument(
+        "Invalid save expval instruction (Pauli components are empty).");
+  }
+  bool variance = (op.type == Operations::OpType::save_expval_var);
+
+  // Accumulate expval components
+  double expval(0.);
+  double sq_expval(0.);
+
+  for (const auto &param : op.expval_params) {
+    // param is tuple (pauli, coeff, sq_coeff)
+    auto val =
+        states_[root.state_index()].expval_pauli(op.qubits, std::get<0>(param));
+    expval += std::get<1>(param) * val;
+    if (variance) {
+      sq_expval += std::get<2>(param) * val;
+    }
+  }
+
+  std::vector<bool> copied(Base::num_bind_params_, false);
+  if (variance) {
+    std::vector<double> expval_var(2);
+    expval_var[0] = expval;                      // mean
+    expval_var[1] = sq_expval - expval * expval; // variance
+    for (int_t i = 0; i < root.num_shots(); i++) {
+      uint_t ip = root.param_index(i);
+      if (!copied[ip]) {
+        (result + ip)
+            ->save_data_average(states_[root.state_index()].creg(),
+                                op.string_params[0], expval_var, op.type,
+                                op.save_type);
+        copied[ip] = true;
+      }
+    }
+  } else {
+    for (int_t i = 0; i < root.num_shots(); i++) {
+      uint_t ip = root.param_index(i);
+      if (!copied[ip]) {
+        (result + ip)
+            ->save_data_average(states_[root.state_index()].creg(),
+                                op.string_params[0], expval, op.type,
+                                op.save_type);
+        copied[ip] = true;
+      }
     }
   }
 }

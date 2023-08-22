@@ -57,6 +57,7 @@ protected:
   int num_threads_per_group_;
   uint_t num_creg_bits_ = 0;
 
+  bool chunk_distribution_enable_ = true; // enable distribution over GPUs
   reg_t target_gpus_;
 
 public:
@@ -98,6 +99,8 @@ public:
   void execute_on_device(Function func,
                          const std::vector<std::complex<double>> &mat,
                          const std::vector<uint_t> &prm);
+
+  void enable_chunk_distribution(bool flg) { chunk_distribution_enable_ = flg; }
 };
 
 template <typename data_t>
@@ -223,13 +226,35 @@ uint_t ChunkManager<data_t>::Allocate(int chunk_bits, int nqubits,
         multi_gpu = false;
         num_places_ = 1;
 #else
-        multi_gpu = true;
-        num_places_ = num_devices_;
-        if (num_threads_per_group_ > 1)
-          num_places_ *= num_threads_per_group_;
-
-        if (num_places_ > omp_get_max_threads()) {
+        if (chunk_distribution_enable_) {
+          multi_gpu = true;
           num_places_ = num_devices_;
+          if (num_threads_per_group_ > 1)
+            num_places_ *= num_threads_per_group_;
+
+          if (num_places_ > omp_get_max_threads()) {
+            num_places_ = num_devices_;
+          }
+        } else {
+          multi_gpu = false;
+          num_places_ = 1;
+          idev_start = 0;
+
+          // define device to be allocated
+          if (num_devices_ > 1) {
+            size_t freeMem, totalMem, maxMem;
+            cudaSetDevice(0);
+            cudaMemGetInfo(&freeMem, &totalMem);
+            maxMem = freeMem;
+            for (i = 1; i < num_devices_; i++) {
+              cudaSetDevice(i);
+              cudaMemGetInfo(&freeMem, &totalMem);
+              if (freeMem > maxMem) {
+                maxMem = freeMem;
+                idev_start = i;
+              }
+            }
+          }
         }
 #endif
       } else { // single chunk

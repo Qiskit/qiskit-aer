@@ -156,6 +156,9 @@ public:
   virtual std::vector<reg_t> sample_measure(const reg_t &qubits, uint_t shots,
                                             RngEngine &rng) override;
 
+  // Helper function for computing expectation value
+  virtual double expval_pauli(const reg_t &qubits,
+                              const std::string &pauli) override;
   //-----------------------------------------------------------------------
   // Additional methods
   //-----------------------------------------------------------------------
@@ -222,6 +225,9 @@ public:
   // Return the reduced density matrix for the simulator
   cmatrix_t density_matrix(const reg_t &qubits);
 
+  // Apply the global phase
+  void apply_global_phase();
+
 protected:
   //-----------------------------------------------------------------------
   // Save data instructions
@@ -249,9 +255,6 @@ protected:
   void apply_save_amplitudes(const Operations::Op &op,
                              ExperimentResult &result);
 
-  // Helper function for computing expectation value
-  virtual double expval_pauli(const reg_t &qubits,
-                              const std::string &pauli) override;
   //-----------------------------------------------------------------------
   // Measurement Helpers
   //-----------------------------------------------------------------------
@@ -302,9 +305,6 @@ protected:
   //-----------------------------------------------------------------------
   // Config Settings
   //-----------------------------------------------------------------------
-
-  // Apply the global phase
-  void apply_global_phase();
 
   // OpenMP qubit threshold
   int omp_qubit_threshold_ = 14;

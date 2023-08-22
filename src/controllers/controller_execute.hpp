@@ -67,7 +67,12 @@ Result controller_execute(std::vector<std::shared_ptr<Circuit>> &input_circs,
   //    pars = [par0, par1, ...] is a list of different parameterizations
   using pos_t = std::pair<int_t, int_t>;
   using exp_params_t = std::vector<std::pair<pos_t, std::vector<double>>>;
-  std::vector<exp_params_t> param_table = config.param_table;
+  std::vector<exp_params_t> &param_table = config.param_table;
+
+  // check if runtime binding is enable
+  bool runtime_parameter_bind = false;
+  if (config.runtime_parameter_bind_enable.has_value())
+    runtime_parameter_bind = config.runtime_parameter_bind_enable.value();
 
   // Validate parameterizations for number of circuis
   if (!param_table.empty() && param_table.size() != num_circs) {
@@ -96,36 +101,40 @@ Result controller_execute(std::vector<std::shared_ptr<Circuit>> &input_circs,
         const auto circ_params = param_table[i];
         const size_t num_params = circ_params[0].second.size();
         const size_t num_instr = circ->ops.size();
-        for (size_t j = 0; j < num_params; j++) {
+
+        if (runtime_parameter_bind && num_params > 1) {
           // Make a copy of the initial circuit
           auto param_circ = std::make_shared<Circuit>(*circ);
+          param_circ->num_bind_params = num_params;
+          param_circ->global_phase_for_params.resize(num_params);
+          for (size_t j = 0; j < num_params; j++)
+            param_circ->global_phase_for_params[j] = 0;
+
           for (const auto &params : circ_params) {
             const auto instr_pos = params.first.first;
             const auto param_pos = params.first.second;
             // Validation
             if (instr_pos == AER::Config::GLOBAL_PHASE_POS) {
               // negative position is for global phase
-              param_circ->global_phase_angle = params.second[j];
-            } else {
-              if (instr_pos >= num_instr) {
-                std::cout << "Invalid parameterization: instruction position "
-                             "out of range: "
-                          << instr_pos << std::endl;
-                throw std::invalid_argument(
-                    R"(Invalid parameterization: instruction position out of range)");
-              }
-              auto &op = param_circ->ops[instr_pos];
+              for (size_t j = 0; j < num_params; j++)
+                param_circ->global_phase_for_params[j] = params.second[j];
+            } else if (instr_pos >= num_instr) {
+              throw std::invalid_argument(
+                  R"(Invalid parameterized qobj: instruction position out of range)");
+            }
+            auto &op = param_circ->ops[instr_pos];
+            if (!op.has_bind_params) {
               if (param_pos >= op.params.size()) {
                 throw std::invalid_argument(
-                    R"(Invalid parameterization: instruction param position out of range)");
+                    R"(Invalid parameterized qobj: instruction param position out of range)");
               }
-              if (j >= params.second.size()) {
-                throw std::invalid_argument(
-                    R"(Invalid parameterization: parameterization value out of range)");
-              }
-              // Update the param
-              op.params[param_pos] = params.second[j];
+              // resize parameter array
+              op.params.resize(op.params.size() * num_params);
+              op.has_bind_params = true;
             }
+            uint_t stride = op.params.size() / num_params;
+            for (size_t j = 0; j < num_params; j++)
+              op.params[param_pos + stride * j] = params.second[j];
           }
           // Run truncation.
           // TODO: Truncation should be performed and parameters should be
@@ -137,7 +146,53 @@ Result controller_execute(std::vector<std::shared_ptr<Circuit>> &input_circs,
             param_circ->set_metadata(config, true);
           }
           circs.push_back(param_circ);
-          template_circs.push_back(circ);
+          for (size_t j = 0; j < num_params; j++)
+            template_circs.push_back(circ);
+        } else {
+          for (size_t j = 0; j < num_params; j++) {
+            // Make a copy of the initial circuit
+            auto param_circ = std::make_shared<Circuit>(*circ);
+            for (const auto &params : circ_params) {
+              const auto instr_pos = params.first.first;
+              const auto param_pos = params.first.second;
+              // Validation
+              if (instr_pos == AER::Config::GLOBAL_PHASE_POS) {
+                // negative position is for global phase
+                circ->global_phase_angle = params.second[j];
+              } else {
+                if (instr_pos >= num_instr) {
+                  std::cout << "Invalid parameterization: instruction position "
+                               "out of range: "
+                            << instr_pos << std::endl;
+                  throw std::invalid_argument(
+                      R"(Invalid parameterization: instruction position out of range)");
+                }
+                auto &op = param_circ->ops[instr_pos];
+                if (param_pos >= op.params.size()) {
+                  throw std::invalid_argument(
+                      R"(Invalid parameterization: instruction param position out of range)");
+                }
+                if (j >= params.second.size()) {
+                  throw std::invalid_argument(
+                      R"(Invalid parameterization: parameterization value out of range)");
+                }
+                // Update the param
+                op.params[param_pos] = params.second[j];
+              }
+            }
+            // Run truncation.
+            // TODO: Truncation should be performed and parameters should be
+            // resolved after it. However, parameters are associated with
+            // indices of instructions, which can be changed in truncation.
+            // Therefore, current implementation performs truncation for each
+            // parameter set.
+            if (truncate) {
+              param_circ->set_params(true);
+              param_circ->set_metadata(config, true);
+            }
+            circs.push_back(param_circ);
+            template_circs.push_back(circ);
+          }
         }
       }
     }
@@ -148,7 +203,6 @@ Result controller_execute(std::vector<std::shared_ptr<Circuit>> &input_circs,
     result.message = std::string("Failed to load circuits: ") + e.what();
     return result;
   }
-
   int_t seed = -1;
   uint_t seed_shift = 0;
 
@@ -157,9 +211,20 @@ Result controller_execute(std::vector<std::shared_ptr<Circuit>> &input_circs,
   else
     seed = circs[0]->seed;
 
-  for (auto &circ : circs) {
-    circ->seed = seed + seed_shift;
-    seed_shift += 2113;
+  if (runtime_parameter_bind) {
+    for (auto &circ : circs) {
+      circ->seed = seed + seed_shift;
+      circ->seed_for_params.resize(circ->num_bind_params);
+      for (int_t i = 0; i < circ->num_bind_params; i++) {
+        circ->seed_for_params[i] = seed + seed_shift;
+        seed_shift += 2113;
+      }
+    }
+  } else {
+    for (auto &circ : circs) {
+      circ->seed = seed + seed_shift;
+      seed_shift += 2113;
+    }
   }
 
   // Fix for MacOS and OpenMP library double initialization crash.

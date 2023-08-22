@@ -195,6 +195,9 @@ protected:
   int myrank_ = 0;
   int num_processes_ = 1;
   int num_process_per_experiment_ = 1;
+
+  // runtime parameter binding
+  bool runtime_parameter_bind_ = false;
 };
 
 //=========================================================================
@@ -330,6 +333,10 @@ void Controller::set_config(const Config &config) {
     throw std::runtime_error(std::string("Invalid simulation precision (") +
                              precision + std::string(")."));
   }
+
+  // check if runtime binding is enable
+  if (config.runtime_parameter_bind_enable.has_value())
+    runtime_parameter_bind_ = config.runtime_parameter_bind_enable.value();
 }
 
 void Controller::clear_config() {
@@ -511,7 +518,14 @@ Result Controller::execute(std::vector<std::shared_ptr<Circuit>> &circuits,
   auto methods = simulation_methods(circuits, noise_model);
 
   // Initialize Result object for the given number of experiments
-  Result result(circuits.size());
+  uint_t result_size;
+  reg_t result_offset(circuits.size());
+  result_size = 0;
+  for (int_t i = 0; i < circuits.size(); i++) {
+    result_offset[i] = result_size;
+    result_size += circuits[i]->num_bind_params;
+  }
+  Result result(result_size);
 
   // Execute each circuit in a try block
   try {
@@ -565,36 +579,50 @@ Result Controller::execute(std::vector<std::shared_ptr<Circuit>> &circuits,
     // average random seed to set the same seed to each process (when
     // seed_simulator is not set)
     if (num_processes_ > 1) {
-      reg_t seeds(circuits.size());
-      reg_t avg_seeds(circuits.size());
-      for (int_t i = 0; i < circuits.size(); i++)
-        seeds[i] = circuits[i]->seed;
-      MPI_Allreduce(seeds.data(), avg_seeds.data(), circuits.size(),
-                    MPI_UINT64_T, MPI_SUM, MPI_COMM_WORLD);
-      for (int_t i = 0; i < circuits.size(); i++)
-        circuits[i]->seed = avg_seeds[i] / num_processes_;
+      reg_t seeds(result_size);
+      reg_t avg_seeds(result_size);
+      int_t iseed = 0;
+      for (int_t i = 0; i < circuits.size(); i++) {
+        if (circuits[i]->num_bind_params > 1) {
+          for (int_t j = 0; i < circuits[i]->num_bind_params; i++)
+            seeds[iseed++] = circuits[i]->seed_for_params[j];
+        } else
+          seeds[iseed++] = circuits[i]->seed;
+      }
+      MPI_Allreduce(seeds.data(), avg_seeds.data(), result_size, MPI_UINT64_T,
+                    MPI_SUM, MPI_COMM_WORLD);
+      iseed = 0;
+      for (int_t i = 0; i < circuits.size(); i++) {
+        if (circuits[i]->num_bind_params > 1) {
+          for (int_t j = 0; i < circuits[i]->num_bind_params; i++)
+            circuits[i]->seed_for_params[j] =
+                avg_seeds[iseed++] / num_processes_;
+        } else
+          circuits[i]->seed = avg_seeds[iseed++] / num_processes_;
+      }
     }
 #endif
 
-    const int NUM_RESULTS = result.results.size();
     // following looks very similar but we have to separate them to avoid omp
     // nested loops that causes performance degradation (DO NOT use if statement
     // in #pragma omp)
     if (parallel_experiments_ == 1) {
-      for (int j = 0; j < NUM_RESULTS; ++j) {
+      for (int j = 0; j < circuits.size(); ++j) {
         std::shared_ptr<CircuitExecutor::Base> executor =
             make_circuit_executor(methods[j]);
         executor->run_circuit(*circuits[j], noise_model, config, methods[j],
-                              sim_device_, result.results[j]);
+                              sim_device_,
+                              result.results.begin() + result_offset[j]);
         executor.reset();
       }
     } else {
 #pragma omp parallel for num_threads(parallel_experiments_)
-      for (int j = 0; j < NUM_RESULTS; ++j) {
+      for (int j = 0; j < circuits.size(); ++j) {
         std::shared_ptr<CircuitExecutor::Base> executor =
             make_circuit_executor(methods[j]);
         executor->run_circuit(*circuits[j], noise_model, config, methods[j],
-                              sim_device_, result.results[j]);
+                              sim_device_,
+                              result.results.begin() + result_offset[j]);
         executor.reset();
       }
     }
@@ -604,7 +632,7 @@ Result Controller::execute(std::vector<std::shared_ptr<Circuit>> &circuits,
 
     bool all_failed = true;
     result.status = Result::Status::completed;
-    for (int i = 0; i < NUM_RESULTS; ++i) {
+    for (int i = 0; i < result.results.size(); ++i) {
       auto &experiment = result.results[i];
       if (experiment.status == ExperimentResult::Status::completed) {
         all_failed = false;

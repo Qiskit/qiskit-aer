@@ -133,6 +133,9 @@ public:
   std::vector<reg_t> sample_measure(const reg_t &qubits, uint_t shots,
                                     RngEngine &rng) override;
 
+  // Helper function for computing expectation value
+  double expval_pauli(const reg_t &qubits, const std::string &pauli) override;
+
   //-----------------------------------------------------------------------
   // Additional methods
   //-----------------------------------------------------------------------
@@ -145,6 +148,9 @@ public:
 
   auto move_to_matrix();
   auto copy_to_matrix();
+
+  // Return the reduced density matrix for the simulator
+  cmatrix_t reduced_density_matrix(const reg_t &qubits, bool last_op = false);
 
   template <typename list_t>
   void initialize_from_vector(const list_t &vec);
@@ -210,12 +216,7 @@ protected:
   void apply_save_amplitudes_sq(const Operations::Op &op,
                                 ExperimentResult &result);
 
-  // Helper function for computing expectation value
-  virtual double expval_pauli(const reg_t &qubits,
-                              const std::string &pauli) override;
-
   // Return the reduced density matrix for the simulator
-  cmatrix_t reduced_density_matrix(const reg_t &qubits, bool last_op = false);
   cmatrix_t reduced_density_matrix_helper(const reg_t &qubits,
                                           const reg_t &qubits_sorted);
 

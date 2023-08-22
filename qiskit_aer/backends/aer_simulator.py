@@ -318,6 +318,12 @@ class AerSimulator(AerBackend):
     * ``accept_distributed_results`` (bool): This option enables storing
       results independently in each process (Default: None).
 
+    * ``runtime_parameter_bind_enable`` (bool): If this option is True
+      parameters are binded at runtime by using multi-shots without constructing
+      circuits for each parameters. For GPU this option can be used with
+      ``batched_shots_gpu`` to run with multiple parameters in a batch.
+      (Default: False).
+
     These backend options only apply when using the ``"statevector"``
     simulation method:
 
@@ -765,6 +771,8 @@ class AerSimulator(AerBackend):
             # tensor network options
             tensor_network_num_sampling_qubits=10,
             use_cuTensorNet_autotuning=False,
+            # parameter binding
+            runtime_parameter_bind_enable=False,
         )
 
     def __repr__(self):
