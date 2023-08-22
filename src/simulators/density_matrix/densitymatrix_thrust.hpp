@@ -61,6 +61,11 @@ public:
   // Initializes the current vector so that all qubits are in the |0> state.
   void initialize();
 
+  // initialize from existing state (copy)
+  void initialize(const DensityMatrixThrust<data_t> &obj) {
+    BaseMatrix::initialize(obj);
+  }
+
   // Initializes the vector to a custom initial state.
   // The vector can be either a statevector or a vectorized density matrix
   // If the length of the data vector does not match either case for the
@@ -1275,12 +1280,13 @@ reg_t DensityMatrixThrust<data_t>::sample_measure(
     const std::vector<double> &rnds) const {
   uint_t count = 1;
   if (!BaseVector::multi_chunk_distribution_) {
-    if (BaseVector::enable_batch_ && BaseVector::chunk_.pos() != 0) {
-      return reg_t(); // first chunk execute all in batch
+    if (BaseVector::enable_batch_) {
+      if (BaseVector::chunk_.pos() != 0)
+        return reg_t(); // first chunk execute all in batch
+      else
+        count = BaseVector::chunk_.container()->num_chunks();
     }
-    count = BaseVector::chunk_.container()->num_chunks();
   }
-
   uint_t nrows = BaseMatrix::num_rows();
 
 #ifdef AER_DEBUG

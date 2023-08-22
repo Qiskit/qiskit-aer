@@ -82,6 +82,14 @@ public:
   // Initializes the current vector so that all qubits are in the |0> state.
   void initialize();
 
+  // initialize from existing state (copy)
+  void initialize(const UnitaryMatrixThrust<data_t> &obj) {
+    BaseVector::initialize(obj);
+    num_qubits_ = obj.num_qubits_;
+    rows_ = obj.rows_;
+    identity_threshold_ = obj.identity_threshold_;
+  }
+
   // Initializes the vector to a custom initial state.
   // If the length of the statevector does not match the number of qubits
   // an exception is raised.

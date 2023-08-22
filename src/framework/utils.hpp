@@ -1327,6 +1327,30 @@ double apply_omp_parallel_for_reduction(bool enabled, int_t i_begin,
   return val;
 }
 
+// apply OpenMP parallel loop to lambda function and return reduced integer if
+// enabled
+template <typename Lambda>
+int apply_omp_parallel_for_reduction_int(bool enabled, int_t i_begin,
+                                         int_t i_end, Lambda &func,
+                                         int nthreads = 0) {
+  int val = 0;
+  if (enabled) {
+    if (nthreads > 0) {
+#pragma omp parallel for reduction(+ : val) num_threads(nthreads)
+      for (int_t i = i_begin; i < i_end; i++)
+        val += func(i);
+    } else {
+#pragma omp parallel for reduction(+ : val)
+      for (int_t i = i_begin; i < i_end; i++)
+        val += func(i);
+    }
+  } else {
+    for (int_t i = i_begin; i < i_end; i++)
+      val += func(i);
+  }
+  return val;
+}
+
 //------------------------------------------------------------------------------
 } // end namespace Utils
 //------------------------------------------------------------------------------

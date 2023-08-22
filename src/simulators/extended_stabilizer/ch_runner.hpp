@@ -77,6 +77,10 @@ public:
   virtual ~Runner() = default;
 
   void initialize(uint_t n_qubits);
+  // initialize from existing state (copy)
+  void initialize(const Runner &obj) {
+  } // imlement this if extended stabilizer will support shot-branching
+
   void initialize_omp(uint_t n_threads, uint_t threshold_rank);
 
   bool empty() const { return (n_qubits_ == 0 || num_states_ == 0); }
