@@ -38,7 +38,7 @@ DISABLE_WARNING_PUSH
 #include <thrust/iterator/permutation_iterator.h>
 #include <thrust/iterator/transform_iterator.h>
 
-#ifdef AER_THRUST_GPU
+#ifdef AER_THRUST_CUDA
 #include <thrust/device_vector.h>
 #endif
 #include <thrust/host_vector.h>

@@ -51,7 +51,7 @@ public:
   //-----------------------------------------------------------------------
 
   // Return the string name of the class
-#ifdef AER_THRUST_GPU
+#ifdef AER_THRUST_CUDA
   static std::string name() { return "density_matrix_gpu"; }
 #else
   static std::string name() { return "density_matrix_thrust"; }

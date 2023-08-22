@@ -122,7 +122,7 @@ ChunkManager<data_t>::ChunkManager() {
   num_places_ = 1;
 #else
 
-#ifdef AER_THRUST_GPU
+#ifdef AER_THRUST_CUDA
   if (cudaGetDeviceCount(&num_devices_) == cudaSuccess) {
     num_places_ = num_devices_;
   } else {
@@ -248,7 +248,7 @@ uint_t ChunkManager<data_t>::Allocate(int chunk_bits, int nqubits,
 
       num_buffers = AER_MAX_BUFFERS;
 
-#ifdef AER_THRUST_GPU
+#ifdef AER_THRUST_CUDA
       num_places_ = num_devices_;
       if (num_threads_per_group_ > 1)
         num_places_ *= num_threads_per_group_;
