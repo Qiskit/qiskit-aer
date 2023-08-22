@@ -134,8 +134,7 @@ public:
                                     RngEngine &rng) override;
 
   // Helper function for computing expectation value
-  double expval_pauli(const reg_t &qubits,
-                              const std::string &pauli) override;
+  double expval_pauli(const reg_t &qubits, const std::string &pauli) override;
 
   //-----------------------------------------------------------------------
   // Additional methods

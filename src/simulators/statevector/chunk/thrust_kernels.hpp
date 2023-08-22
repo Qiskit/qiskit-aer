@@ -1204,9 +1204,10 @@ protected:
   uint_t cmask_;
   uint_t offset_;
   uint_t nqubits_;
+
 public:
-  BatchedMatrixMult2x2(const reg_t &qubits, uint_t imat, uint_t nshots_per_mat) 
-  {
+  BatchedMatrixMult2x2(const reg_t &qubits, uint_t imat,
+                       uint_t nshots_per_mat) {
     int i;
     nqubits_ = qubits.size();
 
@@ -1223,8 +1224,7 @@ public:
   int qubits_count(void) { return 1; }
   int num_control_bits(void) { return nqubits_ - 1; }
 
-  __host__ __device__ void operator()(const uint_t &i) const 
-  {
+  __host__ __device__ void operator()(const uint_t &i) const {
     uint_t i0, i1;
     thrust::complex<data_t> q0, q1;
     thrust::complex<data_t> *vec0;
@@ -1244,9 +1244,9 @@ public:
       q1 = vec1[i0];
 
       uint_t iChunk = (this->base_index_ + i) >> this->chunk_bits_;
-      //matrix offset from the top of buffer
+      // matrix offset from the top of buffer
       uint_t i_mat = (iChunk / num_shots_per_matrix_) - matrix_begin_;
-      thrust::complex<double>* mat = this->matrix_ + i_mat * 4ull;
+      thrust::complex<double> *mat = this->matrix_ + i_mat * 4ull;
 
       m0 = mat[0];
       m1 = mat[1];
@@ -1260,23 +1260,22 @@ public:
   const char *name(void) { return "BatchedMatrixMult2x2"; }
 };
 
-
 template <typename data_t>
 class BatchedMatrixMultNxN : public GateFuncWithCache<data_t> {
 protected:
   uint_t matrix_begin_;
   uint_t num_shots_per_matrix_;
+
 public:
-  BatchedMatrixMultNxN(uint_t nq, uint_t imat, uint_t nshots_per_mat) : GateFuncWithCache<data_t>(nq) 
-  {
+  BatchedMatrixMultNxN(uint_t nq, uint_t imat, uint_t nshots_per_mat)
+      : GateFuncWithCache<data_t>(nq) {
     matrix_begin_ = imat;
     num_shots_per_matrix_ = nshots_per_mat;
   }
 
   __host__ __device__ void
   run_with_cache(uint_t _tid, uint_t _idx,
-                 thrust::complex<data_t> *_cache) const 
-  {
+                 thrust::complex<data_t> *_cache) const {
     uint_t j;
     thrust::complex<data_t> q, r;
     thrust::complex<double> m;
@@ -1285,7 +1284,7 @@ public:
     thrust::complex<double> *pMat;
 
     uint_t iChunk = (this->base_index_ + _tid) >> this->chunk_bits_;
-    //matrix offset from the top of buffer
+    // matrix offset from the top of buffer
     uint_t i_mat = (iChunk / num_shots_per_matrix_) - matrix_begin_;
 
     mat_size = 1ull << this->nqubits_;
@@ -1498,9 +1497,10 @@ protected:
   uint_t cmask_;
   uint_t offset_;
   uint_t nqubits_;
+
 public:
-  BatchedDiagonalMatrixMult2x2(const reg_t &qubits, uint_t imat, uint_t nshots_per_mat) 
-  {
+  BatchedDiagonalMatrixMult2x2(const reg_t &qubits, uint_t imat,
+                               uint_t nshots_per_mat) {
     int i;
     nqubits_ = qubits.size();
 
@@ -1514,11 +1514,10 @@ public:
   }
 
   int qubits_count(void) { return 1; }
-  int num_control_bits(void) { return nqubits_-1; }
+  int num_control_bits(void) { return nqubits_ - 1; }
   bool is_diagonal(void) { return true; }
 
-  __host__ __device__ void operator()(const uint_t &i) const 
-  {
+  __host__ __device__ void operator()(const uint_t &i) const {
     uint_t gid;
     thrust::complex<data_t> q0;
     thrust::complex<double> m;
@@ -1529,9 +1528,9 @@ public:
 
     if (((i + gid) & cmask_) == cmask_) {
       uint_t iChunk = (i + gid) >> this->chunk_bits_;
-      //matrix offset from the top of buffer
+      // matrix offset from the top of buffer
       uint_t i_mat = (iChunk / num_shots_per_matrix_) - matrix_begin_;
-      thrust::complex<double>* mat = this->matrix_ + i_mat * 2ull;
+      thrust::complex<double> *mat = this->matrix_ + i_mat * 2ull;
 
       q0 = vec[i];
       if ((i + gid) & mask_) {
@@ -1551,9 +1550,10 @@ protected:
   uint_t matrix_begin_;
   uint_t num_shots_per_matrix_;
   uint_t nqubits_;
+
 public:
-  BatchedDiagonalMatrixMultNxN(const uint_t nq, uint_t imat, uint_t nshots_per_mat) 
-  {
+  BatchedDiagonalMatrixMultNxN(const uint_t nq, uint_t imat,
+                               uint_t nshots_per_mat) {
     int i;
     nqubits_ = nq;
 
@@ -1565,8 +1565,7 @@ public:
   int num_control_bits(void) { return 0; }
   bool is_diagonal(void) { return true; }
 
-  __host__ __device__ void operator()(const uint_t &i) const 
-  {
+  __host__ __device__ void operator()(const uint_t &i) const {
     uint_t j, im;
     thrust::complex<data_t> *vec;
     thrust::complex<data_t> q;
@@ -1577,9 +1576,9 @@ public:
     gid = this->base_index_;
 
     uint_t iChunk = (i + gid) >> this->chunk_bits_;
-    //matrix offset from the top of buffer
+    // matrix offset from the top of buffer
     uint_t i_mat = (iChunk / num_shots_per_matrix_) - matrix_begin_;
-    thrust::complex<double>* mat = this->matrix_ + i_mat * 2ull;
+    thrust::complex<double> *mat = this->matrix_ + i_mat * 2ull;
 
     vec = this->data_;
     qubits = this->params_;
@@ -2476,9 +2475,9 @@ protected:
   bool variance_;
   double param_;
   double param_var_;
+
 public:
-  batched_expval_I_func(bool var, thrust::complex<double> par)
-  {
+  batched_expval_I_func(bool var, thrust::complex<double> par) {
     variance_ = var;
     param_ = par.real();
     param_var_ = par.imag();
@@ -2486,8 +2485,8 @@ public:
   bool is_diagonal(void) { return true; }
   bool batch_enable(void) { return true; }
 
-  __host__ __device__ thrust::complex<double> operator()(const uint_t &i) const 
-  {
+  __host__ __device__ thrust::complex<double>
+  operator()(const uint_t &i) const {
     thrust::complex<data_t> q;
     thrust::complex<data_t> *vec;
     double d, dv;
@@ -2496,7 +2495,7 @@ public:
     q = vec[i];
     d = (double)(q.real() * q.real() + q.imag() * q.imag());
 
-    if(variance_)
+    if (variance_)
       dv = d * param_var_;
     d *= param_;
     return thrust::complex<double>(d, dv);
@@ -2511,9 +2510,9 @@ protected:
   bool variance_;
   double param_;
   double param_var_;
+
 public:
-  batched_expval_pauli_Z_func(bool var, thrust::complex<double> par, uint_t z)
-  {
+  batched_expval_pauli_Z_func(bool var, thrust::complex<double> par, uint_t z) {
     variance_ = var;
     param_ = par.real();
     param_var_ = par.imag();
@@ -2523,8 +2522,8 @@ public:
   bool is_diagonal(void) { return true; }
   bool batch_enable(void) { return true; }
 
-  __host__ __device__ thrust::complex<double> operator()(const uint_t &i) const 
-  {
+  __host__ __device__ thrust::complex<double>
+  operator()(const uint_t &i) const {
     thrust::complex<data_t> *vec;
     thrust::complex<data_t> q0;
     double d, dv;
@@ -2539,7 +2538,7 @@ public:
         d = -d;
     }
 
-    if(variance_)
+    if (variance_)
       dv = d * param_var_;
     d *= param_;
     return thrust::complex<double>(d, dv);
@@ -2558,11 +2557,11 @@ protected:
   bool variance_;
   double param_;
   double param_var_;
+
 public:
-  batched_expval_pauli_XYZ_func(bool var, thrust::complex<double> par, 
-                                uint_t x, uint_t z, uint_t x_max,
-                        std::complex<data_t> p) 
-  {
+  batched_expval_pauli_XYZ_func(bool var, thrust::complex<double> par, uint_t x,
+                                uint_t z, uint_t x_max,
+                                std::complex<data_t> p) {
     variance_ = var;
     param_ = par.real();
     param_var_ = par.imag();
@@ -2576,8 +2575,8 @@ public:
   }
   bool batch_enable(void) { return true; }
 
-  __host__ __device__ thrust::complex<double> operator()(const uint_t &i) const 
-  {
+  __host__ __device__ thrust::complex<double>
+  operator()(const uint_t &i) const {
     thrust::complex<data_t> *vec;
     thrust::complex<data_t> q0;
     thrust::complex<data_t> q1;
@@ -2611,7 +2610,7 @@ public:
       ret = d0 + d1;
     }
 
-    if(variance_)
+    if (variance_)
       ret_v = ret * param_var_;
     ret *= param_;
     return thrust::complex<double>(ret, ret_v);

@@ -143,9 +143,9 @@ public:
 
   // chunk setup
   uint_t chunk_setup(int chunk_bits, int num_qubits, uint_t chunk_index,
-                   uint_t num_local_chunks);
+                     uint_t num_local_chunks);
   uint_t chunk_setup(const QubitVectorThrust<data_t> &base,
-                   const uint_t chunk_index);
+                     const uint_t chunk_index);
   uint_t chunk_index(void) { return chunk_index_; }
 
   // cache control for chunks on host
@@ -374,8 +374,13 @@ public:
                                    std::vector<RngEngine> &rng);
 
   // apply matrices to each chunk in a batch
-  void apply_batched_matrix(const reg_t &qubits, const cvector_t<double> &mat, const uint_t num_matrices, const uint_t num_shots_per_matrix);
-  void apply_batched_diagonal_matrix(const reg_t &qubits, const cvector_t<double> &mat, const uint_t num_matrices, const uint_t num_shots_per_matrix);
+  void apply_batched_matrix(const reg_t &qubits, const cvector_t<double> &mat,
+                            const uint_t num_matrices,
+                            const uint_t num_shots_per_matrix);
+  void apply_batched_diagonal_matrix(const reg_t &qubits,
+                                     const cvector_t<double> &mat,
+                                     const uint_t num_matrices,
+                                     const uint_t num_shots_per_matrix);
 
   //-----------------------------------------------------------------------
   // Norms
@@ -413,8 +418,9 @@ public:
                       const uint_t z_count, const uint_t z_count_pair,
                       const complex_t initial_phase = 1.0) const;
 
-  void batched_expval_pauli(std::vector<double>& val, const reg_t &qubits,
-                            const std::string &pauli, bool variance, std::complex<double> param, bool last,
+  void batched_expval_pauli(std::vector<double> &val, const reg_t &qubits,
+                            const std::string &pauli, bool variance,
+                            std::complex<double> param, bool last,
                             const complex_t initial_phase = 1.0) const;
   //-----------------------------------------------------------------------
   // JSON configuration settings
@@ -850,8 +856,8 @@ void QubitVectorThrust<data_t>::zero() {
 
 template <typename data_t>
 uint_t QubitVectorThrust<data_t>::chunk_setup(int chunk_bits, int num_qubits,
-                                            uint_t chunk_index,
-                                            uint_t num_local_chunks) {
+                                              uint_t chunk_index,
+                                              uint_t num_local_chunks) {
   uint_t num_chunks_allocated = 0;
   // set global chunk ID / shot ID
   chunk_index_ = chunk_index;
@@ -876,10 +882,10 @@ uint_t QubitVectorThrust<data_t>::chunk_setup(int chunk_bits, int num_qubits,
     chunk_manager_ = std::make_shared<Chunk::ChunkManager<data_t>>();
     chunk_manager_->set_num_threads_per_group(num_threads_per_group_);
     chunk_manager_->set_num_creg_bits(num_creg_bits_ + num_cmem_bits_);
-    num_chunks_allocated = chunk_manager_->Allocate(chunk_bits, num_qubits,
-                           num_local_chunks, chunk_index_, max_matrix_bits_,
-                           is_density_matrix(), target_gpus_,
-                           cuStateVec_enable_);
+    num_chunks_allocated = chunk_manager_->Allocate(
+        chunk_bits, num_qubits, num_local_chunks, chunk_index_,
+        max_matrix_bits_, is_density_matrix(), target_gpus_,
+        cuStateVec_enable_);
   }
 
   multi_chunk_distribution_ = false;
@@ -902,8 +908,9 @@ uint_t QubitVectorThrust<data_t>::chunk_setup(int chunk_bits, int num_qubits,
 }
 
 template <typename data_t>
-uint_t QubitVectorThrust<data_t>::chunk_setup(
-    const QubitVectorThrust<data_t> &base, const uint_t chunk_index) {
+uint_t
+QubitVectorThrust<data_t>::chunk_setup(const QubitVectorThrust<data_t> &base,
+                                       const uint_t chunk_index) {
   multi_chunk_distribution_ = base.multi_chunk_distribution_;
   cuStateVec_enable_ = base.cuStateVec_enable_;
   target_gpus_ = base.target_gpus_;
@@ -1172,7 +1179,7 @@ template <typename data_t>
 bool QubitVectorThrust<data_t>::enable_batch(bool flg) const {
   bool prev = enable_batch_;
 
-  if(flg != prev){
+  if (flg != prev) {
     chunk_.synchronize();
   }
   enable_batch_ = flg;
@@ -1367,7 +1374,7 @@ void QubitVectorThrust<data_t>::apply_function(
         ((multi_chunk_distribution_ && chunk_.device() >= 0) ||
          enable_batch_)) {
       // only first chunk on device calculates all the chunks
-      if (chunk_.pos() == 0) 
+      if (chunk_.pos() == 0)
         chunk_count = chunk_.container()->num_chunks();
       else
         return;
@@ -1559,35 +1566,39 @@ void QubitVectorThrust<data_t>::apply_permutation_matrix(
 }
 
 template <typename data_t>
-void QubitVectorThrust<data_t>::apply_batched_matrix(const reg_t &qubits, const cvector_t<double> &mat, const uint_t num_matrices, const uint_t num_shots_per_matrix)
-{
+void QubitVectorThrust<data_t>::apply_batched_matrix(
+    const reg_t &qubits, const cvector_t<double> &mat,
+    const uint_t num_matrices, const uint_t num_shots_per_matrix) {
   uint_t count = get_chunk_count();
-  if(count == 0)
+  if (count == 0)
     return;
 
   uint_t matrix_size = mat.size() / num_matrices;
   uint_t num_control_bits = 0;
-  if((1ull << (qubits.size()*2)) != matrix_size){
+  if ((1ull << (qubits.size() * 2)) != matrix_size) {
     num_control_bits = qubits.size() - 1;
   }
 
-  chunk_.apply_batched_matrix(qubits, num_control_bits, mat, num_shots_per_matrix, count);
+  chunk_.apply_batched_matrix(qubits, num_control_bits, mat,
+                              num_shots_per_matrix, count);
 }
 
 template <typename data_t>
-void QubitVectorThrust<data_t>::apply_batched_diagonal_matrix(const reg_t &qubits, const cvector_t<double> &mat, const uint_t num_matrices, const uint_t num_shots_per_matrix)
-{
+void QubitVectorThrust<data_t>::apply_batched_diagonal_matrix(
+    const reg_t &qubits, const cvector_t<double> &mat,
+    const uint_t num_matrices, const uint_t num_shots_per_matrix) {
   uint_t count = get_chunk_count();
-  if(count == 0)
+  if (count == 0)
     return;
 
   uint_t matrix_size = mat.size() / num_matrices;
   uint_t num_control_bits = 0;
-  if((1ull << qubits.size()) != matrix_size){
+  if ((1ull << qubits.size()) != matrix_size) {
     num_control_bits = qubits.size() - 1;
   }
 
-  chunk_.apply_batched_diagonal_matrix(qubits, num_control_bits, mat, num_shots_per_matrix, count);
+  chunk_.apply_batched_diagonal_matrix(qubits, num_control_bits, mat,
+                                       num_shots_per_matrix, count);
 }
 
 /*******************************************************************************
@@ -2661,10 +2672,10 @@ QubitVectorThrust<data_t>::expval_pauli(const reg_t &qubits,
 }
 
 template <typename data_t>
-void QubitVectorThrust<data_t>::batched_expval_pauli(std::vector<double>& val, const reg_t &qubits,
-                          const std::string &pauli, bool variance, std::complex<double> param, bool last,
-                          const complex_t initial_phase) const
-{
+void QubitVectorThrust<data_t>::batched_expval_pauli(
+    std::vector<double> &val, const reg_t &qubits, const std::string &pauli,
+    bool variance, std::complex<double> param, bool last,
+    const complex_t initial_phase) const {
   uint_t i, count = 1;
   if (enable_batch_) {
     if (chunk_.pos() != 0) {
@@ -2674,17 +2685,18 @@ void QubitVectorThrust<data_t>::batched_expval_pauli(std::vector<double>& val, c
   }
 
   bool init = false;
-  if(val.size() == 0){
-    if(variance)
-      val.resize(count*2);
+  if (val.size() == 0) {
+    if (variance)
+      val.resize(count * 2);
     else
       val.resize(count);
     init = true;
   }
 
-  chunk_.batched_expval_pauli(count, qubits, pauli, variance, param, init, initial_phase);
-  if(last){
-    if(variance)
+  chunk_.batched_expval_pauli(count, qubits, pauli, variance, param, init,
+                              initial_phase);
+  if (last) {
+    if (variance)
       chunk_.copy_reduce_buffer(val, 2);
     else
       chunk_.copy_reduce_buffer(val, 1);

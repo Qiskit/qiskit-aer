@@ -199,8 +199,8 @@ __global__ void dev_reduce_sum(double *pReduceBuffer, uint_t n,
 template <typename data_t, typename kernel_t>
 __global__ void
 dev_apply_function_sum_complex(thrust::complex<double> *pReduceBuffer,
-                               kernel_t func, uint_t buf_size, uint_t count, bool init) 
-{
+                               kernel_t func, uint_t buf_size, uint_t count,
+                               bool init) {
   __shared__ thrust::complex<double> cache[32];
   thrust::complex<double> sum;
   double tr, ti;

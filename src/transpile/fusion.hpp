@@ -55,7 +55,7 @@ public:
         op.qubits[i] = orig2remapped[op.qubits[i]];
 
     op_t fusioned_op;
-    if(num_params_ == 0){
+    if (num_params_ == 0) {
       fusioned_op = generate_operation_internal(fusioned_ops, arg_qubits);
       if (diagonal) {
         std::vector<complex_t> vec;
@@ -65,14 +65,13 @@ public:
         fusioned_op = Operations::make_diagonal(
             fusioned_op.qubits, std::move(vec), std::string("fusion"));
       }
-    }
-    else{
-      //loop for runtime parameter binding
-      for (int_t i=0;i<num_params_;i++){
+    } else {
+      // loop for runtime parameter binding
+      for (int_t i = 0; i < num_params_; i++) {
         std::vector<op_t> ops;
         ops.reserve(fusioned_ops.size());
-        for (auto &op : fusioned_ops){
-          if(op.has_bind_params)
+        for (auto &op : fusioned_ops) {
+          if (op.has_bind_params)
             ops.push_back(make_parameter_bind(op, i, num_params_));
           else
             ops.push_back(op);
@@ -84,18 +83,21 @@ public:
           vec.assign((1UL << new_op.qubits.size()), 0);
           for (size_t i = 0; i < vec.size(); ++i)
             vec[i] = new_op.mats[0](i, i);
-          new_op = Operations::make_diagonal(
-              new_op.qubits, std::move(vec), std::string("fusion"));
+          new_op = Operations::make_diagonal(new_op.qubits, std::move(vec),
+                                             std::string("fusion"));
         }
 
-        if(i == 0)
+        if (i == 0)
           fusioned_op = new_op;
-        else{
+        else {
           fusioned_op.has_bind_params = true;
-          if(fusioned_op.type == Operations::OpType::diagonal_matrix)
-            fusioned_op.params.insert(fusioned_op.params.end(), new_op.params.begin(), new_op.params.end());
+          if (fusioned_op.type == Operations::OpType::diagonal_matrix)
+            fusioned_op.params.insert(fusioned_op.params.end(),
+                                      new_op.params.begin(),
+                                      new_op.params.end());
           else
-            fusioned_op.mats.insert(fusioned_op.mats.end(), new_op.mats.begin(), new_op.mats.end());
+            fusioned_op.mats.insert(fusioned_op.mats.end(), new_op.mats.begin(),
+                                    new_op.mats.end());
         }
       }
     }
@@ -136,10 +138,7 @@ public:
     return false;
   };
 
-  void set_num_params(uint_t n)
-  {
-    num_params_ = n;
-  }
+  void set_num_params(uint_t n) { num_params_ = n; }
 
 private:
   const static Operations::OpSet noise_opset_;

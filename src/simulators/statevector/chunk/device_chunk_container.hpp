@@ -202,7 +202,8 @@ public:
   }
 
   void copy_to_probability_buffer(std::vector<double> &buf, int pos);
-  void copy_reduce_buffer(std::vector<double>& ret, uint_t iChunk, uint_t num_val) const override;
+  void copy_reduce_buffer(std::vector<double> &ret, uint_t iChunk,
+                          uint_t num_val) const override;
 
   void allocate_creg(uint_t num_mem, uint_t num_reg);
   int measured_cbit(uint_t iChunk, int qubit) {
@@ -1363,23 +1364,25 @@ void DeviceChunkContainer<data_t>::copy_to_probability_buffer(
 }
 
 template <typename data_t>
-void DeviceChunkContainer<data_t>::copy_reduce_buffer(std::vector<double>& ret, uint_t iChunk, uint_t num_val) const
-{
+void DeviceChunkContainer<data_t>::copy_reduce_buffer(std::vector<double> &ret,
+                                                      uint_t iChunk,
+                                                      uint_t num_val) const {
   uint_t count = ret.size();
   std::vector<double> tmp(count * reduce_buffer_size_);
 #ifdef AER_THRUST_CUDA
   set_device();
   cudaMemcpyAsync(&tmp[0], reduce_buffer(iChunk),
-                  reduce_buffer_size_ * count * sizeof(double), cudaMemcpyDeviceToHost,
-                  stream(iChunk));
+                  reduce_buffer_size_ * count * sizeof(double),
+                  cudaMemcpyDeviceToHost, stream(iChunk));
   cudaStreamSynchronize(stream(iChunk));
 #else
-  thrust::copy_n(reduce_buffer_.begin() + iChunk * reduce_buffer_size_, count * reduce_buffer_size_, tmp.begin());
+  thrust::copy_n(reduce_buffer_.begin() + iChunk * reduce_buffer_size_,
+                 count * reduce_buffer_size_, tmp.begin());
 #endif
 
-  for(int_t i=0;i<count;i++){
-    for(int_t j=0;j<num_val;j++)
-      ret[i*num_val + j] = tmp[i * reduce_buffer_size_ + j];
+  for (int_t i = 0; i < count; i++) {
+    for (int_t j = 0; j < num_val; j++)
+      ret[i * num_val + j] = tmp[i * reduce_buffer_size_ + j];
   }
 }
 

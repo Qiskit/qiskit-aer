@@ -309,7 +309,7 @@ struct Op {
   // Save
   DataSubType save_type = DataSubType::single;
 
-  //runtime parameter bind
+  // runtime parameter bind
   bool has_bind_params = false;
 };
 
@@ -943,9 +943,9 @@ inline Op make_qerror_loc(const reg_t &qubits, const std::string &label,
   return op;
 }
 
-//make new op by parameter binding
-inline Op make_parameter_bind(const Op& src, const uint_t iparam, const uint_t num_params) 
-{
+// make new op by parameter binding
+inline Op make_parameter_bind(const Op &src, const uint_t iparam,
+                              const uint_t num_params) {
   Op op;
   op.type = src.type;
   op.name = src.name;
@@ -953,17 +953,16 @@ inline Op make_parameter_bind(const Op& src, const uint_t iparam, const uint_t n
   op.conditional = src.conditional;
   op.conditional_reg = src.conditional_reg;
 
-  if(src.params.size() > 0){
+  if (src.params.size() > 0) {
     uint_t stride = src.params.size() / num_params;
     op.params.resize(stride);
-    for(int_t i = 0;i<stride;i++)
-      op.params[i] = src.params[iparam*stride + i];
-  }
-  else if(src.mats.size() > 0){
+    for (int_t i = 0; i < stride; i++)
+      op.params[i] = src.params[iparam * stride + i];
+  } else if (src.mats.size() > 0) {
     uint_t stride = src.mats.size() / num_params;
     op.mats.resize(stride);
-    for(int_t i = 0;i<stride;i++)
-      op.mats[i] = src.mats[iparam*stride + i];
+    for (int_t i = 0; i < stride; i++)
+      op.mats[i] = src.mats[iparam * stride + i];
   }
   return op;
 }

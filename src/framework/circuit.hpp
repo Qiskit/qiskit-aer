@@ -63,10 +63,10 @@ public:
   double global_phase_angle = 0;
   bool remapped_qubits = false; // True if qubits have been remapped
 
-  //for runtime parameter bind, number of parameters per circuit
+  // for runtime parameter bind, number of parameters per circuit
   uint_t num_bind_params = 1;
-  reg_t seed_for_params;   //random seed for each parameter
-  rvector_t global_phase_for_params; //global phase angles for each param
+  reg_t seed_for_params;             // random seed for each parameter
+  rvector_t global_phase_for_params; // global phase angles for each param
 
   // Constructor
   // The constructor automatically calculates the num_qubits, num_memory,

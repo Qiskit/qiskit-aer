@@ -171,7 +171,6 @@ struct Config {
   optional<uint_t> memory_blocking_bits;
   optional<uint_t> extended_stabilizer_norm_estimation_default_samples;
   optional<reg_t> target_gpus;
-
   optional<bool> runtime_parameter_bind_enable;
 
   void clear() {

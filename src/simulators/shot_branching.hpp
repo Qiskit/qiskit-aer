@@ -80,9 +80,7 @@ public:
   }
   void clear_branch(void) { branches_.clear(); }
 
-  void set_shots(std::vector<RngEngine> &shots) {
-    shots_ = shots;
-  }
+  void set_shots(std::vector<RngEngine> &shots) { shots_ = shots; }
   void initialize_shots(const uint_t nshots, const uint_t seed) {
     shots_.resize(nshots);
     for (int_t i = 0; i < nshots; i++) {
@@ -144,29 +142,24 @@ public:
 
   void remove_empty_branches(void);
 
-  //reset shots to initial state
+  // reset shots to initial state
   void reset_branch(void);
 
-
-  //for runtime parameterization
+  // for runtime parameterization
   void set_param_index(uint_t ishot, uint_t nshots_per_param);
-  uint_t param_index(uint_t ishot)
-  {
-    if(param_index_.size() == 1){
+  uint_t param_index(uint_t ishot) {
+    if (param_index_.size() == 1) {
       return param_index_[0];
     }
-    for(int_t i =0;i<param_index_.size();i++){
-      if(param_shots_[i] > ishot){
+    for (int_t i = 0; i < param_index_.size(); i++) {
+      if (param_shots_[i] > ishot) {
         return param_index_[i];
       }
     }
     return 0;
   }
   void branch_shots_by_params(void);
-  uint_t num_params(void)
-  {
-    return param_index_.size();
-  }
+  uint_t num_params(void) { return param_index_.size(); }
 };
 
 void Branch::branch_shots(reg_t &shots, int_t nbranch) {
@@ -178,7 +171,7 @@ void Branch::branch_shots(reg_t &shots, int_t nbranch) {
     branches_[i]->iter_ = iter_;
     branches_[i]->flow_marks_ = flow_marks_;
 
-    if(param_index_.size() > 1){
+    if (param_index_.size() > 1) {
       branches_[i]->param_index_ = param_index_;
       branches_[i]->param_shots_.resize(param_index_.size());
       for (int_t j = 0; j < param_index_.size(); j++)
@@ -190,39 +183,39 @@ void Branch::branch_shots(reg_t &shots, int_t nbranch) {
   for (int_t i = 0; i < shots.size(); i++) {
     branches_[shots[i]]->shots_.push_back(shots_[i]);
 
-    if(param_index_.size() > 1){
-      if(i >= param_shots_[pos])
+    if (param_index_.size() > 1) {
+      if (i >= param_shots_[pos])
         pos++;
       branches_[shots[i]]->param_shots_[pos]++;
     }
   }
 
-  //set parameter indices
-  if(param_index_.size() > 1){
-    for (int_t i = 0; i < nbranch; i++){
+  // set parameter indices
+  if (param_index_.size() > 1) {
+    for (int_t i = 0; i < nbranch; i++) {
       uint_t pos = 0;
-      while(pos < branches_[i]->param_index_.size()){
-        if(branches_[i]->param_shots_[pos] == 0){
-          branches_[i]->param_index_.erase(branches_[i]->param_index_.begin() + pos);
-          branches_[i]->param_shots_.erase(branches_[i]->param_index_.begin() + pos);
-        }
-        else{
-          if(pos > 0){
-            branches_[i]->param_shots_[pos] += branches_[i]->param_shots_[pos - 1];
+      while (pos < branches_[i]->param_index_.size()) {
+        if (branches_[i]->param_shots_[pos] == 0) {
+          branches_[i]->param_index_.erase(branches_[i]->param_index_.begin() +
+                                           pos);
+          branches_[i]->param_shots_.erase(branches_[i]->param_index_.begin() +
+                                           pos);
+        } else {
+          if (pos > 0) {
+            branches_[i]->param_shots_[pos] +=
+                branches_[i]->param_shots_[pos - 1];
           }
           pos++;
         }
       }
     }
-  }
-  else{
+  } else {
     for (int_t i = 0; i < nbranch; i++)
       branches_[i]->set_param_index(param_index_[0], 0);
   }
 }
 
-void Branch::branch_shots_by_params(void) 
-{
+void Branch::branch_shots_by_params(void) {
   branches_.resize(param_index_.size());
 
   for (int_t i = 0; i < param_index_.size(); i++) {
@@ -233,7 +226,7 @@ void Branch::branch_shots_by_params(void)
   }
   uint_t pos = 0;
   for (int_t i = 0; i < shots_.size(); i++) {
-    if(i >= param_shots_[pos])
+    if (i >= param_shots_[pos])
       pos++;
     branches_[pos]->shots_.push_back(shots_[i]);
   }
@@ -241,7 +234,6 @@ void Branch::branch_shots_by_params(void)
   for (int_t i = 0; i < param_index_.size(); i++) {
     branches_[i]->set_param_index(param_index_[i], 0);
   }
-
 }
 
 void Branch::advance_iterator(void) {
@@ -376,10 +368,9 @@ void Branch::remove_empty_branches(void) {
   branches_ = new_branches;
 }
 
-void Branch::reset_branch(void)
-{
-  //reset random seeds
-  for(int_t i=0;i<shots_.size();i++){
+void Branch::reset_branch(void) {
+  // reset random seeds
+  for (int_t i = 0; i < shots_.size(); i++) {
     shots_[i].set_seed(shots_[i].initial_seed());
   }
   additional_ops_.clear();
@@ -387,9 +378,8 @@ void Branch::reset_branch(void)
   flow_marks_.clear();
 }
 
-void Branch::set_param_index(uint_t ishot, uint_t nshots_per_param)
-{
-  if(nshots_per_param == 0){
+void Branch::set_param_index(uint_t ishot, uint_t nshots_per_param) {
+  if (nshots_per_param == 0) {
     param_index_.push_back(ishot);
     param_shots_.push_back(shots_.size());
     return;
@@ -400,9 +390,9 @@ void Branch::set_param_index(uint_t ishot, uint_t nshots_per_param)
   param_shots_.clear();
 
   param_index_.push_back(ishot / nshots_per_param);
-  for(int_t i=1;i<shots_.size();i++){
+  for (int_t i = 1; i < shots_.size(); i++) {
     uint_t ip = (ishot + i) / nshots_per_param;
-    if(ip != param_index_[pos]){
+    if (ip != param_index_[pos]) {
       param_shots_.push_back(i);
       param_index_.push_back(ip);
       pos++;

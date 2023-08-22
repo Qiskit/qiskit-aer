@@ -196,7 +196,7 @@ protected:
   int num_processes_ = 1;
   int num_process_per_experiment_ = 1;
 
-  //runtime parameter binding
+  // runtime parameter binding
   bool runtime_parameter_bind_ = false;
 };
 
@@ -334,8 +334,8 @@ void Controller::set_config(const Config &config) {
                              precision + std::string(")."));
   }
 
-  //check if runtime binding is enable
-  if(config.runtime_parameter_bind_enable.has_value())
+  // check if runtime binding is enable
+  if (config.runtime_parameter_bind_enable.has_value())
     runtime_parameter_bind_ = config.runtime_parameter_bind_enable.value();
 }
 
@@ -521,7 +521,7 @@ Result Controller::execute(std::vector<std::shared_ptr<Circuit>> &circuits,
   uint_t result_size;
   reg_t result_offset(circuits.size());
   result_size = 0;
-  for (int_t i = 0; i < circuits.size(); i++){
+  for (int_t i = 0; i < circuits.size(); i++) {
     result_offset[i] = result_size;
     result_size += circuits[i]->num_bind_params;
   }
@@ -582,23 +582,22 @@ Result Controller::execute(std::vector<std::shared_ptr<Circuit>> &circuits,
       reg_t seeds(result_size);
       reg_t avg_seeds(result_size);
       int_t iseed = 0;
-      for (int_t i = 0; i < circuits.size(); i++){
-        if(circuits[i]->num_bind_params > 1){
+      for (int_t i = 0; i < circuits.size(); i++) {
+        if (circuits[i]->num_bind_params > 1) {
           for (int_t j = 0; i < circuits[i]->num_bind_params; i++)
-            seeds[iseed++] =  circuits[i]->seed_for_params[j];
-        }
-        else
+            seeds[iseed++] = circuits[i]->seed_for_params[j];
+        } else
           seeds[iseed++] = circuits[i]->seed;
       }
-      MPI_Allreduce(seeds.data(), avg_seeds.data(), result_size,
-                    MPI_UINT64_T, MPI_SUM, MPI_COMM_WORLD);
+      MPI_Allreduce(seeds.data(), avg_seeds.data(), result_size, MPI_UINT64_T,
+                    MPI_SUM, MPI_COMM_WORLD);
       iseed = 0;
-      for (int_t i = 0; i < circuits.size(); i++){
-        if(circuits[i]->num_bind_params > 1){
+      for (int_t i = 0; i < circuits.size(); i++) {
+        if (circuits[i]->num_bind_params > 1) {
           for (int_t j = 0; i < circuits[i]->num_bind_params; i++)
-            circuits[i]->seed_for_params[j] = avg_seeds[iseed++] / num_processes_;
-        }
-        else
+            circuits[i]->seed_for_params[j] =
+                avg_seeds[iseed++] / num_processes_;
+        } else
           circuits[i]->seed = avg_seeds[iseed++] / num_processes_;
       }
     }
@@ -612,7 +611,8 @@ Result Controller::execute(std::vector<std::shared_ptr<Circuit>> &circuits,
         std::shared_ptr<CircuitExecutor::Base> executor =
             make_circuit_executor(methods[j]);
         executor->run_circuit(*circuits[j], noise_model, config, methods[j],
-                              sim_device_, result.results.begin() + result_offset[j]);
+                              sim_device_,
+                              result.results.begin() + result_offset[j]);
         executor.reset();
       }
     } else {
@@ -621,7 +621,8 @@ Result Controller::execute(std::vector<std::shared_ptr<Circuit>> &circuits,
         std::shared_ptr<CircuitExecutor::Base> executor =
             make_circuit_executor(methods[j]);
         executor->run_circuit(*circuits[j], noise_model, config, methods[j],
-                              sim_device_, result.results.begin() + result_offset[j]);
+                              sim_device_,
+                              result.results.begin() + result_offset[j]);
         executor.reset();
       }
     }

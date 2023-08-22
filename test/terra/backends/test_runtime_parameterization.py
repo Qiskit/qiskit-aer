@@ -44,11 +44,16 @@ SUPPORTED_METHODS = [
     "statevector",
 ]
 
+
 @ddt
 class TestRuntimeParameterization(SimulatorTestCase):
     """Runtime Parameterization tests"""
 
-    BACKEND_OPTS = {"seed_simulator": 2113, "shot_branching_enable" : False, "runtime_parameter_bind_enable" : True}
+    BACKEND_OPTS = {
+        "seed_simulator": 2113,
+        "shot_branching_enable": False,
+        "runtime_parameter_bind_enable": True,
+    }
 
     @staticmethod
     def runtime_parameterization(
@@ -91,7 +96,9 @@ class TestRuntimeParameterization(SimulatorTestCase):
         value_targets = save_expval_pre_meas_values() * 3
 
         backend = AerSimulator()
-        qobj = self.runtime_parameterization(backend=backend, shots=1000, measure=True, snapshot=True)
+        qobj = self.runtime_parameterization(
+            backend=backend, shots=1000, measure=True, snapshot=True
+        )
         self.assertIn("parameterizations", qobj.to_dict()["config"])
         with self.assertWarns(DeprecationWarning):
             job = backend.run(qobj, **self.BACKEND_OPTS)
@@ -142,7 +149,13 @@ class TestRuntimeParameterization(SimulatorTestCase):
         circuit.cx(0, 1)
         circuit.measure_all()
         parameter_binds = [{theta: [0, pi, 2 * pi]}]
-        res = backend.run(circuit, shots=shots, parameter_binds=parameter_binds, shot_branching_enable=False, runtime_parameter_bind_enable=True).result()
+        res = backend.run(
+            circuit,
+            shots=shots,
+            parameter_binds=parameter_binds,
+            shot_branching_enable=False,
+            runtime_parameter_bind_enable=True,
+        ).result()
         counts = res.get_counts()
         self.assertEqual(counts, [{"00": shots}, {"11": shots}, {"00": shots}])
 
@@ -161,7 +174,13 @@ class TestRuntimeParameterization(SimulatorTestCase):
         circuit.cx(0, 1)
         circuit.measure_all()
         parameter_binds = [{theta: [0, pi, 2 * pi]}]
-        res = backend.run(circuit, shots=shots, parameter_binds=parameter_binds, shot_branching_enable=False, runtime_parameter_bind_enable=True).result()
+        res = backend.run(
+            circuit,
+            shots=shots,
+            parameter_binds=parameter_binds,
+            shot_branching_enable=False,
+            runtime_parameter_bind_enable=True,
+        ).result()
         counts = res.get_counts()
         self.assertEqual(counts, [{"00": shots}, {"11": shots}, {"00": shots}])
 
@@ -176,7 +195,13 @@ class TestRuntimeParameterization(SimulatorTestCase):
         circuit.measure_all()
         parameter_binds = [{theta: [0, pi, 2 * pi]}]
         tqc = transpile(circuit, basis_gates=["u3"])
-        res = backend.run(tqc, shots=shots, parameter_binds=parameter_binds, shot_branching_enable=False, runtime_parameter_bind_enable=True).result()
+        res = backend.run(
+            tqc,
+            shots=shots,
+            parameter_binds=parameter_binds,
+            shot_branching_enable=False,
+            runtime_parameter_bind_enable=True,
+        ).result()
         counts = res.get_counts()
         self.assertEqual(counts, [{"0": shots}, {"1": shots}, {"0": shots}])
 
@@ -193,7 +218,13 @@ class TestRuntimeParameterization(SimulatorTestCase):
         circuit.rz(theta_squared, 1)
         circuit.measure_all()
         parameter_binds = [{theta: [0, pi, 2 * pi]}]
-        res = backend.run(circuit, shots=shots, parameter_binds=parameter_binds, shot_branching_enable=False, runtime_parameter_bind_enable=True).result()
+        res = backend.run(
+            circuit,
+            shots=shots,
+            parameter_binds=parameter_binds,
+            shot_branching_enable=False,
+            runtime_parameter_bind_enable=True,
+        ).result()
         counts = res.get_counts()
         self.assertEqual(counts, [{"00": shots}, {"11": shots}, {"00": shots}])
 
@@ -211,7 +242,13 @@ class TestRuntimeParameterization(SimulatorTestCase):
         circuit.u(theta, theta_squared, theta, 1)
         circuit.measure_all()
         parameter_binds = [{theta: [0, pi, 2 * pi]}]
-        res = backend.run(circuit, shots=shots, parameter_binds=parameter_binds, shot_branching_enable=False, runtime_parameter_bind_enable=True).result()
+        res = backend.run(
+            circuit,
+            shots=shots,
+            parameter_binds=parameter_binds,
+            shot_branching_enable=False,
+            runtime_parameter_bind_enable=True,
+        ).result()
         counts = res.get_counts()
         self.assertEqual(counts, [{"00": shots}, {"01": shots}, {"00": shots}])
 
@@ -230,7 +267,13 @@ class TestRuntimeParameterization(SimulatorTestCase):
         circuit.ry(phi, 1)
         circuit.measure_all()
         parameter_binds = [{theta: [0, pi, 2 * pi], phi: [0, 1, pi]}]
-        res = backend.run(circuit, shots=shots, parameter_binds=parameter_binds, shot_branching_enable=False, runtime_parameter_bind_enable=True).result()
+        res = backend.run(
+            circuit,
+            shots=shots,
+            parameter_binds=parameter_binds,
+            shot_branching_enable=False,
+            runtime_parameter_bind_enable=True,
+        ).result()
         counts = res.get_counts()
         for index, expected in enumerate(
             [{"00": shots}, {"01": 0.25 * shots, "11": 0.75 * shots}, {"10": shots}]
@@ -248,7 +291,13 @@ class TestRuntimeParameterization(SimulatorTestCase):
         circuit.cx(0, 1)
         circuit.measure_all()
         parameter_binds = [{theta: [0, pi, 2 * pi]}] * 3
-        res = backend.run([circuit] * 3, shots=shots, parameter_binds=parameter_binds, shot_branching_enable=False, runtime_parameter_bind_enable=True).result()
+        res = backend.run(
+            [circuit] * 3,
+            shots=shots,
+            parameter_binds=parameter_binds,
+            shot_branching_enable=False,
+            runtime_parameter_bind_enable=True,
+        ).result()
         counts = res.get_counts()
         self.assertEqual(counts, [{"00": shots}, {"11": shots}, {"00": shots}] * 3)
 
@@ -284,7 +333,11 @@ class TestRuntimeParameterization(SimulatorTestCase):
             {theta3_1: [0, pi / 2, pi], theta3_2: [0, pi / 2, pi]},
         ]
         res = backend.run(
-            [circuit1, circuit2, circuit3], shots=shots, parameter_binds=parameter_binds, shot_branching_enable=False, runtime_parameter_bind_enable=True
+            [circuit1, circuit2, circuit3],
+            shots=shots,
+            parameter_binds=parameter_binds,
+            shot_branching_enable=False,
+            runtime_parameter_bind_enable=True,
         ).result()
         counts = res.get_counts()
         self.assertEqual(counts, [{"00": shots}, {"11": shots}, {"00": shots}] * 3)
@@ -302,7 +355,13 @@ class TestRuntimeParameterization(SimulatorTestCase):
         circuit.rz(theta_squared, 1)
         circuit.measure_all()
         parameter_binds = [{theta: [0, pi, 2 * pi]}] * 3
-        res = backend.run([circuit] * 3, shots=shots, parameter_binds=parameter_binds, shot_branching_enable=False, runtime_parameter_bind_enable=True).result()
+        res = backend.run(
+            [circuit] * 3,
+            shots=shots,
+            parameter_binds=parameter_binds,
+            shot_branching_enable=False,
+            runtime_parameter_bind_enable=True,
+        ).result()
         counts = res.get_counts()
         self.assertEqual(counts, [{"00": shots}, {"11": shots}, {"00": shots}] * 3)
 
@@ -320,7 +379,13 @@ class TestRuntimeParameterization(SimulatorTestCase):
         circuit.u(theta, theta_squared, theta, 1)
         circuit.measure_all()
         parameter_binds = [{theta: [0, pi, 2 * pi]}] * 3
-        res = backend.run([circuit] * 3, shots=shots, parameter_binds=parameter_binds, shot_branching_enable=False, runtime_parameter_bind_enable=True).result()
+        res = backend.run(
+            [circuit] * 3,
+            shots=shots,
+            parameter_binds=parameter_binds,
+            shot_branching_enable=False,
+            runtime_parameter_bind_enable=True,
+        ).result()
         counts = res.get_counts()
         self.assertEqual(counts, [{"00": shots}, {"01": shots}, {"00": shots}] * 3)
 
@@ -339,7 +404,13 @@ class TestRuntimeParameterization(SimulatorTestCase):
         circuit.ry(phi, 1)
         circuit.measure_all()
         parameter_binds = [{theta: [0, pi, 2 * pi], phi: [0, 1, pi]}] * 3
-        res = backend.run([circuit] * 3, shots=shots, parameter_binds=parameter_binds, shot_branching_enable=False, runtime_parameter_bind_enable=True).result()
+        res = backend.run(
+            [circuit] * 3,
+            shots=shots,
+            parameter_binds=parameter_binds,
+            shot_branching_enable=False,
+            runtime_parameter_bind_enable=True,
+        ).result()
         counts = res.get_counts()
         for index, expected in enumerate(
             [{"00": shots}, {"01": 0.25 * shots, "11": 0.75 * shots}, {"10": shots}] * 3
@@ -358,7 +429,13 @@ class TestRuntimeParameterization(SimulatorTestCase):
         circuit.measure_all()
         parameter_binds = [{theta: [0, pi, 2 * pi]}]
         with self.assertRaises(AerError):
-            backend.run([circuit] * 3, shots=shots, parameter_binds=[parameter_binds], shot_branching_enable=False, runtime_parameter_bind_enable=True).result()
+            backend.run(
+                [circuit] * 3,
+                shots=shots,
+                parameter_binds=[parameter_binds],
+                shot_branching_enable=False,
+                runtime_parameter_bind_enable=True,
+            ).result()
 
     @supported_methods(SUPPORTED_METHODS)
     def test_run_path_with_truncation(self, method, device):
@@ -381,7 +458,12 @@ class TestRuntimeParameterization(SimulatorTestCase):
 
         resolved_circuits = [circuit.bind_parameters(param_set) for param_set in param_sets]
 
-        result = backend.run(circuit, parameter_binds=[param_map], shot_branching_enable=False, runtime_parameter_bind_enable=True).result()
+        result = backend.run(
+            circuit,
+            parameter_binds=[param_map],
+            shot_branching_enable=False,
+            runtime_parameter_bind_enable=True,
+        ).result()
         self.assertSuccess(result)
 
         result_without_parameters = backend.run(resolved_circuits).result()
@@ -404,7 +486,13 @@ class TestRuntimeParameterization(SimulatorTestCase):
         circuit.cx(0, 1)
         circuit.measure_all()
         parameter_binds = [{theta: [0, pi, 2 * pi]}]
-        res = backend.run(circuit, shots=shots, parameter_binds=parameter_binds, shot_branching_enable=False, runtime_parameter_bind_enable=True).result()
+        res = backend.run(
+            circuit,
+            shots=shots,
+            parameter_binds=parameter_binds,
+            shot_branching_enable=False,
+            runtime_parameter_bind_enable=True,
+        ).result()
         seed_simulator_list = [result.seed_simulator for result in res.results]
         self.assertEqual(len(seed_simulator_list), len(np.unique(seed_simulator_list)))
 
@@ -428,7 +516,13 @@ class TestRuntimeParameterization(SimulatorTestCase):
         circuit.measure_all()
         parameter_binds = [{}]
         with self.assertRaises(AerError):
-            res = backend.run(circuit, shots=shots, parameter_binds=parameter_binds, shot_branching_enable=False, runtime_parameter_bind_enable=True).result()
+            res = backend.run(
+                circuit,
+                shots=shots,
+                parameter_binds=parameter_binds,
+                shot_branching_enable=False,
+                runtime_parameter_bind_enable=True,
+            ).result()
 
     @supported_methods(SUPPORTED_METHODS)
     def test_parameters_with_barrier(self, method, device):
@@ -448,7 +542,13 @@ class TestRuntimeParameterization(SimulatorTestCase):
         circuit.measure_all()
 
         parameter_binds = [{theta: [pi / 2], phi: [pi / 2]}]
-        res = backend.run([circuit], shots=1024, parameter_binds=parameter_binds, shot_branching_enable=False, runtime_parameter_bind_enable=True).result()
+        res = backend.run(
+            [circuit],
+            shots=1024,
+            parameter_binds=parameter_binds,
+            shot_branching_enable=False,
+            runtime_parameter_bind_enable=True,
+        ).result()
 
         self.assertSuccess(res)
         self.assertEqual(res.get_counts(), {"111": 1024})
@@ -470,11 +570,23 @@ class TestRuntimeParameterization(SimulatorTestCase):
         circuit.measure_all()
         parameter_binds = [{theta: [0, pi, 2 * pi]}]
 
-        result = backend.run(circuit, shots=shots, parameter_binds=parameter_binds, shot_branching_enable=False, runtime_parameter_bind_enable=True).result()
+        result = backend.run(
+            circuit,
+            shots=shots,
+            parameter_binds=parameter_binds,
+            shot_branching_enable=False,
+            runtime_parameter_bind_enable=True,
+        ).result()
         self.assertSuccess(result)
         counts = result.get_counts()
 
-        result_pre_bind = backend.run(circuit, shots=shots, parameter_binds=parameter_binds, shot_branching_enable=False, runtime_parameter_bind_enable=False).result()
+        result_pre_bind = backend.run(
+            circuit,
+            shots=shots,
+            parameter_binds=parameter_binds,
+            shot_branching_enable=False,
+            runtime_parameter_bind_enable=False,
+        ).result()
         self.assertSuccess(result_pre_bind)
         counts_pre_bind = result_pre_bind.get_counts()
 
@@ -497,11 +609,23 @@ class TestRuntimeParameterization(SimulatorTestCase):
         circuit.measure_all()
         parameter_binds = [{theta: [0, pi, 2 * pi]}]
 
-        result = backend.run(circuit, shots=shots, parameter_binds=parameter_binds, shot_branching_enable=True, runtime_parameter_bind_enable=True).result()
+        result = backend.run(
+            circuit,
+            shots=shots,
+            parameter_binds=parameter_binds,
+            shot_branching_enable=True,
+            runtime_parameter_bind_enable=True,
+        ).result()
         self.assertSuccess(result)
         counts = result.get_counts()
 
-        result_pre_bind = backend.run(circuit, shots=shots, parameter_binds=parameter_binds, shot_branching_enable=False, runtime_parameter_bind_enable=False).result()
+        result_pre_bind = backend.run(
+            circuit,
+            shots=shots,
+            parameter_binds=parameter_binds,
+            shot_branching_enable=False,
+            runtime_parameter_bind_enable=False,
+        ).result()
         self.assertSuccess(result_pre_bind)
         counts_pre_bind = result_pre_bind.get_counts()
 
@@ -521,10 +645,17 @@ class TestRuntimeParameterization(SimulatorTestCase):
         circuit.u(theta, theta_squared, theta, 1)
         circuit.measure_all()
         parameter_binds = [{theta: [0, pi, 2 * pi]}] * 3
-        res = backend.run([circuit] * 3, shots=shots, parameter_binds=parameter_binds, fusion_enable=True, fusion_threshold=1, shot_branching_enable=False, runtime_parameter_bind_enable=True).result()
+        res = backend.run(
+            [circuit] * 3,
+            shots=shots,
+            parameter_binds=parameter_binds,
+            fusion_enable=True,
+            fusion_threshold=1,
+            shot_branching_enable=False,
+            runtime_parameter_bind_enable=True,
+        ).result()
         counts = res.get_counts()
         self.assertEqual(counts, [{"00": shots}, {"01": shots}, {"00": shots}] * 3)
-
 
     @supported_methods(SUPPORTED_METHODS)
     def test_pauli_noise(self, method, device):
@@ -546,11 +677,25 @@ class TestRuntimeParameterization(SimulatorTestCase):
         noise_model = NoiseModel()
         noise_model.add_all_qubit_quantum_error(error, ["h", "rx", "rz", "u"])
 
-        result = backend.run(circuit, noise_model=noise_model, shots=shots, parameter_binds=parameter_binds, shot_branching_enable=False, runtime_parameter_bind_enable=True).result()
+        result = backend.run(
+            circuit,
+            noise_model=noise_model,
+            shots=shots,
+            parameter_binds=parameter_binds,
+            shot_branching_enable=False,
+            runtime_parameter_bind_enable=True,
+        ).result()
         self.assertSuccess(result)
         counts = result.get_counts()
 
-        result_pre_bind = backend.run(circuit, noise_model=noise_model, shots=shots, parameter_binds=parameter_binds, shot_branching_enable=False, runtime_parameter_bind_enable=False).result()
+        result_pre_bind = backend.run(
+            circuit,
+            noise_model=noise_model,
+            shots=shots,
+            parameter_binds=parameter_binds,
+            shot_branching_enable=False,
+            runtime_parameter_bind_enable=False,
+        ).result()
         self.assertSuccess(result_pre_bind)
         counts_pre_bind = result_pre_bind.get_counts()
 
@@ -576,11 +721,25 @@ class TestRuntimeParameterization(SimulatorTestCase):
         noise_model = NoiseModel()
         noise_model.add_all_qubit_quantum_error(error, ["h", "rx", "rz", "u"])
 
-        result = backend.run(circuit, noise_model=noise_model, shots=shots, parameter_binds=parameter_binds, shot_branching_enable=False, runtime_parameter_bind_enable=True).result()
+        result = backend.run(
+            circuit,
+            noise_model=noise_model,
+            shots=shots,
+            parameter_binds=parameter_binds,
+            shot_branching_enable=False,
+            runtime_parameter_bind_enable=True,
+        ).result()
         self.assertSuccess(result)
         counts = result.get_counts()
 
-        result_pre_bind = backend.run(circuit, noise_model=noise_model, shots=shots, parameter_binds=parameter_binds, shot_branching_enable=False, runtime_parameter_bind_enable=False).result()
+        result_pre_bind = backend.run(
+            circuit,
+            noise_model=noise_model,
+            shots=shots,
+            parameter_binds=parameter_binds,
+            shot_branching_enable=False,
+            runtime_parameter_bind_enable=False,
+        ).result()
         self.assertSuccess(result_pre_bind)
         counts_pre_bind = result_pre_bind.get_counts()
 
@@ -606,11 +765,25 @@ class TestRuntimeParameterization(SimulatorTestCase):
         noise_model = NoiseModel()
         noise_model.add_all_qubit_quantum_error(error, ["h", "rx", "rz", "u"])
 
-        result = backend.run(circuit, noise_model=noise_model, shots=shots, parameter_binds=parameter_binds, shot_branching_enable=True, runtime_parameter_bind_enable=True).result()
+        result = backend.run(
+            circuit,
+            noise_model=noise_model,
+            shots=shots,
+            parameter_binds=parameter_binds,
+            shot_branching_enable=True,
+            runtime_parameter_bind_enable=True,
+        ).result()
         self.assertSuccess(result)
         counts = result.get_counts()
 
-        result_pre_bind = backend.run(circuit, noise_model=noise_model, shots=shots, parameter_binds=parameter_binds, shot_branching_enable=False, runtime_parameter_bind_enable=False).result()
+        result_pre_bind = backend.run(
+            circuit,
+            noise_model=noise_model,
+            shots=shots,
+            parameter_binds=parameter_binds,
+            shot_branching_enable=False,
+            runtime_parameter_bind_enable=False,
+        ).result()
         self.assertSuccess(result_pre_bind)
         counts_pre_bind = result_pre_bind.get_counts()
 
@@ -636,15 +809,30 @@ class TestRuntimeParameterization(SimulatorTestCase):
         noise_model = NoiseModel()
         noise_model.add_all_qubit_quantum_error(error, ["h", "rx", "rz", "u"])
 
-        result = backend.run(circuit, noise_model=noise_model, shots=shots, parameter_binds=parameter_binds, shot_branching_enable=True, runtime_parameter_bind_enable=True).result()
+        result = backend.run(
+            circuit,
+            noise_model=noise_model,
+            shots=shots,
+            parameter_binds=parameter_binds,
+            shot_branching_enable=True,
+            runtime_parameter_bind_enable=True,
+        ).result()
         self.assertSuccess(result)
         counts = result.get_counts()
 
-        result_pre_bind = backend.run(circuit, noise_model=noise_model, shots=shots, parameter_binds=parameter_binds, shot_branching_enable=False, runtime_parameter_bind_enable=False).result()
+        result_pre_bind = backend.run(
+            circuit,
+            noise_model=noise_model,
+            shots=shots,
+            parameter_binds=parameter_binds,
+            shot_branching_enable=False,
+            runtime_parameter_bind_enable=False,
+        ).result()
         self.assertSuccess(result_pre_bind)
         counts_pre_bind = result_pre_bind.get_counts()
 
         self.assertEqual(counts, counts_pre_bind)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -138,6 +138,7 @@ public:
 
   // Apply the global phase
   void apply_global_phase();
+
 protected:
   //-----------------------------------------------------------------------
   // Apply Instructions

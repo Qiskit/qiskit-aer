@@ -31,7 +31,6 @@ namespace AER {
 namespace DensityMatrix {
 
 using ResultItr = std::vector<ExperimentResult>::iterator;
-
 //-------------------------------------------------------------------------
 // batched-shots executor for density matrix
 //-------------------------------------------------------------------------
@@ -76,8 +75,8 @@ protected:
   void initialize_from_vector(const list_t &vec);
 
   void run_circuit_with_sampling(Circuit &circ, const Config &config,
-                                         RngEngine &init_rng,
-                                         ResultItr result) override;
+                                 RngEngine &init_rng,
+                                 ResultItr result) override;
   void run_circuit_shots(Circuit &circ, const Noise::NoiseModel &noise,
                          const Config &config, RngEngine &init_rng,
                          ResultItr result_it, bool sample_noise) override;
@@ -133,17 +132,14 @@ protected:
 
   // Helper functions for shot-branching
   void apply_save_density_matrix(CircuitExecutor::Branch &root,
-                                   const Operations::Op &op,
-                                   ResultItr result, bool final_op);
-  void apply_save_state(CircuitExecutor::Branch &root,
-                                   const Operations::Op &op,
-                                   ResultItr result, bool final_op);
-  void apply_save_probs(CircuitExecutor::Branch &root,
-                                   const Operations::Op &op,
-                                   ResultItr result);
+                                 const Operations::Op &op, ResultItr result,
+                                 bool final_op);
+  void apply_save_state(CircuitExecutor::Branch &root, const Operations::Op &op,
+                        ResultItr result, bool final_op);
+  void apply_save_probs(CircuitExecutor::Branch &root, const Operations::Op &op,
+                        ResultItr result);
   void apply_save_amplitudes(CircuitExecutor::Branch &root,
-                                   const Operations::Op &op,
-                                   ResultItr result);
+                             const Operations::Op &op, ResultItr result);
   //-----------------------------------------------------------------------
   // Measurement Helpers
   //-----------------------------------------------------------------------
@@ -320,18 +316,18 @@ void Executor<densmat_t>::set_config(const Config &config) {
 }
 
 template <class state_t>
-void Executor<state_t>::run_circuit_with_sampling(
-    Circuit &circ, const Config &config, RngEngine &init_rng,
-    ResultItr result_it)
-{
+void Executor<state_t>::run_circuit_with_sampling(Circuit &circ,
+                                                  const Config &config,
+                                                  RngEngine &init_rng,
+                                                  ResultItr result_it) {
   Noise::NoiseModel dummy_noise;
   if (BasePar::multiple_chunk_required(circ, dummy_noise)) {
-    return BasePar::run_circuit_with_sampling(circ, config, init_rng, result_it);
+    return BasePar::run_circuit_with_sampling(circ, config, init_rng,
+                                              result_it);
+  } else {
+    return BaseBatch::run_circuit_with_sampling(circ, config, init_rng,
+                                                result_it);
   }
-  else{
-    return BaseBatch::run_circuit_with_sampling(circ, config, init_rng, result_it);
-  }
-
 }
 
 template <class state_t>
@@ -343,8 +339,8 @@ void Executor<state_t>::run_circuit_shots(
     return BasePar::run_circuit_shots(circ, noise, config, init_rng, result_it,
                                       sample_noise);
   } else {
-    return BaseBatch::run_circuit_shots(circ, noise, config, init_rng, result_it,
-                                        sample_noise);
+    return BaseBatch::run_circuit_shots(circ, noise, config, init_rng,
+                                        result_it, sample_noise);
   }
 }
 
@@ -457,8 +453,7 @@ bool Executor<state_t>::apply_batched_op(const int_t istate,
 template <class state_t>
 bool Executor<state_t>::apply_branching_op(CircuitExecutor::Branch &root,
                                            const Operations::Op &op,
-                                           ResultItr result,
-                                           bool final_op) {
+                                           ResultItr result, bool final_op) {
   RngEngine dummy;
   if (Base::states_[root.state_index()].creg().check_conditional(op)) {
     switch (op.type) {
@@ -799,22 +794,21 @@ Executor<densmat_t>::reduced_density_matrix_helper(const reg_t &qubits,
   return reduced_state;
 }
 
-
 template <class densmat_t>
-void Executor<densmat_t>::apply_save_density_matrix(CircuitExecutor::Branch &root,
-                                 const Operations::Op &op,
-                                 ResultItr result, bool final_op)
-{
+void Executor<densmat_t>::apply_save_density_matrix(
+    CircuitExecutor::Branch &root, const Operations::Op &op, ResultItr result,
+    bool final_op) {
   cmatrix_t mat;
-  mat = Base::states_[root.state_index()].reduced_density_matrix(op.qubits, final_op);
+  mat = Base::states_[root.state_index()].reduced_density_matrix(op.qubits,
+                                                                 final_op);
 
   std::vector<bool> copied(Base::num_bind_params_, false);
   for (int_t i = 0; i < root.num_shots(); i++) {
     uint_t ip = root.param_index(i);
-    if(!copied[ip]){
-      (result + ip)->save_data_average(Base::states_[root.state_index()].creg(),
-                           op.string_params[0],
-                           mat, op.type, op.save_type);
+    if (!copied[ip]) {
+      (result + ip)
+          ->save_data_average(Base::states_[root.state_index()].creg(),
+                              op.string_params[0], mat, op.type, op.save_type);
       copied[ip] = true;
     }
   }
@@ -822,10 +816,10 @@ void Executor<densmat_t>::apply_save_density_matrix(CircuitExecutor::Branch &roo
 
 template <class densmat_t>
 void Executor<densmat_t>::apply_save_state(CircuitExecutor::Branch &root,
-                                 const Operations::Op &op,
-                                 ResultItr result, bool final_op)
-{
-  if (op.qubits.size() != Base::states_[root.state_index()].qreg().num_qubits()) {
+                                           const Operations::Op &op,
+                                           ResultItr result, bool final_op) {
+  if (op.qubits.size() !=
+      Base::states_[root.state_index()].qreg().num_qubits()) {
     throw std::invalid_argument(op.name + " was not applied to all qubits."
                                           " Only the full state can be saved.");
   }
@@ -851,11 +845,10 @@ void Executor<densmat_t>::apply_save_state(CircuitExecutor::Branch &root,
     auto state = Base::states_[root.state_index()].move_to_matrix();
     for (int_t i = 0; i < root.num_shots(); i++) {
       uint_t ip = root.param_index(i);
-      if(!copied[ip]){
-        (result + ip)->save_data_average(
-                              Base::states_[root.state_index()].creg(),
-                              key, state,
-                              OpType::save_densmat, save_type);
+      if (!copied[ip]) {
+        (result + ip)
+            ->save_data_average(Base::states_[root.state_index()].creg(), key,
+                                state, OpType::save_densmat, save_type);
         copied[ip] = true;
       }
     }
@@ -864,11 +857,10 @@ void Executor<densmat_t>::apply_save_state(CircuitExecutor::Branch &root,
 
     for (int_t i = 0; i < root.num_shots(); i++) {
       uint_t ip = root.param_index(i);
-      if(!copied[ip]){
-        (result + ip)->save_data_average(
-                              Base::states_[root.state_index()].creg(),
-                              key, state,
-                              OpType::save_densmat, save_type);
+      if (!copied[ip]) {
+        (result + ip)
+            ->save_data_average(Base::states_[root.state_index()].creg(), key,
+                                state, OpType::save_densmat, save_type);
         copied[ip] = true;
       }
     }
@@ -877,32 +869,34 @@ void Executor<densmat_t>::apply_save_state(CircuitExecutor::Branch &root,
 
 template <class densmat_t>
 void Executor<densmat_t>::apply_save_probs(CircuitExecutor::Branch &root,
-                                 const Operations::Op &op,
-                                 ResultItr result)
-{
+                                           const Operations::Op &op,
+                                           ResultItr result) {
   // get probs as hexadecimal
-  auto probs = Base::states_[root.state_index()].qreg().probabilities(op.qubits);
+  auto probs =
+      Base::states_[root.state_index()].qreg().probabilities(op.qubits);
 
   std::vector<bool> copied(Base::num_bind_params_, false);
   if (op.type == Operations::OpType::save_probs_ket) {
     // Convert to ket dict
     for (int_t i = 0; i < root.num_shots(); i++) {
       uint_t ip = root.param_index(i);
-      if(!copied[ip]){
-        (result + ip)->save_data_average(Base::states_[root.state_index()].creg(),
-                          op.string_params[0],
-                          Utils::vec2ket(probs, Base::json_chop_threshold_, 16),
-                          op.type, op.save_type);
+      if (!copied[ip]) {
+        (result + ip)
+            ->save_data_average(
+                Base::states_[root.state_index()].creg(), op.string_params[0],
+                Utils::vec2ket(probs, Base::json_chop_threshold_, 16), op.type,
+                op.save_type);
         copied[ip] = true;
       }
     }
   } else {
     for (int_t i = 0; i < root.num_shots(); i++) {
       uint_t ip = root.param_index(i);
-      if(!copied[ip]){
-        (result + ip)->save_data_average(Base::states_[root.state_index()].creg(),
-                                 op.string_params[0],
-                                 probs, op.type, op.save_type);
+      if (!copied[ip]) {
+        (result + ip)
+            ->save_data_average(Base::states_[root.state_index()].creg(),
+                                op.string_params[0], probs, op.type,
+                                op.save_type);
         copied[ip] = true;
       }
     }
@@ -911,8 +905,8 @@ void Executor<densmat_t>::apply_save_probs(CircuitExecutor::Branch &root,
 
 template <class densmat_t>
 void Executor<densmat_t>::apply_save_amplitudes(CircuitExecutor::Branch &root,
-                                              const Operations::Op &op,
-                                              ResultItr result) {
+                                                const Operations::Op &op,
+                                                ResultItr result) {
   if (op.int_params.empty()) {
     throw std::invalid_argument(
         "Invalid save_amplitudes instructions (empty params).");
@@ -920,22 +914,21 @@ void Executor<densmat_t>::apply_save_amplitudes(CircuitExecutor::Branch &root,
   const int_t size = op.int_params.size();
   rvector_t amps_sq(size, 0);
   for (int_t i = 0; i < size; ++i) {
-    amps_sq[i] = Base::states_[root.state_index()].qreg().probability(
-        op.int_params[i]);
+    amps_sq[i] =
+        Base::states_[root.state_index()].qreg().probability(op.int_params[i]);
   }
   std::vector<bool> copied(Base::num_bind_params_, false);
   for (int_t i = 0; i < root.num_shots(); i++) {
     uint_t ip = root.param_index(i);
-    if(!copied[ip]){
-      (result + ip)->save_data_average(
-                               Base::states_[root.state_index()].creg(),
-                               op.string_params[0], amps_sq, op.type,
-                               op.save_type);
+    if (!copied[ip]) {
+      (result + ip)
+          ->save_data_average(Base::states_[root.state_index()].creg(),
+                              op.string_params[0], amps_sq, op.type,
+                              op.save_type);
       copied[ip] = true;
     }
   }
 }
-
 
 //=========================================================================
 // Implementation: Reset and Measurement Sampling

@@ -414,7 +414,9 @@ void bind_aer_controller(MODULE m) {
       [](Config &config, reg_t val) { config.target_gpus.value(val); });
   aer_config.def_property(
       "runtime_parameter_bind_enable",
-      [](const Config &config) { return config.runtime_parameter_bind_enable.val; },
+      [](const Config &config) {
+        return config.runtime_parameter_bind_enable.val;
+      },
       [](Config &config, bool val) {
         config.runtime_parameter_bind_enable.value(val);
       });

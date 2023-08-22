@@ -72,20 +72,16 @@ protected:
 
   // Helper functions for shot-branching
   void apply_save_density_matrix(CircuitExecutor::Branch &root,
-                                   const Operations::Op &op,
-                                   ResultItr result);
-  void apply_save_probs(CircuitExecutor::Branch &root,
-                                   const Operations::Op &op,
-                                   ResultItr result);
+                                 const Operations::Op &op, ResultItr result);
+  void apply_save_probs(CircuitExecutor::Branch &root, const Operations::Op &op,
+                        ResultItr result);
   void apply_save_statevector(CircuitExecutor::Branch &root,
-                              const Operations::Op &op,
-                              ResultItr result, bool last_op);
+                              const Operations::Op &op, ResultItr result,
+                              bool last_op);
   void apply_save_statevector_dict(CircuitExecutor::Branch &root,
-                                   const Operations::Op &op,
-                                   ResultItr result);
+                                   const Operations::Op &op, ResultItr result);
   void apply_save_amplitudes(CircuitExecutor::Branch &root,
-                             const Operations::Op &op,
-                             ResultItr result);
+                             const Operations::Op &op, ResultItr result);
 };
 
 template <class state_t>
@@ -96,8 +92,7 @@ void Executor<state_t>::set_config(const Config &config) {
 template <class state_t>
 bool Executor<state_t>::apply_branching_op(CircuitExecutor::Branch &root,
                                            const Operations::Op &op,
-                                           ResultItr result,
-                                           bool final_op) {
+                                           ResultItr result, bool final_op) {
   RngEngine dummy;
   if (Base::states_[root.state_index()].creg().check_conditional(op)) {
     switch (op.type) {
@@ -360,9 +355,8 @@ void Executor<state_t>::apply_kraus(CircuitExecutor::Branch &root,
 
 template <class state_t>
 void Executor<state_t>::apply_save_density_matrix(CircuitExecutor::Branch &root,
-                                 const Operations::Op &op,
-                                 ResultItr result)
-{
+                                                  const Operations::Op &op,
+                                                  ResultItr result) {
   cmatrix_t reduced_state;
 
   // Check if tracing over all qubits
@@ -371,16 +365,19 @@ void Executor<state_t>::apply_save_density_matrix(CircuitExecutor::Branch &root,
 
     reduced_state[0] = Base::states_[root.state_index()].qreg().norm();
   } else {
-    reduced_state = Base::states_[root.state_index()].qreg().reduced_density_matrix(op.qubits);
+    reduced_state =
+        Base::states_[root.state_index()].qreg().reduced_density_matrix(
+            op.qubits);
   }
 
   std::vector<bool> copied(Base::num_bind_params_, false);
   for (int_t i = 0; i < root.num_shots(); i++) {
     uint_t ip = root.param_index(i);
-    if(!copied[ip]){
-      (result + ip)->save_data_average(Base::states_[root.state_index()].creg(),
-                           op.string_params[0],
-                           reduced_state, op.type, op.save_type);
+    if (!copied[ip]) {
+      (result + ip)
+          ->save_data_average(Base::states_[root.state_index()].creg(),
+                              op.string_params[0], reduced_state, op.type,
+                              op.save_type);
       copied[ip] = true;
     }
   }
@@ -388,32 +385,34 @@ void Executor<state_t>::apply_save_density_matrix(CircuitExecutor::Branch &root,
 
 template <class state_t>
 void Executor<state_t>::apply_save_probs(CircuitExecutor::Branch &root,
-                                 const Operations::Op &op,
-                                 ResultItr result)
-{
+                                         const Operations::Op &op,
+                                         ResultItr result) {
   // get probs as hexadecimal
-  auto probs = Base::states_[root.state_index()].qreg().probabilities(op.qubits);
+  auto probs =
+      Base::states_[root.state_index()].qreg().probabilities(op.qubits);
 
   std::vector<bool> copied(Base::num_bind_params_, false);
   if (op.type == Operations::OpType::save_probs_ket) {
     // Convert to ket dict
     for (int_t i = 0; i < root.num_shots(); i++) {
       uint_t ip = root.param_index(i);
-      if(!copied[ip]){
-        (result + ip)->save_data_average(Base::states_[root.state_index()].creg(),
-                          op.string_params[0],
-                          Utils::vec2ket(probs, Base::json_chop_threshold_, 16),
-                          op.type, op.save_type);
+      if (!copied[ip]) {
+        (result + ip)
+            ->save_data_average(
+                Base::states_[root.state_index()].creg(), op.string_params[0],
+                Utils::vec2ket(probs, Base::json_chop_threshold_, 16), op.type,
+                op.save_type);
         copied[ip] = true;
       }
     }
   } else {
     for (int_t i = 0; i < root.num_shots(); i++) {
       uint_t ip = root.param_index(i);
-      if(!copied[ip]){
-        (result + ip)->save_data_average(Base::states_[root.state_index()].creg(),
-                                 op.string_params[0],
-                                 probs, op.type, op.save_type);
+      if (!copied[ip]) {
+        (result + ip)
+            ->save_data_average(Base::states_[root.state_index()].creg(),
+                                op.string_params[0], probs, op.type,
+                                op.save_type);
         copied[ip] = true;
       }
     }
@@ -423,8 +422,7 @@ void Executor<state_t>::apply_save_probs(CircuitExecutor::Branch &root,
 template <class state_t>
 void Executor<state_t>::apply_save_statevector(CircuitExecutor::Branch &root,
                                                const Operations::Op &op,
-                                               ResultItr result,
-                                               bool last_op) {
+                                               ResultItr result, bool last_op) {
   if (op.qubits.size() != Base::num_qubits_) {
     throw std::invalid_argument(op.name +
                                 " was not applied to all qubits."
@@ -437,23 +435,24 @@ void Executor<state_t>::apply_save_statevector(CircuitExecutor::Branch &root,
     const auto v = Base::states_[root.state_index()].move_to_vector();
     for (int_t i = 0; i < root.num_shots(); i++) {
       uint_t ip = root.param_index(i);
-      (result + ip)->save_data_pershot(Base::states_[root.state_index()].creg(),
-                               key, v, OpType::save_statevec, op.save_type);
+      (result + ip)
+          ->save_data_pershot(Base::states_[root.state_index()].creg(), key, v,
+                              OpType::save_statevec, op.save_type);
     }
   } else {
     const auto v = Base::states_[root.state_index()].copy_to_vector();
     for (int_t i = 0; i < root.num_shots(); i++) {
       uint_t ip = root.param_index(i);
-      (result + ip)->save_data_pershot(Base::states_[root.state_index()].creg(),
-                               key, v, OpType::save_statevec, op.save_type);
+      (result + ip)
+          ->save_data_pershot(Base::states_[root.state_index()].creg(), key, v,
+                              OpType::save_statevec, op.save_type);
     }
   }
 }
 
 template <class state_t>
 void Executor<state_t>::apply_save_statevector_dict(
-    CircuitExecutor::Branch &root, const Operations::Op &op,
-    ResultItr result) {
+    CircuitExecutor::Branch &root, const Operations::Op &op, ResultItr result) {
   if (op.qubits.size() != Base::num_qubits_) {
     throw std::invalid_argument(op.name +
                                 " was not applied to all qubits."
@@ -467,10 +466,11 @@ void Executor<state_t>::apply_save_statevector_dict(
   }
   for (int_t i = 0; i < root.num_shots(); i++) {
     uint_t ip = root.param_index(i);
-    (result + ip)->save_data_pershot(
-        Base::states_[root.state_index()].creg(), op.string_params[0],
-        (const std::map<std::string, complex_t> &)result_state_ket, op.type,
-        op.save_type);
+    (result + ip)
+        ->save_data_pershot(
+            Base::states_[root.state_index()].creg(), op.string_params[0],
+            (const std::map<std::string, complex_t> &)result_state_ket, op.type,
+            op.save_type);
   }
 }
 
@@ -491,9 +491,10 @@ void Executor<state_t>::apply_save_amplitudes(CircuitExecutor::Branch &root,
     }
     for (int_t i = 0; i < root.num_shots(); i++) {
       uint_t ip = root.param_index(i);
-      (result + ip)->save_data_pershot(
-          Base::states_[root.state_index()].creg(), op.string_params[0],
-          (const Vector<complex_t> &)amps, op.type, op.save_type);
+      (result + ip)
+          ->save_data_pershot(
+              Base::states_[root.state_index()].creg(), op.string_params[0],
+              (const Vector<complex_t> &)amps, op.type, op.save_type);
     }
   } else {
     rvector_t amps_sq(size, 0);
@@ -504,10 +505,11 @@ void Executor<state_t>::apply_save_amplitudes(CircuitExecutor::Branch &root,
     std::vector<bool> copied(Base::num_bind_params_, false);
     for (int_t i = 0; i < root.num_shots(); i++) {
       uint_t ip = root.param_index(i);
-      if(!copied[ip]){
-        (result + ip)->save_data_average(Base::states_[root.state_index()].creg(),
-                                 op.string_params[0], amps_sq, op.type,
-                                 op.save_type);
+      if (!copied[ip]) {
+        (result + ip)
+            ->save_data_average(Base::states_[root.state_index()].creg(),
+                                op.string_params[0], amps_sq, op.type,
+                                op.save_type);
         copied[ip] = true;
       }
     }
