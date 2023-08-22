@@ -263,7 +263,7 @@ void BatchShotsExecutor<state_t>::run_circuit_with_sampling(
           Base::states_[istate].qreg().enable_batch(true);
 #ifdef AER_MPI
           if (Base::num_process_per_experiment_ > 1)
-            Base::cregs_[iparam] = Base::state_[istate].creg();
+            Base::cregs_[iparam] = Base::states_[istate].creg();
 #endif
         }
       }
