@@ -15,6 +15,7 @@
 #define __GPU_STATIC_PRIORITIES_H__
 
 #ifdef AER_THRUST_ROCM
+#include <hip/hip_runtime.h>
 // In ROCm warpSize is a constexpr so the operations it is part for can be
 // optimized as such.
 #define _WS warpSize
