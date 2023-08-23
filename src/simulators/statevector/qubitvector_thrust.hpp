@@ -3094,10 +3094,10 @@ template <typename data_t>
 class bfunc_kernel : public Chunk::GateFuncBase<data_t> {
 protected:
   uint_t bfunc_num_regs_;
-  Operations::BinaryOperand bfunc_;
+  Operations::BinaryOp bfunc_;
 
 public:
-  bfunc_kernel(uint_t n, Operations::BinaryOperand bfunc) {
+  bfunc_kernel(uint_t n, Operations::BinaryOp bfunc) {
     bfunc_num_regs_ = n; // number of registers to be updated
     bfunc_ = bfunc;
   }
@@ -3123,26 +3123,26 @@ public:
       comp = (this->cregs_[iChunk * n64 + n64 - j - 1] & mask[n64 - j - 1]) -
              target[n64 - j - 1];
       if (comp < 0) {
-        if (bfunc_ == Operations::BinaryOperand::Less ||
-            bfunc_ == Operations::BinaryOperand::LessEqual) {
+        if (bfunc_ == Operations::BinaryOp::Less ||
+            bfunc_ == Operations::BinaryOp::LessEqual) {
           break;
-        } else if (bfunc_ == Operations::BinaryOperand::Equal ||
-                   bfunc_ == Operations::BinaryOperand::Greater ||
-                   bfunc_ == Operations::BinaryOperand::GreaterEqual) {
+        } else if (bfunc_ == Operations::BinaryOp::Equal ||
+                   bfunc_ == Operations::BinaryOp::Greater ||
+                   bfunc_ == Operations::BinaryOp::GreaterEqual) {
           ret = false;
           break;
         }
       } else if (comp > 0) {
-        if (bfunc_ == Operations::BinaryOperand::Greater ||
-            bfunc_ == Operations::BinaryOperand::GreaterEqual) {
+        if (bfunc_ == Operations::BinaryOp::Greater ||
+            bfunc_ == Operations::BinaryOp::GreaterEqual) {
           break;
-        } else if (bfunc_ == Operations::BinaryOperand::Equal ||
-                   bfunc_ == Operations::BinaryOperand::Less ||
-                   bfunc_ == Operations::BinaryOperand::LessEqual) {
+        } else if (bfunc_ == Operations::BinaryOp::Equal ||
+                   bfunc_ == Operations::BinaryOp::Less ||
+                   bfunc_ == Operations::BinaryOp::LessEqual) {
           ret = false;
           break;
         }
-      } else if (bfunc_ == Operations::BinaryOperand::NotEqual &&
+      } else if (bfunc_ == Operations::BinaryOp::NotEqual &&
                  mask[n64 - j - 1] != 0) {
         ret = false;
         break;

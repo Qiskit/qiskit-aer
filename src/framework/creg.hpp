@@ -187,22 +187,22 @@ void ClassicalRegister::apply_bfunc(const Operations::Op &op) {
   // check value of compared integer for different comparison operations
   bool outcome;
   switch (op.binary_op) {
-  case Operations::BinaryOperand::Equal:
+  case Operations::BinaryOp::Equal:
     outcome = (compared == 0);
     break;
-  case Operations::BinaryOperand::NotEqual:
+  case Operations::BinaryOp::NotEqual:
     outcome = (compared != 0);
     break;
-  case Operations::BinaryOperand::Less:
+  case Operations::BinaryOp::Less:
     outcome = (compared < 0);
     break;
-  case Operations::BinaryOperand::LessEqual:
+  case Operations::BinaryOp::LessEqual:
     outcome = (compared <= 0);
     break;
-  case Operations::BinaryOperand::Greater:
+  case Operations::BinaryOp::Greater:
     outcome = (compared > 0);
     break;
-  case Operations::BinaryOperand::GreaterEqual:
+  case Operations::BinaryOp::GreaterEqual:
     outcome = (compared >= 0);
     break;
   default:
