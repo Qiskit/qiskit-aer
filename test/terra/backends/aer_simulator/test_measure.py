@@ -272,7 +272,8 @@ class TestMeasure(SimulatorTestCase):
                 circuit, shots=shots, mps_sample_measure_algorithm="mps_probabilities"
             ).result()
             self.assertTrue(getattr(result2_prl, "success", "True"))
-            os.unsetenv("PRL_PROB_MEAS")
+            del os.environ["PRL_PROB_MEAS"]  # Python 3.8 in Windows
+            # os.unsetenv("PRL_PROB_MEAS")  # SInce Python 3.9
 
             self.assertDictAlmostEqual(
                 result1.get_counts(circuit), result2_prl.get_counts(circuit), delta=0.1 * shots
