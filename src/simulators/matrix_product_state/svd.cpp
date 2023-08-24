@@ -616,6 +616,7 @@ void lapack_csvd_wrapper(cmatrix_t &A, cmatrix_t &U, rvector_t &S,
     double *rwork = (double *)calloc(5 * min_dim, sizeof(double));
     zgesvd_("A", "A", &m, &n, lapackA, &m, lapackS, lapackU, &m, lapackV, &n,
             work, &lwork, rwork, &info);
+    free(rwork);
   }
   A = cmatrix_t::move_from_buffer(m, n, lapackA);
   U = cmatrix_t::move_from_buffer(m, m, lapackU);
