@@ -1313,8 +1313,9 @@ uint_t AerState::apply_measure(const reg_t &qubits) {
 
   uint_t bitstring = 0;
   uint_t bit = 1;
+  uint_t mem_size = state_->creg().memory_size();
   for (const auto &qubit : qubits) {
-    if (state_->creg().creg_memory()[qubit] == '1')
+    if (state_->creg().creg_memory()[mem_size - qubit - 1] == '1')
       bitstring |= bit;
     bit <<= 1;
   }
