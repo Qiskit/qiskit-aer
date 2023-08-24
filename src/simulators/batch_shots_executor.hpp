@@ -268,7 +268,7 @@ void BatchShotsExecutor<state_t>::run_circuit_shots(
   }
 #endif
 
-#ifdef AER_THRUST_CUDA
+#ifdef AER_THRUST_GPU
   if (Base::sim_device_ == Device::GPU) {
     int nDev;
     if (cudaGetDeviceCount(&nDev) != cudaSuccess) {

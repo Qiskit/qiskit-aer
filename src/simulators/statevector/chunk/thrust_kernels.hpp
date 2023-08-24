@@ -38,7 +38,7 @@ DISABLE_WARNING_POP
 
 #include "framework/utils.hpp"
 
-#ifdef AER_THRUST_CUDA
+#ifdef AER_THRUST_GPU
 #include "simulators/statevector/chunk/cuda_kernels.hpp"
 #endif
 
@@ -60,7 +60,7 @@ protected:
   uint_t *cregs_;
   uint_t num_creg_bits_;
   int_t conditional_bit_;
-#ifndef AER_THRUST_CUDA
+#ifndef AER_THRUST_GPU
   uint_t index_offset_;
 #endif
 public:
@@ -70,7 +70,7 @@ public:
     cregs_ = NULL;
     num_creg_bits_ = 0;
     conditional_bit_ = -1;
-#ifndef AER_THRUST_CUDA
+#ifndef AER_THRUST_GPU
     index_offset_ = 0;
 #endif
   }
@@ -86,7 +86,7 @@ public:
   }
   void set_conditional(int_t bit) { conditional_bit_ = bit; }
 
-#ifndef AER_THRUST_CUDA
+#ifndef AER_THRUST_GPU
   void set_index_offset(uint_t i) { index_offset_ = i; }
 #endif
 

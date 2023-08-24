@@ -439,7 +439,7 @@ private:
 };
 
 bool AerState::is_gpu(bool raise_error) const {
-#ifndef AER_THRUST_CUDA
+#ifndef AER_THRUST_GPU
   if (raise_error)
     throw std::runtime_error(
         "Simulation device \"GPU\" is not supported on this system");
