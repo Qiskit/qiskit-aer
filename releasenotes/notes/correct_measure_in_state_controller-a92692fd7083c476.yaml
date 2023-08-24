@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    ``measure`` in libaer.so wrongly read classical memory by assuming
+    opposite ordering of its indices. This fix corrects the assumed ordering.
+    This change affects only libaer.so and not python applications.
