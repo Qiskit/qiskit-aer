@@ -333,7 +333,9 @@ class TestOptions(SimulatorTestCase):
         os.environ["QISKIT_LAPACK_SVD"] = "DC"
         result_swap = backend_swap.run(circuit, shots=shots).result()
         lapack_dc_sv = result_swap.data(0)["sv"]
-        os.unsetenv("QISKIT_LAPACK_SVD")
+
+        del os.environ["QISKIT_LAPACK_SVD"]  # Python 3.8 in Windows
+        # os.unsetenv("QISKIT_LAPACK_SVD")  # Since Python 3.9
 
         # should give the same state vector
         self.assertAlmostEqual(state_fidelity(original_sv, lapack_sv), 1.0)
