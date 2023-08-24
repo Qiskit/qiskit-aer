@@ -106,9 +106,6 @@ Result controller_execute(std::vector<std::shared_ptr<Circuit>> &input_circs,
           // Make a copy of the initial circuit
           auto param_circ = std::make_shared<Circuit>(*circ);
           param_circ->num_bind_params = num_params;
-          param_circ->global_phase_for_params.resize(num_params);
-          for (size_t j = 0; j < num_params; j++)
-            param_circ->global_phase_for_params[j] = 0;
 
           for (const auto &params : circ_params) {
             const auto instr_pos = params.first.first;
@@ -116,6 +113,7 @@ Result controller_execute(std::vector<std::shared_ptr<Circuit>> &input_circs,
             // Validation
             if (instr_pos == AER::Config::GLOBAL_PHASE_POS) {
               // negative position is for global phase
+              param_circ->global_phase_for_params.resize(num_params);
               for (size_t j = 0; j < num_params; j++)
                 param_circ->global_phase_for_params[j] = params.second[j];
             } else if (instr_pos >= num_instr) {

@@ -736,7 +736,7 @@ void Executor<state_t>::run_circuit_with_sampling(Circuit &circ,
       state.set_distribution(1);
       state.set_max_matrix_qubits(max_bits);
 
-      if (num_bind_params_ > 1)
+      if (circ.global_phase_for_params.size() == circ.num_bind_params)
         state.set_global_phase(circ.global_phase_for_params[iparam]);
       else
         state.set_global_phase(circ.global_phase_angle);
@@ -783,7 +783,7 @@ void Executor<state_t>::run_circuit_shots(
   int_t par_shots = (int_t)get_max_parallel_shots(circ, noise);
   par_shots = std::min((int_t)parallel_shots_, par_shots);
 
-  uint_t num_shots = circ.shots;
+  uint_t num_shots = circ.shots * circ.num_bind_params;
 
   // MPI distribution settings
   std::vector<ClassicalRegister> cregs;
@@ -793,7 +793,8 @@ void Executor<state_t>::run_circuit_shots(
     shot_begin[i] = num_shots * i / distributed_procs_;
     shot_end[i] = num_shots * (i + 1) / distributed_procs_;
   }
-  num_shots = shot_end[distributed_rank_] - shot_begin[distributed_rank_];
+  uint_t num_local_shots =
+      shot_end[distributed_rank_] - shot_begin[distributed_rank_];
 
   int max_matrix_qubits;
   auto fusion_pass = transpile_fusion(circ.opset(), config);
@@ -815,133 +816,141 @@ void Executor<state_t>::run_circuit_shots(
   }
   num_bind_params_ = circ.num_bind_params;
 
-  for (uint_t iparam = 0; iparam < num_bind_params_; iparam++) {
-    // TO DO : make shots x params loop to be distributed
-    std::vector<ExperimentResult> par_results(par_shots);
-    ExperimentResult &result = *(result_it + iparam);
+  std::vector<std::vector<ExperimentResult>> par_results(par_shots);
+  for (int_t i = 0; i < par_shots; i++) {
+    par_results[i].resize(num_bind_params_);
+  }
 
-    if (distributed_procs_ > 1)
-      cregs.resize(num_shots);
+  if (distributed_procs_ > 1)
+    cregs.resize(num_shots);
 
-    // run each shot
-    auto run_circuit_lambda = [this, &par_results, circ, noise, config,
-                               par_shots, sample_noise, num_shots, shot_begin,
-                               &cregs, init_rng, max_matrix_qubits,
-                               iparam](int_t i) {
-      state_t state;
+  // run each shot
+  auto run_circuit_lambda = [this, &par_results, circ, noise, config, par_shots,
+                             sample_noise, num_shots, shot_begin, &cregs,
+                             init_rng, max_matrix_qubits,
+                             num_local_shots](int_t i) {
+    state_t state;
+    uint_t i_shot, shot_end;
+    i_shot = num_local_shots * i / par_shots;
+    shot_end = num_local_shots * (i + 1) / par_shots;
+
+    auto fusion_pass = transpile_fusion(circ.opset(), config);
+
+    // Set state config
+    state.set_config(config);
+    state.set_parallelization(this->parallel_state_update_);
+    state.enable_density_matrix(!has_statevector_ops_);
+
+    state.set_distribution(this->num_process_per_experiment_);
+    state.set_num_global_qubits(circ.num_qubits);
+
+    for (; i_shot < shot_end; i_shot++) {
+      RngEngine rng;
+      uint_t shot_index = shot_begin[distributed_rank_] + i_shot;
+      uint_t iparam = shot_index / circ.shots;
+      if (shot_index == 0 && iparam == 0)
+        rng = init_rng;
+      else {
+        if (circ.num_bind_params > 1) {
+          uint_t lid = shot_index % circ.shots;
+          rng.set_seed(circ.seed_for_params[iparam] + lid);
+        } else
+          rng.set_seed(circ.seed + shot_index);
+      }
+      ExperimentResult &result = par_results[i][iparam];
+
+      int max_matrix_qubits;
+      Circuit circ_opt;
+      if (sample_noise) {
+        Noise::NoiseModel dummy_noise;
+        circ_opt = noise.sample_noise(circ, rng);
+        fusion_pass.optimize_circuit(circ_opt, dummy_noise, state.opset(),
+                                     result);
+        state.set_max_matrix_qubits(get_max_matrix_qubits(circ_opt));
+      } else
+        state.set_max_matrix_qubits(max_matrix_qubits);
+
+      if (circ.global_phase_for_params.size() == circ.num_bind_params)
+        state.set_global_phase(circ.global_phase_for_params[iparam]);
+      else
+        state.set_global_phase(circ.global_phase_angle);
+#ifdef AER_CUSTATEVEC
+      state.enable_cuStateVec(cuStateVec_enable_);
+#endif
+      state.allocate(circ.num_qubits, circ.num_qubits);
+      state.initialize_qreg(circ.num_qubits);
+      state.initialize_creg(circ.num_memory, circ.num_registers);
+
+      if (sample_noise) {
+        if (circ.num_bind_params > 1) {
+          run_circuit_with_parameter_binding(state, circ_opt.ops.cbegin(),
+                                             circ_opt.ops.cend(), result, rng,
+                                             iparam, true);
+        } else {
+          state.apply_ops(circ_opt.ops.cbegin(), circ_opt.ops.cend(), result,
+                          rng, true);
+        }
+      } else {
+        if (circ.num_bind_params > 1) {
+          run_circuit_with_parameter_binding(state, circ.ops.cbegin(),
+                                             circ.ops.cend(), result, rng,
+                                             iparam, true);
+        } else {
+          state.apply_ops(circ.ops.cbegin(), circ.ops.cend(), result, rng,
+                          true);
+        }
+      }
+      if (distributed_procs_ > 1) {
+        // save creg to be gathered
+        cregs[shot_index] = state.creg();
+      } else {
+        result.save_count_data(state.creg(), save_creg_memory_);
+      }
+      state.add_metadata(result);
+    }
+  };
+  Utils::apply_omp_parallel_for((par_shots > 1), 0, par_shots,
+                                run_circuit_lambda);
+
+  // gather cregs on MPI processes and save to result
+#ifdef AER_MPI
+  if (num_process_per_experiment_ > 1) {
+    gather_creg_memory(cregs, shot_begin);
+
+    // save cregs to result
+    num_shots = circ.shots * circ.num_bind_params;
+    auto save_cregs = [this, &par_results, par_shots, num_shots, circ,
+                       cregs](int_t i) {
       uint_t i_shot, shot_end;
       i_shot = num_shots * i / par_shots;
       shot_end = num_shots * (i + 1) / par_shots;
 
-      auto fusion_pass = transpile_fusion(circ.opset(), config);
-
-      // Set state config
-      state.set_config(config);
-      state.set_parallelization(this->parallel_state_update_);
-      if (circ.num_bind_params > 1)
-        state.set_global_phase(circ.global_phase_for_params[iparam]);
-      else
-        state.set_global_phase(circ.global_phase_angle);
-      state.enable_density_matrix(!has_statevector_ops_);
-
-      state.set_distribution(this->num_process_per_experiment_);
-      state.set_num_global_qubits(circ.num_qubits);
-
       for (; i_shot < shot_end; i_shot++) {
-        RngEngine rng;
-        uint_t shot_index = shot_begin[distributed_rank_] + i_shot;
-        if (shot_index == 0 && iparam == 0)
-          rng = init_rng;
-        else {
-          if (circ.num_bind_params > 1)
-            rng.set_seed(circ.seed_for_params[iparam] + shot_index);
-          else
-            rng.set_seed(circ.seed + shot_index);
-        }
-
-        int max_matrix_qubits;
-        Circuit circ_opt;
-        if (sample_noise) {
-          Noise::NoiseModel dummy_noise;
-          circ_opt = noise.sample_noise(circ, rng);
-          fusion_pass.optimize_circuit(circ_opt, dummy_noise, state.opset(),
-                                       par_results[i]);
-          state.set_max_matrix_qubits(get_max_matrix_qubits(circ_opt));
-        } else
-          state.set_max_matrix_qubits(max_matrix_qubits);
-
-#ifdef AER_CUSTATEVEC
-        state.enable_cuStateVec(cuStateVec_enable_);
-#endif
-        state.allocate(circ.num_qubits, circ.num_qubits);
-        state.initialize_qreg(circ.num_qubits);
-        state.initialize_creg(circ.num_memory, circ.num_registers);
-
-        if (sample_noise) {
-          if (circ.num_bind_params > 1) {
-            run_circuit_with_parameter_binding(
-                state, circ_opt.ops.cbegin(), circ_opt.ops.cend(),
-                par_results[i], rng, iparam, true);
-          } else {
-            state.apply_ops(circ_opt.ops.cbegin(), circ_opt.ops.cend(),
-                            par_results[i], rng, true);
-          }
-        } else {
-          if (circ.num_bind_params > 1) {
-            run_circuit_with_parameter_binding(state, circ.ops.cbegin(),
-                                               circ.ops.cend(), par_results[i],
-                                               rng, iparam, true);
-          } else {
-            state.apply_ops(circ.ops.cbegin(), circ.ops.cend(), par_results[i],
-                            rng, true);
-          }
-        }
-        if (distributed_procs_ > 1) {
-          // save creg to be gathered
-          cregs[shot_index] = state.creg();
-        } else {
-          par_results[i].save_count_data(state.creg(), save_creg_memory_);
-        }
+        uint_t ip = i_shot / circ.shots;
+        par_results[i][ip].save_count_data(cregs[i_shot], save_creg_memory_);
       }
-      state.add_metadata(par_results[i]);
     };
-    Utils::apply_omp_parallel_for((par_shots > 1), 0, par_shots,
-                                  run_circuit_lambda);
-    // gather cregs on MPI processes and save to result
-#ifdef AER_MPI
-    if (num_process_per_experiment_ > 1) {
-      gather_creg_memory(cregs, shot_begin);
-
-      // save cregs to result
-      num_shots = circ.shots;
-      auto save_cregs = [this, &par_results, par_shots, num_shots,
-                         cregs](int_t i) {
-        uint_t i_shot, shot_end;
-        i_shot = num_shots * i / par_shots;
-        shot_end = num_shots * (i + 1) / par_shots;
-
-        for (; i_shot < shot_end; i_shot++) {
-          par_results[i].save_count_data(cregs[i_shot], save_creg_memory_);
-        }
-      };
-      Utils::apply_omp_parallel_for((par_shots > 1), 0, par_shots, save_cregs,
-                                    par_shots);
-    }
+    Utils::apply_omp_parallel_for((par_shots > 1), 0, par_shots, save_cregs,
+                                  par_shots);
+  }
 #endif
 
-    for (auto &res : par_results) {
-      result.combine(std::move(res));
+  for (auto &res : par_results) {
+    for (int_t i = 0; i < circ.num_bind_params; i++) {
+      (result_it + i)->combine(std::move(res[i]));
     }
+  }
+  if (sim_device_ == Device::GPU) {
+    for (int_t i = 0; i < circ.num_bind_params; i++) {
 #ifdef AER_CUSTATEVEC
-    if (sim_device_ == Device::GPU) {
-      result.metadata.add(cuStateVec_enable_, "cuStateVec_enable");
-      if (par_shots >= num_gpus_)
-        result.metadata.add(num_gpus_, "gpu_parallel_shots_");
-      else
-        result.metadata.add(par_shots, "gpu_parallel_shots_");
-    }
+      (result_it + i)->metadata.add(cuStateVec_enable_, "cuStateVec_enable");
 #endif
-  } // end loop for params
+      if (par_shots >= num_gpus_)
+        (result_it + i)->metadata.add(num_gpus_, "gpu_parallel_shots_");
+      else
+        (result_it + i)->metadata.add(par_shots, "gpu_parallel_shots_");
+    }
+  }
 }
 
 template <class state_t>
