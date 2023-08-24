@@ -588,12 +588,12 @@ void lapack_csvd_wrapper(cmatrix_t &A, cmatrix_t &U, rvector_t &S,
   complex_t *lapackA = A.move_to_buffer(), *lapackU = U.move_to_buffer(),
             *lapackV = V.move_to_buffer();
 
-  double lapackS[min_dim];
-  complex_t work[lwork];
+  double* lapackS = new double[min_dim];
+  complex_t* work = new complex_t[lwork];
   int info;
 
   if (strcmp(getenv("QISKIT_LAPACK_SVD"), "DC") == 0) {
-    int iwork[8 * min_dim];
+    int* iwork = new int[8 * min_dim];
     int rwork_size = std::max(5 * min_dim * min_dim + 5 * min_dim,
                               2 * m * n + 2 * min_dim * min_dim + min_dim);
 
@@ -608,6 +608,7 @@ void lapack_csvd_wrapper(cmatrix_t &A, cmatrix_t &U, rvector_t &S,
     zgesdd_("A", &m, &n, lapackA, &m, lapackS, lapackU, &m, lapackV, &n, work_,
             &lwork, rwork, iwork, &info);
 
+    delete iwork;
     free(rwork);
     free(work_);
   } else {
@@ -627,6 +628,9 @@ void lapack_csvd_wrapper(cmatrix_t &A, cmatrix_t &U, rvector_t &S,
 #ifdef DEBUG
   validate_SVD_result(tempA, U, S, V);
 #endif
+
+  delete lapackS;
+  delete work;
 
   if (info == 0) {
     return;
