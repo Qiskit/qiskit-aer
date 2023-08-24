@@ -303,7 +303,7 @@ void Executor<state_t>::set_config(const Config &config) {
     sim_precision_ = Precision::Single;
   }
   // set target GPUs
-#ifdef AER_THRUST_CUDA
+#ifdef AER_THRUST_GPU
   int nDev = 0;
   if (cudaGetDeviceCount(&nDev) != cudaSuccess) {
     cudaGetLastError();
@@ -341,7 +341,7 @@ size_t Executor<state_t>::get_system_memory_mb() {
 template <class state_t>
 size_t Executor<state_t>::get_gpu_memory_mb() {
   size_t total_physical_memory = 0;
-#ifdef AER_THRUST_CUDA
+#ifdef AER_THRUST_GPU
   for (int_t iDev = 0; iDev < target_gpus_.size(); iDev++) {
     size_t freeMem, totalMem;
     cudaSetDevice(target_gpus_[iDev]);

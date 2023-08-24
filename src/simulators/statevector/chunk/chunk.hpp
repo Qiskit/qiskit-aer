@@ -230,7 +230,7 @@ public:
     return chunk_container_.lock()->trace(chunk_pos_, row, count);
   }
 
-#ifdef AER_THRUST_CUDA
+#ifdef AER_THRUST_GPU
   cudaStream_t stream(void) {
     return std::static_pointer_cast<DeviceChunkContainer<data_t>>(
                chunk_container_.lock())
