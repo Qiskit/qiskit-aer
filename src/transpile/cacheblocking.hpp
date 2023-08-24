@@ -99,7 +99,8 @@ protected:
   void insert_swap(std::vector<Operations::Op> &ops, uint_t bit0, uint_t bit1,
                    bool chunk) const;
   void insert_sim_op(std::vector<Operations::Op> &ops, const char *name,
-                    const reg_t &qubits) const;
+                     const reg_t &qubits) const;
+
   void insert_pauli(std::vector<Operations::Op> &ops, reg_t &qubits,
                     std::string &pauli) const;
 
@@ -193,8 +194,7 @@ void CacheBlocking::insert_swap(std::vector<Operations::Op> &ops, uint_t bit0,
 }
 
 void CacheBlocking::insert_sim_op(std::vector<Operations::Op> &ops,
-                                  const char *name,
-                                  const reg_t &qubits) const {
+                                  const char *name, const reg_t &qubits) const {
   Operations::Op op;
   op.type = Operations::OpType::sim_op;
   op.name = name;
