@@ -274,7 +274,7 @@ class AerDensityMatrix(DensityMatrix):
 
     @staticmethod
     def from_int(i, dims):
-        size = np.product(dims)
+        size = np.prod(dims)
         state = np.zeros((size, size), dtype=complex)
         state[i, i] = 1.0
         return AerDensityMatrix(state, dims=dims)
