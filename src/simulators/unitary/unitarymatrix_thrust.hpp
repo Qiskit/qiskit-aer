@@ -50,7 +50,7 @@ public:
   //-----------------------------------------------------------------------
 
   // Return the string name of the class
-#ifdef AER_THRUST_CUDA
+#ifdef AER_THRUST_GPU
   static std::string name() { return "unitary_gpu"; }
 #else
   static std::string name() { return "unitary_thrust"; }

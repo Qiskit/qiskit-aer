@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    Enable 2-qubit gate ECR for aer_stabilizer_simulator. Refer to
+    `#1883 <https://github.com/Qiskit/qiskit-aer/issues/1883` for more
+    details.

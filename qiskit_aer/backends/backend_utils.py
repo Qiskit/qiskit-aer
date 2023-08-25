@@ -214,6 +214,7 @@ BASIS_GATES = {
             "delay",
             "pauli",
             "reset",
+            "ecr",
         ]
     ),
     "extended_stabilizer": sorted(

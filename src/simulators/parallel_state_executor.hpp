@@ -796,7 +796,7 @@ void ParallelStateExecutor<state_t>::apply_ops_chunks(InputIterator first,
   }
 
   if (Base::sim_device_ == Device::GPU) {
-#ifdef AER_THRUST_CUDA
+#ifdef AER_THRUST_GPU
     int nDev;
     if (cudaGetDeviceCount(&nDev) != cudaSuccess) {
       cudaGetLastError();
