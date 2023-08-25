@@ -859,7 +859,6 @@ void Executor<state_t>::run_circuit_shots(
       }
       ExperimentResult &result = par_results[i][iparam];
 
-      int max_matrix_qubits;
       Circuit circ_opt;
       if (sample_noise) {
         Noise::NoiseModel dummy_noise;
