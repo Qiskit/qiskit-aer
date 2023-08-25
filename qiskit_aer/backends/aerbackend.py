@@ -37,7 +37,7 @@ from .aer_compiler import compile_circuit, assemble_circuits, generate_aer_confi
 from .backend_utils import format_save_type, circuit_optypes
 from .name_mapping import NAME_MAPPING
 
-# pylint: disable=import-error, no-name-in-module
+# pylint: disable=import-error, no-name-in-module, abstract-method
 from .controller_wrappers import AerConfig
 
 # Logger
@@ -355,36 +355,6 @@ class AerBackend(Backend, ABC):
             self.configuration(), self.properties(), self.defaults(), self._mapping
         )
         return self._target
-
-    @property
-    def dtm(self):
-        if hasattr(self.configuration(), "dtm"):
-            return self.configuration().dtm
-        else:
-            return None
-
-    @property
-    def meas_map(self):
-        if hasattr(self.configuration(), "meas_map"):
-            return self.configuration().meas_map
-        else:
-            return None
-
-    def acquire_channel(self):
-        return None
-
-    def control_channel(self):
-        return None
-
-    def drive_channel(self):
-        return None
-
-    def measure_channel(self):
-        return None
-
-    @classmethod
-    def _default_options(cls):
-        pass
 
     def clear_options(self):
         """Reset the simulator options to default values."""

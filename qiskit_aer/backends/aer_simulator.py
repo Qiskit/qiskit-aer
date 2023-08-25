@@ -31,7 +31,7 @@ from .backend_utils import (
     BASIS_GATES,
 )
 
-# pylint: disable=import-error, no-name-in-module
+# pylint: disable=import-error, no-name-in-module, abstract-method
 from .controller_wrappers import aer_controller_execute
 
 logger = logging.getLogger(__name__)

@@ -35,7 +35,7 @@ from .backend_utils import (
     add_final_save_op,
 )
 
-# pylint: disable=import-error, no-name-in-module
+# pylint: disable=import-error, no-name-in-module, abstract-method
 from .controller_wrappers import aer_controller_execute
 
 # Logger
