@@ -44,6 +44,7 @@ py::object AerToPy::to_python(AER::ExperimentResult &&result) {
   py::dict pyexperiment;
 
   pyexperiment["shots"] = result.shots;
+  pyexperiment["circ_id"] = result.circ_id;
   pyexperiment["seed_simulator"] = result.seed;
 
   pyexperiment["data"] = AerToPy::to_python(std::move(result.data));

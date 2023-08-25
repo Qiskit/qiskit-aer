@@ -49,7 +49,7 @@ DISABLE_WARNING_POP
 #define QV_PROBABILITY_BUFFER_SIZE 4
 #define QV_NUM_INTERNAL_REGS 4
 
-#ifdef AER_THRUST_CUDA
+#ifdef AER_THRUST_GPU
 #define AERDeviceVector thrust::device_vector
 #else
 #define AERDeviceVector thrust::host_vector
@@ -58,7 +58,7 @@ DISABLE_WARNING_POP
 
 #include "framework/utils.hpp"
 
-#ifdef AER_THRUST_CUDA
+#ifdef AER_THRUST_GPU
 #include "simulators/statevector/chunk/cuda_kernels.hpp"
 #endif
 
@@ -144,7 +144,7 @@ public:
 
   virtual void set_device(void) const {}
 
-#ifdef AER_THRUST_CUDA
+#ifdef AER_THRUST_GPU
   virtual cudaStream_t stream(uint_t iChunk) const { return nullptr; }
 #endif
 
@@ -174,11 +174,11 @@ public:
   virtual thrust::complex<data_t> Get(uint_t i) const = 0;
 
   virtual void StoreMatrix(const std::vector<std::complex<double>> &mat,
-                           uint_t iChunk) = 0;
+                           uint_t iChunk) const = 0;
   virtual void StoreMatrix(const std::complex<double> *mat, uint_t iChunk,
-                           uint_t size) = 0;
+                           uint_t size) const = 0;
   virtual void StoreUintParams(const std::vector<uint_t> &prm,
-                               uint_t iChunk) = 0;
+                               uint_t iChunk) const = 0;
   virtual void ResizeMatrixBuffers(int bits) = 0;
 
   virtual void CopyIn(Chunk<data_t> &src, uint_t iChunk) = 0;
@@ -310,6 +310,11 @@ public:
   virtual void probabilities(std::vector<double> &probs, const uint_t iChunk,
                              const reg_t &qubits) const;
 
+  // get norm of matrix multiplication
+  virtual double expval_matrix(const uint_t iChunk, const reg_t &qubits,
+                               const cvector_t<double> &mat,
+                               const uint_t count) const;
+
   // Pauli expectation values
   virtual double expval_pauli(const uint_t iChunk, const reg_t &qubits,
                               const std::string &pauli,
@@ -390,7 +395,7 @@ void ChunkContainer<data_t>::Execute(Function func, uint_t iChunk,
       conditional_bit_ = -1; // reset conditional
   }
 
-#ifdef AER_THRUST_CUDA
+#ifdef AER_THRUST_GPU
   cudaStream_t strm = stream(iChunk);
   if (strm) {
     uint_t nt, nb;
@@ -452,7 +457,7 @@ template <typename Function>
 void ChunkContainer<data_t>::ExecuteSum(double *pSum, Function func,
                                         uint_t iChunk, uint_t count) const {
 
-#ifdef AER_THRUST_CUDA
+#ifdef AER_THRUST_GPU
   uint_t size = count * func.size(chunk_bits_);
 
   set_device();
@@ -632,7 +637,7 @@ template <typename Function>
 void ChunkContainer<data_t>::ExecuteSum2(double *pSum, Function func,
                                          uint_t iChunk, uint_t count) const {
 
-#ifdef AER_THRUST_CUDA
+#ifdef AER_THRUST_GPU
   uint_t size = count * func.size(chunk_bits_);
 
   set_device();
@@ -811,7 +816,7 @@ void ChunkContainer<data_t>::apply_matrix(
   } else {
     auto qubits_sorted = qubits;
     std::sort(qubits_sorted.begin(), qubits_sorted.end());
-#ifndef AER_THRUST_CUDA
+#ifndef AER_THRUST_GPU
     if (N == 3) {
       StoreMatrix(mat, iChunk);
       Execute(MatrixMult8x8<data_t>(qubits, qubits_sorted), iChunk, gid, count);
@@ -1005,6 +1010,32 @@ double ChunkContainer<data_t>::trace(uint_t iChunk, uint_t row,
                                      uint_t count) const {
   double ret;
   ExecuteSum(&ret, trace_func<data_t>(row), iChunk, count);
+
+  return ret;
+}
+
+template <typename data_t>
+double ChunkContainer<data_t>::expval_matrix(const uint_t iChunk,
+                                             const reg_t &qubits,
+                                             const cvector_t<double> &mat,
+                                             const uint_t count) const {
+  double ret;
+  const size_t N = qubits.size();
+
+  if (N == 1)
+    ExecuteSum(&ret, NormMatrixMult2x2<data_t>(mat, qubits[0]), iChunk, count);
+  else {
+    auto qubits_sorted = qubits;
+    std::sort(qubits_sorted.begin(), qubits_sorted.end());
+    for (int_t i = 0; i < N; i++) {
+      qubits_sorted.push_back(qubits[i]);
+    }
+
+    StoreMatrix(mat, iChunk);
+    StoreUintParams(qubits_sorted, iChunk);
+
+    ExecuteSum(&ret, NormMatrixMultNxN<data_t>(N), iChunk, count);
+  }
 
   return ret;
 }

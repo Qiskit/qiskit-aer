@@ -1,0 +1,14 @@
+---
+fixes:
+  - |
+    If a circuit has conditional and parameters, the circuit was not be
+    correctly simulated because parameter bindings of Aer used wrong positions
+    to apply parameters. This is from a lack of consideration of bfunc operations
+    injected by conditional. With this commit, parameters are set to correct
+    positions with consideration of injected bfun operations.
+  - |
+    Parameters for global phases were not correctly set in #1814.
+    https://github.com/Qiskit/qiskit-aer/pull/1814
+    Parameter values for global phases were copied to a template circuit and not to
+    actual circuits to be simulated. This commit correctly copies parameter values
+    to circuits to be simulated.

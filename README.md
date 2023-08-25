@@ -20,13 +20,18 @@ To install from source, follow the instructions in the [contribution guidelines]
 
 ## Installing GPU support
 
-In order to install and run the GPU supported simulators on Linux, you need CUDA&reg; 10.1 or newer previously installed.
+In order to install and run the GPU supported simulators on Linux, you need CUDA&reg; 11.2 or newer previously installed.
 CUDA&reg; itself would require a set of specific GPU drivers. Please follow CUDA&reg; installation procedure in the NVIDIA&reg; [web](https://www.nvidia.com/drivers).
 
 If you want to install our GPU supported simulators, you have to install this other package:
 
 ```bash
 pip install qiskit-aer-gpu
+```
+
+The package above is for CUDA&reg 12, so if your system has CUDA&reg; 11 installed, install separate package:
+```bash
+pip install qiskit-aer-gpu-cu11
 ```
 
 This will overwrite your current `qiskit-aer` package installation giving you
@@ -47,8 +52,8 @@ $ python
 
 ```python
 import qiskit
-from qiskit import IBMQ
 from qiskit_aer import AerSimulator
+from qiskit.providers.fake_provider import FakeManilaV2
 
 # Generate 3-qubit GHZ state
 circ = qiskit.QuantumCircuit(3)
@@ -61,24 +66,23 @@ circ.measure_all()
 aersim = AerSimulator()
 
 # Perform an ideal simulation
-result_ideal = qiskit.execute(circ, aersim).result()
+result_ideal = aersim.run(circ).result()
 counts_ideal = result_ideal.get_counts(0)
 print('Counts(ideal):', counts_ideal)
 # Counts(ideal): {'000': 493, '111': 531}
 
 # Construct a noisy simulator backend from an IBMQ backend
 # This simulator backend will be automatically configured
-# using the device configuration and noise model 
-provider = IBMQ.load_account()
-backend = provider.get_backend('ibmq_athens')
+# using the device configuration and noise model
+backend = FakeManilaV2()
 aersim_backend = AerSimulator.from_backend(backend)
 
 # Perform noisy simulation
-result_noise = qiskit.execute(circ, aersim_backend).result()
+result_noise = aersim_backend.run(circ).result()
 counts_noise = result_noise.get_counts(0)
 
 print('Counts(noise):', counts_noise)
-# Counts(noise): {'000': 492, '001': 6, '010': 8, '011': 14, '100': 3, '101': 14, '110': 18, '111': 469}
+# Counts(noise): {'101': 16, '110': 48, '100': 7, '001': 31, '010': 7, '000': 464, '011': 15, '111': 436}
 ```
 
 ## Contribution Guidelines
@@ -96,7 +100,7 @@ Now you're set up and ready to check out some of the other examples from our
 ## Authors and Citation
 
 Qiskit Aer is the work of [many people](https://github.com/Qiskit/qiskit-aer/graphs/contributors) who contribute
-to the project at different levels. If you use Qiskit, please cite as per the included [BibTeX file](https://github.com/Qiskit/qiskit/blob/master/Qiskit.bib).
+to the project at different levels. If you use Qiskit, please cite as per the included [BibTeX file](https://github.com/Qiskit/qiskit-terra/blob/main/CITATION.bib).
 
 ## License
 

@@ -15,6 +15,7 @@
 #ifndef _aer_framework_results_experiment_result_hpp_
 #define _aer_framework_results_experiment_result_hpp_
 
+#include "framework/circuit.hpp"
 #include "framework/config.hpp"
 #include "framework/creg.hpp"
 #include "framework/opset.hpp"
@@ -40,6 +41,7 @@ public:
   uint_t shots;
   uint_t seed;
   double time_taken;
+  int circ_id;
 
   // Success and status
   Status status = Status::empty;
@@ -60,8 +62,6 @@ public:
 
   // save creg as count data
   void save_count_data(const ClassicalRegister &creg, bool save_memory);
-  void save_count_data(const std::vector<ClassicalRegister> &cregs,
-                       bool save_memory);
 
   // Save data type which can be averaged over all shots.
   // This supports DataSubTypes: list, c_list, accum, c_accum, average,
@@ -144,12 +144,6 @@ void ExperimentResult::save_count_data(const ClassicalRegister &creg,
       data.add_list(std::move(memory_hex), "memory");
     }
   }
-}
-
-void ExperimentResult::save_count_data(
-    const std::vector<ClassicalRegister> &cregs, bool save_memory) {
-  for (int_t i = 0; i < cregs.size(); i++)
-    save_count_data(cregs[i], save_memory);
 }
 
 template <class T>
