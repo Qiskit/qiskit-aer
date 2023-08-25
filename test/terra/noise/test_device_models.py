@@ -63,3 +63,10 @@ class TestDeviceNoiseModel(QiskitAerTestCase):
             self.assertEqual(name1, name2)
             self.assertEqual(tuple(qargs1), qargs2)
             self.assertEqual(err1, err2)
+
+    def test_basic_device_gate_errors_from_target_with_no_t2_value(self):
+        """Test if gate errors are successfully created from a target with qubits not reporting T2.
+        See https://github.com/Qiskit/qiskit-aer/issues/1896 for the details."""
+        target = FakeNairobiV2().target
+        target.qubit_properties[0].t2 = None
+        basic_device_gate_errors(target=target)
