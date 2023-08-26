@@ -439,7 +439,7 @@ private:
 };
 
 bool AerState::is_gpu(bool raise_error) const {
-#ifndef AER_THRUST_CUDA
+#ifndef AER_THRUST_GPU
   if (raise_error)
     throw std::runtime_error(
         "Simulation device \"GPU\" is not supported on this system");
@@ -804,7 +804,7 @@ reg_t AerState::initialize_statevector(uint_t num_of_qubits, complex_t *data,
   auto qv = QV::QubitVector<double>();
   qv.move_from_vector(std::move(vec));
 
-  state->initialize_qreg(num_of_qubits_, std::move(qv));
+  state->initialize_statevector(num_of_qubits_, std::move(qv));
   state->initialize_creg(num_of_qubits_, num_of_qubits_);
   initialized_ = true;
 
@@ -1313,8 +1313,9 @@ uint_t AerState::apply_measure(const reg_t &qubits) {
 
   uint_t bitstring = 0;
   uint_t bit = 1;
+  uint_t mem_size = state_->creg().memory_size();
   for (const auto &qubit : qubits) {
-    if (state_->creg().creg_memory()[qubit] == '1')
+    if (state_->creg().creg_memory()[mem_size - qubit - 1] == '1')
       bitstring |= bit;
     bit <<= 1;
   }

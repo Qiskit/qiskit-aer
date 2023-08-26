@@ -230,7 +230,7 @@ public:
     return chunk_container_.lock()->trace(chunk_pos_, row, count);
   }
 
-#ifdef AER_THRUST_CUDA
+#ifdef AER_THRUST_GPU
   cudaStream_t stream(void) {
     return std::static_pointer_cast<DeviceChunkContainer<data_t>>(
                chunk_container_.lock())
@@ -398,6 +398,12 @@ public:
   // get probabilities of chunk
   void probabilities(std::vector<double> &probs, const reg_t &qubits) const {
     chunk_container_.lock()->probabilities(probs, chunk_pos_, qubits);
+  }
+  // get norm of matrix multiplication
+  double expval_matrix(const reg_t &qubits, const cvector_t<double> &mat,
+                       const uint_t count) const {
+    return chunk_container_.lock()->expval_matrix(chunk_pos_, qubits, mat,
+                                                  count);
   }
   // Pauli expectation values
   double expval_pauli(const reg_t &qubits, const std::string &pauli,
