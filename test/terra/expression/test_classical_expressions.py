@@ -69,7 +69,7 @@ class TestClassicalExpressions(QiskitAerTestCase):
 
         # custom ordering
         self.assertEqual(AerVar(AerUint(3), [1, 0, 2]).eval_uint("000"), 0)
-        self.assertEqual(AerVar(AerUint(3), [1, 0, 2]).eval_uint("001"), 1)
+        self.assertEqual(AerVar(AerUint(3), [1, 0, 2]).eval_uint("001"), 2)
 
         # overflow
         self.assertEqual(AerVar(AerUint(3), [0, 1, 2]).eval_uint("1111"), 7)

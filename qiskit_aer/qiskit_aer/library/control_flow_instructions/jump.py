@@ -14,7 +14,6 @@ Simulator instruction to set a program counter
 """
 
 from qiskit.circuit import Instruction
-from qiskit.circuit.classical.expr import Expr
 
 
 class AerJump(Instruction):
@@ -30,13 +29,8 @@ class AerJump(Instruction):
         super().__init__("jump", num_qubits, num_clbits, [jump_to])
         self.condition_expr = None
 
-    def set_conditional(self, cond):
-        if isinstance(cond, Expr):
-            self.c_if_expr(cond)
-        else:
-            self.c_if(*cond)
-        return self
-
     def c_if_expr(self, cond):
+        if isinstance(cond, tuple):
+            return self.c_if(*cond)
         self.condition_expr = cond
         return self

@@ -136,6 +136,8 @@ bool ClassicalRegister::check_conditional(const Operations::Op &op) const {
   if (op.conditional)
     return (creg_register_[creg_register_.size() - op.conditional_reg - 1] ==
             '1');
+  if (op.expr)
+    return op.expr->eval_bool(creg_memory_);
 
   // Op is not conditional
   return true;

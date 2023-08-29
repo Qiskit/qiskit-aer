@@ -165,12 +165,13 @@ private:
   uint_t eval_uint_(const std::string &memory) {
     uint_t val = 0ul;
     const uint_t memory_size = memory.size();
+    uint_t shift = 0;
     for (const uint_t cbit_idx : cbit_idxs) {
-      val <<= 1;
       if (memory.size() <= cbit_idx)
         throw std::invalid_argument(R"(invalid cbit index.)");
-      if (memory[cbit_idx] == '1')
-        val |= 1;
+      if (memory[memory.size() - cbit_idx - 1] == '1')
+        val |= (1 << shift);
+      ++shift;
     }
     return truncate(val, type->width);
   }
@@ -759,7 +760,9 @@ inline Op make_initialize(const reg_t &qubits,
 }
 
 inline Op make_unitary(const reg_t &qubits, const cmatrix_t &mat,
-                       const int_t conditional = -1, std::string label = "") {
+                       const int_t conditional = -1,
+                       const std::shared_ptr<Expr> expr = nullptr,
+                       std::string label = "") {
   Op op;
   op.type = OpType::matrix;
   op.name = "unitary";
@@ -769,6 +772,7 @@ inline Op make_unitary(const reg_t &qubits, const cmatrix_t &mat,
     op.conditional = true;
     op.conditional_reg = conditional;
   }
+  op.expr = expr;
   if (label != "")
     op.string_params = {label};
   return op;
@@ -816,7 +820,8 @@ inline Op make_diagonal(const reg_t &qubits, cvector_t &&vec,
 }
 
 inline Op make_superop(const reg_t &qubits, const cmatrix_t &mat,
-                       const int_t conditional = -1) {
+                       const int_t conditional = -1,
+                       const std::shared_ptr<Expr> expr = nullptr) {
   Op op;
   op.type = OpType::superop;
   op.name = "superop";
@@ -826,6 +831,7 @@ inline Op make_superop(const reg_t &qubits, const cmatrix_t &mat,
     op.conditional = true;
     op.conditional_reg = conditional;
   }
+  op.expr = expr;
   return op;
 }
 
@@ -840,7 +846,8 @@ inline Op make_superop(const reg_t &qubits, cmatrix_t &&mat) {
 }
 
 inline Op make_kraus(const reg_t &qubits, const std::vector<cmatrix_t> &mats,
-                     const int_t conditional = -1) {
+                     const int_t conditional = -1,
+                     const std::shared_ptr<Expr> expr = nullptr) {
   Op op;
   op.type = OpType::kraus;
   op.name = "kraus";
@@ -850,6 +857,7 @@ inline Op make_kraus(const reg_t &qubits, const std::vector<cmatrix_t> &mats,
     op.conditional = true;
     op.conditional_reg = conditional;
   }
+  op.expr = expr;
   return op;
 }
 
@@ -923,7 +931,8 @@ inline Op make_bfunc(const std::string &mask, const std::string &val,
 Op make_gate(const std::string &name, const reg_t &qubits,
              const std::vector<complex_t> &params,
              const std::vector<std::string> &string_params,
-             const int_t conditional, const std::string &label) {
+             const int_t conditional, const std::shared_ptr<Expr> expr,
+             const std::string &label) {
   Op op;
   op.type = OpType::gate;
   op.name = name;
@@ -936,6 +945,7 @@ Op make_gate(const std::string &name, const reg_t &qubits,
     op.string_params = {label};
   else
     op.string_params = {op.name};
+  op.expr = expr;
 
   if (conditional >= 0) {
     op.conditional = true;
@@ -989,6 +999,7 @@ inline Op make_reset(const reg_t &qubits, uint_t state = 0) {
 inline Op make_multiplexer(const reg_t &qubits,
                            const std::vector<cmatrix_t> &mats,
                            const int_t conditional = -1,
+                           const std::shared_ptr<Expr> expr = nullptr,
                            std::string label = "") {
 
   // Check matrices are N-qubit
@@ -1037,6 +1048,7 @@ inline Op make_multiplexer(const reg_t &qubits,
     op.conditional = true;
     op.conditional_reg = conditional;
   }
+  op.expr = expr;
 
   // Validate qubits are unique.
   check_empty_qubits(op);
@@ -1199,7 +1211,8 @@ inline Op make_set_clifford(const reg_t &qubits, const std::string &name,
 }
 
 inline Op make_jump(const reg_t &qubits, const std::vector<std::string> &params,
-                    const int_t conditional) {
+                    const int_t conditional,
+                    const std::shared_ptr<Expr> expr = nullptr) {
   Op op;
   op.type = OpType::jump;
   op.name = "jump";
@@ -1213,6 +1226,7 @@ inline Op make_jump(const reg_t &qubits, const std::vector<std::string> &params,
     op.conditional = true;
     op.conditional_reg = conditional;
   }
+  op.expr = expr;
 
   return op;
 }
@@ -1251,7 +1265,8 @@ inline Op make_measure(const reg_t &qubits, const reg_t &memory,
 }
 
 inline Op make_qerror_loc(const reg_t &qubits, const std::string &label,
-                          const int_t conditional = -1) {
+                          const int_t conditional = -1,
+                          const std::shared_ptr<Expr> expr = nullptr) {
   Op op;
   op.type = OpType::qerror_loc;
   op.name = label;
@@ -1260,6 +1275,7 @@ inline Op make_qerror_loc(const reg_t &qubits, const std::string &label,
     op.conditional = true;
     op.conditional_reg = conditional;
   }
+  op.expr = expr;
   return op;
 }
 
@@ -1794,7 +1810,7 @@ Op input_to_op_multiplexer(const inputdata_t &input) {
   Parser<inputdata_t>::get_value(mats, "params", input);
   Parser<inputdata_t>::get_value(label, "label", input);
   // Construct op
-  auto op = make_multiplexer(qubits, mats, -1, label);
+  auto op = make_multiplexer(qubits, mats, -1, nullptr, label);
   // Conditional
   add_conditional(Allowed::Yes, op, input);
   return op;

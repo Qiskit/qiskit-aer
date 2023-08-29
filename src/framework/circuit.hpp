@@ -130,9 +130,11 @@ public:
   void gate(const std::string &name, const reg_t &qubits,
             const std::vector<complex_t> &params,
             const std::vector<std::string> &string_params,
-            const int_t cond_regidx = -1, const std::string label = "") {
+            const int_t cond_regidx = -1,
+            const std::shared_ptr<Operations::Expr> expr = nullptr,
+            const std::string label = "") {
     ops.push_back(Operations::make_gate(name, qubits, params, string_params,
-                                        cond_regidx, label));
+                                        cond_regidx, expr, label));
     check_gate_params(ops.back());
   }
 
@@ -142,8 +144,11 @@ public:
   }
 
   void unitary(const reg_t &qubits, const cmatrix_t &mat,
-               const int_t cond_regidx = -1, const std::string label = "") {
-    ops.push_back(Operations::make_unitary(qubits, mat, cond_regidx, label));
+               const int_t cond_regidx = -1,
+               const std::shared_ptr<Operations::Expr> expr = nullptr,
+               const std::string label = "") {
+    ops.push_back(
+        Operations::make_unitary(qubits, mat, cond_regidx, expr, label));
   }
 
   void initialize(const reg_t &qubits,
@@ -157,19 +162,23 @@ public:
   }
 
   void multiplexer(const reg_t &qubits, const std::vector<cmatrix_t> &mats,
-                   const int_t cond_regidx = -1, std::string label = "") {
+                   const int_t cond_regidx = -1,
+                   const std::shared_ptr<Operations::Expr> expr = nullptr,
+                   std::string label = "") {
     ops.push_back(
-        Operations::make_multiplexer(qubits, mats, cond_regidx, label));
+        Operations::make_multiplexer(qubits, mats, cond_regidx, expr, label));
   }
 
   void kraus(const reg_t &qubits, const std::vector<cmatrix_t> &mats,
-             const int_t cond_regidx = -1) {
-    ops.push_back(Operations::make_kraus(qubits, mats, cond_regidx));
+             const int_t cond_regidx = -1,
+             const std::shared_ptr<Operations::Expr> expr = nullptr) {
+    ops.push_back(Operations::make_kraus(qubits, mats, cond_regidx, expr));
   }
 
   void superop(const reg_t &qubits, const cmatrix_t &mat,
-               const int_t cond_regidx = -1) {
-    ops.push_back(Operations::make_superop(qubits, mat, cond_regidx));
+               const int_t cond_regidx = -1,
+               const std::shared_ptr<Operations::Expr> expr = nullptr) {
+    ops.push_back(Operations::make_superop(qubits, mat, cond_regidx, expr));
   }
 
   void save_state(const reg_t &qubits, const std::string &name,
@@ -199,8 +208,10 @@ public:
   }
 
   void set_qerror_loc(const reg_t &qubits, const std::string &label,
-                      const int_t conditional = -1) {
-    ops.push_back(Operations::make_qerror_loc(qubits, label, conditional));
+                      const int_t conditional = -1,
+                      const std::shared_ptr<Operations::Expr> expr = nullptr) {
+    ops.push_back(
+        Operations::make_qerror_loc(qubits, label, conditional, expr));
   }
 
   template <typename inputdata_t>
@@ -237,8 +248,9 @@ public:
   }
 
   void jump(const reg_t &qubits, const std::vector<std::string> &params,
-            const int_t cond_regidx = -1) {
-    ops.push_back(Operations::make_jump(qubits, params, cond_regidx));
+            const int_t cond_regidx = -1,
+            const std::shared_ptr<Operations::Expr> expr = nullptr) {
+    ops.push_back(Operations::make_jump(qubits, params, cond_regidx, expr));
   }
 
   void mark(const reg_t &qubits, const std::vector<std::string> &params) {
@@ -496,7 +508,7 @@ void Circuit::set_params(bool truncation) {
       }
 
       const auto &op = ops[pos];
-      if (op.conditional) {
+      if (op.conditional || (op.type == OpType::jump && op.expr)) {
         can_sample = false;
         break;
       }
