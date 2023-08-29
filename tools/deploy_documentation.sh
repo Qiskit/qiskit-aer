@@ -12,7 +12,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# Script for pushing the documentation to qiskit.org.
+# Script for pushing the documentation to qiskit.org/ecosystem.
 set -e
 
 curl https://downloads.rclone.org/rclone-current-linux-amd64.deb -o rclone.deb
@@ -30,6 +30,3 @@ pwd
 openssl aes-256-cbc -K $encrypted_rclone_key -iv $encrypted_rclone_iv -in tools/rclone.conf.enc -out $RCLONE_CONFIG_PATH -d
 echo "Pushing built docs to website"
 rclone sync --progress ./docs/_build/html IBMCOS:qiskit-org-web-resources/ecosystem/aer
-
-# Push to qiskit.org/documentation
-rclone sync --progress ./docs/_build/html IBMCOS:qiskit-org-web-resources/documentation/aer
