@@ -93,7 +93,7 @@ public:
   //-----------------------------------------------------------------------
 
   // Return the string name of the QubitVector class
-#ifdef AER_THRUST_CUDA
+#ifdef AER_THRUST_GPU
   static std::string name() { return "statevector_gpu"; }
 #else
   static std::string name() { return "statevector_thrust"; }
@@ -326,7 +326,7 @@ public:
   // for batched optimization
   //-----------------------------------------------------------------------
   virtual bool batched_optimization_supported(void) {
-#ifdef AER_THRUST_CUDA
+#ifdef AER_THRUST_GPU
     if (enable_batch_)
       return true;
     else
@@ -1022,7 +1022,7 @@ std::complex<double> QubitVectorThrust<data_t>::inner_product() const {
 
   vec0 = (data_t *)chunk_.pointer();
   vec1 = (data_t *)thrust::raw_pointer_cast(checkpoint_.data());
-#ifdef AER_THRUST_CUDA
+#ifdef AER_THRUST_GPU
   cudaStream_t strm = chunk_.stream();
   if (strm)
     dot = thrust::inner_product(thrust::device, vec0, vec0 + data_size_ * 2,
@@ -1386,7 +1386,7 @@ template <typename Function>
 void QubitVectorThrust<data_t>::apply_function_sum(double *pSum, Function func,
                                                    bool async) const {
   uint_t count = 1;
-#ifdef AER_THRUST_CUDA
+#ifdef AER_THRUST_GPU
   if (!cuStateVec_enable_ && func.batch_enable() &&
       ((multi_chunk_distribution_ && chunk_.device() >= 0 &&
         num_qubits_ == num_qubits()) ||
@@ -1416,7 +1416,7 @@ template <typename Function>
 void QubitVectorThrust<data_t>::apply_function_sum2(double *pSum, Function func,
                                                     bool async) const {
   uint_t count = 1;
-#ifdef AER_THRUST_CUDA
+#ifdef AER_THRUST_GPU
   if (!cuStateVec_enable_ && func.batch_enable() &&
       ((multi_chunk_distribution_ && chunk_.device() >= 0 &&
         num_qubits_ == num_qubits()) ||
@@ -1917,7 +1917,7 @@ double QubitVectorThrust<data_t>::norm() const {
   double ret;
   uint_t count = 1;
 
-#ifdef AER_THRUST_CUDA
+#ifdef AER_THRUST_GPU
   if (enable_batch_ && ((multi_chunk_distribution_ && chunk_.device() >= 0) ||
                         !multi_chunk_distribution_)) {
     if (chunk_.pos() != 0)
@@ -1939,7 +1939,7 @@ template <typename data_t>
 double QubitVectorThrust<data_t>::norm(const reg_t &qubits,
                                        const cvector_t<double> &mat) const {
   uint_t count = 1;
-#ifdef AER_THRUST_CUDA
+#ifdef AER_THRUST_GPU
   if (!cuStateVec_enable_ &&
       ((multi_chunk_distribution_ && chunk_.device() >= 0 &&
         num_qubits_ == num_qubits()) ||
@@ -2566,7 +2566,7 @@ template <typename data_t>
 reg_t QubitVectorThrust<data_t>::sample_measure(
     const std::vector<double> &rnds) const {
   uint_t count = 1;
-#ifdef AER_THRUST_CUDA
+#ifdef AER_THRUST_GPU
   if ((multi_chunk_distribution_ && chunk_.device() >= 0) || enable_batch_) {
     if (chunk_.pos() != 0)
       return reg_t(); // first chunk execute all in batch
