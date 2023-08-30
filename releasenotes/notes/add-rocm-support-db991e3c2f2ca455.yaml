@@ -41,6 +41,3 @@ features:
     cd <Qiskit-Aer source folder>
     pip install -r requirements-dev.txt
     
-    
-    
-

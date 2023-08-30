@@ -39,7 +39,7 @@ classifiers = [
 ]
 
 
-# ROCm is expected to be available in the target system to enable CDNA GPUs, so no 
+# ROCm is expected to be available in the target system to enable CDNA GPUs, so no
 # requirements to be loaded. Also, no ROCm related classifiers are in place that
 # could be used here.
 if "gpu" in PACKAGE_NAME and "rocm" not in PACKAGE_NAME:
