@@ -1,0 +1,23 @@
+---
+prelude: >
+    Build environment variable was added to enable building Qiskit-Aer without the CUDA 
+    requirements. The new variable is ``QISKIT_ADD_CUDA_REQUIREMENTS`` and can be set to 
+    False/No/Off or True/Yes/On. By default, it is assumed True.
+    
+features:
+  - |
+    A new environment variable ``QISKIT_ADD_CUDA_REQUIREMENTS`` can be sed to control 
+    whether or not build the Python package for Qiskit-Aer with CUDA requirements. This 
+    flag can be set to False/No/Off or True/Yes/On. By default it is assumed True. This 
+    is useful in case a CUDA instalation is already available on the system where 
+    Qiskit-Aer will run. Not including the requirements results in a smaller footprint 
+    and facilitates leveraging different CUDA installs for development purposes. 
+    The new flag can used like::
+    
+        cd <Qiskit-Aer source folder>
+        
+        QISKIT_AER_PACKAGE_NAME='qiskit-aer-gpu' \
+        QISKIT_AER_CUDA_MAJOR=$CUDA_MAJOR \
+        QISKIT_ADD_CUDA_REQUIREMENTS=False \
+           python3 setup.py bdist_wheel -- \
+              -DAER_THRUST_BACKEND=CUDA ...
