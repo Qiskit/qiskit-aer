@@ -360,8 +360,10 @@ def _device_thermal_relaxation_error(
 
 def _truncate_t2_value(t1, t2):
     """Return t2 value truncated to 2 * t1 (for t2 > 2 * t1)"""
-    if t1 is None or t2 is None:
+    if t1 is None:
         return t2
+    elif t2 is None:
+        return 2 * t1
     return min(t2, 2 * t1)
 
 
