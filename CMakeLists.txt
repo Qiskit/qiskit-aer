@@ -11,8 +11,15 @@
 cmake_minimum_required(VERSION 3.8 FATAL_ERROR)
 file(STRINGS "qiskit_aer/VERSION.txt" VERSION_NUM)
 
+# Add CUDA to the project if needed.
+set(EXTRA_LANGUAGES "")
+if(AER_THRUST_BACKEND STREQUAL "CUDA")
+  list(APPEND EXTRA_LANGUAGES CUDA)
+endif()
+
 include(CheckLanguage)
-project(qasm_simulator VERSION ${VERSION_NUM} LANGUAGES CXX C)
+project(qasm_simulator VERSION ${VERSION_NUM} LANGUAGES CXX C ${EXTRA_LANGUAGES} )
+
 
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
 list(APPEND CMAKE_PREFIX_PATH ${CMAKE_SOURCE_DIR}/cmake)
@@ -284,7 +291,7 @@ if(AER_THRUST_SUPPORTED)
 			set(CMAKE_CUDA_RUNTIME_LIBRARY None)
 
 
-			set(CUDA_NVCC_FLAGS "${AER_CUDA_ARCH_FLAGS_EXPAND} -DAER_THRUST_CUDA -I${AER_SIMULATOR_CPP_SRC_DIR} -isystem ${AER_SIMULATOR_CPP_SRC_DIR}/third-party/headers -use_fast_math --expt-extended-lambda")
+			set(CUDA_NVCC_FLAGS "${AER_CUDA_ARCH_FLAGS_EXPAND} -DAER_THRUST_GPU -DAER_THRUST_CUDA -I${AER_SIMULATOR_CPP_SRC_DIR} -isystem ${AER_SIMULATOR_CPP_SRC_DIR}/third-party/headers -use_fast_math --expt-extended-lambda")
 			set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -I${PYTHON_SITE_PATH}/cuquantum/include")
 			set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -I${PYTHON_SITE_PATH}/cutensor/include")
 			set(THRUST_DEPENDANT_LIBS "${THRUST_DEPENDANT_LIBS} -Wl,--disable-new-dtags")
@@ -311,7 +318,7 @@ if(AER_THRUST_SUPPORTED)
 			string(STRIP ${CUDA_NVCC_FLAGS} CUDA_NVCC_FLAGS)
 			string(STRIP ${THRUST_DEPENDANT_LIBS} THRUST_DEPENDANT_LIBS)
 		else()
-			set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} ${AER_CUDA_ARCH_FLAGS_EXPAND} -DAER_THRUST_CUDA -I${AER_SIMULATOR_CPP_SRC_DIR} -isystem ${AER_SIMULATOR_CPP_SRC_DIR}/third-party/headers -use_fast_math --expt-extended-lambda")
+			set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} ${AER_CUDA_ARCH_FLAGS_EXPAND} -DAER_THRUST_GPU -DAER_THRUST_CUDA -I${AER_SIMULATOR_CPP_SRC_DIR} -isystem ${AER_SIMULATOR_CPP_SRC_DIR}/third-party/headers -use_fast_math --expt-extended-lambda")
 
 			set(AER_COMPILER_DEFINITIONS ${AER_COMPILER_DEFINITIONS} THRUST_DEVICE_SYSTEM=THRUST_DEVICE_SYSTEM_CUDA)
 			set(THRUST_DEPENDANT_LIBS "-L${CUDA_TOOLKIT_ROOT_DIR}/lib64")
@@ -455,7 +462,6 @@ else() # Standalone build
 			LINK_FLAGS ${AER_LINKER_FLAGS}
 			RUNTIME_OUTPUT_DIRECTORY_DEBUG Debug
 			RUNTIME_OUTPUT_DIRECTORY_RELEASE Release)
-		enable_language(CUDA)
 	endfunction()
 
 	function(build_cpu target src_file is_exec)
@@ -519,7 +525,9 @@ else() # Standalone build
 		if(BUILD_TESTS AND NOT AER_MPI)
 			add_executable(test_libaer "${PROJECT_SOURCE_DIR}/test/runtime/runtime_sample.c")
 			target_include_directories(test_libaer PUBLIC "${PROJECT_SOURCE_DIR}/contrib/runtime/")
-			set_target_properties(test_libaer PROPERTIES RUNTIME_OUTPUT_DIRECTORY_RELEASE bin)
+      # AER_LINKER_FLAGS carry eventual OpenMP linking flags.
+			set_target_properties(test_libaer PROPERTIES RUNTIME_OUTPUT_DIRECTORY_RELEASE bin
+                                              		 LINK_FLAGS ${AER_LINKER_FLAGS})
 			target_link_libraries(test_libaer PRIVATE ${AER_LIBRARIES})
 			target_link_libraries(test_libaer PRIVATE aer)
 			add_test(NAME aer_runtime_test COMMAND bin/test_libaer)
