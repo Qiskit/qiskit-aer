@@ -40,6 +40,8 @@ from qiskit.compiler import transpile
 from qiskit.qobj import QobjExperimentHeader
 from qiskit_aer.aererror import AerError
 from qiskit_aer.noise import NoiseModel
+
+# pylint: disable=import-error, no-name-in-module
 from qiskit_aer.backends.controller_wrappers import (
     AerUnaryExpr,
     AerUnaryOp,
@@ -51,10 +53,10 @@ from qiskit_aer.backends.controller_wrappers import (
     AerBool,
     AerCast,
     AerVar,
+    AerCircuit,
+    AerConfig,
 )
 
-# pylint: disable=import-error, no-name-in-module
-from qiskit_aer.backends.controller_wrappers import AerCircuit, AerConfig
 from .backend_utils import circuit_optypes
 from ..library.control_flow_instructions import AerMark, AerJump
 
@@ -701,17 +703,17 @@ def assemble_circuit(circuit: QuantumCircuit):
     return aer_circ, index_map
 
 
-def _assemble_type(t):
-    if isinstance(t, Uint):
-        return AerUint(t.width)
-    elif isinstance(t, Bool):
+def _assemble_type(expr_type):
+    if isinstance(expr_type, Uint):
+        return AerUint(expr_type.width)
+    elif isinstance(expr_type, Bool):
         return AerBool()
     else:
-        raise AerError(f"unknown type: {t.__class__}")
+        raise AerError(f"unknown type: {expr_type.__class__}")
 
 
 def _assemble_clbit_indices(circ, c):
-    if isinstance(c, ClassicalRegister) or isinstance(c, list):
+    if isinstance(c, (ClassicalRegister, list)):
         return [circ.find_bit(cbit).index for cbit in c]
     elif isinstance(c, Clbit):
         return [circ.find_bit(c).index]
@@ -728,55 +730,57 @@ def _assemble_unary_operator(op):
         raise AerError(f"unknown op: {op}")
 
 
+_BINARY_OP_MAPPING = {
+    Binary.Op.BIT_AND: AerBinaryOp.BitAnd,
+    Binary.Op.BIT_OR: AerBinaryOp.BitOr,
+    Binary.Op.BIT_XOR: AerBinaryOp.BitXor,
+    Binary.Op.LOGIC_AND: AerBinaryOp.LogicAnd,
+    Binary.Op.LOGIC_OR: AerBinaryOp.LogicOr,
+    Binary.Op.EQUAL: AerBinaryOp.Equal,
+    Binary.Op.NOT_EQUAL: AerBinaryOp.NotEqual,
+    Binary.Op.LESS: AerBinaryOp.Less,
+    Binary.Op.LESS_EQUAL: AerBinaryOp.LessEqual,
+    Binary.Op.GREATER: AerBinaryOp.Greater,
+    Binary.Op.GREATER_EQUAL: AerBinaryOp.GreaterEqual,
+}
+
+
 def _assemble_binary_operator(op):
-    if op is Binary.Op.BIT_AND:
-        return AerBinaryOp.BitAnd
-    elif op is Binary.Op.BIT_OR:
-        return AerBinaryOp.BitOr
-    elif op is Binary.Op.BIT_XOR:
-        return AerBinaryOp.BitXor
-    elif op is Binary.Op.LOGIC_AND:
-        return AerBinaryOp.LogicAnd
-    elif op is Binary.Op.LOGIC_OR:
-        return AerBinaryOp.LogicOr
-    elif op is Binary.Op.EQUAL:
-        return AerBinaryOp.Equal
-    elif op is Binary.Op.NOT_EQUAL:
-        return AerBinaryOp.NotEqual
-    elif op is Binary.Op.LESS:
-        return AerBinaryOp.Less
-    elif op is Binary.Op.LESS_EQUAL:
-        return AerBinaryOp.LessEqual
-    elif op is Binary.Op.GREATER:
-        return AerBinaryOp.Greater
-    elif op is Binary.Op.GREATER_EQUAL:
-        return AerBinaryOp.GreaterEqual
+    if op in _BINARY_OP_MAPPING:
+        return _BINARY_OP_MAPPING[op]
     else:
         raise AerError(f"unknown op: {op}")
 
 
 def _assemble_expr(circ, expr):
-    if not expr:
-        return None
-    if isinstance(expr, Value):
+    aer_expr = None
+    if expr is None:
+        aer_expr = None
+    elif isinstance(expr, Value):
         if isinstance(expr.type, Uint):
-            return AerUintValue(expr.type.width, expr.value)
+            aer_expr = AerUintValue(expr.type.width, expr.value)
         elif isinstance(expr.type, Bool):
-            return AerBoolValue(expr.value)
+            aer_expr = AerBoolValue(expr.value)
         else:
             raise AerError(f"invalid value type is specified: {expr.type.__class__}")
     elif isinstance(expr, Var):
-        return AerVar(_assemble_type(expr.type), _assemble_clbit_indices(circ, expr.var))
+        aer_expr = AerVar(_assemble_type(expr.type), _assemble_clbit_indices(circ, expr.var))
     elif isinstance(expr, Cast):
-        return AerCast(_assemble_type(expr.type), _assemble_expr(circ, expr.operand))
+        aer_expr = AerCast(_assemble_type(expr.type), _assemble_expr(circ, expr.operand))
     elif isinstance(expr, Unary):
-        return AerUnaryExpr(_assemble_unary_operator(expr.op), _assemble_expr(circ, expr.operand))
+        aer_expr = AerUnaryExpr(
+            _assemble_unary_operator(expr.op), _assemble_expr(circ, expr.operand)
+        )
     elif isinstance(expr, Binary):
-        return AerBinaryExpr(
+        aer_expr = AerBinaryExpr(
             _assemble_binary_operator(expr.op),
             _assemble_expr(circ, expr.left),
             _assemble_expr(circ, expr.right),
         )
+    else:
+        raise AerError(f"unknown expression: {expr.__class__}")
+
+    return aer_expr
 
 
 def _assemble_op(
@@ -815,7 +819,8 @@ def _assemble_op(
         "rx", "rxx", "ry", "ryy", "rz", "rzx", "rzz", "s", "sdg", "swap", "sx", "sxdg",
         "t", "tdg", "u", "x", "y", "z", "u1", "u2", "u3", "cu", "cu1", "cu2", "cu3",
     }:
-        aer_circ.gate(name, qubits, params, [], conditional_reg, conditional_expr, label if label else name)
+        aer_circ.gate(name, qubits, params, [], conditional_reg, conditional_expr,
+                      label if label else name)
     elif name == "measure":
         if is_conditional:
             aer_circ.measure(qubits, clbits, clbits)
@@ -826,15 +831,18 @@ def _assemble_op(
     elif name == "diagonal":
         aer_circ.diagonal(qubits, params, label if label else "diagonal")
     elif name == "unitary":
-        aer_circ.unitary(qubits, params[0], conditional_reg, conditional_expr, label if label else "unitary")
+        aer_circ.unitary(qubits, params[0], conditional_reg, conditional_expr,
+                         label if label else "unitary")
     elif name == "pauli":
-        aer_circ.gate(name, qubits, [], params, conditional_reg, conditional_expr, label if label else name)
+        aer_circ.gate(name, qubits, [], params, conditional_reg, conditional_expr,
+                      label if label else name)
     elif name == "initialize":
         aer_circ.initialize(qubits, params)
     elif name == "roerror":
         aer_circ.roerror(qubits, params)
     elif name == "multiplexer":
-        aer_circ.multiplexer(qubits, params, conditional_reg, conditional_expr, label if label else name)
+        aer_circ.multiplexer(qubits, params, conditional_reg, conditional_expr,
+                             label if label else name)
     elif name == "kraus":
         aer_circ.kraus(qubits, params, conditional_reg, conditional_expr)
     elif name in {

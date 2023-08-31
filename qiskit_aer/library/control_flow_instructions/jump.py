@@ -31,12 +31,16 @@ class AerJump(Instruction):
         self.condition_expr = None
 
     def set_conditional(self, cond):
+        """Set condition to perform this jump instruction.
+
+        Args:
+            cond (Expr or tuple): `Expr` to call `eval_bool` or tuple for `c_if`
+
+        Returns:
+            AerJump: jump instruction added specified condition
+        """
         if isinstance(cond, Expr):
-            self.c_if_expr(cond)
+            self.condition_expr = cond
         else:
             self.c_if(*cond)
-        return self
-
-    def c_if_expr(self, cond):
-        self.condition_expr = cond
         return self
