@@ -636,9 +636,11 @@ options we have on `Aer` to CMake, we use its native mechanism:
 ### Building with GPU support
 
 Qiskit Aer can exploit GPU's horsepower to accelerate some simulations, specially the larger ones.
-GPU access is supported via CUDA® (NVIDIA® chipset), so to build with GPU support, you need
-to have CUDA® >= 11.2 preinstalled. See install instructions [here](https://developer.nvidia.com/cuda-toolkit-archive)
-Please note that we only support GPU acceleration on Linux platforms at the moment.
+GPU access is supported either via CUDA® (NVIDIA® chipset) or ROCm® (AMD® GPUs).
+
+#### Building with CUDA® support
+To build with CUDA® support, you need to have CUDA® >= 11.2 preinstalled. See install instructions [here](https://developer.nvidia.com/cuda-toolkit-archive).
+Please note that we only support CUDA® GPU acceleration on Linux platforms at the moment.
 
 Once CUDA® is properly installed, you only need to set a flag so the build system knows what to do:
 
@@ -664,7 +666,7 @@ or
 This will reduce the amount of compilation time when, for example, the architecture auto detection
 fails and the build system compiles all common architectures.
 
-Few notes on GPU builds:
+Few notes on CUDA® GPU builds:
 1. Building takes considerable more time than non-GPU build, so be patient :)
 2. CUDA® >= 11.2 imposes the restriction of building with g++ version not newer than 8
 3. We don't need NVIDIA® drivers for building, but we need them for running simulations
@@ -706,8 +708,58 @@ Also you can accelrate density matrix and unitary matrix simulations as well.
 sim = AerSimulator(method='density_matrix', device='GPU')
 results = execute(circuit,sim,cuStateVec_enable=True).result()
 ```
+#### Building with ROCm® support
+ROCm® support has been added matching the CUDA® implementation based
+on the `thrust` library. This enables Qiskit-Aer to run on AMD® GPUs,
+including the AMD® Instinct GPU line based on the CDNA architecture. 
+ROCm® only support linux platforms.
 
+To build the standalone version, the following should be sufficient:
 
+```
+cmake <Qiskit-Aer source folder> -G Ninja \
+   -DCMAKE_INSTALL_PREFIX=<Qiskit-Aer target instalation folder> \
+   -DSKBUILD=FALSE \
+   -DAER_THRUST_BACKEND=ROCM \
+   -DAER_MPI=<set to ON or OFF depending on whether to activate MPI support> \
+   -DAER_ROCM_ARCH=<target AMD GPU list, white-space separated, e.g. 'gfx90a gfx908'> \
+   -DCMAKE_BUILD_TYPE=Release \
+   -DBUILD_TESTS=True
+ninja install
+```
+Alternatively, and possibly preferred for most use cases, you can create a Python
+wheel file that you can install as part of your Python environemnt:
+```
+cd <Qiskit-Aer source folder>
+
+QISKIT_AER_PACKAGE_NAME='qiskit-aer-gpu-rocm' \
+   python3 setup.py bdist_wheel -- \
+      -DAER_THRUST_BACKEND=ROCM \
+      -DAER_MPI=<set to ON or OFF depending on whether to activate MPI support> \
+      -DAER_ROCM_ARCH=<target AMD GPU list, white-space separated, e.g. 'gfx90a gfx908'>
+
+pip install --force-reinstall dist/qiskit_aer_gpu_rocm-*.whl
+```
+  
+In both cases, the host system needs to have a functional ROCm® instalation and 
+the environment variable `ROCM_PATH` set pointing to the ROCm® instalation folder if
+that is not the default `/opt/rocm`.
+Depending on how your Python environment is set, you might need to install
+Qiskit-Aer's required development modules:
+```
+cd <Qiskit-Aer source folder>
+pip install -r requirements-dev.txt
+```
+
+To leverage the ROCm® implementations no code changes are needed on top of one
+already does for CUDA®. Running with cuStateVec, for instance, requires set 
+`device='GPU'` to AerSimulator option and set `cuStateVec_enable=True` option,
+similarly to what is done for CUDA®:
+
+```
+sim = AerSimulator(method='statevector', device='GPU')
+results = execute(circuit,sim,cuStateVec_enable=True).result()
+```
 
 ### Building with MPI support
 
