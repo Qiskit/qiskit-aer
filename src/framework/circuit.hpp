@@ -131,7 +131,7 @@ public:
             const std::vector<complex_t> &params,
             const std::vector<std::string> &string_params,
             const int_t cond_regidx = -1,
-            const std::shared_ptr<Operations::Expr> expr = nullptr,
+            const std::shared_ptr<Operations::CExpr> expr = nullptr,
             const std::string label = "") {
     ops.push_back(Operations::make_gate(name, qubits, params, string_params,
                                         cond_regidx, expr, label));
@@ -145,7 +145,7 @@ public:
 
   void unitary(const reg_t &qubits, const cmatrix_t &mat,
                const int_t cond_regidx = -1,
-               const std::shared_ptr<Operations::Expr> expr = nullptr,
+               const std::shared_ptr<Operations::CExpr> expr = nullptr,
                const std::string label = "") {
     ops.push_back(
         Operations::make_unitary(qubits, mat, cond_regidx, expr, label));
@@ -163,7 +163,7 @@ public:
 
   void multiplexer(const reg_t &qubits, const std::vector<cmatrix_t> &mats,
                    const int_t cond_regidx = -1,
-                   const std::shared_ptr<Operations::Expr> expr = nullptr,
+                   const std::shared_ptr<Operations::CExpr> expr = nullptr,
                    std::string label = "") {
     ops.push_back(
         Operations::make_multiplexer(qubits, mats, cond_regidx, expr, label));
@@ -171,13 +171,13 @@ public:
 
   void kraus(const reg_t &qubits, const std::vector<cmatrix_t> &mats,
              const int_t cond_regidx = -1,
-             const std::shared_ptr<Operations::Expr> expr = nullptr) {
+             const std::shared_ptr<Operations::CExpr> expr = nullptr) {
     ops.push_back(Operations::make_kraus(qubits, mats, cond_regidx, expr));
   }
 
   void superop(const reg_t &qubits, const cmatrix_t &mat,
                const int_t cond_regidx = -1,
-               const std::shared_ptr<Operations::Expr> expr = nullptr) {
+               const std::shared_ptr<Operations::CExpr> expr = nullptr) {
     ops.push_back(Operations::make_superop(qubits, mat, cond_regidx, expr));
   }
 
@@ -209,7 +209,7 @@ public:
 
   void set_qerror_loc(const reg_t &qubits, const std::string &label,
                       const int_t conditional = -1,
-                      const std::shared_ptr<Operations::Expr> expr = nullptr) {
+                      const std::shared_ptr<Operations::CExpr> expr = nullptr) {
     ops.push_back(
         Operations::make_qerror_loc(qubits, label, conditional, expr));
   }
@@ -249,7 +249,7 @@ public:
 
   void jump(const reg_t &qubits, const std::vector<std::string> &params,
             const int_t cond_regidx = -1,
-            const std::shared_ptr<Operations::Expr> expr = nullptr) {
+            const std::shared_ptr<Operations::CExpr> expr = nullptr) {
     ops.push_back(Operations::make_jump(qubits, params, cond_regidx, expr));
   }
 

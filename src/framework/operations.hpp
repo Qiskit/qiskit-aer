@@ -62,7 +62,7 @@ uint_t truncate(const uint_t val, const size_t width) {
   return (val << shift) >> shift;
 }
 
-enum class ExprType { Expr, Var, Value, Cast, Unary, Binary, Nop };
+enum class CExprType { Expr, Var, Value, Cast, Unary, Binary, Nop };
 
 enum class ValueType { Bool, Uint };
 
@@ -95,23 +95,23 @@ public:
   Bool() : ScalarType(ValueType::Bool, 1) {}
 };
 
-class Expr {
+class CExpr {
 public:
-  Expr(const ExprType expr_type_, const std::shared_ptr<ScalarType> type_)
+  CExpr(const CExprType expr_type_, const std::shared_ptr<ScalarType> type_)
       : expr_type(expr_type_), type(type_) {}
   virtual bool eval_bool(const std::string &memory) { return false; };
   virtual uint_t eval_uint(const std::string &memory) { return 0ul; };
 
 public:
-  const ExprType expr_type;
+  const CExprType expr_type;
   const std::shared_ptr<ScalarType> type;
 };
 
-class CastExpr : public Expr {
+class CastExpr : public CExpr {
 public:
   CastExpr(std::shared_ptr<ScalarType> type,
-           const std::shared_ptr<Expr> operand_)
-      : Expr(ExprType::Cast, type), operand(operand_) {}
+           const std::shared_ptr<CExpr> operand_)
+      : CExpr(CExprType::Cast, type), operand(operand_) {}
 
   virtual bool eval_bool(const std::string &memory) {
     if (type->type != ValueType::Bool)
@@ -138,14 +138,14 @@ public:
   }
 
 public:
-  const std::shared_ptr<Expr> operand;
+  const std::shared_ptr<CExpr> operand;
 };
 
-class VarExpr : public Expr {
+class VarExpr : public CExpr {
 public:
   VarExpr(std::shared_ptr<ScalarType> type,
           const std::vector<uint_t> &cbit_idxs)
-      : Expr(ExprType::Var, type), cbit_idxs(cbit_idxs) {}
+      : CExpr(CExprType::Var, type), cbit_idxs(cbit_idxs) {}
 
   virtual bool eval_bool(const std::string &memory) {
     if (type->type != ValueType::Bool)
@@ -180,9 +180,9 @@ public:
   const std::vector<uint_t> cbit_idxs;
 };
 
-class ValueExpr : public Expr {
+class ValueExpr : public CExpr {
 public:
-  ValueExpr(std::shared_ptr<ScalarType> type) : Expr(ExprType::Value, type) {}
+  ValueExpr(std::shared_ptr<ScalarType> type) : CExpr(CExprType::Value, type) {}
 };
 
 class UintValue : public ValueExpr {
@@ -217,10 +217,10 @@ public:
   const bool value;
 };
 
-class UnaryExpr : public Expr {
+class UnaryExpr : public CExpr {
 public:
-  UnaryExpr(const UnaryOp op_, const std::shared_ptr<Expr> operand_)
-      : Expr(ExprType::Unary, operand_->type), op(op_), operand(operand_) {
+  UnaryExpr(const UnaryOp op_, const std::shared_ptr<CExpr> operand_)
+      : CExpr(CExprType::Unary, operand_->type), op(op_), operand(operand_) {
     if (op == UnaryOp::LogicNot && operand_->type->type != ValueType::Bool)
       throw std::invalid_argument(
           R"(LogicNot unary expression must has Bool expression as its operand.)");
@@ -248,14 +248,14 @@ public:
 
 public:
   const UnaryOp op;
-  const std::shared_ptr<Expr> operand;
+  const std::shared_ptr<CExpr> operand;
 };
 
-class BinaryExpr : public Expr {
+class BinaryExpr : public CExpr {
 public:
-  BinaryExpr(const BinaryOp op_, const std::shared_ptr<Expr> left_,
-             const std::shared_ptr<Expr> right_)
-      : Expr(ExprType::Binary, isBoolBinaryOp(op_)
+  BinaryExpr(const BinaryOp op_, const std::shared_ptr<CExpr> left_,
+             const std::shared_ptr<CExpr> right_)
+      : CExpr(CExprType::Binary, isBoolBinaryOp(op_)
                                    ? std::make_shared<Bool>()
                                    : get_wider_type(left_->type, right_->type)),
         op(op_), left(left_), right(right_) {
@@ -353,8 +353,8 @@ public:
 
 public:
   const BinaryOp op;
-  const std::shared_ptr<Expr> left;
-  const std::shared_ptr<Expr> right;
+  const std::shared_ptr<CExpr> left;
+  const std::shared_ptr<CExpr> right;
 };
 
 // Enum class for operation types
@@ -611,7 +611,7 @@ struct Op {
   uint_t conditional_reg; // (opt) the (single) register location to look up for
                           // conditional
   BinaryOp binary_op;     // (opt) boolean function relation
-  std::shared_ptr<Expr> expr; // (opt) classical expression
+  std::shared_ptr<CExpr> expr; // (opt) classical expression
 
   // Measurement
   reg_t memory;    // (opt) register operation it acts on (measure)
@@ -761,7 +761,7 @@ inline Op make_initialize(const reg_t &qubits,
 
 inline Op make_unitary(const reg_t &qubits, const cmatrix_t &mat,
                        const int_t conditional = -1,
-                       const std::shared_ptr<Expr> expr = nullptr,
+                       const std::shared_ptr<CExpr> expr = nullptr,
                        std::string label = "") {
   Op op;
   op.type = OpType::matrix;
@@ -821,7 +821,7 @@ inline Op make_diagonal(const reg_t &qubits, cvector_t &&vec,
 
 inline Op make_superop(const reg_t &qubits, const cmatrix_t &mat,
                        const int_t conditional = -1,
-                       const std::shared_ptr<Expr> expr = nullptr) {
+                       const std::shared_ptr<CExpr> expr = nullptr) {
   Op op;
   op.type = OpType::superop;
   op.name = "superop";
@@ -847,7 +847,7 @@ inline Op make_superop(const reg_t &qubits, cmatrix_t &&mat) {
 
 inline Op make_kraus(const reg_t &qubits, const std::vector<cmatrix_t> &mats,
                      const int_t conditional = -1,
-                     const std::shared_ptr<Expr> expr = nullptr) {
+                     const std::shared_ptr<CExpr> expr = nullptr) {
   Op op;
   op.type = OpType::kraus;
   op.name = "kraus";
@@ -931,7 +931,7 @@ inline Op make_bfunc(const std::string &mask, const std::string &val,
 Op make_gate(const std::string &name, const reg_t &qubits,
              const std::vector<complex_t> &params,
              const std::vector<std::string> &string_params,
-             const int_t conditional, const std::shared_ptr<Expr> expr,
+             const int_t conditional, const std::shared_ptr<CExpr> expr,
              const std::string &label) {
   Op op;
   op.type = OpType::gate;
@@ -999,7 +999,7 @@ inline Op make_reset(const reg_t &qubits, uint_t state = 0) {
 inline Op make_multiplexer(const reg_t &qubits,
                            const std::vector<cmatrix_t> &mats,
                            const int_t conditional = -1,
-                           const std::shared_ptr<Expr> expr = nullptr,
+                           const std::shared_ptr<CExpr> expr = nullptr,
                            std::string label = "") {
 
   // Check matrices are N-qubit
@@ -1212,7 +1212,7 @@ inline Op make_set_clifford(const reg_t &qubits, const std::string &name,
 
 inline Op make_jump(const reg_t &qubits, const std::vector<std::string> &params,
                     const int_t conditional,
-                    const std::shared_ptr<Expr> expr = nullptr) {
+                    const std::shared_ptr<CExpr> expr = nullptr) {
   Op op;
   op.type = OpType::jump;
   op.name = "jump";
@@ -1266,7 +1266,7 @@ inline Op make_measure(const reg_t &qubits, const reg_t &memory,
 
 inline Op make_qerror_loc(const reg_t &qubits, const std::string &label,
                           const int_t conditional = -1,
-                          const std::shared_ptr<Expr> expr = nullptr) {
+                          const std::shared_ptr<CExpr> expr = nullptr) {
   Op op;
   op.type = OpType::qerror_loc;
   op.name = label;
