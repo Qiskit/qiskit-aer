@@ -656,15 +656,18 @@ void Executor<state_t>::run_circuit(Circuit &circ,
       result.metadata.add(parallel_state_update_, "parallel_state_update");
       if (circ.num_bind_params > 1) {
         result.metadata.add(true, "runtime_parameter_bind");
-        result.metadata.add(circ.seed_for_params,
-                            "runtime_parameter_bind_seeds");
+        result.metadata.add(circ.num_bind_params, "num_bind_params");
+        result.metadata.add(i, "bind_param_index");
+      } else {
+        result.metadata.add(false, "runtime_parameter_bind");
+        result.metadata.add(1, "num_bind_params");
       }
-#ifdef AER_CUSTATEVEC
       if (sim_device_ == Device::GPU) {
+#ifdef AER_CUSTATEVEC
         result.metadata.add(cuStateVec_enable_, "cuStateVec_enable");
+#endif
         result.metadata.add(target_gpus_, "target_gpus");
       }
-#endif
     }
 
     // Add timer data
@@ -674,6 +677,8 @@ void Executor<state_t>::run_circuit(Circuit &circ,
     for (int_t i = 0; i < circ.num_bind_params; i++) {
       ExperimentResult &result = *(result_it + i);
       result.time_taken = time_taken;
+      // save time also to metadata to pick time in primitive result
+      result.metadata.add(time_taken, "time_taken");
     }
   }
   // If an exception occurs during execution, catch it and pass it to the output
