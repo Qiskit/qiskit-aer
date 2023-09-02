@@ -12,6 +12,13 @@ from skbuild import setup
 PACKAGE_NAME = os.getenv("QISKIT_AER_PACKAGE_NAME", "qiskit-aer")
 CUDA_MAJOR = os.getenv("QISKIT_AER_CUDA_MAJOR", "12")
 
+# Allow build without the CUDA requirements. This is useful in case one intends to use a CUDA that exists in the host system.
+ADD_CUDA_REQUIREMENTS = (
+    False
+    if os.getenv("QISKIT_ADD_CUDA_REQUIREMENTS", "true").lower() in ["false", "off", "no"]
+    else True
+)
+
 extras_requirements = {"dask": ["dask", "distributed"]}
 
 requirements = [
@@ -42,7 +49,7 @@ classifiers = [
 # ROCm is expected to be available in the target system to enable CDNA GPUs, so no
 # requirements to be loaded. Also, no ROCm related classifiers are in place that
 # could be used here.
-if "gpu" in PACKAGE_NAME and "rocm" not in PACKAGE_NAME:
+if ADD_CUDA_REQUIREMENTS and "gpu" in PACKAGE_NAME and "rocm" not in PACKAGE_NAME:
     if "11" in CUDA_MAJOR:
         requirements_cuda = [
             "nvidia-cuda-runtime-cu11>=11.8.89",

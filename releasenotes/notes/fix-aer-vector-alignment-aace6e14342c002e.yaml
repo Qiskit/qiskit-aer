@@ -1,0 +1,10 @@
+---
+fixes:
+  - |
+    Change ``AER::Vector`` object alignement to 64-byte. In some cases, it is used to 
+    initialize ``AER:QV::QubitVector`` objects by moving storage ownership to these 
+    objects. As the code assumes that ``AER:QV::QubitVector`` storage is at least 
+    32-byte aligned for AVX2 load instructions, this change enforces the same alignement 
+    requirements for both  ``AER::Vector`` and  ``AER:QV::QubitVector`` objects so that 
+    one doesn't get into segmentation faults.
+    
