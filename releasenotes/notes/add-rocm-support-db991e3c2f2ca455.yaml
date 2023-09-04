@@ -1,6 +1,4 @@
 ---
-prelude: >
-    AMD GPUs are now enabled in Qiskit-Aer by leveraging the ROCm toolchain.
 features:
   - |
     ROCm support has been added matching the existing CUDA implementation based
