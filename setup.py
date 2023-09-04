@@ -46,7 +46,10 @@ classifiers = [
 ]
 
 
-if ADD_CUDA_REQUIREMENTS and "gpu" in PACKAGE_NAME:
+# ROCm is expected to be available in the target system to enable CDNA GPUs, so no
+# requirements to be loaded. Also, no ROCm related classifiers are in place that
+# could be used here.
+if ADD_CUDA_REQUIREMENTS and "gpu" in PACKAGE_NAME and "rocm" not in PACKAGE_NAME:
     if "11" in CUDA_MAJOR:
         requirements_cuda = [
             "nvidia-cuda-runtime-cu11>=11.8.89",

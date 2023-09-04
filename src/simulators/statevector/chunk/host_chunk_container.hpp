@@ -243,8 +243,10 @@ void HostChunkContainer<data_t>::Swap(Chunk<data_t> &src, uint_t iChunk,
 
 template <typename data_t>
 void HostChunkContainer<data_t>::Zero(uint_t iChunk, uint_t count) {
+#ifndef AER_THRUST_ROCM_DISABLE_THRUST_OMP
   thrust::fill_n(thrust::omp::par,
                  data_.begin() + (iChunk << this->chunk_bits_), count, 0.0);
+#endif
 }
 
 template <typename data_t>
@@ -259,6 +261,7 @@ reg_t HostChunkContainer<data_t>::sample_measure(
   strided_range<thrust::complex<data_t> *> iter(
       chunk_pointer(iChunk), chunk_pointer(iChunk + count), stride);
 
+#ifndef AER_THRUST_ROCM_DISABLE_THRUST_OMP
   if (dot)
     thrust::transform_inclusive_scan(thrust::omp::par, iter.begin(), iter.end(),
                                      iter.begin(), complex_dot_scan<data_t>(),
@@ -270,6 +273,7 @@ reg_t HostChunkContainer<data_t>::sample_measure(
   thrust::lower_bound(thrust::omp::par, iter.begin(), iter.end(), rnds.begin(),
                       rnds.begin() + SHOTS, vSmp.begin(),
                       complex_less<data_t>());
+#endif
 
   for (i = 0; i < SHOTS; i++) {
     samples[i] = vSmp[i];
