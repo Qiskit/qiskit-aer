@@ -139,7 +139,7 @@ void aer_apply_tdg(void *handler, uint_t qubit) {
 // sqrt(NOT) gate
 void aer_apply_sx(void *handler, uint_t qubit) {
   AER::AerState *state = reinterpret_cast<AER::AerState *>(handler);
-  state->apply_mcrx({qubit}, -M_PI / 4.0);
+  state->apply_unitary({qubit}, AER::Linalg::Matrix::SX);
 };
 
 // Rotation around X-axis
