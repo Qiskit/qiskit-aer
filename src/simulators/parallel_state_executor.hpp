@@ -59,12 +59,6 @@ public:
   ParallelStateExecutor();
   virtual ~ParallelStateExecutor();
 
-  size_t required_memory_mb(const Circuit &circuit,
-                            const Noise::NoiseModel &noise) const override {
-    state_t tmp;
-    return tmp.required_memory_mb(circuit.num_qubits, circuit.ops);
-  }
-
   uint_t get_process_by_chunk(uint_t cid);
 
 protected:
@@ -231,14 +225,14 @@ bool ParallelStateExecutor<state_t>::multiple_chunk_required(
   if (Base::num_process_per_experiment_ == 1 &&
       Base::sim_device_ == Device::GPU && Base::num_gpus_ > 0) {
     return (Base::max_gpu_memory_mb_ / Base::num_gpus_ <
-            Base::required_memory_mb(circ, noise));
+            Base::required_memory_mb_);
   }
   if (Base::num_process_per_experiment_ > 1) {
     size_t total_mem = Base::max_memory_mb_;
     if (Base::sim_device_ == Device::GPU)
       total_mem += Base::max_gpu_memory_mb_;
     if (total_mem * Base::num_process_per_experiment_ >
-        Base::required_memory_mb(circ, noise))
+        Base::required_memory_mb_)
       return true;
   }
 

@@ -166,8 +166,7 @@ protected:
 
   // Set parallelization for experiments
   void set_parallelization_experiments(
-      const std::vector<std::shared_ptr<Circuit>> &circuits,
-      const Noise::NoiseModel &noise, const std::vector<Method> &methods);
+      const std::vector<std::shared_ptr<CircuitExecutor::Base>> &executors);
 
   void save_exception_to_results(Result &result, const std::exception &e) const;
 
@@ -354,12 +353,12 @@ void Controller::clear_parallelization() {
 }
 
 void Controller::set_parallelization_experiments(
-    const std::vector<std::shared_ptr<Circuit>> &circuits,
-    const Noise::NoiseModel &noise, const std::vector<Method> &methods) {
+    const std::vector<std::shared_ptr<CircuitExecutor::Base>> &executors) {
+
   if (explicit_parallelization_)
     return;
 
-  if (circuits.size() == 1) {
+  if (executors.size() == 1) {
     parallel_experiments_ = 1;
     return;
   }
@@ -378,13 +377,9 @@ void Controller::set_parallelization_experiments(
   }
 
   // If memory allows, execute experiments in parallel
-  std::vector<size_t> required_memory_mb_list(circuits.size());
-  for (size_t j = 0; j < circuits.size(); j++) {
-    std::shared_ptr<CircuitExecutor::Base> executor =
-        make_circuit_executor(methods[j]);
-    required_memory_mb_list[j] =
-        executor->required_memory_mb(*circuits[j], noise);
-    executor.reset();
+  std::vector<size_t> required_memory_mb_list(executors.size());
+  for (size_t j = 0; j < executors.size(); j++) {
+    required_memory_mb_list[j] = executors[j]->required_memory_mb();
   }
   std::sort(required_memory_mb_list.begin(), required_memory_mb_list.end(),
             std::greater<>());
@@ -401,9 +396,9 @@ void Controller::set_parallelization_experiments(
   if (parallel_experiments <= 0)
     throw std::runtime_error(
         "a circuit requires more memory than max_memory_mb.");
-  parallel_experiments_ =
-      std::min<int>({parallel_experiments, max_experiments,
-                     max_parallel_threads_, static_cast<int>(circuits.size())});
+  parallel_experiments_ = std::min<int>({parallel_experiments, max_experiments,
+                                         max_parallel_threads_,
+                                         static_cast<int>(executors.size())});
 }
 
 size_t Controller::get_system_memory_mb() {
@@ -512,6 +507,9 @@ Result Controller::execute(std::vector<std::shared_ptr<Circuit>> &circuits,
 
   // Initialize Result object for the given number of experiments
   Result result(circuits.size());
+  // Initialize circuit executors for each circuit
+  std::vector<std::shared_ptr<CircuitExecutor::Base>> executors(
+      circuits.size());
 
   // Execute each circuit in a try block
   try {
@@ -521,7 +519,14 @@ Result Controller::execute(std::vector<std::shared_ptr<Circuit>> &circuits,
     try {
       // catch exception raised by required_memory_mb because of invalid
       // simulation method
-      set_parallelization_experiments(circuits, noise_model, methods);
+      for (int i = 0; i < circuits.size(); i++) {
+        executors[i] = make_circuit_executor(methods[i]);
+        // call required_memory_mb once here
+        size_t size =
+            executors[i]->required_memory_mb(config, *circuits[i], noise_model);
+        result.results[i].metadata.add(size, "required_memory_mb");
+      }
+      set_parallelization_experiments(executors);
     } catch (std::exception &e) {
       save_exception_to_results(result, e);
     }
@@ -581,23 +586,18 @@ Result Controller::execute(std::vector<std::shared_ptr<Circuit>> &circuits,
     // nested loops that causes performance degradation (DO NOT use if statement
     // in #pragma omp)
     if (parallel_experiments_ == 1) {
-      for (int j = 0; j < NUM_RESULTS; ++j) {
-        std::shared_ptr<CircuitExecutor::Base> executor =
-            make_circuit_executor(methods[j]);
-        executor->run_circuit(*circuits[j], noise_model, config, methods[j],
-                              sim_device_, result.results[j]);
-        executor.reset();
+      for (int i = 0; i < NUM_RESULTS; i++) {
+        executors[i]->run_circuit(*circuits[i], noise_model, config, methods[i],
+                                  sim_device_, result.results[i]);
       }
     } else {
 #pragma omp parallel for num_threads(parallel_experiments_)
-      for (int j = 0; j < NUM_RESULTS; ++j) {
-        std::shared_ptr<CircuitExecutor::Base> executor =
-            make_circuit_executor(methods[j]);
-        executor->run_circuit(*circuits[j], noise_model, config, methods[j],
-                              sim_device_, result.results[j]);
-        executor.reset();
+      for (int i = 0; i < NUM_RESULTS; i++) {
+        executors[i]->run_circuit(*circuits[i], noise_model, config, methods[i],
+                                  sim_device_, result.results[i]);
       }
     }
+    executors.clear();
 
     // Check each experiment result for completed status.
     // If only some experiments completed return partial completed status.

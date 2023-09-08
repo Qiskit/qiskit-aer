@@ -95,12 +95,6 @@ public:
   MultiStateExecutor();
   virtual ~MultiStateExecutor();
 
-  size_t required_memory_mb(const Circuit &circuit,
-                            const Noise::NoiseModel &noise) const override {
-    state_t tmp;
-    return tmp.required_memory_mb(circuit.num_qubits, circuit.ops);
-  }
-
   uint_t get_process_by_chunk(uint_t cid);
 
 protected:

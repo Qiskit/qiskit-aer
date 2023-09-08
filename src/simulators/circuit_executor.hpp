@@ -53,8 +53,10 @@ public:
                            const Device device, ExperimentResult &result) = 0;
 
   // Return an estimate of the required memory for a circuit.
-  virtual size_t required_memory_mb(const Circuit &circuit,
-                                    const Noise::NoiseModel &noise) const = 0;
+  virtual size_t required_memory_mb(const Config &config,
+                                    const Circuit &circuit,
+                                    const Noise::NoiseModel &noise) = 0;
+  virtual size_t required_memory_mb(void) const = 0;
   virtual size_t max_memory_mb(void) = 0;
 
   virtual bool validate_state(const Circuit &circ,
@@ -87,6 +89,8 @@ protected:
   int max_parallel_shots_;
   size_t max_memory_mb_;
   size_t max_gpu_memory_mb_;
+  size_t required_memory_mb_;
+  bool set_required_memory_mb_;
   int num_gpus_;      // max number of GPU per process
   reg_t target_gpus_; // GPUs to be used
 
@@ -132,11 +136,18 @@ public:
                    const Device device, ExperimentResult &result) override;
 
   // Return an estimate of the required memory for a circuit.
-  size_t required_memory_mb(const Circuit &circuit,
-                            const Noise::NoiseModel &noise) const override {
-    state_t tmp;
-    return tmp.required_memory_mb(circuit.num_qubits, circuit.ops);
+  size_t required_memory_mb(const Config &config, const Circuit &circuit,
+                            const Noise::NoiseModel &noise) override {
+    if (!set_required_memory_mb_) {
+      state_t tmp;
+      tmp.set_config(config);
+      required_memory_mb_ =
+          tmp.required_memory_mb(circuit.num_qubits, circuit.ops);
+      set_required_memory_mb_ = true;
+    }
+    return required_memory_mb_;
   }
+  size_t required_memory_mb() const override { return required_memory_mb_; }
   size_t max_memory_mb(void) override { return max_memory_mb_; }
 
   bool validate_state(const Circuit &circ, const Noise::NoiseModel &noise,
@@ -204,6 +215,8 @@ template <class state_t>
 Executor<state_t>::Executor() {
   max_memory_mb_ = 0;
   max_gpu_memory_mb_ = 0;
+  required_memory_mb_ = 0;
+  set_required_memory_mb_ = false;
   max_parallel_threads_ = 0;
   max_parallel_shots_ = 0;
 
@@ -377,7 +390,7 @@ bool Executor<state_t>::multiple_shots_required(
 template <class state_t>
 uint_t Executor<state_t>::get_max_parallel_shots(
     const Circuit &circ, const Noise::NoiseModel &noise) const {
-  uint_t mem = required_memory_mb(circ, noise);
+  uint_t mem = required_memory_mb_;
   if (mem == 0)
     return circ.shots;
 
@@ -488,8 +501,7 @@ void Executor<state_t>::set_parallelization(const Circuit &circ,
     // Parallel shots is > 1
     // Limit parallel shots by available memory and number of shots
     // And assign the remaining threads to state update
-    int circ_memory_mb =
-        required_memory_mb(circ, noise) / num_process_per_experiment_;
+    int circ_memory_mb = required_memory_mb_ / num_process_per_experiment_;
     size_t mem_size =
         (sim_device_ == Device::GPU) ? max_gpu_memory_mb_ : max_memory_mb_;
     if (mem_size < circ_memory_mb)
@@ -547,6 +559,9 @@ void Executor<state_t>::run_circuit(Circuit &circ,
     result.metadata.add(circ.qubits(), "active_input_qubits");
     result.metadata.add(circ.qubit_map(), "input_qubit_map");
     result.metadata.add(circ.remapped_qubits, "remapped_qubits");
+    result.metadata.add(max_memory_mb_, "max_memory_mb");
+    if (sim_device_ == Device::GPU)
+      result.metadata.add(max_gpu_memory_mb_, "max_gpu_memory_mb");
 
     // Add measure sampling to metadata
     // Note: this will set to `true` if sampling is enabled for the circuit
@@ -942,8 +957,7 @@ bool Executor<state_t>::validate_state(const Circuit &circ,
   // Validate memory requirements
   bool memory_valid = true;
   if (max_memory_mb_ > 0) {
-    size_t required_mb = state.required_memory_mb(circ.num_qubits, circ.ops) /
-                         num_process_per_experiment_;
+    size_t required_mb = required_memory_mb_ / num_process_per_experiment_;
     size_t mem_size = (sim_device_ == Device::GPU)
                           ? max_memory_mb_ + max_gpu_memory_mb_
                           : max_memory_mb_;
