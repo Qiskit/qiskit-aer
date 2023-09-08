@@ -1,0 +1,11 @@
+---
+fixes:
+  - |
+    Adresses two opened issues, one about replacing a char* parameter to a
+    const char*, another one for adding support for the latest vc++ in
+    conan.cmake
+    Changes:    
+    Passing const char* to a char* parameter in CacheBlocking::insert_sim_op call: #1905
+    https://github.com/Qiskit/qiskit-aer/issues/1905
+    Add support for the latest VC++ in conan.cmake #1906:
+    https://github.com/Qiskit/qiskit-aer/issues/1906

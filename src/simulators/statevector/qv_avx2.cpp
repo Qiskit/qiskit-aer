@@ -770,22 +770,12 @@ inline void _apply_matrix_double_avx_q0q1(RealVectorView<double> &reals,
   for (size_t i = 0; i < (1ULL << num_qubits); i += 4) {
     auto index = indexes[i];
     _mm_load_twoarray_complex(reals[index], imags[index], vreals[i], vimags[i]);
-    for (size_t j = 1; j < 4; ++j) {
-      switch (j) {
-      case 1:
-        vreals[i + j] = _mm256_permute4x64_pd(vreals[i], PERM_D_Q0Q1_0);
-        vimags[i + j] = _mm256_permute4x64_pd(vimags[i], PERM_D_Q0Q1_0);
-        break;
-      case 2:
-        vreals[i + j] = _mm256_permute4x64_pd(vreals[i], PERM_D_Q0Q1_1);
-        vimags[i + j] = _mm256_permute4x64_pd(vimags[i], PERM_D_Q0Q1_1);
-        break;
-      case 3:
-        vreals[i + j] = _mm256_permute4x64_pd(vreals[i], PERM_D_Q0Q1_2);
-        vimags[i + j] = _mm256_permute4x64_pd(vimags[i], PERM_D_Q0Q1_2);
-        break;
-      }
-    }
+    vreals[i + 1] = _mm256_permute4x64_pd(vreals[i], PERM_D_Q0Q1_0);
+    vimags[i + 1] = _mm256_permute4x64_pd(vimags[i], PERM_D_Q0Q1_0);
+    vreals[i + 2] = _mm256_permute4x64_pd(vreals[i], PERM_D_Q0Q1_1);
+    vimags[i + 2] = _mm256_permute4x64_pd(vimags[i], PERM_D_Q0Q1_1);
+    vreals[i + 3] = _mm256_permute4x64_pd(vreals[i], PERM_D_Q0Q1_2);
+    vimags[i + 3] = _mm256_permute4x64_pd(vimags[i], PERM_D_Q0Q1_2);
   }
 
   size_t mindex = 0;
