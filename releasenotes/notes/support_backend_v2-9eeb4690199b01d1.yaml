@@ -1,0 +1,4 @@
+---
+features:
+  - |
+    Update Aer Backend to BackendV2. Refer to `#1681<https://github.com/Qiskit/qiskit-aer/issues/1681>`.
