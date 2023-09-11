@@ -118,10 +118,11 @@ void bind_aer_circuit(MODULE m) {
   py::class_<Operations::UnaryExpr, Operations::CExpr,
              std::shared_ptr<Operations::UnaryExpr>>
       aer_unary_expr(m, "AerUnaryExpr");
-  aer_unary_expr.def(py::init([](const Operations::UnaryOp op,
-                                 const std::shared_ptr<Operations::CExpr> expr) {
-    return new Operations::UnaryExpr(op, expr);
-  }));
+  aer_unary_expr.def(
+      py::init([](const Operations::UnaryOp op,
+                  const std::shared_ptr<Operations::CExpr> expr) {
+        return new Operations::UnaryExpr(op, expr);
+      }));
 
   py::class_<Operations::BinaryExpr, Operations::CExpr,
              std::shared_ptr<Operations::BinaryExpr>>

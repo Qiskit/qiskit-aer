@@ -255,9 +255,9 @@ class BinaryExpr : public CExpr {
 public:
   BinaryExpr(const BinaryOp op_, const std::shared_ptr<CExpr> left_,
              const std::shared_ptr<CExpr> right_)
-      : CExpr(CExprType::Binary, isBoolBinaryOp(op_)
-                                   ? std::make_shared<Bool>()
-                                   : get_wider_type(left_->type, right_->type)),
+      : CExpr(CExprType::Binary,
+              isBoolBinaryOp(op_) ? std::make_shared<Bool>()
+                                  : get_wider_type(left_->type, right_->type)),
         op(op_), left(left_), right(right_) {
 
     if (left->type->type != right->type->type)
