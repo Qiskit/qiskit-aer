@@ -88,25 +88,30 @@ class Sampler(BaseSampler):
         is_shots_none = "shots" in run_options and run_options["shots"] is None
         self._transpile(circuits, is_shots_none)
 
-        experiments = []
-        parameter_binds = []
+        experiment_manager = _ExperimentManager()
         for i, value in zip(circuits, parameter_values):
             if len(value) != len(self._parameters[i]):
                 raise QiskitError(
                     f"The number of values ({len(value)}) does not match "
                     f"the number of parameters ({len(self._parameters[i])})."
                 )
-            parameter_binds.append({k: [v] for k, v in zip(self._parameters[i], value)})
-            experiments.append(self._transpiled_circuits[(i, is_shots_none)])
+
+            experiment_manager.append(
+                key=i,
+                parameter_bind=dict(zip(self._parameters[i], value)),
+                experiment_circuit=self._transpiled_circuits[(i, is_shots_none)],
+            )
 
         result = self._backend.run(
-            experiments, parameter_binds=parameter_binds, **run_options
+            experiment_manager.experiment_circuits,
+            parameter_binds=experiment_manager.parameter_binds,
+            **run_options,
         ).result()
 
         # Postprocessing
         metadata = []
         quasis = []
-        for i in range(len(experiments)):
+        for i in experiment_manager.experiment_indices:
             if is_shots_none:
                 probabilities = result.data(i)["probabilities"]
                 num_qubits = result.results[i].metadata["num_qubits"]
@@ -186,3 +191,42 @@ class Sampler(BaseSampler):
                 )
             for i, circuit in zip(to_handle, circuits):
                 self._transpiled_circuits[(i, is_shots_none)] = circuit
+
+
+class _ExperimentManager:
+    def __init__(self):
+        self.keys: list[int] = []
+        self.experiment_circuits: list[QuantumCircuit] = []
+        self.parameter_binds: list[dict[ParameterExpression, list[float]]] = []
+        self._input_indices: list[list[int]] = []
+        self._num_experiment: int = 0
+
+    def __len__(self):
+        return self._num_experiment
+
+    @property
+    def experiment_indices(self):
+        """indices of experiments"""
+        return sum(self._input_indices, [])
+
+    def append(
+        self,
+        key: tuple[int, int],
+        parameter_bind: dict[ParameterExpression, float],
+        experiment_circuit: QuantumCircuit,
+    ):
+        """append experiments"""
+        if key not in self.keys or not parameter_bind:
+            self.experiment_circuits.append(experiment_circuit)
+
+        if parameter_bind and key in self.keys:
+            key_index = self.keys.index(key)
+            for k, vs in self.parameter_binds[key_index].items():
+                vs.append(parameter_bind[k])
+            self._input_indices[key_index].append(self._num_experiment)
+        else:
+            self.keys.append(key)
+            self.parameter_binds.append({k: [v] for k, v in parameter_bind.items()})
+            self._input_indices.append([self._num_experiment])
+
+        self._num_experiment += 1
