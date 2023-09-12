@@ -1,0 +1,10 @@
+---
+fixes:
+  - |
+    State::set_config was not called before calling State::required_memory_mb.
+    Extended stabilizer uses parameter from config to calculate required memory
+    so size was not correct before this fix.
+    Now Config is passed to required_memory_mb function.
+
+    State::required_memory_mb for MPS method returned wrong memory size.
+    This fix adds memory size estimation by calculating max bond dimension.
