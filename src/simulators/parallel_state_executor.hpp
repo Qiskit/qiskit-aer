@@ -66,7 +66,7 @@ protected:
 
   virtual uint_t qubit_scale(void) { return 1; }
 
-  bool multiple_chunk_required(const Circuit &circuit,
+  bool multiple_chunk_required(const Config &config, const Circuit &circuit,
                                const Noise::NoiseModel &noise) const;
 
   // Return cache blocking transpiler pass
@@ -216,7 +216,8 @@ void ParallelStateExecutor<state_t>::set_config(const Config &config) {
 
 template <class state_t>
 bool ParallelStateExecutor<state_t>::multiple_chunk_required(
-    const Circuit &circ, const Noise::NoiseModel &noise) const {
+    const Config &config, const Circuit &circ,
+    const Noise::NoiseModel &noise) const {
   if (circ.num_qubits < 3)
     return false;
   if (cache_block_qubit_ >= 2 && cache_block_qubit_ < circ.num_qubits)
@@ -225,14 +226,14 @@ bool ParallelStateExecutor<state_t>::multiple_chunk_required(
   if (Base::num_process_per_experiment_ == 1 &&
       Base::sim_device_ == Device::GPU && Base::num_gpus_ > 0) {
     return (Base::max_gpu_memory_mb_ / Base::num_gpus_ <
-            Base::required_memory_mb_);
+            Base::required_memory_mb(config, circ, noise));
   }
   if (Base::num_process_per_experiment_ > 1) {
     size_t total_mem = Base::max_memory_mb_;
     if (Base::sim_device_ == Device::GPU)
       total_mem += Base::max_gpu_memory_mb_;
     if (total_mem * Base::num_process_per_experiment_ >
-        Base::required_memory_mb_)
+        Base::required_memory_mb(config, circ, noise))
       return true;
   }
 
@@ -257,7 +258,7 @@ ParallelStateExecutor<state_t>::transpile_cache_blocking(
 
   if (!cache_block_pass.enabled()) {
     // if blocking is not set by config, automatically set if required
-    if (multiple_chunk_required(circ, noise)) {
+    if (multiple_chunk_required(config, circ, noise)) {
       int nplace = Base::num_process_per_experiment_;
       if (Base::sim_device_ == Device::GPU && Base::num_gpus_ > 0)
         nplace *= Base::num_gpus_;
@@ -418,7 +419,7 @@ void ParallelStateExecutor<state_t>::run_circuit_with_sampling(
   state_t dummy_state;
 
   bool cache_block = false;
-  if (multiple_chunk_required(circ, dummy_noise)) {
+  if (multiple_chunk_required(config, circ, dummy_noise)) {
     auto fusion_pass = Base::transpile_fusion(circ.opset(), config);
     fusion_pass.optimize_circuit(circ, dummy_noise, dummy_state.opset(),
                                  result);
@@ -477,7 +478,7 @@ void ParallelStateExecutor<state_t>::run_circuit_shots(
     Circuit &circ, const Noise::NoiseModel &noise, const Config &config,
     RngEngine &init_rng, ExperimentResult &result, bool sample_noise) {
 
-  if (!multiple_chunk_required(circ, noise)) {
+  if (!multiple_chunk_required(config, circ, noise)) {
     return Base::run_circuit_shots(circ, noise, config, init_rng, result,
                                    sample_noise);
   }

@@ -127,7 +127,7 @@ protected:
   virtual void apply_global_phase() {}
   void set_global_phase(double theta);
 
-  void set_parallelization(const Circuit &circ,
+  void set_parallelization(const Config &config, const Circuit &circ,
                            const Noise::NoiseModel &noise) override;
 
   virtual bool shot_branching_supported(void) {
@@ -213,8 +213,8 @@ void MultiStateExecutor<state_t>::set_distribution(uint_t num_states) {
 
 template <class state_t>
 void MultiStateExecutor<state_t>::set_parallelization(
-    const Circuit &circ, const Noise::NoiseModel &noise) {
-  Base::set_parallelization(circ, noise);
+    const Config &config, const Circuit &circ, const Noise::NoiseModel &noise) {
+  Base::set_parallelization(config, circ, noise);
 }
 
 template <class state_t>
@@ -260,7 +260,7 @@ void MultiStateExecutor<state_t>::run_circuit_shots(
   }
 
   set_distribution(circ.shots);
-  num_max_shots_ = Base::get_max_parallel_shots(circ, noise);
+  num_max_shots_ = Base::get_max_parallel_shots(config, circ, noise);
 
   bool shot_branching = false;
   if (shot_branching_enable_ && num_local_states_ > 1 &&
