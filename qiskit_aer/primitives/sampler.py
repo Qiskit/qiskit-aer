@@ -18,7 +18,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 
-from qiskit.circuit import QuantumCircuit
+from qiskit.circuit import ParameterExpression, QuantumCircuit
 from qiskit.compiler import transpile
 from qiskit.exceptions import QiskitError
 from qiskit.primitives import BaseSampler, SamplerResult
