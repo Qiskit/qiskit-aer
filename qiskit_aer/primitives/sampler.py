@@ -217,15 +217,13 @@ class _ExperimentManager:
         experiment_circuit: QuantumCircuit,
     ):
         """append experiments"""
-        if key not in self.keys or not parameter_bind:
-            self.experiment_circuits.append(experiment_circuit)
-
         if parameter_bind and key in self.keys:
             key_index = self.keys.index(key)
             for k, vs in self.parameter_binds[key_index].items():
                 vs.append(parameter_bind[k])
             self._input_indices[key_index].append(self._num_experiment)
         else:
+            self.experiment_circuits.append(experiment_circuit)
             self.keys.append(key)
             self.parameter_binds.append({k: [v] for k, v in parameter_bind.items()})
             self._input_indices.append([self._num_experiment])

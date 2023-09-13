@@ -2,4 +2,5 @@
 ---
 upgrade:
   - |
-    Improved performance when the same circuits and multiple parameters are passed to :class:`~.Sampler`.
+    Improved performance when the same circuits and multiple parameters are passed to
+    :class:`~.Sampler`.
