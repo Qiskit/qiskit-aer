@@ -18,6 +18,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 
+import numpy as np
 from qiskit.circuit import ParameterExpression, QuantumCircuit
 from qiskit.compiler import transpile
 from qiskit.exceptions import QiskitError
@@ -207,7 +208,7 @@ class _ExperimentManager:
     @property
     def experiment_indices(self):
         """indices of experiments"""
-        return sum(self._input_indices, [])
+        return np.argsort(sum(self._input_indices, [])).tolist()
 
     def append(
         self,
