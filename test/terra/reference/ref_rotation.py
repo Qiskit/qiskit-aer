@@ -35,7 +35,7 @@ def rx_gate_circuits_deterministic(final_measure=True):
 
     # RX(pi/2)
     circuit = QuantumCircuit(*regs)
-    circuit.rx(np.pi/2, qr)
+    circuit.rx(np.pi / 2, qr)
     if final_measure:
         circuit.barrier(qr)
         circuit.measure(qr, cr)
@@ -51,7 +51,7 @@ def rx_gate_circuits_deterministic(final_measure=True):
 
     # RX(3*pi/2)
     circuit = QuantumCircuit(*regs)
-    circuit.rx(3*np.pi/2, qr)
+    circuit.rx(3 * np.pi / 2, qr)
     if final_measure:
         circuit.barrier(qr)
         circuit.measure(qr, cr)
@@ -59,7 +59,7 @@ def rx_gate_circuits_deterministic(final_measure=True):
 
     # RX(4*pi/2) = I
     circuit = QuantumCircuit(*regs)
-    circuit.rx(4*np.pi/2, qr)
+    circuit.rx(4 * np.pi / 2, qr)
     if final_measure:
         circuit.barrier(qr)
         circuit.measure(qr, cr)
@@ -73,23 +73,24 @@ def rx_gate_counts_deterministic(shots, hex_counts=True):
     targets = []
     if hex_counts:
         # pi/2
-        targets.append({"0x0": shots/2, "0x1": shots/2})
+        targets.append({"0x0": shots / 2, "0x1": shots / 2})
         # 2*pi/2
         targets.append({"0x1": shots})
         # 3*pi/2
-        targets.append({"0x0": shots/2, "0x1": shots/2})
+        targets.append({"0x0": shots / 2, "0x1": shots / 2})
         # 4*pi/2
         targets.append({"0x0": shots})
     else:
         # pi/2
-        targets.append({"0": shots/2, "1": shots/2})
+        targets.append({"0": shots / 2, "1": shots / 2})
         # 2*pi/2
         targets.append({"1": shots})
         # 3*pi/2
-        targets.append({"0": shots/2, "1": shots/2})
+        targets.append({"0": shots / 2, "1": shots / 2})
         # 4*pi/2
         targets.append({"0": shots})
     return targets
+
 
 # ==========================================================================
 # Z-gate
@@ -110,7 +111,7 @@ def rz_gate_circuits_deterministic(final_measure=True):
     circuit = QuantumCircuit(*regs)
     circuit.h(qr)
     circuit.barrier(qr)
-    circuit.rz(np.pi/2, qr)
+    circuit.rz(np.pi / 2, qr)
     circuit.barrier(qr)
     circuit.h(qr)
     if final_measure:
@@ -134,7 +135,7 @@ def rz_gate_circuits_deterministic(final_measure=True):
     circuit = QuantumCircuit(*regs)
     circuit.h(qr)
     circuit.barrier(qr)
-    circuit.rz(3*np.pi/2, qr)
+    circuit.rz(3 * np.pi / 2, qr)
     circuit.barrier(qr)
     circuit.h(qr)
     if final_measure:
@@ -146,7 +147,7 @@ def rz_gate_circuits_deterministic(final_measure=True):
     circuit = QuantumCircuit(*regs)
     circuit.h(qr)
     circuit.barrier(qr)
-    circuit.rz(4*np.pi/2, qr)
+    circuit.rz(4 * np.pi / 2, qr)
     circuit.barrier(qr)
     circuit.h(qr)
     if final_measure:
@@ -162,23 +163,24 @@ def rz_gate_counts_deterministic(shots, hex_counts=True):
     targets = []
     if hex_counts:
         # pi/2 = S
-        targets.append({"0x0": shots/2, "0x1": shots/2})
+        targets.append({"0x0": shots / 2, "0x1": shots / 2})
         # 2*pi/2 = Z
         targets.append({"0x1": shots})
         # 3*pi/2 = Sdg
-        targets.append({"0x0": shots/2, "0x1": shots/2})
+        targets.append({"0x0": shots / 2, "0x1": shots / 2})
         # 4*pi/2 = I
         targets.append({"0x0": shots})
     else:
         # pi/2 = S
-        targets.append({"0": shots/2, "1": shots/2})
+        targets.append({"0": shots / 2, "1": shots / 2})
         # 2*pi/2 = Z
         targets.append({"1": shots})
         # 3*pi/2 = Sdg
-        targets.append({"0": shots/2, "1": shots/2})
+        targets.append({"0": shots / 2, "1": shots / 2})
         # 4*pi/2 = I
         targets.append({"0": shots})
     return targets
+
 
 # ==========================================================================
 # Y-gate
@@ -197,7 +199,7 @@ def ry_gate_circuits_deterministic(final_measure=True):
 
     # RX(pi/2)
     circuit = QuantumCircuit(*regs)
-    circuit.ry(np.pi/2, qr)
+    circuit.ry(np.pi / 2, qr)
     if final_measure:
         circuit.barrier(qr)
         circuit.measure(qr, cr)
@@ -213,7 +215,7 @@ def ry_gate_circuits_deterministic(final_measure=True):
 
     # RX(3*pi/2)
     circuit = QuantumCircuit(*regs)
-    circuit.ry(3*np.pi/2, qr)
+    circuit.ry(3 * np.pi / 2, qr)
     if final_measure:
         circuit.barrier(qr)
         circuit.measure(qr, cr)
@@ -221,7 +223,7 @@ def ry_gate_circuits_deterministic(final_measure=True):
 
     # RX(4*pi/2) = I
     circuit = QuantumCircuit(*regs)
-    circuit.ry(4*np.pi/2, qr)
+    circuit.ry(4 * np.pi / 2, qr)
     if final_measure:
         circuit.barrier(qr)
         circuit.measure(qr, cr)
@@ -235,21 +237,20 @@ def ry_gate_counts_deterministic(shots, hex_counts=True):
     targets = []
     if hex_counts:
         # pi/2
-        targets.append({"0x0": shots/2, "0x1": shots/2})
+        targets.append({"0x0": shots / 2, "0x1": shots / 2})
         # 2*pi/2
         targets.append({"0x1": shots})
         # 3*pi/2
-        targets.append({"0x0": shots/2, "0x1": shots/2})
+        targets.append({"0x0": shots / 2, "0x1": shots / 2})
         # 4*pi/2
         targets.append({"0x0": shots})
     else:
         # pi/2
-        targets.append({"0": shots/2, "1": shots/2})
+        targets.append({"0": shots / 2, "1": shots / 2})
         # 2*pi/2
         targets.append({"1": shots})
         # 3*pi/2
-        targets.append({"0": shots/2, "1": shots/2})
+        targets.append({"0": shots / 2, "1": shots / 2})
         # 4*pi/2
         targets.append({"0": shots})
     return targets
-

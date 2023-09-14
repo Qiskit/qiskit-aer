@@ -26,6 +26,7 @@ SUPPORTED_METHODS = [
     "tensor_network",
 ]
 
+
 @ddt
 class TestRotation(SimulatorTestCase):
     """AerSimulator Rotation gate tests"""
@@ -73,4 +74,3 @@ class TestRotation(SimulatorTestCase):
         result = backend.run(circuits, shots=shots).result()
         self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
-
