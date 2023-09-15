@@ -307,6 +307,23 @@ void BatchShotsExecutor<state_t>::apply_ops_batched_shots_for_group(
 
   for (auto op = first; op != last; ++op) {
     if (op->type == Operations::OpType::sample_noise) {
+      if (op->expr) {
+        for (uint_t j = Base::top_state_of_group_[i_group];
+             j < Base::top_state_of_group_[i_group + 1]; j++) {
+          Base::states_[j].qreg().enable_batch(false);
+          Base::states_[j].qreg().read_measured_data(Base::states_[j].creg());
+          std::vector<Operations::Op> nops = noise.sample_noise_loc(
+              *op, rng[j - Base::top_state_of_group_[i_group]]);
+          for (int_t k = 0; k < nops.size(); k++) {
+            Base::states_[j].apply_op(
+                nops[k], result, rng[j - Base::top_state_of_group_[i_group]],
+                false);
+          }
+          Base::states_[j].qreg().enable_batch(true);
+        }
+        continue;
+      }
+
       // sample error here
       uint_t count = Base::num_states_in_group_[i_group];
       std::vector<std::vector<Operations::Op>> noise_ops(count);
@@ -360,18 +377,21 @@ void BatchShotsExecutor<state_t>::apply_ops_batched_shots_for_group(
         apply_batched_noise_ops(i_group, noise_ops, result, rng);
       }
     } else {
-      if (!apply_batched_op(istate, *op, result, rng,
-                            final_ops && (op + 1 == last))) {
-        // call apply_op for each state
-        for (uint_t j = Base::top_state_of_group_[i_group];
-             j < Base::top_state_of_group_[i_group + 1]; j++) {
-          Base::states_[j].qreg().enable_batch(false);
-          Base::states_[j].qreg().read_measured_data(Base::states_[j].creg());
-          Base::states_[j].apply_op(*op, result,
-                                    rng[j - Base::top_state_of_group_[i_group]],
-                                    final_ops && (op + 1 == last));
-          Base::states_[j].qreg().enable_batch(true);
+      if (!op->expr) {
+        if (apply_batched_op(istate, *op, result, rng,
+                             final_ops && (op + 1 == last))) {
+          continue;
         }
+      }
+      // call apply_op for each state
+      for (uint_t j = Base::top_state_of_group_[i_group];
+           j < Base::top_state_of_group_[i_group + 1]; j++) {
+        Base::states_[j].qreg().enable_batch(false);
+        Base::states_[j].qreg().read_measured_data(Base::states_[j].creg());
+        Base::states_[j].apply_op(*op, result,
+                                  rng[j - Base::top_state_of_group_[i_group]],
+                                  final_ops && (op + 1 == last));
+        Base::states_[j].qreg().enable_batch(true);
       }
     }
   }
