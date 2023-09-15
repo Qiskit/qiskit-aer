@@ -57,7 +57,9 @@ class TestEstimator(QiskitAerTestCase):
             with self.subTest("PauliSumOp"):
                 observable = PauliSumOp.from_list(lst)
                 ansatz = RealAmplitudes(num_qubits=2, reps=2)
-                est = Estimator(backend_options={"method": "statevector"}, abelian_grouping=abelian_grouping)
+                est = Estimator(
+                    backend_options={"method": "statevector"}, abelian_grouping=abelian_grouping
+                )
                 result = est.run(
                     ansatz, observable, parameter_values=[[0, 1, 1, 2, 3, 5]], seed=15
                 ).result()
@@ -67,7 +69,9 @@ class TestEstimator(QiskitAerTestCase):
         with self.subTest("SparsePauliOp"):
             observable = SparsePauliOp.from_list(lst)
             ansatz = RealAmplitudes(num_qubits=2, reps=2)
-            est = Estimator(backend_options={"method": "statevector"}, abelian_grouping=abelian_grouping)
+            est = Estimator(
+                backend_options={"method": "statevector"}, abelian_grouping=abelian_grouping
+            )
             result = est.run(
                 ansatz, observable, parameter_values=[[0, 1, 1, 2, 3, 5]], seed=15
             ).result()
@@ -84,7 +88,9 @@ class TestEstimator(QiskitAerTestCase):
                 ]
             )
             ansatz = RealAmplitudes(num_qubits=2, reps=2)
-            est = Estimator(backend_options={"method": "statevector"}, abelian_grouping=abelian_grouping)
+            est = Estimator(
+                backend_options={"method": "statevector"}, abelian_grouping=abelian_grouping
+            )
             result = est.run(ansatz, observable, parameter_values=[[0] * 6], seed=15).result()
             self.assertIsInstance(result, EstimatorResult)
             np.testing.assert_allclose(result.values, [-0.4], rtol=0.02)
