@@ -218,7 +218,7 @@ void Executor<state_t>::run_circuit_with_sampling(Circuit &circ,
                                                   RngEngine &init_rng,
                                                   ResultItr result_it) {
   Noise::NoiseModel dummy_noise;
-  if (BasePar::multiple_chunk_required(circ, dummy_noise)) {
+  if (BasePar::multiple_chunk_required(config, circ, dummy_noise)) {
     return BasePar::run_circuit_with_sampling(circ, config, init_rng,
                                               result_it);
   } else {
@@ -231,7 +231,7 @@ template <class state_t>
 void Executor<state_t>::run_circuit_shots(
     Circuit &circ, const Noise::NoiseModel &noise, const Config &config,
     RngEngine &init_rng, ResultItr result_it, bool sample_noise) {
-  if (BasePar::multiple_chunk_required(circ, noise)) {
+  if (BasePar::multiple_chunk_required(config, circ, noise)) {
     return BasePar::run_circuit_shots(circ, noise, config, init_rng, result_it,
                                       sample_noise);
   } else {

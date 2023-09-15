@@ -1040,9 +1040,11 @@ std::complex<double> QubitVectorThrust<data_t>::inner_product() const {
   if (strm)
     dot = thrust::inner_product(thrust::device, vec0, vec0 + data_size_ * 2,
                                 vec1, 0.0);
+#ifndef AER_THRUST_ROCM_DISABLE_THRUST_OMP
   else
     dot = thrust::inner_product(thrust::omp::par, vec0, vec0 + data_size_ * 2,
                                 vec1, 0.0);
+#endif
 #else
   if (num_qubits_ > omp_threshold_ && omp_threads_ > 1)
     dot = thrust::inner_product(thrust::device, vec0, vec0 + data_size_ * 2,

@@ -92,12 +92,6 @@ public:
   MultiStateExecutor();
   virtual ~MultiStateExecutor();
 
-  size_t required_memory_mb(const Circuit &circuit,
-                            const Noise::NoiseModel &noise) const override {
-    state_t tmp;
-    return tmp.required_memory_mb(circuit.num_qubits, circuit.ops);
-  }
-
   uint_t get_process_by_chunk(uint_t cid);
 
 protected:
@@ -133,7 +127,7 @@ protected:
   // Apply the global phase
   virtual void apply_global_phase() {}
 
-  void set_parallelization(const Circuit &circ,
+  void set_parallelization(const Config &config, const Circuit &circ,
                            const Noise::NoiseModel &noise) override;
 
   virtual bool shot_branching_supported(void) {
@@ -210,8 +204,8 @@ void MultiStateExecutor<state_t>::set_distribution(uint_t num_states) {
 
 template <class state_t>
 void MultiStateExecutor<state_t>::set_parallelization(
-    const Circuit &circ, const Noise::NoiseModel &noise) {
-  Base::set_parallelization(circ, noise);
+    const Config &config, const Circuit &circ, const Noise::NoiseModel &noise) {
+  Base::set_parallelization(config, circ, noise);
 }
 
 template <class state_t>
@@ -265,7 +259,7 @@ void MultiStateExecutor<state_t>::run_circuit_shots(
     shot_omp_parallel_ = false;
   }
   set_distribution(circ.shots * Base::num_bind_params_);
-  num_max_shots_ = Base::get_max_parallel_shots(circ, noise);
+  num_max_shots_ = Base::get_max_parallel_shots(config, circ, noise);
 
   bool shot_branching = false;
   if (shot_branching_enable_ && num_local_states_ > 1 &&

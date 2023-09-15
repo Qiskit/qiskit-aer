@@ -54,11 +54,12 @@ public:
                            const Device device, ResultItr result) = 0;
 
   // Return an estimate of the required memory for a circuit.
-  virtual size_t required_memory_mb(const Circuit &circuit,
+  virtual size_t required_memory_mb(const Config &config,
+                                    const Circuit &circuit,
                                     const Noise::NoiseModel &noise) const = 0;
   virtual size_t max_memory_mb(void) = 0;
 
-  virtual bool validate_state(const Circuit &circ,
+  virtual bool validate_state(const Config &config, const Circuit &circ,
                               const Noise::NoiseModel &noise,
                               bool throw_except) const = 0;
 };
@@ -138,14 +139,17 @@ public:
                    const Device device, ResultItr result) override;
 
   // Return an estimate of the required memory for a circuit.
-  size_t required_memory_mb(const Circuit &circuit,
+  size_t required_memory_mb(const Config &config, const Circuit &circuit,
                             const Noise::NoiseModel &noise) const override {
     state_t tmp;
-    return tmp.required_memory_mb(circuit.num_qubits, circuit.ops);
+    tmp.set_config(config);
+    uint_t ret = tmp.required_memory_mb(circuit.num_qubits, circuit.ops);
+    return ret;
   }
   size_t max_memory_mb(void) override { return max_memory_mb_; }
 
-  bool validate_state(const Circuit &circ, const Noise::NoiseModel &noise,
+  bool validate_state(const Config &config, const Circuit &circ,
+                      const Noise::NoiseModel &noise,
                       bool throw_except) const override;
 
 protected:
@@ -170,7 +174,7 @@ protected:
   }
 
   // get max shots stored on memory
-  uint_t get_max_parallel_shots(const Circuit &circuit,
+  uint_t get_max_parallel_shots(const Config &config, const Circuit &circuit,
                                 const Noise::NoiseModel &noise) const;
 
   bool multiple_shots_required(const Circuit &circuit,
@@ -184,7 +188,7 @@ protected:
   bool has_statevector_ops(const Circuit &circ) const;
 
   virtual void set_config(const Config &config);
-  virtual void set_parallelization(const Circuit &circ,
+  virtual void set_parallelization(const Config &config, const Circuit &circ,
                                    const Noise::NoiseModel &noise);
 
   virtual void run_circuit_with_sampling(Circuit &circ, const Config &config,
@@ -389,8 +393,9 @@ bool Executor<state_t>::multiple_shots_required(
 
 template <class state_t>
 uint_t Executor<state_t>::get_max_parallel_shots(
-    const Circuit &circ, const Noise::NoiseModel &noise) const {
-  uint_t mem = required_memory_mb(circ, noise);
+    const Config &config, const Circuit &circ,
+    const Noise::NoiseModel &noise) const {
+  uint_t mem = required_memory_mb(config, circ, noise);
   if (mem == 0)
     return circ.shots * circ.num_bind_params;
 
@@ -403,7 +408,8 @@ uint_t Executor<state_t>::get_max_parallel_shots(
 }
 
 template <class state_t>
-void Executor<state_t>::set_parallelization(const Circuit &circ,
+void Executor<state_t>::set_parallelization(const Config &config,
+                                            const Circuit &circ,
                                             const Noise::NoiseModel &noise) {
   // MPI setting
   myrank_ = 0;
@@ -504,7 +510,7 @@ void Executor<state_t>::set_parallelization(const Circuit &circ,
     // Limit parallel shots by available memory and number of shots
     // And assign the remaining threads to state update
     int circ_memory_mb =
-        required_memory_mb(circ, noise) / num_process_per_experiment_;
+        required_memory_mb(config, circ, noise) / num_process_per_experiment_;
     size_t mem_size =
         (sim_device_ == Device::GPU) ? max_gpu_memory_mb_ : max_memory_mb_;
     if (mem_size < circ_memory_mb)
@@ -539,7 +545,7 @@ void Executor<state_t>::run_circuit(Circuit &circ,
     sim_device_ = device;
 
     set_config(config);
-    set_parallelization(circ, noise);
+    set_parallelization(config, circ, noise);
 
     // Rng engine (this one is used to add noise on circuit)
     RngEngine rng;
@@ -563,6 +569,9 @@ void Executor<state_t>::run_circuit(Circuit &circ,
       result.metadata.add(circ.qubits(), "active_input_qubits");
       result.metadata.add(circ.qubit_map(), "input_qubit_map");
       result.metadata.add(circ.remapped_qubits, "remapped_qubits");
+      result.metadata.add(max_memory_mb_, "max_memory_mb");
+      if (sim_device_ == Device::GPU)
+        result.metadata.add(max_gpu_memory_mb_, "max_gpu_memory_mb");
 
       // Add measure sampling to metadata
       // Note: this will set to `true` if sampling is enabled for the circuit
@@ -572,7 +581,7 @@ void Executor<state_t>::run_circuit(Circuit &circ,
 
     // Validate gateset and memory requirements, raise exception if they're
     // exceeded
-    validate_state(circ, noise, true);
+    validate_state(config, circ, noise, true);
 
     has_statevector_ops_ = has_statevector_ops(circ);
 
@@ -711,7 +720,7 @@ void Executor<state_t>::run_circuit_with_sampling(Circuit &circ,
 
   auto circ_shots = circ.shots;
   circ.shots = 1;
-  int_t par_shots = (int_t)get_max_parallel_shots(circ, dummy_noise);
+  int_t par_shots = (int_t)get_max_parallel_shots(config, circ, dummy_noise);
   par_shots = std::min((int_t)parallel_shots_, par_shots);
   circ.shots = circ_shots;
 
@@ -785,7 +794,8 @@ void Executor<state_t>::run_circuit_shots(
     Circuit &circ, const Noise::NoiseModel &noise, const Config &config,
     RngEngine &init_rng, ResultItr result_it, bool sample_noise) {
 
-  int_t par_shots = (int_t)get_max_parallel_shots(circ, noise);
+  // insert runtime noise sample ops here
+  int_t par_shots = (int_t)get_max_parallel_shots(config, circ, noise);
   par_shots = std::min((int_t)parallel_shots_, par_shots);
 
   uint_t num_shots = circ.shots * circ.num_bind_params;
@@ -1082,7 +1092,8 @@ void Executor<state_t>::measure_sampler(InputIterator first_meas,
 }
 
 template <class state_t>
-bool Executor<state_t>::validate_state(const Circuit &circ,
+bool Executor<state_t>::validate_state(const Config &config,
+                                       const Circuit &circ,
                                        const Noise::NoiseModel &noise,
                                        bool throw_except) const {
   std::stringstream error_msg;
@@ -1110,8 +1121,8 @@ bool Executor<state_t>::validate_state(const Circuit &circ,
   // Validate memory requirements
   bool memory_valid = true;
   if (max_memory_mb_ > 0) {
-    size_t required_mb = state.required_memory_mb(circ.num_qubits, circ.ops) /
-                         num_process_per_experiment_;
+    size_t required_mb =
+        required_memory_mb(config, circ, noise) / num_process_per_experiment_;
     size_t mem_size = (sim_device_ == Device::GPU)
                           ? max_memory_mb_ + max_gpu_memory_mb_
                           : max_memory_mb_;
