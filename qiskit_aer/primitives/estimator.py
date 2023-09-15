@@ -302,21 +302,22 @@ class Estimator(BaseEstimator):
         transpile_opts = copy(self._transpile_options)
         transpile_opts.update_options(initial_layout=self._layouts[circuit_index])
 
-        _num_qubits = self._backend.num_qubits
-        self._backend.set_option("n_qubits", meas_circuit.num_qubits)
         new_circ = transpile(meas_circuit, self._backend, **transpile_opts.__dict__)
-        self._backend.set_option("n_qubits", _num_qubits)
         return new_circ
 
     @staticmethod
     def _combine_circs(circuit: QuantumCircuit, meas_circuits: list[QuantumCircuit]):
         circs = []
         for meas_circuit in meas_circuits:
-            new_circ = circuit.copy()
-            for creg in meas_circuit.cregs:
-                new_circ.add_register(creg)
-            new_circ.compose(meas_circuit, inplace=True)
-            _update_metadata(new_circ, meas_circuit.metadata)
+            if circuit.num_qubits >= meas_circuit.num_qubits:
+                new_circ = circuit.copy()
+                for creg in meas_circuit.cregs:
+                    new_circ.add_register(creg)
+                new_circ.compose(meas_circuit, inplace=True)
+                _update_metadata(new_circ, meas_circuit.metadata)
+            else:
+                new_circ = meas_circuit.compose(circuit, front=True)
+                _update_metadata(new_circ, circuit.metadata)
             circs.append(new_circ)
         return circs
 
