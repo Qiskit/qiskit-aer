@@ -336,13 +336,9 @@ def _device_depolarizing_error(qubits, error_param, relax_error=None):
 
 def _device_thermal_relaxation_error(qubits, gate_time, relax_params, temperature):
     """Construct a thermal_relaxation_error for device.
-    Note that the time unit for gate_time and T1/T2 in relax_params must be the same.
 
-    Args:
-        qubits: qubits to compute thermal relaxation errors.
-        gate_time (float): duration of the gate.
-        relax_params (dict): maps a qubit (int) to T1, T2, frequency [Hz] (tuple).
-        temperature (float): temperature [mK].
+    Expected units: frequency in relax_params [Hz], temperature [mK].
+    Note that gate_time and T1/T2 in relax_params must be in the same time unit.
     """
     # Check trivial case
     if gate_time is None or gate_time == 0:
