@@ -417,14 +417,14 @@ void State::apply_gate(const Operations::Op &op) {
   case Gates::ry:
     pi2 = (int_t)std::round(std::real(op.params[0]) * 2.0 / M_PI) & 3;
     if (pi2 == 1) {
-      // H
+      // HX
+      BaseState::qreg_.append_x(op.qubits[0]);
       BaseState::qreg_.append_h(op.qubits[0]);
     } else if (pi2 == 2) {
       // Y
       BaseState::qreg_.append_y(op.qubits[0]);
     } else if (pi2 == 3) {
       // Hdg
-      BaseState::qreg_.append_x(op.qubits[0]);
       BaseState::qreg_.append_h(op.qubits[0]);
       BaseState::qreg_.append_x(op.qubits[0]);
     }
