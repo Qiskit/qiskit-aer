@@ -18,6 +18,15 @@
 #include "simulators/statevector/chunk/chunk_container.hpp"
 #include "simulators/statevector/chunk/thrust_kernels.hpp"
 
+#include "misc/gpu_static_properties.hpp"
+
+#ifdef AER_THRUST_CUDA
+namespace thrust_gpu = thrust::cuda;
+#endif
+#ifdef AER_THRUST_ROCM
+namespace thrust_gpu = thrust::hip;
+#endif
+
 namespace AER {
 namespace QV {
 namespace Chunk {
@@ -64,7 +73,7 @@ protected:
   reg_t num_blocked_matrix_;
   reg_t num_blocked_qubits_;
 
-#ifdef AER_THRUST_CUDA
+#ifdef AER_THRUST_GPU
   std::vector<cudaStream_t> stream_; // asynchronous execution
 #endif
 
@@ -117,12 +126,12 @@ public:
   void calculate_matrix_buffer_size(int bits);
 
   void set_device(void) const {
-#ifdef AER_THRUST_CUDA
+#ifdef AER_THRUST_GPU
     cudaSetDevice(device_id_);
 #endif
   }
 
-#ifdef AER_THRUST_CUDA
+#ifdef AER_THRUST_GPU
   cudaStream_t stream(uint_t iChunk) const {
     if (iChunk >= this->num_chunks_)
       return stream_[(num_matrices_ + iChunk - this->num_chunks_)];
@@ -213,7 +222,7 @@ public:
     ibit = qubit & 63;
     if (iChunk == 0 && creg_host_update_) {
       creg_host_update_ = false;
-#ifdef AER_THRUST_CUDA
+#ifdef AER_THRUST_GPU
       cudaMemcpyAsync(thrust::raw_pointer_cast(cregs_host_.data()),
                       thrust::raw_pointer_cast(cregs_.data()),
                       sizeof(uint_t) * num_matrices_ * n64,
@@ -237,7 +246,7 @@ public:
     ibit = qubit & 63;
     if (iChunk == 0 && creg_host_update_) {
       creg_host_update_ = false;
-#ifdef AER_THRUST_CUDA
+#ifdef AER_THRUST_GPU
       cudaMemcpyAsync(thrust::raw_pointer_cast(cregs_host_.data()),
                       thrust::raw_pointer_cast(cregs_.data()),
                       sizeof(uint_t) * num_matrices_ * n64,
@@ -260,7 +269,7 @@ public:
       n64 = (this->num_creg_bits_ + 63) >> 6;
       creg_dev_update_ = false;
       creg_host_update_ = false;
-#ifdef AER_THRUST_CUDA
+#ifdef AER_THRUST_GPU
       cudaMemcpyAsync(thrust::raw_pointer_cast(cregs_.data()),
                       thrust::raw_pointer_cast(cregs_host_.data()),
                       sizeof(uint_t) * num_matrices_ * n64,
@@ -280,7 +289,7 @@ public:
   void request_creg_update(void) { creg_host_update_ = true; }
 
   void synchronize(uint_t iChunk) {
-#ifdef AER_THRUST_CUDA
+#ifdef AER_THRUST_GPU
     set_device();
     cudaStreamSynchronize(stream(iChunk));
 #endif
@@ -320,7 +329,7 @@ uint_t DeviceChunkContainer<data_t>::Allocate(int idev, int chunk_bits,
   device_id_ = idev;
   set_device();
 
-#ifdef AER_THRUST_CUDA
+#ifdef AER_THRUST_GPU
   int ip, nd;
   cudaGetDeviceCount(&nd);
   peer_access_.resize(nd);
@@ -363,7 +372,7 @@ uint_t DeviceChunkContainer<data_t>::Allocate(int idev, int chunk_bits,
 
   reduce_buffer_size_ = 2;
 
-#ifdef AER_THRUST_CUDA
+#ifdef AER_THRUST_GPU
   size_t param_size = sizeof(thrust::complex<double>) * matrix_buffer_size_ +
                       sizeof(uint_t) * params_buffer_size_;
 
@@ -409,7 +418,7 @@ uint_t DeviceChunkContainer<data_t>::Allocate(int idev, int chunk_bits,
 
   uint_t size = num_matrices_ + this->num_buffers_;
 
-#ifdef AER_THRUST_CUDA
+#ifdef AER_THRUST_GPU
   stream_.resize(size);
   for (int i = 0; i < size; i++)
     cudaStreamCreateWithFlags(&stream_[i], cudaStreamNonBlocking);
@@ -485,7 +494,7 @@ void DeviceChunkContainer<data_t>::Deallocate(void) {
   num_blocked_qubits_.clear();
   blocked_qubits_holder_.clear();
 
-#ifdef AER_THRUST_CUDA
+#ifdef AER_THRUST_GPU
   for (int i = 0; i < stream_.size(); i++)
     cudaStreamDestroy(stream_[i]);
   stream_.clear();
@@ -542,7 +551,7 @@ void DeviceChunkContainer<data_t>::StoreMatrix(
     const std::vector<std::complex<double>> &mat, uint_t iChunk) const {
   set_device();
 
-#ifdef AER_THRUST_CUDA
+#ifdef AER_THRUST_GPU
   cudaMemcpyAsync(matrix_pointer(iChunk), &mat[0],
                   mat.size() * sizeof(thrust::complex<double>),
                   cudaMemcpyHostToDevice, stream(iChunk));
@@ -574,7 +583,7 @@ void DeviceChunkContainer<data_t>::StoreMatrix(const std::complex<double> *mat,
                                                uint_t size) const {
   set_device();
 
-#ifdef AER_THRUST_CUDA
+#ifdef AER_THRUST_GPU
   cudaMemcpyAsync(matrix_pointer(iChunk), mat,
                   size * sizeof(thrust::complex<double>),
                   cudaMemcpyHostToDevice, stream(iChunk));
@@ -606,7 +615,7 @@ void DeviceChunkContainer<data_t>::StoreUintParams(
     const std::vector<uint_t> &prm, uint_t iChunk) const {
   set_device();
 
-#ifdef AER_THRUST_CUDA
+#ifdef AER_THRUST_GPU
   cudaMemcpyAsync(param_pointer(iChunk), &prm[0], prm.size() * sizeof(uint_t),
                   cudaMemcpyHostToDevice, stream(iChunk));
 
@@ -635,7 +644,7 @@ void DeviceChunkContainer<data_t>::StoreUintParams(
 template <typename data_t>
 void DeviceChunkContainer<data_t>::CopyIn(Chunk<data_t> &src, uint_t iChunk) {
   uint_t size = 1ull << this->chunk_bits_;
-#ifdef AER_THRUST_CUDA
+#ifdef AER_THRUST_GPU
   if (src.device() >= 0) {
     if (peer_access(src.device())) {
       cudaMemcpyAsync(chunk_pointer(iChunk), src.pointer(),
@@ -667,7 +676,7 @@ template <typename data_t>
 void DeviceChunkContainer<data_t>::CopyOut(Chunk<data_t> &dest, uint_t iChunk) {
   uint_t size = 1ull << this->chunk_bits_;
 
-#ifdef AER_THRUST_CUDA
+#ifdef AER_THRUST_GPU
   if (dest.device() >= 0) {
     if (peer_access(dest.device())) {
       cudaMemcpyAsync(dest.pointer(), chunk_pointer(iChunk),
@@ -735,7 +744,7 @@ void DeviceChunkContainer<data_t>::Swap(Chunk<data_t> &src, uint_t iChunk,
     size = 1ull << this->chunk_bits_;
 
   set_device();
-#ifdef AER_THRUST_CUDA
+#ifdef AER_THRUST_GPU
   if (src.device() >= 0) {
     if (peer_access(src.device())) {
       this->Execute(BufferSwap_func<data_t>(chunk_pointer(iChunk) + dest_offset,
@@ -785,8 +794,8 @@ void DeviceChunkContainer<data_t>::Swap(Chunk<data_t> &src, uint_t iChunk,
 template <typename data_t>
 void DeviceChunkContainer<data_t>::Zero(uint_t iChunk, uint_t count) {
   set_device();
-#ifdef AER_THRUST_CUDA
-  thrust::fill_n(thrust::cuda::par.on(stream(iChunk)),
+#ifdef AER_THRUST_GPU
+  thrust::fill_n(thrust_gpu::par.on(stream(iChunk)),
                  data_.begin() + (iChunk << this->chunk_bits_), count, 0.0);
 #else
   if (this->omp_threads_ > 1)
@@ -810,15 +819,15 @@ reg_t DeviceChunkContainer<data_t>::sample_measure(
   strided_range<thrust::complex<data_t> *> iter(
       chunk_pointer(iChunk), chunk_pointer(iChunk + count), stride);
 
-#ifdef AER_THRUST_CUDA
+#ifdef AER_THRUST_GPU
 
   if (dot)
-    thrust::transform_inclusive_scan(thrust::cuda::par.on(stream(iChunk)),
+    thrust::transform_inclusive_scan(thrust_gpu::par.on(stream(iChunk)),
                                      iter.begin(), iter.end(), iter.begin(),
                                      complex_dot_scan<data_t>(),
                                      thrust::plus<thrust::complex<data_t>>());
   else
-    thrust::inclusive_scan(thrust::cuda::par.on(stream(iChunk)), iter.begin(),
+    thrust::inclusive_scan(thrust_gpu::par.on(stream(iChunk)), iter.begin(),
                            iter.end(), iter.begin(),
                            thrust::plus<thrust::complex<data_t>>());
 
@@ -847,7 +856,7 @@ reg_t DeviceChunkContainer<data_t>::sample_measure(
     cudaMemcpyAsync(pRnd, &rnds[i], nshots * sizeof(double),
                     cudaMemcpyHostToDevice, stream(iChunk));
 
-    thrust::lower_bound(thrust::cuda::par.on(stream(iChunk)), iter.begin(),
+    thrust::lower_bound(thrust_gpu::par.on(stream(iChunk)), iter.begin(),
                         iter.end(), rnd_dev_ptr, rnd_dev_ptr + nshots,
                         params_.begin() + (iBuf * params_buffer_size_),
                         complex_less<data_t>());
@@ -915,7 +924,7 @@ void DeviceChunkContainer<data_t>::set_blocked_qubits(uint_t iChunk,
   for (i = 0; i < qubits.size(); i++) {
     blocked_qubits_holder_[iBlock * QV_MAX_REGISTERS + i] = qubits_sorted[i];
   }
-#ifdef AER_THRUST_CUDA
+#ifdef AER_THRUST_GPU
   set_device();
   cudaMemcpyAsync(param_pointer(iChunk), (uint_t *)&qubits_sorted[0],
                   qubits.size() * sizeof(uint_t), cudaMemcpyHostToDevice,
@@ -992,7 +1001,7 @@ void DeviceChunkContainer<data_t>::queue_blocked_gate(
     apply_blocked_gates(iChunk);
   }
 
-#ifdef AER_THRUST_CUDA
+#ifdef AER_THRUST_GPU
   BlockedGateParams params;
 
   params.mask_ = mask;
@@ -1083,7 +1092,7 @@ void DeviceChunkContainer<data_t>::queue_blocked_gate(
 #endif
 }
 
-#ifdef AER_THRUST_CUDA
+#ifdef AER_THRUST_GPU
 
 template <typename data_t>
 __global__ void
@@ -1100,7 +1109,7 @@ dev_apply_register_blocked_gates(thrust::complex<data_t> *data, int num_gates,
   thrust::complex<double> *matrix_load;
 
   i = blockIdx.x * blockDim.x + threadIdx.x;
-  laneID = i & 31;
+  laneID = i & (_WS - 1);
 
   // index for this thread
   idx = 0;
@@ -1222,8 +1231,8 @@ dev_apply_shared_memory_blocked_gates(thrust::complex<data_t> *data,
       // warp shuffle to get pair amplitude
       qr = q.real();
       qi = q.imag();
-      qr = __shfl_sync(0xffffffff, qr, iPair & 31, 32);
-      qi = __shfl_sync(0xffffffff, qi, iPair & 31, 32);
+      qr = __shfl_sync(0xffffffff, qr, iPair & (_WS - 1), 32);
+      qi = __shfl_sync(0xffffffff, qi, iPair & (_WS - 1), 32);
       qp = thrust::complex<data_t>(qr, qi);
     } else {
       __syncthreads();
@@ -1298,7 +1307,7 @@ void DeviceChunkContainer<data_t>::apply_blocked_gates(uint_t iChunk) {
   if (num_blocked_gates_[iBlock] == 0)
     return;
 
-#ifdef AER_THRUST_CUDA
+#ifdef AER_THRUST_GPU
 
   uint_t size;
   uint_t *pQubits;
@@ -1351,7 +1360,7 @@ void DeviceChunkContainer<data_t>::apply_blocked_gates(uint_t iChunk) {
 template <typename data_t>
 void DeviceChunkContainer<data_t>::copy_to_probability_buffer(
     std::vector<double> &buf, int pos) {
-#ifdef AER_THRUST_CUDA
+#ifdef AER_THRUST_GPU
   set_device();
   cudaMemcpyAsync(probability_buffer(0) + pos * this->num_chunks_, &buf[0],
                   buf.size() * sizeof(double), cudaMemcpyHostToDevice,
