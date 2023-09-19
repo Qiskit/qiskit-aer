@@ -1,0 +1,9 @@
+---
+upgrade:
+  - |
+    Adding support of rotation gates (rx, ry and rz gates) to stabilizer method
+    when input theta is multiple of pi/2.
+    If ``method=automatic`` is specified (this is default), if all the input
+    theta of rotation gates are multiple of pi/2 ``method=stabilizer``
+    is selected. Of when user sets ``method=stabilizer`` and any of theta
+    is not multiple of pi/2, Aer raises an exception.
