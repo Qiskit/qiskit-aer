@@ -310,6 +310,12 @@ public:
   // If N=3 this implements an optimized CCRZ gate
   virtual void apply_mcrz(const reg_t &qubits, const double theta);
 
+  // Apply a general N-qubit multi-controlled SX-gate
+  // If N=1 this implements an optimized SX gate
+  // If N=2 this implements an optimized CSX gate
+  // If N=3 this implements an optimized CCSX gate
+  virtual void apply_mcsx(const reg_t &qubits);
+
   //-----------------------------------------------------------------------
   // Apply Non-Unitary Gates
   //-----------------------------------------------------------------------
@@ -439,7 +445,7 @@ private:
 };
 
 bool AerState::is_gpu(bool raise_error) const {
-#ifndef AER_THRUST_CUDA
+#ifndef AER_THRUST_GPU
   if (raise_error)
     throw std::runtime_error(
         "Simulation device \"GPU\" is not supported on this system");
@@ -1292,6 +1298,17 @@ void AerState::apply_mcrz(const reg_t &qubits, const double theta) {
   buffer_op(std::move(op));
 }
 
+void AerState::apply_mcsx(const reg_t &qubits) {
+  assert_initialized();
+
+  Operations::Op op;
+  op.type = Operations::OpType::gate;
+  op.qubits = qubits;
+  op.name = "mcsx";
+
+  buffer_op(std::move(op));
+}
+
 //-----------------------------------------------------------------------
 // Apply Non-Unitary Gates
 //-----------------------------------------------------------------------
@@ -1313,8 +1330,9 @@ uint_t AerState::apply_measure(const reg_t &qubits) {
 
   uint_t bitstring = 0;
   uint_t bit = 1;
+  uint_t mem_size = state_->creg().memory_size();
   for (const auto &qubit : qubits) {
-    if (state_->creg().creg_memory()[qubit] == '1')
+    if (state_->creg().creg_memory()[mem_size - qubit - 1] == '1')
       bitstring |= bit;
     bit <<= 1;
   }

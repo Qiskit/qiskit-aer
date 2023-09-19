@@ -1,0 +1,4 @@
+---
+fixes:
+  - |
+    This release fixes an issue in measurement function of stabilizer simulator
