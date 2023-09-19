@@ -19,7 +19,7 @@ from typing import Iterable
 
 import numpy as np
 
-from qiskit.circuit import QuantumCircuit, Instruction, QuantumRegister, Reset, Measure
+from qiskit.circuit import QuantumCircuit, Instruction, QuantumRegister, Reset
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.library.generalized_gates import PauliGate
 from qiskit.circuit.library.standard_gates import IGate, XGate, YGate, ZGate
@@ -361,9 +361,6 @@ class QuantumError(BaseOperator, TolerancesMixin):
             or ("probabilities" not in error)
         ):
             raise NoiseError("erorr dictionary not containing expected keys")
-        error_type = error["type"]
-        error_id = error["id"]
-        error_operations = error["operations"]
         error_instructions = error["instructions"]
         error_probabilities = error["probabilities"]
 
@@ -371,9 +368,7 @@ class QuantumError(BaseOperator, TolerancesMixin):
             raise NoiseError("probabilities not matching with instructions")
         # parse instructions and turn to noise_ops
         noise_ops = []
-        for idx in range(len(error_instructions)):
-            inst = error_instructions[idx]
-
+        for idx, inst in enumerate(error_instructions):
             noise_elem = []
             for elem in inst:
                 inst_name = elem["name"]
