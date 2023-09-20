@@ -13,6 +13,7 @@
  */
 #include "controllers/state_controller.hpp"
 #include <cmath>
+#include <stdio.h>
 
 // initialize and return state
 extern "C" {
@@ -22,10 +23,9 @@ void *aer_state() {
   return handler;
 };
 
-void *aer_state_initialize(void *handler) {
+void aer_state_initialize(void *handler) {
   AER::AerState *state = reinterpret_cast<AER::AerState *>(handler);
   state->initialize();
-  return handler;
 };
 
 // finalize state
@@ -51,8 +51,7 @@ uint_t aer_allocate_qubits(void *handler, uint_t num_qubits) {
 // measure qubits
 uint_t aer_apply_measure(void *handler, uint_t *qubits_, size_t num_qubits) {
   AER::AerState *state = reinterpret_cast<AER::AerState *>(handler);
-  std::vector<uint_t> qubits;
-  qubits.insert(qubits.end(), &(qubits_[0]), &(qubits[num_qubits - 1]));
+  std::vector<uint_t> qubits(qubits_, qubits_ + num_qubits);
   return state->apply_measure(qubits);
 };
 
@@ -75,6 +74,13 @@ complex_t *aer_release_statevector(void *handler) {
   AER::Vector<complex_t> sv = state->move_to_vector();
   return sv.move_to_buffer();
 };
+
+// u3 gate
+void aer_apply_u3(void *handler, uint_t qubit, double theta, double phi,
+                  double lambda) {
+  AER::AerState *state = reinterpret_cast<AER::AerState *>(handler);
+  state->apply_u(qubit, theta, phi, lambda);
+}
 
 // phase gate
 void aer_apply_p(void *handler, uint_t qubit, double lambda) {
@@ -133,7 +139,7 @@ void aer_apply_tdg(void *handler, uint_t qubit) {
 // sqrt(NOT) gate
 void aer_apply_sx(void *handler, uint_t qubit) {
   AER::AerState *state = reinterpret_cast<AER::AerState *>(handler);
-  state->apply_mcrx({qubit}, -M_PI / 4.0);
+  state->apply_mcsx({qubit});
 };
 
 // Rotation around X-axis

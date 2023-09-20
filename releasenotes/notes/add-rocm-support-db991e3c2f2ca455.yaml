@@ -1,0 +1,40 @@
+---
+features:
+  - |
+    ROCm support has been added matching the existing CUDA implementation based
+    on the ``thrust`` library. This enables Qiskit-Aer to run on AMD GPUs,
+    including the AMD Instinct GPU line based on the CDNA architecture. To build
+    the standalone version, the following should be sufficient::
+    
+        cmake <Qiskit-Aer source folder> -G Ninja \
+          -DCMAKE_INSTALL_PREFIX=<Qiskit-Aer target instalation folder> \
+          -DSKBUILD=FALSE \
+          -DAER_THRUST_BACKEND=ROCM \
+          -DAER_MPI=<set to ON or OFF depending on whether to activate MPI support> \
+          -DAER_ROCM_ARCH=<target AMD GPU list, white-space separated, e.g. 'gfx90a gfx908'> \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DBUILD_TESTS=True
+        ninja install
+    
+    Alternatively, and possibly preferred for most use cases, you can create a Python
+    wheel file that you can install as part of your Python environemnt::
+
+        cd <Qiskit-Aer source folder>
+       
+        QISKIT_AER_PACKAGE_NAME='qiskit-aer-gpu-rocm' \
+           python3 setup.py bdist_wheel -- \
+              -DAER_THRUST_BACKEND=ROCM \
+              -DAER_MPI=<set to ON or OFF depending on whether to activate MPI support> \
+              -DAER_ROCM_ARCH=<target AMD GPU list, white-space separated, e.g. 'gfx90a gfx908'>
+        
+        pip install --force-reinstall dist/qiskit_aer_gpu_rocm-*.whl
+    
+    In both cases, the host system needs to have a functional ROCm instalation and 
+    the environment variable ``ROCM_PATH`` set pointing to the ROCm instalation folder if
+    that is not the default ``/opt/rocm``.
+    Depending on how your Python environment is set, you might need to install
+    Qiskit-Aer's required development modules::
+    
+        cd <Qiskit-Aer source folder>
+        pip install -r requirements-dev.txt
+    

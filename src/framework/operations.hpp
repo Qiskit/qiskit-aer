@@ -61,6 +61,7 @@ enum class OpType {
   superop,
   roerror,
   noise_switch,
+  sample_noise,
   // Save instructions
   save_state,
   save_expval,
@@ -206,6 +207,9 @@ inline std::ostream &operator<<(std::ostream &stream, const OpType &type) {
     break;
   case OpType::qerror_loc:
     stream << "qerror_loc";
+    break;
+  case OpType::sample_noise:
+    stream << "sample_noise";
     break;
   case OpType::noise_switch:
     stream << "noise_switch";

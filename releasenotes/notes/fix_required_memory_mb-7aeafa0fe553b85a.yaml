@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    requried_memory_mb function for statevector returns wrong value when number
+    of qubits is very large because of overflow of 64 bits integer.
+    Now it returns SIZE_MAX value when number of qubits is too large so that
+    Qiskit Aer can know memory is not sufficient for
+    statvector/unitary/density matrix methods.

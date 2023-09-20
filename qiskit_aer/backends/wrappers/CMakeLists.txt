@@ -7,6 +7,11 @@ find_package(Pybind11 REQUIRED)
 # shared library.
 string(REPLACE " -static " "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
 
+set(AER_LIBRARIES
+	${AER_LIBRARIES}
+	${THRUST_DEPENDANT_LIBS}
+	${MPI_DEPENDANT_LIBS})
+
 if(CMAKE_HOST_SYSTEM_PROCESSOR STREQUAL "x86_64" OR CMAKE_HOST_SYSTEM_PROCESSOR STREQUAL "AMD64" OR CMAKE_HOST_SYSTEM_PROCESSOR STREQUAL "amd64")
     if (NOT CMAKE_OSX_ARCHITECTURES STREQUAL "arm64")
       # We build SIMD filed separately, because they will be reached only if the
@@ -33,6 +38,20 @@ if(AER_THRUST_BACKEND STREQUAL "CUDA")
     nvcc_add_compiler_options(${AER_COMPILER_FLAGS_STRIPPED} AER_COMPILER_FLAGS_OUT)
     set_target_properties(controller_wrappers PROPERTIES COMPILE_FLAGS "${AER_COMPILER_FLAGS_OUT}")
     enable_language(CUDA)
+elseif(AER_THRUST_BACKEND STREQUAL "ROCM")
+
+    if(NOT DEFINED SIMD_SOURCE_FILE)
+      message(FATAL_ERROR "ROCm supported target machines are expected to be SIMD-enabled.") 
+    endif()
+    
+    set_source_files_properties(
+      bindings.cc 
+      ${SIMD_SOURCE_FILE} 
+      PROPERTIES LANGUAGE CXX)
+    
+    target_compile_options(controller_wrappers PRIVATE ${ROCM_EXTRA_FLAGS} ${SIMD_FLAGS_LIST})
+    target_compile_definitions(controller_wrappers PRIVATE ${ROCM_EXTRA_DEFS} ${AER_COMPILER_DEFINITIONS})
+    set_target_properties(controller_wrappers PROPERTIES COMPILE_FLAGS "${AER_COMPILER_FLAGS}")
 else()
     if(DEFINED SIMD_SOURCE_FILE)
        string(REPLACE ";" " " SIMD_FLAGS "${SIMD_FLAGS_LIST}")

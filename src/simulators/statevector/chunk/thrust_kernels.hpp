@@ -21,6 +21,9 @@ DISABLE_WARNING_PUSH
 #include <cuda.h>
 #include <cuda_runtime.h>
 #endif
+#ifdef AER_THRUST_ROCM
+#include <hip/hip_runtime.h>
+#endif
 DISABLE_WARNING_POP
 
 #include "misc/wrap_thrust.hpp"
@@ -38,7 +41,7 @@ DISABLE_WARNING_POP
 
 #include "framework/utils.hpp"
 
-#ifdef AER_THRUST_CUDA
+#ifdef AER_THRUST_GPU
 #include "simulators/statevector/chunk/cuda_kernels.hpp"
 #endif
 
@@ -60,7 +63,7 @@ protected:
   uint_t *cregs_;
   uint_t num_creg_bits_;
   int_t conditional_bit_;
-#ifndef AER_THRUST_CUDA
+#ifndef AER_THRUST_GPU
   uint_t index_offset_;
 #endif
 public:
@@ -70,7 +73,7 @@ public:
     cregs_ = NULL;
     num_creg_bits_ = 0;
     conditional_bit_ = -1;
-#ifndef AER_THRUST_CUDA
+#ifndef AER_THRUST_GPU
     index_offset_ = 0;
 #endif
   }
@@ -86,7 +89,7 @@ public:
   }
   void set_conditional(int_t bit) { conditional_bit_ = bit; }
 
-#ifndef AER_THRUST_CUDA
+#ifndef AER_THRUST_GPU
   void set_index_offset(uint_t i) { index_offset_ = i; }
 #endif
 
@@ -407,12 +410,15 @@ template <typename data_t>
 class initialize_component_func : public GateFuncBase<data_t> {
 protected:
   int nqubits;
-  uint_t matSize;
+  uint_t offset;
+  uint_t mat_pos;
+  uint_t mat_num;
 
 public:
-  initialize_component_func(const cvector_t<double> &mat, const reg_t &qb) {
-    nqubits = qb.size();
-    matSize = 1ull << nqubits;
+  initialize_component_func(const int nq, const uint_t pos, const uint_t num) {
+    nqubits = nq;
+    mat_pos = pos;
+    mat_num = num;
   }
 
   int qubits_count(void) { return nqubits; }
@@ -445,56 +451,22 @@ public:
     idx += ii;
 
     q0 = vec[idx];
-    for (k = 0; k < matSize; k++) {
+    for (k = mat_pos; k < mat_pos + mat_num; k++) {
       ii = idx;
       for (j = 0; j < nqubits; j++) {
         if (((k >> j) & 1) != 0)
           ii += (1ull << qubits[j]);
       }
-      q = q0 * state[k];
+      if (ii == idx) {
+        if (mat_pos > 0)
+          continue;
+      }
+      q = q0 * state[k - mat_pos];
       vec[ii] = q;
     }
   }
 
   const char *name(void) { return "initialize_component"; }
-};
-
-template <typename data_t>
-class initialize_large_component_func : public GateFuncBase<data_t> {
-protected:
-  int num_qubits_;
-  uint_t mask_;
-  uint_t cmask_;
-  thrust::complex<double> init_;
-
-public:
-  initialize_large_component_func(thrust::complex<double> m,
-                                  const reg_t &qubits, int i) {
-    num_qubits_ = qubits.size();
-    init_ = m;
-
-    mask_ = 0;
-    cmask_ = 0;
-    for (int k = 0; k < num_qubits_; k++) {
-      mask_ |= (1ull << qubits[k]);
-
-      if (((i >> k) & 1) != 0) {
-        cmask_ |= (1ull << qubits[k]);
-      }
-    }
-  }
-  bool is_diagonal(void) { return true; }
-
-  __host__ __device__ void operator()(const uint_t &i) const {
-    thrust::complex<data_t> *vec;
-    thrust::complex<double> q;
-    vec = this->data_;
-    if ((i & mask_) == cmask_) {
-      q = vec[i];
-      vec[i] = init_ * q;
-    }
-  }
-  const char *name(void) { return "initialize_large_component"; }
 };
 
 //------------------------------------------------------------------------------
@@ -1371,7 +1343,7 @@ public:
     m0 = mat[0];
     m1 = mat[1];
 
-    mask = (1ull << qubits[nqubits - 1]) - 1;
+    mask = (1ull << qubits[nqubits - 1]);
     cmask = 0;
     for (i = 0; i < nqubits - 1; i++) {
       cmask |= (1ull << qubits[i]);

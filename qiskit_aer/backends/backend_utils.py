@@ -210,6 +210,10 @@ BASIS_GATES = {
             "swap",
             "delay",
             "pauli",
+            "ecr",
+            "rx",
+            "ry",
+            "rz",
         ]
     ),
     "extended_stabilizer": sorted(

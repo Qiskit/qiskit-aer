@@ -115,6 +115,12 @@ public:
   // Typically this is the n-qubit all |0> state
   virtual void initialize_qreg(uint_t num_qubits) = 0;
 
+  // validate parameters in input operations
+  virtual bool
+  validate_parameters(const std::vector<Operations::Op> &ops) const {
+    return true;
+  }
+
   //-----------------------------------------------------------------------
   // ClassicalRegister methods
   //-----------------------------------------------------------------------
@@ -225,6 +231,11 @@ public:
 
   // can apply density matrix (without statevector output required)
   virtual void enable_density_matrix(bool flg) {}
+
+  void set_num_global_qubits(uint_t qubits) { num_global_qubits_ = qubits; }
+
+  void enable_cuStateVec(bool flg) { cuStateVec_enable_ = flg; }
+
   //-----------------------------------------------------------------------
   // Common instructions
   //-----------------------------------------------------------------------
@@ -250,10 +261,20 @@ protected:
   int_t max_matrix_qubits_ = 0;
 
   std::string sim_device_name_ = "CPU";
+
+  uint_t num_global_qubits_; // used for chunk parallelization
+
+  bool cuStateVec_enable_ = false;
+
+  reg_t target_gpus_;
 };
 
 void Base::set_config(const Config &config) {
   sim_device_name_ = config.device;
+
+  if (config.target_gpus.has_value()) {
+    target_gpus_ = config.target_gpus.value();
+  }
 }
 
 std::vector<reg_t> Base::sample_measure(const reg_t &qubits, uint_t shots,

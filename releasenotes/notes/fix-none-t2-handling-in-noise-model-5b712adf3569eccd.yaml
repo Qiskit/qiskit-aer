@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Fixed a bug where :meth:`~.NoiseModel.from_backend` raises an error when
+    a backend reports no T2 value (while it reports T1 value) for a qubit,
+    which was an oversight in the previous fix on None handling:
+    `#1818 <https://github.com/Qiskit/qiskit-aer/issues/1818>`__.
+    Fixed `#1896 <https://github.com/Qiskit/qiskit-aer/issues/1896>`__.

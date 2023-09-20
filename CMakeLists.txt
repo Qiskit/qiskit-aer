@@ -11,8 +11,43 @@
 cmake_minimum_required(VERSION 3.8 FATAL_ERROR)
 file(STRINGS "qiskit_aer/VERSION.txt" VERSION_NUM)
 
+# For ROCm builds we need to make sure the CXX and HIP compilers match and are clang.
+# We should do this before the project() call to make sure the compiler options are
+# properly assessed.
+if(AER_THRUST_BACKEND STREQUAL "ROCM")
+
+  if(DEFINED ENV{ROCM_PATH})
+    set(ROCM_PATH "$ENV{ROCM_PATH}")
+  else()
+    set(ROCM_PATH "/opt/rocm")
+  endif()
+      
+  if(NOT DEFINED CMAKE_HIP_COMPILER)
+    if(DEFINED ENV{CMAKE_HIP_COMPILER})
+      set(CMAKE_HIP_COMPILER "$ENV{CMAKE_HIP_COMPILER}")
+    else()
+      set(CMAKE_HIP_COMPILER "${ROCM_PATH}/llvm/bin/clang++")
+    endif()
+  endif()
+  
+  if(NOT DEFINED CMAKE_CXX_COMPILER)
+    if(DEFINED ENV{CMAKE_CXX_COMPILER})
+      set(CMAKE_CXX_COMPILER "$ENV{CMAKE_CXX_COMPILER}")
+    else()
+      set(CMAKE_CXX_COMPILER "${CMAKE_HIP_COMPILER}")
+    endif()
+  endif()
+endif()
+
+# Add CUDA to the project if needed.
+set(EXTRA_LANGUAGES "")
+if(AER_THRUST_BACKEND STREQUAL "CUDA")
+  list(APPEND EXTRA_LANGUAGES CUDA)
+endif()
+
 include(CheckLanguage)
-project(qasm_simulator VERSION ${VERSION_NUM} LANGUAGES CXX C)
+project(qasm_simulator VERSION ${VERSION_NUM} LANGUAGES CXX C ${EXTRA_LANGUAGES} )
+
 
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
 list(APPEND CMAKE_PREFIX_PATH ${CMAKE_SOURCE_DIR}/cmake)
@@ -259,49 +294,102 @@ if(AER_THRUST_SUPPORTED)
 		set(CMAKE_CUDA_ARCHITECTURES "${AER_CUDA_ARCHITECTURES}")
 		message(STATUS "CMAKE_CUDA_ARCHITECTURES = ${CMAKE_CUDA_ARCHITECTURES}")
 
-		set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} ${AER_CUDA_ARCH_FLAGS_EXPAND} -DAER_THRUST_CUDA -I${AER_SIMULATOR_CPP_SRC_DIR} -isystem ${AER_SIMULATOR_CPP_SRC_DIR}/third-party/headers -use_fast_math --expt-extended-lambda")
+		if(NOT DEFINED AER_PYTHON_CUDA_ROOT AND DEFINED ENV{AER_PYTHON_CUDA_ROOT})
+			set(AER_PYTHON_CUDA_ROOT $ENV{AER_PYTHON_CUDA_ROOT})
+		endif()
+		if(NOT DEFINED AER_CIBUILD AND DEFINED ENV{AER_CIBUILD})
+			set(AER_CIBUILD $ENV{AER_CIBUILD})
+		endif()
+		if(AER_PYTHON_CUDA_ROOT)
+			find_package(Python)
+			if(AER_CIBUILD)
+				set(PYTHON_SITE_PATH ${AER_PYTHON_CUDA_ROOT}/cpython-${Python_VERSION_MAJOR}.${Python_VERSION_MINOR}.${Python_VERSION_PATCH}/lib/python${Python_VERSION_MAJOR}.${Python_VERSION_MINOR}/site-packages)
+				set(STR_ORIGIN "\$$ORIGIN")
+			else()
+				set(PYTHON_SITE_PATH ${AER_PYTHON_CUDA_ROOT}/lib/python${Python_VERSION_MAJOR}.${Python_VERSION_MINOR}/site-packages)
+				set(STR_ORIGIN "$ORIGIN")
+			endif()
 
-		set(AER_COMPILER_DEFINITIONS ${AER_COMPILER_DEFINITIONS} THRUST_DEVICE_SYSTEM=THRUST_DEVICE_SYSTEM_CUDA)
-		set(THRUST_DEPENDANT_LIBS "-L${CUDA_TOOLKIT_ROOT_DIR}/lib64")
-		if(NOT DEFINED CUQUANTUM_ROOT)
-			if(DEFINED ENV{CUQUANTUM_ROOT})
-				set(CUQUANTUM_ROOT $ENV{CUQUANTUM_ROOT})
-			endif()
-		endif()
-		if(NOT DEFINED CUTENSOR_ROOT)
-			if(DEFINED ENV{CUTENSOR_ROOT})
-				set(CUTENSOR_ROOT $ENV{CUTENSOR_ROOT})
-			endif()
-		endif()
-		if(NOT DEFINED AER_ENABLE_CUQUANTUM)
-			if(DEFINED ENV{AER_ENABLE_CUQUANTUM})
-				set(AER_ENABLE_CUQUANTUM $ENV{AER_ENABLE_CUQUANTUM})
-			endif()
-		endif()
+			message(STATUS "PYTHON_SITE_PATH = ${PYTHON_SITE_PATH}")
 
-		if(AER_ENABLE_CUQUANTUM)
+			set(AER_COMPILER_DEFINITIONS ${AER_COMPILER_DEFINITIONS} THRUST_DEVICE_SYSTEM=THRUST_DEVICE_SYSTEM_CUDA)
 			set(AER_COMPILER_DEFINITIONS ${AER_COMPILER_DEFINITIONS} AER_CUSTATEVEC AER_CUTENSORNET)
-			if(DEFINED CUQUANTUM_ROOT)
-				set(AER_COMPILER_FLAGS "${AER_COMPILER_FLAGS} -I${CUQUANTUM_ROOT}/include")
-				set(THRUST_DEPENDANT_LIBS "${THRUST_DEPENDANT_LIBS} -L${CUQUANTUM_ROOT}/lib/${CUDA_VERSION_MAJOR}")
-			endif()
-			if(DEFINED CUTENSOR_ROOT)
-				set(AER_COMPILER_FLAGS "${AER_COMPILER_FLAGS} -I${CUTENSOR_ROOT}/include")
-				set(THRUST_DEPENDANT_LIBS "${THRUST_DEPENDANT_LIBS} -L${CUTENSOR_ROOT}/lib/${CUDA_VERSION_MAJOR}")
-			endif()
-            if(CUQUANTUM_STATIC)
-				set(THRUST_DEPENDANT_LIBS "${THRUST_DEPENDANT_LIBS} -lcustatevec_static -lcutensornet_static  -lcutensor_static -lmetis_static -lcusolver_static -lcusparse_static -lcusolver_lapack_static -lcublas_static -lcublasLt_static -lculibos")
+
+			set(CUDA_USE_STATIC_CUDA_RUNTIME OFF CACHE INTERNAL "")
+			set(CMAKE_CUDA_RUNTIME_LIBRARY None)
+
+
+			set(CUDA_NVCC_FLAGS "${AER_CUDA_ARCH_FLAGS_EXPAND} -DAER_THRUST_GPU -DAER_THRUST_CUDA -I${AER_SIMULATOR_CPP_SRC_DIR} -isystem ${AER_SIMULATOR_CPP_SRC_DIR}/third-party/headers -use_fast_math --expt-extended-lambda")
+			set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -I${PYTHON_SITE_PATH}/cuquantum/include")
+			set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -I${PYTHON_SITE_PATH}/cutensor/include")
+			set(THRUST_DEPENDANT_LIBS "${THRUST_DEPENDANT_LIBS} -Wl,--disable-new-dtags")
+			set(THRUST_DEPENDANT_LIBS "${THRUST_DEPENDANT_LIBS} -Wl,-rpath,'${STR_ORIGIN}/../../nvidia/cublas/lib'")
+			set(THRUST_DEPENDANT_LIBS "${THRUST_DEPENDANT_LIBS} -Wl,-rpath,'${STR_ORIGIN}/../../nvidia/cusolver/lib'")
+			set(THRUST_DEPENDANT_LIBS "${THRUST_DEPENDANT_LIBS} -Wl,-rpath,'${STR_ORIGIN}/../../nvidia/cusparse/lib'")
+			set(THRUST_DEPENDANT_LIBS "${THRUST_DEPENDANT_LIBS} -Wl,-rpath,'${STR_ORIGIN}/../../nvidia/cuda_runtime/lib'")
+			set(THRUST_DEPENDANT_LIBS "${THRUST_DEPENDANT_LIBS} -Wl,-rpath,'${STR_ORIGIN}/../../cutensor/lib'")
+			set(THRUST_DEPENDANT_LIBS "${THRUST_DEPENDANT_LIBS} -Wl,-rpath,'${STR_ORIGIN}/../../cuquantum/lib'")
+			set(THRUST_DEPENDANT_LIBS "${THRUST_DEPENDANT_LIBS} -Wl,--no-as-needed,-l:libcusolver.so.11")
+			set(THRUST_DEPENDANT_LIBS "${THRUST_DEPENDANT_LIBS} -Wl,--no-as-needed,-l:libcusparse.so.${CUDA_VERSION_MAJOR}")
+			set(THRUST_DEPENDANT_LIBS "${THRUST_DEPENDANT_LIBS} -L${PYTHON_SITE_PATH}/cuquantum/lib")
+			set(THRUST_DEPENDANT_LIBS "${THRUST_DEPENDANT_LIBS} -Wl,--no-as-needed,-l:libcustatevec.so.1")
+			set(THRUST_DEPENDANT_LIBS "${THRUST_DEPENDANT_LIBS} -Wl,--no-as-needed,-l:libcutensornet.so.2")
+
+
+			if(CUDA_VERSION_MAJOR STREQUAL "11")
+				set(THRUST_DEPENDANT_LIBS "${THRUST_DEPENDANT_LIBS} -Wl,--no-as-needed,-l:libcudart.so.${CUDA_VERSION_MAJOR}.0")
 			else()
-				set(THRUST_DEPENDANT_LIBS "${THRUST_DEPENDANT_LIBS} -lcustatevec -lcutensornet -lcutensor")
+				set(THRUST_DEPENDANT_LIBS "${THRUST_DEPENDANT_LIBS} -Wl,--no-as-needed,-l:libcudart.so.${CUDA_VERSION_MAJOR},-as-needed")
 			endif()
-		elseif(CUSTATEVEC_ROOT)
-			#TODO this is remained for backward compatibility, use CUQUANTUM_ROOT instead
-			set(AER_COMPILER_DEFINITIONS ${AER_COMPILER_DEFINITIONS} AER_CUSTATEVEC)
-			set(AER_COMPILER_FLAGS "${AER_COMPILER_FLAGS} -I${CUSTATEVEC_ROOT}/include")
-            if(CUSTATEVEC_STATIC)
-				set(THRUST_DEPENDANT_LIBS "${THRUST_DEPENDANT_LIBS} -L${CUSTATEVEC_ROOT}/lib -L${CUSTATEVEC_ROOT}/lib/${CUDA_VERSION_MAJOR} -lcustatevec_static -lcusolver_static -lcusparse_static -lcusolver_lapack_static -lcublas_static -lcublasLt_static -lculibos")
-			else()
-				set(THRUST_DEPENDANT_LIBS "${THRUST_DEPENDANT_LIBS} -L${CUSTATEVEC_ROOT}/lib -L${CUSTATEVEC_ROOT}/lib/${CUDA_VERSION_MAJOR} -lcustatevec")
+			set(THRUST_DEPENDANT_LIBS "${THRUST_DEPENDANT_LIBS} -Wl,--as-needed")
+
+			string(STRIP ${CUDA_NVCC_FLAGS} CUDA_NVCC_FLAGS)
+			string(STRIP ${THRUST_DEPENDANT_LIBS} THRUST_DEPENDANT_LIBS)
+		else()
+			set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} ${AER_CUDA_ARCH_FLAGS_EXPAND} -DAER_THRUST_GPU -DAER_THRUST_CUDA -I${AER_SIMULATOR_CPP_SRC_DIR} -isystem ${AER_SIMULATOR_CPP_SRC_DIR}/third-party/headers -use_fast_math --expt-extended-lambda")
+
+			set(AER_COMPILER_DEFINITIONS ${AER_COMPILER_DEFINITIONS} THRUST_DEVICE_SYSTEM=THRUST_DEVICE_SYSTEM_CUDA)
+			set(THRUST_DEPENDANT_LIBS "-L${CUDA_TOOLKIT_ROOT_DIR}/lib64")
+			if(NOT DEFINED CUQUANTUM_ROOT)
+				if(DEFINED ENV{CUQUANTUM_ROOT})
+					set(CUQUANTUM_ROOT $ENV{CUQUANTUM_ROOT})
+				endif()
+			endif()
+			if(NOT DEFINED CUTENSOR_ROOT)
+				if(DEFINED ENV{CUTENSOR_ROOT})
+					set(CUTENSOR_ROOT $ENV{CUTENSOR_ROOT})
+				endif()
+			endif()
+			if(NOT DEFINED AER_ENABLE_CUQUANTUM)
+				if(DEFINED ENV{AER_ENABLE_CUQUANTUM})
+					set(AER_ENABLE_CUQUANTUM $ENV{AER_ENABLE_CUQUANTUM})
+				endif()
+			endif()
+
+			if(AER_ENABLE_CUQUANTUM)
+				set(AER_COMPILER_DEFINITIONS ${AER_COMPILER_DEFINITIONS} AER_CUSTATEVEC AER_CUTENSORNET)
+				if(DEFINED CUQUANTUM_ROOT)
+					set(AER_COMPILER_FLAGS "${AER_COMPILER_FLAGS} -I${CUQUANTUM_ROOT}/include")
+					set(THRUST_DEPENDANT_LIBS "${THRUST_DEPENDANT_LIBS} -L${CUQUANTUM_ROOT}/lib/${CUDA_VERSION_MAJOR}")
+				endif()
+				if(DEFINED CUTENSOR_ROOT)
+					set(AER_COMPILER_FLAGS "${AER_COMPILER_FLAGS} -I${CUTENSOR_ROOT}/include")
+					set(THRUST_DEPENDANT_LIBS "${THRUST_DEPENDANT_LIBS} -L${CUTENSOR_ROOT}/lib/${CUDA_VERSION_MAJOR}")
+				endif()
+       	     if(CUQUANTUM_STATIC)
+					set(THRUST_DEPENDANT_LIBS "${THRUST_DEPENDANT_LIBS} -lcustatevec_static -lcutensornet_static  -lcutensor_static -lmetis_static -lcusolver_static -lcusparse_static -lcusolver_lapack_static -lcublas_static -lcublasLt_static -lculibos")
+				else()
+					set(THRUST_DEPENDANT_LIBS "${THRUST_DEPENDANT_LIBS} -lcustatevec -lcutensornet -lcutensor")
+				endif()
+			elseif(CUSTATEVEC_ROOT)
+				#TODO this is remained for backward compatibility, use CUQUANTUM_ROOT instead
+				set(AER_COMPILER_DEFINITIONS ${AER_COMPILER_DEFINITIONS} AER_CUSTATEVEC)
+				set(AER_COMPILER_FLAGS "${AER_COMPILER_FLAGS} -I${CUSTATEVEC_ROOT}/include")
+        	    if(CUSTATEVEC_STATIC)
+					set(THRUST_DEPENDANT_LIBS "${THRUST_DEPENDANT_LIBS} -L${CUSTATEVEC_ROOT}/lib -L${CUSTATEVEC_ROOT}/lib/${CUDA_VERSION_MAJOR} -lcustatevec_static -lcusolver_static -lcusparse_static -lcusolver_lapack_static -lcublas_static -lcublasLt_static -lculibos")
+				else()
+					set(THRUST_DEPENDANT_LIBS "${THRUST_DEPENDANT_LIBS} -L${CUSTATEVEC_ROOT}/lib -L${CUSTATEVEC_ROOT}/lib/${CUDA_VERSION_MAJOR} -lcustatevec")
+				endif()
 			endif()
 		endif()
 	elseif(AER_THRUST_BACKEND STREQUAL "TBB")
@@ -316,6 +404,96 @@ if(AER_THRUST_SUPPORTED)
 		set(AER_COMPILER_DEFINITIONS ${AER_COMPILER_DEFINITIONS} AER_THRUST_CPU=TRUE)
 		# We don't need to add OMP because it's already an AER dependency
 		set(THRUST_DEPENDENT_LIBS "")
+	elseif(AER_THRUST_BACKEND STREQUAL "ROCM")
+    #
+    # Build with GPU support with ROCm
+    #
+    
+    # Assert that the C++ and compilers are Clang to enable ROCm builds.
+    if(NOT CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+      message(FATAL_ERROR 
+      "The compiler for ROCm builds must be Clang. Set CMAKE_CXX_COMPILER to <ROCm path>/llvm/bin/clang++")
+    endif()
+    
+    # GDB debug information is what is needed for runs enabled with ROCm.
+    set(CMAKE_CXX_FLAGS_DEBUG           "${CMAKE_CXX_FLAGS_DEBUG} -ggdb")
+    set(CMAKE_CXX_FLAGS_RELWITHDEBINFO  "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} -ggdb")
+    
+    # Leverage AER_ROCM_ARCH to specify the relevant targets and send the ROCm default ones to 
+    # the background by marking them as advanced. We need to set the architectures in advance 
+    # of attemting to find HIP to leverage the package machinery.
+    
+    string(REPLACE " " ";" AER_ROCM_ARCH_LIST ${AER_ROCM_ARCH})
+    set(GPU_TARGETS ${AER_ROCM_ARCH_LIST} CACHE INTERNAL "GPU targets to compile for")
+    set(AMDGPU_TARGETS ${AER_ROCM_ARCH_LIST} CACHE INTERNAL "AMD GPU targets to compile for")
+    set(CMAKE_HIP_ARCHITECTURES ${AER_ROCM_ARCH_LIST})
+    
+    mark_as_advanced(GPU_TARGETS)
+    mark_as_advanced(AMDGPU_TARGETS)
+    mark_as_advanced(CMAKE_HIP_ARCHITECTURES)
+    message(STATUS "ROCm build targeting GPU Architectures: ${GPU_TARGETS}")
+    
+    message(STATUS "ROCm assumed path: ${ROCM_PATH}")
+    list(APPEND CMAKE_PREFIX_PATH ${ROCM_PATH}/hip ${ROCM_PATH})
+    list(APPEND CMAKE_MODULE_PATH ${ROCM_PATH}/hip/cmake ${ROCM_PATH})
+    
+    include(CheckLanguage)
+    check_language(HIP)
+    
+    # Find HIP in config mode as the module mode may not provide the hip:: targets. We can use module mode
+    # if we had hip libraries as they invoke the config package.
+    find_package(HIP CONFIG)
+    if(HIP_FOUND)
+      message(STATUS "Found HIP: " ${HIP_VERSION})
+    else()
+      message(FATAL_ERROR "Could not find HIP.")
+    endif()
+
+    list(APPEND AER_LIBRARIES hip::device)
+    
+    # Add definitions so that dependencies are properly determined. 
+    # TODO: investigate the need for THRUST_DEVICE_SYSTEM=THRUST_DEVICE_SYSTEM_CUDA
+    list(APPEND ROCM_EXTRA_DEFS AER_THRUST_GPU AER_THRUST_ROCM THRUST_DEVICE_SYSTEM=THRUST_DEVICE_SYSTEM_HIP)
+    
+    # Add -D prefix to all defs as that is what ROCM_EXTRA_* expect to be set to.
+    list(TRANSFORM ROCM_EXTRA_DEFS PREPEND -D)
+    add_definitions(${ROCM_EXTRA_DEFS})
+    list(APPEND ROCM_EXTRA_FLAGS ${ROCM_EXTRA_DEFS})
+    list(APPEND ROCM_EXTRA_FLAGS -isystem${ROCM_PATH}/include; -I${AER_SIMULATOR_CPP_SRC_DIR} ; -isystem${AER_SIMULATOR_CPP_SRC_DIR}/third-party/headers; -ffast-math; -fPIC)
+
+    if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+      list(APPEND ROCM_EXTRA_FLAGS -O0)
+    else()
+      list(APPEND ROCM_EXTRA_FLAGS -O3)
+    endif()
+    
+    if(CMAKE_BUILD_TYPE STREQUAL "Debug" OR CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
+      list(APPEND ROCM_EXTRA_FLAGS -g; -ggdb)
+    endif()
+    
+    # Add some warning flags to allow existing code to go through with clang.
+    list(APPEND ROCM_EXTRA_FLAGS -ferror-limit=3
+                                 -Wno-unused-lambda-capture
+                                 -Wno-bitwise-instead-of-logical
+                                 -Wno-inconsistent-missing-override
+                                 -Wno-cast-align
+                                 -Wno-float-equal
+                                 -Wno-unused-variable
+                                 -Wno-unused-but-set-variable
+                                 -Wno-switch
+                                 -Wno-writable-strings
+                                 -Wno-shadow
+                                 -Wno-delete-non-abstract-non-virtual-dtor
+                                 -Wno-pessimizing-move
+                                 -Wno-return-type-c-linkage
+                                 -Wno-overloaded-virtual
+                                 -Wno-braced-scalar-init)
+    
+    
+    if(AER_ENABLE_CUQUANTUM)
+      message(WARNING "Implementation of cuQuantum is not available for ROCm builds.")
+    endif()
+	
 	else()
 		message(STATUS "No Thrust supported backend")
 		set(AER_THRUST_SUPPORTED FALSE)
@@ -359,16 +537,17 @@ set(AER_LIBRARIES
 	AER_DEPENDENCY_PKG::nlohmann_json
 	AER_DEPENDENCY_PKG::spdlog
 	Threads::Threads
-	${CMAKE_DL_LIBS}
-	${THRUST_DEPENDANT_LIBS}
-	${MPI_DEPENDANT_LIBS})
+	${CMAKE_DL_LIBS})
 
 set(AER_COMPILER_DEFINITIONS ${AER_COMPILER_DEFINITIONS} ${CONAN_DEFINES})
 if(SKBUILD) # Terra Addon build
 	set(AER_LIBRARIES ${AER_LIBRARIES} AER_DEPENDENCY_PKG::muparserx)
 	add_subdirectory(qiskit_aer/backends/wrappers)
-	add_subdirectory(src/open_pulse)
 else() # Standalone build
+	set(AER_LIBRARIES
+		${AER_LIBRARIES}
+		${THRUST_DEPENDANT_LIBS}
+		${MPI_DEPENDANT_LIBS})
 
 	function(build_cuda target src_file is_exec)
 		if(CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64" OR CMAKE_SYSTEM_PROCESSOR STREQUAL "AMD64" OR CMAKE_HOST_SYSTEM_PROCESSOR STREQUAL "amd64")
@@ -401,8 +580,36 @@ else() # Standalone build
 			LINK_FLAGS ${AER_LINKER_FLAGS}
 			RUNTIME_OUTPUT_DIRECTORY_DEBUG Debug
 			RUNTIME_OUTPUT_DIRECTORY_RELEASE Release)
-		enable_language(CUDA)
 	endfunction()
+	
+	function(build_rocm target src_file is_exec)
+  	# ROCm is only supported in x86_64 devices so it should be safe to leverage AVX2.
+    set(SIMD_SOURCE_FILE "${PROJECT_SOURCE_DIR}/src/simulators/statevector/qv_avx2.cpp")
+    
+    set_source_files_properties(
+      ${SIMD_SOURCE_FILE}
+      ${src_file}
+      PROPERTIES LANGUAGE CXX)
+    
+    if(${is_exec})
+      add_executable(${target} ${src_file} ${SIMD_SOURCE_FILE})
+    else()
+      add_library(${target} ${src_file} ${SIMD_SOURCE_FILE})
+    endif()
+    
+    target_compile_options(${target} PRIVATE ${ROCM_EXTRA_FLAGS} ${SIMD_FLAGS_LIST})
+    target_compile_definitions(${target} PRIVATE ${ROCM_EXTRA_DEFS} ${AER_COMPILER_DEFINITIONS})
+      
+    target_link_libraries(${target} PRIVATE ${AER_LIBRARIES})
+
+    set_target_properties(${target} PROPERTIES
+      LINKER_LANGUAGE CXX
+      CXX_STANDARD 14
+      COMPILE_FLAGS ${AER_COMPILER_FLAGS}
+      LINK_FLAGS ${AER_LINKER_FLAGS}
+      RUNTIME_OUTPUT_DIRECTORY_DEBUG Debug
+      RUNTIME_OUTPUT_DIRECTORY_RELEASE Release)
+  endfunction()
 
 	function(build_cpu target src_file is_exec)
 		if(CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64" OR CMAKE_SYSTEM_PROCESSOR STREQUAL "AMD64" OR CMAKE_HOST_SYSTEM_PROCESSOR STREQUAL "amd64")
@@ -446,17 +653,20 @@ else() # Standalone build
 	set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 	if(CUDA_FOUND AND AER_THRUST_BACKEND STREQUAL "CUDA")
 		build_cuda(qasm_simulator ${AER_SIMULATOR_SOURCE} TRUE)
+	elseif(HIP_FOUND AND AER_THRUST_BACKEND STREQUAL "ROCM")
+    build_rocm(qasm_simulator ${AER_SIMULATOR_SOURCE} TRUE)
 	else()
 		build_cpu(qasm_simulator ${AER_SIMULATOR_SOURCE} TRUE)
 	endif()
 
 	install(TARGETS qasm_simulator DESTINATION bin)
 
-	# build libaer.so (currently, Linux on x86 is supportted)
-	if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
+	if (CMAKE_SYSTEM_NAME STREQUAL "Linux" OR CMAKE_SYSTEM_NAME STREQUAL "Darwin")
 		set(AER_RUNTIME_SOURCE "${PROJECT_SOURCE_DIR}/contrib/runtime/aer_runtime.cpp")
 		if(CUDA_FOUND AND AER_THRUST_BACKEND STREQUAL "CUDA")
 			build_cuda(aer ${AER_RUNTIME_SOURCE} FALSE)
+		elseif(HIP_FOUND AND AER_THRUST_BACKEND STREQUAL "ROCM")
+      build_rocm(aer ${AER_RUNTIME_SOURCE} FALSE)
 		else()
 			build_cpu(aer ${AER_RUNTIME_SOURCE} FALSE)
 		endif()
@@ -466,7 +676,9 @@ else() # Standalone build
 		if(BUILD_TESTS AND NOT AER_MPI)
 			add_executable(test_libaer "${PROJECT_SOURCE_DIR}/test/runtime/runtime_sample.c")
 			target_include_directories(test_libaer PUBLIC "${PROJECT_SOURCE_DIR}/contrib/runtime/")
-			set_target_properties(test_libaer PROPERTIES RUNTIME_OUTPUT_DIRECTORY_RELEASE bin)
+      # AER_LINKER_FLAGS carry eventual OpenMP linking flags.
+			set_target_properties(test_libaer PROPERTIES RUNTIME_OUTPUT_DIRECTORY_RELEASE bin
+                                              		 LINK_FLAGS ${AER_LINKER_FLAGS})
 			target_link_libraries(test_libaer PRIVATE ${AER_LIBRARIES})
 			target_link_libraries(test_libaer PRIVATE aer)
 			add_test(NAME aer_runtime_test COMMAND bin/test_libaer)
