@@ -165,10 +165,10 @@ public:
     }
   }
 
-  void ResizeMatrixBuffers(int bits) {
+  void ResizeMatrixBuffers(int bits, int max_shots) {
     // synchronize all kernel execution before changing matrix buffer size
     chunk_container_.lock()->synchronize(chunk_pos_);
-    chunk_container_.lock()->ResizeMatrixBuffers(bits);
+    chunk_container_.lock()->ResizeMatrixBuffers(bits, max_shots);
   }
 
   void CopyIn(Chunk<data_t> &src) {

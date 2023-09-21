@@ -438,6 +438,8 @@ bool State<statevec_t>::allocate(uint_t num_qubits, uint_t block_bits,
                                  uint_t num_parallel_shots) {
   if (BaseState::max_matrix_qubits_ > 0)
     BaseState::qreg_.set_max_matrix_bits(BaseState::max_matrix_qubits_);
+  if (BaseState::max_sampling_shots_ > 0)
+    BaseState::qreg_.set_max_sampling_shots(BaseState::max_sampling_shots_);
 
   BaseState::qreg_.set_target_gpus(BaseState::target_gpus_);
   BaseState::qreg_.chunk_setup(block_bits, num_qubits, 0, 1);

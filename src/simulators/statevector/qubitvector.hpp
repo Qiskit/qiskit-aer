@@ -165,6 +165,7 @@ public:
   void release_recv_buffer(void) const;
 
   void set_max_matrix_bits(int_t bits) {}
+  void set_max_sampling_shots(int_t shots) {}
 
   void synchronize(void) {}
 

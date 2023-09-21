@@ -30,6 +30,9 @@ namespace AER {
 
 namespace CircuitExecutor {
 
+using OpItr = std::vector<Operations::Op>::const_iterator;
+using ResultItr = std::vector<ExperimentResult>::iterator;
+
 //-------------------------------------------------------------------------
 // batched-shots executor class implementation
 //-------------------------------------------------------------------------
@@ -89,6 +92,13 @@ protected:
   // batched expval Pauli
   void apply_batched_expval(const int_t istate, const Operations::Op &op,
                             ResultItr result);
+
+  // sample measure for runtime parameter binding
+  template <typename InputIterator>
+  void batched_measure_sampler(InputIterator first_meas,
+                               InputIterator last_meas, uint_t shots,
+                               uint_t i_group, ResultItr result,
+                               std::vector<RngEngine> &rng);
 };
 
 template <class state_t>
@@ -192,11 +202,25 @@ void BatchShotsExecutor<state_t>::run_circuit_with_sampling(
 #ifdef AER_MPI
   // if shots are distributed to MPI processes, allocate cregs to be gathered
   if (Base::num_process_per_experiment_ > 1)
-    Base::cregs_.resize(circ.num_bind_params);
+    Base::cregs_.resize(circ.num_bind_params * circ.shots);
 #endif
 
   auto first_meas = circ.first_measure_pos; // Position of first measurement op
   bool final_ops = (first_meas == circ.ops.size());
+
+  // adjust max_matrix_qubits_ so that all shots can be stored on GPU
+  if (circ.ops.begin() + first_meas != circ.ops.end())
+    Base::max_sampling_shots_ = circ.shots;
+
+  // use nested parallel if number of GPU is smaller than number of threads
+  if (Base::max_parallel_threads_ >= Base::num_groups_ * 2 &&
+      Base::num_groups_ > 1) {
+#if _OPENMP >= 200805
+    omp_set_max_active_levels(2);
+#else
+    omp_set_nested(1);
+#endif
+  }
 
   i_begin = 0;
   while (i_begin < Base::num_local_states_) {
@@ -252,20 +276,8 @@ void BatchShotsExecutor<state_t>::run_circuit_with_sampling(
           par_results[i].begin(), rng, final_ops);
 
       if (circ.ops.begin() + first_meas != circ.ops.end()) {
-        for (int_t j = 0; j < Base::num_states_in_group_[i]; j++) {
-          uint_t istate = Base::top_state_of_group_[i] + j;
-          uint_t iparam = Base::global_state_index_ + istate;
-          Base::states_[istate].qreg().enable_batch(false);
-          Executor<state_t>::measure_sampler(
-              circ.ops.begin() + first_meas, circ.ops.end(), circ.shots,
-              Base::states_[istate], par_results[i][iparam], rng[j],
-              (Base::num_process_per_experiment_ > 1));
-          Base::states_[istate].qreg().enable_batch(true);
-#ifdef AER_MPI
-          if (Base::num_process_per_experiment_ > 1)
-            Base::cregs_[iparam] = Base::states_[istate].creg();
-#endif
-        }
+        batched_measure_sampler(circ.ops.begin() + first_meas, circ.ops.end(),
+                                circ.shots, i, par_results[i].begin(), rng);
       }
     };
     Utils::apply_omp_parallel_for(
@@ -278,6 +290,7 @@ void BatchShotsExecutor<state_t>::run_circuit_with_sampling(
         (result_it + i)->metadata.add(true, "measure_sampling");
       }
     }
+
     Base::global_state_index_ += n_shots;
     i_begin += n_shots;
   }
@@ -287,9 +300,13 @@ void BatchShotsExecutor<state_t>::run_circuit_with_sampling(
   if (Base::num_process_per_experiment_ > 1) {
     Base::gather_creg_memory(Base::cregs_, Base::state_index_begin_);
 
-    for (i = 0; i < circ.num_bind_params; i++)
-      (result_it + i)
-          ->save_count_data(Base::cregs_[i], Base::save_creg_memory_);
+    for (i = 0; i < circ.num_bind_params; i++) {
+      for (j = 0; j < circ.shots; j++) {
+        (result_it + i)
+            ->save_count_data(Base::cregs_[i * circ.shots + j],
+                              Base::save_creg_memory_);
+      }
+    }
     Base::cregs_.clear();
   }
 #endif
@@ -711,6 +728,189 @@ void BatchShotsExecutor<state_t>::apply_batched_expval(const int_t istate,
     }
   }
 }
+
+template <class state_t>
+template <typename InputIterator>
+void BatchShotsExecutor<state_t>::batched_measure_sampler(
+    InputIterator first_meas, InputIterator last_meas, uint_t shots,
+    uint_t i_group, ResultItr result, std::vector<RngEngine> &rng) {
+  uint_t par_states = 1;
+  uint_t par_shots = 1;
+  if (Base::max_parallel_threads_ >= Base::num_groups_ * 2) {
+    par_states =
+        std::min((uint_t)(Base::max_parallel_threads_ / Base::num_groups_),
+                 Base::num_states_in_group_[i_group]);
+    par_shots =
+        std::min((uint_t)(Base::max_parallel_threads_ / Base::num_groups_),
+                 Base::num_states_in_group_[i_group] * shots);
+  }
+
+  // Check if meas_circ is empty, and if so return initial creg
+  if (first_meas == last_meas) {
+    if (Base::num_process_per_experiment_ > 1) {
+      for (int_t j = 0; j < Base::num_states_in_group_[i_group]; j++) {
+        uint_t is = Base::top_state_of_group_[i_group] + j;
+        uint_t ip = (Base::global_state_index_ + is);
+        for (int_t i = 0; i < shots; i++) {
+          Base::cregs_[ip * shots + i] = Base::states_[is].creg();
+        }
+      }
+    } else {
+      for (int_t j = 0; j < Base::num_states_in_group_[i_group]; j++) {
+        uint_t is = Base::top_state_of_group_[i_group] + j;
+        uint_t ip = (Base::global_state_index_ + is);
+        for (int_t i = 0; i < shots; i++) {
+          (result + ip)
+              ->save_count_data(Base::states_[is].creg(),
+                                Base::save_creg_memory_);
+        }
+      }
+    }
+    return;
+  }
+
+  std::vector<Operations::Op> meas_ops;
+  std::vector<Operations::Op> roerror_ops;
+  for (auto op = first_meas; op != last_meas; op++) {
+    if (op->type == Operations::OpType::roerror) {
+      roerror_ops.push_back(*op);
+    } else { /*(op.type == Operations::OpType::measure) */
+      meas_ops.push_back(*op);
+    }
+  }
+
+  // Get measured qubits from circuit sort and delete duplicates
+  std::vector<uint_t> meas_qubits; // measured qubits
+  for (const auto &op : meas_ops) {
+    for (size_t j = 0; j < op.qubits.size(); ++j)
+      meas_qubits.push_back(op.qubits[j]);
+  }
+  sort(meas_qubits.begin(), meas_qubits.end());
+  meas_qubits.erase(unique(meas_qubits.begin(), meas_qubits.end()),
+                    meas_qubits.end());
+
+  // Generate the samples
+  auto timer_start = myclock_t::now();
+  std::vector<reg_t> all_samples;
+  std::vector<double> rnd_shots(Base::num_states_in_group_[i_group] * shots);
+
+  auto make_random_proc = [this, shots, &rnd_shots, par_states, i_group,
+                           &rng](int_t i) {
+    uint_t i_state, state_end;
+    i_state = Base::num_states_in_group_[i_group] * i / par_states;
+    state_end = Base::num_states_in_group_[i_group] * (i + 1) / par_states;
+
+    for (; i_state < state_end; i_state++) {
+      for (int_t j = 0; j < shots; j++)
+        rnd_shots[i_state * shots + j] =
+            rng[i_state].rand(0, 1) + (double)i_state;
+    }
+  };
+  Utils::apply_omp_parallel_for((par_states > 1), 0, par_states,
+                                make_random_proc);
+
+  reg_t allbit_samples =
+      Base::states_[Base::top_state_of_group_[i_group]].qreg().sample_measure(
+          rnd_shots);
+
+  // Convert to reg_t format
+  uint_t mask = (1ull << Base::num_qubits_) - 1;
+  all_samples.resize(allbit_samples.size());
+
+  auto convert_samples_proc = [this, shots, mask, allbit_samples, &all_samples,
+                               meas_qubits, par_shots, i_group](int_t i) {
+    uint_t i_shot, shot_end;
+    i_shot = shots * Base::num_states_in_group_[i_group] * i / par_shots;
+    shot_end =
+        shots * Base::num_states_in_group_[i_group] * (i + 1) / par_shots;
+
+    for (; i_shot < shot_end; i_shot++) {
+      uint_t val = allbit_samples[i_shot] & mask;
+      reg_t allbit_sample = Utils::int2reg(val, 2, Base::num_qubits_);
+      all_samples[i_shot].reserve(meas_qubits.size());
+      for (uint_t qubit : meas_qubits) {
+        all_samples[i_shot].push_back(allbit_sample[qubit]);
+      }
+    }
+  };
+  Utils::apply_omp_parallel_for((par_shots > 1), 0, par_shots,
+                                convert_samples_proc);
+
+  auto time_taken =
+      std::chrono::duration<double>(myclock_t::now() - timer_start).count();
+
+  // Make qubit map of position in vector of measured qubits
+  std::unordered_map<uint_t, uint_t> qubit_map;
+  for (uint_t j = 0; j < meas_qubits.size(); ++j) {
+    qubit_map[meas_qubits[j]] = j;
+  }
+
+  // Maps of memory and register to qubit position
+  std::map<uint_t, uint_t> memory_map;
+  std::map<uint_t, uint_t> register_map;
+  for (const auto &op : meas_ops) {
+    for (size_t j = 0; j < op.qubits.size(); ++j) {
+      auto pos = qubit_map[op.qubits[j]];
+      if (!op.memory.empty())
+        memory_map[op.memory[j]] = pos;
+      if (!op.registers.empty())
+        register_map[op.registers[j]] = pos;
+    }
+  }
+
+  // Process samples
+  uint_t num_memory =
+      (memory_map.empty()) ? 0ULL : 1 + memory_map.rbegin()->first;
+  uint_t num_registers =
+      (register_map.empty()) ? 0ULL : 1 + register_map.rbegin()->first;
+
+  auto save_counts_proc = [this, shots, par_states, i_group, num_memory,
+                           num_registers, &result, all_samples, memory_map,
+                           time_taken, register_map, &rng,
+                           roerror_ops](int_t j) {
+    uint_t i_state, state_end;
+    i_state = Base::num_states_in_group_[i_group] * j / par_states;
+    state_end = Base::num_states_in_group_[i_group] * (j + 1) / par_states;
+
+    for (; i_state < state_end; i_state++) {
+      uint_t is = Base::top_state_of_group_[i_group] + i_state;
+      uint_t ip = (Base::global_state_index_ + is);
+
+      (result + ip)->metadata.add(time_taken, "sample_measure_time");
+
+      for (int_t i = 0; i < shots; i++) {
+        ClassicalRegister creg;
+        creg.initialize(num_memory, num_registers);
+
+        // process memory bit measurements
+        for (const auto &pair : memory_map) {
+          creg.store_measure(
+              reg_t({all_samples[i_state * shots + i][pair.second]}),
+              reg_t({pair.first}), reg_t());
+        }
+        // process register bit measurements
+        for (const auto &pair : register_map) {
+          creg.store_measure(
+              reg_t({all_samples[i_state * shots + i][pair.second]}), reg_t(),
+              reg_t({pair.first}));
+        }
+
+        // process read out errors for memory and registers
+        for (const Operations::Op &roerror : roerror_ops)
+          creg.apply_roerror(roerror, rng[i_state]);
+
+        // Save count data
+        if (Base::num_process_per_experiment_ > 1)
+          Base::cregs_[ip * shots + i] = creg;
+        else
+          (result + ip)->save_count_data(creg, Base::save_creg_memory_);
+      }
+    }
+  };
+  Utils::apply_omp_parallel_for((par_states > 1), 0, par_states,
+                                save_counts_proc);
+}
+
 //-------------------------------------------------------------------------
 } // end namespace CircuitExecutor
 //-------------------------------------------------------------------------

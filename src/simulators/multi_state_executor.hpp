@@ -63,7 +63,8 @@ protected:
   uint_t num_max_shots_ =
       1; // max number of shots can be stored on available memory
 
-  int max_matrix_qubits_; // max qubits for matrix
+  int max_matrix_qubits_ = 0;  // max qubits for matrix
+  int max_sampling_shots_ = 0; // max shots for sampling
 
   // shot branching
   bool shot_branching_enable_ = true;

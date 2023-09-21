@@ -749,6 +749,9 @@ void Executor<state_t>::run_circuit_with_sampling(Circuit &circ,
 
       state.set_distribution(1);
       state.set_max_matrix_qubits(max_bits);
+      if (circ.ops.begin() + first_meas != circ.ops.end()) {
+        state.set_max_sampling_shots(circ.shots);
+      }
 
       if (circ.global_phase_for_params.size() == circ.num_bind_params)
         state.set_global_phase(circ.global_phase_for_params[iparam]);

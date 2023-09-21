@@ -172,7 +172,7 @@ public:
                           uint_t chunks, uint_t buffers = AER_MAX_BUFFERS,
                           bool multi_shots = false,
                           int matrix_bit = AER_DEFAULT_MATRIX_BITS,
-                          bool density_matrix = false) = 0;
+                          int max_shots = 0, bool density_matrix = false) = 0;
   virtual void Deallocate(void) = 0;
 
   virtual void Set(uint_t i, const thrust::complex<data_t> &t) = 0;
@@ -184,7 +184,7 @@ public:
                            uint_t size) const = 0;
   virtual void StoreUintParams(const std::vector<uint_t> &prm,
                                uint_t iChunk) const = 0;
-  virtual void ResizeMatrixBuffers(int bits) = 0;
+  virtual void ResizeMatrixBuffers(int bits, int max_shots) = 0;
 
   virtual void CopyIn(Chunk<data_t> &src, uint_t iChunk) = 0;
   virtual void CopyOut(Chunk<data_t> &dest, uint_t iChunk) = 0;

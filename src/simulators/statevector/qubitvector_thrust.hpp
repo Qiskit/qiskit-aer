@@ -164,6 +164,7 @@ public:
   void release_recv_buffer(void) const;
 
   void set_max_matrix_bits(int_t bits);
+  void set_max_sampling_shots(int_t shots);
 
   void synchronize(void) { chunk_.synchronize(); }
 
@@ -495,6 +496,7 @@ protected:
   uint_t num_cmem_bits_ = 0;
 
   int_t max_matrix_bits_ = 0;
+  int_t max_sampling_shots_ = 0;
 
   //-----------------------------------------------------------------------
   // Config settings
@@ -884,8 +886,8 @@ uint_t QubitVectorThrust<data_t>::chunk_setup(int chunk_bits, int num_qubits,
     chunk_manager_->set_num_creg_bits(num_creg_bits_ + num_cmem_bits_);
     num_chunks_allocated = chunk_manager_->Allocate(
         chunk_bits, num_qubits, num_local_chunks, chunk_index_,
-        max_matrix_bits_, is_density_matrix(), target_gpus_,
-        cuStateVec_enable_);
+        max_matrix_bits_, max_sampling_shots_, is_density_matrix(),
+        target_gpus_, cuStateVec_enable_);
   }
 
   multi_chunk_distribution_ = false;
@@ -941,6 +943,12 @@ void QubitVectorThrust<data_t>::set_max_matrix_bits(int_t bits) {
     max_matrix_bits_ = bits;
   }
 }
+
+template <typename data_t>
+void QubitVectorThrust<data_t>::set_max_sampling_shots(int_t shots) {
+  max_sampling_shots_ = shots;
+}
+
 template <typename data_t>
 void QubitVectorThrust<data_t>::set_num_qubits(size_t num_qubits) {
   num_qubits_ = num_qubits;

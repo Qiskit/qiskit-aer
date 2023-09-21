@@ -34,6 +34,9 @@ namespace Chunk {
 // reserve 512MB of memory for Thrust internal use
 #define RESERVE_FOR_THRUST (1ull << 28)
 
+// max storage reserved for sampling measure
+#define AER_MAX_SAMPLING_SHOTS 1024
+
 //============================================================================
 // device chunk container class
 //============================================================================
@@ -112,7 +115,7 @@ public:
 
   uint_t Allocate(int idev, int chunk_bits, int num_qubits, uint_t chunks,
                   uint_t buffers, bool multi_shots, int matrix_bit,
-                  bool density_matrix) override;
+                  int max_shots, bool density_matrix) override;
   void Deallocate(void) override;
 
   void StoreMatrix(const std::vector<std::complex<double>> &mat,
@@ -121,9 +124,9 @@ public:
                    uint_t size) const override;
   void StoreUintParams(const std::vector<uint_t> &prm,
                        uint_t iChunk) const override;
-  void ResizeMatrixBuffers(int bits) override;
+  void ResizeMatrixBuffers(int bits, int max_shots) override;
 
-  void calculate_matrix_buffer_size(int bits);
+  void calculate_matrix_buffer_size(int bits, int shots);
 
   void set_device(void) const {
 #ifdef AER_THRUST_GPU
@@ -317,7 +320,7 @@ template <typename data_t>
 uint_t DeviceChunkContainer<data_t>::Allocate(int idev, int chunk_bits,
                                               int num_qubits, uint_t chunks,
                                               uint_t buffers, bool multi_shots,
-                                              int matrix_bit,
+                                              int matrix_bit, int max_shots,
                                               bool density_matrix) {
   uint_t nc = chunks;
   uint_t i;
@@ -370,7 +373,7 @@ uint_t DeviceChunkContainer<data_t>::Allocate(int idev, int chunk_bits,
   matrix_buffer_size_ = 0;
   params_buffer_size_ = 0;
   max_blocked_gates_ = QV_MAX_BLOCKED_GATES;
-  calculate_matrix_buffer_size(matrix_bit);
+  calculate_matrix_buffer_size(matrix_bit, max_shots);
 
   reduce_buffer_size_ = 2;
 
@@ -405,7 +408,7 @@ uint_t DeviceChunkContainer<data_t>::Allocate(int idev, int chunk_bits,
   }
 
 #endif
-  ResizeMatrixBuffers(matrix_bit);
+  ResizeMatrixBuffers(matrix_bit, max_shots);
 
   this->num_chunks_ = nc;
   data_.resize((nc + buffers) << chunk_bits);
@@ -505,12 +508,23 @@ void DeviceChunkContainer<data_t>::Deallocate(void) {
 }
 
 template <typename data_t>
-void DeviceChunkContainer<data_t>::calculate_matrix_buffer_size(int bits) {
+void DeviceChunkContainer<data_t>::calculate_matrix_buffer_size(int bits,
+                                                                int shots) {
   uint_t size;
 
   // matrix buffer size
   this->matrix_bits_ = bits;
-  size = 1ull << (bits * 2);
+  // adjust matrix_bits_ so that all shots can be stored on GPU
+  if (shots > 1) {
+    if (shots > AER_MAX_SAMPLING_SHOTS)
+      shots = AER_MAX_SAMPLING_SHOTS;
+    uint_t b = this->matrix_bits_;
+    while ((1ull << (b * 2)) < shots) {
+      b++;
+    }
+    this->matrix_bits_ = b;
+  }
+  size = 1ull << (this->matrix_bits_ * 2);
 
   if (max_blocked_gates_ * 4 > size) {
     size = max_blocked_gates_ * 4;
@@ -530,15 +544,20 @@ void DeviceChunkContainer<data_t>::calculate_matrix_buffer_size(int bits) {
     size = QV_MAX_REGISTERS + max_blocked_gates_ * 4;
   }
   params_buffer_size_ = size;
+
+  if (shots > 1 && params_buffer_size_ < shots) {
+    params_buffer_size_ = shots;
+  }
 }
 
 template <typename data_t>
-void DeviceChunkContainer<data_t>::ResizeMatrixBuffers(int bits) {
+void DeviceChunkContainer<data_t>::ResizeMatrixBuffers(int bits,
+                                                       int max_shots) {
   uint_t size;
   uint_t n = num_matrices_ + this->num_buffers_;
 
   if (bits != this->matrix_bits_) {
-    calculate_matrix_buffer_size(bits);
+    calculate_matrix_buffer_size(bits, max_shots);
   }
 
   if (matrix_.size() < n * matrix_buffer_size_)
@@ -835,7 +854,7 @@ reg_t DeviceChunkContainer<data_t>::sample_measure(
 
   uint_t i, nshots, size;
   uint_t iBuf = 0;
-  if (multi_shots_) {
+  if (multi_shots_ && count == 1) {
     iBuf = iChunk;
     size = matrix_buffer_size_ * 2;
     if (size > params_buffer_size_)

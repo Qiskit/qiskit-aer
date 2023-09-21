@@ -342,6 +342,7 @@ bool ParallelStateExecutor<state_t>::allocate_states(uint_t num_states,
     // allocate qregs
     Base::states_[0].set_config(config);
     Base::states_[0].qreg().set_max_matrix_bits(Base::max_matrix_qubits_);
+    Base::states_[0].qreg().set_max_sampling_shots(Base::max_sampling_shots_);
     Base::states_[0].qreg().set_num_threads_per_group(
         Base::num_threads_per_group_);
     Base::states_[0].set_num_global_qubits(Base::num_qubits_);

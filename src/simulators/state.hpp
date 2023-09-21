@@ -211,6 +211,9 @@ public:
   // set maximum number of qubits for matrix multiplication
   virtual void set_max_matrix_qubits(int_t bits) { max_matrix_qubits_ = bits; }
 
+  // set max sampling shots
+  void set_max_sampling_shots(int_t shots) { max_sampling_shots_ = shots; }
+
   // set max number of shots to execute in a batch (used in StateChunk class)
   virtual void set_max_bached_shots(uint_t shots) {}
 
@@ -253,6 +256,7 @@ protected:
   complex_t global_phase_ = 1;
 
   int_t max_matrix_qubits_ = 0;
+  int_t max_sampling_shots_ = 0;
 
   std::string sim_device_name_ = "CPU";
 
