@@ -301,7 +301,7 @@ void BatchShotsExecutor<state_t>::run_circuit_with_sampling(
     Base::gather_creg_memory(Base::cregs_, Base::state_index_begin_);
 
     for (i = 0; i < circ.num_bind_params; i++) {
-      for (j = 0; j < circ.shots; j++) {
+      for (int_t j = 0; j < circ.shots; j++) {
         (result_it + i)
             ->save_count_data(Base::cregs_[i * circ.shots + j],
                               Base::save_creg_memory_);
