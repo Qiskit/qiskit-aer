@@ -115,6 +115,12 @@ public:
   // Typically this is the n-qubit all |0> state
   virtual void initialize_qreg(uint_t num_qubits) = 0;
 
+  // validate parameters in input operations
+  virtual bool
+  validate_parameters(const std::vector<Operations::Op> &ops) const {
+    return true;
+  }
+
   //-----------------------------------------------------------------------
   // ClassicalRegister methods
   //-----------------------------------------------------------------------

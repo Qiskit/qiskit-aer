@@ -1105,11 +1105,18 @@ bool Executor<state_t>::validate_state(const Config &config,
 
   JSON::get_value(circ_name, "name", circ.header);
 
+  state.set_config(config);
   // Check if a circuit is valid for state ops
   bool circ_valid = state.opset().contains(circ.opset());
   if (throw_except && !circ_valid) {
     error_msg << "Circuit " << circ_name << " contains invalid instructions ";
     error_msg << state.opset().difference(circ.opset());
+    error_msg << " for \"" << state.name() << "\" method.";
+  }
+  // check parameters set inf ops
+  circ_valid &= state.validate_parameters(circ.ops);
+  if (throw_except && !circ_valid) {
+    error_msg << "Circuit " << circ_name << " contains invalid parameters ";
     error_msg << " for \"" << state.name() << "\" method.";
   }
 
@@ -1124,8 +1131,8 @@ bool Executor<state_t>::validate_state(const Config &config,
   // Validate memory requirements
   bool memory_valid = true;
   if (max_memory_mb_ > 0) {
-    size_t required_mb =
-        required_memory_mb(config, circ, noise) / num_process_per_experiment_;
+    size_t required_mb = state.required_memory_mb(circ.num_qubits, circ.ops) /
+                         num_process_per_experiment_;
     size_t mem_size = (sim_device_ == Device::GPU)
                           ? max_memory_mb_ + max_gpu_memory_mb_
                           : max_memory_mb_;
