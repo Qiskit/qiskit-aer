@@ -443,7 +443,7 @@ def available_methods(controller, methods, devices):
     """Check available simulation methods by running a dummy circuit."""
     # Test methods are available using the controller
     dummy_circ = QuantumCircuit(1)
-    dummy_circ.i(0)
+    dummy_circ.id(0)
 
     valid_methods = []
     for device in devices:
@@ -462,7 +462,7 @@ def available_devices(controller, devices):
     """Check available simulation devices by running a dummy circuit."""
     # Test methods are available using the controller
     dummy_circ = QuantumCircuit(1)
-    dummy_circ.i(0)
+    dummy_circ.id(0)
 
     valid_devices = []
     for device in devices:

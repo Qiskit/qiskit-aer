@@ -275,7 +275,7 @@ def save_expval_circuit_parameterized(
     circuit.u(0, 0, 0, 1)
     circuit.cu(0, 0, 0, 0, 0, 1)
     circuit.u(0, 0, 0, 1)
-    circuit.i(0)
+    circuit.id(0)
     if snapshot:
         for label, (params, qubits) in save_expval_params(pauli=True).items():
             circuit.save_expectation_value(
