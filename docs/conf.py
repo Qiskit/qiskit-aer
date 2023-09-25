@@ -138,18 +138,12 @@ modindex_common_prefix = ['qiskit_aer.']
 # a list of builtin themes.
 #
 
-html_theme = "qiskit_sphinx_theme"
+html_theme = "qiskit-ecosystem"
+html_title = f"{project} {release}"
 
-html_logo = 'images/logo.png'
+#html_logo = 'images/logo.png'
 #html_sidebars = {'**': ['globaltoc.html']}
 html_last_updated_fmt = '%Y/%m/%d'
-
-html_theme_options = {
-    'logo_only': True,
-    'display_version': True,
-    'prev_next_buttons_location': 'bottom',
-    'style_external_links': True,
-}
 
 autoclass_content = 'both'
 intersphinx_mapping = {
