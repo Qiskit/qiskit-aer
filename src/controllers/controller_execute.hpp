@@ -83,6 +83,8 @@ Result controller_execute(std::vector<std::shared_ptr<Circuit>> &input_circs,
   std::vector<std::shared_ptr<Circuit>> circs;
   std::vector<std::shared_ptr<Circuit>> template_circs;
 
+  using myclock_t = std::chrono::high_resolution_clock;
+  auto timer_start = myclock_t::now();
   try {
     // Load circuits
     for (size_t i = 0; i < num_circs; i++) {
@@ -98,7 +100,7 @@ Result controller_execute(std::vector<std::shared_ptr<Circuit>> &input_circs,
         circ->set_params(false);
         circ->set_metadata(config, truncate);
         // Load different parameterizations of the initial circuit
-        const auto circ_params = param_table[i];
+        const auto &circ_params = param_table[i];
         const size_t num_params = circ_params[0].second.size();
         const size_t num_instr = circ->ops.size();
 
@@ -224,6 +226,8 @@ Result controller_execute(std::vector<std::shared_ptr<Circuit>> &input_circs,
       seed_shift += 2113;
     }
   }
+  auto time_taken =
+      std::chrono::duration<double>(myclock_t::now() - timer_start).count();
 
   // Fix for MacOS and OpenMP library double initialization crash.
   // Issue: https://github.com/Qiskit/qiskit-aer/issues/1
@@ -233,6 +237,7 @@ Result controller_execute(std::vector<std::shared_ptr<Circuit>> &input_circs,
 
   for (size_t i = 0; i < ret.results.size(); ++i)
     ret.results[i].circ_id = template_circs[i]->circ_id;
+  ret.metadata.add(time_taken, "time_taken_parameter_binding");
 
   return ret;
 }
