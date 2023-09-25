@@ -736,7 +736,7 @@ void BatchShotsExecutor<state_t>::batched_measure_sampler(
   if (first_meas == last_meas) {
     if (Base::num_process_per_experiment_ > 1) {
       auto save_results_to_creg_proc = [this, shots, par_states, i_group,
-                               &result](int_t i) {
+                                        &result](int_t i) {
         uint_t i_state, state_end;
         i_state = Base::num_states_in_group_[i_group] * i / par_states;
         state_end = Base::num_states_in_group_[i_group] * (i + 1) / par_states;
@@ -753,7 +753,7 @@ void BatchShotsExecutor<state_t>::batched_measure_sampler(
                                     save_results_to_creg_proc, par_states);
     } else {
       auto save_results_proc = [this, shots, par_states, i_group,
-                               &result](int_t i) {
+                                &result](int_t i) {
         uint_t i_state, state_end;
         i_state = Base::num_states_in_group_[i_group] * i / par_states;
         state_end = Base::num_states_in_group_[i_group] * (i + 1) / par_states;
@@ -826,7 +826,7 @@ void BatchShotsExecutor<state_t>::batched_measure_sampler(
     for (; i_state < state_end; i_state++) {
       for (int_t j = 0; j < shots; j++)
         rnd_shots[i_state * shots + j] =
-            rng[i_state].rand(0,1) + (double)i_state;
+            rng[i_state].rand(0, 1) + (double)i_state;
     }
   };
   Utils::apply_omp_parallel_for((par_states > 1), 0, par_states,
