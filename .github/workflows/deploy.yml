@@ -1,127 +1,112 @@
 name: Deploy
 on:
+  workflow_dispatch:
+  pull_request:
   push:
-    tags:
-      - '*'
+    branches:
+      - master
+  release:
+    types:
+      - published
+
+env:
+  FORCE_COLOR: 3
+
 jobs:
-  wheel-build:
-    name: Build qiskit-aer wheels
-    strategy:
-      matrix:
-        os: ["macOS-latest", "ubuntu-latest", "windows-2019"]
-    runs-on: ${{ matrix.os }}
-    steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-python@v2
-        name: Install Python
-        with:
-          python-version: '3.8'
-      - name: Install cibuildwheel
-        run: |
-          python -m pip install cibuildwheel==2.11.2
-      - name: Build wheels
-        env:
-          AER_CMAKE_OPENMP_BUILD: 1
-        run: python -m cibuildwheel --output-dir wheelhouse
-      - uses: actions/upload-artifact@v2
-        with:
-          path: ./wheelhouse/*.whl
-      - name: Publish Wheels
-        env:
-          TWINE_PASSWORD: ${{ secrets.TWINE_PASSWORD }}
-          TWINE_USERNAME: qiskit
-        run : |
-          pip install -U twine
-          twine upload wheelhouse/*
-  build_wheels_aarch64:
-    name: Build wheels on ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest]
-    steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-python@v2
-        name: Install Python
-        with:
-          python-version: '3.8'
-      - uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v1
-        with:
-          platforms: all
-      - name: Install cibuildwheel
-        run: |
-          python -m pip install cibuildwheel==2.11.2 twine
-      - name: Build wheels
-        run: |
-          python -m cibuildwheel --output-dir wheelhouse
-        env:
-          CIBW_BEFORE_ALL_LINUX: "yum install -y https://dl.fedoraproject.org/pub/epel/7/aarch64/Packages/e/epel-release-7-12.noarch.rpm && yum install -y openblas-devel"
-          CIBW_ARCHS_LINUX: aarch64
-      - uses: actions/upload-artifact@v2
-        with:
-          path: ./wheelhouse/*.whl
-      - name: Upload to PyPI
-        run: twine upload ./wheelhouse/*.whl
-        env:
-          TWINE_PASSWORD: ${{ secrets.TWINE_PASSWORD }}
-          TWINE_USERNAME: qiskit
-  wheel-arm64-macos:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: ["macOS-latest"]
-    steps:
-      - uses: actions/checkout@v2
-      - name: Set up Python Python 3.8
-        uses: actions/setup-python@v2
-        with:
-          python-version: 3.8
-      - name: Install deps
-        run: python -m pip install -U cibuildwheel==2.11.2 twine
-      - name: Build Wheels
-        env:
-          CIBW_ARCHS_MACOS: arm64
-        run: cibuildwheel --output-dir wheelhouse
-      - uses: actions/upload-artifact@v2
-        with:
-          path: ./wheelhouse/*.whl
-      - name: Upload to PyPI
-        run: twine upload ./wheelhouse/*.whl
-        env:
-          TWINE_PASSWORD: ${{ secrets.TWINE_PASSWORD }}
-          TWINE_USERNAME: qiskit
-  sdist:
-    name: Publish qiskit-aer sdist
+  build-sdist:
+    name: Build SDist
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-python@v2
-        name: Install Python
+      - uses: actions/checkout@v4
+
+      - name: Build SDist
+        run: pipx run build --sdist
+
+      - name: Check metadata
+        run: pipx run twine check dist/*
+
+      - uses: actions/upload-artifact@v3
         with:
-          python-version: '3.8'
-      - name: Install Deps
-        run: pip install -U twine wheel
-      - name: Build Artifacts
+          path: dist/*.tar.gz
+
+  generate-wheels-matrix:
+    name: Generate wheels matrix
+    runs-on: ubuntu-latest
+    outputs:
+      include: ${{ steps.set-matrix.outputs.include }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install cibuildwheel
+        run: pipx install cibuildwheel==2.16.0
+      - id: set-matrix
         run: |
-          python setup.py sdist
+          MATRIX=$(
+            {
+              cibuildwheel --print-build-identifiers --platform linux \
+              | jq -nRc '{"only": inputs, "os": "ubuntu-latest"}' \
+              && cibuildwheel --print-build-identifiers --platform macos \
+              | jq -nRc '{"only": inputs, "os": "macos-latest"}' \
+              && cibuildwheel --print-build-identifiers --platform windows \
+              | jq -nRc '{"only": inputs, "os": "windows-2019"}'
+            } | jq -sc )
+          echo "MATRIX IS $MATRIX"
+          echo "include=$MATRIX" >> $GITHUB_OUTPUT          
+    env:
+      CIBW_ARCHS_LINUX: x86_64 aarch64 s390x ppc64le i686
+      CIBW_ARCHS_MACOS: x86_64 arm64
+      CIBW_ARCHS_WINDOWS: x86 AMD64
+
+  build-wheels:
+    name: Build ${{ matrix.only }} wheel
+    needs: generate-wheels-matrix
+    strategy:
+      matrix:
+        include: ${{ fromJson(needs.generate-wheels-matrix.outputs.include) }}
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Maximize build space
+        if: runner.os == 'Linux'
+        uses: easimon/maximize-build-space@master
+        with:
+          root-reserve-mb: 40000
+          swap-size-mb: 1024
+          remove-dotnet: 'true'
+          remove-android: 'true'
+          remove-haskell: 'true'
+          remove-codeql: 'true'
+          remove-docker-images: 'true'
+
+      - uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        if: runner.os == 'Linux'
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: all
+
+      - uses: pypa/cibuildwheel@v2.16.0
+        with:
+          only: ${{ matrix.only }}
+
+      - name: Verify clean directory
+        run: git diff --exit-code
         shell: bash
-      - uses: actions/upload-artifact@v2
+
+      - name: Upload wheels
+        uses: actions/upload-artifact@v3
         with:
-          path: ./dist/qiskit*
-      - name: Publish to PyPi
-        env:
-          TWINE_PASSWORD: ${{ secrets.TWINE_PASSWORD }}
-          TWINE_USERNAME: qiskit
-        run: twine upload dist/qiskit*
-  gpu-build-cuda11:
-    name: Build qiskit-aer-gpu-cu11 wheels
+          path: wheelhouse/*.whl
+
+  build-cuda11-gpu-wheels:
+    name: Build ${{ matrix.only }} CUDA11 GPU wheels
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        only:
+          - cp38-manylinux_x86_64
+          - cp39-manylinux_x86_64
+          - cp310-manylinux_x86_64
+          - cp311-manylinux_x86_64
     steps:
       - name: Maximize build space
         uses: easimon/maximize-build-space@master
@@ -133,36 +118,47 @@ jobs:
           remove-haskell: 'true'
           remove-codeql: 'true'
           remove-docker-images: 'true'
-      - uses: actions/checkout@v2
-      - uses: actions/setup-python@v2
-        name: Install Python
-        with:
-          python-version: '3.8'
-      - name: Install cibuildwheel
-        run: |
-          python -m pip install cibuildwheel==2.11.2
-      - name: Build wheels
+
+      - uses: actions/checkout@v4
+
+      - uses: pypa/cibuildwheel@v2.16.0
         env:
-          CIBW_BEFORE_ALL: "yum install -y yum-utils wget && wget -q https://developer.download.nvidia.com/compute/cuda/11.8.0/local_installers/cuda-repo-rhel7-11-8-local-11.8.0_520.61.05-1.x86_64.rpm && rpm -i cuda-repo-rhel7-11-8-local-11.8.0_520.61.05-1.x86_64.rpm && yum clean all && yum -y install cuda && yum -y install openblas-devel && yum-config-manager --add-repo https://developer.download.nvidia.com/compute/cuda/repos/rhel7/x86_64/cuda-rhel7.repo && yum clean all"
-          CIBW_BEFORE_BUILD : "pip install nvidia-cuda-runtime-cu11 nvidia-cublas-cu11 nvidia-cusolver-cu11 nvidia-cusparse-cu11 cuquantum-cu11"
-          CIBW_SKIP: "*-manylinux_i686 pp* cp36* *musllinux*"
+          CIBW_MANYLINUX_X86_64_IMAGE: manylinux2014
+          CIBW_BEFORE_ALL: > 
+            yum install -y yum-utils wget && 
+            wget -q https://developer.download.nvidia.com/compute/cuda/11.8.0/local_installers/cuda-repo-rhel7-11-8-local-11.8.0_520.61.05-1.x86_64.rpm && 
+            rpm -i cuda-repo-rhel7-11-8-local-11.8.0_520.61.05-1.x86_64.rpm && 
+            yum clean all && 
+            yum -y install cuda openblas-devel && 
+            yum-config-manager --add-repo https://developer.download.nvidia.com/compute/cuda/repos/rhel7/x86_64/cuda-rhel7.repo && 
+            yum clean all
+          CIBW_BEFORE_BUILD: >
+            pip install nvidia-cuda-runtime-cu11 nvidia-cublas-cu11 nvidia-cusolver-cu11 nvidia-cusparse-cu11 cuquantum-cu11
           CIBW_ENVIRONMENT: QISKIT_AER_PACKAGE_NAME=qiskit-aer-gpu-cu11 QISKIT_AER_CUDA_MAJOR=11 CMAKE_VERBOSE_MAKEFILE=true AER_THRUST_BACKEND=CUDA CUDACXX=/usr/local/cuda/bin/nvcc AER_CUDA_ARCH="7.0 7.2 7.5 8.0 8.6 8.7" AER_PYTHON_CUDA_ROOT=/opt/_internal AER_CIBUILD=true
-          CIBW_REPAIR_WHEEL_COMMAND: 'auditwheel repair --exclude libcudart.so.11.0 --exclude libcustatevec.so.1 --exclude libcutensornet.so.2 --exclude libcutensor.so.1 --exclude libcutensorMg.so.1 --exclude libcusolver.so.11 --exclude libcusolverMg.so.11 --exclude libcusparse.so.11 --exclude libcublas.so.11 --exclude libcublasLt.so.11 -w {dest_dir} {wheel}'
-        run: |
-          python -m cibuildwheel --output-dir wheelhouse
-      - uses: actions/upload-artifact@v2
+          CIBW_REPAIR_WHEEL_COMMAND: > 
+            auditwheel repair --exclude libcudart.so.11.0 --exclude libcustatevec.so.1 --exclude libcutensornet.so.2 --exclude libcutensor.so.1 --exclude libcutensorMg.so.1 --exclude libcusolver.so.11 --exclude libcusolverMg.so.11 --exclude libcusparse.so.11 --exclude libcublas.so.11 --exclude libcublasLt.so.11 -w {dest_dir} {wheel}
         with:
-          path: ./wheelhouse/*.whl
-      - name: Publish Wheels
-        env:
-          TWINE_PASSWORD: ${{ secrets.TWINE_PASSWORD }}
-          TWINE_USERNAME: qiskit
-        run : |
-          pip install -U twine
-          twine upload wheelhouse/*
-  gpu-build-cuda12:
-    name: Build qiskit-aer-gpu-cu12 wheels
+          only: ${{ matrix.only }}
+
+      - name: Verify clean directory
+        run: git diff --exit-code
+        shell: bash
+
+      - name: Upload wheels
+        uses: actions/upload-artifact@v3
+        with:
+          path: wheelhouse/*.whl
+
+  build-cuda12-gpu-wheels:
+    name: Build ${{ matrix.only }} CUDA12 GPU wheels
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        only:
+          - cp38-manylinux_x86_64
+          - cp39-manylinux_x86_64
+          - cp310-manylinux_x86_64
+          - cp311-manylinux_x86_64
     steps:
       - name: Maximize build space
         uses: easimon/maximize-build-space@master
@@ -174,102 +170,55 @@ jobs:
           remove-haskell: 'true'
           remove-codeql: 'true'
           remove-docker-images: 'true'
-      - uses: actions/checkout@v2
-      - uses: actions/setup-python@v2
-        name: Install Python
-        with:
-          python-version: '3.8'
-      - name: Install cibuildwheel
-        run: |
-          python -m pip install cibuildwheel==2.11.2
-      - name: Build wheels
+
+      - uses: actions/checkout@v4
+
+      - uses: pypa/cibuildwheel@v2.16.0
         env:
-          CIBW_BEFORE_ALL: "yum install -y yum-utils wget && wget -q https://developer.download.nvidia.com/compute/cuda/12.1.1/local_installers/cuda-repo-rhel7-12-1-local-12.1.1_530.30.02-1.x86_64.rpm && rpm -i cuda-repo-rhel7-12-1-local-12.1.1_530.30.02-1.x86_64.rpm && yum clean all && yum -y install cuda && yum -y install openblas-devel && yum-config-manager --add-repo https://developer.download.nvidia.com/compute/cuda/repos/rhel7/x86_64/cuda-rhel7.repo && yum clean all"
-          CIBW_BEFORE_BUILD : "pip install nvidia-cuda-runtime-cu12 nvidia-cublas-cu12 nvidia-cusolver-cu12 nvidia-cusparse-cu12 cuquantum-cu12"
-          CIBW_SKIP: "*-manylinux_i686 pp* cp36* *musllinux*"
+          CIBW_MANYLINUX_X86_64_IMAGE: manylinux2014
+          CIBW_BEFORE_ALL: > 
+            yum install -y yum-utils wget && 
+            wget -q https://developer.download.nvidia.com/compute/cuda/12.1.1/local_installers/cuda-repo-rhel7-12-1-local-12.1.1_530.30.02-1.x86_64.rpm &&
+            rpm -i cuda-repo-rhel7-12-1-local-12.1.1_530.30.02-1.x86_64.rpm && 
+            yum clean all && 
+            yum -y install cuda openblas-devel && 
+            yum-config-manager --add-repo https://developer.download.nvidia.com/compute/cuda/repos/rhel7/x86_64/cuda-rhel7.repo && 
+            yum clean all
+          CIBW_BEFORE_BUILD: >
+            pip install nvidia-cuda-runtime-cu12 nvidia-cublas-cu12 nvidia-cusolver-cu12 nvidia-cusparse-cu12 cuquantum-cu12
           CIBW_ENVIRONMENT: QISKIT_AER_PACKAGE_NAME=qiskit-aer-gpu QISKIT_AER_CUDA_MAJOR=12 CMAKE_VERBOSE_MAKEFILE=true AER_THRUST_BACKEND=CUDA CUDACXX=/usr/local/cuda/bin/nvcc AER_CUDA_ARCH="7.0 7.2 7.5 8.0 8.6 8.7 9.0" AER_PYTHON_CUDA_ROOT=/opt/_internal AER_CIBUILD=true
-          CIBW_REPAIR_WHEEL_COMMAND: 'auditwheel repair --exclude libcudart.so.12 --exclude libcustatevec.so.1 --exclude libcutensornet.so.2 --exclude libcutensor.so.1 --exclude libcutensorMg.so.1 --exclude libcusolver.so.11 --exclude libcusolverMg.so.11 --exclude libcusolver.so.12 --exclude libcusolverMg.so.12 --exclude libcusparse.so.12 --exclude libcublas.so.12 --exclude libcublasLt.so.12 --exclude libnvJitLink.so.12 -w {dest_dir} {wheel}'
-        run: |
-          python -m cibuildwheel --output-dir wheelhouse
-      - uses: actions/upload-artifact@v2
+          CIBW_REPAIR_WHEEL_COMMAND: > 
+            auditwheel repair --exclude libcudart.so.12 --exclude libcustatevec.so.1 --exclude libcutensornet.so.2 --exclude libcutensor.so.1 --exclude libcutensorMg.so.1 --exclude libcusolver.so.11 --exclude libcusolverMg.so.11 --exclude libcusolver.so.12 --exclude libcusolverMg.so.12 --exclude libcusparse.so.12 --exclude libcublas.so.12 --exclude libcublasLt.so.12 --exclude libnvJitLink.so.12 -w {dest_dir} {wheel}
         with:
-          path: ./wheelhouse/*.whl
-      - name: Publish Wheels
-        env:
-          TWINE_PASSWORD: ${{ secrets.TWINE_PASSWORD }}
-          TWINE_USERNAME: qiskit
-        run : |
-          pip install -U twine
-          twine upload wheelhouse/*
-  build_wheels_s390x:
-    name: Build wheels on s390x
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest]
+          only: ${{ matrix.only }}
+
+      - name: Verify clean directory
+        run: git diff --exit-code
+        shell: bash
+
+      - name: Upload wheels
+        uses: actions/upload-artifact@v3
+        with:
+          path: wheelhouse/*.whl
+
+  upload-all:
+    name: Upload if release
+    needs:
+      - build-wheels
+      - build-sdist
+    runs-on: ubuntu-latest
+    if: github.event_name == 'release' && github.event.action == 'published'
+
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-python@v2
-        name: Install Python
+      - uses: actions/setup-python@v4
+
+      - uses: actions/download-artifact@v3
         with:
-          python-version: '3.8'
-      - uses: actions-rs/toolchain@v1
+          name: artifact
+          path: dist
+
+      - uses: pypa/gh-action-pypi-publish@v1
         with:
-          toolchain: stable
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v1
-        with:
-          platforms: all
-      - name: Build wheels
-        uses: pypa/cibuildwheel@v2.11.2
-        env:
-          CIBW_ARCHS_LINUX: s390x
-          CIBW_TEST_SKIP: "cp*"
-          CIBW_BEFORE_ALL: "yum install -y epel-release && yum install -y openblas-devel"
-      - uses: actions/upload-artifact@v2
-        with:
-          path: ./wheelhouse/*.whl
-      - name: Install twine
-        run: python -m pip install twine
-      - name: Upload to PyPI
-        run: twine upload ./wheelhouse/*.whl
-        env:
-          TWINE_PASSWORD: ${{ secrets.TWINE_PASSWORD }}
-          TWINE_USERNAME: qiskit
-  build_wheels_ppc64le:
-    name: Build wheels on ppc64le
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest]
-    steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-python@v2
-        name: Install Python
-        with:
-          python-version: '3.8'
-      - uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v1
-        with:
-          platforms: all
-      - name: Build wheels
-        uses: pypa/cibuildwheel@v2.11.2
-        env:
-          CIBW_ARCHS_LINUX: ppc64le
-          CIBW_TEST_SKIP: "cp*"
-          CIBW_BEFORE_ALL: "yum install -y epel-release && yum install -y openblas-devel"
-      - uses: actions/upload-artifact@v2
-        with:
-          path: ./wheelhouse/*.whl
-      - name: Install twine
-        run: python -m pip install twine
-      - name: Upload to PyPI
-        run: twine upload ./wheelhouse/*.whl
-        env:
-          TWINE_PASSWORD: ${{ secrets.TWINE_PASSWORD }}
-          TWINE_USERNAME: qiskit
+          user: __token__
+          password: ${{ secrets.pypi_password }}            
+
