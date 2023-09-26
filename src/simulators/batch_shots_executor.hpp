@@ -217,9 +217,10 @@ void BatchShotsExecutor<state_t>::run_circuit_with_sampling(
     Base::max_sampling_shots_ = circ.shots;
 
   // use nested parallel if number of GPU is smaller than number of threads
-  if (Base::max_parallel_threads_ >= Base::num_groups_ * 2) {
+  if (Base::max_parallel_threads_ >= Base::num_groups_ * 2 &&
+      Base::num_groups_ > 1) {
 #if _OPENMP >= 200805
-    omp_set_max_active_levels(3);
+    omp_set_max_active_levels(1);
 #else
     omp_set_nested(1);
 #endif
