@@ -216,19 +216,24 @@ class AerCompiler:
         return ret
 
     class _ClbitConverter(ExprVisitor):
+        """ Apply cbit index conversion in Expr tree
+        """
         def __init__(self, bit_map):
             self.bit_map = bit_map
 
         def visit(self, expr):
+            """return result of accept or None"""
             if expr is None:
                 return None
             else:
                 return expr.accept(self)
 
         def visit_value(self, expr):
+            """visit value expr. no operation"""
             return expr
 
         def visit_var(self, expr):
+            """visit var expr. map all the clbits of a register."""
             if isinstance(expr.var, Clbit):
                 expr.var = self.bit_map[expr.var]
             else:
@@ -236,14 +241,17 @@ class AerCompiler:
             return expr
 
         def visit_cast(self, expr):
+            """visit cast expr and its child."""
             self.visit(expr.operand)
             return expr
 
         def visit_unary(self, expr):
+            """visit unary expr and its child."""
             self.visit(expr.operand)
             return expr
 
         def visit_binary(self, expr):
+            """visit binary expr and its children."""
             self.visit(expr.left)
             self.visit(expr.right)
             return expr
@@ -789,16 +797,19 @@ def _assemble_binary_operator(op):
 
 
 class _AssembleExprImpl(ExprVisitor):
+    """Convert from Expr objects to corresponding objects."""
     def __init__(self, circuit):
         self.circuit = circuit
 
     def visit(self, expr):
+        """helper to call accept."""
         if expr is None:
             return None
         else:
             return expr.accept(self)
 
     def visit_value(self, expr):
+        """return Aer's value types."""
         if isinstance(expr.type, Uint):
             return AerUintValue(expr.type.width, expr.value)
         elif isinstance(expr.type, Bool):
@@ -807,15 +818,19 @@ class _AssembleExprImpl(ExprVisitor):
             raise AerError(f"invalid value type is specified: {expr.type.__class__}")
 
     def visit_var(self, expr):
+        """return AerVar."""
         return AerVar(_assemble_type(expr.type), _assemble_clbit_indices(self.circuit, expr.var))
 
     def visit_cast(self, expr):
+        """return AerCast."""
         return AerCast(_assemble_type(expr.type), self.visit(expr.operand))
 
     def visit_unary(self, expr):
+        """return AerUnaryExpr."""
         return AerUnaryExpr(_assemble_unary_operator(expr.op), self.visit(expr.operand))
 
     def visit_binary(self, expr):
+        """return AerBinaryExpr."""
         return AerBinaryExpr(
             _assemble_binary_operator(expr.op),
             self.visit(expr.left),
