@@ -22,7 +22,7 @@ from concurrent.futures import Executor
 import numpy as np
 
 from qiskit.circuit import QuantumCircuit, Clbit, ClassicalRegister, ParameterExpression
-from qiskit.circuit.classical.expr import Expr, Unary, Binary, Var, Value, Cast
+from qiskit.circuit.classical.expr import Expr, Unary, Binary, Var, Value, ExprVisitor
 from qiskit.circuit.classical.types import Bool, Uint
 from qiskit.extensions import Initialize
 from qiskit.providers.options import Options
@@ -215,6 +215,42 @@ class AerCompiler:
 
         return ret
 
+    class _ClbitConverter(ExprVisitor):
+        def __init__(self, bit_map):
+            self.bit_map = bit_map
+
+        def visit(self, expr):
+            if expr is None:
+                return None
+            else:
+                return expr.accept(self)
+
+        def visit_value(self, expr):
+            return expr
+
+        def visit_var(self, expr):
+            if isinstance(expr.var, Clbit):
+                expr.var = self.bit_map[expr.var]
+            else:
+                expr.var = [self.bit_map[clbit] for clbit in expr.var]
+            return expr
+
+        def visit_cast(self, expr):
+            self.visit(expr.operand)
+            return expr
+
+        def visit_unary(self, expr):
+            self.visit(expr.operand)
+            return expr
+
+        def visit_binary(self, expr):
+            self.visit(expr.left)
+            self.visit(expr.right)
+            return expr
+
+        def visit_generic(self, expr):
+            raise AerError(f"unsupported expression is used: {expr.__class__}")
+
     def _convert_jump_conditional(self, cond_tuple, bit_map):
         """Convert a condition tuple according to the wire map."""
         if isinstance(cond_tuple, Expr):
@@ -239,7 +275,7 @@ class AerCompiler:
                     expr.var = [bit_map[clbit] for clbit in expr.var]
             return expr
 
-        return (_convert_clbit_index(deepcopy(cond_tuple[0])), cond_tuple[1])
+        return (AerCompiler._ClbitConverter(bit_map).visit(deepcopy(cond_tuple[0])), cond_tuple[1])
 
     def _list_clbit_from_expr(self, bit_map, clbits, expr):
         if isinstance(expr, Unary):
@@ -752,35 +788,42 @@ def _assemble_binary_operator(op):
         raise AerError(f"unknown op: {op}")
 
 
-def _assemble_expr(circ, expr):
-    aer_expr = None
-    if expr is None:
-        aer_expr = None
-    elif isinstance(expr, Value):
+class _AssembleExprImpl(ExprVisitor):
+    def __init__(self, circuit):
+        self.circuit = circuit
+
+    def visit(self, expr):
+        if expr is None:
+            return None
+        else:
+            return expr.accept(self)
+
+    def visit_value(self, expr):
         if isinstance(expr.type, Uint):
-            aer_expr = AerUintValue(expr.type.width, expr.value)
+            return AerUintValue(expr.type.width, expr.value)
         elif isinstance(expr.type, Bool):
-            aer_expr = AerBoolValue(expr.value)
+            return AerBoolValue(expr.value)
         else:
             raise AerError(f"invalid value type is specified: {expr.type.__class__}")
-    elif isinstance(expr, Var):
-        aer_expr = AerVar(_assemble_type(expr.type), _assemble_clbit_indices(circ, expr.var))
-    elif isinstance(expr, Cast):
-        aer_expr = AerCast(_assemble_type(expr.type), _assemble_expr(circ, expr.operand))
-    elif isinstance(expr, Unary):
-        aer_expr = AerUnaryExpr(
-            _assemble_unary_operator(expr.op), _assemble_expr(circ, expr.operand)
-        )
-    elif isinstance(expr, Binary):
-        aer_expr = AerBinaryExpr(
-            _assemble_binary_operator(expr.op),
-            _assemble_expr(circ, expr.left),
-            _assemble_expr(circ, expr.right),
-        )
-    else:
-        raise AerError(f"unknown expression: {expr.__class__}")
 
-    return aer_expr
+    def visit_var(self, expr):
+        return AerVar(_assemble_type(expr.type), _assemble_clbit_indices(self.circuit, expr.var))
+
+    def visit_cast(self, expr):
+        return AerCast(_assemble_type(expr.type), self.visit(expr.operand))
+
+    def visit_unary(self, expr):
+        return AerUnaryExpr(_assemble_unary_operator(expr.op), self.visit(expr.operand))
+
+    def visit_binary(self, expr):
+        return AerBinaryExpr(
+            _assemble_binary_operator(expr.op),
+            self.visit(expr.left),
+            self.visit(expr.right),
+        )
+
+    def visit_generic(self, expr):
+        raise AerError(f"unsupported expression is used: {expr.__class__}")
 
 
 def _assemble_op(
@@ -808,7 +851,7 @@ def _assemble_op(
                 copied = True
             params[i] = 0.0
 
-    conditional_expr = _assemble_expr(circ, conditional_expr)
+    aer_cond_expr = _AssembleExprImpl(circ).visit(conditional_expr)
 
     num_of_aer_ops = 1
     # fmt: off
@@ -819,7 +862,7 @@ def _assemble_op(
         "rx", "rxx", "ry", "ryy", "rz", "rzx", "rzz", "s", "sdg", "swap", "sx", "sxdg",
         "t", "tdg", "u", "x", "y", "z", "u1", "u2", "u3", "cu", "cu1", "cu2", "cu3",
     }:
-        aer_circ.gate(name, qubits, params, [], conditional_reg, conditional_expr,
+        aer_circ.gate(name, qubits, params, [], conditional_reg, aer_cond_expr,
                       label if label else name)
     elif name == "measure":
         if is_conditional:
@@ -831,20 +874,20 @@ def _assemble_op(
     elif name == "diagonal":
         aer_circ.diagonal(qubits, params, label if label else "diagonal")
     elif name == "unitary":
-        aer_circ.unitary(qubits, params[0], conditional_reg, conditional_expr,
+        aer_circ.unitary(qubits, params[0], conditional_reg, aer_cond_expr,
                          label if label else "unitary")
     elif name == "pauli":
-        aer_circ.gate(name, qubits, [], params, conditional_reg, conditional_expr,
+        aer_circ.gate(name, qubits, [], params, conditional_reg, aer_cond_expr,
                       label if label else name)
     elif name == "initialize":
         aer_circ.initialize(qubits, params)
     elif name == "roerror":
         aer_circ.roerror(qubits, params)
     elif name == "multiplexer":
-        aer_circ.multiplexer(qubits, params, conditional_reg, conditional_expr,
+        aer_circ.multiplexer(qubits, params, conditional_reg, aer_cond_expr,
                              label if label else name)
     elif name == "kraus":
-        aer_circ.kraus(qubits, params, conditional_reg, conditional_expr)
+        aer_circ.kraus(qubits, params, conditional_reg, aer_cond_expr)
     elif name in {
         "save_statevector",
         "save_statevector_dict",
@@ -891,15 +934,15 @@ def _assemble_op(
     elif name == "set_matrix_product_state":
         aer_circ.set_matrix_product_state(qubits, params)
     elif name == "superop":
-        aer_circ.superop(qubits, params[0], conditional_reg, conditional_expr)
+        aer_circ.superop(qubits, params[0], conditional_reg, aer_cond_expr)
     elif name == "barrier":
         num_of_aer_ops = 0
     elif name == "jump":
-        aer_circ.jump(qubits, params, conditional_reg, conditional_expr)
+        aer_circ.jump(qubits, params, conditional_reg, aer_cond_expr)
     elif name == "mark":
         aer_circ.mark(qubits, params)
     elif name == "qerror_loc":
-        aer_circ.set_qerror_loc(qubits, label if label else name, conditional_reg, conditional_expr)
+        aer_circ.set_qerror_loc(qubits, label if label else name, conditional_reg, aer_cond_expr)
     elif name in ("for_loop", "while_loop", "if_else"):
         raise AerError(
             "control-flow instructions must be converted " f"to jump and mark instructions: {name}"
