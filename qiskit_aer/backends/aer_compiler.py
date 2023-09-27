@@ -221,43 +221,32 @@ class AerCompiler:
         def __init__(self, bit_map):
             self.bit_map = bit_map
 
-        def visit(self, expr):
-            """return result of accept or None"""
-            if expr is None:
-                return None
+        def visit_value(self, node, /):
+            # pylint: disable=unused-variable
+            return node
+
+        def visit_var(self, node, /):
+            if isinstance(node.var, Clbit):
+                node.var = self.bit_map[node.var]
             else:
-                return expr.accept(self)
+                node.var = [self.bit_map[clbit] for clbit in node.var]
+            return node
 
-        def visit_value(self, expr):
-            """visit value expr. no operation"""
-            return expr
+        def visit_cast(self, node, /):
+            node.operand.accept(self)
+            return node
 
-        def visit_var(self, expr):
-            """visit var expr. map all the clbits of a register."""
-            if isinstance(expr.var, Clbit):
-                expr.var = self.bit_map[expr.var]
-            else:
-                expr.var = [self.bit_map[clbit] for clbit in expr.var]
-            return expr
+        def visit_unary(self, node, /):
+            node.operand.accept(self)
+            return node
 
-        def visit_cast(self, expr):
-            """visit cast expr and its child."""
-            expr.operand.accept(self)
-            return expr
+        def visit_binary(self, node, /):
+            node.left.accept(self)
+            node.right.accept(self)
+            return node
 
-        def visit_unary(self, expr):
-            """visit unary expr and its child."""
-            expr.operand.accept(self)
-            return expr
-
-        def visit_binary(self, expr):
-            """visit binary expr and its children."""
-            expr.left.accept(self)
-            expr.right.accept(self)
-            return expr
-
-        def visit_generic(self, expr):
-            raise AerError(f"unsupported expression is used: {expr.__class__}")
+        def visit_generic(self, node, /):
+            raise AerError(f"unsupported expression is used: {node.__class__}")
 
     def _convert_jump_conditional(self, cond_tuple, bit_map):
         """Convert a condition tuple according to the wire map."""
@@ -804,37 +793,34 @@ class _AssembleExprImpl(ExprVisitor):
     def __init__(self, circuit):
         self.circuit = circuit
 
-    def visit_value(self, expr):
+    def visit_value(self, node, /):
         """return Aer's value types."""
-        if isinstance(expr.type, Uint):
-            return AerUintValue(expr.type.width, expr.value)
-        elif isinstance(expr.type, Bool):
-            return AerBoolValue(expr.value)
+        # pylint: disable=unused-variable
+        if isinstance(node.type, Uint):
+            return AerUintValue(node.type.width, node.value)
+        elif isinstance(node.type, Bool):
+            return AerBoolValue(node.value)
         else:
-            raise AerError(f"invalid value type is specified: {expr.type.__class__}")
+            raise AerError(f"invalid value type is specified: {node.type.__class__}")
 
-    def visit_var(self, expr):
-        """return AerVar."""
-        return AerVar(_assemble_type(expr.type), _assemble_clbit_indices(self.circuit, expr.var))
+    def visit_var(self, node, /):
+        return AerVar(_assemble_type(node.type), _assemble_clbit_indices(self.circuit, node.var))
 
-    def visit_cast(self, expr):
-        """return AerCast."""
-        return AerCast(_assemble_type(expr.type), expr.operand.accept(self))
+    def visit_cast(self, node, /):
+        return AerCast(_assemble_type(node.type), node.operand.accept(self))
 
-    def visit_unary(self, expr):
-        """return AerUnaryExpr."""
-        return AerUnaryExpr(_assemble_unary_operator(expr.op), expr.operand.accept(self))
+    def visit_unary(self, node, /):
+        return AerUnaryExpr(_assemble_unary_operator(node.op), node.operand.accept(self))
 
-    def visit_binary(self, expr):
-        """return AerBinaryExpr."""
+    def visit_binary(self, node, /):
         return AerBinaryExpr(
-            _assemble_binary_operator(expr.op),
-            expr.left.accept(self),
-            expr.right.accept(self),
+            _assemble_binary_operator(node.op),
+            node.left.accept(self),
+            node.right.accept(self),
         )
 
-    def visit_generic(self, expr):
-        raise AerError(f"unsupported expression is used: {expr.__class__}")
+    def visit_generic(self, node, /):
+        raise AerError(f"unsupported expression is used: {node.__class__}")
 
 
 def _assemble_op(
