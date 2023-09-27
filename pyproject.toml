@@ -18,13 +18,7 @@ manylinux-s390x-image = "manylinux_2_28"
 manylinux-ppc64le-image = "manylinux_2_28"
 manylinux-i686-image = "manylinux2014"
 skip = "pp* cp36* cp37* cp312* *musllinux*"
-test-skip = "*-win32 *_i686 *-macosx_arm64"
 test-command = "python {project}/tools/verify_wheels.py"
-# We need to use pre-built versions of Numpy and Scipy in the tests; they have a
-# tendency to crash if they're installed from source by `pip install`, and since
-# Numpy 1.22 there are no i686 wheels, so we force pip to use older ones without
-# restricting any dependencies that Numpy and Scipy might have.
-#before-test = "pip install --only-binary=numpy,scipy numpy scipy"
 environment = { AER_CMAKE_OPENMP_BUILD="1" }
 
 [tool.cibuildwheel.linux]
@@ -35,7 +29,7 @@ environment = { CMAKE_GENERATOR = "Visual Studio 16 2019"}
 
 [[tool.cibuildwheel.overrides]]
 select = "*-manylinux_i686"
-before-all = "yum install -y wget && bash {project}/tools/install_openblas_i686.sh"
+before-all = "yum install -y wget && bash {project}/tools/install_openblas_i686.sh && bash {project}/tools/install_rust.sh"
 
 [[tool.cibuildwheel.overrides]]
 select = "*-manylinux_{ppc64le,s390x}"
