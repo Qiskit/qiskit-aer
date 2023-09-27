@@ -79,7 +79,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - uses: actions-rs/toolchain@v1
-        if: contains('${{ matrix.only }}', fromJson('["ppc64le", "s390x"]'))
+        if: contains(matrix.only, 'ppc64le') || contains(matrix.only, 's390x')
         with:
           toolchain: stable
 
