@@ -216,8 +216,8 @@ class AerCompiler:
         return ret
 
     class _ClbitConverter(ExprVisitor):
-        """ Apply cbit index conversion in Expr tree
-        """
+        """Apply cbit index conversion in Expr tree"""
+
         def __init__(self, bit_map):
             self.bit_map = bit_map
 
@@ -242,18 +242,18 @@ class AerCompiler:
 
         def visit_cast(self, expr):
             """visit cast expr and its child."""
-            self.visit(expr.operand)
+            expr.operand.accept(self)
             return expr
 
         def visit_unary(self, expr):
             """visit unary expr and its child."""
-            self.visit(expr.operand)
+            expr.operand.accept(self)
             return expr
 
         def visit_binary(self, expr):
             """visit binary expr and its children."""
-            self.visit(expr.left)
-            self.visit(expr.right)
+            expr.left.accept(self)
+            expr.right.accept(self)
             return expr
 
         def visit_generic(self, expr):
@@ -269,7 +269,7 @@ class AerCompiler:
             # ClassicalRegister conditions should already be in the outer circuit.
             return cond_tuple
 
-        # Classical Expression
+        # left and right expression
         def _convert_clbit_index(expr):
             if isinstance(expr, Unary):
                 _convert_clbit_index(expr.operand)
@@ -283,7 +283,9 @@ class AerCompiler:
                     expr.var = [bit_map[clbit] for clbit in expr.var]
             return expr
 
-        return (AerCompiler._ClbitConverter(bit_map).visit(deepcopy(cond_tuple[0])), cond_tuple[1])
+        left = deepcopy(cond_tuple[0]).accept(AerCompiler._ClbitConverter(bit_map))
+        right = cond_tuple[1]
+        return (left, right)
 
     def _list_clbit_from_expr(self, bit_map, clbits, expr):
         if isinstance(expr, Unary):
@@ -798,15 +800,9 @@ def _assemble_binary_operator(op):
 
 class _AssembleExprImpl(ExprVisitor):
     """Convert from Expr objects to corresponding objects."""
+
     def __init__(self, circuit):
         self.circuit = circuit
-
-    def visit(self, expr):
-        """helper to call accept."""
-        if expr is None:
-            return None
-        else:
-            return expr.accept(self)
 
     def visit_value(self, expr):
         """return Aer's value types."""
@@ -823,18 +819,18 @@ class _AssembleExprImpl(ExprVisitor):
 
     def visit_cast(self, expr):
         """return AerCast."""
-        return AerCast(_assemble_type(expr.type), self.visit(expr.operand))
+        return AerCast(_assemble_type(expr.type), expr.operand.accept(self))
 
     def visit_unary(self, expr):
         """return AerUnaryExpr."""
-        return AerUnaryExpr(_assemble_unary_operator(expr.op), self.visit(expr.operand))
+        return AerUnaryExpr(_assemble_unary_operator(expr.op), expr.operand.accept(self))
 
     def visit_binary(self, expr):
         """return AerBinaryExpr."""
         return AerBinaryExpr(
             _assemble_binary_operator(expr.op),
-            self.visit(expr.left),
-            self.visit(expr.right),
+            expr.left.accept(self),
+            expr.right.accept(self),
         )
 
     def visit_generic(self, expr):
@@ -866,7 +862,7 @@ def _assemble_op(
                 copied = True
             params[i] = 0.0
 
-    aer_cond_expr = _AssembleExprImpl(circ).visit(conditional_expr)
+    aer_cond_expr = conditional_expr.accept(_AssembleExprImpl(circ)) if conditional_expr else None
 
     num_of_aer_ops = 1
     # fmt: off
