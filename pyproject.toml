@@ -18,7 +18,7 @@ manylinux-s390x-image = "manylinux_2_28"
 manylinux-ppc64le-image = "manylinux_2_28"
 manylinux-i686-image = "manylinux2014"
 skip = "pp* cp36* cp37* cp312* *musllinux*"
-test-skip = "cp310-win32 cp311-win32 cp310-manylinux_i686 cp311-manylinux_i686"
+test-skip = "*-win32 cp310-manylinux_i686 cp311-manylinux_i686"
 test-command = "python {project}/tools/verify_wheels.py"
 environment = { AER_CMAKE_OPENMP_BUILD="1" }
 
