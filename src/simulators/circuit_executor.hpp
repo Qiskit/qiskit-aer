@@ -789,7 +789,7 @@ void Executor<state_t>::run_circuit_with_sampling(Circuit &circ,
     }
   };
   Utils::apply_omp_parallel_for((par_shots > 1), 0, par_shots,
-                                run_circuit_lambda);
+                                run_circuit_lambda, par_shots);
 }
 
 template <class state_t>
@@ -986,8 +986,7 @@ void Executor<state_t>::run_circuit_with_parameter_binding(
       }
 
       std::vector<Operations::Op> binded_op(1);
-      binded_op[0] =
-          Operations::make_parameter_bind(*op, iparam, num_bind_params_);
+      binded_op[0] = Operations::bind_parameter(*op, iparam, num_bind_params_);
       state.apply_ops(binded_op.cbegin(), binded_op.cend(), result, rng,
                       final_op && (op == last - 1));
       op_begin = op + 1;

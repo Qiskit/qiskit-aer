@@ -319,7 +319,7 @@ class AerSimulator(AerBackend):
       results independently in each process (Default: None).
 
     * ``runtime_parameter_bind_enable`` (bool): If this option is True
-      parameters are binded at runtime by using multi-shots without constructing
+      parameters are bound at runtime by using multi-shots without constructing
       circuits for each parameters. For GPU this option can be used with
       ``batched_shots_gpu`` to run with multiple parameters in a batch.
       (Default: False).

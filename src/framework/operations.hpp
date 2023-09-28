@@ -944,8 +944,8 @@ inline Op make_qerror_loc(const reg_t &qubits, const std::string &label,
 }
 
 // make new op by parameter binding
-inline Op make_parameter_bind(const Op &src, const uint_t iparam,
-                              const uint_t num_params) {
+inline Op bind_parameter(const Op &src, const uint_t iparam,
+                         const uint_t num_params) {
   Op op;
   op.type = src.type;
   op.name = src.name;

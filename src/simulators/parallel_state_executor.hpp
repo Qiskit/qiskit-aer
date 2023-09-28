@@ -804,8 +804,8 @@ void ParallelStateExecutor<state_t>::apply_ops_chunks(
     } else {
       if (op_iOp.has_bind_params) {
         std::vector<Operations::Op> bind_op(1);
-        bind_op[0] = Operations::make_parameter_bind(op_iOp, iparam,
-                                                     Base::num_bind_params_);
+        bind_op[0] =
+            Operations::bind_parameter(op_iOp, iparam, Base::num_bind_params_);
         if (!apply_parallel_op(bind_op[0], result, rng,
                                final_ops && nOp == iOp + 1)) {
           if (Base::num_groups_ > 1 && chunk_omp_parallel_) {

@@ -67,12 +67,12 @@ public:
       }
     } else {
       // loop for runtime parameter binding
-      for (int_t i = 0; i < num_params_; i++) {
+      for (int_t p = 0; p < num_params_; p++) {
         std::vector<op_t> ops;
         ops.reserve(fusioned_ops.size());
         for (auto &op : fusioned_ops) {
           if (op.has_bind_params)
-            ops.push_back(make_parameter_bind(op, i, num_params_));
+            ops.push_back(bind_parameter(op, p, num_params_));
           else
             ops.push_back(op);
         }
@@ -87,7 +87,7 @@ public:
                                              std::string("fusion"));
         }
 
-        if (i == 0)
+        if (p == 0)
           fusioned_op = new_op;
         else {
           fusioned_op.has_bind_params = true;

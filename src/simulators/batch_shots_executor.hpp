@@ -114,6 +114,11 @@ void BatchShotsExecutor<state_t>::set_config(const Config &config) {
   // enable batched multi-shots/experiments optimization
   batched_shots_gpu_ = config.batched_shots_gpu;
 
+  // enable batch execution for runtime parameter binding
+  if (Base::num_bind_params_ > 1 && Base::sim_device_ == Device::GPU) {
+    batched_shots_gpu_ = true;
+  }
+
   batched_shots_gpu_max_qubits_ = config.batched_shots_gpu_max_qubits;
   if (Base::method_ == Method::density_matrix ||
       Base::method_ == Method::unitary)
@@ -128,12 +133,10 @@ void BatchShotsExecutor<state_t>::set_parallelization(
   enable_batch_multi_shots_ = false;
   if (batched_shots_gpu_ && Base::sim_device_ != Device::CPU) {
     enable_batch_multi_shots_ = true;
-    if (circ.num_qubits >= batched_shots_gpu_max_qubits_)
+    if (circ.num_qubits > batched_shots_gpu_max_qubits_)
       enable_batch_multi_shots_ = false;
-    else if (circ.shots == 1)
+    else if (circ.shots == 1 && circ.num_bind_params == 1)
       enable_batch_multi_shots_ = false;
-    //    else if (Base::multiple_chunk_required(circ, noise))
-    //      enable_batch_multi_shots_ = false;
   }
 
 #ifdef AER_CUSTATEVEC
@@ -215,16 +218,6 @@ void BatchShotsExecutor<state_t>::run_circuit_with_sampling(
   // adjust max_matrix_qubits_ so that all shots can be stored on GPU
   if (circ.ops.begin() + first_meas != circ.ops.end())
     Base::max_sampling_shots_ = circ.shots;
-
-  // use nested parallel if number of GPU is smaller than number of threads
-  if (Base::max_parallel_threads_ >= Base::num_groups_ * 2 &&
-      Base::num_groups_ > 1) {
-#if _OPENMP >= 200805
-    omp_set_max_active_levels(1);
-#else
-    omp_set_nested(1);
-#endif
-  }
 
   i_begin = 0;
   while (i_begin < Base::num_local_states_) {
@@ -735,43 +728,6 @@ void BatchShotsExecutor<state_t>::batched_measure_sampler(
 
   // Check if meas_circ is empty, and if so return initial creg
   if (first_meas == last_meas) {
-    if (Base::num_process_per_experiment_ > 1) {
-      auto save_results_to_creg_proc = [this, shots, par_states, i_group,
-                                        &result](int_t i) {
-        uint_t i_state, state_end;
-        i_state = Base::num_states_in_group_[i_group] * i / par_states;
-        state_end = Base::num_states_in_group_[i_group] * (i + 1) / par_states;
-
-        for (; i_state < state_end; i_state++) {
-          uint_t is = Base::top_state_of_group_[i_group] + i_state;
-          uint_t ip = (Base::global_state_index_ + is);
-          for (int_t j = 0; j < shots; j++) {
-            Base::cregs_[ip * shots + j] = Base::states_[is].creg();
-          }
-        }
-      };
-      Utils::apply_omp_parallel_for((par_states > 1), 0, par_states,
-                                    save_results_to_creg_proc, par_states);
-    } else {
-      auto save_results_proc = [this, shots, par_states, i_group,
-                                &result](int_t i) {
-        uint_t i_state, state_end;
-        i_state = Base::num_states_in_group_[i_group] * i / par_states;
-        state_end = Base::num_states_in_group_[i_group] * (i + 1) / par_states;
-
-        for (; i_state < state_end; i_state++) {
-          uint_t is = Base::top_state_of_group_[i_group] + i_state;
-          uint_t ip = (Base::global_state_index_ + is);
-          for (int_t j = 0; j < shots; j++) {
-            (result + ip)
-                ->save_count_data(Base::states_[is].creg(),
-                                  Base::save_creg_memory_);
-          }
-        }
-      };
-      Utils::apply_omp_parallel_for((par_states > 1), 0, par_states,
-                                    save_results_proc, par_states);
-    }
     return;
   }
 
@@ -846,7 +802,7 @@ void BatchShotsExecutor<state_t>::batched_measure_sampler(
       (register_map.empty()) ? 0ULL : 1 + register_map.rbegin()->first;
 
   auto save_counts_proc = [this, shots, par_states, i_group, num_memory,
-                           num_registers, &result, allbit_samples, memory_map,
+                           num_registers, &result, &allbit_samples, memory_map,
                            register_map, &rng, mask, meas_qubits,
                            roerror_ops](int_t j) {
     uint_t i_state, state_end;

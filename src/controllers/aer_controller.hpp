@@ -606,23 +606,16 @@ Result Controller::execute(std::vector<std::shared_ptr<Circuit>> &circuits,
     }
 #endif
 
-    // following looks very similar but we have to separate them to avoid omp
-    // nested loops that causes performance degradation (DO NOT use if statement
-    // in #pragma omp)
-    if (parallel_experiments_ == 1) {
-      for (int j = 0; j < circuits.size(); ++j) {
-        executors[j]->run_circuit(*circuits[j], noise_model, config, methods[j],
-                                  sim_device_,
-                                  result.results.begin() + result_offset[j]);
-      }
-    } else {
-#pragma omp parallel for num_threads(parallel_experiments_)
-      for (int j = 0; j < circuits.size(); ++j) {
-        executors[j]->run_circuit(*circuits[j], noise_model, config, methods[j],
-                                  sim_device_,
-                                  result.results.begin() + result_offset[j]);
-      }
-    }
+    auto run_circuits = [this, &executors, &circuits, &noise_model, &config,
+                         &methods, &result, &result_offset](int_t i) {
+      executors[i]->run_circuit(*circuits[i], noise_model, config, methods[i],
+                                sim_device_,
+                                result.results.begin() + result_offset[i]);
+    };
+    Utils::apply_omp_parallel_for((parallel_experiments_ > 1), 0,
+                                  circuits.size(), run_circuits,
+                                  parallel_experiments_);
+
     executors.clear();
 
     // Check each experiment result for completed status.

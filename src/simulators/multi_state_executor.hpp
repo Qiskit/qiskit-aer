@@ -770,7 +770,7 @@ void MultiStateExecutor<state_t>::apply_runtime_parameterization(
   if (nparams == 1) {
     uint_t ip = root.param_index(0);
     Operations::Op bind_op =
-        Operations::make_parameter_bind(op, ip, Base::num_bind_params_);
+        Operations::bind_parameter(op, ip, Base::num_bind_params_);
     root.add_op_after_branch(bind_op);
   } else {
     // branch shots
@@ -780,7 +780,7 @@ void MultiStateExecutor<state_t>::apply_runtime_parameterization(
     for (int_t i = 0; i < nparams; i++) {
       uint_t ip = root.branches()[i]->param_index(0);
       Operations::Op bind_op =
-          Operations::make_parameter_bind(op, ip, Base::num_bind_params_);
+          Operations::bind_parameter(op, ip, Base::num_bind_params_);
       root.branches()[i]->add_op_after_branch(bind_op);
     }
   }

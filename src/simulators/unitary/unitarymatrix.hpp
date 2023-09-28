@@ -238,6 +238,7 @@ void UnitaryMatrix<data_t>::initialize() {
   BaseVector::zero();
   // Set to be identity matrix
   const int_t nrows = rows_; // end for k loop
+
 #pragma omp parallel if (BaseVector::num_qubits_ >                             \
                              BaseVector::omp_threshold_ &&                     \
                          BaseVector::omp_threads_ > 1)                         \
