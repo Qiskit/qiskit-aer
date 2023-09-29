@@ -74,7 +74,7 @@ extensions = [
     'sphinx.ext.intersphinx',
     'nbsphinx',
     "sphinx_design",
-    'qiskit_sphinx_theme'
+    'qiskit_sphinx_theme',
 ]
 
 # -----------------------------------------------------------------------------
@@ -141,8 +141,6 @@ modindex_common_prefix = ['qiskit_aer.']
 html_theme = "qiskit-ecosystem"
 html_title = f"{project} {release}"
 
-#html_logo = 'images/logo.png'
-#html_sidebars = {'**': ['globaltoc.html']}
 html_last_updated_fmt = '%Y/%m/%d'
 
 autoclass_content = 'both'
