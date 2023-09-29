@@ -229,7 +229,7 @@ class AerCompiler:
             continue_label = f"{loop_name}_{index}"
             inlined_body = self._inline_circuit(body, continue_label, break_label, inner_bit_map)
             if loop_parameter is not None:
-                inlined_body = inlined_body.bind_parameters({loop_parameter: index})
+                inlined_body = inlined_body.assign_parameters({loop_parameter: index})
             parent.append(inlined_body, qargs, cargs)
             parent.append(AerMark(continue_label, len(qargs), len(cargs)), qargs, cargs)
 
