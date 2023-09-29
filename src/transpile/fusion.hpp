@@ -851,11 +851,21 @@ void Fusion::optimize_circuit(Circuit &circ, Noise::NoiseModel &noise,
       if (circ.ops.size() % parallelization_)
         ++unit;
 
-#pragma omp parallel for if (parallelization_ > 1) num_threads(parallelization_)
-      for (int_t i = 0; i < parallelization_; i++) {
-        int_t start = unit * i;
-        int_t end = std::min(start + unit, (int_t)circ.ops.size());
-        optimize_circuit(circ, noise, allowed_opset, start, end, fuser, method);
+      if (parallelization_ > 1) {
+#pragma omp parallel for num_threads(parallelization_)
+        for (int_t i = 0; i < parallelization_; i++) {
+          int_t start = unit * i;
+          int_t end = std::min(start + unit, (int_t)circ.ops.size());
+          optimize_circuit(circ, noise, allowed_opset, start, end, fuser,
+                           method);
+        }
+      } else {
+        for (int_t i = 0; i < parallelization_; i++) {
+          int_t start = unit * i;
+          int_t end = std::min(start + unit, (int_t)circ.ops.size());
+          optimize_circuit(circ, noise, allowed_opset, start, end, fuser,
+                           method);
+        }
       }
       result.metadata.add(parallelization_, "fusion", "parallelization");
     }

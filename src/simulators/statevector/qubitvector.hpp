@@ -890,11 +890,10 @@ template <typename data_t>
 void QubitVector<data_t>::zero() {
   const int_t END = data_size_; // end for k loop
 
-#pragma omp parallel for if (num_qubits_ > omp_threshold_ && omp_threads_ > 1) \
-    num_threads(omp_threads_)
-  for (int_t k = 0; k < END; ++k) {
-    data_[k] = 0.0;
-  }
+  auto zero_proc = [this](int_t i) { data_[i] = 0.0; };
+  Utils::apply_omp_parallel_for(
+      (num_qubits_ > omp_threshold_ && omp_threads_ > 1), 0, END, zero_proc,
+      omp_threads_);
 }
 
 template <typename data_t>
