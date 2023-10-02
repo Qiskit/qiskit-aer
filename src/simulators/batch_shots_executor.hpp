@@ -51,7 +51,7 @@ public:
 
 protected:
   void set_config(const Config &config) override;
-  void set_parallelization(const Circuit &circ,
+  void set_parallelization(const Config &config, const Circuit &circ,
                            const Noise::NoiseModel &noise) override;
 
   void run_circuit_shots(Circuit &circ, const Noise::NoiseModel &noise,
@@ -104,8 +104,8 @@ void BatchShotsExecutor<state_t>::set_config(const Config &config) {
 
 template <class state_t>
 void BatchShotsExecutor<state_t>::set_parallelization(
-    const Circuit &circ, const Noise::NoiseModel &noise) {
-  Base::set_parallelization(circ, noise);
+    const Config &config, const Circuit &circ, const Noise::NoiseModel &noise) {
+  Base::set_parallelization(config, circ, noise);
 
   enable_batch_multi_shots_ = false;
   if (batched_shots_gpu_ && Base::sim_device_ != Device::CPU) {
@@ -152,7 +152,7 @@ void BatchShotsExecutor<state_t>::run_circuit_shots(
   }
 
   Base::set_distribution(circ.shots);
-  Base::num_max_shots_ = Base::get_max_parallel_shots(circ, noise);
+  Base::num_max_shots_ = Base::get_max_parallel_shots(config, circ, noise);
   if (Base::num_max_shots_ == 0)
     Base::num_max_shots_ = 1;
 

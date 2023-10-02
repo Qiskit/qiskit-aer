@@ -306,7 +306,7 @@ void Executor<state_t>::run_circuit_shots(
     Circuit &circ, const Noise::NoiseModel &noise, const Config &config,
     RngEngine &init_rng, ExperimentResult &result, bool sample_noise) {
   state_t dummy_state;
-  if (BasePar::multiple_chunk_required(circ, noise)) {
+  if (BasePar::multiple_chunk_required(config, circ, noise)) {
     return BasePar::run_circuit_shots(circ, noise, config, init_rng, result,
                                       sample_noise);
   } else {
