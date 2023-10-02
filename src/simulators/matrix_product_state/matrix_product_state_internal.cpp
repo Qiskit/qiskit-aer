@@ -542,9 +542,7 @@ void MPS::apply_swap_internal(uint_t index_A, uint_t index_B, bool swap_gate) {
     // to the left
     std::swap(qubit_ordering_.order_[index_A], qubit_ordering_.order_[index_B]);
     // For logging purposes:
-#ifdef DEBUG
     print_to_log_internal_swap(index_A, index_B);
-#endif
 
     // update qubit locations after all the swaps
     for (uint_t i = 0; i < num_qubits_; i++)
@@ -666,10 +664,9 @@ void MPS::common_apply_2_qubit_gate(
   rvector_t lambda;
   double discarded_value =
       MPS_Tensor::Decompose(temp, left_gamma, lambda, right_gamma);
-#ifdef DEBUG
+
   if (discarded_value > json_chop_threshold_)
     MPS::print_to_log("discarded_value=", discarded_value, ", ");
-#endif
 
   if (A != 0)
     left_gamma.div_Gamma_by_left_Lambda(lambda_reg_[A - 1]);
