@@ -112,7 +112,7 @@ double reduce_zeros(cmatrix_t &U, rvector_t &S, cmatrix_t &V,
   }
   U.resize(U.GetRows(), new_SV_num);
   S.resize(new_SV_num);
-  // V**H is not the same as V
+  // When using LAPACK function, V is V dagger
   if (getenv("QISKIT_LAPACK_SVD")) {
     V.resize(new_SV_num, V.GetColumns());
   } else {
@@ -592,7 +592,7 @@ void lapack_csvd_wrapper(cmatrix_t &A, cmatrix_t &U, rvector_t &S,
   complex_t *work = new complex_t[lwork];
   int info;
 
-  if (strcmp(getenv("QISKIT_LAPACK_SVD"), "DC") == 0) {
+  if (m >= 64 and n >= 64) { // strcmp(getenv("QISKIT_LAPACK_SVD"), "DC") == 0) {
     int *iwork = new int[8 * min_dim];
     int rwork_size = std::max(5 * min_dim * min_dim + 5 * min_dim,
                               2 * m * n + 2 * min_dim * min_dim + min_dim);
