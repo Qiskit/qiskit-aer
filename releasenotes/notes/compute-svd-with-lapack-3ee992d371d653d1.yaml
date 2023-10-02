@@ -6,6 +6,3 @@ features:
     that of ``zgesvd`` on large matrices, whereas ``zgesvd`` performs better on small matrices.
     User can use ``zgesdd`` function
     setting the environment variable ``QISKIT_LAPACK_SVD=DC``.
-other:
-  - |
-    Performance may decrease depending on the SVD method used.
