@@ -18,7 +18,6 @@ from __future__ import annotations
 
 from collections import defaultdict
 from collections.abc import Sequence
-from copy import copy
 from warnings import warn
 
 import numpy as np
@@ -308,7 +307,6 @@ class Estimator(BaseEstimator):
 
         if self._skip_transpilation:
             return meas_circuit
-
 
         layout = self._layouts[circuit_index]
         passmanager = PassManager([SetLayout(layout)])
