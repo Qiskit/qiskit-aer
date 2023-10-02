@@ -313,7 +313,7 @@ jobs:
       - name: Install Deps
         run: |
           python -m pip install -U -c constraints.txt -r requirements-dev.txt wheel
-          pip install -U git+https://github.com/Qiskit/qiskit-terra.git
+          pip install -U git+https://github.com/Qiskit/qiskit.git
       - name: Install openblas
         run: |
           set -e
