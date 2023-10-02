@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    OpenMP nested parallel simulation for parallel experiments + parallel state
+    update was very slow because gate fusion uses unitary simulator inside
+    and it used omp parallel region. This fix remove parallel region in
+    gate fusion and improve performance of nested parallel simulations
