@@ -20,10 +20,6 @@ from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit_aer.noise import NoiseModel
 from qiskit_aer.noise.errors.standard_errors import reset_error
 
-# Backwards compatibility for Terra <= 0.13
-if not hasattr(QuantumCircuit, "i"):
-    QuantumCircuit.i = QuantumCircuit.iden
-
 
 # ==========================================================================
 # Reset Gate Errors
@@ -65,7 +61,7 @@ def reset_gate_error_circuits():
     qr = QuantumRegister(1, "qr")
     cr = ClassicalRegister(1, "cr")
     circuit = QuantumCircuit(qr, cr)
-    circuit.i(qr)
+    circuit.id(qr)
     circuit.barrier(qr)
     circuit.measure(qr, cr)
     circuits.append(circuit)
@@ -74,7 +70,7 @@ def reset_gate_error_circuits():
     qr = QuantumRegister(2, "qr")
     cr = ClassicalRegister(2, "cr")
     circuit = QuantumCircuit(qr, cr)
-    circuit.i(qr[0])
+    circuit.id(qr[0])
     circuit.x(qr[1])
     circuit.barrier(qr)
     circuit.measure(qr, cr)
