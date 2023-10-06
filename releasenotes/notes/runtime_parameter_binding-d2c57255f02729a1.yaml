@@ -1,0 +1,8 @@
+---
+features:
+  - |
+    A runtime parameter binding option is implemented to bind paramters at
+    runtime to a single circuit instead running multiple circuits as input.
+    An option ``runtime_parameter_bind_enable=True`` enables this feature and
+    for GPU, ``batched_shots_gpu=True`` should be also set to speed up
+    simulating parameterized circuit.
