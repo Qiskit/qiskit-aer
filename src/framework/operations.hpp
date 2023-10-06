@@ -468,12 +468,18 @@ inline Op make_unitary(const reg_t &qubits, cmatrix_t &&mat,
 }
 
 inline Op make_diagonal(const reg_t &qubits, const cvector_t &vec,
+                        const int_t conditional = -1,
                         const std::string label = "") {
   Op op;
   op.type = OpType::diagonal_matrix;
   op.name = "diagonal";
   op.qubits = qubits;
   op.params = vec;
+
+  if (conditional >= 0) {
+    op.conditional = true;
+    op.conditional_reg = conditional;
+  }
 
   if (label != "")
     op.string_params = {label};
@@ -482,12 +488,18 @@ inline Op make_diagonal(const reg_t &qubits, const cvector_t &vec,
 }
 
 inline Op make_diagonal(const reg_t &qubits, cvector_t &&vec,
+                        const int_t conditional = -1,
                         const std::string label = "") {
   Op op;
   op.type = OpType::diagonal_matrix;
   op.name = "diagonal";
   op.qubits = qubits;
   op.params = std::move(vec);
+
+  if (conditional >= 0) {
+    op.conditional = true;
+    op.conditional_reg = conditional;
+  }
 
   if (label != "")
     op.string_params = {label};

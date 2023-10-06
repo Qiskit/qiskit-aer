@@ -142,8 +142,8 @@ public:
   }
 
   void diagonal(const reg_t &qubits, const cvector_t &vec,
-                const std::string &label) {
-    ops.push_back(Operations::make_diagonal(qubits, vec, label));
+                const int_t cond_regidx = -1, const std::string label = "") {
+    ops.push_back(Operations::make_diagonal(qubits, vec, cond_regidx, label));
   }
 
   void unitary(const reg_t &qubits, const cmatrix_t &mat,

@@ -17,6 +17,8 @@ from ddt import ddt
 from test.terra.reference import ref_conditionals
 from test.terra.backends.simulator_test_case import SimulatorTestCase, supported_methods
 
+from qiskit import QuantumCircuit
+
 
 @ddt
 class TestConditionalGates(SimulatorTestCase):
@@ -314,7 +316,7 @@ class TestConditionalSuperOp(SimulatorTestCase):
 
 @ddt
 class TestConditionalReset(SimulatorTestCase):
-    """AerSimulator conditional unitary tests."""
+    """AerSimulator conditional reset tests."""
 
     SUPPORTED_METHODS = [
         "automatic",
@@ -341,3 +343,40 @@ class TestConditionalReset(SimulatorTestCase):
         result = backend.run(circuits, shots=shots).result()
         self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0)
+
+
+@ddt
+class TestConditionalDiagonal(SimulatorTestCase):
+    """AerSimulator conditional diagonal tests."""
+
+    # ---------------------------------------------------------------------
+    # Test conditional
+    # ---------------------------------------------------------------------
+    def test_conditional_diagonal(self):
+        """Test conditional diagonal with statevector."""
+        shots = 100
+        backend = self.backend(method="statevector", device="CPU")
+        backend.set_options(max_parallel_experiments=0)
+
+        circuit = QuantumCircuit(4, 4)
+        for i in range(1, 4):
+            circuit.h(i)
+        circuit.save_statevector(label="base")
+
+        circuit0 = QuantumCircuit(4, 4)
+        for i in range(1, 4):
+            circuit0.h(i)
+        circuit0.diagonal([-1, -1], [1]).c_if(circuit0.clbits[0], 0)
+        circuit0.save_statevector(label="diff")
+
+        circuit1 = QuantumCircuit(4, 4)
+        for i in range(1, 4):
+            circuit1.h(i)
+        circuit1.diagonal([-1, -1], [1]).c_if(circuit1.clbits[0], 1)
+        circuit1.save_statevector(label="equal")
+
+        result = backend.run([circuit, circuit0, circuit1], shots=1).result()
+        self.assertSuccess(result)
+
+        self.assertNotEqual(result.data(circuit)["base"], result.data(circuit0)["diff"])
+        self.assertEqual(result.data(circuit)["base"], result.data(circuit1)["equal"])

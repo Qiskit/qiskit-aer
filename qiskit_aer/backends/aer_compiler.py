@@ -670,8 +670,7 @@ def _assemble_op(aer_circ, inst, qubit_indices, clbit_indices, is_conditional, c
     elif name == "reset":
         aer_circ.reset(qubits, conditional_reg)
     elif name == "diagonal":
-        _check_no_conditional(name, conditional_reg)
-        aer_circ.diagonal(qubits, params, label if label else "diagonal")
+        aer_circ.diagonal(qubits, params, conditional_reg, label if label else "diagonal")
     elif name == "unitary":
         aer_circ.unitary(qubits, params[0], conditional_reg, label if label else "unitary")
     elif name == "pauli":
