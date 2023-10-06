@@ -307,6 +307,8 @@ Circuit NoiseModel::sample_noise_circuit(const Circuit &circ, RngEngine &rng,
   noisy_circ.seed = circ.seed;
   noisy_circ.shots = circ.shots;
   noisy_circ.header = circ.header;
+  noisy_circ.num_bind_params = circ.num_bind_params;
+  noisy_circ.seed_for_params = circ.seed_for_params;
 
   // Reserve double length of ops just to be safe
   noisy_circ.ops.reserve(2 * circ.ops.size());

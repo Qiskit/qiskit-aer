@@ -585,6 +585,7 @@ BACKEND_RUN_ARG_TYPES = {
     "parameterizations": (list),
     "fusion_parallelization_threshold": (int, np.integer),
     "target_gpus": (list),
+    "runtime_parameter_bind_enable": (bool, np.bool_),
 }
 
 
