@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 """
-Qiskit Aer qasm simulator backend.
+Aer qasm simulator backend.
 """
 
 import copy
@@ -43,7 +43,7 @@ logger = logging.getLogger(__name__)
 
 
 class AerBackend(Backend, ABC):
-    """Qiskit Aer Backend class."""
+    """Aer Backend class."""
 
     def __init__(
         self, configuration, properties=None, defaults=None, backend_options=None, provider=None

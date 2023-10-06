@@ -12,7 +12,7 @@
 
 # pylint: disable=invalid-name
 """
-Qiskit Aer simulator backend utils
+Aer simulator backend utils
 """
 import os
 from math import log2
