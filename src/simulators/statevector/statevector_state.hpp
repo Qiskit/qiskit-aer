@@ -156,6 +156,9 @@ public:
   virtual std::vector<reg_t> sample_measure(const reg_t &qubits, uint_t shots,
                                             RngEngine &rng) override;
 
+  // Helper function for computing expectation value
+  virtual double expval_pauli(const reg_t &qubits,
+                              const std::string &pauli) override;
   //-----------------------------------------------------------------------
   // Additional methods
   //-----------------------------------------------------------------------
@@ -222,6 +225,9 @@ public:
   // Return the reduced density matrix for the simulator
   cmatrix_t density_matrix(const reg_t &qubits);
 
+  // Apply the global phase
+  void apply_global_phase();
+
 protected:
   //-----------------------------------------------------------------------
   // Save data instructions
@@ -249,9 +255,6 @@ protected:
   void apply_save_amplitudes(const Operations::Op &op,
                              ExperimentResult &result);
 
-  // Helper function for computing expectation value
-  virtual double expval_pauli(const reg_t &qubits,
-                              const std::string &pauli) override;
   //-----------------------------------------------------------------------
   // Measurement Helpers
   //-----------------------------------------------------------------------
@@ -302,9 +305,6 @@ protected:
   //-----------------------------------------------------------------------
   // Config Settings
   //-----------------------------------------------------------------------
-
-  // Apply the global phase
-  void apply_global_phase();
 
   // OpenMP qubit threshold
   int omp_qubit_threshold_ = 14;
@@ -438,6 +438,8 @@ bool State<statevec_t>::allocate(uint_t num_qubits, uint_t block_bits,
                                  uint_t num_parallel_shots) {
   if (BaseState::max_matrix_qubits_ > 0)
     BaseState::qreg_.set_max_matrix_bits(BaseState::max_matrix_qubits_);
+  if (BaseState::max_sampling_shots_ > 0)
+    BaseState::qreg_.set_max_sampling_shots(BaseState::max_sampling_shots_);
 
   BaseState::qreg_.set_target_gpus(BaseState::target_gpus_);
   BaseState::qreg_.chunk_setup(block_bits, num_qubits, 0, 1);

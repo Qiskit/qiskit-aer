@@ -19,10 +19,10 @@ from typing import Iterable
 
 import numpy as np
 
-from qiskit.circuit import QuantumCircuit, Instruction, QuantumRegister
+from qiskit.circuit import QuantumCircuit, Instruction, QuantumRegister, Reset
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.library.generalized_gates import PauliGate
-from qiskit.circuit.library.standard_gates import IGate
+from qiskit.circuit.library.standard_gates import IGate, XGate, YGate, ZGate
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.quantum_info.operators.channel import Kraus, SuperOp
@@ -30,6 +30,7 @@ from qiskit.quantum_info.operators.channel.quantum_channel import QuantumChannel
 from qiskit.quantum_info.operators.mixins import TolerancesMixin
 from qiskit.quantum_info.operators.predicates import is_identity_matrix
 from qiskit.quantum_info.operators.symplectic import Clifford
+from qiskit.extensions import UnitaryGate
 from ..noiseerror import NoiseError
 
 
@@ -344,6 +345,63 @@ class QuantumError(BaseOperator, TolerancesMixin):
             "probabilities": list(self.probabilities),
         }
         return error
+
+    @staticmethod
+    def from_dict(error):
+        """Implement current error from a dictionary."""
+        # check if dictionary
+        if not isinstance(error, dict):
+            raise NoiseError("error is not a dictionary")
+        # check expected keys "type, id, operations, instructions, probabilities"
+        if (
+            ("type" not in error)
+            or ("id" not in error)
+            or ("operations" not in error)
+            or ("instructions" not in error)
+            or ("probabilities" not in error)
+        ):
+            raise NoiseError("erorr dictionary not containing expected keys")
+        error_instructions = error["instructions"]
+        error_probabilities = error["probabilities"]
+
+        if len(error_instructions) != len(error_probabilities):
+            raise NoiseError("probabilities not matching with instructions")
+        # parse instructions and turn to noise_ops
+        noise_ops = []
+        for idx, inst in enumerate(error_instructions):
+            noise_elem = []
+            for elem in inst:
+                inst_name = elem["name"]
+                inst_qubits = elem["qubits"]
+
+                if inst_name == "x":
+                    noise_elem.append((XGate(), inst_qubits))
+                elif inst_name == "id":
+                    noise_elem.append((IGate(), inst_qubits))
+                elif inst_name == "y":
+                    noise_elem.append((YGate(), inst_qubits))
+                elif inst_name == "z":
+                    noise_elem.append((ZGate(), inst_qubits))
+                elif inst_name == "kraus":
+                    if "params" not in inst[0]:
+                        raise NoiseError("kraus does not have a parameter value")
+                    noise_elem.append((Kraus(inst[0]["params"]), inst_qubits))
+                elif inst_name == "reset":
+                    noise_elem.append((Reset(), inst_qubits))
+                elif inst_name == "measure":
+                    raise NoiseError("instruction 'measure' not supported")
+                elif inst_name == "unitary":
+                    if "params" not in inst[0]:
+                        raise NoiseError("unitary does not have a parameter value")
+                    noise_elem.append((UnitaryGate(inst[0]["params"][0]), inst_qubits))
+                else:
+                    raise NoiseError("error gate for instruction not recognized")
+
+            noise_ops.append((noise_elem, error_probabilities[idx]))
+
+        error_obj = QuantumError(noise_ops)
+
+        return error_obj
 
     def compose(self, other, qargs=None, front=False):
         if not isinstance(other, QuantumError):

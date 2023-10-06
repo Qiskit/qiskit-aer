@@ -43,7 +43,7 @@ public:
 
   uint_t Allocate(int idev, int chunk_bits, int num_qubits, uint_t chunks,
                   uint_t buffers, bool multi_shots, int matrix_bit,
-                  bool density_matrix) override;
+                  int max_shots, bool density_matrix) override;
   void Deallocate(void) override;
 
   void StoreMatrix(const std::vector<std::complex<double>> &mat,
@@ -59,7 +59,7 @@ public:
                        uint_t iChunk) const override {
     params_[iChunk] = (uint_t *)&prm[0];
   }
-  void ResizeMatrixBuffers(int bits) {}
+  void ResizeMatrixBuffers(int bits, int max_shots) {}
 
   void Set(uint_t i, const thrust::complex<data_t> &t) override {
     data_[i] = t;
@@ -118,7 +118,7 @@ template <typename data_t>
 uint_t HostChunkContainer<data_t>::Allocate(int idev, int chunk_bits,
                                             int num_qubits, uint_t chunks,
                                             uint_t buffers, bool multi_shots,
-                                            int matrix_bit,
+                                            int matrix_bit, int max_shots,
                                             bool density_matrix) {
   uint_t nc = chunks;
   uint_t i;
