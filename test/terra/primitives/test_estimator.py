@@ -20,7 +20,7 @@ from test.terra.common import QiskitAerTestCase
 
 import numpy as np
 from ddt import data, ddt
-from qiskit.circuit import QuantumCircuit
+from qiskit.circuit import Parameter, QuantumCircuit
 from qiskit.circuit.library import RealAmplitudes
 from qiskit.exceptions import QiskitError
 from qiskit.opflow import PauliSumOp
@@ -57,7 +57,9 @@ class TestEstimator(QiskitAerTestCase):
             with self.subTest("PauliSumOp"):
                 observable = PauliSumOp.from_list(lst)
                 ansatz = RealAmplitudes(num_qubits=2, reps=2)
-                est = Estimator(abelian_grouping=abelian_grouping)
+                est = Estimator(
+                    backend_options={"method": "statevector"}, abelian_grouping=abelian_grouping
+                )
                 result = est.run(
                     ansatz, observable, parameter_values=[[0, 1, 1, 2, 3, 5]], seed=15
                 ).result()
@@ -67,7 +69,9 @@ class TestEstimator(QiskitAerTestCase):
         with self.subTest("SparsePauliOp"):
             observable = SparsePauliOp.from_list(lst)
             ansatz = RealAmplitudes(num_qubits=2, reps=2)
-            est = Estimator(abelian_grouping=abelian_grouping)
+            est = Estimator(
+                backend_options={"method": "statevector"}, abelian_grouping=abelian_grouping
+            )
             result = est.run(
                 ansatz, observable, parameter_values=[[0, 1, 1, 2, 3, 5]], seed=15
             ).result()
@@ -84,7 +88,9 @@ class TestEstimator(QiskitAerTestCase):
                 ]
             )
             ansatz = RealAmplitudes(num_qubits=2, reps=2)
-            est = Estimator(abelian_grouping=abelian_grouping)
+            est = Estimator(
+                backend_options={"method": "statevector"}, abelian_grouping=abelian_grouping
+            )
             result = est.run(ansatz, observable, parameter_values=[[0] * 6], seed=15).result()
             self.assertIsInstance(result, EstimatorResult)
             np.testing.assert_allclose(result.values, [-0.4], rtol=0.02)
@@ -301,6 +307,21 @@ class TestEstimator(QiskitAerTestCase):
         self.assertIsInstance(result, EstimatorResult)
         np.testing.assert_allclose(result.values, [-1.313831587508902])
         self.assertIsInstance(result.metadata[0]["variance"], float)
+
+    def test_result_order(self):
+        """Test to validate the order."""
+        qc1 = QuantumCircuit(1)
+        qc1.measure_all()
+
+        param = Parameter("a")
+        qc2 = QuantumCircuit(1)
+        qc2.ry(np.pi / 2 * param, 0)
+        qc2.measure_all()
+
+        estimator = Estimator(approximation=True)
+        job = estimator.run([qc1, qc2, qc1, qc1, qc2], ["Z"] * 5, [[], [1], [], [], [1]])
+        result = job.result()
+        np.testing.assert_allclose(result.values, [1, 0, 1, 1, 0], atol=1e-10)
 
 
 if __name__ == "__main__":

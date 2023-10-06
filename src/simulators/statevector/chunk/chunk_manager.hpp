@@ -57,6 +57,7 @@ protected:
   int num_threads_per_group_;
   uint_t num_creg_bits_ = 0;
 
+  bool chunk_distribution_enable_ = true; // enable distribution over GPUs
   reg_t target_gpus_;
 
 public:
@@ -72,8 +73,8 @@ public:
   uint_t num_containers(void) { return chunks_.size(); }
 
   uint_t Allocate(int chunk_bits, int nqubits, uint_t nchunks,
-                  uint_t chunk_index, int matrix_bit, bool density_mat,
-                  reg_t &gpus, bool enable_cuStatevec);
+                  uint_t chunk_index, int matrix_bit, int max_shots,
+                  bool density_mat, reg_t &gpus, bool enable_cuStatevec);
   void Free(void);
 
   int num_devices(void) { return num_devices_; }
@@ -98,6 +99,8 @@ public:
   void execute_on_device(Function func,
                          const std::vector<std::complex<double>> &mat,
                          const std::vector<uint_t> &prm);
+
+  void enable_chunk_distribution(bool flg) { chunk_distribution_enable_ = flg; }
 };
 
 template <typename data_t>
@@ -161,8 +164,9 @@ ChunkManager<data_t>::~ChunkManager() {
 template <typename data_t>
 uint_t ChunkManager<data_t>::Allocate(int chunk_bits, int nqubits,
                                       uint_t nchunks, uint_t chunk_index,
-                                      int matrix_bit, bool density_mat,
-                                      reg_t &gpus, bool enable_cuStatevec) {
+                                      int matrix_bit, int max_shots,
+                                      bool density_mat, reg_t &gpus,
+                                      bool enable_cuStatevec) {
   uint_t num_buffers;
   int iDev;
   uint_t is, ie, nc;
@@ -223,13 +227,35 @@ uint_t ChunkManager<data_t>::Allocate(int chunk_bits, int nqubits,
         multi_gpu = false;
         num_places_ = 1;
 #else
-        multi_gpu = true;
-        num_places_ = num_devices_;
-        if (num_threads_per_group_ > 1)
-          num_places_ *= num_threads_per_group_;
-
-        if (num_places_ > omp_get_max_threads()) {
+        if (chunk_distribution_enable_) {
+          multi_gpu = true;
           num_places_ = num_devices_;
+          if (num_threads_per_group_ > 1)
+            num_places_ *= num_threads_per_group_;
+
+          if (num_places_ > omp_get_max_threads()) {
+            num_places_ = num_devices_;
+          }
+        } else {
+          multi_gpu = false;
+          num_places_ = 1;
+          idev_start = 0;
+
+          // define device to be allocated
+          if (num_devices_ > 1) {
+            size_t freeMem, totalMem, maxMem;
+            cudaSetDevice(0);
+            cudaMemGetInfo(&freeMem, &totalMem);
+            maxMem = freeMem;
+            for (i = 1; i < num_devices_; i++) {
+              cudaSetDevice(i);
+              cudaMemGetInfo(&freeMem, &totalMem);
+              if (freeMem > maxMem) {
+                maxMem = freeMem;
+                idev_start = i;
+              }
+            }
+          }
         }
 #endif
       } else { // single chunk
@@ -310,13 +336,13 @@ uint_t ChunkManager<data_t>::Allocate(int chunk_bits, int nqubits,
       chunks_[iDev]->set_num_creg_bits(num_creg_bits_);
       if (num_devices_ > 0) {
         int id = target_gpus_[(iDev + idev_start) % num_devices_];
-        chunks_allocated +=
-            chunks_[iDev]->Allocate(id, chunk_bits, nqubits, nc, num_buffers,
-                                    multi_shots_, matrix_bit, density_matrix_);
+        chunks_allocated += chunks_[iDev]->Allocate(
+            id, chunk_bits, nqubits, nc, num_buffers, multi_shots_, matrix_bit,
+            max_shots, density_matrix_);
       } else {
-        chunks_allocated +=
-            chunks_[iDev]->Allocate(iDev, chunk_bits, nqubits, nc, num_buffers,
-                                    multi_shots_, matrix_bit, density_matrix_);
+        chunks_allocated += chunks_[iDev]->Allocate(
+            iDev, chunk_bits, nqubits, nc, num_buffers, multi_shots_,
+            matrix_bit, max_shots, density_matrix_);
       }
     }
     if (chunks_allocated < num_chunks_) {
@@ -335,9 +361,9 @@ uint_t ChunkManager<data_t>::Allocate(int chunk_bits, int nqubits,
           chunks_[chunks_.size() - 1]->set_chunk_index(
               chunk_index_ + chunks_allocated +
               is); // set first chunk index for the container
-          chunks_[chunks_.size() - 1]->Allocate(-1, chunk_bits, nqubits, nc,
-                                                num_buffers, multi_shots_,
-                                                matrix_bit, density_matrix_);
+          chunks_[chunks_.size() - 1]->Allocate(
+              -1, chunk_bits, nqubits, nc, num_buffers, multi_shots_,
+              matrix_bit, max_shots, density_matrix_);
         }
       }
       num_places_ += nplaces_add;
@@ -351,7 +377,8 @@ uint_t ChunkManager<data_t>::Allocate(int chunk_bits, int nqubits,
     iplace_host_ = chunks_.size();
     chunks_.push_back(std::make_shared<HostChunkContainer<data_t>>());
     chunks_[iplace_host_]->Allocate(-1, chunk_bits, nqubits, 0, AER_MAX_BUFFERS,
-                                    multi_shots_, matrix_bit, density_matrix_);
+                                    multi_shots_, matrix_bit, max_shots,
+                                    density_matrix_);
 #endif
   } else {
     for (iDev = 0; iDev < chunks_.size(); iDev++) {

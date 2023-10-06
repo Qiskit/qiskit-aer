@@ -38,6 +38,8 @@
 #include "matrix_product_state_internal.hpp"
 #include "simulators/state.hpp"
 
+#include "matrix_product_state_size_estimator.hpp"
+
 namespace AER {
 namespace MatrixProductState {
 
@@ -320,14 +322,12 @@ void State::initialize_omp() {
 
 size_t State::required_memory_mb(uint_t num_qubits,
                                  const std::vector<Operations::Op> &ops) const {
-  // for each qubit we have a tensor structure.
-  // Initially, each tensor contains 2 matrices with a single complex double
-  // Depending on the number of 2-qubit gates,
-  // these matrices may double their size
-  // for now - compute only initial size
-  // later - FIXME
-  size_t mem_mb = 16 * 2 * num_qubits;
-  return mem_mb;
+  if (num_qubits > 1) {
+    MPSSizeEstimator est(num_qubits);
+    uint_t size = est.estimate(ops);
+    return (size >> 20);
+  }
+  return 0;
 }
 
 void State::set_config(const Config &config) {
