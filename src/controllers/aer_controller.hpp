@@ -194,6 +194,9 @@ protected:
   int myrank_ = 0;
   int num_processes_ = 1;
   int num_process_per_experiment_ = 1;
+
+  // runtime parameter binding
+  bool runtime_parameter_bind_ = false;
 };
 
 //=========================================================================
@@ -329,6 +332,10 @@ void Controller::set_config(const Config &config) {
     throw std::runtime_error(std::string("Invalid simulation precision (") +
                              precision + std::string(")."));
   }
+
+  // check if runtime binding is enable
+  if (config.runtime_parameter_bind_enable.has_value())
+    runtime_parameter_bind_ = config.runtime_parameter_bind_enable.value();
 }
 
 void Controller::clear_config() {
@@ -502,7 +509,14 @@ Result Controller::execute(std::vector<std::shared_ptr<Circuit>> &circuits,
   auto methods = simulation_methods(config, circuits, noise_model);
 
   // Initialize Result object for the given number of experiments
-  Result result(circuits.size());
+  uint_t result_size;
+  reg_t result_offset(circuits.size());
+  result_size = 0;
+  for (int_t i = 0; i < circuits.size(); i++) {
+    result_offset[i] = result_size;
+    result_size += circuits[i]->num_bind_params;
+  }
+  Result result(result_size);
   // Initialize circuit executors for each circuit
   std::vector<std::shared_ptr<CircuitExecutor::Base>> executors(
       circuits.size());
@@ -514,12 +528,15 @@ Result Controller::execute(std::vector<std::shared_ptr<Circuit>> &circuits,
 
     // set parallelization for experiments
     try {
+      uint_t res_pos = 0;
       for (int i = 0; i < circuits.size(); i++) {
         executors[i] = make_circuit_executor(methods[i]);
         required_memory_mb_list[i] =
             executors[i]->required_memory_mb(config, *circuits[i], noise_model);
-        result.results[i].metadata.add(required_memory_mb_list[i],
-                                       "required_memory_mb");
+        for (int j = 0; j < circuits[i]->num_bind_params; j++) {
+          result.results[res_pos++].metadata.add(required_memory_mb_list[i],
+                                                 "required_memory_mb");
+        }
       }
       set_parallelization_experiments(required_memory_mb_list);
     } catch (std::exception &e) {
@@ -565,33 +582,40 @@ Result Controller::execute(std::vector<std::shared_ptr<Circuit>> &circuits,
     // average random seed to set the same seed to each process (when
     // seed_simulator is not set)
     if (num_processes_ > 1) {
-      reg_t seeds(circuits.size());
-      reg_t avg_seeds(circuits.size());
-      for (int_t i = 0; i < circuits.size(); i++)
-        seeds[i] = circuits[i]->seed;
-      MPI_Allreduce(seeds.data(), avg_seeds.data(), circuits.size(),
-                    MPI_UINT64_T, MPI_SUM, MPI_COMM_WORLD);
-      for (int_t i = 0; i < circuits.size(); i++)
-        circuits[i]->seed = avg_seeds[i] / num_processes_;
+      reg_t seeds(result_size);
+      reg_t avg_seeds(result_size);
+      int_t iseed = 0;
+      for (int_t i = 0; i < circuits.size(); i++) {
+        if (circuits[i]->num_bind_params > 1) {
+          for (int_t j = 0; i < circuits[i]->num_bind_params; i++)
+            seeds[iseed++] = circuits[i]->seed_for_params[j];
+        } else
+          seeds[iseed++] = circuits[i]->seed;
+      }
+      MPI_Allreduce(seeds.data(), avg_seeds.data(), result_size, MPI_UINT64_T,
+                    MPI_SUM, MPI_COMM_WORLD);
+      iseed = 0;
+      for (int_t i = 0; i < circuits.size(); i++) {
+        if (circuits[i]->num_bind_params > 1) {
+          for (int_t j = 0; i < circuits[i]->num_bind_params; i++)
+            circuits[i]->seed_for_params[j] =
+                avg_seeds[iseed++] / num_processes_;
+        } else
+          circuits[i]->seed = avg_seeds[iseed++] / num_processes_;
+      }
     }
 #endif
 
-    const int NUM_RESULTS = result.results.size();
-    // following looks very similar but we have to separate them to avoid omp
-    // nested loops that causes performance degradation (DO NOT use if statement
-    // in #pragma omp)
-    if (parallel_experiments_ == 1) {
-      for (int i = 0; i < NUM_RESULTS; i++) {
-        executors[i]->run_circuit(*circuits[i], noise_model, config, methods[i],
-                                  sim_device_, result.results[i]);
-      }
-    } else {
-#pragma omp parallel for num_threads(parallel_experiments_)
-      for (int i = 0; i < NUM_RESULTS; i++) {
-        executors[i]->run_circuit(*circuits[i], noise_model, config, methods[i],
-                                  sim_device_, result.results[i]);
-      }
-    }
+    auto run_circuits = [this, &executors, &circuits, &noise_model, &config,
+                         &methods, &result, &result_offset](int_t i) {
+      executors[i]->run_circuit(*circuits[i], noise_model, config, methods[i],
+                                sim_device_,
+                                result.results.begin() + result_offset[i]);
+    };
+    Utils::apply_omp_parallel_for((parallel_experiments_ > 1), 0,
+                                  circuits.size(), run_circuits,
+                                  parallel_experiments_);
+
     executors.clear();
 
     // Check each experiment result for completed status.
@@ -599,7 +623,7 @@ Result Controller::execute(std::vector<std::shared_ptr<Circuit>> &circuits,
 
     bool all_failed = true;
     result.status = Result::Status::completed;
-    for (int i = 0; i < NUM_RESULTS; ++i) {
+    for (int i = 0; i < result.results.size(); ++i) {
       auto &experiment = result.results[i];
       if (experiment.status == ExperimentResult::Status::completed) {
         all_failed = false;

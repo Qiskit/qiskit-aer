@@ -30,6 +30,7 @@ namespace AER {
 
 namespace DensityMatrix {
 
+using ResultItr = std::vector<ExperimentResult>::iterator;
 //-------------------------------------------------------------------------
 // batched-shots executor for density matrix
 //-------------------------------------------------------------------------
@@ -57,11 +58,11 @@ protected:
   // apply op to multiple shots , return flase if op is not supported to execute
   // in a batch
   bool apply_batched_op(const int_t istate, const Operations::Op &op,
-                        ExperimentResult &result, std::vector<RngEngine> &rng,
+                        ResultItr result, std::vector<RngEngine> &rng,
                         bool final_op = false) override;
 
   bool apply_branching_op(CircuitExecutor::Branch &root,
-                          const Operations::Op &op, ExperimentResult &result,
+                          const Operations::Op &op, ResultItr result,
                           bool final_op) override;
 
   // Initializes an n-qubit state to the all |0> state
@@ -73,9 +74,12 @@ protected:
   template <typename list_t>
   void initialize_from_vector(const list_t &vec);
 
+  void run_circuit_with_sampling(Circuit &circ, const Config &config,
+                                 RngEngine &init_rng,
+                                 ResultItr result) override;
   void run_circuit_shots(Circuit &circ, const Noise::NoiseModel &noise,
                          const Config &config, RngEngine &init_rng,
-                         ExperimentResult &result, bool sample_noise) override;
+                         ResultItr result_it, bool sample_noise) override;
 
   bool allocate_states(uint_t num_states, const Config &config) override {
     return BasePar::allocate_states(num_states, config);
@@ -126,6 +130,16 @@ protected:
   cmatrix_t reduced_density_matrix_helper(const reg_t &qubits,
                                           const reg_t &qubits_sorted);
 
+  // Helper functions for shot-branching
+  void apply_save_density_matrix(CircuitExecutor::Branch &root,
+                                 const Operations::Op &op, ResultItr result,
+                                 bool final_op);
+  void apply_save_state(CircuitExecutor::Branch &root, const Operations::Op &op,
+                        ResultItr result, bool final_op);
+  void apply_save_probs(CircuitExecutor::Branch &root, const Operations::Op &op,
+                        ResultItr result);
+  void apply_save_amplitudes(CircuitExecutor::Branch &root,
+                             const Operations::Op &op, ResultItr result);
   //-----------------------------------------------------------------------
   // Measurement Helpers
   //-----------------------------------------------------------------------
@@ -302,16 +316,31 @@ void Executor<densmat_t>::set_config(const Config &config) {
 }
 
 template <class state_t>
+void Executor<state_t>::run_circuit_with_sampling(Circuit &circ,
+                                                  const Config &config,
+                                                  RngEngine &init_rng,
+                                                  ResultItr result_it) {
+  Noise::NoiseModel dummy_noise;
+  if (BasePar::multiple_chunk_required(config, circ, dummy_noise)) {
+    return BasePar::run_circuit_with_sampling(circ, config, init_rng,
+                                              result_it);
+  } else {
+    return BaseBatch::run_circuit_with_sampling(circ, config, init_rng,
+                                                result_it);
+  }
+}
+
+template <class state_t>
 void Executor<state_t>::run_circuit_shots(
     Circuit &circ, const Noise::NoiseModel &noise, const Config &config,
-    RngEngine &init_rng, ExperimentResult &result, bool sample_noise) {
+    RngEngine &init_rng, ResultItr result_it, bool sample_noise) {
   state_t dummy_state;
   if (BasePar::multiple_chunk_required(config, circ, noise)) {
-    return BasePar::run_circuit_shots(circ, noise, config, init_rng, result,
+    return BasePar::run_circuit_shots(circ, noise, config, init_rng, result_it,
                                       sample_noise);
   } else {
-    return BaseBatch::run_circuit_shots(circ, noise, config, init_rng, result,
-                                        sample_noise);
+    return BaseBatch::run_circuit_shots(circ, noise, config, init_rng,
+                                        result_it, sample_noise);
   }
 }
 
@@ -373,7 +402,7 @@ bool Executor<densmat_t>::apply_parallel_op(const Operations::Op &op,
 template <class state_t>
 bool Executor<state_t>::apply_batched_op(const int_t istate,
                                          const Operations::Op &op,
-                                         ExperimentResult &result,
+                                         ResultItr result,
                                          std::vector<RngEngine> &rng,
                                          bool final_op) {
   if (op.conditional) {
@@ -424,8 +453,7 @@ bool Executor<state_t>::apply_batched_op(const int_t istate,
 template <class state_t>
 bool Executor<state_t>::apply_branching_op(CircuitExecutor::Branch &root,
                                            const Operations::Op &op,
-                                           ExperimentResult &result,
-                                           bool final_op) {
+                                           ResultItr result, bool final_op) {
   RngEngine dummy;
   if (Base::states_[root.state_index()].creg().check_conditional(op)) {
     switch (op.type) {
@@ -439,13 +467,20 @@ bool Executor<state_t>::apply_branching_op(CircuitExecutor::Branch &root,
     // save ops
     case Operations::OpType::save_expval:
     case Operations::OpType::save_expval_var:
+      Base::apply_save_expval(root, op, result);
+      break;
     case Operations::OpType::save_state:
+      apply_save_state(root, op, result, final_op);
+      break;
     case Operations::OpType::save_densmat:
+      apply_save_density_matrix(root, op, result, final_op);
+      break;
     case Operations::OpType::save_probs:
     case Operations::OpType::save_probs_ket:
+      apply_save_probs(root, op, result);
+      break;
     case Operations::OpType::save_amps_sq:
-      // call save functions in state class
-      Base::states_[root.state_index()].apply_op(op, result, dummy, final_op);
+      apply_save_amplitudes(root, op, result);
       break;
     default:
       return false;
@@ -757,6 +792,142 @@ Executor<densmat_t>::reduced_density_matrix_helper(const reg_t &qubits,
   }
 
   return reduced_state;
+}
+
+template <class densmat_t>
+void Executor<densmat_t>::apply_save_density_matrix(
+    CircuitExecutor::Branch &root, const Operations::Op &op, ResultItr result,
+    bool final_op) {
+  cmatrix_t mat;
+  mat = Base::states_[root.state_index()].reduced_density_matrix(op.qubits,
+                                                                 final_op);
+
+  std::vector<bool> copied(Base::num_bind_params_, false);
+  for (int_t i = 0; i < root.num_shots(); i++) {
+    uint_t ip = root.param_index(i);
+    if (!copied[ip]) {
+      (result + ip)
+          ->save_data_average(Base::states_[root.state_index()].creg(),
+                              op.string_params[0], mat, op.type, op.save_type);
+      copied[ip] = true;
+    }
+  }
+}
+
+template <class densmat_t>
+void Executor<densmat_t>::apply_save_state(CircuitExecutor::Branch &root,
+                                           const Operations::Op &op,
+                                           ResultItr result, bool final_op) {
+  if (op.qubits.size() !=
+      Base::states_[root.state_index()].qreg().num_qubits()) {
+    throw std::invalid_argument(op.name + " was not applied to all qubits."
+                                          " Only the full state can be saved.");
+  }
+  // Renamp single data type to average
+  Operations::DataSubType save_type;
+  switch (op.save_type) {
+  case Operations::DataSubType::single:
+    save_type = Operations::DataSubType::average;
+    break;
+  case Operations::DataSubType::c_single:
+    save_type = Operations::DataSubType::c_average;
+    break;
+  default:
+    save_type = op.save_type;
+  }
+
+  // Default key
+  std::string key = (op.string_params[0] == "_method_") ? "density_matrix"
+                                                        : op.string_params[0];
+
+  std::vector<bool> copied(Base::num_bind_params_, false);
+  if (final_op) {
+    auto state = Base::states_[root.state_index()].move_to_matrix();
+    for (int_t i = 0; i < root.num_shots(); i++) {
+      uint_t ip = root.param_index(i);
+      if (!copied[ip]) {
+        (result + ip)
+            ->save_data_average(Base::states_[root.state_index()].creg(), key,
+                                state, OpType::save_densmat, save_type);
+        copied[ip] = true;
+      }
+    }
+  } else {
+    auto state = Base::states_[root.state_index()].copy_to_matrix();
+
+    for (int_t i = 0; i < root.num_shots(); i++) {
+      uint_t ip = root.param_index(i);
+      if (!copied[ip]) {
+        (result + ip)
+            ->save_data_average(Base::states_[root.state_index()].creg(), key,
+                                state, OpType::save_densmat, save_type);
+        copied[ip] = true;
+      }
+    }
+  }
+}
+
+template <class densmat_t>
+void Executor<densmat_t>::apply_save_probs(CircuitExecutor::Branch &root,
+                                           const Operations::Op &op,
+                                           ResultItr result) {
+  // get probs as hexadecimal
+  auto probs =
+      Base::states_[root.state_index()].qreg().probabilities(op.qubits);
+
+  std::vector<bool> copied(Base::num_bind_params_, false);
+  if (op.type == Operations::OpType::save_probs_ket) {
+    // Convert to ket dict
+    for (int_t i = 0; i < root.num_shots(); i++) {
+      uint_t ip = root.param_index(i);
+      if (!copied[ip]) {
+        (result + ip)
+            ->save_data_average(
+                Base::states_[root.state_index()].creg(), op.string_params[0],
+                Utils::vec2ket(probs, Base::json_chop_threshold_, 16), op.type,
+                op.save_type);
+        copied[ip] = true;
+      }
+    }
+  } else {
+    for (int_t i = 0; i < root.num_shots(); i++) {
+      uint_t ip = root.param_index(i);
+      if (!copied[ip]) {
+        (result + ip)
+            ->save_data_average(Base::states_[root.state_index()].creg(),
+                                op.string_params[0], probs, op.type,
+                                op.save_type);
+        copied[ip] = true;
+      }
+    }
+  }
+}
+
+template <class densmat_t>
+void Executor<densmat_t>::apply_save_amplitudes(CircuitExecutor::Branch &root,
+                                                const Operations::Op &op,
+                                                ResultItr result) {
+  if (op.int_params.empty()) {
+    throw std::invalid_argument(
+        "Invalid save_amplitudes instructions (empty params).");
+  }
+  const int_t size = op.int_params.size();
+  rvector_t amps_sq(size, 0);
+  for (int_t i = 0; i < size; ++i) {
+    amps_sq[i] =
+        Base::states_[root.state_index()].qreg().probability(op.int_params[i]);
+  }
+  std::vector<bool> copied(Base::num_bind_params_, false);
+  for (int_t i = 0; i < root.num_shots(); i++) {
+    uint_t ip = root.param_index(i);
+    if (!copied[ip]) {
+      (result + ip)
+          ->save_data_average(Base::states_[root.state_index()].creg(),
+                              op.string_params[0], amps_sq, op.type,
+                              op.save_type);
+      copied[ip] = true;
+    }
+  }
 }
 
 //=========================================================================

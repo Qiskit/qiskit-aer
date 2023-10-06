@@ -412,6 +412,14 @@ void bind_aer_controller(MODULE m) {
       "target_gpus",
       [](const Config &config) { return config.target_gpus.val; },
       [](Config &config, reg_t val) { config.target_gpus.value(val); });
+  aer_config.def_property(
+      "runtime_parameter_bind_enable",
+      [](const Config &config) {
+        return config.runtime_parameter_bind_enable.val;
+      },
+      [](Config &config, bool val) {
+        config.runtime_parameter_bind_enable.value(val);
+      });
 
   aer_config.def(py::pickle(
       [](const AER::Config &config) {
@@ -500,11 +508,12 @@ void bind_aer_controller(MODULE m) {
                 79, config.extended_stabilizer_norm_estimation_default_samples),
             write_value(80, config.shot_branching_enable),
             write_value(81, config.shot_branching_sampling_enable),
-            write_value(82, config.target_gpus));
+            write_value(82, config.target_gpus),
+            write_value(83, config.runtime_parameter_bind_enable));
       },
       [](py::tuple t) {
         AER::Config config;
-        if (t.size() != 82)
+        if (t.size() != 84)
           throw std::runtime_error("Invalid serialization format.");
 
         read_value(t, 0, config.shots);
@@ -594,6 +603,7 @@ void bind_aer_controller(MODULE m) {
         read_value(t, 80, config.shot_branching_enable);
         read_value(t, 81, config.shot_branching_sampling_enable);
         read_value(t, 82, config.target_gpus);
+        read_value(t, 83, config.runtime_parameter_bind_enable);
         return config;
       }));
 }

@@ -205,7 +205,8 @@ __global__ void dev_reduce_sum(double *pReduceBuffer, uint_t n,
 template <typename data_t, typename kernel_t>
 __global__ void
 dev_apply_function_sum_complex(thrust::complex<double> *pReduceBuffer,
-                               kernel_t func, uint_t buf_size, uint_t count) {
+                               kernel_t func, uint_t buf_size, uint_t count,
+                               bool init) {
   // One cache entry per warp/wavefront
   __shared__ thrust::complex<double> cache[_MAX_THD / _WS];
   thrust::complex<double> sum;
@@ -220,7 +221,11 @@ dev_apply_function_sum_complex(thrust::complex<double> *pReduceBuffer,
   if (!func.check_conditional(i))
     return;
 
-  sum = func(i);
+  sum = 0.0;
+  if (!init && threadIdx.x == 0 && blockIdx.x == 0) {
+    sum = pReduceBuffer[buf_size * iChunk];
+  }
+  sum += func(i);
 
   // reduce in warp
   nw = min(blockDim.x, _WS);
