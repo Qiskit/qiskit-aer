@@ -1,0 +1,7 @@
+---
+features:
+  - |
+    Implements from_dict() method for QuantumError. This takes a dictionary
+    and checks if style is the one from to_dict() method. If any mismatches
+    are determined then NoiseError is raised. Else dict is parsed and a new
+    QuantumError with noise_ops created.
