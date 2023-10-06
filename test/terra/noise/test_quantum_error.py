@@ -143,7 +143,7 @@ class TestQuantumError(QiskitAerTestCase):
 
         # up to global phase
         qc = QuantumCircuit(1, global_phase=0.5)
-        qc.i(0)
+        qc.id(0)
         self.assertTrue(QuantumError(qc).ideal())
         self.assertTrue(QuantumError(UnitaryGate(-1.0 * np.eye(2))).ideal())
 
