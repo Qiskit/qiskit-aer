@@ -52,7 +52,7 @@ public:
   //-----------------------------------------------------------------------
 
   // Set the size of the vector in terms of qubit number
-  void set_num_qubits(size_t num_qubits);
+  void set_num_qubits(size_t num_qubits) override;
 
   // Return the number of rows in the matrix
   size_t num_rows() const { return rows_; }
@@ -74,6 +74,14 @@ public:
 
   // Initializes the current vector so that all qubits are in the |0> state.
   void initialize();
+
+  // initialize from existing state (copy)
+  void initialize(const UnitaryMatrix<data_t> &obj) {
+    BaseVector::initialize(obj);
+    num_qubits_ = obj.num_qubits_;
+    rows_ = obj.rows_;
+    identity_threshold_ = obj.identity_threshold_;
+  }
 
   // Initializes the vector to a custom initial state.
   // If the length of the statevector does not match the number of qubits
@@ -230,13 +238,13 @@ void UnitaryMatrix<data_t>::initialize() {
   BaseVector::zero();
   // Set to be identity matrix
   const int_t nrows = rows_; // end for k loop
-#pragma omp parallel if (BaseVector::num_qubits_ >                             \
-                             BaseVector::omp_threshold_ &&                     \
-                         BaseVector::omp_threads_ > 1)                         \
-    num_threads(BaseVector::omp_threads_)
-  for (int_t k = 0; k < nrows; ++k) {
-    BaseVector::data_[k * (nrows + 1)] = 1.0;
-  }
+  auto initialize_proc = [this](int_t i) {
+    BaseVector::data_[i * (rows_ + 1)] = 1.0;
+  };
+  Utils::apply_omp_parallel_for(
+      (BaseVector::num_qubits_ > BaseVector::omp_threshold_ &&
+       BaseVector::omp_threads_ > 1),
+      0, rows_, initialize_proc, BaseVector::omp_threads_);
 }
 
 template <class data_t>
@@ -252,15 +260,15 @@ void UnitaryMatrix<data_t>::initialize_from_matrix(
         std::to_string(mat.GetRows()) + "," + std::to_string(mat.GetColumns()) +
         ").");
   }
-
-#pragma omp parallel if (BaseVector::num_qubits_ >                             \
-                             BaseVector::omp_threshold_ &&                     \
-                         BaseVector::omp_threads_ > 1)                         \
-    num_threads(BaseVector::omp_threads_)
-  for (int_t row = 0; row < nrows; ++row)
-    for (int_t col = 0; col < nrows; ++col) {
-      BaseVector::data_[row + nrows * col] = mat(row, col);
+  auto initialize_proc = [this, &mat](int_t row) {
+    for (int_t col = 0; col < rows_; ++col) {
+      BaseVector::data_[row + rows_ * col] = mat(row, col);
     }
+  };
+  Utils::apply_omp_parallel_for(
+      (BaseVector::num_qubits_ > BaseVector::omp_threshold_ &&
+       BaseVector::omp_threads_ > 1),
+      0, rows_, initialize_proc, BaseVector::omp_threads_);
 }
 
 template <class data_t>

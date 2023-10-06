@@ -465,6 +465,8 @@ BACKEND_RUN_ARG_TYPES = {
     "chunk_swap_buffer_qubits": (int, np.integer),
     "batched_shots_gpu": (bool, np.bool_),
     "batched_shots_gpu_max_qubits": (int, np.integer),
+    "shot_branching_enable": (bool, np.bool_),
+    "shot_branching_sampling_enable": (bool, np.bool_),
     "num_threads_per_device": (int, np.integer),
     "statevector_parallel_threshold": (int, np.integer),
     "statevector_sample_measure_opt": (int, np.integer),
@@ -488,6 +490,8 @@ BACKEND_RUN_ARG_TYPES = {
     "use_cuTensorNet_autotuning": (bool, np.bool_),
     "parameterizations": (list),
     "fusion_parallelization_threshold": (int, np.integer),
+    "target_gpus": (list),
+    "runtime_parameter_bind_enable": (bool, np.bool_),
 }
 
 

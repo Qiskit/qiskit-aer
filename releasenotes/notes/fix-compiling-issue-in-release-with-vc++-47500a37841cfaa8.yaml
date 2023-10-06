@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Fixes an issue when compiling a release version on windows with vc++,  
+    also unrolls a for, avoiding an unnecessary switch inside it.
+    The fix is for https://github.com/Qiskit/qiskit-aer/issues/1918
+
+

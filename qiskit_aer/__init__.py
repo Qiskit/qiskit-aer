@@ -32,7 +32,6 @@ Simulator Backends
     :toctree: ../stubs/
 
     AerSimulator
-    PulseSimulator
 
 Legacy Simulator Backends
 =========================
@@ -72,7 +71,6 @@ from qiskit_aer.jobs import AerJob, AerJobSet
 from qiskit_aer.aererror import AerError
 from qiskit_aer.backends import *
 from qiskit_aer import library
-from qiskit_aer import pulse
 from qiskit_aer import quantum_info
 from qiskit_aer import noise
 from qiskit_aer import utils

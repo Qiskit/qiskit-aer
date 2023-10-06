@@ -37,7 +37,7 @@ def measure_circuits_deterministic(allow_sampling=True):
     circuit.measure(qr, cr)
     if not allow_sampling:
         circuit.barrier(qr)
-        circuit.i(qr)
+        circuit.id(qr)
         circuit.barrier(qr)
         circuit.measure(qr, cr)
     circuits.append(circuit)
@@ -49,7 +49,7 @@ def measure_circuits_deterministic(allow_sampling=True):
     circuit.measure(qr, cr)
     if not allow_sampling:
         circuit.barrier(qr)
-        circuit.i(qr)
+        circuit.id(qr)
         circuit.barrier(qr)
         circuit.measure(qr, cr)
     circuits.append(circuit)
@@ -61,7 +61,7 @@ def measure_circuits_deterministic(allow_sampling=True):
     circuit.measure(qr, cr)
     if not allow_sampling:
         circuit.barrier(qr)
-        circuit.i(qr)
+        circuit.id(qr)
         circuit.barrier(qr)
         circuit.measure(qr, cr)
     circuits.append(circuit)
@@ -73,7 +73,7 @@ def measure_circuits_deterministic(allow_sampling=True):
     circuit.measure(qr, cr)
     if not allow_sampling:
         circuit.barrier(qr)
-        circuit.i(qr)
+        circuit.id(qr)
         circuit.barrier(qr)
         circuit.measure(qr, cr)
     circuits.append(circuit)
@@ -89,7 +89,7 @@ def measure_circuits_deterministic(allow_sampling=True):
     circuit.measure(1, 0)
     if not allow_sampling:
         circuit.barrier(qr)
-        circuit.i(qr)
+        circuit.id(qr)
         circuit.barrier(qr)
         circuit.measure(1, 0)
     circuits.append(circuit)
@@ -185,7 +185,7 @@ def measure_circuits_nondeterministic(allow_sampling=True):
     circuit.measure(qr, cr)
     if not allow_sampling:
         circuit.barrier(qr)
-        circuit.i(qr)
+        circuit.id(qr)
         circuit.barrier(qr)
         circuit.measure(qr, cr)
     circuits.append(circuit)
@@ -228,7 +228,7 @@ def multiqubit_measure_circuits_deterministic(allow_sampling=True):
     circuit.append(measure_n(2), [0, 1], [0, 1])
     if not allow_sampling:
         circuit.barrier(qr)
-        circuit.i(qr)
+        circuit.id(qr)
         circuit.barrier(qr)
         circuit.append(measure_n(2), [0, 1], [0, 1])
     circuits.append(circuit)
@@ -243,7 +243,7 @@ def multiqubit_measure_circuits_deterministic(allow_sampling=True):
     circuit.append(measure_n(3), [0, 1, 2], [0, 1, 2])
     if not allow_sampling:
         circuit.barrier(qr)
-        circuit.i(qr)
+        circuit.id(qr)
         circuit.barrier(qr)
         circuit.append(measure_n(3), [0, 1, 2], [0, 1, 2])
     circuits.append(circuit)
@@ -258,7 +258,7 @@ def multiqubit_measure_circuits_deterministic(allow_sampling=True):
     circuit.append(measure_n(4), [0, 1, 2, 3], [0, 1, 2, 3])
     if not allow_sampling:
         circuit.barrier(qr)
-        circuit.i(qr)
+        circuit.id(qr)
         circuit.barrier(qr)
         circuit.append(measure_n(4), [0, 1, 2, 3], [0, 1, 2, 3])
     circuits.append(circuit)
@@ -344,7 +344,7 @@ def multiqubit_measure_circuits_nondeterministic(allow_sampling=True):
     circuit.append(measure_n(2), [0, 1], [0, 1])
     if not allow_sampling:
         circuit.barrier(qr)
-        circuit.i(qr)
+        circuit.id(qr)
         circuit.barrier(qr)
         circuit.append(measure_n(2), [0, 1], [0, 1])
     circuits.append(circuit)
@@ -359,7 +359,7 @@ def multiqubit_measure_circuits_nondeterministic(allow_sampling=True):
     circuit.append(measure_n(3), [0, 1, 2], [0, 1, 2])
     if not allow_sampling:
         circuit.barrier(qr)
-        circuit.i(qr)
+        circuit.id(qr)
         circuit.barrier(qr)
         circuit.append(measure_n(3), [0, 1, 2], [0, 1, 2])
     circuits.append(circuit)

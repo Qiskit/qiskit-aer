@@ -23,7 +23,7 @@
 #include "framework/json.hpp"
 #include "framework/opset.hpp"
 #include "framework/utils.hpp"
-#include "simulators/state_chunk.hpp"
+#include "simulators/state.hpp"
 #include "tensor_net.hpp"
 
 #include "simulators/tensor_network/tensor_net.hpp"
@@ -152,6 +152,12 @@ public:
   // Initializes to a specific n-qubit state
   void initialize_qreg(const tensor_net_t &tensor);
 
+  void initialize_from_vector(const cvector_t<double> &params);
+
+  // Helper function for computing expectation value
+  virtual double expval_pauli(const reg_t &qubits,
+                              const std::string &pauli) override;
+
   //-----------------------------------------------------------------------
   // Additional methods
   //-----------------------------------------------------------------------
@@ -189,8 +195,6 @@ protected:
   // /psi> is given in params
   void apply_initialize(const reg_t &qubits, const cvector_t<double> &params,
                         RngEngine &rng);
-
-  void initialize_from_vector(const cvector_t<double> &params);
 
   void initialize_from_matrix(const cmatrix_t &params);
 
@@ -248,9 +252,6 @@ protected:
   void apply_save_amplitudes(const Operations::Op &op,
                              ExperimentResult &result);
 
-  // Helper function for computing expectation value
-  virtual double expval_pauli(const reg_t &qubits,
-                              const std::string &pauli) override;
   //-----------------------------------------------------------------------
   // Measurement Helpers
   //-----------------------------------------------------------------------

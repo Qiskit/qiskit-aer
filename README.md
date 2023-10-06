@@ -1,6 +1,10 @@
 # Qiskit Aer
 
-[![License](https://img.shields.io/github/license/Qiskit/qiskit-aer.svg?style=popout-square)](https://opensource.org/licenses/Apache-2.0)[![Build Status](https://img.shields.io/travis/com/Qiskit/qiskit-aer/master.svg?style=popout-square)](https://travis-ci.com/Qiskit/qiskit-aer)[![](https://img.shields.io/github/release/Qiskit/qiskit-aer.svg?style=popout-square)](https://github.com/Qiskit/qiskit-aer/releases)[![](https://img.shields.io/pypi/dm/qiskit-aer.svg?style=popout-square)](https://pypi.org/project/qiskit-aer/)
+[![License](https://img.shields.io/github/license/Qiskit/qiskit-aer.svg?style=popout-square)](https://opensource.org/licenses/Apache-2.0)
+[![Build](https://github.com/Qiskit/qiskit-aer/actions/workflows/build.yml/badge.svg?branch=main)](https://github.com/Qiskit/qiskit-aer/actions/workflows/build.yml)
+[![Tests](https://github.com/Qiskit/qiskit-aer/actions/workflows/tests.yml/badge.svg?branch=main)](https://github.com/Qiskit/qiskit-aer/actions/workflows/tests.yml)
+[![](https://img.shields.io/github/release/Qiskit/qiskit-aer.svg?style=popout-square)](https://github.com/Qiskit/qiskit-aer/releases)
+[![](https://img.shields.io/pypi/dm/qiskit-aer.svg?style=popout-square)](https://pypi.org/project/qiskit-aer/)
 
 **Qiskit** is an open-source framework for working with noisy quantum computers at the level of pulses, circuits, and algorithms.
 
@@ -20,13 +24,18 @@ To install from source, follow the instructions in the [contribution guidelines]
 
 ## Installing GPU support
 
-In order to install and run the GPU supported simulators on Linux, you need CUDA&reg; 10.1 or newer previously installed.
+In order to install and run the GPU supported simulators on Linux, you need CUDA&reg; 11.2 or newer previously installed.
 CUDA&reg; itself would require a set of specific GPU drivers. Please follow CUDA&reg; installation procedure in the NVIDIA&reg; [web](https://www.nvidia.com/drivers).
 
 If you want to install our GPU supported simulators, you have to install this other package:
 
 ```bash
 pip install qiskit-aer-gpu
+```
+
+The package above is for CUDA&reg 12, so if your system has CUDA&reg; 11 installed, install separate package:
+```bash
+pip install qiskit-aer-gpu-cu11
 ```
 
 This will overwrite your current `qiskit-aer` package installation giving you
@@ -95,7 +104,7 @@ Now you're set up and ready to check out some of the other examples from our
 ## Authors and Citation
 
 Qiskit Aer is the work of [many people](https://github.com/Qiskit/qiskit-aer/graphs/contributors) who contribute
-to the project at different levels. If you use Qiskit, please cite as per the included [BibTeX file](https://github.com/Qiskit/qiskit/blob/master/Qiskit.bib).
+to the project at different levels. If you use Qiskit, please cite as per the included [BibTeX file](https://github.com/Qiskit/qiskit-terra/blob/main/CITATION.bib).
 
 ## License
 

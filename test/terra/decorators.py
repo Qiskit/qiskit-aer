@@ -21,10 +21,6 @@ from qiskit import QuantumCircuit, execute
 
 from qiskit_aer import AerProvider, AerSimulator
 
-# Backwards compatibility for Terra <= 0.13
-if not hasattr(QuantumCircuit, "i"):
-    QuantumCircuit.i = QuantumCircuit.iden
-
 
 def is_method_available(backend, method):
     """Check if input method is available for the qasm simulator."""

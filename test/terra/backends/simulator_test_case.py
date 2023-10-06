@@ -42,6 +42,10 @@ class SimulatorTestCase(QiskitAerTestCase):
                 sim_options["batched_shots_gpu"] = True
             else:
                 sim_options[key] = val
+            # enable shot_branching is method is tensor_network
+            if "method" == key and "tensor_network" in val:
+                sim_options["shot_branching_enable"] = True
+                sim_options["shot_branching_sampling_enable"] = True
         return self.BACKEND(**sim_options)
 
 
@@ -82,6 +86,7 @@ def _method_device(methods):
     cuStateVec = check_cuStateVec(available_devices)
 
     gpu_methods = ["statevector", "density_matrix", "unitary", "tensor_network"]
+    batchable_methods = ["statevector", "density_matrix"]
     data_args = []
     for method in methods:
         if method in available_methods:
@@ -94,8 +99,9 @@ def _method_device(methods):
                     for device in available_devices:
                         data_args.append((method, device))
                         if device == "GPU":
-                            # add batched optimization test for GPU
-                            data_args.append((method, "GPU_batch"))
+                            if method in batchable_methods:
+                                # add batched optimization test for GPU
+                                data_args.append((method, "GPU_batch"))
                     # add test cases for cuStateVec if available using special device = 'GPU_cuStateVec'
                     #'GPU_cuStateVec' is used only inside tests not available in Aer
                     # and this is converted to "device='GPU'" and option "cuStateVec_enalbe = True" is added
@@ -110,7 +116,7 @@ def check_cuStateVec(devices):
     """Return if the system supports cuStateVec or not"""
     if "GPU" in devices:
         dummy_circ = QuantumCircuit(1)
-        dummy_circ.i(0)
+        dummy_circ.id(0)
         qobj = assemble(
             dummy_circ,
             optimization_level=0,

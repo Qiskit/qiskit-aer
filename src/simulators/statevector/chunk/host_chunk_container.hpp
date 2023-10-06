@@ -29,8 +29,8 @@ class HostChunkContainer : public ChunkContainer<data_t> {
 protected:
   AERHostVector<thrust::complex<data_t>>
       data_; // host vector for chunks + buffers
-  std::vector<thrust::complex<double> *> matrix_; // pointer to matrix
-  std::vector<uint_t *> params_; // pointer to additional parameters
+  mutable std::vector<thrust::complex<double> *> matrix_; // pointer to matrix
+  mutable std::vector<uint_t *> params_; // pointer to additional parameters
 public:
   HostChunkContainer() {}
   ~HostChunkContainer();
@@ -43,22 +43,23 @@ public:
 
   uint_t Allocate(int idev, int chunk_bits, int num_qubits, uint_t chunks,
                   uint_t buffers, bool multi_shots, int matrix_bit,
-                  bool density_matrix) override;
+                  int max_shots, bool density_matrix) override;
   void Deallocate(void) override;
 
   void StoreMatrix(const std::vector<std::complex<double>> &mat,
-                   uint_t iChunk) override {
+                   uint_t iChunk) const override {
     matrix_[iChunk] = (thrust::complex<double> *)&mat[0];
   }
   void StoreMatrix(const std::complex<double> *mat, uint_t iChunk,
-                   uint_t size) override {
+                   uint_t size) const override {
     matrix_[iChunk] = (thrust::complex<double> *)mat;
   }
 
-  void StoreUintParams(const std::vector<uint_t> &prm, uint_t iChunk) override {
+  void StoreUintParams(const std::vector<uint_t> &prm,
+                       uint_t iChunk) const override {
     params_[iChunk] = (uint_t *)&prm[0];
   }
-  void ResizeMatrixBuffers(int bits) {}
+  void ResizeMatrixBuffers(int bits, int max_shots) {}
 
   void Set(uint_t i, const thrust::complex<data_t> &t) override {
     data_[i] = t;
@@ -117,7 +118,7 @@ template <typename data_t>
 uint_t HostChunkContainer<data_t>::Allocate(int idev, int chunk_bits,
                                             int num_qubits, uint_t chunks,
                                             uint_t buffers, bool multi_shots,
-                                            int matrix_bit,
+                                            int matrix_bit, int max_shots,
                                             bool density_matrix) {
   uint_t nc = chunks;
   uint_t i;
@@ -242,8 +243,10 @@ void HostChunkContainer<data_t>::Swap(Chunk<data_t> &src, uint_t iChunk,
 
 template <typename data_t>
 void HostChunkContainer<data_t>::Zero(uint_t iChunk, uint_t count) {
+#ifndef AER_THRUST_ROCM_DISABLE_THRUST_OMP
   thrust::fill_n(thrust::omp::par,
                  data_.begin() + (iChunk << this->chunk_bits_), count, 0.0);
+#endif
 }
 
 template <typename data_t>
@@ -258,6 +261,7 @@ reg_t HostChunkContainer<data_t>::sample_measure(
   strided_range<thrust::complex<data_t> *> iter(
       chunk_pointer(iChunk), chunk_pointer(iChunk + count), stride);
 
+#ifndef AER_THRUST_ROCM_DISABLE_THRUST_OMP
   if (dot)
     thrust::transform_inclusive_scan(thrust::omp::par, iter.begin(), iter.end(),
                                      iter.begin(), complex_dot_scan<data_t>(),
@@ -269,6 +273,7 @@ reg_t HostChunkContainer<data_t>::sample_measure(
   thrust::lower_bound(thrust::omp::par, iter.begin(), iter.end(), rnds.begin(),
                       rnds.begin() + SHOTS, vSmp.begin(),
                       complex_less<data_t>());
+#endif
 
   for (i = 0; i < SHOTS; i++) {
     samples[i] = vSmp[i];

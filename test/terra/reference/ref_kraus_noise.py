@@ -20,10 +20,6 @@ from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit_aer.noise import NoiseModel
 from qiskit_aer.noise.errors.standard_errors import amplitude_damping_error
 
-# Backwards compatibility for Terra <= 0.13
-if not hasattr(QuantumCircuit, "i"):
-    QuantumCircuit.i = QuantumCircuit.iden
-
 
 # ==========================================================================
 # Amplitude damping error
@@ -42,7 +38,7 @@ def kraus_gate_error_circuits():
     for _ in range(30):
         # Add noisy identities
         circuit.barrier(qr)
-        circuit.i(qr)
+        circuit.id(qr)
     circuit.barrier(qr)
     circuit.measure(qr, cr)
     circuits.append(circuit)
