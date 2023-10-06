@@ -131,7 +131,7 @@ protected:
   // If `throw_except` is true an exception will be thrown on the return false
   // case listing the invalid instructions in the circuit or noise model, or
   // the required memory.
-  bool validate_method(Method method, const Circuit &circ,
+  bool validate_method(Method method, const Config &config, const Circuit &circ,
                        const Noise::NoiseModel &noise,
                        bool throw_except = false) const;
 
@@ -147,13 +147,14 @@ protected:
   // The noise model will be modified to enable superop or kraus sampling
   // methods if required by the chosen methods.
   std::vector<Method>
-  simulation_methods(std::vector<std::shared_ptr<Circuit>> &circuits,
+  simulation_methods(const Config &config,
+                     std::vector<std::shared_ptr<Circuit>> &circuits,
                      Noise::NoiseModel &noise_model) const;
 
   // Return the simulation method to use based on the input circuit
   // and noise model
   Method
-  automatic_simulation_method(const Circuit &circ,
+  automatic_simulation_method(const Config &config, const Circuit &circ,
                               const Noise::NoiseModel &noise_model) const;
 
   bool has_statevector_ops(const Circuit &circuit) const;
@@ -165,9 +166,7 @@ protected:
   void clear_parallelization();
 
   // Set parallelization for experiments
-  void set_parallelization_experiments(
-      const std::vector<std::shared_ptr<Circuit>> &circuits,
-      const Noise::NoiseModel &noise, const std::vector<Method> &methods);
+  void set_parallelization_experiments(const reg_t &required_memory_list);
 
   void save_exception_to_results(Result &result, const std::exception &e) const;
 
@@ -195,6 +194,9 @@ protected:
   int myrank_ = 0;
   int num_processes_ = 1;
   int num_process_per_experiment_ = 1;
+
+  // runtime parameter binding
+  bool runtime_parameter_bind_ = false;
 };
 
 //=========================================================================
@@ -330,6 +332,10 @@ void Controller::set_config(const Config &config) {
     throw std::runtime_error(std::string("Invalid simulation precision (") +
                              precision + std::string(")."));
   }
+
+  // check if runtime binding is enable
+  if (config.runtime_parameter_bind_enable.has_value())
+    runtime_parameter_bind_ = config.runtime_parameter_bind_enable.value();
 }
 
 void Controller::clear_config() {
@@ -354,12 +360,12 @@ void Controller::clear_parallelization() {
 }
 
 void Controller::set_parallelization_experiments(
-    const std::vector<std::shared_ptr<Circuit>> &circuits,
-    const Noise::NoiseModel &noise, const std::vector<Method> &methods) {
+    const reg_t &required_memory_mb_list) {
+
   if (explicit_parallelization_)
     return;
 
-  if (circuits.size() == 1) {
+  if (required_memory_mb_list.size() == 1) {
     parallel_experiments_ = 1;
     return;
   }
@@ -378,20 +384,12 @@ void Controller::set_parallelization_experiments(
   }
 
   // If memory allows, execute experiments in parallel
-  std::vector<size_t> required_memory_mb_list(circuits.size());
-  for (size_t j = 0; j < circuits.size(); j++) {
-    std::shared_ptr<CircuitExecutor::Base> executor =
-        make_circuit_executor(methods[j]);
-    required_memory_mb_list[j] =
-        executor->required_memory_mb(*circuits[j], noise);
-    executor.reset();
-  }
-  std::sort(required_memory_mb_list.begin(), required_memory_mb_list.end(),
-            std::greater<>());
+  reg_t required_sorted = required_memory_mb_list;
+  std::sort(required_sorted.begin(), required_sorted.end(), std::greater<>());
 
   size_t total_memory = 0;
   int parallel_experiments = 0;
-  for (size_t required_memory_mb : required_memory_mb_list) {
+  for (size_t required_memory_mb : required_sorted) {
     total_memory += required_memory_mb;
     if (total_memory > max_memory_mb_)
       break;
@@ -401,9 +399,9 @@ void Controller::set_parallelization_experiments(
   if (parallel_experiments <= 0)
     throw std::runtime_error(
         "a circuit requires more memory than max_memory_mb.");
-  parallel_experiments_ =
-      std::min<int>({parallel_experiments, max_experiments,
-                     max_parallel_threads_, static_cast<int>(circuits.size())});
+  parallel_experiments_ = std::min<int>(
+      {parallel_experiments, max_experiments, max_parallel_threads_,
+       static_cast<int>(required_memory_mb_list.size())});
 }
 
 size_t Controller::get_system_memory_mb() {
@@ -508,10 +506,21 @@ Result Controller::execute(std::vector<std::shared_ptr<Circuit>> &circuits,
 #endif
   // Determine simulation method for each circuit
   // and enable required noise sampling methods
-  auto methods = simulation_methods(circuits, noise_model);
+  auto methods = simulation_methods(config, circuits, noise_model);
 
   // Initialize Result object for the given number of experiments
-  Result result(circuits.size());
+  uint_t result_size;
+  reg_t result_offset(circuits.size());
+  result_size = 0;
+  for (int_t i = 0; i < circuits.size(); i++) {
+    result_offset[i] = result_size;
+    result_size += circuits[i]->num_bind_params;
+  }
+  Result result(result_size);
+  // Initialize circuit executors for each circuit
+  std::vector<std::shared_ptr<CircuitExecutor::Base>> executors(
+      circuits.size());
+  reg_t required_memory_mb_list(circuits.size());
 
   // Execute each circuit in a try block
   try {
@@ -519,9 +528,17 @@ Result Controller::execute(std::vector<std::shared_ptr<Circuit>> &circuits,
 
     // set parallelization for experiments
     try {
-      // catch exception raised by required_memory_mb because of invalid
-      // simulation method
-      set_parallelization_experiments(circuits, noise_model, methods);
+      uint_t res_pos = 0;
+      for (int i = 0; i < circuits.size(); i++) {
+        executors[i] = make_circuit_executor(methods[i]);
+        required_memory_mb_list[i] =
+            executors[i]->required_memory_mb(config, *circuits[i], noise_model);
+        for (int j = 0; j < circuits[i]->num_bind_params; j++) {
+          result.results[res_pos++].metadata.add(required_memory_mb_list[i],
+                                                 "required_memory_mb");
+        }
+      }
+      set_parallelization_experiments(required_memory_mb_list);
     } catch (std::exception &e) {
       save_exception_to_results(result, e);
     }
@@ -541,7 +558,7 @@ Result Controller::execute(std::vector<std::shared_ptr<Circuit>> &circuits,
 
       // nested should be set to zero if num_threads clause will be used
 #if _OPENMP >= 200805
-      omp_set_max_active_levels(2);
+      omp_set_max_active_levels(1);
 #else
       omp_set_nested(1);
 #endif
@@ -565,46 +582,48 @@ Result Controller::execute(std::vector<std::shared_ptr<Circuit>> &circuits,
     // average random seed to set the same seed to each process (when
     // seed_simulator is not set)
     if (num_processes_ > 1) {
-      reg_t seeds(circuits.size());
-      reg_t avg_seeds(circuits.size());
-      for (int_t i = 0; i < circuits.size(); i++)
-        seeds[i] = circuits[i]->seed;
-      MPI_Allreduce(seeds.data(), avg_seeds.data(), circuits.size(),
-                    MPI_UINT64_T, MPI_SUM, MPI_COMM_WORLD);
-      for (int_t i = 0; i < circuits.size(); i++)
-        circuits[i]->seed = avg_seeds[i] / num_processes_;
+      reg_t seeds(result_size);
+      reg_t avg_seeds(result_size);
+      int_t iseed = 0;
+      for (int_t i = 0; i < circuits.size(); i++) {
+        if (circuits[i]->num_bind_params > 1) {
+          for (int_t j = 0; i < circuits[i]->num_bind_params; i++)
+            seeds[iseed++] = circuits[i]->seed_for_params[j];
+        } else
+          seeds[iseed++] = circuits[i]->seed;
+      }
+      MPI_Allreduce(seeds.data(), avg_seeds.data(), result_size, MPI_UINT64_T,
+                    MPI_SUM, MPI_COMM_WORLD);
+      iseed = 0;
+      for (int_t i = 0; i < circuits.size(); i++) {
+        if (circuits[i]->num_bind_params > 1) {
+          for (int_t j = 0; i < circuits[i]->num_bind_params; i++)
+            circuits[i]->seed_for_params[j] =
+                avg_seeds[iseed++] / num_processes_;
+        } else
+          circuits[i]->seed = avg_seeds[iseed++] / num_processes_;
+      }
     }
 #endif
 
-    const int NUM_RESULTS = result.results.size();
-    // following looks very similar but we have to separate them to avoid omp
-    // nested loops that causes performance degradation (DO NOT use if statement
-    // in #pragma omp)
-    if (parallel_experiments_ == 1) {
-      for (int j = 0; j < NUM_RESULTS; ++j) {
-        std::shared_ptr<CircuitExecutor::Base> executor =
-            make_circuit_executor(methods[j]);
-        executor->run_circuit(*circuits[j], noise_model, config, methods[j],
-                              sim_device_, result.results[j]);
-        executor.reset();
-      }
-    } else {
-#pragma omp parallel for num_threads(parallel_experiments_)
-      for (int j = 0; j < NUM_RESULTS; ++j) {
-        std::shared_ptr<CircuitExecutor::Base> executor =
-            make_circuit_executor(methods[j]);
-        executor->run_circuit(*circuits[j], noise_model, config, methods[j],
-                              sim_device_, result.results[j]);
-        executor.reset();
-      }
-    }
+    auto run_circuits = [this, &executors, &circuits, &noise_model, &config,
+                         &methods, &result, &result_offset](int_t i) {
+      executors[i]->run_circuit(*circuits[i], noise_model, config, methods[i],
+                                sim_device_,
+                                result.results.begin() + result_offset[i]);
+    };
+    Utils::apply_omp_parallel_for((parallel_experiments_ > 1), 0,
+                                  circuits.size(), run_circuits,
+                                  parallel_experiments_);
+
+    executors.clear();
 
     // Check each experiment result for completed status.
     // If only some experiments completed return partial completed status.
 
     bool all_failed = true;
     result.status = Result::Status::completed;
-    for (int i = 0; i < NUM_RESULTS; ++i) {
+    for (int i = 0; i < result.results.size(); ++i) {
       auto &experiment = result.results[i];
       if (experiment.status == ExperimentResult::Status::completed) {
         all_failed = false;
@@ -755,7 +774,8 @@ Controller::make_circuit_executor(const Method method) const {
 }
 
 std::vector<Method>
-Controller::simulation_methods(std::vector<std::shared_ptr<Circuit>> &circuits,
+Controller::simulation_methods(const Config &config,
+                               std::vector<std::shared_ptr<Circuit>> &circuits,
                                Noise::NoiseModel &noise_model) const {
   // Does noise model contain kraus noise
   bool kraus_noise =
@@ -769,7 +789,7 @@ Controller::simulation_methods(std::vector<std::shared_ptr<Circuit>> &circuits,
     bool kraus_enabled = false;
     for (const auto &_circ : circuits) {
       const auto circ = *_circ;
-      auto method = automatic_simulation_method(circ, noise_model);
+      auto method = automatic_simulation_method(config, circ, noise_model);
       sim_methods.push_back(method);
       if (!superop_enabled &&
           (method == Method::density_matrix || method == Method::superop ||
@@ -811,9 +831,10 @@ Controller::simulation_methods(std::vector<std::shared_ptr<Circuit>> &circuits,
 }
 
 Method Controller::automatic_simulation_method(
-    const Circuit &circ, const Noise::NoiseModel &noise_model) const {
+    const Config &config, const Circuit &circ,
+    const Noise::NoiseModel &noise_model) const {
   // If circuit and noise model are Clifford run on Stabilizer simulator
-  if (validate_method(Method::stabilizer, circ, noise_model, false)) {
+  if (validate_method(Method::stabilizer, config, circ, noise_model, false)) {
     return Method::stabilizer;
   }
   // For noisy simulations we enable the density matrix method if
@@ -823,7 +844,8 @@ Method Controller::automatic_simulation_method(
   // dimension
   if (noise_model.has_quantum_errors() && circ.num_qubits < 64 &&
       circ.shots > (1ULL << circ.num_qubits) &&
-      validate_method(Method::density_matrix, circ, noise_model, false) &&
+      validate_method(Method::density_matrix, config, circ, noise_model,
+                      false) &&
       circ.can_sample) {
     return Method::density_matrix;
   }
@@ -837,7 +859,7 @@ Method Controller::automatic_simulation_method(
       {Method::statevector, Method::density_matrix,
        Method::matrix_product_state, Method::unitary, Method::superop});
   for (const auto &method : methods) {
-    if (validate_method(method, circ, noise_model, false))
+    if (validate_method(method, config, circ, noise_model, false))
       return method;
   }
 
@@ -867,12 +889,13 @@ bool Controller::has_statevector_ops(const Circuit &circ) const {
 //-------------------------------------------------------------------------
 // Validation
 //-------------------------------------------------------------------------
-bool Controller::validate_method(Method method, const Circuit &circ,
+bool Controller::validate_method(Method method, const Config &config,
+                                 const Circuit &circ,
                                  const Noise::NoiseModel &noise_model,
                                  bool throw_except) const {
   std::shared_ptr<CircuitExecutor::Base> executor =
       make_circuit_executor(method);
-  bool ret = executor->validate_state(circ, noise_model, throw_except);
+  bool ret = executor->validate_state(config, circ, noise_model, throw_except);
   executor.reset();
   return ret;
 }

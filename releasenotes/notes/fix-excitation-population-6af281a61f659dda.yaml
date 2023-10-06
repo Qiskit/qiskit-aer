@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixed a bug where :meth:`~.NoiseModel.from_backend` with ``BackendV2`` and non-zero ``temperature``
+    produces relaxation noises with incorrect excitation population.
+    Fixed `#1937 <https://github.com/Qiskit/qiskit-aer/issues/1937>`__.
