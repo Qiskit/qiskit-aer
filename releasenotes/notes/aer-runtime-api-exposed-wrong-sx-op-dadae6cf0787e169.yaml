@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    Aer runtime api (from contrib) exposed the wrong sx operation,
+    implemented with a rx. The implementation is changed now by
+    adding AerState::apply_mcsx and calling it from aer_apply_sx.
+    This way the api has the same behavior as the documentation 
+    states and also how the sx gate behaves in python.
+    Fix for: https://github.com/Qiskit/qiskit-aer/issues/1925

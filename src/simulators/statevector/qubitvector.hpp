@@ -99,7 +99,7 @@ public:
   static std::string name() { return "statevector"; }
 
   // Set the size of the vector in terms of qubit number
-  void set_num_qubits(size_t num_qubits);
+  virtual void set_num_qubits(size_t num_qubits);
 
   // Returns the number of qubits for the current vector
   virtual uint_t num_qubits() const { return num_qubits_; }
@@ -144,9 +144,10 @@ public:
                             const cvector_t<double> &state);
 
   // setup chunk
-  bool chunk_setup(int chunk_bits, int num_qubits, uint_t chunk_index,
-                   uint_t num_local_chunks);
-  bool chunk_setup(QubitVector<data_t> &base, const uint_t chunk_index);
+  uint_t chunk_setup(int chunk_bits, int num_qubits, uint_t chunk_index,
+                     uint_t num_local_chunks);
+  uint_t chunk_setup(QubitVector<data_t> &base, const uint_t chunk_index);
+  uint_t chunk_index(void) { return chunk_index_; }
 
   // cache control for chunks on host
   bool fetch_chunk(void) const { return true; }
@@ -159,10 +160,12 @@ public:
   // prepare buffer for MPI send/recv
   std::complex<data_t> *send_buffer(uint_t &size_in_byte);
   std::complex<data_t> *recv_buffer(uint_t &size_in_byte);
+
   void release_send_buffer(void) const;
   void release_recv_buffer(void) const;
 
   void set_max_matrix_bits(int_t bits) {}
+  void set_max_sampling_shots(int_t shots) {}
 
   void synchronize(void) {}
 
@@ -185,6 +188,9 @@ public:
 
   // Initializes the current vector so that all qubits are in the |0> state.
   void initialize();
+
+  // initialize from existing state (copy)
+  void initialize(const QubitVector<data_t> &obj) { copy_qv(obj); }
 
   // Initializes the vector to a custom initial state.
   // If the length of the data vector does not match the number of qubits
@@ -343,6 +349,14 @@ public:
   void apply_batched_kraus(const reg_t &qubits,
                            const std::vector<cmatrix_t> &kmats,
                            std::vector<RngEngine> &rng) {}
+  // apply matrices to each chunk in a batch
+  void apply_batched_matrix(const reg_t &qubits, const cvector_t<double> &mat,
+                            const uint_t num_matrices,
+                            const uint_t num_shots_per_matrix) {}
+  void apply_batched_diagonal_matrix(const reg_t &qubits,
+                                     const cvector_t<double> &mat,
+                                     const uint_t num_matrices,
+                                     const uint_t num_shots_per_matrix) {}
 
   //-----------------------------------------------------------------------
   // Norms
@@ -396,6 +410,10 @@ public:
                       const uint_t z_count, const uint_t z_count_pair,
                       const complex_t initial_phase = 1.0) const;
 
+  void batched_expval_pauli(std::vector<double> &val, const reg_t &qubits,
+                            const std::string &pauli, bool variance,
+                            std::complex<double> param, bool last,
+                            const complex_t initial_phase = 1.0) const {}
   //-----------------------------------------------------------------------
   // JSON configuration settings
   //-----------------------------------------------------------------------
@@ -429,6 +447,8 @@ public:
   // cuStateVec
   void cuStateVec_enable(bool flg) {}
 
+  void set_target_gpus(reg_t &t) {}
+
   //-----------------------------------------------------------------------
   // Optimization configuration settings
   //-----------------------------------------------------------------------
@@ -440,6 +460,8 @@ public:
   int get_sample_measure_index_size() { return sample_measure_index_size_; }
 
   virtual bool enable_batch(bool flg) const { return false; }
+
+  bool support_global_indexing(void) { return false; }
 
 protected:
   //-----------------------------------------------------------------------
@@ -623,6 +645,9 @@ protected:
 
   // Allocates memory for the checkoiunt
   void allocate_checkpoint(size_t data_size);
+
+  // copy state from other QubitVector
+  void copy_qv(const QubitVector<data_t> &obj);
 };
 
 /*******************************************************************************
@@ -742,6 +767,22 @@ QubitVector<data_t>::~QubitVector() {
 }
 
 template <typename data_t>
+void QubitVector<data_t>::copy_qv(const QubitVector<data_t> &obj) {
+  data_ = nullptr;
+  checkpoint_ = nullptr;
+  set_num_qubits(obj.num_qubits());
+  set_transformer_method();
+
+  initialize_from_data(obj.data_, obj.data_size_);
+
+  chunk_index_ = obj.chunk_index_;
+  omp_threads_ = obj.omp_threads_;
+  omp_threshold_ = obj.omp_threshold_;
+  sample_measure_index_size_ = obj.sample_measure_index_size_;
+  json_chop_threshold_ = obj.json_chop_threshold_;
+}
+
+template <typename data_t>
 QubitVector<data_t> &QubitVector<data_t>::operator=(QubitVector<data_t> &&obj) {
   num_qubits_ = obj.num_qubits_;
   data_size_ = obj.data_size_;
@@ -753,6 +794,7 @@ QubitVector<data_t> &QubitVector<data_t>::operator=(QubitVector<data_t> &&obj) {
   omp_threshold_ = obj.omp_threshold_;
   sample_measure_index_size_ = obj.sample_measure_index_size_;
   json_chop_threshold_ = obj.json_chop_threshold_;
+
   obj.data_ = nullptr;
   obj.checkpoint_ = nullptr;
   return *this;
@@ -861,11 +903,10 @@ template <typename data_t>
 void QubitVector<data_t>::zero() {
   const int_t END = data_size_; // end for k loop
 
-#pragma omp parallel for if (num_qubits_ > omp_threshold_ && omp_threads_ > 1) \
-    num_threads(omp_threads_)
-  for (int_t k = 0; k < END; ++k) {
-    data_[k] = 0.0;
-  }
+  auto zero_proc = [this](int_t i) { data_[i] = 0.0; };
+  Utils::apply_omp_parallel_for(
+      (num_qubits_ > omp_threshold_ && omp_threads_ > 1), 0, END, zero_proc,
+      omp_threads_);
 }
 
 template <typename data_t>
@@ -941,6 +982,8 @@ size_t QubitVector<data_t>::required_memory_mb(uint_t num_qubits) const {
 
   size_t unit = std::log2(sizeof(std::complex<data_t>));
   size_t shift_mb = std::max<int_t>(0, num_qubits + unit - 20);
+  if (shift_mb >= 63)
+    return SIZE_MAX;
   size_t mem_mb = 1ULL << shift_mb;
   return mem_mb;
 }
@@ -996,18 +1039,18 @@ std::complex<double> QubitVector<data_t>::inner_product() const {
 
 // setup chunk
 template <typename data_t>
-bool QubitVector<data_t>::chunk_setup(int chunk_bits, int num_qubits,
-                                      uint_t chunk_index,
-                                      uint_t num_local_chunks) {
+uint_t QubitVector<data_t>::chunk_setup(int chunk_bits, int num_qubits,
+                                        uint_t chunk_index,
+                                        uint_t num_local_chunks) {
   chunk_index_ = chunk_index;
-  return true;
+  return num_local_chunks;
 }
 
 template <typename data_t>
-bool QubitVector<data_t>::chunk_setup(QubitVector<data_t> &base,
-                                      const uint_t chunk_index) {
+uint_t QubitVector<data_t>::chunk_setup(QubitVector<data_t> &base,
+                                        const uint_t chunk_index) {
   chunk_index_ = chunk_index;
-  return true;
+  return 0;
 }
 
 // prepare buffer for MPI send/recv
@@ -1296,7 +1339,6 @@ void QubitVector<data_t>::apply_multiplexer(const reg_t &control_qubits,
 template <typename data_t>
 void QubitVector<data_t>::apply_diagonal_matrix(const reg_t &qubits,
                                                 const cvector_t<double> &diag) {
-
   transformer_->apply_diagonal_matrix(data_, data_size_, omp_threads_managed(),
                                       qubits, diag);
 }

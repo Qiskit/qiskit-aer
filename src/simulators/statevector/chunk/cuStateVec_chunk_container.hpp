@@ -46,7 +46,7 @@ public:
 
   uint_t Allocate(int idev, int chunk_bits, int num_qubits, uint_t chunks,
                   uint_t buffers, bool multi_shots, int matrix_bit,
-                  bool density_matrix) override;
+                  int max_shots, bool density_matrix) override;
   void Deallocate(void) override;
 
   reg_t sample_measure(uint_t iChunk, const std::vector<double> &rnds,
@@ -126,10 +126,11 @@ cuStateVecChunkContainer<data_t>::~cuStateVecChunkContainer(void) {
 template <typename data_t>
 uint_t cuStateVecChunkContainer<data_t>::Allocate(
     int idev, int chunk_bits, int num_qubits, uint_t chunks, uint_t buffers,
-    bool multi_shots, int matrix_bit, bool density_matrix) {
+    bool multi_shots, int matrix_bit, int max_shots, bool density_matrix) {
   uint_t nc;
   nc = BaseContainer::Allocate(idev, chunk_bits, num_qubits, chunks, buffers,
-                               multi_shots, matrix_bit, density_matrix);
+                               multi_shots, matrix_bit, max_shots,
+                               density_matrix);
 
   // initialize custatevevtor handle
   custatevecStatus_t err;
@@ -142,7 +143,7 @@ uint_t cuStateVecChunkContainer<data_t>::Allocate(
     throw std::runtime_error(str.str());
   }
 
-  err = custatevecSetStream(custatevec_handle_, BaseContainer::stream_);
+  err = custatevecSetStream(custatevec_handle_, BaseContainer::stream(0));
   if (err != CUSTATEVEC_STATUS_SUCCESS) {
     std::stringstream str;
     str << "cuStateVecChunkContainer::allocate::custatevecSetStream : "
@@ -214,13 +215,13 @@ reg_t cuStateVecChunkContainer<data_t>::sample_measure(
     reg_t samples(SHOTS, 0);
 
     BaseContainer::set_device();
-    custatevecSetStream(custatevec_handle_, BaseContainer::stream_);
+    custatevecSetStream(custatevec_handle_, BaseContainer::stream(0));
 
     custatevecStatus_t err;
     custatevecSamplerDescriptor_t sampler;
     size_t extSize;
 
-    cudaStreamSynchronize(BaseContainer::stream_);
+    cudaStreamSynchronize(BaseContainer::stream(0));
 
     cudaDataType_t state_type;
     if (sizeof(data_t) == sizeof(double))

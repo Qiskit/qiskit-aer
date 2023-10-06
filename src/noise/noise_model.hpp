@@ -307,6 +307,8 @@ Circuit NoiseModel::sample_noise_circuit(const Circuit &circ, RngEngine &rng,
   noisy_circ.seed = circ.seed;
   noisy_circ.shots = circ.shots;
   noisy_circ.header = circ.header;
+  noisy_circ.num_bind_params = circ.num_bind_params;
+  noisy_circ.seed_for_params = circ.seed_for_params;
 
   // Reserve double length of ops just to be safe
   noisy_circ.ops.reserve(2 * circ.ops.size());
@@ -528,7 +530,7 @@ NoiseModel::sample_noise_helper(const Operations::Op &op, RngEngine &rng,
   // Combine errors
   auto &noise_ops = noise_before;
   noise_ops.reserve(noise_before.size() + noise_after.size() + 1);
-  if (op.type != Operations::OpType::qerror_loc) {
+  if (op.type != Operations::OpType::sample_noise) {
     noise_ops.push_back(op);
   }
   noise_ops.insert(noise_ops.end(),
@@ -802,7 +804,7 @@ NoiseModel::NoiseOps
 NoiseModel::create_noise_loc(const Operations::Op &op) const {
   NoiseOps ops(1);
   ops[0] = op;
-  ops[0].type = Operations::OpType::qerror_loc;
+  ops[0].type = Operations::OpType::sample_noise;
   return ops;
 }
 

@@ -1,0 +1,4 @@
+---
+fixes:
+  - |
+    Fix the version of matplotlib required by seaborn

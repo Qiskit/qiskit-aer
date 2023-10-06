@@ -170,6 +170,10 @@ class AerSimulator(AerBackend):
     If AerSimulator is built with cuStateVec support, cuStateVec APIs are enabled
     by setting ``cuStateVec_enable=True``.
 
+    * ``target_gpus`` (list): List of GPU's IDs starting from 0 sets
+      the target GPUs used for the simulation.
+      If this option is not specified, all the available GPUs are used for
+      chunks/shots distribution.
 
     **Additional Backend Options**
 
@@ -287,8 +291,38 @@ class AerSimulator(AerBackend):
       threads per GPU. This parameter is used to optimize Pauli noise
       simulation with multiple-GPUs (Default: 1).
 
+    * ``shot_branching_enable`` (bool): This option enables/disables
+      applying shot-branching technique to speed up multi-shots of dynamic
+      circutis simulations or circuits simulations with noise models.
+      (Default: False).
+      Starting from single state shared with multiple shots and
+      state will be branched dynamically at runtime.
+      This option can decrease runs of shots if there will be less branches
+      than number of total shots.
+      This option is available for ``"statevector"``, ``"density_matrix"``
+      and ``"tensor_network"``.
+
+    * ``shot_branching_sampling_enable`` (bool): This option enables/disables
+      applying sampling measure if the input circuit has all the measure
+      operations at the end of the circuit. (Default: False).
+      Because measure operation branches state into 2 states, it is not
+      efficient to apply branching for measure.
+      Sampling measure improves speed to get counts for multiple-shots
+      sharing the same state.
+      Note that the counts obtained by sampling measure may not be as same as
+      the counts calculated by multiple measure operations,
+      becuase sampling measure takes only one randome number per shot.
+      This option is available for ``"statevector"``, ``"density_matrix"``
+      and ``"tensor_network"``.
+
     * ``accept_distributed_results`` (bool): This option enables storing
       results independently in each process (Default: None).
+
+    * ``runtime_parameter_bind_enable`` (bool): If this option is True
+      parameters are bound at runtime by using multi-shots without constructing
+      circuits for each parameters. For GPU this option can be used with
+      ``batched_shots_gpu`` to run with multiple parameters in a batch.
+      (Default: False).
 
     These backend options only apply when using the ``"statevector"``
     simulation method:
@@ -709,6 +743,9 @@ class AerSimulator(AerBackend):
             batched_shots_gpu=False,
             batched_shots_gpu_max_qubits=16,
             num_threads_per_device=1,
+            # multi-shot branching
+            shot_branching_enable=False,
+            shot_branching_sampling_enable=False,
             # statevector options
             statevector_parallel_threshold=14,
             statevector_sample_measure_opt=10,
@@ -734,6 +771,8 @@ class AerSimulator(AerBackend):
             # tensor network options
             tensor_network_num_sampling_qubits=10,
             use_cuTensorNet_autotuning=False,
+            # parameter binding
+            runtime_parameter_bind_enable=False,
         )
 
     def __repr__(self):

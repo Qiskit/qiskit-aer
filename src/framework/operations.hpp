@@ -61,6 +61,7 @@ enum class OpType {
   superop,
   roerror,
   noise_switch,
+  sample_noise,
   // Save instructions
   save_state,
   save_expval,
@@ -207,6 +208,9 @@ inline std::ostream &operator<<(std::ostream &stream, const OpType &type) {
   case OpType::qerror_loc:
     stream << "qerror_loc";
     break;
+  case OpType::sample_noise:
+    stream << "sample_noise";
+    break;
   case OpType::noise_switch:
     stream << "noise_switch";
     break;
@@ -304,6 +308,9 @@ struct Op {
 
   // Save
   DataSubType save_type = DataSubType::single;
+
+  // runtime parameter bind
+  bool has_bind_params = false;
 };
 
 inline std::ostream &operator<<(std::ostream &s, const Op &op) {
@@ -932,6 +939,30 @@ inline Op make_qerror_loc(const reg_t &qubits, const std::string &label,
   if (conditional >= 0) {
     op.conditional = true;
     op.conditional_reg = conditional;
+  }
+  return op;
+}
+
+// make new op by parameter binding
+inline Op bind_parameter(const Op &src, const uint_t iparam,
+                         const uint_t num_params) {
+  Op op;
+  op.type = src.type;
+  op.name = src.name;
+  op.qubits = src.qubits;
+  op.conditional = src.conditional;
+  op.conditional_reg = src.conditional_reg;
+
+  if (src.params.size() > 0) {
+    uint_t stride = src.params.size() / num_params;
+    op.params.resize(stride);
+    for (int_t i = 0; i < stride; i++)
+      op.params[i] = src.params[iparam * stride + i];
+  } else if (src.mats.size() > 0) {
+    uint_t stride = src.mats.size() / num_params;
+    op.mats.resize(stride);
+    for (int_t i = 0; i < stride; i++)
+      op.mats[i] = src.mats[iparam * stride + i];
   }
   return op;
 }

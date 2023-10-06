@@ -171,12 +171,15 @@ def basic_device_gate_errors(
         )
 
     # Generate custom gate time dict
+    # Units used in the following computation: ns (time), Hz (frequency), mK (temperature).
     custom_times = {}
     relax_params = []
     if thermal_relaxation:
         # If including thermal relaxation errors load
-        # T1, T2, and frequency values from properties
+        # T1 [ns], T2 [ns], and frequency [GHz] values from properties
         relax_params = thermal_relaxation_values(properties)
+        # Unit conversion: GHz -> Hz
+        relax_params = [(t1, t2, freq * 1e9) for t1, t2, freq in relax_params]
         # If we are specifying custom gate times include
         # them in the custom times dict
         if gate_lengths:
@@ -207,7 +210,7 @@ def basic_device_gate_errors(
         # Get relaxation error
         if thermal_relaxation:
             relax_error = _device_thermal_relaxation_error(
-                qubits, relax_time, relax_params, temperature, thermal_relaxation
+                qubits, relax_time, relax_params, temperature
             )
 
         # Get depolarizing error channel
@@ -239,6 +242,8 @@ def _basic_device_target_gate_errors(
     Note that, in the resulting error list, non-Gate instructions (e.g. Reset) will have
     no gate errors while they may have thermal relaxation errors. Exceptionally,
     Measure instruction will have no errors, neither gate errors nor relaxation errors.
+
+    Note: Units in use: Time [s], Frequency [Hz], Temperature [mK]
     """
     errors = []
     for op_name, inst_prop_dic in target.items():
@@ -329,12 +334,14 @@ def _device_depolarizing_error(qubits, error_param, relax_error=None):
     return None
 
 
-def _device_thermal_relaxation_error(
-    qubits, gate_time, relax_params, temperature, thermal_relaxation=True
-):
-    """Construct a thermal_relaxation_error for device"""
+def _device_thermal_relaxation_error(qubits, gate_time, relax_params, temperature):
+    """Construct a thermal_relaxation_error for device.
+
+    Expected units: frequency in relax_params [Hz], temperature [mK].
+    Note that gate_time and T1/T2 in relax_params must be in the same time unit.
+    """
     # Check trivial case
-    if not thermal_relaxation or gate_time is None or gate_time == 0:
+    if gate_time is None or gate_time == 0:
         return None
 
     # Construct a tensor product of single qubit relaxation errors
@@ -360,13 +367,15 @@ def _device_thermal_relaxation_error(
 
 def _truncate_t2_value(t1, t2):
     """Return t2 value truncated to 2 * t1 (for t2 > 2 * t1)"""
-    if t1 is None or t2 is None:
+    if t1 is None:
         return t2
+    elif t2 is None:
+        return 2 * t1
     return min(t2, 2 * t1)
 
 
 def _excited_population(freq, temperature):
-    """Return excited state population from freq [GHz] and temperature [mK]."""
+    """Return excited state population from freq [Hz] and temperature [mK]."""
     if freq is None or temperature is None:
         return 0
     population = 0
@@ -377,10 +386,10 @@ def _excited_population(freq, temperature):
         # Boltzman constant  kB = 8.617333262e-5 (eV/K)
         # Planck constant h = 4.135667696e-15 (eV.s)
         # qubit temperature temperatue = T (mK)
-        # qubit frequency frequency = f (GHz)
-        # excited state population = 1/(1+exp((h*f*1e9)/(kb*T*1e-3)))
+        # qubit frequency frequency = f (Hz)
+        # excited state population = 1/(1+exp((h*f)/(kb*T*1e-3)))
         # See e.g. Phys. Rev. Lett. 114, 240501 (2015).
-        exp_param = exp((47.99243 * freq) / abs(temperature))
+        exp_param = exp((47.99243 * 1e-9 * freq) / abs(temperature))
         population = 1 / (1 + exp_param)
         if temperature < 0:
             # negative temperate implies |1> is thermal ground
