@@ -16,6 +16,8 @@ import logging
 import json
 from math import ceil
 import concurrent.futures
+import pickle
+import tempfile
 
 from ddt import ddt
 from qiskit import QuantumCircuit, transpile
@@ -70,6 +72,19 @@ class TestResultSerialization(SimulatorTestCase):
         data = json.dumps(result, cls=AerJSONEncoder)
         result_copy = json.loads(data)
         self.compare_counts(result, [circuit], [result_copy["results"][0]["data"]["counts"]])
+
+    def test_aer_job_picklable(self):
+        circuit = QuantumVolume(4, seed=111)
+        circuit.measure_all()
+        backend = self.backend(method="statevector")
+        result = backend.run(transpile(circuit, backend)).result()
+
+        with tempfile.TemporaryFile() as f:
+            pickle.dump(result, f)
+            f.seek(0)
+            result_copy = pickle.load(f)
+
+        self.assertEqual(result.get_counts(), result_copy.get_counts())
 
 
 class CBFixture(SimulatorTestCase):
