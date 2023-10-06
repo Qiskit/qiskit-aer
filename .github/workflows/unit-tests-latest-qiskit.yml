@@ -6,6 +6,9 @@ on:
     branches: [main, 'stable/*']
   schedule:
     - cron: '0 5 * * *'
+concurrency:
+  group: ${{ github.repository }}-${{ github.ref }}-${{ github.head_ref }}-${{ github.workflow }}
+  cancel-in-progress: true
 jobs:
   unit-tests-latest-qiskit:
     runs-on: "ubuntu-latest"
