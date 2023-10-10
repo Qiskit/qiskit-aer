@@ -106,7 +106,7 @@ jobs:
         with:
           python-version: '3.8'
       - name: Install Deps
-        run: pip install -U twine wheel
+        run: pip install -U twine wheel skbuild
       - name: Build Artifacts
         run: |
           python setup.py sdist
