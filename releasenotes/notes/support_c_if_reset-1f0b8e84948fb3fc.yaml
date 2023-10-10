@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    ``c_if`` is supportted of ``reset`` instruction and an exception
+    is thrown if `c_if` is called for an instruction that does not 
+    support ``c_if``.
