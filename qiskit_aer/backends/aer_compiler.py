@@ -824,6 +824,11 @@ class _AssembleExprImpl(ExprVisitor):
         raise AerError(f"unsupported expression is used: {node.__class__}")
 
 
+def _check_no_conditional(inst_name, conditional_reg):
+    if conditional_reg >= 0:
+        raise AerError(f"instruction {inst_name} does not support conditional")
+
+
 def _assemble_op(
     circ,
     aer_circ,
@@ -868,9 +873,9 @@ def _assemble_op(
         else:
             aer_circ.measure(qubits, clbits, [])
     elif name == "reset":
-        aer_circ.reset(qubits)
+        aer_circ.reset(qubits, conditional_reg)
     elif name == "diagonal":
-        aer_circ.diagonal(qubits, params, label if label else "diagonal")
+        aer_circ.diagonal(qubits, params, conditional_reg, label if label else "diagonal")
     elif name == "unitary":
         aer_circ.unitary(qubits, params[0], conditional_reg, aer_cond_expr,
                          label if label else "unitary")
@@ -878,8 +883,10 @@ def _assemble_op(
         aer_circ.gate(name, qubits, [], params, conditional_reg, aer_cond_expr,
                       label if label else name)
     elif name == "initialize":
+        _check_no_conditional(name, conditional_reg)
         aer_circ.initialize(qubits, params)
     elif name == "roerror":
+        _check_no_conditional(name, conditional_reg)
         aer_circ.roerror(qubits, params)
     elif name == "multiplexer":
         aer_circ.multiplexer(qubits, params, conditional_reg, aer_cond_expr,
@@ -899,10 +906,13 @@ def _assemble_op(
         "save_state",
         "save_stabilizer",
     }:
+        _check_no_conditional(name, conditional_reg)
         aer_circ.save_state(qubits, name, operation._subtype, label if label else name)
     elif name in {"save_amplitudes", "save_amplitudes_sq"}:
+        _check_no_conditional(name, conditional_reg)
         aer_circ.save_amplitudes(qubits, name, params, operation._subtype, label if label else name)
     elif name in ("save_expval", "save_expval_var"):
+        _check_no_conditional(name, conditional_reg)
         paulis = []
         coeff_reals = []
         coeff_imags = []
@@ -920,24 +930,32 @@ def _assemble_op(
             label if label else name,
         )
     elif name == "set_statevector":
+        _check_no_conditional(name, conditional_reg)
         aer_circ.set_statevector(qubits, params)
     elif name == "set_unitary":
+        _check_no_conditional(name, conditional_reg)
         aer_circ.set_unitary(qubits, params)
     elif name == "set_density_matrix":
+        _check_no_conditional(name, conditional_reg)
         aer_circ.set_density_matrix(qubits, params)
     elif name == "set_stabilizer":
+        _check_no_conditional(name, conditional_reg)
         aer_circ.set_clifford(qubits, params)
     elif name == "set_superop":
+        _check_no_conditional(name, conditional_reg)
         aer_circ.set_superop(qubits, params)
     elif name == "set_matrix_product_state":
+        _check_no_conditional(name, conditional_reg)
         aer_circ.set_matrix_product_state(qubits, params)
     elif name == "superop":
         aer_circ.superop(qubits, params[0], conditional_reg, aer_cond_expr)
     elif name == "barrier":
+        _check_no_conditional(name, conditional_reg)
         num_of_aer_ops = 0
     elif name == "jump":
         aer_circ.jump(qubits, params, conditional_reg, aer_cond_expr)
     elif name == "mark":
+        _check_no_conditional(name, conditional_reg)
         aer_circ.mark(qubits, params)
     elif name == "qerror_loc":
         aer_circ.set_qerror_loc(qubits, label if label else name, conditional_reg, aer_cond_expr)
