@@ -63,7 +63,7 @@ public:
         for (size_t i = 0; i < vec.size(); ++i)
           vec[i] = fusioned_op.mats[0](i, i);
         fusioned_op = Operations::make_diagonal(
-            fusioned_op.qubits, std::move(vec), std::string("fusion"));
+            fusioned_op.qubits, std::move(vec), -1, std::string("fusion"));
       }
     } else {
       // loop for runtime parameter binding
@@ -83,7 +83,7 @@ public:
           vec.assign((1UL << new_op.qubits.size()), 0);
           for (size_t i = 0; i < vec.size(); ++i)
             vec[i] = new_op.mats[0](i, i);
-          new_op = Operations::make_diagonal(new_op.qubits, std::move(vec),
+          new_op = Operations::make_diagonal(new_op.qubits, std::move(vec), -1,
                                              std::string("fusion"));
         }
 
