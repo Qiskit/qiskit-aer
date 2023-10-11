@@ -22,7 +22,7 @@ from concurrent.futures import Executor
 import numpy as np
 
 from qiskit.circuit import QuantumCircuit, Clbit, ClassicalRegister, ParameterExpression
-from qiskit.circuit.classical.expr import Expr, Unary, Binary, Var, Value, ExprVisitor
+from qiskit.circuit.classical.expr import Expr, Unary, Binary, Var, Value, ExprVisitor, iter_vars
 from qiskit.circuit.classical.types import Bool, Uint
 from qiskit.extensions import Initialize
 from qiskit.providers.options import Options
@@ -257,36 +257,24 @@ class AerCompiler:
         elif isinstance(cond_tuple[0], ClassicalRegister):
             # ClassicalRegister conditions should already be in the outer circuit.
             return cond_tuple
-
-        # left and right expression
-        def _convert_clbit_index(expr):
-            if isinstance(expr, Unary):
-                _convert_clbit_index(expr.operand)
-            elif isinstance(expr, Binary):
-                _convert_clbit_index(expr.left)
-                _convert_clbit_index(expr.right)
-            elif isinstance(expr, Var):
-                if isinstance(expr.var, Clbit):
-                    expr.var = bit_map[expr.var]
-                else:
-                    expr.var = [bit_map[clbit] for clbit in expr.var]
-            return expr
-
-        left = deepcopy(cond_tuple[0]).accept(AerCompiler._ClbitConverter(bit_map))
-        right = cond_tuple[1]
-        return (left, right)
-
-    def _list_clbit_from_expr(self, bit_map, clbits, expr):
-        if isinstance(expr, Unary):
-            self._list_clbit_from_expr(bit_map, clbits, expr.operand)
-        elif isinstance(expr, Binary):
-            self._list_clbit_from_expr(bit_map, clbits, expr.left)
-            self._list_clbit_from_expr(bit_map, clbits, expr.right)
-        elif isinstance(expr, Var):
+        elif isinstance(cond_tuple[0], Var):
+            expr = deepcopy(cond_tuple[0])
             if isinstance(expr.var, Clbit):
-                clbits += bit_map[expr.var]
+                expr.var = bit_map[expr.var]
             else:
-                clbits += [bit_map[clbit] for clbit in expr.var]
+                expr.var = [bit_map[clbit] for clbit in expr.var]
+            return (expr, cond_tuple[1])
+
+        raise AerError(f"jump condition does not support {cond_tuple[0].__class__}.")
+
+    def _list_clbit_from_expr(self, bit_map, expr):
+        ret = set()
+        for var in iter_vars(expr):
+            if isinstance(var.var, Clbit):
+                ret.add(bit_map[var.var])
+            elif isinstance(var.var, ClassicalRegister):
+                ret.update(bit_map[bit] for bit in var.var)
+        return ret
 
     def _inline_for_loop_op(self, instruction, parent, bit_map):
         """inline for_loop body while iterating its indexset"""
@@ -345,14 +333,13 @@ class AerCompiler:
         qargs = [bit_map[q] for q in instruction.qubits]
         cargs = [bit_map[c] for c in instruction.clbits]
 
-        mark_cargs = []
         if isinstance(condition_tuple, Expr):
-            self._list_clbit_from_expr(bit_map, mark_cargs, condition_tuple)
+            mark_cargs = self._list_clbit_from_expr(bit_map, condition_tuple)
         elif isinstance(condition_tuple[0], Clbit):
-            mark_cargs = [bit_map[condition_tuple[0]]]
+            mark_cargs = {bit_map[condition_tuple[0]]}
         else:
-            mark_cargs = [bit_map[c] for c in condition_tuple[0]]
-        mark_cargs = set(cargs + mark_cargs) - set(instruction.clbits)
+            mark_cargs = {bit_map[c] for c in condition_tuple[0]}
+        mark_cargs = set(cargs).union(mark_cargs) - set(instruction.clbits)
 
         c_if_args = self._convert_jump_conditional(condition_tuple, bit_map)
 
@@ -389,14 +376,13 @@ class AerCompiler:
         qargs = [bit_map[q] for q in instruction.qubits]
         cargs = [bit_map[c] for c in instruction.clbits]
 
-        mark_cargs = []
         if isinstance(condition_tuple, Expr):
-            self._list_clbit_from_expr(bit_map, mark_cargs, condition_tuple)
+            mark_cargs = self._list_clbit_from_expr(bit_map, condition_tuple)
         elif isinstance(condition_tuple[0], Clbit):
-            mark_cargs = [bit_map[condition_tuple[0]]]
+            mark_cargs = {bit_map[condition_tuple[0]]}
         else:
-            mark_cargs = [bit_map[c] for c in condition_tuple[0]]
-        mark_cargs = set(cargs + mark_cargs) - set(instruction.clbits)
+            mark_cargs = {bit_map[c] for c in condition_tuple[0]}
+        mark_cargs = set(cargs).union(mark_cargs) - set(instruction.clbits)
 
         true_bit_map = {
             inner: bit_map[outer]
@@ -446,14 +432,13 @@ class AerCompiler:
         qargs = [bit_map[q] for q in instruction.qubits]
         cargs = [bit_map[c] for c in instruction.clbits]
 
-        target_clbits = []
         if isinstance(instruction.operation.target, Clbit):
-            target_clbits = [bit_map[instruction.operation.target]]
+            target_clbits = {bit_map[instruction.operation.target]}
         elif isinstance(instruction.operation.target, Expr):
-            self._list_clbit_from_expr(bit_map, target_clbits, instruction.operation.target)
+            target_clbits = self._list_clbit_from_expr(bit_map, instruction.operation.target)
         else:
-            target_clbits = [bit_map[c] for c in instruction.operation.target]
-        mark_cargs = set(cargs + target_clbits) - set(instruction.clbits)
+            target_clbits = {bit_map[c] for c in instruction.operation.target}
+        mark_cargs = set(cargs).union(target_clbits) - set(instruction.clbits)
 
         switch_end_label = f"{switch_name}_end"
         case_default_label = None
@@ -889,8 +874,7 @@ def _assemble_op(
         _check_no_conditional(name, conditional_reg)
         aer_circ.roerror(qubits, params)
     elif name == "multiplexer":
-        aer_circ.multiplexer(qubits, params, conditional_reg, aer_cond_expr,
-                             label if label else name)
+        aer_circ.multiplexer(qubits, params, conditional_reg, aer_cond_expr, label if label else name)
     elif name == "kraus":
         aer_circ.kraus(qubits, params, conditional_reg, aer_cond_expr)
     elif name in {
