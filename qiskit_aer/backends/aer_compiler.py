@@ -15,7 +15,7 @@ Compier to convert Qiskit control-flow to Aer backend.
 
 import collections
 import itertools
-from copy import copy, deepcopy
+from copy import copy
 from typing import List
 from warnings import warn
 from concurrent.futures import Executor
@@ -230,7 +230,9 @@ class AerCompiler:
             elif isinstance(cond_tuple[0].var, ClassicalRegister):
                 expr = Var([bit_map[clbit] for clbit in cond_tuple[0].var], cond_tuple[0].type)
             else:
-                raise AerError(f"jump condition does not support this tyep of Var: {cond_tuple[0]}.")
+                raise AerError(
+                    f"jump condition does not support this tyep of Var: {cond_tuple[0]}."
+                )
             return (expr, cond_tuple[1])
 
         raise AerError(f"jump condition does not support {cond_tuple[0].__class__}.")
