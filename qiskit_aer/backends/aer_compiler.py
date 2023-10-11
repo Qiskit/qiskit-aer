@@ -215,39 +215,6 @@ class AerCompiler:
 
         return ret
 
-    class _ClbitConverter(ExprVisitor):
-        """Apply cbit index conversion in Expr tree"""
-
-        def __init__(self, bit_map):
-            self.bit_map = bit_map
-
-        def visit_value(self, node, /):
-            # pylint: disable=unused-variable
-            return node
-
-        def visit_var(self, node, /):
-            if isinstance(node.var, Clbit):
-                node.var = self.bit_map[node.var]
-            else:
-                node.var = [self.bit_map[clbit] for clbit in node.var]
-            return node
-
-        def visit_cast(self, node, /):
-            node.operand.accept(self)
-            return node
-
-        def visit_unary(self, node, /):
-            node.operand.accept(self)
-            return node
-
-        def visit_binary(self, node, /):
-            node.left.accept(self)
-            node.right.accept(self)
-            return node
-
-        def visit_generic(self, node, /):
-            raise AerError(f"unsupported expression is used: {node.__class__}")
-
     def _convert_jump_conditional(self, cond_tuple, bit_map):
         """Convert a condition tuple according to the wire map."""
         if isinstance(cond_tuple, Expr):
@@ -258,11 +225,12 @@ class AerCompiler:
             # ClassicalRegister conditions should already be in the outer circuit.
             return cond_tuple
         elif isinstance(cond_tuple[0], Var):
-            expr = deepcopy(cond_tuple[0])
-            if isinstance(expr.var, Clbit):
-                expr.var = bit_map[expr.var]
+            if isinstance(cond_tuple[0].var, Clbit):
+                expr = Var(bit_map[cond_tuple[0].var], cond_tuple[0].type)
+            elif isinstance(cond_tuple[0].var, ClassicalRegister):
+                expr = Var([bit_map[clbit] for clbit in cond_tuple[0].var], cond_tuple[0].type)
             else:
-                expr.var = [bit_map[clbit] for clbit in expr.var]
+                raise AerError(f"jump condition does not support this tyep of Var: {cond_tuple[0]}.")
             return (expr, cond_tuple[1])
 
         raise AerError(f"jump condition does not support {cond_tuple[0].__class__}.")
