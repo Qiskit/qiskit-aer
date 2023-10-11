@@ -54,20 +54,57 @@ public:
       for (size_t i = 0; i < op.qubits.size(); i++)
         op.qubits[i] = orig2remapped[op.qubits[i]];
 
-    auto fusioned_op = generate_operation_internal(fusioned_ops, arg_qubits);
+    op_t fusioned_op;
+    if (num_params_ == 0) {
+      fusioned_op = generate_operation_internal(fusioned_ops, arg_qubits);
+      if (diagonal) {
+        std::vector<complex_t> vec;
+        vec.assign((1UL << fusioned_op.qubits.size()), 0);
+        for (size_t i = 0; i < vec.size(); ++i)
+          vec[i] = fusioned_op.mats[0](i, i);
+        fusioned_op = Operations::make_diagonal(
+            fusioned_op.qubits, std::move(vec), -1, std::string("fusion"));
+      }
+    } else {
+      // loop for runtime parameter binding
+      for (int_t p = 0; p < num_params_; p++) {
+        std::vector<op_t> ops;
+        ops.reserve(fusioned_ops.size());
+        for (auto &op : fusioned_ops) {
+          if (op.has_bind_params)
+            ops.push_back(bind_parameter(op, p, num_params_));
+          else
+            ops.push_back(op);
+        }
+        auto new_op = generate_operation_internal(ops, arg_qubits);
+
+        if (diagonal) {
+          std::vector<complex_t> vec;
+          vec.assign((1UL << new_op.qubits.size()), 0);
+          for (size_t i = 0; i < vec.size(); ++i)
+            vec[i] = new_op.mats[0](i, i);
+          new_op = Operations::make_diagonal(new_op.qubits, std::move(vec), -1,
+                                             std::string("fusion"));
+        }
+
+        if (p == 0)
+          fusioned_op = new_op;
+        else {
+          fusioned_op.has_bind_params = true;
+          if (fusioned_op.type == Operations::OpType::diagonal_matrix)
+            fusioned_op.params.insert(fusioned_op.params.end(),
+                                      new_op.params.begin(),
+                                      new_op.params.end());
+          else
+            fusioned_op.mats.insert(fusioned_op.mats.end(), new_op.mats.begin(),
+                                    new_op.mats.end());
+        }
+      }
+    }
 
     // Revert qubits
     for (size_t i = 0; i < fusioned_op.qubits.size(); i++)
       fusioned_op.qubits[i] = remapped2orig[fusioned_op.qubits[i]];
-
-    if (diagonal) {
-      std::vector<complex_t> vec;
-      vec.assign((1UL << fusioned_op.qubits.size()), 0);
-      for (size_t i = 0; i < vec.size(); ++i)
-        vec[i] = fusioned_op.mats[0](i, i);
-      fusioned_op = Operations::make_diagonal(
-          fusioned_op.qubits, std::move(vec), std::string("fusion"));
-    }
 
     return fusioned_op;
   };
@@ -101,8 +138,11 @@ public:
     return false;
   };
 
+  void set_num_params(uint_t n) { num_params_ = n; }
+
 private:
   const static Operations::OpSet noise_opset_;
+  uint_t num_params_ = 1;
 };
 
 const Operations::OpSet FusionMethod::noise_opset_({Operations::OpType::kraus,
@@ -836,6 +876,8 @@ void Fusion::optimize_circuit(Circuit &circ, Noise::NoiseModel &noise,
   FusionMethod &method = FusionMethod::find_method(circ, allowed_opset,
                                                    allow_superop, allow_kraus);
   result.metadata.add(method.name(), "fusion", "method");
+
+  method.set_num_params(circ.num_bind_params);
 
   bool applied = false;
   for (const std::shared_ptr<Fuser> &fuser : fusers) {

@@ -154,6 +154,10 @@ public:
 
   void initialize_from_vector(const cvector_t<double> &params);
 
+  // Helper function for computing expectation value
+  virtual double expval_pauli(const reg_t &qubits,
+                              const std::string &pauli) override;
+
   //-----------------------------------------------------------------------
   // Additional methods
   //-----------------------------------------------------------------------
@@ -248,9 +252,6 @@ protected:
   void apply_save_amplitudes(const Operations::Op &op,
                              ExperimentResult &result);
 
-  // Helper function for computing expectation value
-  virtual double expval_pauli(const reg_t &qubits,
-                              const std::string &pauli) override;
   //-----------------------------------------------------------------------
   // Measurement Helpers
   //-----------------------------------------------------------------------

@@ -308,6 +308,9 @@ struct Op {
 
   // Save
   DataSubType save_type = DataSubType::single;
+
+  // runtime parameter bind
+  bool has_bind_params = false;
 };
 
 inline std::ostream &operator<<(std::ostream &s, const Op &op) {
@@ -465,12 +468,18 @@ inline Op make_unitary(const reg_t &qubits, cmatrix_t &&mat,
 }
 
 inline Op make_diagonal(const reg_t &qubits, const cvector_t &vec,
+                        const int_t conditional = -1,
                         const std::string label = "") {
   Op op;
   op.type = OpType::diagonal_matrix;
   op.name = "diagonal";
   op.qubits = qubits;
   op.params = vec;
+
+  if (conditional >= 0) {
+    op.conditional = true;
+    op.conditional_reg = conditional;
+  }
 
   if (label != "")
     op.string_params = {label};
@@ -479,12 +488,18 @@ inline Op make_diagonal(const reg_t &qubits, const cvector_t &vec,
 }
 
 inline Op make_diagonal(const reg_t &qubits, cvector_t &&vec,
+                        const int_t conditional = -1,
                         const std::string label = "") {
   Op op;
   op.type = OpType::diagonal_matrix;
   op.name = "diagonal";
   op.qubits = qubits;
   op.params = std::move(vec);
+
+  if (conditional >= 0) {
+    op.conditional = true;
+    op.conditional_reg = conditional;
+  }
 
   if (label != "")
     op.string_params = {label};
@@ -655,11 +670,17 @@ inline Op make_u3(uint_t qubit, T theta, T phi, T lam) {
   return op;
 }
 
-inline Op make_reset(const reg_t &qubits, uint_t state = 0) {
+inline Op make_reset(const reg_t &qubits, const int_t conditional) {
   Op op;
   op.type = OpType::reset;
   op.name = "reset";
   op.qubits = qubits;
+
+  if (conditional >= 0) {
+    op.conditional = true;
+    op.conditional_reg = conditional;
+  }
+
   return op;
 }
 
@@ -936,6 +957,30 @@ inline Op make_qerror_loc(const reg_t &qubits, const std::string &label,
   if (conditional >= 0) {
     op.conditional = true;
     op.conditional_reg = conditional;
+  }
+  return op;
+}
+
+// make new op by parameter binding
+inline Op bind_parameter(const Op &src, const uint_t iparam,
+                         const uint_t num_params) {
+  Op op;
+  op.type = src.type;
+  op.name = src.name;
+  op.qubits = src.qubits;
+  op.conditional = src.conditional;
+  op.conditional_reg = src.conditional_reg;
+
+  if (src.params.size() > 0) {
+    uint_t stride = src.params.size() / num_params;
+    op.params.resize(stride);
+    for (int_t i = 0; i < stride; i++)
+      op.params[i] = src.params[iparam * stride + i];
+  } else if (src.mats.size() > 0) {
+    uint_t stride = src.mats.size() / num_params;
+    op.mats.resize(stride);
+    for (int_t i = 0; i < stride; i++)
+      op.mats[i] = src.mats[iparam * stride + i];
   }
   return op;
 }

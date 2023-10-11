@@ -144,9 +144,9 @@ public:
                             const cvector_t<double> &state);
 
   // setup chunk
-  bool chunk_setup(int chunk_bits, int num_qubits, uint_t chunk_index,
-                   uint_t num_local_chunks);
-  bool chunk_setup(QubitVector<data_t> &base, const uint_t chunk_index);
+  uint_t chunk_setup(int chunk_bits, int num_qubits, uint_t chunk_index,
+                     uint_t num_local_chunks);
+  uint_t chunk_setup(QubitVector<data_t> &base, const uint_t chunk_index);
   uint_t chunk_index(void) { return chunk_index_; }
 
   // cache control for chunks on host
@@ -165,6 +165,7 @@ public:
   void release_recv_buffer(void) const;
 
   void set_max_matrix_bits(int_t bits) {}
+  void set_max_sampling_shots(int_t shots) {}
 
   void synchronize(void) {}
 
@@ -348,6 +349,14 @@ public:
   void apply_batched_kraus(const reg_t &qubits,
                            const std::vector<cmatrix_t> &kmats,
                            std::vector<RngEngine> &rng) {}
+  // apply matrices to each chunk in a batch
+  void apply_batched_matrix(const reg_t &qubits, const cvector_t<double> &mat,
+                            const uint_t num_matrices,
+                            const uint_t num_shots_per_matrix) {}
+  void apply_batched_diagonal_matrix(const reg_t &qubits,
+                                     const cvector_t<double> &mat,
+                                     const uint_t num_matrices,
+                                     const uint_t num_shots_per_matrix) {}
 
   //-----------------------------------------------------------------------
   // Norms
@@ -401,6 +410,10 @@ public:
                       const uint_t z_count, const uint_t z_count_pair,
                       const complex_t initial_phase = 1.0) const;
 
+  void batched_expval_pauli(std::vector<double> &val, const reg_t &qubits,
+                            const std::string &pauli, bool variance,
+                            std::complex<double> param, bool last,
+                            const complex_t initial_phase = 1.0) const {}
   //-----------------------------------------------------------------------
   // JSON configuration settings
   //-----------------------------------------------------------------------
@@ -1026,18 +1039,18 @@ std::complex<double> QubitVector<data_t>::inner_product() const {
 
 // setup chunk
 template <typename data_t>
-bool QubitVector<data_t>::chunk_setup(int chunk_bits, int num_qubits,
-                                      uint_t chunk_index,
-                                      uint_t num_local_chunks) {
+uint_t QubitVector<data_t>::chunk_setup(int chunk_bits, int num_qubits,
+                                        uint_t chunk_index,
+                                        uint_t num_local_chunks) {
   chunk_index_ = chunk_index;
-  return true;
+  return num_local_chunks;
 }
 
 template <typename data_t>
-bool QubitVector<data_t>::chunk_setup(QubitVector<data_t> &base,
-                                      const uint_t chunk_index) {
+uint_t QubitVector<data_t>::chunk_setup(QubitVector<data_t> &base,
+                                        const uint_t chunk_index) {
   chunk_index_ = chunk_index;
-  return true;
+  return 0;
 }
 
 // prepare buffer for MPI send/recv
