@@ -116,7 +116,7 @@ def check_cuStateVec(devices):
     """Return if the system supports cuStateVec or not"""
     if "GPU" in devices:
         dummy_circ = QuantumCircuit(1)
-        dummy_circ.i(0)
+        dummy_circ.id(0)
         qobj = assemble(
             dummy_circ,
             optimization_level=0,

@@ -398,20 +398,16 @@ class Estimator(BaseEstimator):
             self._transpile_circuits(circuits)
             experiment_manager = _ExperimentManager()
             for i, j, value in zip(circuits, observables, parameter_values):
+                self._validate_parameter_length(value, i)
                 if (i, j) in experiment_manager.keys:
-                    self._validate_parameter_length(value, i)
-                    experiment_manager.append(
-                        key=(i, j),
-                        parameter_bind=dict(zip(self._parameters[i], value)),
-                    )
+                    key_index = experiment_manager.keys.index((i, j))
+                    circuit = experiment_manager.experiment_circuits[key_index]
                 else:
-                    self._validate_parameter_length(value, i)
                     circuit = (
                         self._circuits[i].copy()
                         if self._skip_transpilation
                         else self._transpiled_circuits[i].copy()
                     )
-
                     observable = self._observables[j]
                     if shots is None:
                         circuit.save_expectation_value(observable, self._layouts[i])
@@ -420,11 +416,11 @@ class Estimator(BaseEstimator):
                             circuit.save_expectation_value(
                                 pauli, self._layouts[i], label=str(term_ind)
                             )
-                    experiment_manager.append(
-                        key=(i, j),
-                        parameter_bind=dict(zip(self._parameters[i], value)),
-                        experiment_circuit=circuit,
-                    )
+                experiment_manager.append(
+                    key=(i, j),
+                    parameter_bind=dict(zip(self._parameters[i], value)),
+                    experiment_circuit=circuit,
+                )
 
             self._cache[key] = experiment_manager
         result = self._backend.run(
@@ -632,24 +628,22 @@ class _ExperimentManager:
     @property
     def experiment_indices(self):
         """indices of experiments"""
-        return sum(self._input_indices, [])
+        return np.argsort(sum(self._input_indices, [])).tolist()
 
     def append(
         self,
         key: tuple[int, int],
         parameter_bind: dict[ParameterExpression, float],
-        experiment_circuit: QuantumCircuit | None = None,
+        experiment_circuit: QuantumCircuit,
     ):
         """append experiments"""
-        if experiment_circuit is not None:
-            self.experiment_circuits.append(experiment_circuit)
-
-        if key in self.keys:
+        if key in self.keys and parameter_bind:
             key_index = self.keys.index(key)
             for k, vs in self.parameter_binds[key_index].items():
                 vs.append(parameter_bind[k])
             self._input_indices[key_index].append(self._num_experiment)
         else:
+            self.experiment_circuits.append(experiment_circuit)
             self.keys.append(key)
             self.parameter_binds.append({k: [v] for k, v in parameter_bind.items()})
             self._input_indices.append([self._num_experiment])

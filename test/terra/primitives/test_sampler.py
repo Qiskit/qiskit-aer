@@ -110,7 +110,7 @@ class TestSampler(QiskitAerTestCase):
         qc.measure(1, 1)
         qc.measure(2, 2)
 
-        sampler = Sampler(backend_options={"seed_simulator": 15})
+        sampler = Sampler(backend_options={"method": "statevector", "seed_simulator": 15})
         result = sampler.run([qc] * 4, [[0, 0], [0, 0], [np.pi / 2, 0], [0, np.pi / 2]]).result()
         self.assertIsInstance(result, SamplerResult)
         self.assertEqual(len(result.quasi_dists), 4)
@@ -140,7 +140,7 @@ class TestSampler(QiskitAerTestCase):
         qc.measure(1, 1)
         qc.measure(2, 0)
 
-        sampler = Sampler()
+        sampler = Sampler(backend_options={"method": "statevector"})
         result = sampler.run(
             [qc, qc, qc, qc], [[0, 0], [0, 0], [np.pi / 2, 0], [0, np.pi / 2]], seed=15
         ).result()
