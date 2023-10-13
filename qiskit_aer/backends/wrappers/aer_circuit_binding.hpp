@@ -40,6 +40,100 @@ using namespace AER;
 
 template <typename MODULE>
 void bind_aer_circuit(MODULE m) {
+
+  py::enum_<Operations::UnaryOp>(m, "AerUnaryOp", py::arithmetic())
+      .value("BitNot", Operations::UnaryOp::BitNot)
+      .value("LogicNot", Operations::UnaryOp::LogicNot)
+      .export_values();
+
+  py::enum_<Operations::BinaryOp>(m, "AerBinaryOp", py::arithmetic())
+      .value("BitAnd", Operations::BinaryOp::BitAnd)
+      .value("BitOr", Operations::BinaryOp::BitOr)
+      .value("BitXor", Operations::BinaryOp::BitXor)
+      .value("LogicAnd", Operations::BinaryOp::LogicAnd)
+      .value("LogicOr", Operations::BinaryOp::LogicOr)
+      .value("Equal", Operations::BinaryOp::Equal)
+      .value("NotEqual", Operations::BinaryOp::NotEqual)
+      .value("Less", Operations::BinaryOp::Less)
+      .value("LessEqual", Operations::BinaryOp::LessEqual)
+      .value("Greater", Operations::BinaryOp::Greater)
+      .value("GreaterEqual", Operations::BinaryOp::GreaterEqual)
+      .export_values();
+
+  py::class_<Operations::ScalarType, std::shared_ptr<Operations::ScalarType>>
+      aer_scalar_type(m, "AerScalarType");
+
+  py::class_<Operations::Uint, Operations::ScalarType,
+             std::shared_ptr<Operations::Uint>>
+      aer_uint(m, "AerUint");
+  aer_uint.def(
+      py::init([](const uint_t width) { return new Operations::Uint(width); }));
+
+  py::class_<Operations::Bool, Operations::ScalarType,
+             std::shared_ptr<Operations::Bool>>
+      aer_bool(m, "AerBool");
+  aer_bool.def(py::init([]() { return new Operations::Bool(); }));
+
+  py::class_<Operations::CExpr, std::shared_ptr<Operations::CExpr>> aer_expr(
+      m, "AerExpr");
+
+  aer_expr.def("eval_bool", &Operations::CExpr::eval_bool);
+  aer_expr.def("eval_uint", &Operations::CExpr::eval_uint);
+
+  py::class_<Operations::CastExpr, Operations::CExpr,
+             std::shared_ptr<Operations::CastExpr>>
+      aer_cast_expr(m, "AerCast");
+  aer_cast_expr.def(
+      py::init([](const std::shared_ptr<Operations::ScalarType> type,
+                  const std::shared_ptr<Operations::CExpr> expr) {
+        return new Operations::CastExpr(type, expr);
+      }));
+
+  py::class_<Operations::VarExpr, Operations::CExpr,
+             std::shared_ptr<Operations::VarExpr>>
+      aer_var_expr(m, "AerVar");
+  aer_var_expr.def(
+      py::init([](const std::shared_ptr<Operations::ScalarType> type,
+                  const std::vector<uint_t> cbit_idxs) {
+        return new Operations::VarExpr(type, cbit_idxs);
+      }));
+
+  py::class_<Operations::ValueExpr, Operations::CExpr,
+             std::shared_ptr<Operations::ValueExpr>>
+      aer_val_expr(m, "AerValue");
+
+  py::class_<Operations::UintValue, Operations::ValueExpr,
+             std::shared_ptr<Operations::UintValue>>
+      aer_uint_expr(m, "AerUintValue");
+  aer_uint_expr.def(py::init([](const size_t width, const uint_t val) {
+    return new Operations::UintValue(width, val);
+  }));
+
+  py::class_<Operations::BoolValue, Operations::ValueExpr,
+             std::shared_ptr<Operations::BoolValue>>
+      aer_bool_expr(m, "AerBoolValue");
+  aer_bool_expr.def(
+      py::init([](const bool val) { return new Operations::BoolValue(val); }));
+
+  py::class_<Operations::UnaryExpr, Operations::CExpr,
+             std::shared_ptr<Operations::UnaryExpr>>
+      aer_unary_expr(m, "AerUnaryExpr");
+  aer_unary_expr.def(
+      py::init([](const Operations::UnaryOp op,
+                  const std::shared_ptr<Operations::CExpr> expr) {
+        return new Operations::UnaryExpr(op, expr);
+      }));
+
+  py::class_<Operations::BinaryExpr, Operations::CExpr,
+             std::shared_ptr<Operations::BinaryExpr>>
+      aer_binary_expr(m, "AerBinaryExpr");
+  aer_binary_expr.def(
+      py::init([](const Operations::BinaryOp op,
+                  const std::shared_ptr<Operations::CExpr> left,
+                  const std::shared_ptr<Operations::CExpr> right) {
+        return new Operations::BinaryExpr(op, left, right);
+      }));
+
   py::class_<Circuit, std::shared_ptr<Circuit>> aer_circuit(m, "AerCircuit");
   aer_circuit.def(py::init());
   aer_circuit.def("__repr__", [](const Circuit &circ) {

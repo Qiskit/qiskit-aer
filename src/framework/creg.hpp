@@ -136,6 +136,8 @@ bool ClassicalRegister::check_conditional(const Operations::Op &op) const {
   if (op.conditional)
     return (creg_register_[creg_register_.size() - op.conditional_reg - 1] ==
             '1');
+  if (op.expr)
+    return op.expr->eval_bool(creg_memory_);
 
   // Op is not conditional
   return true;
@@ -186,23 +188,23 @@ void ClassicalRegister::apply_bfunc(const Operations::Op &op) {
   }
   // check value of compared integer for different comparison operations
   bool outcome;
-  switch (op.bfunc) {
-  case Operations::RegComparison::Equal:
+  switch (op.binary_op) {
+  case Operations::BinaryOp::Equal:
     outcome = (compared == 0);
     break;
-  case Operations::RegComparison::NotEqual:
+  case Operations::BinaryOp::NotEqual:
     outcome = (compared != 0);
     break;
-  case Operations::RegComparison::Less:
+  case Operations::BinaryOp::Less:
     outcome = (compared < 0);
     break;
-  case Operations::RegComparison::LessEqual:
+  case Operations::BinaryOp::LessEqual:
     outcome = (compared <= 0);
     break;
-  case Operations::RegComparison::Greater:
+  case Operations::BinaryOp::Greater:
     outcome = (compared > 0);
     break;
-  case Operations::RegComparison::GreaterEqual:
+  case Operations::BinaryOp::GreaterEqual:
     outcome = (compared >= 0);
     break;
   default:
