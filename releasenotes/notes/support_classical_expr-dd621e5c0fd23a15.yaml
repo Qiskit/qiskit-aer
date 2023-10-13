@@ -1,0 +1,10 @@
+---
+features:
+  - |
+    Support ``qiskit.circuit.classical.expr.Expr`` introduced in Qiskit 0.44.
+    If a circuit includes unsupported expression which will be introduced in Qiskit 0.45
+    or later, ``AerError`` is thrown. Objects of sub-classes of ``Expr`` are converted to
+    corresponding sub-classes of ``AER::Operations::CExpr`` in C++ and evaluated. 
+    In addition, ``AER::Operations::RegComparison`` in ``bfunc`` operation is replaced
+    with corresponding binary operations.
+
