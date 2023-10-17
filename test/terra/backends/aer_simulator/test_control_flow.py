@@ -21,6 +21,7 @@ from qiskit_aer import AerSimulator
 from qiskit import QuantumCircuit, transpile
 from qiskit.circuit import Parameter, Qubit, Clbit, QuantumRegister, ClassicalRegister
 from qiskit.circuit.controlflow import *
+from qiskit.circuit.classical import expr, types
 from qiskit_aer.library.default_qubits import default_qubits
 from qiskit_aer.library.control_flow_instructions import AerMark, AerJump
 
@@ -863,3 +864,210 @@ class TestControlFlow(SimulatorTestCase):
         ret3 = backend.run(qc3, shots=100).result()
         self.assertSuccess(ret3)
         self.assertEqual(ret3.get_counts(), {"011 11": 100})
+
+    @data("statevector", "density_matrix", "matrix_product_state")
+    def test_switch_register_with_classical_expression(self, method):
+        """Test that a switch statement can be constructed with a register as a condition."""
+
+        backend = self.backend(method=method, seed_simulator=1)
+
+        qubit0 = Qubit()
+        qubit1 = Qubit()
+        qubit2 = Qubit()
+        creg = ClassicalRegister(2)
+        case1 = QuantumCircuit([qubit0, qubit1, qubit2], creg)
+        case1.x(0)
+        case2 = QuantumCircuit([qubit0, qubit1, qubit2], creg)
+        case2.x(1)
+        case3 = QuantumCircuit([qubit0, qubit1, qubit2], creg)
+        case3.x(2)
+
+        op = SwitchCaseOp(expr.lift(creg), [(0, case1), (1, case2), (2, case3)])
+
+        qc0 = QuantumCircuit([qubit0, qubit1, qubit2], creg)
+        qc0.measure(0, creg[0])
+        qc0.append(op, [qubit0, qubit1, qubit2], creg)
+        qc0.measure_all()
+
+        ret0 = backend.run(qc0, shots=100).result()
+        self.assertSuccess(ret0)
+        self.assertEqual(ret0.get_counts(), {"001 00": 100})
+
+        qc1 = QuantumCircuit([qubit0, qubit1, qubit2], creg)
+        qc1.x(0)
+        qc1.measure(0, creg[0])
+        qc1.append(op, [qubit0, qubit1, qubit2], creg)
+        qc1.measure_all()
+
+        ret1 = backend.run(qc1, shots=1).result()
+        self.assertSuccess(ret1)
+        self.assertEqual(ret1.get_counts(), {"011 01": 1})
+
+        qc2 = QuantumCircuit([qubit0, qubit1, qubit2], creg)
+        qc2.x(1)
+        qc2.measure(0, creg[0])
+        qc2.measure(1, creg[1])
+        qc2.append(op, [qubit0, qubit1, qubit2], creg)
+        qc2.measure_all()
+
+        ret2 = backend.run(qc2, shots=100).result()
+        self.assertSuccess(ret2)
+        self.assertEqual(ret2.get_counts(), {"110 10": 100})
+
+        qc3 = QuantumCircuit([qubit0, qubit1, qubit2], creg)
+        qc3.x(0)
+        qc3.x(1)
+        qc3.measure(0, creg[0])
+        qc3.measure(1, creg[1])
+        qc3.append(op, [qubit0, qubit1, qubit2], creg)
+        qc3.measure_all()
+
+        ret3 = backend.run(qc3, shots=100).result()
+        self.assertSuccess(ret3)
+        self.assertEqual(ret3.get_counts(), {"011 11": 100})
+
+    @data("statevector", "density_matrix", "matrix_product_state")
+    def test_if_expr_true_body_builder(self, method):
+        """test expression with branch operation"""
+        backend = self.backend(method=method)
+
+        # case creg==1
+        qreg = QuantumRegister(4)
+        creg = ClassicalRegister(3, "test")
+        circ = QuantumCircuit(qreg, creg)
+        circ.y(0)
+        circ.h(circ.qubits[1:4])
+        circ.barrier()
+        circ.measure(0, 0)  # 001
+
+        with circ.if_test(expr.equal(ClassicalRegister(3, "test"), 1)):
+            circ.h(circ.qubits[1:4])
+
+        circ.measure_all()
+
+        result = backend.run(circ, method=method).result()
+        self.assertSuccess(result)
+
+        counts = result.get_counts()
+        self.assertEqual(len(counts), 1)
+        self.assertIn("0001 001", counts)
+
+        # case creg==3
+        qreg = QuantumRegister(4)
+        creg = ClassicalRegister(3, "test")
+        circ = QuantumCircuit(qreg, creg)
+        circ.y(0)
+        circ.h(circ.qubits[1:4])
+        circ.barrier()
+        circ.measure(0, 0)
+        circ.measure(0, 1)  # 011
+
+        with circ.if_test(expr.equal(ClassicalRegister(3, "test"), 3)):
+            circ.h(circ.qubits[1:4])
+
+        circ.measure_all()
+
+        result = backend.run(circ, method=method).result()
+        self.assertSuccess(result)
+
+        counts = result.get_counts()
+        self.assertEqual(len(counts), 1)
+        self.assertIn("0001 011", counts)
+
+    @data("statevector", "density_matrix", "matrix_product_state")
+    def test_if_expr_false_body_builder(self, method):
+        """test expression with branch operation"""
+        backend = self.backend(method=method)
+
+        # case creg==1
+        qreg = QuantumRegister(4)
+        creg = ClassicalRegister(3, "test")
+        circ = QuantumCircuit(qreg, creg)
+        circ.y(0)
+        circ.h(circ.qubits[1:4])
+        circ.barrier()
+        circ.measure(0, 0)  # 001
+
+        with circ.if_test(expr.equal(ClassicalRegister(3, "test"), 2)) as else_:
+            circ.y(0)
+        with else_:
+            circ.h(circ.qubits[1:4])
+
+        circ.measure_all()
+
+        result = backend.run(circ, method=method).result()
+        self.assertSuccess(result)
+
+        counts = result.get_counts()
+        self.assertEqual(len(counts), 1)
+        self.assertIn("0001 001", counts)
+
+        # case creg==3
+        qreg = QuantumRegister(4)
+        creg = ClassicalRegister(3, "test")
+        circ = QuantumCircuit(qreg, creg)
+        circ.y(0)
+        circ.h(circ.qubits[1:4])
+        circ.barrier()
+        circ.measure(0, 0)
+        circ.measure(0, 1)  # 011
+
+        with circ.if_test(expr.equal(ClassicalRegister(3, "test"), 1)) as else_:
+            circ.y(0)
+        with else_:
+            circ.h(circ.qubits[1:4])
+
+        circ.measure_all()
+
+        result = backend.run(circ, method=method).result()
+        self.assertSuccess(result)
+
+        counts = result.get_counts()
+        self.assertEqual(len(counts), 1)
+        self.assertIn("0001 011", counts)
+
+    @data("statevector", "density_matrix", "matrix_product_state")
+    def test_while_expr_loop_break(self, method):
+        backend = self.backend(method=method)
+
+        qreg = QuantumRegister(1)
+        creg = ClassicalRegister(1)
+        circ = QuantumCircuit(qreg, creg)
+        circ.y(0)
+        circ.measure(0, 0)
+
+        circ_while = QuantumCircuit(qreg, creg)
+        circ_while.y(0)
+        circ_while.measure(0, 0)
+        circ_while.break_loop()
+        circ.while_loop(expr.Value(True, types.Bool()), circ_while, [0], [0])
+
+        circ.measure_all()
+
+        result = backend.run(circ, method=method).result()
+        self.assertSuccess(result)
+
+        counts = result.get_counts()
+        self.assertEqual(len(counts), 1)
+        self.assertIn("0 0", counts)
+
+        qreg = QuantumRegister(1)
+        creg = ClassicalRegister(1)
+        circ = QuantumCircuit(qreg, creg)
+        circ.y(0)
+        circ.measure(0, 0)
+
+        circ_while = QuantumCircuit(qreg, creg)
+        circ_while.y(0)
+        circ_while.measure(0, 0)
+        circ_while.break_loop()
+        circ.while_loop(expr.Value(False, types.Bool()), circ_while, [0], [0])
+
+        circ.measure_all()
+
+        result = backend.run(circ, method=method).result()
+        self.assertSuccess(result)
+
+        counts = result.get_counts()
+        self.assertEqual(len(counts), 1)
+        self.assertIn("1 1", counts)
