@@ -8,20 +8,17 @@
 .. currentmodule:: {{ module }}
 
 .. autoclass:: {{ objname }}
+   :show-inheritance:
    :no-members:
    :no-inherited-members:
    :no-special-members:
 
    {% block attributes_summary %}
    {% if attributes %}
-
    .. rubric:: Attributes
-
-   .. autosummary::
-      :toctree: ../stubs/
    {% for item in all_attributes %}
       {%- if not item.startswith('_') %}
-      {{ name }}.{{ item }}
+   .. autoattribute:: {{ name }}.{{ item }}
       {%- endif -%}
    {%- endfor %}
    {% endif %}
@@ -29,19 +26,17 @@
 
    {% block methods_summary %}
    {% if methods %}
-
    .. rubric:: Methods
-
-   .. autosummary::
-      :toctree: ../stubs/
    {% for item in all_methods %}
-      {%- if not item.startswith('_') or item in ['__call__', '__mul__', '__getitem__', '__len__'] %}
-      {{ name }}.{{ item }}
+      {%- if item not in inherited_members %}
+         {%- if not item.startswith('_') or item in ['__call__', '__mul__', '__getitem__', '__len__'] %}
+   .. automethod:: {{ name }}.{{ item }}
+         {%- endif -%}
       {%- endif -%}
    {%- endfor %}
    {% for item in inherited_members %}
       {%- if item in ['__call__', '__mul__', '__getitem__', '__len__'] %}
-      {{ name }}.{{ item }}
+   .. automethod:: {{ name }}.{{ item }}
       {%- endif -%}
    {%- endfor %}
 
