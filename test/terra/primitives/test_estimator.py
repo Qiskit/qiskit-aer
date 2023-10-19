@@ -98,7 +98,7 @@ class TestEstimator(QiskitAerTestCase):
     @data(True, False)
     def test_init_observable_from_operator(self, abelian_grouping):
         """test for evaluate without parameters"""
-        circuit = self.ansatz.bind_parameters([0, 1, 1, 2, 3, 5])
+        circuit = self.ansatz.assign_parameters([0, 1, 1, 2, 3, 5])
         matrix = Operator(
             [
                 [-1.06365335, 0.0, 0.0, 0.1809312],
@@ -138,7 +138,7 @@ class TestEstimator(QiskitAerTestCase):
     @data(True, False)
     def test_evaluate_no_params(self, abelian_grouping):
         """test for evaluate without parameters"""
-        circuit = self.ansatz.bind_parameters([0, 1, 1, 2, 3, 5])
+        circuit = self.ansatz.assign_parameters([0, 1, 1, 2, 3, 5])
         est = Estimator(abelian_grouping=abelian_grouping)
         result = est.run(circuit, self.observable, seed=15, shots=8192).result()
         self.assertIsInstance(result, EstimatorResult)
