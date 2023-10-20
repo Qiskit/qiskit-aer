@@ -110,6 +110,7 @@ BASIS_GATES = {
             "mcx_gray",
             "ecr",
             "reset",
+            "switch_case",
         ]
     ),
     "density_matrix": sorted(
@@ -151,6 +152,7 @@ BASIS_GATES = {
             "pauli",
             "ecr",
             "reset",
+            "switch_case",
         ]
     ),
     "matrix_product_state": sorted(
@@ -194,6 +196,7 @@ BASIS_GATES = {
             "diagonal",
             "initialize",
             "reset",
+            "switch_case",
         ]
     ),
     "stabilizer": sorted(
@@ -218,6 +221,7 @@ BASIS_GATES = {
             "rx",
             "ry",
             "rz",
+            "switch_case",
         ]
     ),
     "extended_stabilizer": sorted(

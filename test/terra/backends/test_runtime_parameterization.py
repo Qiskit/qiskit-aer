@@ -456,7 +456,7 @@ class TestRuntimeParameterization(SimulatorTestCase):
         param_map = {theta: [0.1 * i for i in range(3)]}
         param_sets = [{theta: 0.1 * i} for i in range(3)]
 
-        resolved_circuits = [circuit.bind_parameters(param_set) for param_set in param_sets]
+        resolved_circuits = [circuit.assign_parameters(param_set) for param_set in param_sets]
 
         result = backend.run(
             circuit,
