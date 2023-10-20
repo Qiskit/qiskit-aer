@@ -54,7 +54,7 @@ class TestControlFlow(SimulatorTestCase):
             instr.c_if(clbit, value)
         return circ.append(instr, qubits)
 
-    @data("statevector", "density_matrix", "matrix_product_state")
+    @data("statevector", "density_matrix", "matrix_product_state", "stabilizer")
     def test_jump_always(self, method):
         backend = self.backend(method=method)
 
@@ -76,7 +76,7 @@ class TestControlFlow(SimulatorTestCase):
         self.assertEqual(len(counts), 1)
         self.assertIn("0000", counts)
 
-    @data("statevector", "density_matrix", "matrix_product_state")
+    @data("statevector", "density_matrix", "matrix_product_state", "stabilizer")
     def test_jump_conditional(self, method):
         backend = self.backend(method=method)
 
@@ -98,7 +98,7 @@ class TestControlFlow(SimulatorTestCase):
         self.assertEqual(len(counts), 1)
         self.assertIn("0000 0", counts)
 
-    @data("statevector", "density_matrix", "matrix_product_state")
+    @data("statevector", "density_matrix", "matrix_product_state", "stabilizer")
     def test_no_jump_conditional(self, method):
         backend = self.backend(method=method)
 
@@ -119,7 +119,7 @@ class TestControlFlow(SimulatorTestCase):
         counts = result.get_counts()
         self.assertNotEqual(len(counts), 1)
 
-    @data("statevector", "density_matrix", "matrix_product_state")
+    @data("statevector", "density_matrix", "matrix_product_state", "stabilizer")
     def test_invalid_jump(self, method):
         logging.disable(level=logging.WARN)
 
@@ -142,7 +142,7 @@ class TestControlFlow(SimulatorTestCase):
 
         logging.disable(level=logging.NOTSET)
 
-    @data("statevector", "density_matrix", "matrix_product_state")
+    @data("statevector", "density_matrix", "matrix_product_state", "stabilizer")
     def test_duplicated_mark(self, method):
         logging.disable(level=logging.WARN)
 
@@ -165,7 +165,7 @@ class TestControlFlow(SimulatorTestCase):
 
         logging.disable(level=logging.NOTSET)
 
-    @data("statevector", "density_matrix", "matrix_product_state")
+    @data("statevector", "density_matrix", "matrix_product_state", "stabilizer")
     def test_if_true_body_builder(self, method):
         backend = self.backend(method=method)
 
@@ -189,7 +189,7 @@ class TestControlFlow(SimulatorTestCase):
         self.assertEqual(len(counts), 1)
         self.assertIn("0001 1", counts)
 
-    @data("statevector", "density_matrix", "matrix_product_state")
+    @data("statevector", "density_matrix", "matrix_product_state", "stabilizer")
     def test_if_else_body_builder(self, method):
         backend = self.backend(method=method)
 
@@ -214,7 +214,7 @@ class TestControlFlow(SimulatorTestCase):
         self.assertEqual(len(counts), 1)
         self.assertIn("0000 0", counts)
 
-    @data("statevector", "density_matrix", "matrix_product_state")
+    @data("statevector", "density_matrix", "matrix_product_state", "stabilizer")
     def test_for_loop_builder(self, method):
         backend = self.backend(method=method)
 
@@ -240,7 +240,7 @@ class TestControlFlow(SimulatorTestCase):
         self.assertEqual(len(counts), 1)
         self.assertIn("01100", counts)
 
-    @data("statevector", "density_matrix", "matrix_product_state")
+    @data("statevector", "density_matrix", "matrix_product_state", "stabilizer")
     def test_for_loop_builder_no_loop_variable(self, method):
         backend = self.backend(method=method)
 
@@ -266,7 +266,7 @@ class TestControlFlow(SimulatorTestCase):
         self.assertEqual(len(counts), 1)
         self.assertIn("01010", counts)
 
-    @data("statevector", "density_matrix", "matrix_product_state")
+    @data("statevector", "density_matrix", "matrix_product_state", "stabilizer")
     def test_for_loop_break_builder(self, method):
         backend = self.backend(method=method)
 
@@ -309,7 +309,7 @@ class TestControlFlow(SimulatorTestCase):
         self.assertEqual(len(counts), 1)
         self.assertIn("11100 1", counts)
 
-    @data("statevector", "density_matrix", "matrix_product_state")
+    @data("statevector", "density_matrix", "matrix_product_state", "stabilizer")
     def test_for_loop_continue_builder(self, method):
         backend = self.backend(method=method)
 
@@ -371,7 +371,7 @@ class TestControlFlow(SimulatorTestCase):
         self.assertEqual(len(counts), 1)
         self.assertIn("11110 0 1 0 0 0", counts)
 
-    @data("statevector", "density_matrix", "matrix_product_state")
+    @data("statevector", "density_matrix", "matrix_product_state", "stabilizer")
     def test_while_loop_no_iteration(self, method):
         backend = self.backend(method=method)
 
@@ -390,7 +390,7 @@ class TestControlFlow(SimulatorTestCase):
         self.assertEqual(len(counts), 1)
         self.assertIn("0 0", counts)
 
-    @data("statevector", "density_matrix", "matrix_product_state")
+    @data("statevector", "density_matrix", "matrix_product_state", "stabilizer")
     def test_while_loop_single_iteration(self, method):
         backend = self.backend(method=method)
 
@@ -421,7 +421,7 @@ class TestControlFlow(SimulatorTestCase):
         self.assertEqual(len(counts), 1)
         self.assertIn("10 0", counts)
 
-    @data("statevector", "density_matrix", "matrix_product_state")
+    @data("statevector", "density_matrix", "matrix_product_state", "stabilizer")
     def test_while_loop_double_iterations(self, method):
         backend = self.backend(method=method)
 
@@ -452,7 +452,7 @@ class TestControlFlow(SimulatorTestCase):
         self.assertEqual(len(counts), 1)
         self.assertIn("01 0", counts)
 
-    @data("statevector", "density_matrix", "matrix_product_state")
+    @data("statevector", "density_matrix", "matrix_product_state", "stabilizer")
     def test_while_loop_continue(self, method):
         backend = self.backend(method=method)
 
@@ -486,7 +486,7 @@ class TestControlFlow(SimulatorTestCase):
         self.assertEqual(len(counts), 1)
         self.assertIn("0 0", counts)
 
-    @data("statevector", "density_matrix", "matrix_product_state")
+    @data("statevector", "density_matrix", "matrix_product_state", "stabilizer")
     def test_nested_loop(self, method):
         backend = self.backend(method=method)
 
@@ -513,7 +513,7 @@ class TestControlFlow(SimulatorTestCase):
         self.assertEqual(len(counts), 1)
         self.assertIn("011", counts)
 
-    @data("statevector", "density_matrix", "matrix_product_state")
+    @data("statevector", "density_matrix", "matrix_product_state", "stabilizer")
     def test_while_loop_last(self, method):
         backend = self.backend(method=method)
 
@@ -527,7 +527,7 @@ class TestControlFlow(SimulatorTestCase):
         result = backend.run(circ, method=method).result()
         self.assertSuccess(result)
 
-    @data("statevector", "density_matrix", "matrix_product_state")
+    @data("statevector", "density_matrix", "matrix_product_state", "stabilizer")
     def test_no_invalid_nested_reordering(self, method):
         """Test that the jump/mark system doesn't allow nested conditional marks to jump incorrectly
         relative to their outer marks.  Regression test of gh-1665."""
@@ -549,7 +549,7 @@ class TestControlFlow(SimulatorTestCase):
         self.assertSuccess(result)
         self.assertEqual(result.get_counts(), {"110": 100})
 
-    @data("statevector", "density_matrix", "matrix_product_state")
+    @data("statevector", "density_matrix", "matrix_product_state", "stabilizer")
     def test_no_invalid_reordering_if(self, method):
         """Test that the jump/mark system doesn't allow an unrelated operation to jump inside a
         conditional statement."""
@@ -575,7 +575,7 @@ class TestControlFlow(SimulatorTestCase):
         self.assertSuccess(result)
         self.assertEqual(result.get_counts(), {"010": 100})
 
-    @data("statevector", "density_matrix", "matrix_product_state")
+    @data("statevector", "density_matrix", "matrix_product_state", "stabilizer")
     def test_no_invalid_reordering_while(self, method):
         """Test that the jump/mark system doesn't allow an unrelated operation to jump inside a
         conditional statement."""
@@ -601,7 +601,7 @@ class TestControlFlow(SimulatorTestCase):
         self.assertSuccess(result)
         self.assertEqual(result.get_counts(), {"010": 100})
 
-    @data("statevector", "density_matrix", "matrix_product_state")
+    @data("statevector", "density_matrix", "matrix_product_state", "stabilizer")
     def test_transpile_break_and_continue_loop(self, method):
         """Test that transpiler can transpile break_loop and continue_loop with AerSimulator"""
 
@@ -632,7 +632,7 @@ class TestControlFlow(SimulatorTestCase):
         result = backend.run(transpiled, method=method, shots=100).result()
         self.assertEqual(result.get_counts(), {"1": 100})
 
-    @data("statevector", "density_matrix", "matrix_product_state")
+    @data("statevector", "density_matrix", "matrix_product_state", "stabilizer")
     def test_switch_clbit(self, method):
         """Test that a switch statement can be constructed with a bit as a condition."""
 
@@ -681,7 +681,7 @@ class TestControlFlow(SimulatorTestCase):
         self.assertSuccess(ret1)
         self.assertEqual(ret1.get_counts(), ret1_expected.get_counts())
 
-    @data("statevector", "density_matrix", "matrix_product_state")
+    @data("statevector", "density_matrix", "matrix_product_state", "stabilizer")
     def test_switch_register(self, method):
         """Test that a switch statement can be constructed with a register as a condition."""
 
@@ -742,7 +742,7 @@ class TestControlFlow(SimulatorTestCase):
         self.assertSuccess(ret3)
         self.assertEqual(ret3.get_counts(), {"011 11": 100})
 
-    @data("statevector", "density_matrix", "matrix_product_state")
+    @data("statevector", "density_matrix", "matrix_product_state", "stabilizer")
     def test_switch_with_default(self, method):
         """Test that a switch statement can be constructed with a default case at the end."""
 
@@ -803,7 +803,7 @@ class TestControlFlow(SimulatorTestCase):
         self.assertSuccess(ret3)
         self.assertEqual(ret3.get_counts(), {"111 11": 100})
 
-    @data("statevector", "density_matrix", "matrix_product_state")
+    @data("statevector", "density_matrix", "matrix_product_state", "stabilizer")
     def test_switch_multiple_cases_to_same_block(self, method):
         """Test that it is possible to add multiple cases that apply to the same block, if they are
         given as a compound value.  This is an allowed special case of block fall-through."""
@@ -865,7 +865,36 @@ class TestControlFlow(SimulatorTestCase):
         self.assertSuccess(ret3)
         self.assertEqual(ret3.get_counts(), {"011 11": 100})
 
-    @data("statevector", "density_matrix", "matrix_product_state")
+    @data("statevector", "density_matrix", "matrix_product_state", "stabilizer")
+    def test_switch_transpilation(self, method):
+        """Test swtich test cases can be transpiled"""
+
+        backend = self.backend(method=method, seed_simulator=1)
+
+        qubit0 = Qubit()
+        qubit1 = Qubit()
+        qubit2 = Qubit()
+
+        creg = ClassicalRegister(2)
+        qc = QuantumCircuit([qubit0, qubit1, qubit2], creg)
+
+        with qc.switch(creg) as case:
+            with case(0):
+                qc.x(0)
+            with case(1):
+                qc.x(1)
+            with case(case.DEFAULT):
+                qc.x(2)
+
+        qc.measure_all()
+
+        transpiled = transpile(qc, backend)
+
+        ret0 = backend.run(transpiled, shots=100).result()
+        self.assertSuccess(ret0)
+        self.assertEqual(ret0.get_counts(), {"001 00": 100})
+
+    @data("statevector", "density_matrix", "matrix_product_state", "stabilizer")
     def test_switch_register_with_classical_expression(self, method):
         """Test that a switch statement can be constructed with a register as a condition."""
 
@@ -926,7 +955,7 @@ class TestControlFlow(SimulatorTestCase):
         self.assertSuccess(ret3)
         self.assertEqual(ret3.get_counts(), {"011 11": 100})
 
-    @data("statevector", "density_matrix", "matrix_product_state")
+    @data("statevector", "density_matrix", "matrix_product_state", "stabilizer")
     def test_if_expr_true_body_builder(self, method):
         """test expression with branch operation"""
         backend = self.backend(method=method)
@@ -974,7 +1003,7 @@ class TestControlFlow(SimulatorTestCase):
         self.assertEqual(len(counts), 1)
         self.assertIn("0001 011", counts)
 
-    @data("statevector", "density_matrix", "matrix_product_state")
+    @data("statevector", "density_matrix", "matrix_product_state", "stabilizer")
     def test_if_expr_false_body_builder(self, method):
         """test expression with branch operation"""
         backend = self.backend(method=method)
@@ -1026,7 +1055,7 @@ class TestControlFlow(SimulatorTestCase):
         self.assertEqual(len(counts), 1)
         self.assertIn("0001 011", counts)
 
-    @data("statevector", "density_matrix", "matrix_product_state")
+    @data("statevector", "density_matrix", "matrix_product_state", "stabilizer")
     def test_while_expr_loop_break(self, method):
         backend = self.backend(method=method)
 
