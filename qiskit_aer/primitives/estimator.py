@@ -163,7 +163,7 @@ class Estimator(BaseEstimator):
         if seed is not None:
             run_options.setdefault("seed_simulator", seed)
 
-        if self.approximation:
+        if self._approximation:
             return self._compute_with_approximation(
                 circuits, observables, parameter_values, run_options, seed
             )
@@ -217,7 +217,7 @@ class Estimator(BaseEstimator):
             )
 
         # Key for cache
-        key = (tuple(circuits), tuple(observables), self.approximation)
+        key = (tuple(circuits), tuple(observables), self._approximation)
 
         # Create expectation value experiments.
         if key in self._cache:  # Use a cache
@@ -406,7 +406,7 @@ class Estimator(BaseEstimator):
         self, circuits, observables, parameter_values, run_options, seed
     ):
         # Key for cache
-        key = (tuple(circuits), tuple(observables), self.approximation)
+        key = (tuple(circuits), tuple(observables), self._approximation)
         shots = run_options.pop("shots", None)
 
         # Create expectation value experiments.
