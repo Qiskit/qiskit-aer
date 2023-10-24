@@ -32,6 +32,7 @@ from qiskit.providers import Options
 from qiskit.quantum_info import Pauli, PauliList
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.result.models import ExperimentResult
+from qiskit.utils import deprecate_arg, deprecate_func
 
 from .. import AerError, AerSimulator
 
@@ -68,6 +69,12 @@ class Estimator(BaseEstimator):
           normal distribution approximation.
     """
 
+    @deprecate_arg(
+        "approximation",
+        since=0.13,
+        package_name="qiskit-aer",
+        additional_msg="approximation=True will be default in the future.",
+    )
     def __init__(
         self,
         *,
@@ -100,7 +107,15 @@ class Estimator(BaseEstimator):
         self._transpile_options = Options()
         if transpile_options is not None:
             self._transpile_options.update_options(**transpile_options)
-        self.approximation = approximation
+        if not approximation:
+            warn(
+                "Option approximation=False is deprecated as of qiskit-aer 0.13. "
+                "It will be removed no earlier than 3 months after the release date. "
+                "Instead, use BackendEstmator from qiskit.primitives.",
+                DeprecationWarning,
+                stacklevel=3,
+            )
+        self._approximation = approximation
         self._skip_transpilation = skip_transpilation
         self._cache: dict[tuple[tuple[int], tuple[int], bool], tuple[dict, dict]] = {}
         self._transpiled_circuits: dict[int, QuantumCircuit] = {}
@@ -108,6 +123,34 @@ class Estimator(BaseEstimator):
         self._circuit_ids: dict[tuple, int] = {}
         self._observable_ids: dict[tuple, int] = {}
         self._abelian_grouping = abelian_grouping
+
+    @property
+    @deprecate_func(
+        since=0.13,
+        package_name="qiskit-aer",
+        is_property=True,
+    )
+    def approximation(self):
+        """The approximation property"""
+        return self._approximation
+
+    @approximation.setter
+    @deprecate_func(
+        since=0.13,
+        package_name="qiskit-aer",
+        is_property=True,
+    )
+    def approximation(self, approximation):
+        """Setter for approximation"""
+        if not approximation:
+            warn(
+                "Option approximation=False is deprecated as of qiskit-aer 0.13. "
+                "It will be removed no earlier than 3 months after the release date. "
+                "Instead, use BackendEstmator from qiskit.primitives.",
+                DeprecationWarning,
+                stacklevel=3,
+            )
+        self._approximation = approximation
 
     def _call(
         self,
