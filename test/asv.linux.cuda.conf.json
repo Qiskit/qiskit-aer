@@ -33,18 +33,18 @@
     "install_command": [
         "python -c \"import shutil; shutil.rmtree('{build_dir}/qiskit', True)\"",
         "python -c \"import shutil; shutil.rmtree('{build_dir}/qiskit_aer.egg-info', True)\"",
-        "pip install git+https://github.com/Qiskit/qiskit-terra",
+        "pip install git+https://github.com/Qiskit/qiskit",
         "pip install git+https://github.com/Qiskit/qiskit-aqua",
         "python -mpip install {wheel_file}"
     ],
     "uninstall_command": [
-        "return-code=any python -mpip uninstall -y qiskit-terra",
+        "return-code=any python -mpip uninstall -y qiskit",
         "return-code=any python -mpip uninstall -y qiskit-aqua",
         "return-code=any python -mpip uninstall -y {project}"
     ],
     "build_command": [
         "python -mpip install -U scikit-build",
-        "pip install git+https://github.com/Qiskit/qiskit-terra",
+        "pip install git+https://github.com/Qiskit/qiskit",
         "pip install git+https://github.com/Qiskit/qiskit-aqua",
         "pip install pyscf",
         "pip install matplotlib",
@@ -101,7 +101,7 @@
     // },
 
     //"matrix": {
-    //    "pip+qiskit-terra": [""],
+    //    "pip+qiskit": [""],
     //},
 
     // Combinations of libraries/python versions can be excluded/included
