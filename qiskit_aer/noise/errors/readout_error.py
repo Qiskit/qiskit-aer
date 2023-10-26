@@ -348,3 +348,8 @@ class ReadoutError:
 
     def __neg__(self):
         raise NotImplementedError("'ReadoutError' does not support negation.")
+
+    @property
+    def num_qubits(self):
+        """Return the number of qubits."""
+        return self._number_of_qubits

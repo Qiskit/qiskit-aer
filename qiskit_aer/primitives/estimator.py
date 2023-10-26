@@ -18,7 +18,6 @@ from __future__ import annotations
 
 from collections import defaultdict
 from collections.abc import Sequence
-from copy import copy
 from warnings import warn
 
 import numpy as np
@@ -32,6 +31,14 @@ from qiskit.providers import Options
 from qiskit.quantum_info import Pauli, PauliList
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.result.models import ExperimentResult
+from qiskit.transpiler import CouplingMap, PassManager
+from qiskit.transpiler.passes import (
+    ApplyLayout,
+    EnlargeWithAncilla,
+    FullAncillaAllocation,
+    Optimize1qGatesDecomposition,
+    SetLayout,
+)
 from qiskit.utils import deprecate_arg, deprecate_func
 
 from .. import AerError, AerSimulator
@@ -340,11 +347,20 @@ class Estimator(BaseEstimator):
                 meas_circuit.h(qarg)
             meas_circuit.measure(qarg, clbit)
         meas_circuit.metadata = {"basis": basis}
+
         if self._skip_transpilation:
             return meas_circuit
-        transpile_opts = copy(self._transpile_options)
-        transpile_opts.update_options(initial_layout=self._layouts[circuit_index])
-        return transpile(meas_circuit, self._backend, **transpile_opts.__dict__)
+
+        layout = self._layouts[circuit_index]
+        passmanager = PassManager([SetLayout(layout)])
+        opt1q = Optimize1qGatesDecomposition(target=self._backend.target)
+        passmanager.append(opt1q)
+        if isinstance(self._backend.coupling_map, CouplingMap):
+            coupling_map = self._backend.coupling_map
+            passmanager.append(FullAncillaAllocation(coupling_map))
+            passmanager.append(EnlargeWithAncilla())
+        passmanager.append(ApplyLayout())
+        return passmanager.run(meas_circuit)
 
     @staticmethod
     def _combine_circs(circuit: QuantumCircuit, meas_circuits: list[QuantumCircuit]):

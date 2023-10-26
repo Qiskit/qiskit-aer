@@ -258,12 +258,12 @@ class AerStatevector(Statevector):
                 aer_state.apply_mcz(qubits[0 : len(qubits) - 1], qubits[len(qubits) - 1])
             elif inst.name == "id":
                 pass
+            elif inst.name == "reset":
+                aer_state.apply_reset(qubits)
             else:
                 applied = False
         elif inst.name == "kraus":
             aer_state.apply_kraus(qubits, inst.params)
-        elif inst.name == "reset":
-            aer_state.apply_reset(qubits)
         elif inst.name == "barrier":
             pass
         else:
