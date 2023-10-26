@@ -486,6 +486,7 @@ BACKEND_RUN_ARG_TYPES = {
     "chop_threshold": (float, np.floating),
     "mps_parallel_threshold": (int, np.integer),
     "mps_omp_threads": (int, np.integer),
+    "mps_lapack": (bool, np.bool_),
     "tensor_network_num_sampling_qubits": (int, np.integer),
     "use_cuTensorNet_autotuning": (bool, np.bool_),
     "parameterizations": (list),

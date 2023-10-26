@@ -527,6 +527,7 @@ class QasmSimulator(AerBackend):
             chop_threshold=1e-8,
             mps_parallel_threshold=14,
             mps_omp_threads=1,
+            mps_lapack=False,
         )
 
     @classmethod

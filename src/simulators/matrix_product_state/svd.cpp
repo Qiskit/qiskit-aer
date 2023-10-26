@@ -90,7 +90,8 @@ uint_t num_of_SV(rvector_t S, double threshold) {
 }
 
 double reduce_zeros(cmatrix_t &U, rvector_t &S, cmatrix_t &V,
-                    uint_t max_bond_dimension, double truncation_threshold) {
+                    uint_t max_bond_dimension, double truncation_threshold,
+                    bool mps_lapack) {
   uint_t SV_num = num_of_SV(S, CHOP_THRESHOLD);
   uint_t new_SV_num = SV_num;
 
@@ -113,7 +114,7 @@ double reduce_zeros(cmatrix_t &U, rvector_t &S, cmatrix_t &V,
   U.resize(U.GetRows(), new_SV_num);
   S.resize(new_SV_num);
   // When using LAPACK function, V is V dagger
-  if (getenv("QISKIT_LAPACK_SVD")) {
+  if (mps_lapack) {
     V.resize(new_SV_num, V.GetColumns());
   } else {
     V.resize(V.GetRows(), new_SV_num);
@@ -140,9 +141,28 @@ double reduce_zeros(cmatrix_t &U, rvector_t &S, cmatrix_t &V,
   return discarded_value;
 }
 
+void validate_SVdD_result(const cmatrix_t &A, const cmatrix_t &U,
+                          const rvector_t &S, const cmatrix_t &V) {
+  const uint_t nrows = A.GetRows(), ncols = A.GetColumns();
+
+  cmatrix_t diag_S = diag(S, nrows, ncols);
+  cmatrix_t product = U * diag_S;
+  product = product * V;
+
+  for (uint_t ii = 0; ii < nrows; ii++)
+    for (uint_t jj = 0; jj < ncols; jj++)
+      if (!Linalg::almost_equal(std::abs(A(ii, jj)), std::abs(product(ii, jj)),
+                                THRESHOLD)) {
+        std::cout << std::abs(A(ii, jj)) << " vs " << std::abs(product(ii, jj))
+                  << std::endl;
+        throw std::runtime_error("Error: Wrong SVD calculations: A != USV*");
+      }
+}
+
 void validate_SVD_result(const cmatrix_t &A, const cmatrix_t &U,
                          const rvector_t &S, const cmatrix_t &V) {
   const uint_t nrows = A.GetRows(), ncols = A.GetColumns();
+
   cmatrix_t diag_S = diag(S, nrows, ncols);
   cmatrix_t product = U * diag_S;
   product = product * AER::Utils::dagger(V);
@@ -529,8 +549,9 @@ status csvd(cmatrix_t &A, cmatrix_t &U, rvector_t &S, cmatrix_t &V) {
   return SUCCESS;
 }
 
-void csvd_wrapper(cmatrix_t &A, cmatrix_t &U, rvector_t &S, cmatrix_t &V) {
-  if (getenv("QISKIT_LAPACK_SVD")) {
+void csvd_wrapper(cmatrix_t &A, cmatrix_t &U, rvector_t &S, cmatrix_t &V,
+                  bool lapack) {
+  if (lapack) {
     lapack_csvd_wrapper(A, U, S, V);
   } else {
     qiskit_csvd_wrapper(A, U, S, V);
@@ -573,9 +594,10 @@ void qiskit_csvd_wrapper(cmatrix_t &A, cmatrix_t &U, rvector_t &S,
 
 void lapack_csvd_wrapper(cmatrix_t &A, cmatrix_t &U, rvector_t &S,
                          cmatrix_t &V) {
-#ifdef DEBUG
+  // Activated by default as requested in the PR
+  // #ifdef DEBUG
   cmatrix_t tempA = A;
-#endif
+  // #endif
 
   const size_t m = A.GetRows(), n = A.GetColumns();
   const size_t min_dim = std::min(m, n);
@@ -592,7 +614,9 @@ void lapack_csvd_wrapper(cmatrix_t &A, cmatrix_t &U, rvector_t &S,
   complex_t *work = new complex_t[lwork];
   int info;
 
-  if (m >= 64 and n >= 64) { // strcmp(getenv("QISKIT_LAPACK_SVD"), "DC") == 0) {
+  if (m >= 64 && n >= 64) {
+    // From experimental results, matrices equal or bigger than this size
+    // perform better using Divide and Conquer approach
     int *iwork = new int[8 * min_dim];
     int rwork_size = std::max(5 * min_dim * min_dim + 5 * min_dim,
                               2 * m * n + 2 * min_dim * min_dim + min_dim);
@@ -626,9 +650,10 @@ void lapack_csvd_wrapper(cmatrix_t &A, cmatrix_t &U, rvector_t &S,
   for (int i = 0; i < min_dim; i++)
     S.push_back(lapackS[i]);
 
-#ifdef DEBUG
-  validate_SVD_result(tempA, U, S, V);
-#endif
+  // Activated by default as requested in the PR
+  // #ifdef DEBUG
+  validate_SVdD_result(tempA, U, S, V);
+  // #endif
 
   delete lapackS;
   delete work;

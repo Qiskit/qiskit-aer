@@ -232,6 +232,7 @@ void bind_aer_controller(MODULE m) {
   aer_config.def_readwrite("mps_parallel_threshold",
                            &Config::mps_parallel_threshold);
   aer_config.def_readwrite("mps_omp_threads", &Config::mps_omp_threads);
+  aer_config.def_readwrite("mps_lapack", &Config::mps_lapack);
   // # tensor network options
   aer_config.def_readwrite("tensor_network_num_sampling_qubits",
                            &Config::tensor_network_num_sampling_qubits);
@@ -467,6 +468,7 @@ void bind_aer_controller(MODULE m) {
             write_value(30, config.chop_threshold),
             write_value(41, config.mps_parallel_threshold),
             write_value(42, config.mps_omp_threads),
+            write_value(101, config.mps_lapack),
             write_value(43, config.tensor_network_num_sampling_qubits),
             write_value(44, config.use_cuTensorNet_autotuning),
             write_value(45, config.library_dir),
@@ -561,6 +563,7 @@ void bind_aer_controller(MODULE m) {
         read_value(t, 30, config.chop_threshold);
         read_value(t, 41, config.mps_parallel_threshold);
         read_value(t, 42, config.mps_omp_threads);
+        read_value(t, 101, config.mps_lapack);
         read_value(t, 43, config.tensor_network_num_sampling_qubits);
         read_value(t, 44, config.use_cuTensorNet_autotuning);
         read_value(t, 45, config.library_dir);
