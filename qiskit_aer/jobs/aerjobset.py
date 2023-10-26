@@ -37,7 +37,7 @@ logger = logging.getLogger(__name__)
 
 
 class AerJobSet(Job):
-    """A set of :class:`~AerJob` classes for Qiskit Aer simulators.
+    """A set of :class:`~AerJob` classes for Aer simulators.
 
     An instance of this class is returned when you submit experiments with
     executor option.  It provides methods that allow you to interact

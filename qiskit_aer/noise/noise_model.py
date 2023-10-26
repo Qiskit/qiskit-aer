@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 """
-Noise model class for Qiskit Aer simulators.
+Noise model class for Aer simulators.
 """
 import copy
 import json
@@ -78,7 +78,7 @@ class QuantumErrorLocation(Instruction):
 
 
 class NoiseModel:
-    """Noise model class for Qiskit Aer simulators.
+    """Noise model class for Aer simulators.
 
     This class is used to represent noise model for the
     :class:`~qiskit_aer.QasmSimulator`. It can be used to construct
