@@ -95,7 +95,7 @@ setup(
     version=VERSION,
     packages=setuptools.find_packages(exclude=["test*"]),
     cmake_source_dir=".",
-    description="Qiskit Aer - High performance simulators for Qiskit",
+    description="Aer - High performance simulators for Qiskit",
     long_description=README,
     long_description_content_type="text/markdown",
     url="https://github.com/Qiskit/qiskit-aer",
@@ -109,6 +109,6 @@ setup(
     package_data={"qiskit_aer": ["VERSION.txt"], "qiskit_aer.library": ["*.csv"]},
     extras_require=extras_requirements,
     cmake_args=cmake_args,
-    keywords="qiskit aer simulator quantum addon backend",
+    keywords="qiskit, simulator, quantum computing, backend",
     zip_safe=False,
 )
