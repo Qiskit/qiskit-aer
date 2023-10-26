@@ -1,0 +1,4 @@
+---
+fixes:
+  - |
+    Fixed a bug where the variance in metadata in EstimatorResult was complex and now returns float.

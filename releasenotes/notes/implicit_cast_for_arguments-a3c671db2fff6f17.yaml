@@ -1,0 +1,9 @@
+---
+deprecations:
+  - |
+    Options of meth:`~.AerSimulator.run` need to use correct types.
+fixes:
+  - |
+    Since 0.12.0, :class:`AerConfig` is used for simulation configuration while
+    performing strict type checking for arguments of meth:`~.AerSimulator.run`.
+    This commit adds casting if argument types are not expected.

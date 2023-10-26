@@ -1,0 +1,5 @@
+---
+issues:
+  - |
+    Though Aer supports ``switch`` for several methods, transpilation of circuits with ``switch`` has been failed.
+    This commit enables such transpilation by adding ``switch_case`` operations into basis gates.

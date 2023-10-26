@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    MPI parallelization was not enabled since we have not used qobj.
+    This fix sets the number of processes and MPI rank correctly.
