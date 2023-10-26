@@ -78,8 +78,8 @@ from qiskit_aer.version import __version__
 
 if sys.version_info < (3, 8):
     warnings.warn(
-        "Using Qiskit Aer with Python 3.7 is deprecated as of the 0.12.0 release. "
-        "Support for running Qiskit Aer with Python 3.7 will be removed in a future "
+        "Using Aer with Python 3.7 is deprecated as of the 0.12.0 release. "
+        "Support for running Aer with Python 3.7 will be removed in a future "
         "release",
         DeprecationWarning,
     )

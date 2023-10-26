@@ -12,7 +12,7 @@
 
 # pylint: disable=invalid-name
 """
-Qiskit Aer Unitary Simulator Backend.
+Aer Unitary Simulator Backend.
 """
 import copy
 import logging
