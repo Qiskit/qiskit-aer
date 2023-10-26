@@ -35,7 +35,7 @@ from .backend_utils import (
     add_final_save_op,
 )
 
-# pylint: disable=import-error, no-name-in-module
+# pylint: disable=import-error, no-name-in-module, abstract-method
 from .controller_wrappers import aer_controller_execute
 
 # Logger
@@ -213,6 +213,7 @@ class StatevectorSimulator(AerBackend):
                 "initialize",
                 "delay",
                 "pauli",
+                "reset",
             ]
         ),
         "custom_instructions": sorted(
@@ -354,7 +355,7 @@ class StatevectorSimulator(AerBackend):
         1. Set shots=1.
         2. Check number of qubits will fit in local memory.
         """
-        name = self.name()
+        name = self.name
         if getattr(qobj.config, "noise_model", None) is not None:
             raise AerError(f"{name} does not support noise.")
 

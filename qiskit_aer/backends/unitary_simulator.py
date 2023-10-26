@@ -36,7 +36,7 @@ from .backend_utils import (
     map_legacy_method_config,
 )
 
-# pylint: disable=import-error, no-name-in-module
+# pylint: disable=import-error, no-name-in-module, abstract-method
 from .controller_wrappers import aer_controller_execute
 
 # Logger
@@ -216,6 +216,7 @@ class UnitarySimulator(AerBackend):
                 "multiplexer",
                 "delay",
                 "pauli",
+                "reset",
             ]
         ),
         "custom_instructions": sorted(["save_unitary", "save_state", "set_unitary"]),
@@ -341,7 +342,7 @@ class UnitarySimulator(AerBackend):
         2. No measurements or reset
         3. Check number of qubits will fit in local memory.
         """
-        name = self.name()
+        name = self.name
         if getattr(qobj.config, "noise_model", None) is not None:
             raise AerError(f"{name} does not support noise.")
 
