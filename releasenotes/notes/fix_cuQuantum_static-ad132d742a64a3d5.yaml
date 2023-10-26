@@ -1,5 +1,0 @@
----
-fixes:
-  - |
-    This is fix for static link libraries of cuQuantum when building with
-    CUQUANTUM_STATIC=true.
