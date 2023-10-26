@@ -157,8 +157,9 @@ class TestEstimator(QiskitAerTestCase):
         circuit.h(0)
         circuit.cx(0, 1)
         circuit.cx(1, 2)
+        # Skip transpilation until solve qiskit-terra issue(10568)
         with self.assertWarns(DeprecationWarning):
-            est = Estimator(abelian_grouping=abelian_grouping)
+            est = Estimator(abelian_grouping=abelian_grouping, skip_transpilation=True)
         result = est.run(
             [circuit] * 2, [SparsePauliOp("ZZZ"), SparsePauliOp("III")], seed=15
         ).result()
