@@ -22,7 +22,7 @@ ADD_CUDA_REQUIREMENTS = (
 extras_requirements = {"dask": ["dask", "distributed"]}
 
 requirements = [
-    "qiskit-terra>=0.21.0",
+    "qiskit>=0.44.0",
     "numpy>=1.16.3",
     "scipy>=1.0",
 ]
@@ -64,6 +64,7 @@ if ADD_CUDA_REQUIREMENTS and "gpu" in PACKAGE_NAME and "rocm" not in PACKAGE_NAM
     else:
         requirements_cuda = [
             "nvidia-cuda-runtime-cu12>=12.1.105",
+            "nvidia-nvjitlink-cu12",
             "nvidia-cublas-cu12>=12.1.3.1",
             "nvidia-cusolver-cu12>=11.4.5.107",
             "nvidia-cusparse-cu12>=12.1.0.106",

@@ -313,7 +313,7 @@ class AerBackend(Backend, ABC):
         for key, val in self._options_configuration.items():
             setattr(config, key, val)
         # If config has custom instructions add them to
-        # basis gates to include them for the terra transpiler
+        # basis gates to include them for the qiskit transpiler
         if hasattr(config, "custom_instructions"):
             config.basis_gates = config.basis_gates + config.custom_instructions
         return config
