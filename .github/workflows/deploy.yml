@@ -7,7 +7,9 @@ jobs:
       matrix:
         os: ["ubuntu-latest"]
     runs-on: ${{ matrix.os }}
-    environment: release
+    environment:
+      name: pypi
+      url: https://pypi.org/p/qiskit-aer-gpu-cu11
     permissions:
       id-token: write
     steps:
@@ -54,7 +56,9 @@ jobs:
       matrix:
         os: ["ubuntu-latest"]
     runs-on: ${{ matrix.os }}
-    environment: release
+    environment:
+      name: pypi
+      url: https://pypi.org/p/qiskit-aer-gpu
     permissions:
       id-token: write
     steps:
