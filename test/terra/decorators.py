@@ -193,5 +193,3 @@ def enforce_subclasses_call(
         return cls
 
     return decorator
-
-

@@ -118,6 +118,7 @@ class BaseQiskitAerTestCase(unittest.TestCase):
             msg = self._formatMessage(msg, error_msg)
             raise self.failureException(msg)
 
+
 def dicts_almost_equal(dict1, dict2, delta=None, places=None, default_value=0):
     """Test if two dictionaries with numeric values are almost equal.
 
