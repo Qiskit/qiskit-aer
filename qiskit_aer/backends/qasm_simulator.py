@@ -365,7 +365,6 @@ class QasmSimulator(AerBackend):
             "pauli",
             "mcx_gray",
             "ecr",
-            "reset",
         ]
     )
 
@@ -389,6 +388,7 @@ class QasmSimulator(AerBackend):
             "set_statevector",
             "set_density_matrix",
             "set_stabilizer",
+            "reset",
         ]
     )
 

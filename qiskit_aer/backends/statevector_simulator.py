@@ -213,7 +213,6 @@ class StatevectorSimulator(AerBackend):
                 "initialize",
                 "delay",
                 "pauli",
-                "reset",
             ]
         ),
         "custom_instructions": sorted(
@@ -231,6 +230,7 @@ class StatevectorSimulator(AerBackend):
                 "save_amplitudes_sq",
                 "save_state",
                 "set_statevector",
+                "reset",
             ]
         ),
         "gates": [],

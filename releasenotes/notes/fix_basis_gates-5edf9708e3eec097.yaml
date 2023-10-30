@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fixed basis gates sets of Aer backend, moved `reset` and `switch_case`
+    to custom instructions.
