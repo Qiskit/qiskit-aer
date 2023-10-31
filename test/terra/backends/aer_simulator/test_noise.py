@@ -79,7 +79,7 @@ class TestNoise(SimulatorTestCase):
         backend.set_options(noise_model=noise_model)
         circ = QuantumCircuit(1, 1)
         circ.reset(0)
-        circ.measure(0,0)
+        circ.measure(0, 0)
         circ = transpile(circ, backend)
         result = backend.run(circ, shots=1).result()
         self.assertSuccess(result)
