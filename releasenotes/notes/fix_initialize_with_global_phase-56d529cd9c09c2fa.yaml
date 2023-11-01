@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    When applying `initialize`, global phase was not multiplied to state.
+    This fix multiplies global phase to `initialize` operation.
+    Also this fix applies global phase to `matrix_product_state` method,
+    which did not use global phase.

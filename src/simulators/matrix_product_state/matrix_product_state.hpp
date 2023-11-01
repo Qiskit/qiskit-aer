@@ -312,6 +312,10 @@ const stringmap_t<Gates>
 
 void State::initialize_qreg(uint_t num_qubits = 0) {
   qreg_.initialize(num_qubits);
+  if (BaseState::has_global_phase_) {
+    BaseState::qreg_.apply_diagonal_matrix(
+        {0}, {BaseState::global_phase_, BaseState::global_phase_});
+  }
 }
 
 void State::initialize_omp() {
@@ -721,7 +725,16 @@ void State::apply_kraus(const reg_t &qubits,
 
 void State::apply_initialize(const reg_t &qubits, const cvector_t &params,
                              RngEngine &rng) {
-  qreg_.apply_initialize(qubits, params, rng);
+  // apply global phase here
+  if (BaseState::has_global_phase_) {
+    cvector_t tmp(params.size());
+    for (int_t i = 0; i < params.size(); i++) {
+      tmp[i] = params[i] * BaseState::global_phase_;
+    }
+    qreg_.apply_initialize(qubits, tmp, rng);
+  } else {
+    qreg_.apply_initialize(qubits, params, rng);
+  }
 }
 
 void State::apply_measure(const reg_t &qubits, const reg_t &cmemory,

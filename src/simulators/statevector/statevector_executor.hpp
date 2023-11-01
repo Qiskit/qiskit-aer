@@ -104,7 +104,7 @@ protected:
   // computing the tensor product with the new state |psi>
   // /psi> is given in params
   void apply_initialize(const reg_t &qubits, const cvector_t &params,
-                        RngEngine &rng);
+                        RngEngine &rng, bool recursive = false);
 
   void initialize_from_vector(const cvector_t &params);
 
@@ -114,7 +114,7 @@ protected:
 
   void apply_reset(CircuitExecutor::Branch &root, const reg_t &qubits);
   void apply_initialize(CircuitExecutor::Branch &root, const reg_t &qubits,
-                        const cvector_t &params);
+                        const cvector_t &params, bool recursive = false);
   void apply_kraus(CircuitExecutor::Branch &root, const reg_t &qubits,
                    const std::vector<cmatrix_t> &kmats);
 
@@ -1260,9 +1260,17 @@ std::vector<reg_t> Executor<state_t>::sample_measure(const reg_t &qubits,
 template <class state_t>
 void Executor<state_t>::apply_initialize(const reg_t &qubits,
                                          const cvector_t &params,
-                                         RngEngine &rng) {
+                                         RngEngine &rng, bool recursive) {
   auto sorted_qubits = qubits;
   std::sort(sorted_qubits.begin(), sorted_qubits.end());
+  // apply global phase here
+  if (!recursive && Base::states_[0].has_global_phase()) {
+    cvector_t tmp(params.size());
+    for (int_t i = 0; i < params.size(); i++) {
+      tmp[i] = params[i] * Base::states_[0].global_phase();
+    }
+    return apply_initialize(qubits, tmp, rng, true);
+  }
   if (qubits.size() == Base::num_qubits_) {
     // If qubits is all ordered qubits in the statevector
     // we can just initialize the whole state directly
@@ -1601,7 +1609,16 @@ void Executor<state_t>::apply_reset(CircuitExecutor::Branch &root,
 template <class state_t>
 void Executor<state_t>::apply_initialize(CircuitExecutor::Branch &root,
                                          const reg_t &qubits,
-                                         const cvector_t &params) {
+                                         const cvector_t &params,
+                                         bool recursive) {
+  // apply global phase here
+  if (!recursive && Base::states_[root.state_index()].has_global_phase()) {
+    cvector_t tmp(params.size());
+    for (int_t i = 0; i < params.size(); i++) {
+      tmp[i] = params[i] * Base::states_[root.state_index()].global_phase();
+    }
+    return apply_initialize(root, qubits, tmp, true);
+  }
   if (qubits.size() == Base::num_qubits_) {
     auto sorted_qubits = qubits;
     std::sort(sorted_qubits.begin(), sorted_qubits.end());
