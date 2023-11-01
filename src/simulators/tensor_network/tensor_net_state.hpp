@@ -194,7 +194,7 @@ protected:
   // computing the tensor product with the new state |psi>
   // /psi> is given in params
   void apply_initialize(const reg_t &qubits, const cvector_t<double> &params,
-                        RngEngine &rng, bool recursive = false);
+                        RngEngine &rng);
 
   void initialize_from_matrix(const cmatrix_t &params);
 
@@ -928,18 +928,21 @@ std::vector<reg_t> State<tensor_net_t>::sample_measure(const reg_t &qubits,
 
 template <class tensor_net_t>
 void State<tensor_net_t>::apply_initialize(const reg_t &qubits,
-                                           const cvector_t<double> &params,
-                                           RngEngine &rng, bool recursive) {
+                                           const cvector_t<double> &params_in,
+                                           RngEngine &rng) {
   auto sorted_qubits = qubits;
   std::sort(sorted_qubits.begin(), sorted_qubits.end());
   // apply global phase here
-  if (!recursive && BaseState::has_global_phase_) {
-    cvector_t<double> tmp(params.size());
-    for (int_t i = 0; i < params.size(); i++) {
-      tmp[i] = params[i] * BaseState::global_phase_;
-    }
-    return apply_initialize(qubits, tmp, rng, true);
+  cvector_t<double> tmp;
+  if (BaseState::has_global_phase_) {
+    tmp.resize(params_in.size());
+    auto apply_global_phase = [&tmp, params_in, this](int_t i) {
+      tmp[i] = params_in[i] * BaseState::global_phase_;
+    };
+    Utils::apply_omp_parallel_for((qubits.size() > 14), 0, params_in.size(),
+                                  apply_global_phase, BaseState::threads_);
   }
+  const cvector_t<double> &params = tmp.empty() ? params_in : tmp;
   if (qubits.size() == BaseState::qreg_.num_qubits()) {
     // If qubits is all ordered qubits in the statevector
     // we can just initialize the whole state directly

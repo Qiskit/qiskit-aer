@@ -101,6 +101,9 @@ protected:
   int parallel_shots_;
   int parallel_state_update_;
 
+  // OpenMP qubit threshold
+  int omp_qubit_threshold_ = 14;
+
   // results are stored independently in each process if true
   bool accept_distributed_results_ = true;
 
@@ -262,6 +265,9 @@ void Executor<state_t>::set_config(const Config &config) {
   max_parallel_threads_ = (max_parallel_threads_ > 0)
                               ? std::min(max_parallel_threads_, omp_threads)
                               : std::max(1, omp_threads);
+
+  // Set OMP threshold for state update functions
+  omp_qubit_threshold_ = config.statevector_parallel_threshold;
 #else
   // No OpenMP so we disable parallelization
   max_parallel_threads_ = 1;

@@ -728,9 +728,11 @@ void State::apply_initialize(const reg_t &qubits, const cvector_t &params,
   // apply global phase here
   if (BaseState::has_global_phase_) {
     cvector_t tmp(params.size());
-    for (int_t i = 0; i < params.size(); i++) {
+    auto apply_global_phase = [&tmp, params, this](int_t i) {
       tmp[i] = params[i] * BaseState::global_phase_;
-    }
+    };
+    Utils::apply_omp_parallel_for((qubits.size() > 14), 0, params.size(),
+                                  apply_global_phase, BaseState::threads_);
     qreg_.apply_initialize(qubits, tmp, rng);
   } else {
     qreg_.apply_initialize(qubits, params, rng);

@@ -62,8 +62,7 @@ protected:
                      const reg_t &cmemory, const reg_t &cregister);
   void apply_reset(CircuitExecutor::Branch &root, const reg_t &qubits);
   void apply_initialize(CircuitExecutor::Branch &root, const reg_t &qubits,
-                        const cvector_t<double> &params,
-                        bool recursive = false);
+                        const cvector_t<double> &params);
   void apply_kraus(CircuitExecutor::Branch &root, const reg_t &qubits,
                    const std::vector<cmatrix_t> &kmats);
 
@@ -250,16 +249,21 @@ void Executor<state_t>::apply_reset(CircuitExecutor::Branch &root,
 template <class state_t>
 void Executor<state_t>::apply_initialize(CircuitExecutor::Branch &root,
                                          const reg_t &qubits,
-                                         const cvector_t<double> &params,
-                                         bool recursive) {
+                                         const cvector_t<double> &params_in) {
   // apply global phase here
-  if (!recursive && Base::states_[root.state_index()].has_global_phase()) {
-    cvector_t<double> tmp(params.size());
-    for (int_t i = 0; i < params.size(); i++) {
-      tmp[i] = params[i] * Base::states_[root.state_index()].global_phase();
-    }
-    return apply_initialize(root, qubits, tmp, true);
+  cvector_t<double> tmp;
+  if (Base::states_[root.state_index()].has_global_phase()) {
+    tmp.resize(params_in.size());
+    std::complex<double> global_phase =
+        Base::states_[root.state_index()].global_phase();
+    auto apply_global_phase = [&tmp, params_in, global_phase](int_t i) {
+      tmp[i] = params_in[i] * global_phase;
+    };
+    Utils::apply_omp_parallel_for((qubits.size() > Base::omp_qubit_threshold_),
+                                  0, params_in.size(), apply_global_phase,
+                                  Base::parallel_state_update_);
   }
+  const cvector_t<double> &params = tmp.empty() ? params_in : tmp;
   if (qubits.size() == Base::num_qubits_) {
     auto sorted_qubits = qubits;
     std::sort(sorted_qubits.begin(), sorted_qubits.end());
