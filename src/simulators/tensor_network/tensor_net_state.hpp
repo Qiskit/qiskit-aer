@@ -932,10 +932,10 @@ void State<tensor_net_t>::apply_initialize(const reg_t &qubits,
                                            RngEngine &rng, bool recursive) {
   auto sorted_qubits = qubits;
   std::sort(sorted_qubits.begin(), sorted_qubits.end());
-  //apply global phase here
+  // apply global phase here
   if (!recursive && BaseState::has_global_phase_) {
     cvector_t<double> tmp(params.size());
-    for(int_t i=0;i<params.size();i++){
+    for (int_t i = 0; i < params.size(); i++) {
       tmp[i] = params[i] * BaseState::global_phase_;
     }
     return apply_initialize(qubits, tmp, rng, true);
