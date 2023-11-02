@@ -14,28 +14,17 @@
 """
 Qiskit Aer simulator name mapping for Target object
 """
-from qiskit.circuit import ControlledGate, Parameter
-from qiskit.circuit.parameterexpression import ParameterValueType
-from qiskit.circuit.reset import Reset
+from qiskit.circuit import Parameter
+
+
 from qiskit.circuit.library import (
-    SXGate,
+
     MCPhaseGate,
     MCXGate,
     MCU1Gate,
-    RZGate,
-    RXGate,
     U2Gate,
-    U1Gate,
-    U3Gate,
-    YGate,
-    ZGate,
     PauliGate,
-    SwapGate,
-    RGate,
     MCXGrayCode,
-    RYGate,
-    CZGate,
-    ECRGate,
     UnitaryGate,
     UCGate,
     Initialize,
@@ -49,8 +38,8 @@ from qiskit.circuit.controlflow import (
     BreakLoopOp,
     SwitchCaseOp,
 )
-from qiskit.extensions import Initialize, UnitaryGate
-from qiskit.extensions.quantum_initializer import DiagonalGate, UCGate
+
+
 from qiskit.quantum_info.operators.channel.kraus import Kraus
 from qiskit.quantum_info.operators.channel import SuperOp
 from qiskit.quantum_info.operators.channel.quantum_channel import QuantumChannel
