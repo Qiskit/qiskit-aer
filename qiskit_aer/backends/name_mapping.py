@@ -18,7 +18,6 @@ from qiskit.circuit import Parameter
 
 
 from qiskit.circuit.library import (
-
     MCPhaseGate,
     MCXGate,
     MCU1Gate,
