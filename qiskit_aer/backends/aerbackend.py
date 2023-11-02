@@ -87,6 +87,8 @@ class AerBackend(Backend, ABC):
         self._options_properties = {}
         self._target = None
         self._mapping = NAME_MAPPING
+        self._add_delay = False
+        self._filter_faulty = False
 
         # Set options from backend_options dictionary
         if backend_options is not None:
@@ -352,7 +354,12 @@ class AerBackend(Backend, ABC):
     @property
     def target(self):
         self._target = convert_to_target(
-            self.configuration(), self.properties(), self.defaults(), self._mapping
+            self.configuration(),
+            self.properties(),
+            self.defaults(),
+            self._mapping,
+            add_delay=self._add_delay,
+            filter_faulty=self._filter_faulty,
         )
         return self._target
 

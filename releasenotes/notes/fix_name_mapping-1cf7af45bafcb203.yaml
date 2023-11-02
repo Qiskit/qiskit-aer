@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Removed some name maps that causes error in Qiskit's controlled gate test
+    cases.
