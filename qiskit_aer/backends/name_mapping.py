@@ -14,24 +14,20 @@
 """
 Qiskit Aer simulator name mapping for Target object
 """
-from qiskit.circuit import ControlledGate, Parameter
-from qiskit.circuit.reset import Reset
+from qiskit.circuit import Parameter
+
+
 from qiskit.circuit.library import (
-    SXGate,
     MCPhaseGate,
     MCXGate,
-    RZGate,
-    RXGate,
+    MCU1Gate,
     U2Gate,
-    U1Gate,
-    U3Gate,
-    YGate,
-    ZGate,
     PauliGate,
-    SwapGate,
-    RGate,
     MCXGrayCode,
-    RYGate,
+    UnitaryGate,
+    UCGate,
+    Initialize,
+    DiagonalGate,
 )
 from qiskit.circuit.controlflow import (
     IfElseOp,
@@ -41,8 +37,8 @@ from qiskit.circuit.controlflow import (
     BreakLoopOp,
     SwitchCaseOp,
 )
-from qiskit.extensions import Initialize, UnitaryGate
-from qiskit.extensions.quantum_initializer import DiagonalGate, UCGate
+
+from qiskit.extensions import UnitaryGate
 from qiskit.quantum_info.operators.channel.kraus import Kraus
 from qiskit.quantum_info.operators.channel import SuperOp
 from qiskit.quantum_info.operators.channel.quantum_channel import QuantumChannel
@@ -73,209 +69,23 @@ from ..library import (
 from ..noise.errors import ReadoutError
 from ..noise.noise_model import QuantumErrorLocation
 
-
-class MCSXGate(ControlledGate):
-    """mcsx gate"""
-
-    def __init__(self, num_ctrl_qubits, ctrl_state=None):
-        super().__init__(
-            "mcsx",
-            int(num_ctrl_qubits) + 1,
-            [],
-            None,
-            int(num_ctrl_qubits),
-            ctrl_state=ctrl_state,
-            base_gate=SXGate(),
-        )
-
-
-class MCYGate(ControlledGate):
-    """mcy gate"""
-
-    def __init__(self, num_ctrl_qubits, ctrl_state=None):
-        super().__init__(
-            "mcy",
-            int(num_ctrl_qubits) + 1,
-            [],
-            None,
-            int(num_ctrl_qubits),
-            ctrl_state=ctrl_state,
-            base_gate=YGate(),
-        )
-
-
-class MCZGate(ControlledGate):
-    """mcz gate"""
-
-    def __init__(self, num_ctrl_qubits, ctrl_state=None):
-        super().__init__(
-            "mcz",
-            int(num_ctrl_qubits) + 1,
-            [],
-            None,
-            int(num_ctrl_qubits),
-            ctrl_state=ctrl_state,
-            base_gate=ZGate(),
-        )
-
-
-class MCRXGate(ControlledGate):
-    """mcrx gate"""
-
-    def __init__(self, theta, num_ctrl_qubits, ctrl_state=None):
-        super().__init__(
-            "mcrx",
-            int(num_ctrl_qubits) + 1,
-            [theta],
-            None,
-            int(num_ctrl_qubits),
-            ctrl_state=ctrl_state,
-            base_gate=RXGate(theta),
-        )
-
-
-class MCRYGate(ControlledGate):
-    """mcry gate"""
-
-    def __init__(self, theta, num_ctrl_qubits, ctrl_state=None):
-        super().__init__(
-            "mcry",
-            int(num_ctrl_qubits) + 1,
-            [theta],
-            None,
-            int(num_ctrl_qubits),
-            ctrl_state=ctrl_state,
-            base_gate=RYGate(theta),
-        )
-
-
-class MCRZGate(ControlledGate):
-    """mcrz gate"""
-
-    def __init__(self, theta, num_ctrl_qubits, ctrl_state=None):
-        super().__init__(
-            "mcrz",
-            int(num_ctrl_qubits) + 1,
-            [theta],
-            None,
-            int(num_ctrl_qubits),
-            ctrl_state=ctrl_state,
-            base_gate=RZGate(theta),
-        )
-
-
-class MCRGate(ControlledGate):
-    """mcr gate"""
-
-    def __init__(self, theta, phi, num_ctrl_qubits, ctrl_state=None):
-        super().__init__(
-            "mcr",
-            int(num_ctrl_qubits) + 1,
-            [theta, phi],
-            None,
-            int(num_ctrl_qubits),
-            ctrl_state=ctrl_state,
-            base_gate=RGate(theta, phi),
-        )
-
-
-class MCU1Gate(ControlledGate):
-    """mcu1 gate"""
-
-    def __init__(self, theta, num_ctrl_qubits, ctrl_state=None):
-        super().__init__(
-            "mcu1",
-            int(num_ctrl_qubits) + 1,
-            [theta],
-            None,
-            int(num_ctrl_qubits),
-            ctrl_state=ctrl_state,
-            base_gate=U1Gate(theta),
-        )
-
-
-class MCU2Gate(ControlledGate):
-    """mcu2 gate"""
-
-    def __init__(self, theta, lam, num_ctrl_qubits, ctrl_state=None):
-        super().__init__(
-            "mcu2",
-            int(num_ctrl_qubits) + 1,
-            [theta, lam],
-            None,
-            int(num_ctrl_qubits),
-            ctrl_state=ctrl_state,
-            base_gate=U2Gate(theta, lam),
-        )
-
-
-class MCU3Gate(ControlledGate):
-    """mcu3 gate"""
-
-    def __init__(self, theta, lam, phi, num_ctrl_qubits, ctrl_state=None):
-        super().__init__(
-            "mcu3",
-            int(num_ctrl_qubits) + 1,
-            [theta, phi, lam],
-            None,
-            int(num_ctrl_qubits),
-            ctrl_state=ctrl_state,
-            base_gate=U3Gate(theta, phi, lam),
-        )
-
-
-class MCUGate(ControlledGate):
-    """mcu gate"""
-
-    def __init__(self, theta, lam, phi, num_ctrl_qubits, ctrl_state=None):
-        super().__init__(
-            "mcu",
-            int(num_ctrl_qubits) + 1,
-            [theta, phi, lam],
-            None,
-            int(num_ctrl_qubits),
-            ctrl_state=ctrl_state,
-            base_gate=U3Gate(theta, phi, lam),
-        )
-
-
-class MCSwapGate(ControlledGate):
-    """mcswap gate"""
-
-    def __init__(self, num_ctrl_qubits, ctrl_state=None):
-        super().__init__(
-            "mcswap",
-            2 + num_ctrl_qubits,
-            [],
-            None,
-            int(num_ctrl_qubits),
-            ctrl_state=ctrl_state,
-            base_gate=SwapGate(),
-        )
-
-
 PHI = Parameter("phi")
 LAM = Parameter("lam")
 NAME_MAPPING = {
-    "mcsx": MCSXGate,
     "mcp": MCPhaseGate,
     "mcphase": MCPhaseGate,
-    "initialize": Initialize,
     "quantum_channel": QuantumChannel,
+    "initialize": Initialize,
     "save_expval": SaveExpectationValue,
     "diagonal": DiagonalGate,
     "save_amplitudes": SaveAmplitudes,
     "roerror": ReadoutError,
-    "mcrx": MCRXGate,
     "kraus": Kraus,
     "save_statevector_dict": SaveStatevectorDict,
     "mcx": MCXGate,
     "mcu1": MCU1Gate,
-    "mcu2": MCU2Gate,
-    "mcu3": MCU3Gate,
     "save_superop": SaveSuperOp,
     "multiplexer": UCGate,
-    "mcy": MCYGate,
     "superop": SuperOp,
     "save_clifford": SaveClifford,
     "save_matrix_product_state": SaveMatrixProductState,
@@ -288,30 +98,21 @@ NAME_MAPPING = {
     "break_loop": BreakLoopOp,
     "continue_loop": ContinueLoopOp,
     "save_statevector": SaveStatevector,
-    "mcu": MCUGate,
     "set_density_matrix": SetDensityMatrix,
     "qerror_loc": QuantumErrorLocation,
     "unitary": UnitaryGate,
-    "mcz": MCZGate,
     "pauli": PauliGate,
     "set_unitary": SetUnitary,
     "save_state": SaveState,
-    "mcswap": MCSwapGate,
     "set_matrix_product_state": SetMatrixProductState,
     "save_unitary": SaveUnitary,
-    "mcr": MCRGate,
     "mcx_gray": MCXGrayCode,
-    "mcrz": MCRZGate,
     "set_superop": SetSuperOp,
     "save_expval_var": SaveExpectationValueVariance,
     "save_stabilizer": SaveStabilizer,
     "set_statevector": SetStatevector,
-    "mcry": MCRYGate,
     "set_stabilizer": SetStabilizer,
     "save_amplitudes_sq": SaveAmplitudesSquared,
     "save_probabilities_dict": SaveProbabilitiesDict,
-    "save_probs_ket": SaveProbabilitiesDict,
-    "save_probs": SaveProbabilities,
     "cu2": U2Gate(PHI, LAM).control(),
-    "reset": Reset(),
 }
