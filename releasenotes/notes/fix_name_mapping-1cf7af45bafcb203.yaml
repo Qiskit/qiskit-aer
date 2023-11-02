@@ -1,5 +1,6 @@
 ---
 fixes:
   - |
-    Removed some name maps that causes error in Qiskit's controlled gate test
-    cases.
+    `num_ctrl_qubits` should be integer but in Qiskit's test case
+    `test.python.circuit.test_controlled_gate` float type is passed
+    so add cast to integer
