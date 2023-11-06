@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixed `stabilizer` was selected with `method="automatic" `when using
+    noise model with `rx`, `ry` or `rz` gates.
+    This is side effect of implementing rotational gates in stabilizer PR #1938

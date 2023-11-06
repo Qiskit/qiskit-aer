@@ -120,6 +120,10 @@ public:
   validate_parameters(const std::vector<Operations::Op> &ops) const {
     return true;
   }
+  // validate noise model for this method
+  virtual bool validate_noise_ops(const Operations::OpSet &ops) const {
+    return opset_.contains(ops);
+  }
 
   //-----------------------------------------------------------------------
   // ClassicalRegister methods
