@@ -112,7 +112,7 @@ class Estimator(BaseEstimator):
             warn(
                 "Option approximation=False is deprecated as of qiskit-aer 0.13. "
                 "It will be removed no earlier than 3 months after the release date. "
-                "Instead, use BackendEstmator from qiskit.primitives.",
+                "Instead, use BackendEstimator from qiskit.primitives.",
                 DeprecationWarning,
                 stacklevel=3,
             )
@@ -147,7 +147,7 @@ class Estimator(BaseEstimator):
             warn(
                 "Option approximation=False is deprecated as of qiskit-aer 0.13. "
                 "It will be removed no earlier than 3 months after the release date. "
-                "Instead, use BackendEstmator from qiskit.primitives.",
+                "Instead, use BackendEstimator from qiskit.primitives.",
                 DeprecationWarning,
                 stacklevel=3,
             )
