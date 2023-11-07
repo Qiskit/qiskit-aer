@@ -39,7 +39,7 @@ from qiskit.transpiler.passes import (
     Optimize1qGatesDecomposition,
     SetLayout,
 )
-from qiskit.utils import deprecate_arg, deprecate_func
+from qiskit.utils import deprecate_func
 
 from .. import AerError, AerSimulator
 
@@ -76,12 +76,6 @@ class Estimator(BaseEstimator):
           normal distribution approximation.
     """
 
-    @deprecate_arg(
-        "approximation",
-        since=0.13,
-        package_name="qiskit-aer",
-        additional_msg="approximation=True will be default in the future.",
-    )
     def __init__(
         self,
         *,
