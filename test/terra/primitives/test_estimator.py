@@ -287,8 +287,7 @@ class TestEstimator(QiskitAerTestCase):
         """test with shots option."""
         # Note: abelian_gropuing is ignored when approximation is True as documented.
         # The purpose of this test is to make sure the results remain the same.
-        with self.assertWarns(DeprecationWarning):
-            est = Estimator(approximation=True, abelian_grouping=abelian_grouping)
+        est = Estimator(approximation=True, abelian_grouping=abelian_grouping)
         result = est.run(
             self.ansatz, self.observable, parameter_values=[[0, 1, 1, 2, 3, 5]], shots=1024, seed=15
         ).result()
@@ -332,8 +331,7 @@ class TestEstimator(QiskitAerTestCase):
         qc2.ry(np.pi / 2 * param, 0)
         qc2.measure_all()
 
-        with self.assertWarns(DeprecationWarning):
-            estimator = Estimator(approximation=True)
+        estimator = Estimator(approximation=True)
         job = estimator.run([qc1, qc2, qc1, qc1, qc2], ["Z"] * 5, [[], [1], [], [], [1]])
         result = job.result()
         np.testing.assert_allclose(result.values, [1, 0, 1, 1, 0], atol=1e-10)
