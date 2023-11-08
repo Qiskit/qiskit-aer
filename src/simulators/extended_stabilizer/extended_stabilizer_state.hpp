@@ -466,7 +466,7 @@ void State::apply_ops_parallel(InputIterator first, InputIterator last,
 
   std::vector<size_t> rng_seeds(NUM_STATES);
   for (int_t i = 0; i < NUM_STATES; i++) {
-    rng_seeds[i] = size_t(rng.rand_int(0ULL, 18446744073709551615ULL));
+    rng_seeds[i] = rng.rand_int<size_t>(0, SIZE_MAX);
   }
 
 #pragma omp parallel for if (BaseState::qreg_.check_omp_threshold() &&         \
