@@ -297,8 +297,12 @@ def thermal_relaxation_error(t1, t2, time, excited_state_population=0):
     if t2 <= 0:
         raise NoiseError("Invalid T_2 coherence time parameter: T_2 <= 0.")
     if t2 - 2 * t1 > 0:
-        logger.warning(f"Warning: T_2 value {t2} exceeds physical limit {2 * t1}"
-                        "given by 2 * T_1. Noise model will use the physical limit.")
+        logger.warning(
+            "Warning: T_2 value %g exceeds physical limit %g"
+            "given by 2 * T_1. Noise model will use the physical limit.",
+            t2,
+            2 * t1,
+        )
         t2 = 2 * t1
 
     # T1 relaxation time
