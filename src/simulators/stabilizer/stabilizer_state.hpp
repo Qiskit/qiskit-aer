@@ -107,8 +107,6 @@ public:
   bool
   validate_parameters(const std::vector<Operations::Op> &ops) const override;
 
-  bool validate_noise_ops(const Operations::OpSet &ops) const override;
-
 protected:
   //-----------------------------------------------------------------------
   // Apply instructions
@@ -273,17 +271,6 @@ bool State::validate_parameters(const std::vector<Operations::Op> &ops) const {
   return true;
 }
 
-bool State::validate_noise_ops(const Operations::OpSet &ops) const {
-  if (BaseState::opset_.contains(ops)) {
-    // disable rx, ry, rz gates for noise model for stabilizer
-    if (ops.contains_gates("rx") || ops.contains_gates("ry") ||
-        ops.contains_gates("rz")) {
-      return false;
-    }
-    return true;
-  }
-  return false;
-}
 //=========================================================================
 // Implementation: apply operations
 //=========================================================================
