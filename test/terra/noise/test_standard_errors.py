@@ -370,9 +370,8 @@ class TestNoise(QiskitAerTestCase):
 
     def test_thermal_relaxation_error_t2_limit(self):
         """Test T2 gets limited to 2 * T1"""
-        # T2 > 2 * T1
-        err1 = thermal_relaxation_error(1, 2.1, 1)
-        err2 = thermal_relaxation_error(1, 2, 1)
+        err1 = thermal_relaxation_error(1, 2.1, 1)  # T2 > 2 * T1
+        err2 = thermal_relaxation_error(1, 2, 1)  # T2 = 2 * T1
         self.assertEqual(err1, err2)
 
     def test_thermal_relaxation_error_t1_t2_inf_ideal(self):
