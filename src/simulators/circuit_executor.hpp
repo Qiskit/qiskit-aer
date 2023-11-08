@@ -1126,8 +1126,7 @@ bool Executor<state_t>::validate_state(const Config &config,
   }
 
   // Check if a noise model valid for state ops
-  bool noise_valid =
-      noise.is_ideal() || state.opset().contains(noise.opset());
+  bool noise_valid = noise.is_ideal() || state.opset().contains(noise.opset());
   if (throw_except && !noise_valid) {
     error_msg << "Noise model contains invalid instructions ";
     error_msg << state.opset().difference(noise.opset());
