@@ -30,6 +30,7 @@ from ..noiseerror import NoiseError
 
 logger = logging.getLogger(__name__)
 
+
 def kraus_error(noise_ops, canonical_kraus=False):
     """
     Return a Kraus quantum error channel.
