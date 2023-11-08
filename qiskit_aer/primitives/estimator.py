@@ -84,7 +84,7 @@ class Estimator(BaseEstimator):
             transpile_options: Options passed to transpile.
             run_options: Options passed to run.
             approximation: If True, it calculates expectation values with normal distribution
-                approximation.
+                approximation. Note that this appproximation ignores readout errors.
             skip_transpilation: If True, transpilation is skipped.
             abelian_grouping: Whether the observable should be grouped into commuting.
                 If approximation is True, this parameter is ignored and assumed to be False.
