@@ -368,11 +368,12 @@ class TestNoise(QiskitAerTestCase):
         with self.assertRaises(NoiseError):
             thermal_relaxation_error(-0.1, 0.1, 0)
 
-    def test_thermal_relaxation_error_raises_invalid_t1_t2(self):
-        """Test raises error for invalid t2 > 2 * t1 parameters"""
+    def test_thermal_relaxation_error_t2_limit(self):
+        """Test T2 gets limited to 2 * T1"""
         # T2 > 2 * T1
-        with self.assertRaises(NoiseError):
-            thermal_relaxation_error(1, 2.1, 0)
+        err1 = thermal_relaxation_error(1, 2.1, 1)
+        err2 = thermal_relaxation_error(1, 2, 1)
+        self.assertEqual(err1, err2)
 
     def test_thermal_relaxation_error_t1_t2_inf_ideal(self):
         """Test t1 = t2 = inf returns identity channel"""
