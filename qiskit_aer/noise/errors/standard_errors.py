@@ -14,7 +14,7 @@ Standard quantum computing error channels for Aer.
 """
 
 import itertools as it
-
+import logging
 import numpy as np
 
 from qiskit.circuit import Reset
@@ -28,6 +28,7 @@ from qiskit.quantum_info.operators.predicates import is_unitary_matrix
 from .quantum_error import QuantumError
 from ..noiseerror import NoiseError
 
+logger = logging.getLogger(__name__)
 
 def kraus_error(noise_ops, canonical_kraus=False):
     """
@@ -260,7 +261,7 @@ def thermal_relaxation_error(t1, t2, time, excited_state_population=0):
 
     Args:
         t1 (double): the :math:`T_1` relaxation time constant.
-        t2 (double): the :math:`T_2` relaxation time constant.
+        t2 (double): the :math:`T_2` coherence time constant.
         time (double): the gate time for relaxation error.
         excited_state_population (double): the population of :math:`|1\rangle`
                                            state at equilibrium (default: 0).
@@ -294,18 +295,20 @@ def thermal_relaxation_error(t1, t2, time, excited_state_population=0):
     if t1 <= 0:
         raise NoiseError("Invalid T_1 relaxation time parameter: T_1 <= 0.")
     if t2 <= 0:
-        raise NoiseError("Invalid T_2 relaxation time parameter: T_2 <= 0.")
+        raise NoiseError("Invalid T_2 coherence time parameter: T_2 <= 0.")
     if t2 - 2 * t1 > 0:
-        raise NoiseError("Invalid T_2 relaxation time parameter: T_2 greater than 2 * T_1.")
+        logger.warning(f"Warning: T_2 value {t2} exceeds physical limit {2 * t1}"
+                        "given by 2 * T_1. Noise model will use the physical limit.")
+        t2 = 2 * t1
 
-    # T1 relaxation rate
+    # T1 relaxation time
     if t1 == np.inf:
         rate1 = 0
         p_reset = 0
     else:
         rate1 = 1 / t1
         p_reset = 1 - np.exp(-time * rate1)
-    # T2 dephasing rate
+    # T2 coherence time
     if t2 == np.inf:
         rate2 = 0
         exp_t2 = 1
