@@ -833,21 +833,21 @@ Controller::simulation_methods(const Config &config,
 Method Controller::automatic_simulation_method(
     const Config &config, const Circuit &circ,
     const Noise::NoiseModel &noise_model) const {
-  // If circuit and noise model are Clifford run on Stabilizer simulator
-  if (validate_method(Method::stabilizer, config, circ, noise_model, false)) {
-    return Method::stabilizer;
-  }
   // For noisy simulations we enable the density matrix method if
   // shots > 2 ** num_qubits. This is based on a rough estimate that
   // a single shot of the density matrix simulator is approx 2 ** nq
   // times slower than a single shot of statevector due the increased
   // dimension
-  if (noise_model.has_quantum_errors() && circ.num_qubits < 64 &&
+  if (noise_model.has_quantum_errors() && circ.num_qubits < 30 &&
       circ.shots > (1ULL << circ.num_qubits) &&
       validate_method(Method::density_matrix, config, circ, noise_model,
                       false) &&
       circ.can_sample) {
     return Method::density_matrix;
+  }
+  // If circuit and noise model are Clifford run on Stabilizer simulator
+  if (validate_method(Method::stabilizer, config, circ, noise_model, false)) {
+    return Method::stabilizer;
   }
 
   // If the special conditions for stabilizer or density matrix are
