@@ -17,21 +17,21 @@ Qiskit Aer simulator name mapping for Target object
 from qiskit.circuit import ControlledGate, Parameter
 from qiskit.circuit.reset import Reset
 from qiskit.circuit.library import (
-    SXGate,
+    CSXGate,
     MCPhaseGate,
     MCXGate,
-    RZGate,
-    RXGate,
+    CRZGate,
+    CRXGate,
+    MCU1Gate,
     U2Gate,
-    U1Gate,
-    U3Gate,
-    YGate,
-    ZGate,
+    CU3Gate,
+    CYGate,
+    CZGate,
     PauliGate,
-    SwapGate,
+    CSwapGate,
     RGate,
     MCXGrayCode,
-    RYGate,
+    CRYGate,
 )
 from qiskit.circuit.controlflow import (
     IfElseOp,
@@ -85,7 +85,7 @@ class MCSXGate(ControlledGate):
             None,
             num_ctrl_qubits,
             ctrl_state=ctrl_state,
-            base_gate=SXGate(),
+            base_gate=CSXGate(),
         )
 
 
@@ -100,7 +100,7 @@ class MCYGate(ControlledGate):
             None,
             num_ctrl_qubits,
             ctrl_state=ctrl_state,
-            base_gate=YGate(),
+            base_gate=CYGate(),
         )
 
 
@@ -115,7 +115,7 @@ class MCZGate(ControlledGate):
             None,
             num_ctrl_qubits,
             ctrl_state=ctrl_state,
-            base_gate=ZGate(),
+            base_gate=CZGate(),
         )
 
 
@@ -130,7 +130,7 @@ class MCRXGate(ControlledGate):
             None,
             num_ctrl_qubits,
             ctrl_state=ctrl_state,
-            base_gate=RXGate(theta),
+            base_gate=CRXGate(theta),
         )
 
 
@@ -145,7 +145,7 @@ class MCRYGate(ControlledGate):
             None,
             num_ctrl_qubits,
             ctrl_state=ctrl_state,
-            base_gate=RYGate(theta),
+            base_gate=CRYGate(theta),
         )
 
 
@@ -160,7 +160,7 @@ class MCRZGate(ControlledGate):
             None,
             num_ctrl_qubits,
             ctrl_state=ctrl_state,
-            base_gate=RZGate(theta),
+            base_gate=CRZGate(theta),
         )
 
 
@@ -176,21 +176,6 @@ class MCRGate(ControlledGate):
             num_ctrl_qubits,
             ctrl_state=ctrl_state,
             base_gate=RGate(theta, phi),
-        )
-
-
-class MCU1Gate(ControlledGate):
-    """mcu1 gate"""
-
-    def __init__(self, theta, num_ctrl_qubits, ctrl_state=None):
-        super().__init__(
-            "mcu1",
-            1 + num_ctrl_qubits,
-            [theta],
-            None,
-            num_ctrl_qubits,
-            ctrl_state=ctrl_state,
-            base_gate=U1Gate(theta),
         )
 
 
@@ -220,7 +205,7 @@ class MCU3Gate(ControlledGate):
             None,
             num_ctrl_qubits,
             ctrl_state=ctrl_state,
-            base_gate=U3Gate(theta, phi, lam),
+            base_gate=CU3Gate(theta, phi, lam),
         )
 
 
@@ -235,7 +220,7 @@ class MCUGate(ControlledGate):
             None,
             num_ctrl_qubits,
             ctrl_state=ctrl_state,
-            base_gate=U3Gate(theta, phi, lam),
+            base_gate=CU3Gate(theta, phi, lam),
         )
 
 
@@ -250,7 +235,7 @@ class MCSwapGate(ControlledGate):
             None,
             num_ctrl_qubits,
             ctrl_state=ctrl_state,
-            base_gate=SwapGate(),
+            base_gate=CSwapGate(),
         )
 
 
