@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2022.
+# (C) Copyright IBM 2022, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -23,7 +23,6 @@ from warnings import warn
 import numpy as np
 from qiskit.circuit import ParameterExpression, QuantumCircuit
 from qiskit.compiler import transpile
-from qiskit.opflow import PauliSumOp
 from qiskit.primitives import BaseEstimator, EstimatorResult
 from qiskit.primitives.primitive_job import PrimitiveJob
 from qiskit.primitives.utils import _circuit_key, _observable_key, init_observable
@@ -174,7 +173,7 @@ class Estimator(BaseEstimator):
     def _run(
         self,
         circuits: Sequence[QuantumCircuit],
-        observables: Sequence[BaseOperator | PauliSumOp],
+        observables: Sequence[BaseOperator],
         parameter_values: Sequence[Sequence[float]],
         **run_options,
     ) -> PrimitiveJob:

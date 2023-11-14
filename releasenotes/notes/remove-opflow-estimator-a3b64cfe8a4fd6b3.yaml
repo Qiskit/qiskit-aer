@@ -1,0 +1,8 @@
+---
+upgrade:
+  - |
+    The :meth:`qiskit_aer.primitives.Estimator.run` method no longer supports
+    ``observables`` input arguments of type ``PauliSumOp``. The ``PauliSumOp``
+    class was deprecated in Qiskit 0.44 and will be removed in Qiskit 1.0.
+    Alternative types that you can use instead of ``PauliSumOp`` are
+    :class:`qiskit.quantum_info.SparsePauliOp` or :class:`qiskit.quantum_info.Pauli`.
