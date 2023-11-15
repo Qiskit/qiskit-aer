@@ -90,6 +90,8 @@ is_win_32_bit = platform.system() == "Windows" and platform.architecture()[0] ==
 if is_win_32_bit:
     cmake_args.append("-DCMAKE_GENERATOR_PLATFORM=Win32")
 
+
+
 setup(
     name=PACKAGE_NAME,
     version=VERSION,
