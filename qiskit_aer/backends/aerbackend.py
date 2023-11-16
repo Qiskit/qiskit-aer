@@ -29,7 +29,7 @@ from qiskit.pulse import Schedule, ScheduleBlock
 from qiskit.qobj import QasmQobj, PulseQobj
 from qiskit.result import Result
 from qiskit.transpiler import CouplingMap
-from qiskit.transpiler.target import Target
+from qiskit.transpiler.target import Target, InstructionProperties
 from qiskit.circuit.measure import Measure
 from ..aererror import AerError
 from ..jobs import AerJob, AerJobSet, split_qobj
@@ -343,37 +343,32 @@ class AerBackend(Backend, ABC):
 
     @property
     def target(self):
-        if self._target is None:
-            # build target for simulator
-            target = Target(
-                num_qubits=self.configuration().n_qubits,
-                concurrent_measurements=getattr(self.configuration(), "meas_map", None),
+        if self._target is not None:
+            return self._target
+
+        # build target for simulator
+        target = Target(
+            num_qubits=self.configuration().n_qubits,
+            concurrent_measurements=getattr(self.configuration(), "meas_map", None),
+        )
+
+        if hasattr(self.configuration(), "dt"):
+            target.dt = self.configuration().dt
+        if hasattr(self.configuration(), "timing_constraints"):
+            target.granularity = self.configuration().timing_constraints.get("granularity")
+            target.min_length = self.configuration().timing_constraints.get("min_length")
+            target.pulse_alignment = self.configuration().timing_constraints.get("pulse_alignment")
+            target.acquire_alignment = self.configuration().timing_constraints.get(
+                "acquire_alignment"
             )
 
-            if hasattr(self.configuration(), "dt"):
-                target.dt = self.configuration().dt
-            if hasattr(self.configuration(), "timing_constraints"):
-                target.granularity = self.configuration().timing_constraints.get("granularity")
-                target.min_length = self.configuration().timing_constraints.get("min_length")
-                target.pulse_alignment = self.configuration().timing_constraints.get(
-                    "pulse_alignment"
-                )
-                target.acquire_alignment = self.configuration().timing_constraints.get(
-                    "acquire_alignment"
-                )
+        for op in self.configuration().basis_gates:
+            if op not in target:
+                if op in self._mapping:
+                    target.add_instruction(self._mapping[op], name=op)
+        target.add_instruction(Measure())
 
-            combined_global_ops = set()
-            if self.configuration().basis_gates:
-                combined_global_ops.update(self.configuration().basis_gates)
-            for op in combined_global_ops:
-                if op not in target:
-                    if op in self._mapping:
-                        target.add_instruction(self._mapping[op], name=op)
-            target.add_instruction(Measure())
-
-            self._target = target
-
-        return self._target
+        return target
 
     def clear_options(self):
         """Reset the simulator options to default values."""
@@ -756,3 +751,10 @@ class AerBackend(Backend, ABC):
         name = self.__class__.__name__
         display = f"'{self.name}'"
         return f"{name}({display})"
+
+    def get_translation_stage_plugin(self):
+        if self._target is None:
+            # use plugin to prevent gate change
+            return "aer_backend_plugin"
+        else:
+            return None

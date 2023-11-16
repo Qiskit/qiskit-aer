@@ -112,4 +112,9 @@ setup(
     cmake_args=cmake_args,
     keywords="qiskit, simulator, quantum computing, backend",
     zip_safe=False,
+    entry_points={
+        "qiskit.transpiler.translation": [
+            "aer_backend_plugin = qiskit_aer.backends.plugin.aer_backend_plugin:AerBackendPlugin",
+        ]
+    },
 )
