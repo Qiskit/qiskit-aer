@@ -34,9 +34,7 @@ class AerBackendRebuildGateSetsFromCircuit(TransformationPass):
         # do nothing for higher optimization level
         if self.optimization_level > 1:
             return dag
-        if self.config is None:
-            return dag
-        if self.config.target is None:
+        if self.config is None or self.config.target is None:
             return dag
 
         # search ops in supported name mapping
@@ -53,9 +51,7 @@ class AerBackendRebuildGateSetsFromCircuit(TransformationPass):
                 num_unsupported_ops = num_unsupported_ops + 1
 
         # if there are some unsupported node (i.e. RealAmplitudes) do nothing
-        if num_unsupported_ops > 0:
-            return dag
-        if len(ops) < 1:
+        if num_unsupported_ops > 0 or len(ops) < 1:
             return dag
 
         # clear all instructions in target
