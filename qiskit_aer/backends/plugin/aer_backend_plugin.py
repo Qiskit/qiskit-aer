@@ -34,6 +34,10 @@ class AerBackendRebuildGateSetsFromCircuit(TransformationPass):
         # do nothing for higher optimization level
         if self.optimization_level > 1:
             return dag
+        if self.config is None:
+            return dag
+        if self.config.target is None:
+            return dag
 
         # search ops in supported name mapping
         ops = []
