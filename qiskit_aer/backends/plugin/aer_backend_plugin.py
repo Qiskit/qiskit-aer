@@ -19,7 +19,7 @@ from qiskit.circuit.measure import Measure
 from qiskit_aer.backends.name_mapping import NAME_MAPPING
 
 
-class AerNoTranslation(TransformationPass):
+class AerBackendRebuildGateSetsFromCircuit(TransformationPass):
     def __init__(self, config):
         super().__init__()
         self.config = config
@@ -44,4 +44,4 @@ class AerNoTranslation(TransformationPass):
 
 class AerBackendPlugin(PassManagerStagePlugin):
     def pass_manager(self, pass_manager_config, optimization_level):
-        return PassManager([AerNoTranslation(config=pass_manager_config)])
+        return PassManager([AerBackendRebuildGateSetsFromCircuit(config=pass_manager_config)])
