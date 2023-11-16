@@ -28,7 +28,10 @@ class AerBackendRebuildGateSetsFromCircuit(TransformationPass):
     def __init__(self, config, opt_lvl):
         super().__init__()
         self.config = config
-        self.optimization_level = opt_lvl
+        if opt_lvl is None:
+            self.optimization_level = 1
+        else:
+            self.optimization_level = opt_lvl
 
     def run(self, dag):
         # do nothing for higher optimization level
