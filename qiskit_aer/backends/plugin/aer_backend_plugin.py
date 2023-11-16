@@ -71,7 +71,7 @@ class AerBackendRebuildGateSetsFromCircuit(TransformationPass):
 class AerBackendPlugin(PassManagerStagePlugin):
     """custom passmanager to avoid unnecessary gate changes"""
 
-    def pass_manager(self, pass_manager_config, optimization_level):
+    def pass_manager(self, pass_manager_config, optimization_level=None) -> PassManager:
         return PassManager(
             [
                 UnitarySynthesis(

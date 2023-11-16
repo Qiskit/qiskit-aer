@@ -218,7 +218,9 @@ class UnitarySimulator(AerBackend):
                 "pauli",
             ]
         ),
-        "custom_instructions": sorted(["save_unitary", "save_state", "set_unitary", "reset"]),
+        "custom_instructions": sorted(
+            ["save_unitary", "save_state", "set_unitary", "reset", "barrier"]
+        ),
         "gates": [],
     }
 
