@@ -70,8 +70,8 @@ from qiskit.circuit.controlflow import (
     BreakLoopOp,
     SwitchCaseOp,
 )
-from qiskit.extensions import Initialize, UnitaryGate
-from qiskit.extensions.quantum_initializer import DiagonalGate, UCGate
+from qiskit.extensions import Initialize
+from qiskit.extensions.quantum_initializer import UCGate
 from qiskit.quantum_info.operators.channel.kraus import Kraus
 from qiskit.quantum_info.operators.channel import SuperOp
 from qiskit.quantum_info.operators.channel.quantum_channel import QuantumChannel
@@ -283,7 +283,7 @@ NAME_MAPPING = {
     "ryy": RYYGate,
     "rz": RZGate,
     "rzz": RZZGate,
-    "rz": RZXGate,
+    "rzx": RZXGate,
     "id": IGate,
     "h": HGate,
     "x": XGate(),

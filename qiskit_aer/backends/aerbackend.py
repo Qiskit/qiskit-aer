@@ -29,7 +29,7 @@ from qiskit.pulse import Schedule, ScheduleBlock
 from qiskit.qobj import QasmQobj, PulseQobj
 from qiskit.result import Result
 from qiskit.transpiler import CouplingMap
-from qiskit.transpiler.target import Target, InstructionProperties
+from qiskit.transpiler.target import Target
 from qiskit.circuit.measure import Measure
 from ..aererror import AerError
 from ..jobs import AerJob, AerJobSet, split_qobj

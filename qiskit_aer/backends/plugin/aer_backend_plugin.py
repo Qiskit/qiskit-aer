@@ -13,18 +13,22 @@
 Aer simulator backend transpiler plug-in
 """
 from qiskit.transpiler.preset_passmanagers.plugin import PassManagerStagePlugin
-from qiskit.transpiler.preset_passmanagers import common
-from qiskit.transpiler import PassManager, TransformationPass, PassManagerConfig
+from qiskit.transpiler import PassManager, TransformationPass
 from qiskit.circuit.measure import Measure
 from qiskit_aer.backends.name_mapping import NAME_MAPPING
 
 
 class AerBackendRebuildGateSetsFromCircuit(TransformationPass):
-    def __init__(self, config):
+    def __init__(self, config, opt_lvl):
         super().__init__()
         self.config = config
+        self.optimization_level = opt_lvl
 
     def run(self, dag):
+        # do nothing for higher optimization level
+        if self.optimization_level > 1:
+            return dag
+
         # clear all instructions in target
         self.config.target._gate_map.clear()
         self.config.target._gate_name_map.clear()
@@ -44,4 +48,10 @@ class AerBackendRebuildGateSetsFromCircuit(TransformationPass):
 
 class AerBackendPlugin(PassManagerStagePlugin):
     def pass_manager(self, pass_manager_config, optimization_level):
-        return PassManager([AerBackendRebuildGateSetsFromCircuit(config=pass_manager_config)])
+        return PassManager(
+            [
+                AerBackendRebuildGateSetsFromCircuit(
+                    config=pass_manager_config, opt_lvl=optimization_level
+                )
+            ]
+        )
