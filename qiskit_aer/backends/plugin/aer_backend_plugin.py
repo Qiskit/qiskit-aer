@@ -39,6 +39,8 @@ class AerBackendRebuildGateSetsFromCircuit(TransformationPass):
         ops = []
         num_unsupported_ops = 0
         opnodes = dag.op_nodes()
+        if opnodes is None:
+            return dag
         for node in opnodes:
             if node.name in self.config.target:
                 if node.name not in ops:
