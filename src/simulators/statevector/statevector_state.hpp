@@ -173,7 +173,7 @@ public:
   // Apply instructions
   //-----------------------------------------------------------------------
 
-  // Applies a sypported Gate operation to the state class.
+  // Applies a supported Gate operation to the state class.
   // If the input is not in allowed_gates an exeption will be raised.
   void apply_gate(const Operations::Op &op);
 
