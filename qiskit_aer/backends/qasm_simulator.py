@@ -389,6 +389,7 @@ class QasmSimulator(AerBackend):
             "set_density_matrix",
             "set_stabilizer",
             "reset",
+            "barrier",
         ]
     )
 

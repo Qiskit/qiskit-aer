@@ -61,6 +61,7 @@ from qiskit.circuit.library import (
     CRZGate,
     MCU1Gate,
     MCXGrayCode,
+    Barrier,
 )
 from qiskit.circuit.controlflow import (
     IfElseOp,
@@ -362,4 +363,5 @@ NAME_MAPPING = {
     "save_probs_ket": SaveProbabilitiesDict,
     "save_probs": SaveProbabilities,
     "reset": Reset(),
+    "barrier": Barrier,
 }

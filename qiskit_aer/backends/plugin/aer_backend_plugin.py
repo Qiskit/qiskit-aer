@@ -14,11 +14,17 @@ Aer simulator backend transpiler plug-in
 """
 from qiskit.transpiler.preset_passmanagers.plugin import PassManagerStagePlugin
 from qiskit.transpiler import PassManager, TransformationPass
+from qiskit.transpiler.passes import BasisTranslator
+from qiskit.transpiler.passes import UnitarySynthesis
+from qiskit.transpiler.passes import HighLevelSynthesis
+from qiskit.circuit.equivalence_library import SessionEquivalenceLibrary as sel
 from qiskit.circuit.measure import Measure
 from qiskit_aer.backends.name_mapping import NAME_MAPPING
 
 
 class AerBackendRebuildGateSetsFromCircuit(TransformationPass):
+    """custom translation class to rebuild basis gates with gates in circuit"""
+
     def __init__(self, config, opt_lvl):
         super().__init__()
         self.config = config
@@ -29,6 +35,23 @@ class AerBackendRebuildGateSetsFromCircuit(TransformationPass):
         if self.optimization_level > 1:
             return dag
 
+        # search ops in supported name mapping
+        ops = []
+        num_unsupported_ops = 0
+        opnodes = dag.op_nodes()
+        for node in opnodes:
+            if node.name in self.config.target:
+                if node.name not in ops:
+                    ops.append(node.name)
+            else:
+                num_unsupported_ops = num_unsupported_ops + 1
+
+        # if there are some unsupported node (i.e. RealAmplitudes) do nothing
+        if num_unsupported_ops > 0:
+            return dag
+        if len(ops) < 1:
+            return dag
+
         # clear all instructions in target
         self.config.target._gate_map.clear()
         self.config.target._gate_name_map.clear()
@@ -36,22 +59,41 @@ class AerBackendRebuildGateSetsFromCircuit(TransformationPass):
         self.config.target._global_operations.clear()
 
         # rebuild gate sets from circuit
-        opnodes = dag.op_nodes()
-        for node in opnodes:
-            if node.name not in self.config.target:
-                if node.name in NAME_MAPPING:
-                    self.config.target.add_instruction(NAME_MAPPING[node.name], name=node.name)
+        for name in ops:
+            if name not in self.config.target:
+                if name != "measure":
+                    self.config.target.add_instruction(NAME_MAPPING[name], name=name)
         self.config.target.add_instruction(Measure())
 
         return dag
 
 
 class AerBackendPlugin(PassManagerStagePlugin):
+    """custom passmanager to avoid unnecessary gate changes"""
+
     def pass_manager(self, pass_manager_config, optimization_level):
         return PassManager(
             [
+                UnitarySynthesis(
+                    pass_manager_config.basis_gates,
+                    approximation_degree=pass_manager_config.approximation_degree,
+                    coupling_map=pass_manager_config.coupling_map,
+                    backend_props=pass_manager_config.backend_properties,
+                    plugin_config=pass_manager_config.unitary_synthesis_plugin_config,
+                    method=pass_manager_config.unitary_synthesis_method,
+                    target=pass_manager_config.target,
+                ),
+                HighLevelSynthesis(
+                    hls_config=pass_manager_config.hls_config,
+                    coupling_map=pass_manager_config.coupling_map,
+                    target=pass_manager_config.target,
+                    use_qubit_indices=True,
+                    equivalence_library=sel,
+                    basis_gates=pass_manager_config.basis_gates,
+                ),
+                BasisTranslator(sel, pass_manager_config.basis_gates, pass_manager_config.target),
                 AerBackendRebuildGateSetsFromCircuit(
                     config=pass_manager_config, opt_lvl=optimization_level
-                )
+                ),
             ]
         )

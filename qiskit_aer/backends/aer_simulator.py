@@ -518,6 +518,7 @@ class AerSimulator(AerBackend):
                 "continue_loop",
                 "reset",
                 "switch_case",
+                "barrier",
             ]
         ),
         "density_matrix": sorted(
@@ -542,6 +543,7 @@ class AerSimulator(AerBackend):
                 "continue_loop",
                 "reset",
                 "switch_case",
+                "barrier",
             ]
         ),
         "matrix_product_state": sorted(
@@ -568,6 +570,7 @@ class AerSimulator(AerBackend):
                 "continue_loop",
                 "reset",
                 "switch_case",
+                "barrier",
             ]
         ),
         "stabilizer": sorted(
@@ -591,6 +594,7 @@ class AerSimulator(AerBackend):
                 "continue_loop",
                 "reset",
                 "switch_case",
+                "barrier",
             ]
         ),
         "extended_stabilizer": sorted(
@@ -600,6 +604,7 @@ class AerSimulator(AerBackend):
                 "roerror",
                 "save_statevector",
                 "reset",
+                "barrier",
             ]
         ),
         "unitary": sorted(
@@ -608,6 +613,7 @@ class AerSimulator(AerBackend):
                 "save_unitary",
                 "set_unitary",
                 "reset",
+                "barrier",
             ]
         ),
         "superop": sorted(
@@ -620,6 +626,7 @@ class AerSimulator(AerBackend):
                 "save_superop",
                 "set_superop",
                 "reset",
+                "barrier",
             ]
         ),
         "tensor_network": sorted(
@@ -643,6 +650,7 @@ class AerSimulator(AerBackend):
                 "set_density_matrix",
                 "reset",
                 "switch_case",
+                "barrier",
             ]
         ),
     }
