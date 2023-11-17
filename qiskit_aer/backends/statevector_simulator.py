@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 """
-Qiskit Aer statevector simulator backend.
+Aer statevector simulator backend.
 """
 
 import copy
@@ -35,7 +35,7 @@ from .backend_utils import (
     add_final_save_op,
 )
 
-# pylint: disable=import-error, no-name-in-module
+# pylint: disable=import-error, no-name-in-module, abstract-method
 from .controller_wrappers import aer_controller_execute
 
 # Logger
@@ -230,6 +230,7 @@ class StatevectorSimulator(AerBackend):
                 "save_amplitudes_sq",
                 "save_state",
                 "set_statevector",
+                "reset",
             ]
         ),
         "gates": [],
@@ -354,7 +355,7 @@ class StatevectorSimulator(AerBackend):
         1. Set shots=1.
         2. Check number of qubits will fit in local memory.
         """
-        name = self.name()
+        name = self.name
         if getattr(qobj.config, "noise_model", None) is not None:
             raise AerError(f"{name} does not support noise.")
 

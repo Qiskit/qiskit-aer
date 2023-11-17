@@ -32,7 +32,7 @@ jobs:
         run: |
           set -e
           pip install -U pip wheel
-          pip install -U -c constraints.txt -r requirements-dev.txt qiskit-terra numpy scipy
+          pip install -U -c constraints.txt -r requirements-dev.txt qiskit numpy scipy
         shell: bash
       - name: Run clang-format
         run: |
@@ -176,7 +176,7 @@ jobs:
         run: |
           set -e
           python -I -m build --wheel --config-setting=--build-option=-- --config-setting=--build-option=-DTEST_JSON=1
-          pip install --find-links=dist qiskit-aer
+          pip install -U dist/*.whl
       - name: Run Tests
         run: |
           set -e
@@ -267,7 +267,7 @@ jobs:
         run: |
           set -e
           python -I -m build --wheel
-          pip install --find-links=dist qiskit-aer
+          pip install -U dist/*.whl
         shell: bash
       - name: Run Tests
         env:

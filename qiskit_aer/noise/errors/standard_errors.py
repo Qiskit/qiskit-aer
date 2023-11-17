@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 """
-Standard quantum computing error channels for Qiskit Aer.
+Standard quantum computing error channels for Aer.
 """
 
 import itertools as it

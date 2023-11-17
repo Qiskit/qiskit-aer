@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 """
-Qiskit Aer qasm simulator backend.
+Aer qasm simulator backend.
 """
 
 import copy
@@ -31,7 +31,7 @@ from .backend_utils import (
     BASIS_GATES,
 )
 
-# pylint: disable=import-error, no-name-in-module
+# pylint: disable=import-error, no-name-in-module, abstract-method
 from .controller_wrappers import aer_controller_execute
 
 logger = logging.getLogger(__name__)
@@ -516,6 +516,8 @@ class AerSimulator(AerBackend):
                 "while_loop",
                 "break_loop",
                 "continue_loop",
+                "reset",
+                "switch_case",
             ]
         ),
         "density_matrix": sorted(
@@ -538,6 +540,8 @@ class AerSimulator(AerBackend):
                 "while_loop",
                 "break_loop",
                 "continue_loop",
+                "reset",
+                "switch_case",
             ]
         ),
         "matrix_product_state": sorted(
@@ -562,6 +566,8 @@ class AerSimulator(AerBackend):
                 "while_loop",
                 "break_loop",
                 "continue_loop",
+                "reset",
+                "switch_case",
             ]
         ),
         "stabilizer": sorted(
@@ -583,6 +589,8 @@ class AerSimulator(AerBackend):
                 "while_loop",
                 "break_loop",
                 "continue_loop",
+                "reset",
+                "switch_case",
             ]
         ),
         "extended_stabilizer": sorted(
@@ -591,6 +599,7 @@ class AerSimulator(AerBackend):
                 "qerror_loc",
                 "roerror",
                 "save_statevector",
+                "reset",
             ]
         ),
         "unitary": sorted(
@@ -598,6 +607,7 @@ class AerSimulator(AerBackend):
                 "save_state",
                 "save_unitary",
                 "set_unitary",
+                "reset",
             ]
         ),
         "superop": sorted(
@@ -609,6 +619,7 @@ class AerSimulator(AerBackend):
                 "save_state",
                 "save_superop",
                 "set_superop",
+                "reset",
             ]
         ),
         "tensor_network": sorted(
@@ -630,6 +641,8 @@ class AerSimulator(AerBackend):
                 "save_statevector_dict",
                 "set_statevector",
                 "set_density_matrix",
+                "reset",
+                "switch_case",
             ]
         ),
     }
@@ -784,7 +797,7 @@ class AerSimulator(AerBackend):
         pad = " " * (len(self.__class__.__name__) + 1)
         return f"{display[:-1]}\n{pad}noise_model={repr(noise_model)})"
 
-    def name(self):
+    def _name(self):
         """Format backend name string for simulator"""
         name = self._configuration.backend_name
         method = getattr(self.options, "method", None)
@@ -813,6 +826,7 @@ class AerSimulator(AerBackend):
                 max_shots=int(1e6),
                 coupling_map=list(backend.coupling_map.get_edges()),
                 max_experiments=backend.max_circuits,
+                description=backend.description,
             )
             properties = target_to_backend_properties(backend.target)
         elif isinstance(backend, BackendV1):
@@ -866,7 +880,7 @@ class AerSimulator(AerBackend):
         ]
         config.basis_gates = self._cached_basis_gates + config.custom_instructions
         # Update simulator name
-        config.backend_name = self.name()
+        config.backend_name = self._name()
         return config
 
     def _execute_circuits(self, aer_circuits, noise_model, config):

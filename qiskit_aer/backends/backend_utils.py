@@ -12,7 +12,7 @@
 
 # pylint: disable=invalid-name
 """
-Qiskit Aer simulator backend utils
+Aer simulator backend utils
 """
 import os
 from math import log2
@@ -109,7 +109,6 @@ BASIS_GATES = {
             "pauli",
             "mcx_gray",
             "ecr",
-            "switch_case",
         ]
     ),
     "density_matrix": sorted(
@@ -150,7 +149,6 @@ BASIS_GATES = {
             "delay",
             "pauli",
             "ecr",
-            "switch_case",
         ]
     ),
     "matrix_product_state": sorted(
@@ -193,7 +191,6 @@ BASIS_GATES = {
             "cswap",
             "diagonal",
             "initialize",
-            "switch_case",
         ]
     ),
     "stabilizer": sorted(
@@ -217,7 +214,6 @@ BASIS_GATES = {
             "rx",
             "ry",
             "rz",
-            "switch_case",
         ]
     ),
     "extended_stabilizer": sorted(
