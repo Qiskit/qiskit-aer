@@ -19,6 +19,8 @@ from qiskit.transpiler.passes import UnitarySynthesis
 from qiskit.transpiler.passes import HighLevelSynthesis
 from qiskit.circuit.equivalence_library import SessionEquivalenceLibrary as sel
 from qiskit.circuit.measure import Measure
+from qiskit.circuit import ControlFlowOp
+from qiskit.converters import circuit_to_dag
 from qiskit_aer.backends.name_mapping import NAME_MAPPING
 
 
@@ -33,6 +35,25 @@ class AerBackendRebuildGateSetsFromCircuit(TransformationPass):
         else:
             self.optimization_level = opt_lvl
 
+    def _add_ops(self, dag, ops):
+        num_unsupported_ops = 0
+        opnodes = dag.op_nodes()
+        if opnodes is None:
+            return num_unsupported_ops
+
+        for node in opnodes:
+            if isinstance(node.op, ControlFlowOp):
+                for block in node.op.blocks:
+                    num_unsupported_ops = num_unsupported_ops + self._add_ops(
+                        circuit_to_dag(block), ops
+                    )
+            if node.name in self.config.target:
+                if node.name not in ops:
+                    ops.append(node.name)
+            else:
+                num_unsupported_ops = num_unsupported_ops + 1
+        return num_unsupported_ops
+
     def run(self, dag):
         # do nothing for higher optimization level
         if self.optimization_level > 1:
@@ -42,16 +63,7 @@ class AerBackendRebuildGateSetsFromCircuit(TransformationPass):
 
         # search ops in supported name mapping
         ops = []
-        num_unsupported_ops = 0
-        opnodes = dag.op_nodes()
-        if opnodes is None:
-            return dag
-        for node in opnodes:
-            if node.name in self.config.target:
-                if node.name not in ops:
-                    ops.append(node.name)
-            else:
-                num_unsupported_ops = num_unsupported_ops + 1
+        num_unsupported_ops = self._add_ops(dag, ops)
 
         # if there are some unsupported node (i.e. RealAmplitudes) do nothing
         if num_unsupported_ops > 0 or len(ops) < 1:
