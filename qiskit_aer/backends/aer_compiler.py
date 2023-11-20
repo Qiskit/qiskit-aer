@@ -99,7 +99,9 @@ class AerCompiler:
                 circuit = self._inline_initialize(circuit, compiled_optypes[idx])
                 if self._is_dynamic(circuit, compiled_optypes[idx]):
                     compiled_circ = transpile(
-                        self._inline_circuit(circuit, None, None), basis_gates=basis_gates
+                        self._inline_circuit(circuit, None, None),
+                        basis_gates=basis_gates,
+                        optimization_level=0,
                     )
                     compiled_circuits.append(compiled_circ)
                     # Recompute optype for compiled circuit
