@@ -16,16 +16,18 @@ Aer simulator backend utils
 """
 import os
 from math import log2
-from qiskit.utils import local_hardware_info
+
+import psutil
 from qiskit.circuit import QuantumCircuit
 from qiskit.compiler import assemble
 from qiskit.qobj import QasmQobjInstruction
 from qiskit.result import ProbDistribution
 from qiskit.quantum_info import Clifford
+
 from .compatibility import Statevector, DensityMatrix, StabilizerState, Operator, SuperOp
 
 # Available system memory
-SYSTEM_MEMORY_GB = local_hardware_info()["memory"]
+SYSTEM_MEMORY_GB = psutil.virtual_memory().total / (1024**3)
 
 # Max number of qubits for complex double statevector
 # given available system memory
