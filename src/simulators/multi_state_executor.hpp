@@ -863,7 +863,7 @@ void MultiStateExecutor<state_t>::measure_sampler(InputIterator first_meas,
       (memory_map.empty()) ? 0ULL : 1 + memory_map.rbegin()->first;
   uint_t num_registers =
       (register_map.empty()) ? 0ULL : 1 + register_map.rbegin()->first;
-  for (int_t i = 0; i < all_samples.size(); i++) {
+  for (int_t i = all_samples.size() - 1; i >= 0; i--) {
     ClassicalRegister creg = state.creg();
 
     // process memory bit measurements

@@ -150,7 +150,7 @@ template <class state_t>
 void BatchShotsExecutor<state_t>::run_circuit_with_sampling(
     Circuit &circ, const Config &config, RngEngine &init_rng,
     ResultItr result_it) {
-  if (circ.num_bind_params == 1 || !enable_batch_multi_shots_) {
+  if (enable_batch_multi_shots_) {
     return Executor<state_t>::run_circuit_with_sampling(circ, config, init_rng,
                                                         result_it);
   }
