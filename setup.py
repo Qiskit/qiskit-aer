@@ -25,6 +25,7 @@ requirements = [
     "qiskit>=0.44.0",
     "numpy>=1.16.3",
     "scipy>=1.0",
+    "psutil>=5",
 ]
 
 classifiers = [
