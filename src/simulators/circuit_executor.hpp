@@ -1073,7 +1073,7 @@ void Executor<state_t>::measure_sampler(InputIterator first_meas,
   uint_t num_registers =
       (register_map.empty()) ? 0ULL : 1 + register_map.rbegin()->first;
   ClassicalRegister creg;
-  for (int_t i = 0; i < all_samples.size(); i++) {
+  for (int_t i = all_samples.size() - 1; i >= 0; i--) {
     creg.initialize(num_memory, num_registers);
 
     // process memory bit measurements
