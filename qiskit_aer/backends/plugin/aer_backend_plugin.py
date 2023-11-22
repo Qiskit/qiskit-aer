@@ -44,7 +44,7 @@ class AerBackendRebuildGateSetsFromCircuit(TransformationPass):
         for node in opnodes:
             if isinstance(node.op, ControlFlowOp):
                 for block in node.op.blocks:
-                    num_unsupported_ops = num_unsupported_ops + self._add_ops(
+                    num_unsupported_ops += self._add_ops(
                         circuit_to_dag(block), ops
                     )
             if node.name in self.config.target:
