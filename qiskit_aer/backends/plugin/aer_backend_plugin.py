@@ -81,6 +81,8 @@ class AerBackendRebuildGateSetsFromCircuit(TransformationPass):
                 if name != "measure":
                     self.config.target.add_instruction(NAME_MAPPING[name], name=name)
         self.config.target.add_instruction(Measure())
+        self.config.basis_gates.clear()
+        self.config.basis_gates.extend(self.config.target.operations)
 
         return dag
 
