@@ -18,7 +18,9 @@ from qiskit.transpiler.passes import BasisTranslator
 from qiskit.transpiler.passes import UnitarySynthesis
 from qiskit.transpiler.passes import HighLevelSynthesis
 from qiskit.circuit.equivalence_library import SessionEquivalenceLibrary as sel
+from qiskit.circuit.library.standard_gates import get_standard_gate_name_mapping
 from qiskit.circuit.measure import Measure
+from qiskit.circuit.library import Barrier
 from qiskit.circuit import ControlFlowOp
 from qiskit.converters import circuit_to_dag
 from qiskit_aer.backends.name_mapping import NAME_MAPPING
@@ -34,8 +36,10 @@ class AerBackendRebuildGateSetsFromCircuit(TransformationPass):
             self.optimization_level = 1
         else:
             self.optimization_level = opt_lvl
+        self.qiskit_inst_name_map = get_standard_gate_name_mapping()
+        self.qiskit_inst_name_map["barrier"] = Barrier
 
-    def _add_ops(self, dag, ops):
+    def _add_ops(self, dag, ops: set):
         num_unsupported_ops = 0
         opnodes = dag.op_nodes()
         if opnodes is None:
@@ -44,12 +48,11 @@ class AerBackendRebuildGateSetsFromCircuit(TransformationPass):
         for node in opnodes:
             if isinstance(node.op, ControlFlowOp):
                 for block in node.op.blocks:
-                    num_unsupported_ops += self._add_ops(
-                        circuit_to_dag(block), ops
-                    )
-            if node.name in self.config.target:
-                if node.name not in ops:
-                    ops.append(node.name)
+                    num_unsupported_ops += self._add_ops(circuit_to_dag(block), ops)
+            if node.name in self.qiskit_inst_name_map:
+                ops.add(node.name)
+            elif node.name in self.config.target:
+                ops.add(node.name)
             else:
                 num_unsupported_ops = num_unsupported_ops + 1
         return num_unsupported_ops
@@ -62,7 +65,7 @@ class AerBackendRebuildGateSetsFromCircuit(TransformationPass):
             return dag
 
         # search ops in supported name mapping
-        ops = []
+        ops = set()
         num_unsupported_ops = self._add_ops(dag, ops)
 
         # if there are some unsupported node (i.e. RealAmplitudes) do nothing
@@ -77,16 +80,21 @@ class AerBackendRebuildGateSetsFromCircuit(TransformationPass):
 
         # rebuild gate sets from circuit
         for name in ops:
-            if name not in self.config.target:
-                if name != "measure":
-                    self.config.target.add_instruction(NAME_MAPPING[name], name=name)
-        self.config.target.add_instruction(Measure())
-        self.config.basis_gates.clear()
-        self.config.basis_gates.extend(self.config.target.operations)
+            if name in self.qiskit_inst_name_map:
+                self.config.target.add_instruction(self.qiskit_inst_name_map[name], name=name)
+            else:
+                self.config.target.add_instruction(NAME_MAPPING[name], name=name)
+        if "measure" not in ops:
+            self.config.target.add_instruction(Measure())
+        self.config.basis_gates = list(self.config.target.operation_names)
 
         return dag
 
 
+# This plugin should not be used outside of simulator
+# TODO : this plugin should be moved to optimization stage plugin
+#        if Qiskit will have custom optimizaiton stage plugin interface
+#        in that case just return pass without Optimize1qGatesDecomposition
 class AerBackendPlugin(PassManagerStagePlugin):
     """custom passmanager to avoid unnecessary gate changes"""
 

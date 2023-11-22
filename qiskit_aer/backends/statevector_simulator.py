@@ -232,7 +232,6 @@ class StatevectorSimulator(AerBackend):
                 "save_state",
                 "set_statevector",
                 "reset",
-                "barrier",
             ]
         ),
         "gates": [],
