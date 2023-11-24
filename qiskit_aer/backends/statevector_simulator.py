@@ -16,7 +16,8 @@ Aer statevector simulator backend.
 import copy
 import logging
 from warnings import warn
-from qiskit.utils import local_hardware_info
+
+import psutil
 from qiskit.providers.options import Options
 from qiskit.providers.models import QasmBackendConfiguration
 
@@ -213,7 +214,6 @@ class StatevectorSimulator(AerBackend):
                 "initialize",
                 "delay",
                 "pauli",
-                "reset",
             ]
         ),
         "custom_instructions": sorted(
@@ -231,6 +231,7 @@ class StatevectorSimulator(AerBackend):
                 "save_amplitudes_sq",
                 "save_state",
                 "set_statevector",
+                "reset",
             ]
         ),
         "gates": [],
@@ -364,7 +365,7 @@ class StatevectorSimulator(AerBackend):
         if n_qubits > max_qubits:
             raise AerError(
                 f"Number of qubits ({n_qubits}) is greater than max ({max_qubits}) "
-                f'for "{name}" with {int(local_hardware_info()["memory"])} GB system memory.'
+                f'for "{name}" with {int(psutil.virtual_memory().total / (1024**3))} GB system memory.'
             )
 
         if qobj.config.shots != 1:

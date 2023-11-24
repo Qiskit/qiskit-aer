@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2022.
+# (C) Copyright IBM 2022, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -23,7 +23,6 @@ from warnings import warn
 import numpy as np
 from qiskit.circuit import ParameterExpression, QuantumCircuit
 from qiskit.compiler import transpile
-from qiskit.opflow import PauliSumOp
 from qiskit.primitives import BaseEstimator, EstimatorResult
 from qiskit.primitives.primitive_job import PrimitiveJob
 from qiskit.primitives.utils import _circuit_key, _observable_key, init_observable
@@ -39,7 +38,7 @@ from qiskit.transpiler.passes import (
     Optimize1qGatesDecomposition,
     SetLayout,
 )
-from qiskit.utils import deprecate_arg, deprecate_func
+from qiskit.utils import deprecate_func
 
 from .. import AerError, AerSimulator
 
@@ -76,12 +75,6 @@ class Estimator(BaseEstimator):
           normal distribution approximation.
     """
 
-    @deprecate_arg(
-        "approximation",
-        since=0.13,
-        package_name="qiskit-aer",
-        additional_msg="approximation=True will be default in the future.",
-    )
     def __init__(
         self,
         *,
@@ -98,7 +91,7 @@ class Estimator(BaseEstimator):
             transpile_options: Options passed to transpile.
             run_options: Options passed to run.
             approximation: If True, it calculates expectation values with normal distribution
-                approximation.
+                approximation. Note that this appproximation ignores readout errors.
             skip_transpilation: If True, transpilation is skipped.
             abelian_grouping: Whether the observable should be grouped into commuting.
                 If approximation is True, this parameter is ignored and assumed to be False.
@@ -118,7 +111,7 @@ class Estimator(BaseEstimator):
             warn(
                 "Option approximation=False is deprecated as of qiskit-aer 0.13. "
                 "It will be removed no earlier than 3 months after the release date. "
-                "Instead, use BackendEstmator from qiskit.primitives.",
+                "Instead, use BackendEstimator from qiskit.primitives.",
                 DeprecationWarning,
                 stacklevel=3,
             )
@@ -153,7 +146,7 @@ class Estimator(BaseEstimator):
             warn(
                 "Option approximation=False is deprecated as of qiskit-aer 0.13. "
                 "It will be removed no earlier than 3 months after the release date. "
-                "Instead, use BackendEstmator from qiskit.primitives.",
+                "Instead, use BackendEstimator from qiskit.primitives.",
                 DeprecationWarning,
                 stacklevel=3,
             )
@@ -180,7 +173,7 @@ class Estimator(BaseEstimator):
     def _run(
         self,
         circuits: Sequence[QuantumCircuit],
-        observables: Sequence[BaseOperator | PauliSumOp],
+        observables: Sequence[BaseOperator],
         parameter_values: Sequence[Sequence[float]],
         **run_options,
     ) -> PrimitiveJob:

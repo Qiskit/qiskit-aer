@@ -207,6 +207,8 @@ public:
 
   // Set a complex global phase value exp(1j * theta) for the state
   void set_global_phase(double theta);
+  bool has_global_phase() { return has_global_phase_; }
+  complex_t global_phase() { return global_phase_; }
 
   // Set a complex global phase value exp(1j * theta) for the state
   void add_global_phase(double theta);

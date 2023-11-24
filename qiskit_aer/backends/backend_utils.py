@@ -16,16 +16,18 @@ Aer simulator backend utils
 """
 import os
 from math import log2
-from qiskit.utils import local_hardware_info
+
+import psutil
 from qiskit.circuit import QuantumCircuit
 from qiskit.compiler import assemble
 from qiskit.qobj import QasmQobjInstruction
 from qiskit.result import ProbDistribution
 from qiskit.quantum_info import Clifford
+
 from .compatibility import Statevector, DensityMatrix, StabilizerState, Operator, SuperOp
 
 # Available system memory
-SYSTEM_MEMORY_GB = local_hardware_info()["memory"]
+SYSTEM_MEMORY_GB = psutil.virtual_memory().total / (1024**3)
 
 # Max number of qubits for complex double statevector
 # given available system memory
@@ -109,8 +111,6 @@ BASIS_GATES = {
             "pauli",
             "mcx_gray",
             "ecr",
-            "reset",
-            "switch_case",
         ]
     ),
     "density_matrix": sorted(
@@ -151,8 +151,6 @@ BASIS_GATES = {
             "delay",
             "pauli",
             "ecr",
-            "reset",
-            "switch_case",
         ]
     ),
     "matrix_product_state": sorted(
@@ -195,8 +193,6 @@ BASIS_GATES = {
             "cswap",
             "diagonal",
             "initialize",
-            "reset",
-            "switch_case",
         ]
     ),
     "stabilizer": sorted(
@@ -216,12 +212,10 @@ BASIS_GATES = {
             "swap",
             "delay",
             "pauli",
-            "reset",
             "ecr",
             "rx",
             "ry",
             "rz",
-            "switch_case",
         ]
     ),
     "extended_stabilizer": sorted(
@@ -247,7 +241,6 @@ BASIS_GATES = {
             "ccz",
             "delay",
             "pauli",
-            "reset",
         ]
     ),
     "unitary": sorted(
@@ -309,7 +302,6 @@ BASIS_GATES = {
             "delay",
             "pauli",
             "ecr",
-            "reset",
         ]
     ),
     "superop": sorted(
@@ -349,7 +341,6 @@ BASIS_GATES = {
             "diagonal",
             "delay",
             "pauli",
-            "reset",
         ]
     ),
     "tensor_network": sorted(
@@ -412,7 +403,6 @@ BASIS_GATES = {
             "delay",
             "pauli",
             "mcx_gray",
-            "reset",
         ]
     ),
 }

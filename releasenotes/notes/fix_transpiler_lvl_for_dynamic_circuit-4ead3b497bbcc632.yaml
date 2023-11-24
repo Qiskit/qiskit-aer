@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    For dynamic circuits, aer_compiler calls transpiler without optimizaiton
+    level. Because id gates are removed by transpiler, noise applied id gates
+    did not work correctly. This fix adds optimization_level=0 not to remove
+    id gates of dynamic circuits

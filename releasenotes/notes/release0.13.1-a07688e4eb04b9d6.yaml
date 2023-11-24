@@ -1,0 +1,6 @@
+---
+prelude: >
+    Aer Release 0.13.1 is bug fix release for 0.13.0.
+    The most important fixes are for issues caused by upgrading AerBackend to
+    BackendV2 interface.
+    Aer 0.13.1 is now ready for Qiskit 0.45.
