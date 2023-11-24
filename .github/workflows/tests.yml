@@ -175,7 +175,7 @@ jobs:
       - name: Install Aer
         run: |
           set -e
-          python -I -m build --wheel --config-setting=--build-option=-- --config-setting=--build-option=-DTEST_JSON=1
+          python -I -m build --wheel --config-setting=--build-option=-DTEST_JSON=1
           pip install -U dist/*.whl
       - name: Run Tests
         run: |

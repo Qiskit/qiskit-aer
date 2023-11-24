@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixes order of applying read out error in sampling measure
+    in circuit executors. Ordering is reversed to fit to the older verison
+    of Aer.
+    Also fixed check of bacth execution.
