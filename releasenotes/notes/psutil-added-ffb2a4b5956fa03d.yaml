@@ -1,0 +1,9 @@
+---
+upgrade:
+  - |
+    Added `psutil <https://pypi.org/project/psutil/>`__ as a dependency for
+    Qiskit Aer. This is used to determine the amount of physical resources
+    available. ``psutil`` is currently a dependency of Qiskit, which is a
+    requirement for Qiskit Aer, so ``psutil`` was effectively already required
+    for any ``qiskit-aer`` installation. But, as qiskit-aer is now using it
+    directly is now a direct dependency for ``qiskit-aer``.

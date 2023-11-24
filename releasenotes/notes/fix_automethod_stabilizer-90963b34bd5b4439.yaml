@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    Fixed `stabilizer` was selected with `method="automatic" ` when simulating
+    circuits with rotational gates with noise models for small number of qubits
+    even it is faster to calculate with `density_matrix` method.
+    This fix checks if `density_matrix` method with noise model is faster or not
+    at first and then check using `stabilizer` method.
+    This is side effect of implementing rotational gates in stabilizer PR #1938

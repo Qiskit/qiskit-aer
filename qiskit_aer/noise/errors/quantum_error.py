@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 """
-Quantum error class for Qiskit Aer noise model
+Quantum error class for Aer noise model
 """
 import copy
 import numbers
@@ -36,7 +36,7 @@ from ..noiseerror import NoiseError
 
 class QuantumError(BaseOperator, TolerancesMixin):
     """
-    Quantum error class for Qiskit Aer noise model
+    Quantum error class for Aer noise model
 
     .. warning::
              The init interface for this class is not finalized and may

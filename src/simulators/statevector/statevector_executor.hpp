@@ -1259,10 +1259,23 @@ std::vector<reg_t> Executor<state_t>::sample_measure(const reg_t &qubits,
 
 template <class state_t>
 void Executor<state_t>::apply_initialize(const reg_t &qubits,
-                                         const cvector_t &params,
+                                         const cvector_t &params_in,
                                          RngEngine &rng) {
   auto sorted_qubits = qubits;
   std::sort(sorted_qubits.begin(), sorted_qubits.end());
+  // apply global phase here
+  cvector_t tmp;
+  if (Base::states_[0].has_global_phase()) {
+    tmp.resize(params_in.size());
+    std::complex<double> global_phase = Base::states_[0].global_phase();
+    auto apply_global_phase = [&tmp, &params_in, global_phase](int_t i) {
+      tmp[i] = params_in[i] * global_phase;
+    };
+    Utils::apply_omp_parallel_for((qubits.size() > Base::omp_qubit_threshold_),
+                                  0, params_in.size(), apply_global_phase,
+                                  Base::parallel_state_update_);
+  }
+  const cvector_t &params = tmp.empty() ? params_in : tmp;
   if (qubits.size() == Base::num_qubits_) {
     // If qubits is all ordered qubits in the statevector
     // we can just initialize the whole state directly
@@ -1601,7 +1614,21 @@ void Executor<state_t>::apply_reset(CircuitExecutor::Branch &root,
 template <class state_t>
 void Executor<state_t>::apply_initialize(CircuitExecutor::Branch &root,
                                          const reg_t &qubits,
-                                         const cvector_t &params) {
+                                         const cvector_t &params_in) {
+  // apply global phase here
+  cvector_t tmp;
+  if (Base::states_[root.state_index()].has_global_phase()) {
+    tmp.resize(params_in.size());
+    std::complex<double> global_phase =
+        Base::states_[root.state_index()].global_phase();
+    auto apply_global_phase = [&tmp, params_in, global_phase](int_t i) {
+      tmp[i] = params_in[i] * global_phase;
+    };
+    Utils::apply_omp_parallel_for((qubits.size() > Base::omp_qubit_threshold_),
+                                  0, params_in.size(), apply_global_phase,
+                                  Base::parallel_state_update_);
+  }
+  const cvector_t &params = tmp.empty() ? params_in : tmp;
   if (qubits.size() == Base::num_qubits_) {
     auto sorted_qubits = qubits;
     std::sort(sorted_qubits.begin(), sorted_qubits.end());
