@@ -173,7 +173,7 @@ public:
   // Apply instructions
   //-----------------------------------------------------------------------
 
-  // Applies a sypported Gate operation to the state class.
+  // Applies a supported Gate operation to the state class.
   // If the input is not in allowed_gates an exeption will be raised.
   void apply_gate(const Operations::Op &op);
 
@@ -1055,10 +1055,22 @@ std::vector<reg_t> State<statevec_t>::sample_measure(const reg_t &qubits,
 
 template <class statevec_t>
 void State<statevec_t>::apply_initialize(const reg_t &qubits,
-                                         const cvector_t &params,
+                                         const cvector_t &params_in,
                                          RngEngine &rng) {
   auto sorted_qubits = qubits;
   std::sort(sorted_qubits.begin(), sorted_qubits.end());
+  // apply global phase here
+  cvector_t tmp;
+  if (BaseState::has_global_phase_) {
+    tmp.resize(params_in.size());
+    auto apply_global_phase = [&tmp, &params_in, this](int_t i) {
+      tmp[i] = params_in[i] * BaseState::global_phase_;
+    };
+    Utils::apply_omp_parallel_for((qubits.size() > omp_qubit_threshold_), 0,
+                                  params_in.size(), apply_global_phase,
+                                  BaseState::threads_);
+  }
+  const cvector_t &params = tmp.empty() ? params_in : tmp;
   if (qubits.size() == BaseState::qreg_.num_qubits()) {
     // If qubits is all ordered qubits in the statevector
     // we can just initialize the whole state directly

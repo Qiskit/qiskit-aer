@@ -516,6 +516,8 @@ class AerSimulator(AerBackend):
                 "while_loop",
                 "break_loop",
                 "continue_loop",
+                "reset",
+                "switch_case",
             ]
         ),
         "density_matrix": sorted(
@@ -538,6 +540,8 @@ class AerSimulator(AerBackend):
                 "while_loop",
                 "break_loop",
                 "continue_loop",
+                "reset",
+                "switch_case",
             ]
         ),
         "matrix_product_state": sorted(
@@ -562,6 +566,8 @@ class AerSimulator(AerBackend):
                 "while_loop",
                 "break_loop",
                 "continue_loop",
+                "reset",
+                "switch_case",
             ]
         ),
         "stabilizer": sorted(
@@ -583,6 +589,8 @@ class AerSimulator(AerBackend):
                 "while_loop",
                 "break_loop",
                 "continue_loop",
+                "reset",
+                "switch_case",
             ]
         ),
         "extended_stabilizer": sorted(
@@ -591,6 +599,7 @@ class AerSimulator(AerBackend):
                 "qerror_loc",
                 "roerror",
                 "save_statevector",
+                "reset",
             ]
         ),
         "unitary": sorted(
@@ -598,6 +607,7 @@ class AerSimulator(AerBackend):
                 "save_state",
                 "save_unitary",
                 "set_unitary",
+                "reset",
             ]
         ),
         "superop": sorted(
@@ -609,6 +619,7 @@ class AerSimulator(AerBackend):
                 "save_state",
                 "save_superop",
                 "set_superop",
+                "reset",
             ]
         ),
         "tensor_network": sorted(
@@ -630,6 +641,8 @@ class AerSimulator(AerBackend):
                 "save_statevector_dict",
                 "set_statevector",
                 "set_density_matrix",
+                "reset",
+                "switch_case",
             ]
         ),
     }
@@ -682,7 +695,9 @@ class AerSimulator(AerBackend):
 
     _AVAILABLE_DEVICES = None
 
-    def __init__(self, configuration=None, properties=None, provider=None, **backend_options):
+    def __init__(
+        self, configuration=None, properties=None, provider=None, target=None, **backend_options
+    ):
         self._controller = aer_controller_execute()
 
         # Update available methods and devices for class
@@ -704,7 +719,11 @@ class AerSimulator(AerBackend):
         self._cached_basis_gates = self._BASIS_GATES["automatic"]
 
         super().__init__(
-            configuration, properties=properties, provider=provider, backend_options=backend_options
+            configuration,
+            properties=properties,
+            provider=provider,
+            target=target,
+            backend_options=backend_options,
         )
 
     @classmethod
@@ -799,6 +818,11 @@ class AerSimulator(AerBackend):
     def from_backend(cls, backend, **options):
         """Initialize simulator from backend."""
         if isinstance(backend, BackendV2):
+            if backend.description is None:
+                description = "created by AerSimulator.from_backend"
+            else:
+                description = backend.description
+
             configuration = QasmBackendConfiguration(
                 backend_name=f"'aer_simulator({backend.name})",
                 backend_version=backend.backend_version,
@@ -813,9 +837,10 @@ class AerSimulator(AerBackend):
                 max_shots=int(1e6),
                 coupling_map=list(backend.coupling_map.get_edges()),
                 max_experiments=backend.max_circuits,
-                description=backend.description,
+                description=description,
             )
             properties = target_to_backend_properties(backend.target)
+            target = backend.target
         elif isinstance(backend, BackendV1):
             # Get configuration and properties from backend
             configuration = copy.copy(backend.configuration())
@@ -824,6 +849,8 @@ class AerSimulator(AerBackend):
             # Customize configuration name
             name = configuration.backend_name
             configuration.backend_name = f"aer_simulator({name})"
+
+            target = None
         else:
             raise TypeError(
                 "The backend argument requires a BackendV2 or BackendV1 object, "
@@ -840,7 +867,7 @@ class AerSimulator(AerBackend):
                 options["noise_model"] = noise_model
 
         # Initialize simulator
-        sim = cls(configuration=configuration, properties=properties, **options)
+        sim = cls(configuration=configuration, properties=properties, target=target, **options)
         return sim
 
     def available_methods(self):
