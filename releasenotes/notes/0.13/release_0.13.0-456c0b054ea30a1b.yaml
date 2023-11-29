@@ -1,0 +1,22 @@
+---
+prelude: >
+    Here are highlights of the Aer 0.13.0 release:
+
+    Aer's backend is now backendV2.
+
+    Introducing shot-branching optimization that accelerates dynamic circuits
+    simulations. By using `shot_branching_enable=True`, multi-shots
+    simulation starts with single state and state will be branched with
+    attached shots dynamically. This option is available for `statevector`,
+    `density_matrix` and `tensor_network` methods.
+
+    Adding support for classical expressions used for branch operations.
+
+    Introducing runtime parameter binding that accelerates parameterized
+    circuits simulations on GPU. With `runtime_parameter_bind_enable=True`
+    and `batched_shots_gpu=True`, this optimization will be enabled on GPU.
+    This optimization can be used with Aer primitives.
+
+    Fix dynamic link library path for GPU binary distributions.
+
+    Now Aer supports AMD's GPUs based on ROCm (building from source code only)

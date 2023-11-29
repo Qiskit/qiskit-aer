@@ -1,0 +1,6 @@
+fixes:
+  - |
+    Extended stabilizer simulation was sharing a single copy of RngEngine amongst
+    parallelized states in ``ExtendedStabilizer::State::apply_ops_parallel``, 
+    leading to thread safety issue. Now, a new RngEngine is seeded for each parallel
+    state.

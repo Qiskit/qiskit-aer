@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 """
-Qiskit Aer qasm simulator backend.
+Aer qasm simulator backend.
 """
 
 import copy
@@ -33,7 +33,7 @@ from .backend_utils import (
     map_legacy_method_config,
 )
 
-# pylint: disable=import-error, no-name-in-module
+# pylint: disable=import-error, no-name-in-module, abstract-method
 from .controller_wrappers import aer_controller_execute
 
 logger = logging.getLogger(__name__)
@@ -388,6 +388,7 @@ class QasmSimulator(AerBackend):
             "set_statevector",
             "set_density_matrix",
             "set_stabilizer",
+            "reset",
         ]
     )
 
