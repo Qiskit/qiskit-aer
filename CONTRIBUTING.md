@@ -966,6 +966,16 @@ These are the flags:
     Default: No value.
     Example: ``python ./setup.py bdist_wheel -- -DAER_BLAS_LIB_PATH=/path/to/look/for/blas/``
 
+* USE_BUNDLED_BLAS_WIN
+
+    Tells CMake to use the bundled OpenBLAS library vendored into the source code when building on Windows.
+    When this option is set to `False`, CMake will use its standard method to search for the BLAS library aginst which to link instead of using the vendored version.
+    The `AER_BLAS_LIB_PATH` option takes precedence over this option.
+
+    Values: True|False
+    Default: True
+    Example: ``python ./setup.py bdist_wheel -- -DUSE_BUNDLED_BLAS_WIN=FALSE``
+
 * BUILD_TESTS
 
     It will tell the build system to build C++ tests along with the simulator.
