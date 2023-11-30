@@ -240,9 +240,7 @@ class UnitarySimulator(AerBackend):
         self._controller = aer_controller_execute()
 
         if UnitarySimulator._AVAILABLE_DEVICES is None:
-            UnitarySimulator._AVAILABLE_DEVICES = available_devices(
-                self._controller, UnitarySimulator._SIMULATION_DEVICES
-            )
+            UnitarySimulator._AVAILABLE_DEVICES = available_devices(self._controller)
 
         if configuration is None:
             configuration = QasmBackendConfiguration.from_dict(

@@ -315,9 +315,11 @@ void Executor<state_t>::set_config(const Config &config) {
   // set target GPUs
 #ifdef AER_THRUST_GPU
   int nDev = 0;
-  if (cudaGetDeviceCount(&nDev) != cudaSuccess) {
-    cudaGetLastError();
-    nDev = 0;
+  if (sim_device_ == Device::GPU) {
+    if (cudaGetDeviceCount(&nDev) != cudaSuccess) {
+      cudaGetLastError();
+      nDev = 0;
+    }
   }
   if (config.target_gpus.has_value()) {
     target_gpus_ = config.target_gpus.value();
@@ -457,7 +459,8 @@ void Executor<state_t>::set_parallelization(const Config &config,
 
   if (max_memory_mb_ == 0)
     max_memory_mb_ = get_system_memory_mb();
-  max_gpu_memory_mb_ = get_gpu_memory_mb();
+  if (sim_device_ == Device::GPU && num_gpus_ > 0)
+    max_gpu_memory_mb_ = get_gpu_memory_mb();
 
   // number of threads for parallel loop of experiments
   parallel_experiments_ = omp_get_num_threads();

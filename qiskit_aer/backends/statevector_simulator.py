@@ -254,9 +254,7 @@ class StatevectorSimulator(AerBackend):
         self._controller = aer_controller_execute()
 
         if StatevectorSimulator._AVAILABLE_DEVICES is None:
-            StatevectorSimulator._AVAILABLE_DEVICES = available_devices(
-                self._controller, StatevectorSimulator._SIMULATION_DEVICES
-            )
+            StatevectorSimulator._AVAILABLE_DEVICES = available_devices(self._controller)
 
         if configuration is None:
             configuration = QasmBackendConfiguration.from_dict(

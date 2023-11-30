@@ -702,9 +702,7 @@ class AerSimulator(AerBackend):
 
         # Update available methods and devices for class
         if AerSimulator._AVAILABLE_DEVICES is None:
-            AerSimulator._AVAILABLE_DEVICES = available_devices(
-                self._controller, AerSimulator._SIMULATION_DEVICES
-            )
+            AerSimulator._AVAILABLE_DEVICES = available_devices(self._controller)
         if AerSimulator._AVAILABLE_METHODS is None:
             AerSimulator._AVAILABLE_METHODS = available_methods(
                 self._controller, AerSimulator._SIMULATION_METHODS, AerSimulator._AVAILABLE_DEVICES
