@@ -705,7 +705,7 @@ class AerSimulator(AerBackend):
             AerSimulator._AVAILABLE_DEVICES = available_devices(self._controller)
         if AerSimulator._AVAILABLE_METHODS is None:
             AerSimulator._AVAILABLE_METHODS = available_methods(
-                self._controller, AerSimulator._SIMULATION_METHODS, AerSimulator._AVAILABLE_DEVICES
+                AerSimulator._SIMULATION_METHODS, AerSimulator._AVAILABLE_DEVICES
             )
 
         # Default configuration

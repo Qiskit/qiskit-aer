@@ -19,7 +19,6 @@ from math import log2
 
 import psutil
 from qiskit.circuit import QuantumCircuit
-from qiskit.compiler import assemble
 from qiskit.qobj import QasmQobjInstruction
 from qiskit.result import ProbDistribution
 from qiskit.quantum_info import Clifford
@@ -441,7 +440,7 @@ def cpp_execute_circuits(controller, aer_circuits, noise_model, config):
     return controller.execute(aer_circuits, noise_model, config)
 
 
-def available_methods(controller, methods, devices):
+def available_methods(methods, devices):
     """Check available simulation methods"""
 
     valid_methods = []
