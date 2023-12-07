@@ -648,7 +648,7 @@ void State<densmat_t>::apply_gate(const Operations::Op &op) {
     }
     if (qubits_out.size() > 0) {
       uint_t mask = 0;
-      for (uint i = 0; i < qubits_out.size(); i++) {
+      for (uint_t i = 0; i < qubits_out.size(); i++) {
         mask |= (1ull << (qubits_out[i] - BaseState::qreg_.num_qubits()));
       }
       if ((BaseState::qreg_.chunk_index() & mask) != mask) {
@@ -668,7 +668,7 @@ void State<densmat_t>::apply_gate(const Operations::Op &op) {
         else if (ctrl_chunk)
           apply_gate_statevector(new_op);
         else {
-          for (uint i = 0; i < new_op.qubits.size(); i++)
+          for (uint_t i = 0; i < new_op.qubits.size(); i++)
             new_op.qubits[i] += BaseState::qreg_.num_qubits();
           apply_gate_statevector(new_op);
         }

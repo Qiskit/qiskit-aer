@@ -413,7 +413,7 @@ void State<unitary_matrix_t>::apply_gate(const Operations::Op &op) {
     }
     if (qubits_out.size() > 0) {
       uint_t mask = 0;
-      for (uint i = 0; i < qubits_out.size(); i++) {
+      for (uint_t i = 0; i < qubits_out.size(); i++) {
         mask |= (1ull << (qubits_out[i] - BaseState::qreg_.num_qubits()));
       }
       if ((BaseState::qreg_.chunk_index() & mask) == mask) {

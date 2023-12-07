@@ -547,7 +547,7 @@ void TensorNet<data_t>::initialize_component(const reg_t &qubits,
   tensors_.push_back(std::make_shared<Tensor<data_t>>());
   tensors_[last + 1]->set_conj(qubits, state);
 
-  for (uint i = 0; i < qubits.size(); i++) {
+  for (uint_t i = 0; i < qubits.size(); i++) {
     modes_qubits_[qubits[i]] = mode_index_;
     tensors_[last]->modes()[i] = mode_index_++;
     qubits_[qubits[i]] = tensors_[last];
@@ -584,7 +584,7 @@ void TensorNet<data_t>::add_tensor(const reg_t &qubits,
   tensors_.push_back(std::make_shared<Tensor<data_t>>());
   uint_t last = tensors_.size() - 1;
   tensors_[last]->set(qubits, mat);
-  for (uint i = 0; i < qubits.size(); i++) {
+  for (uint_t i = 0; i < qubits.size(); i++) {
     tensors_[last]->modes()[i] = modes_qubits_[qubits[i]];
     modes_qubits_[qubits[i]] = mode_index_;
     tensors_[last]->modes()[qubits.size() + i] = mode_index_++;
@@ -594,7 +594,7 @@ void TensorNet<data_t>::add_tensor(const reg_t &qubits,
   tensors_.push_back(std::make_shared<Tensor<data_t>>());
   last++;
   tensors_[last]->set_conj(qubits, mat);
-  for (uint i = 0; i < qubits.size(); i++) {
+  for (uint_t i = 0; i < qubits.size(); i++) {
     tensors_[last]->modes()[i] = modes_qubits_sp_[qubits[i]];
     modes_qubits_sp_[qubits[i]] = mode_index_;
     tensors_[last]->modes()[qubits.size() + i] = mode_index_++;
@@ -614,13 +614,13 @@ void TensorNet<data_t>::add_superop_tensor(
   uint_t last = tensors_.size() - 1;
   tensors_[last]->set(qubits, mat);
 
-  for (uint i = 0; i < size; i++) {
+  for (uint_t i = 0; i < size; i++) {
     tensors_[last]->modes()[i] = modes_qubits_[qubits[i]];
     modes_qubits_[qubits[i]] = mode_index_;
     tensors_[last]->modes()[size * 2 + i] = mode_index_++;
     qubits_[qubits[i]] = tensors_[last];
   }
-  for (uint i = 0; i < size; i++) {
+  for (uint_t i = 0; i < size; i++) {
     tensors_[last]->modes()[size + i] = modes_qubits_sp_[qubits[i]];
     modes_qubits_sp_[qubits[i]] = mode_index_;
     tensors_[last]->modes()[size * 3 + i] = mode_index_++;
@@ -707,12 +707,12 @@ void TensorNet<data_t>::initialize_from_matrix(const cmatrix_t &matrix0) {
   uint_t last = tensors_.size() - 1;
   tensors_[last]->set(num_qubits_, matrix);
 
-  for (uint i = 0; i < num_qubits_; i++) {
+  for (uint_t i = 0; i < num_qubits_; i++) {
     modes_qubits_[i] = mode_index_++;
     tensors_[last]->modes()[i] = modes_qubits_[i];
     qubits_[i] = tensors_[last];
   }
-  for (uint i = 0; i < num_qubits_; i++) {
+  for (uint_t i = 0; i < num_qubits_; i++) {
     modes_qubits_sp_[i] = mode_index_++;
     tensors_[last]->modes()[i + num_qubits_] = modes_qubits_sp_[i];
     qubits_sp_[i] = tensors_[last];
@@ -831,7 +831,7 @@ void TensorNet<data_t>::apply_mcx(const reg_t &qubits) {
 
   reg_t qubits_t;
   qubits_t.push_back(qubits[qubits.size() - 1]);
-  for (uint i = 0; i < qubits.size() - 1; i++)
+  for (uint_t i = 0; i < qubits.size() - 1; i++)
     qubits_t.push_back(qubits[i]);
 
   add_tensor(qubits_t, mat);
@@ -848,7 +848,7 @@ void TensorNet<data_t>::apply_mcy(const reg_t &qubits) {
 
   reg_t qubits_t;
   qubits_t.push_back(qubits[qubits.size() - 1]);
-  for (uint i = 0; i < qubits.size() - 1; i++)
+  for (uint_t i = 0; i < qubits.size() - 1; i++)
     qubits_t.push_back(qubits[i]);
 
   add_tensor(qubits_t, mat);
@@ -867,7 +867,7 @@ void TensorNet<data_t>::apply_mcswap(const reg_t &qubits) {
   reg_t qubits_t;
   qubits_t.push_back(qubits[qubits.size() - 2]);
   qubits_t.push_back(qubits[qubits.size() - 1]);
-  for (uint i = 0; i < qubits.size() - 2; i++)
+  for (uint_t i = 0; i < qubits.size() - 2; i++)
     qubits_t.push_back(qubits[i]);
 
   add_tensor(qubits_t, mat);
@@ -884,7 +884,7 @@ void TensorNet<data_t>::apply_mcphase(const reg_t &qubits,
 
   reg_t qubits_t;
   qubits_t.push_back(qubits[qubits.size() - 1]);
-  for (uint i = 0; i < qubits.size() - 1; i++)
+  for (uint_t i = 0; i < qubits.size() - 1; i++)
     qubits_t.push_back(qubits[i]);
 
   add_tensor(qubits_t, mat);
@@ -905,7 +905,7 @@ void TensorNet<data_t>::apply_mcu(const reg_t &qubits,
 
   reg_t qubits_t;
   qubits_t.push_back(qubits[qubits.size() - 1]);
-  for (uint i = 0; i < qubits.size() - 1; i++)
+  for (uint_t i = 0; i < qubits.size() - 1; i++)
     qubits_t.push_back(qubits[i]);
 
   add_tensor(qubits_t, matR);
@@ -1005,14 +1005,14 @@ double TensorNet<data_t>::norm(const reg_t &qubits,
 
   mat_tensors[0] = std::make_shared<Tensor<data_t>>();
   mat_tensors[0]->set(qubits, mat_t);
-  for (uint i = 0; i < qubits.size(); i++) {
+  for (uint_t i = 0; i < qubits.size(); i++) {
     mat_tensors[0]->modes()[i] = tmp_modes[qubits[i]];
     tmp_modes[qubits[i]] = tmp_index;
     mat_tensors[0]->modes()[qubits.size() + i] = tmp_index++;
   }
   mat_tensors[1] = std::make_shared<Tensor<data_t>>();
   mat_tensors[1]->set_conj(qubits, mat_t);
-  for (uint i = 0; i < qubits.size(); i++) {
+  for (uint_t i = 0; i < qubits.size(); i++) {
     mat_tensors[1]->modes()[i] = tmp_modes_sp[qubits[i]];
     tmp_modes_sp[qubits[i]] = tmp_index;
     mat_tensors[1]->modes()[qubits.size() + i] = tmp_index++;

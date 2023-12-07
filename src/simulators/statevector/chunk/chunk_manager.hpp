@@ -397,7 +397,7 @@ uint_t ChunkManager<data_t>::Allocate(int chunk_bits, int nqubits,
 
 template <typename data_t>
 void ChunkManager<data_t>::Free(void) {
-  uint i;
+  uint_t i;
 
   for (i = 0; i < chunks_.size(); i++) {
     chunks_[i]->Deallocate();

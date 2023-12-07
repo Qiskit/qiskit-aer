@@ -623,7 +623,7 @@ Result Controller::execute(std::vector<std::shared_ptr<Circuit>> &circuits,
 
     bool all_failed = true;
     result.status = Result::Status::completed;
-    for (uint i = 0; i < result.results.size(); ++i) {
+    for (uint_t i = 0; i < result.results.size(); ++i) {
       auto &experiment = result.results[i];
       if (experiment.status == ExperimentResult::Status::completed) {
         all_failed = false;
