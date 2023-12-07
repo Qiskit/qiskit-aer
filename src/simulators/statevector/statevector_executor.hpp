@@ -595,7 +595,7 @@ double Executor<state_t>::expval_pauli(const reg_t &qubits,
         procs >>= 1;
       }
       if ((x_mask & (~((1ull << (Base::num_qubits_ - proc_bits)) - 1))) !=
-                       0) { // data exchange between processes is required
+          0) { // data exchange between processes is required
         on_same_process = false;
       }
 #endif
