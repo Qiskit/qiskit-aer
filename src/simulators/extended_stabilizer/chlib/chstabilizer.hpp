@@ -426,8 +426,8 @@ scalar_t StabilizerState::ProposeFlip(unsigned flip_pos) {
 
   scalar_t amp;
   amp.e = 2 * Q.e;
-  amp.p = -1 *
-          (AER::Utils::popcount(v)); // each Hadamard gate contributes 1/sqrt(2)
+  // each Hadamard gate contributes 1/sqrt(2)
+  amp.p = -1 * (int)(AER::Utils::popcount(v));
   bool isNonZero = true;
 
   for (unsigned q = 0; q < n; q++) {

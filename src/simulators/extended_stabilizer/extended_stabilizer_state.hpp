@@ -69,9 +69,9 @@ public:
   // Apply a sequence of operations to the cicuit. For each operation,
   // we loop over the terms in the decomposition in parallel
   template <typename InputIterator>
-  void apply_ops(InputIterator first, InputIterator last,
-                 ExperimentResult &result, RngEngine &rng,
-                 bool final_ops = false);
+  void apply_ops_stab(InputIterator first, InputIterator last,
+                      ExperimentResult &result, RngEngine &rng,
+                      bool final_ops = false);
 
   // Apply a single operation
   // If the op is not in allowed_ops an exeption will be raised.
@@ -341,13 +341,13 @@ bool State::check_measurement_opt(InputIterator first,
 //-------------------------------------------------------------------------
 void State::apply_op(const Operations::Op &op, ExperimentResult &result,
                      RngEngine &rng, bool final_op) {
-  apply_ops(&op, &op + 1, result, rng, final_op);
+  apply_ops_stab(&op, &op + 1, result, rng, final_op);
 }
 
 template <typename InputIterator>
-void State::apply_ops(InputIterator first, InputIterator last,
-                      ExperimentResult &result, RngEngine &rng,
-                      bool final_ops) {
+void State::apply_ops_stab(InputIterator first, InputIterator last,
+                           ExperimentResult &result, RngEngine &rng,
+                           bool final_ops) {
   std::pair<bool, size_t> stabilizer_opts = check_stabilizer_opt(first, last);
   bool is_stabilizer = stabilizer_opts.first;
   if (is_stabilizer) {

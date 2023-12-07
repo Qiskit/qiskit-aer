@@ -899,27 +899,26 @@ template <class tensor_net_t>
 std::vector<reg_t> State<tensor_net_t>::sample_measure(const reg_t &qubits,
                                                        uint_t shots,
                                                        RngEngine &rng) {
-  int_t i, j;
   // Generate flat register for storing
   std::vector<double> rnds(shots);
 
-  for (i = 0; i < shots; ++i)
+  for (uint_t i = 0; i < shots; ++i)
     rnds[i] = rng.rand(0, 1);
 
   std::vector<reg_t> samples = BaseState::qreg_.sample_measure(rnds);
   std::vector<reg_t> ret(shots);
 
   if (omp_get_num_threads() > 1) {
-    for (i = 0; i < shots; ++i) {
+    for (uint_t i = 0; i < shots; ++i) {
       ret[i].resize(qubits.size());
-      for (j = 0; j < qubits.size(); j++)
+      for (uint_t j = 0; j < qubits.size(); j++)
         ret[i][j] = samples[i][qubits[j]];
     }
   } else {
-#pragma omp parallel for private(j)
-    for (i = 0; i < shots; ++i) {
+#pragma omp parallel for
+    for (int_t i = 0; i < (int_t)shots; ++i) {
       ret[i].resize(qubits.size());
-      for (j = 0; j < qubits.size(); j++)
+      for (uint_t j = 0; j < qubits.size(); j++)
         ret[i][j] = samples[i][qubits[j]];
     }
   }
@@ -963,7 +962,7 @@ void State<tensor_net_t>::initialize_from_vector(
   BaseState::qreg_.initialize();
 
   reg_t qubits(BaseState::qreg_.num_qubits());
-  for (int_t i = 0; i < BaseState::qreg_.num_qubits(); i++)
+  for (uint_t i = 0; i < BaseState::qreg_.num_qubits(); i++)
     qubits[i] = i;
   BaseState::qreg_.initialize_component(qubits, params);
 }

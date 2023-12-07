@@ -1267,7 +1267,7 @@ uint_t (*popcount)(uint_t) = is_avx2_supported() ? &_instrinsic_weight
 bool (*hamming_parity)(uint_t) = &_naive_parity;
 uint_t (*popcount)(uint_t) = &_naive_weight;
 #endif
-
+size_t get_system_memory_mb();
 size_t get_system_memory_mb() {
   size_t total_physical_memory = 0;
 #if defined(__linux__) || defined(__APPLE__)

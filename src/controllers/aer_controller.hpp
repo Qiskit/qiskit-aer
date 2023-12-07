@@ -420,7 +420,7 @@ size_t Controller::get_system_memory_mb() {
 size_t Controller::get_gpu_memory_mb() {
   size_t total_physical_memory = 0;
 #ifdef AER_THRUST_GPU
-  int iDev, nDev, j;
+  int iDev, nDev;
   if (cudaGetDeviceCount(&nDev) != cudaSuccess) {
     cudaGetLastError();
     nDev = 0;
@@ -512,7 +512,7 @@ Result Controller::execute(std::vector<std::shared_ptr<Circuit>> &circuits,
   uint_t result_size;
   reg_t result_offset(circuits.size());
   result_size = 0;
-  for (int_t i = 0; i < circuits.size(); i++) {
+  for (uint_t i = 0; i < circuits.size(); i++) {
     result_offset[i] = result_size;
     result_size += circuits[i]->num_bind_params;
   }
@@ -529,11 +529,11 @@ Result Controller::execute(std::vector<std::shared_ptr<Circuit>> &circuits,
     // set parallelization for experiments
     try {
       uint_t res_pos = 0;
-      for (int i = 0; i < circuits.size(); i++) {
+      for (uint i = 0; i < circuits.size(); i++) {
         executors[i] = make_circuit_executor(methods[i]);
         required_memory_mb_list[i] =
             executors[i]->required_memory_mb(config, *circuits[i], noise_model);
-        for (int j = 0; j < circuits[i]->num_bind_params; j++) {
+        for (uint j = 0; j < circuits[i]->num_bind_params; j++) {
           result.results[res_pos++].metadata.add(required_memory_mb_list[i],
                                                  "required_memory_mb");
         }
@@ -585,9 +585,9 @@ Result Controller::execute(std::vector<std::shared_ptr<Circuit>> &circuits,
       reg_t seeds(result_size);
       reg_t avg_seeds(result_size);
       int_t iseed = 0;
-      for (int_t i = 0; i < circuits.size(); i++) {
+      for (uint_t i = 0; i < circuits.size(); i++) {
         if (circuits[i]->num_bind_params > 1) {
-          for (int_t j = 0; i < circuits[i]->num_bind_params; i++)
+          for (uint_t j = 0; i < circuits[i]->num_bind_params; i++)
             seeds[iseed++] = circuits[i]->seed_for_params[j];
         } else
           seeds[iseed++] = circuits[i]->seed;
@@ -595,9 +595,9 @@ Result Controller::execute(std::vector<std::shared_ptr<Circuit>> &circuits,
       MPI_Allreduce(seeds.data(), avg_seeds.data(), result_size, MPI_UINT64_T,
                     MPI_SUM, MPI_COMM_WORLD);
       iseed = 0;
-      for (int_t i = 0; i < circuits.size(); i++) {
+      for (uint_t i = 0; i < circuits.size(); i++) {
         if (circuits[i]->num_bind_params > 1) {
-          for (int_t j = 0; i < circuits[i]->num_bind_params; i++)
+          for (uint_t j = 0; i < circuits[i]->num_bind_params; i++)
             circuits[i]->seed_for_params[j] =
                 avg_seeds[iseed++] / num_processes_;
         } else
@@ -623,7 +623,7 @@ Result Controller::execute(std::vector<std::shared_ptr<Circuit>> &circuits,
 
     bool all_failed = true;
     result.status = Result::Status::completed;
-    for (int i = 0; i < result.results.size(); ++i) {
+    for (uint i = 0; i < result.results.size(); ++i) {
       auto &experiment = result.results[i];
       if (experiment.status == ExperimentResult::Status::completed) {
         all_failed = false;

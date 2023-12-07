@@ -35,7 +35,8 @@ T *malloc_data(size_t size) {
   // Data allocated here may need to be properly aligned to be compliant with
   // AVX2.
   void *data = nullptr;
-  posix_memalign(&data, 64, sizeof(T) * size);
+  if (posix_memalign(&data, 64, sizeof(T) * size) != 0)
+    throw std::runtime_error("Cannot allocate memory by posix_memalign");
   return reinterpret_cast<T *>(data);
 #else
   return reinterpret_cast<T *>(malloc(sizeof(T) * size));

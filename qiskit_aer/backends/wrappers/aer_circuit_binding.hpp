@@ -143,7 +143,7 @@ void bind_aer_circuit(MODULE m) {
        << ", num_registers=" << circ.num_registers;
 
     ss << ", ops={";
-    for (auto i = 0; i < circ.ops.size(); ++i)
+    for (uint_t i = 0; i < circ.ops.size(); ++i)
       if (i == 0)
         ss << circ.ops[i];
       else
