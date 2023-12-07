@@ -529,11 +529,11 @@ Result Controller::execute(std::vector<std::shared_ptr<Circuit>> &circuits,
     // set parallelization for experiments
     try {
       uint_t res_pos = 0;
-      for (uint i = 0; i < circuits.size(); i++) {
+      for (uint_t i = 0; i < circuits.size(); i++) {
         executors[i] = make_circuit_executor(methods[i]);
         required_memory_mb_list[i] =
             executors[i]->required_memory_mb(config, *circuits[i], noise_model);
-        for (uint j = 0; j < circuits[i]->num_bind_params; j++) {
+        for (uint_t j = 0; j < circuits[i]->num_bind_params; j++) {
           result.results[res_pos++].metadata.add(required_memory_mb_list[i],
                                                  "required_memory_mb");
         }

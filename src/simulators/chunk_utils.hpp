@@ -49,7 +49,7 @@ void get_inout_ctrl_qubits(const Operations::Op &op, const uint_t num_qubits,
                            reg_t &qubits_in, reg_t &qubits_out) {
   if (op.type == Operations::OpType::gate &&
       (op.name[0] == 'c' || op.name.find("mc") == 0)) {
-    for (uint i = 0; i < op.qubits.size(); i++) {
+    for (uint_t i = 0; i < op.qubits.size(); i++) {
       if (op.qubits[i] < num_qubits)
         qubits_in.push_back(op.qubits[i]);
       else
