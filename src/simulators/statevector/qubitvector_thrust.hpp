@@ -872,6 +872,7 @@ uint_t QubitVectorThrust<data_t>::chunk_setup(int chunk_bits, int num_qubits,
 
     if (chunk_manager_->chunk_bits() == chunk_bits &&
         chunk_manager_->num_qubits() == num_qubits) {
+      chunk_manager_->MapChunk(chunk_, 0);
       chunk_.set_chunk_index(chunk_index_);
       return num_local_chunks;
     }
@@ -903,6 +904,7 @@ uint_t QubitVectorThrust<data_t>::chunk_setup(int chunk_bits, int num_qubits,
 
   // mapping/setting chunk
   chunk_.set_chunk_index(chunk_index_);
+  chunk_manager_->MapChunk(chunk_, 0);
 
   return num_chunks_allocated;
 }
@@ -930,6 +932,7 @@ QubitVectorThrust<data_t>::chunk_setup(const QubitVectorThrust<data_t> &base,
 
   // mapping/setting chunk
   chunk_manager_ = base.chunk_manager_;
+  chunk_manager_->MapChunk(chunk_, 0);
 
   return 0;
 }
