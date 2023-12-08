@@ -70,8 +70,8 @@ public:
   // we loop over the terms in the decomposition in parallel
   template <typename InputIterator>
   void apply_ops(InputIterator first, InputIterator last,
-                      ExperimentResult &result, RngEngine &rng,
-                      bool final_ops = false);
+                 ExperimentResult &result, RngEngine &rng,
+                 bool final_ops = false);
 
   // Apply a single operation
   // If the op is not in allowed_ops an exeption will be raised.
@@ -346,8 +346,8 @@ void State::apply_op(const Operations::Op &op, ExperimentResult &result,
 
 template <typename InputIterator>
 void State::apply_ops(InputIterator first, InputIterator last,
-                           ExperimentResult &result, RngEngine &rng,
-                           bool final_ops) {
+                      ExperimentResult &result, RngEngine &rng,
+                      bool final_ops) {
   std::pair<bool, size_t> stabilizer_opts = check_stabilizer_opt(first, last);
   bool is_stabilizer = stabilizer_opts.first;
   if (is_stabilizer) {
