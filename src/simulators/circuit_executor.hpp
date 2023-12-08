@@ -101,6 +101,9 @@ protected:
   int parallel_shots_;
   int parallel_state_update_;
 
+  // OpenMP qubit threshold
+  int omp_qubit_threshold_ = 14;
+
   // results are stored independently in each process if true
   bool accept_distributed_results_ = true;
 
@@ -262,6 +265,9 @@ void Executor<state_t>::set_config(const Config &config) {
   max_parallel_threads_ = (max_parallel_threads_ > 0)
                               ? std::min(max_parallel_threads_, omp_threads)
                               : std::max(1, omp_threads);
+
+  // Set OMP threshold for state update functions
+  omp_qubit_threshold_ = config.statevector_parallel_threshold;
 #else
   // No OpenMP so we disable parallelization
   max_parallel_threads_ = 1;
@@ -309,9 +315,11 @@ void Executor<state_t>::set_config(const Config &config) {
   // set target GPUs
 #ifdef AER_THRUST_GPU
   int nDev = 0;
-  if (cudaGetDeviceCount(&nDev) != cudaSuccess) {
-    cudaGetLastError();
-    nDev = 0;
+  if (sim_device_ == Device::GPU) {
+    if (cudaGetDeviceCount(&nDev) != cudaSuccess) {
+      cudaGetLastError();
+      nDev = 0;
+    }
   }
   if (config.target_gpus.has_value()) {
     target_gpus_ = config.target_gpus.value();
@@ -451,7 +459,8 @@ void Executor<state_t>::set_parallelization(const Config &config,
 
   if (max_memory_mb_ == 0)
     max_memory_mb_ = get_system_memory_mb();
-  max_gpu_memory_mb_ = get_gpu_memory_mb();
+  if (sim_device_ == Device::GPU && num_gpus_ > 0)
+    max_gpu_memory_mb_ = get_gpu_memory_mb();
 
   // number of threads for parallel loop of experiments
   parallel_experiments_ = omp_get_num_threads();
@@ -1067,7 +1076,7 @@ void Executor<state_t>::measure_sampler(InputIterator first_meas,
   uint_t num_registers =
       (register_map.empty()) ? 0ULL : 1 + register_map.rbegin()->first;
   ClassicalRegister creg;
-  for (int_t i = 0; i < all_samples.size(); i++) {
+  for (int_t i = all_samples.size() - 1; i >= 0; i--) {
     creg.initialize(num_memory, num_registers);
 
     // process memory bit measurements

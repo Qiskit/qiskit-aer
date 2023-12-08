@@ -175,8 +175,8 @@ jobs:
       - name: Install Aer
         run: |
           set -e
-          python -I -m build --wheel --config-setting=--build-option=-- --config-setting=--build-option=-DTEST_JSON=1
-          pip install --find-links=dist qiskit-aer
+          python -I -m build --wheel --config-setting=--build-option=-DTEST_JSON=1
+          pip install -U dist/*.whl
       - name: Run Tests
         run: |
           set -e
@@ -267,7 +267,7 @@ jobs:
         run: |
           set -e
           python -I -m build --wheel
-          pip install --find-links=dist qiskit-aer
+          pip install -U dist/*.whl
         shell: bash
       - name: Run Tests
         env:

@@ -17,7 +17,8 @@ Aer Unitary Simulator Backend.
 import copy
 import logging
 from warnings import warn
-from qiskit.utils import local_hardware_info
+
+import psutil
 from qiskit.providers.options import Options
 from qiskit.providers.models import QasmBackendConfiguration
 
@@ -216,10 +217,9 @@ class UnitarySimulator(AerBackend):
                 "multiplexer",
                 "delay",
                 "pauli",
-                "reset",
             ]
         ),
-        "custom_instructions": sorted(["save_unitary", "save_state", "set_unitary"]),
+        "custom_instructions": sorted(["save_unitary", "save_state", "set_unitary", "reset"]),
         "gates": [],
     }
 
@@ -240,9 +240,7 @@ class UnitarySimulator(AerBackend):
         self._controller = aer_controller_execute()
 
         if UnitarySimulator._AVAILABLE_DEVICES is None:
-            UnitarySimulator._AVAILABLE_DEVICES = available_devices(
-                self._controller, UnitarySimulator._SIMULATION_DEVICES
-            )
+            UnitarySimulator._AVAILABLE_DEVICES = available_devices(self._controller)
 
         if configuration is None:
             configuration = QasmBackendConfiguration.from_dict(
@@ -352,7 +350,7 @@ class UnitarySimulator(AerBackend):
             raise AerError(
                 f"Number of qubits ({n_qubits}) is greater than "
                 f'max ({max_qubits}) for "{name}" with '
-                f"{int(local_hardware_info()['memory'])} GB system memory."
+                f"{int(psutil.virtual_memory().total / (1024**3))} GB system memory."
             )
         if qobj.config.shots != 1:
             logger.info('"%s" only supports 1 shot. Setting shots=1.', name)

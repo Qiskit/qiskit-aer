@@ -74,7 +74,7 @@ namespace AER {
 
 class Controller {
 public:
-  Controller() { clear_parallelization(); }
+  Controller() {}
 
   //-----------------------------------------------------------------------
   // Execute qobj
@@ -96,8 +96,8 @@ public:
   // config settings will be passed to the State and Data classes
   void set_config(const Config &config);
 
-  // Clear the current config
-  void clear_config();
+  // return available devicess
+  std::vector<std::string> available_devices();
 
 protected:
   //-----------------------------------------------------------------------
@@ -162,9 +162,6 @@ protected:
   // Parallelization Config
   //-----------------------------------------------------------------------
 
-  // Set OpenMP thread settings to default values
-  void clear_parallelization();
-
   // Set parallelization for experiments
   void set_parallelization_experiments(const reg_t &required_memory_list);
 
@@ -175,18 +172,18 @@ protected:
   size_t get_gpu_memory_mb();
 
   // The maximum number of threads to use for various levels of parallelization
-  int max_parallel_threads_;
+  int max_parallel_threads_ = 0;
 
   // Parameters for parallelization management in configuration
-  int max_parallel_experiments_;
-  size_t max_memory_mb_;
-  size_t max_gpu_memory_mb_;
+  int max_parallel_experiments_ = 1;
+  size_t max_memory_mb_ = 0;
+  size_t max_gpu_memory_mb_ = 0;
 
   // use explicit parallelization
-  bool explicit_parallelization_;
+  bool explicit_parallelization_ = false;
 
   // Parameters for parallelization management for experiments
-  int parallel_experiments_;
+  int parallel_experiments_ = 1;
 
   bool parallel_nested_ = false;
 
@@ -197,6 +194,8 @@ protected:
 
   // runtime parameter binding
   bool runtime_parameter_bind_ = false;
+
+  reg_t target_gpus_; // GPUs to be used
 };
 
 //=========================================================================
@@ -231,6 +230,8 @@ void Controller::set_config(const Config &config) {
 
   if (config.max_memory_mb.has_value())
     max_memory_mb_ = config.max_memory_mb.value();
+  else
+    max_memory_mb_ = get_system_memory_mb();
 
   // for debugging
   if (config._parallel_experiments.has_value()) {
@@ -307,7 +308,21 @@ void Controller::set_config(const Config &config) {
       cudaGetLastError();
       throw std::runtime_error("No CUDA device available!");
     }
+    if (config.target_gpus.has_value()) {
+      target_gpus_ = config.target_gpus.value();
+
+      if (nDev < target_gpus_.size()) {
+        throw std::invalid_argument(
+            "target_gpus has more GPUs than available.");
+      }
+    } else {
+      target_gpus_.resize(nDev);
+      for (int_t i = 0; i < nDev; i++)
+        target_gpus_[i] = i;
+    }
     sim_device_ = Device::GPU;
+
+    max_gpu_memory_mb_ = get_gpu_memory_mb();
 #endif
   } else {
     throw std::runtime_error(std::string("Invalid simulation device (\"") +
@@ -336,27 +351,6 @@ void Controller::set_config(const Config &config) {
   // check if runtime binding is enable
   if (config.runtime_parameter_bind_enable.has_value())
     runtime_parameter_bind_ = config.runtime_parameter_bind_enable.value();
-}
-
-void Controller::clear_config() {
-  clear_parallelization();
-  method_ = Method::automatic;
-  sim_device_ = Device::CPU;
-  sim_precision_ = Precision::Double;
-}
-
-void Controller::clear_parallelization() {
-  max_parallel_threads_ = 0;
-  max_parallel_experiments_ = 1;
-
-  parallel_experiments_ = 1;
-  parallel_nested_ = false;
-
-  num_process_per_experiment_ = 1;
-
-  explicit_parallelization_ = false;
-  max_memory_mb_ = get_system_memory_mb();
-  max_gpu_memory_mb_ = get_gpu_memory_mb();
 }
 
 void Controller::set_parallelization_experiments(
@@ -420,14 +414,9 @@ size_t Controller::get_system_memory_mb() {
 size_t Controller::get_gpu_memory_mb() {
   size_t total_physical_memory = 0;
 #ifdef AER_THRUST_GPU
-  int iDev, nDev, j;
-  if (cudaGetDeviceCount(&nDev) != cudaSuccess) {
-    cudaGetLastError();
-    nDev = 0;
-  }
-  for (iDev = 0; iDev < nDev; iDev++) {
+  for (int_t iDev = 0; iDev < target_gpus_.size(); iDev++) {
     size_t freeMem, totalMem;
-    cudaSetDevice(iDev);
+    cudaSetDevice(target_gpus_[iDev]);
     cudaMemGetInfo(&freeMem, &totalMem);
     total_physical_memory += totalMem;
   }
@@ -442,6 +431,20 @@ size_t Controller::get_gpu_memory_mb() {
 #endif
 
   return total_physical_memory >> 20;
+}
+
+std::vector<std::string> Controller::available_devices() {
+  std::vector<std::string> ret;
+
+  ret.push_back(std::string("CPU"));
+#ifdef AER_THRUST_GPU
+  ret.push_back(std::string("GPU"));
+#else
+#ifdef AER_THRUST_CPU
+  ret.push_back(std::string("Thrust"));
+#endif
+#endif
+  return ret;
 }
 
 //-------------------------------------------------------------------------
@@ -833,21 +836,21 @@ Controller::simulation_methods(const Config &config,
 Method Controller::automatic_simulation_method(
     const Config &config, const Circuit &circ,
     const Noise::NoiseModel &noise_model) const {
-  // If circuit and noise model are Clifford run on Stabilizer simulator
-  if (validate_method(Method::stabilizer, config, circ, noise_model, false)) {
-    return Method::stabilizer;
-  }
   // For noisy simulations we enable the density matrix method if
   // shots > 2 ** num_qubits. This is based on a rough estimate that
   // a single shot of the density matrix simulator is approx 2 ** nq
   // times slower than a single shot of statevector due the increased
   // dimension
-  if (noise_model.has_quantum_errors() && circ.num_qubits < 64 &&
+  if (noise_model.has_quantum_errors() && circ.num_qubits < 30 &&
       circ.shots > (1ULL << circ.num_qubits) &&
       validate_method(Method::density_matrix, config, circ, noise_model,
                       false) &&
       circ.can_sample) {
     return Method::density_matrix;
+  }
+  // If circuit and noise model are Clifford run on Stabilizer simulator
+  if (validate_method(Method::stabilizer, config, circ, noise_model, false)) {
+    return Method::stabilizer;
   }
 
   // If the special conditions for stabilizer or density matrix are

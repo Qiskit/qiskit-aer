@@ -56,6 +56,11 @@ public:
     return AerToPy::to_python(
         controller_execute<T>(circuits, noise_model, config));
   }
+
+  py::object available_devices() {
+    T controller;
+    return AerToPy::to_python(controller.available_devices());
+  }
 };
 
 template <typename T>
@@ -98,6 +103,11 @@ void bind_aer_controller(MODULE m) {
                    noise_model_native.load_from_json(noise_model);
 
                  return self.execute(circuits, noise_model_native, config);
+               });
+
+  aer_ctrl.def("available_devices",
+               [aer_ctrl](ControllerExecutor<Controller> &self) {
+                 return self.available_devices();
                });
 
   py::class_<Config> aer_config(m, "AerConfig");

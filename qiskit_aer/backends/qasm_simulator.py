@@ -365,7 +365,6 @@ class QasmSimulator(AerBackend):
             "pauli",
             "mcx_gray",
             "ecr",
-            "reset",
         ]
     )
 
@@ -389,6 +388,7 @@ class QasmSimulator(AerBackend):
             "set_statevector",
             "set_density_matrix",
             "set_stabilizer",
+            "reset",
         ]
     )
 
@@ -444,7 +444,6 @@ class QasmSimulator(AerBackend):
         # Update available methods for class
         if QasmSimulator._AVAILABLE_METHODS is None:
             QasmSimulator._AVAILABLE_METHODS = available_methods(
-                self._controller,
                 QasmSimulator._SIMULATION_METHODS,
                 QasmSimulator._SIMULATION_DEVICES,
             )

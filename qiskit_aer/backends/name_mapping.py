@@ -17,21 +17,23 @@ Qiskit Aer simulator name mapping for Target object
 from qiskit.circuit import ControlledGate, Parameter
 from qiskit.circuit.reset import Reset
 from qiskit.circuit.library import (
-    SXGate,
+    U2Gate,
+    RGate,
+    CYGate,
+    CZGate,
+    CSXGate,
+    CU3Gate,
+    CSwapGate,
+    PauliGate,
+    DiagonalGate,
+    UnitaryGate,
     MCPhaseGate,
     MCXGate,
-    RZGate,
-    RXGate,
-    U2Gate,
-    U1Gate,
-    U3Gate,
-    YGate,
-    ZGate,
-    PauliGate,
-    SwapGate,
-    RGate,
+    CRXGate,
+    CRYGate,
+    CRZGate,
+    MCU1Gate,
     MCXGrayCode,
-    RYGate,
 )
 from qiskit.circuit.controlflow import (
     IfElseOp,
@@ -41,8 +43,8 @@ from qiskit.circuit.controlflow import (
     BreakLoopOp,
     SwitchCaseOp,
 )
-from qiskit.extensions import Initialize, UnitaryGate
-from qiskit.extensions.quantum_initializer import DiagonalGate, UCGate
+from qiskit.extensions import Initialize
+from qiskit.extensions.quantum_initializer import UCGate
 from qiskit.quantum_info.operators.channel.kraus import Kraus
 from qiskit.quantum_info.operators.channel import SuperOp
 from qiskit.quantum_info.operators.channel.quantum_channel import QuantumChannel
@@ -85,7 +87,7 @@ class MCSXGate(ControlledGate):
             None,
             num_ctrl_qubits,
             ctrl_state=ctrl_state,
-            base_gate=SXGate(),
+            base_gate=CSXGate(),
         )
 
 
@@ -100,7 +102,7 @@ class MCYGate(ControlledGate):
             None,
             num_ctrl_qubits,
             ctrl_state=ctrl_state,
-            base_gate=YGate(),
+            base_gate=CYGate(),
         )
 
 
@@ -115,7 +117,7 @@ class MCZGate(ControlledGate):
             None,
             num_ctrl_qubits,
             ctrl_state=ctrl_state,
-            base_gate=ZGate(),
+            base_gate=CZGate(),
         )
 
 
@@ -130,7 +132,7 @@ class MCRXGate(ControlledGate):
             None,
             num_ctrl_qubits,
             ctrl_state=ctrl_state,
-            base_gate=RXGate(theta),
+            base_gate=CRXGate(theta),
         )
 
 
@@ -145,7 +147,7 @@ class MCRYGate(ControlledGate):
             None,
             num_ctrl_qubits,
             ctrl_state=ctrl_state,
-            base_gate=RYGate(theta),
+            base_gate=CRYGate(theta),
         )
 
 
@@ -160,7 +162,7 @@ class MCRZGate(ControlledGate):
             None,
             num_ctrl_qubits,
             ctrl_state=ctrl_state,
-            base_gate=RZGate(theta),
+            base_gate=CRZGate(theta),
         )
 
 
@@ -176,21 +178,6 @@ class MCRGate(ControlledGate):
             num_ctrl_qubits,
             ctrl_state=ctrl_state,
             base_gate=RGate(theta, phi),
-        )
-
-
-class MCU1Gate(ControlledGate):
-    """mcu1 gate"""
-
-    def __init__(self, theta, num_ctrl_qubits, ctrl_state=None):
-        super().__init__(
-            "mcu1",
-            1 + num_ctrl_qubits,
-            [theta],
-            None,
-            num_ctrl_qubits,
-            ctrl_state=ctrl_state,
-            base_gate=U1Gate(theta),
         )
 
 
@@ -220,7 +207,7 @@ class MCU3Gate(ControlledGate):
             None,
             num_ctrl_qubits,
             ctrl_state=ctrl_state,
-            base_gate=U3Gate(theta, phi, lam),
+            base_gate=CU3Gate(theta, phi, lam),
         )
 
 
@@ -235,7 +222,7 @@ class MCUGate(ControlledGate):
             None,
             num_ctrl_qubits,
             ctrl_state=ctrl_state,
-            base_gate=U3Gate(theta, phi, lam),
+            base_gate=CU3Gate(theta, phi, lam),
         )
 
 
@@ -250,33 +237,43 @@ class MCSwapGate(ControlledGate):
             None,
             num_ctrl_qubits,
             ctrl_state=ctrl_state,
-            base_gate=SwapGate(),
+            base_gate=CSwapGate(),
         )
 
 
 PHI = Parameter("phi")
 LAM = Parameter("lam")
 NAME_MAPPING = {
+    "cu2": U2Gate(PHI, LAM).control(),
+    "pauli": PauliGate,
+    "diagonal": DiagonalGate,
+    "unitary": UnitaryGate,
     "mcsx": MCSXGate,
     "mcp": MCPhaseGate,
     "mcphase": MCPhaseGate,
-    "initialize": Initialize,
-    "quantum_channel": QuantumChannel,
-    "save_expval": SaveExpectationValue,
-    "diagonal": DiagonalGate,
-    "save_amplitudes": SaveAmplitudes,
-    "roerror": ReadoutError,
-    "mcrx": MCRXGate,
-    "kraus": Kraus,
-    "save_statevector_dict": SaveStatevectorDict,
-    "mcx": MCXGate,
+    "mcu": MCUGate,
     "mcu1": MCU1Gate,
     "mcu2": MCU2Gate,
     "mcu3": MCU3Gate,
-    "save_superop": SaveSuperOp,
-    "multiplexer": UCGate,
+    "mcx": MCXGate,
     "mcy": MCYGate,
+    "mcz": MCZGate,
+    "mcr": MCRGate,
+    "mcrx": MCRXGate,
+    "mcry": MCRYGate,
+    "mcrz": MCRZGate,
+    "mcx_gray": MCXGrayCode,
+    "mcswap": MCSwapGate,
+    "multiplexer": UCGate,
+    "kraus": Kraus,
     "superop": SuperOp,
+    "initialize": Initialize,
+    "quantum_channel": QuantumChannel,
+    "save_expval": SaveExpectationValue,
+    "save_amplitudes": SaveAmplitudes,
+    "roerror": ReadoutError,
+    "save_statevector_dict": SaveStatevectorDict,
+    "save_superop": SaveSuperOp,
     "save_clifford": SaveClifford,
     "save_matrix_product_state": SaveMatrixProductState,
     "save_density_matrix": SaveDensityMatrix,
@@ -288,30 +285,20 @@ NAME_MAPPING = {
     "break_loop": BreakLoopOp,
     "continue_loop": ContinueLoopOp,
     "save_statevector": SaveStatevector,
-    "mcu": MCUGate,
     "set_density_matrix": SetDensityMatrix,
     "qerror_loc": QuantumErrorLocation,
-    "unitary": UnitaryGate,
-    "mcz": MCZGate,
-    "pauli": PauliGate,
     "set_unitary": SetUnitary,
     "save_state": SaveState,
-    "mcswap": MCSwapGate,
     "set_matrix_product_state": SetMatrixProductState,
     "save_unitary": SaveUnitary,
-    "mcr": MCRGate,
-    "mcx_gray": MCXGrayCode,
-    "mcrz": MCRZGate,
     "set_superop": SetSuperOp,
     "save_expval_var": SaveExpectationValueVariance,
     "save_stabilizer": SaveStabilizer,
     "set_statevector": SetStatevector,
-    "mcry": MCRYGate,
     "set_stabilizer": SetStabilizer,
     "save_amplitudes_sq": SaveAmplitudesSquared,
     "save_probabilities_dict": SaveProbabilitiesDict,
     "save_probs_ket": SaveProbabilitiesDict,
     "save_probs": SaveProbabilities,
-    "cu2": U2Gate(PHI, LAM).control(),
     "reset": Reset(),
 }

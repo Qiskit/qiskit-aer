@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2022.
+# (C) Copyright IBM 2022, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -23,7 +23,6 @@ from ddt import data, ddt
 from qiskit.circuit import Parameter, QuantumCircuit
 from qiskit.circuit.library import RealAmplitudes
 from qiskit.exceptions import QiskitError
-from qiskit.opflow import PauliSumOp
 from qiskit.primitives import EstimatorResult
 from qiskit.quantum_info import Operator, SparsePauliOp
 
@@ -53,19 +52,6 @@ class TestEstimator(QiskitAerTestCase):
     def test_estimator(self, abelian_grouping):
         """test for a simple use case"""
         lst = [("XX", 1), ("YY", 2), ("ZZ", 3)]
-        with self.assertWarns(DeprecationWarning):
-            with self.subTest("PauliSumOp"):
-                observable = PauliSumOp.from_list(lst)
-                ansatz = RealAmplitudes(num_qubits=2, reps=2)
-                est = Estimator(
-                    backend_options={"method": "statevector"}, abelian_grouping=abelian_grouping
-                )
-                result = est.run(
-                    ansatz, observable, parameter_values=[[0, 1, 1, 2, 3, 5]], seed=15
-                ).result()
-                self.assertIsInstance(result, EstimatorResult)
-                np.testing.assert_allclose(result.values, [1.728515625])
-
         with self.subTest("SparsePauliOp"):
             observable = SparsePauliOp.from_list(lst)
             ansatz = RealAmplitudes(num_qubits=2, reps=2)
@@ -287,8 +273,7 @@ class TestEstimator(QiskitAerTestCase):
         """test with shots option."""
         # Note: abelian_gropuing is ignored when approximation is True as documented.
         # The purpose of this test is to make sure the results remain the same.
-        with self.assertWarns(DeprecationWarning):
-            est = Estimator(approximation=True, abelian_grouping=abelian_grouping)
+        est = Estimator(approximation=True, abelian_grouping=abelian_grouping)
         result = est.run(
             self.ansatz, self.observable, parameter_values=[[0, 1, 1, 2, 3, 5]], shots=1024, seed=15
         ).result()
@@ -332,8 +317,7 @@ class TestEstimator(QiskitAerTestCase):
         qc2.ry(np.pi / 2 * param, 0)
         qc2.measure_all()
 
-        with self.assertWarns(DeprecationWarning):
-            estimator = Estimator(approximation=True)
+        estimator = Estimator(approximation=True)
         job = estimator.run([qc1, qc2, qc1, qc1, qc2], ["Z"] * 5, [[], [1], [], [], [1]])
         result = job.result()
         np.testing.assert_allclose(result.values, [1, 0, 1, 1, 0], atol=1e-10)
