@@ -580,7 +580,7 @@ void BatchShotsExecutor<state_t>::apply_ops_batched_shots_for_group(
       }
     } else {
       if (!op->expr && apply_batched_op(istate, *op, result_it, rng,
-                                         final_ops && (op + 1 == last))) {
+                                        final_ops && (op + 1 == last))) {
         continue;
       }
       // call apply_op for each state
