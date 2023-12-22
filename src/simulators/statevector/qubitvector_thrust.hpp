@@ -819,17 +819,17 @@ void QubitVectorThrust<data_t>::initialize_component(
     std::sort(qubits_sorted.begin(), qubits_sorted.end());
 
     auto qubits_param = qubits;
-    int i;
+    uint_t i;
     for (i = 0; i < qubits.size(); i++)
       qubits_param.push_back(qubits_sorted[i]);
 
-    int nbit = chunk_.container()->matrix_bits();
+    uint_t nbit = chunk_.container()->matrix_bits();
     if (nbit > qubits.size())
       nbit = qubits.size();
 
     uint_t dim = 1ull << qubits.size();
     uint_t sub_dim = 1ull << nbit;
-    for (uint_t i = 0; i < dim; i += sub_dim) {
+    for (i = 0; i < dim; i += sub_dim) {
       cvector_t<double> state(sub_dim);
       for (uint_t j = 0; j < sub_dim; j++)
         state[j] = state0[dim - sub_dim - i + j];
@@ -872,7 +872,7 @@ uint_t QubitVectorThrust<data_t>::chunk_setup(int chunk_bits, int num_qubits,
 
     if (chunk_manager_->chunk_bits() == chunk_bits &&
         chunk_manager_->num_qubits() == num_qubits) {
-      bool mapped = chunk_manager_->MapChunk(chunk_, 0);
+      chunk_manager_->MapChunk(chunk_, 0);
       chunk_.set_chunk_index(chunk_index_);
       return num_local_chunks;
     }
@@ -903,8 +903,8 @@ uint_t QubitVectorThrust<data_t>::chunk_setup(int chunk_bits, int num_qubits,
   recv_chunk_.unmap();
 
   // mapping/setting chunk
-  bool mapped = chunk_manager_->MapChunk(chunk_, 0);
   chunk_.set_chunk_index(chunk_index_);
+  chunk_manager_->MapChunk(chunk_, 0);
 
   return num_chunks_allocated;
 }
@@ -932,7 +932,7 @@ QubitVectorThrust<data_t>::chunk_setup(const QubitVectorThrust<data_t> &base,
 
   // mapping/setting chunk
   chunk_manager_ = base.chunk_manager_;
-  bool mapped = chunk_manager_->MapChunk(chunk_, 0);
+  chunk_manager_->MapChunk(chunk_, 0);
 
   return 0;
 }
@@ -1260,7 +1260,7 @@ void QubitVectorThrust<data_t>::initialize_from_vector(const list_t &statevec) {
   int_t i;
 #pragma omp parallel for if (num_qubits_ > omp_threshold_ && omp_threads_ > 1) \
     num_threads(omp_threads_)
-  for (i = 0; i < data_size_; i++) {
+  for (i = 0; i < (int_t)data_size_; i++) {
     tmp[i] = statevec[i];
   }
   initialize_from_data(&tmp[0], tmp.size());
@@ -1322,7 +1322,7 @@ void QubitVectorThrust<data_t>::initialize_creg(
     if (chunk_.pos() == 0) {
       chunk_.container()->allocate_creg(num_cmem_bits_, num_creg_bits_);
 
-      int_t i;
+      uint_t i;
       for (i = 0; i < num_register; i++) {
         if (register_hex[register_hex.size() - 1 - i] == '0') {
           store_cregister(i, 0);
@@ -1528,7 +1528,6 @@ void QubitVectorThrust<data_t>::apply_multiplexer(
   for (const auto &q : control_qubits) {
     qubits.push_back(q);
   }
-  size_t N = qubits.size();
 
   cvector_t<double> matMP(DIM * DIM, 0.0);
   uint_t b, i, j;
@@ -1627,7 +1626,7 @@ void QubitVectorThrust<data_t>::apply_mcx(const reg_t &qubits) {
     return;
 
   if (register_blocking_) {
-    int i;
+    uint_t i;
     uint_t mask = 0;
     for (i = 0; i < qubits.size() - 1; i++) {
       mask |= (1ull << qubits[i]);
@@ -1645,7 +1644,7 @@ void QubitVectorThrust<data_t>::apply_mcy(const reg_t &qubits) {
     return;
 
   if (register_blocking_) {
-    int i;
+    uint_t i;
     uint_t mask = 0;
     for (i = 0; i < qubits.size() - 1; i++) {
       mask |= (1ull << qubits[i]);
@@ -1678,7 +1677,7 @@ template <typename data_t>
 void QubitVectorThrust<data_t>::apply_chunk_swap(const reg_t &qubits,
                                                  QubitVectorThrust<data_t> &src,
                                                  bool write_back) {
-  int q0, q1, t;
+  uint_t q0, q1, t;
 
   q0 = qubits[0];
   q1 = qubits[1];
@@ -1759,7 +1758,7 @@ void QubitVectorThrust<data_t>::apply_chunk_swap(const reg_t &qubits,
 template <typename data_t>
 void QubitVectorThrust<data_t>::apply_chunk_swap(const reg_t &qubits,
                                                  uint_t remote_chunk_index) {
-  int q0, q1, t;
+  uint_t q0, q1, t;
 
   q0 = qubits[qubits.size() - 2];
   q1 = qubits[qubits.size() - 1];
@@ -1840,7 +1839,7 @@ void QubitVectorThrust<data_t>::apply_mcphase(
     return;
 
   if (register_blocking_) {
-    int i;
+    uint_t i;
     uint_t mask = 0;
     for (i = 0; i < qubits.size() - 1; i++) {
       mask |= (1ull << qubits[i]);
@@ -1875,7 +1874,7 @@ void QubitVectorThrust<data_t>::apply_mcu(const reg_t &qubits,
       return;
     } else {
       if (register_blocking_) {
-        int i;
+        uint_t i;
         uint_t mask = 0;
         for (i = 0; i < qubits.size() - 1; i++) {
           mask |= (1ull << qubits[i]);
@@ -1897,7 +1896,7 @@ void QubitVectorThrust<data_t>::apply_mcu(const reg_t &qubits,
       return;
     } else {
       if (register_blocking_) {
-        int i;
+        uint_t i;
         uint_t mask = 0;
         for (i = 0; i < qubits.size() - 1; i++) {
           mask |= (1ull << qubits[i]);
@@ -2252,7 +2251,7 @@ template <typename data_t>
 void QubitVectorThrust<data_t>::apply_batched_measure(
     const reg_t &qubits, std::vector<RngEngine> &rng, const reg_t &cmemory,
     const reg_t &cregs) {
-  const int_t DIM = 1 << qubits.size();
+  const uint_t DIM = 1 << qubits.size();
   uint_t i, count = 1;
   if (enable_batch_) {
     if (chunk_.pos() != 0) {
@@ -2386,7 +2385,7 @@ public:
 template <typename data_t>
 void QubitVectorThrust<data_t>::apply_batched_reset(
     const reg_t &qubits, std::vector<RngEngine> &rng) {
-  const int_t DIM = 1 << qubits.size();
+  const uint_t DIM = 1 << qubits.size();
   uint_t i, count = 1;
   if (enable_batch_) {
     if (chunk_.pos() != 0) {
@@ -2547,7 +2546,6 @@ public:
     uint_t *mask;
     uint_t val = 1;
     n64 = (this->num_creg_bits_ + 63) >> 6;
-    int j;
 
     mask = this->params_;
 
@@ -2686,7 +2684,7 @@ void QubitVectorThrust<data_t>::batched_expval_pauli(
     std::vector<double> &val, const reg_t &qubits, const std::string &pauli,
     bool variance, std::complex<double> param, bool last,
     const complex_t initial_phase) const {
-  uint_t i, count = 1;
+  uint_t count = 1;
   if (enable_batch_) {
     if (chunk_.pos() != 0) {
       return; // first chunk execute all in batch
@@ -2898,12 +2896,11 @@ void QubitVectorThrust<data_t>::apply_batched_pauli_ops(
   }
   uint_t count = ops.size();
   int num_inner_threads = omp_get_max_threads() / num_threads_per_group_;
-  int_t i;
 
   reg_t params(4 * count);
 
   auto count_paulis = [this, &params, ops](int_t i) {
-    int_t j;
+    uint_t j;
     uint_t x_max = 0;
     uint_t num_y = 0;
     uint_t x_mask = 0;
@@ -2975,7 +2972,6 @@ public:
     thrust::complex<data_t> q0, q1;
     thrust::complex<data_t> *vec0;
     thrust::complex<data_t> *vec1;
-    double p, p0, p1, rnd;
 
     uint_t iChunk = i >> this->chunk_bits_;
     double scale =
@@ -3012,7 +3008,7 @@ public:
   __host__ __device__ void
   run_with_cache(uint_t _tid, uint_t _idx,
                  thrust::complex<data_t> *_cache) const {
-    uint_t j, threadID;
+    uint_t j;
     thrust::complex<data_t> q, r;
     thrust::complex<double> m;
     uint_t mat_size, irow;
@@ -3066,7 +3062,6 @@ public:
   __host__ __device__ void operator()(const uint_t &i) const {
     uint_t iChunk = i;
     double p0, p1, rnd;
-    bool mult = false;
 
     p0 = reduce_[iChunk * reduce_buf_size_];
     probs_[iChunk + QV_RESET_CURRENT_PROB * prob_buf_size_] = p0;
@@ -3103,7 +3098,6 @@ void QubitVectorThrust<data_t>::apply_batched_kraus(
     std::vector<RngEngine> &rng) {
   const size_t N = qubits.size();
   uint_t i, count;
-  double ret;
 
   count = chunk_.container()->num_chunks();
 
@@ -3266,7 +3260,7 @@ void QubitVectorThrust<data_t>::apply_bfunc(const Operations::Op &op) {
     return; // first chunk execute all in batch
 
   reg_t params;
-  int_t i, n64, n, iparam;
+  uint_t i, n64, n, iparam;
 
   // registers to be updated
   for (i = 0; i < op.registers.size(); i++)
@@ -3377,7 +3371,7 @@ void QubitVectorThrust<data_t>::apply_roerror(const Operations::Op &op,
 
   reg_t params;
   std::vector<double> probs;
-  int_t i, j, offset;
+  uint_t i, offset;
 
   for (i = 0; i < op.memory.size(); i++)
     params.push_back(op.memory[i]);

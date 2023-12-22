@@ -67,7 +67,7 @@ public:
       }
     } else {
       // loop for runtime parameter binding
-      for (int_t p = 0; p < num_params_; p++) {
+      for (uint_t p = 0; p < num_params_; p++) {
         std::vector<op_t> ops;
         ops.reserve(fusioned_ops.size());
         for (auto &op : fusioned_ops) {
@@ -449,18 +449,18 @@ bool NQubitFusion<N>::aggregate_operations(oplist_t &ops,
   std::vector<std::pair<uint_t, std::vector<op_t>>> targets;
   bool fused = false;
 
-  for (uint_t op_idx = fusion_start; op_idx < fusion_end; ++op_idx) {
+  for (int op_idx = fusion_start; op_idx < fusion_end; ++op_idx) {
     // skip operations to be ignored
     if (!method.can_apply(ops[op_idx], max_fused_qubits) ||
         ops[op_idx].type == optype_t::nop)
       continue;
 
     // 1. find a N-qubit operation
-    if (ops[op_idx].qubits.size() != N)
+    if (ops[op_idx].qubits.size() != N) {
       continue;
+    }
 
-    std::vector<uint_t> fusing_op_idxs = {op_idx};
-
+    std::vector<uint_t> fusing_op_idxs = {(uint_t)op_idx};
     std::vector<uint_t> fusing_qubits;
     fusing_qubits.insert(fusing_qubits.end(), ops[op_idx].qubits.begin(),
                          ops[op_idx].qubits.end());
@@ -895,14 +895,14 @@ void Fusion::optimize_circuit(Circuit &circ, Noise::NoiseModel &noise,
 
       if (parallelization_ > 1) {
 #pragma omp parallel for num_threads(parallelization_)
-        for (int_t i = 0; i < parallelization_; i++) {
+        for (int_t i = 0; i < (int_t)parallelization_; i++) {
           int_t start = unit * i;
           int_t end = std::min(start + unit, (int_t)circ.ops.size());
           optimize_circuit(circ, noise, allowed_opset, start, end, fuser,
                            method);
         }
       } else {
-        for (int_t i = 0; i < parallelization_; i++) {
+        for (uint_t i = 0; i < parallelization_; i++) {
           int_t start = unit * i;
           int_t end = std::min(start + unit, (int_t)circ.ops.size());
           optimize_circuit(circ, noise, allowed_opset, start, end, fuser,

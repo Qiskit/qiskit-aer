@@ -212,13 +212,11 @@ UnitaryMatrixThrust<data_t>::copy_to_matrix() const {
 
   cvector_t<data_t> qreg = BaseVector::vector();
 
-  int_t i;
-  uint_t irow, icol;
-#pragma omp parallel for private(                                              \
-    i, irow, icol) if (BaseVector::num_qubits_ > BaseVector::omp_threshold_ && \
-                       BaseVector::omp_threads_ > 1)                           \
+#pragma omp parallel for if (BaseVector::num_qubits_ >                         \
+                                 BaseVector::omp_threshold_ &&                 \
+                             BaseVector::omp_threads_ > 1)                     \
     num_threads(BaseVector::omp_threads_)
-  for (i = 0; i < csize; i++) {
+  for (int_t i = 0; i < (int_t)csize; i++) {
     ret[i] = qreg[i];
   }
   return ret;

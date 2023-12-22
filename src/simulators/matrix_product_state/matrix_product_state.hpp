@@ -743,7 +743,7 @@ void State::apply_measure(const reg_t &qubits, const reg_t &cmemory,
                           const reg_t &cregister, RngEngine &rng) {
   rvector_t rands;
   rands.reserve(qubits.size());
-  for (int_t i = 0; i < qubits.size(); ++i)
+  for (uint_t i = 0; i < qubits.size(); ++i)
     rands.push_back(rng.rand(0., 1.));
   reg_t outcome = qreg_.apply_measure(qubits, rands);
   creg().store_measure(outcome, cmemory, cregister);
@@ -777,10 +777,10 @@ State::sample_measure_using_apply_measure(const reg_t &qubits, uint_t shots,
   all_samples.resize(shots);
   std::vector<rvector_t> rnds_list;
   rnds_list.reserve(shots);
-  for (int_t i = 0; i < shots; ++i) {
+  for (uint_t i = 0; i < shots; ++i) {
     rvector_t rands;
     rands.reserve(qubits.size());
-    for (int_t j = 0; j < qubits.size(); ++j)
+    for (uint_t j = 0; j < qubits.size(); ++j)
       rands.push_back(rng.rand(0., 1.));
     rnds_list.push_back(rands);
   }

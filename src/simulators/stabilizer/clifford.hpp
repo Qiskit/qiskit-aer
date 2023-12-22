@@ -431,7 +431,7 @@ bool Clifford::measure_and_update(const uint64_t qubit,
     auto measure_non_determinisitic_func = [this, rS, row,
                                             qubit](AER::int_t i) {
       uint64_t row_mask = ~0ull;
-      if ((row >> destabilizer_phases_.BLOCK_BITS) == i)
+      if ((row >> destabilizer_phases_.BLOCK_BITS) == (uint_t)i)
         row_mask ^= (1ull << (row & destabilizer_phases_.BLOCK_MASK));
 
       uint64_t d_mask = row_mask & destabilizer_table_[qubit].X(i);
