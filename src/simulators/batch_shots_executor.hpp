@@ -154,7 +154,6 @@ void BatchShotsExecutor<state_t>::run_circuit_with_sampling(
     return Executor<state_t>::run_circuit_with_sampling(circ, config, init_rng,
                                                         result_it);
   }
-
   Noise::NoiseModel dummy_noise;
   state_t dummy_state;
   int_t i;
@@ -580,8 +579,8 @@ void BatchShotsExecutor<state_t>::apply_ops_batched_shots_for_group(
         apply_batched_noise_ops(i_group, noise_ops, result_it, rng);
       }
     } else {
-      if (!op->expr && !apply_batched_op(istate, *op, result_it, rng,
-                                         final_ops && (op + 1 == last))) {
+      if (!op->expr && apply_batched_op(istate, *op, result_it, rng,
+                                        final_ops && (op + 1 == last))) {
         continue;
       }
       // call apply_op for each state
