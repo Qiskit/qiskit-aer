@@ -386,7 +386,7 @@ void NoiseModel::enable_superop_method(int num_threads) {
     exs.resize(std::max(num_threads, 1));
 #pragma omp parallel for if (num_threads > 1 && quantum_errors_.size() > 10)   \
     num_threads(num_threads)
-    for (int i = 0; i < quantum_errors_.size(); i++) {
+    for (int i = 0; i < (int_t)quantum_errors_.size(); i++) {
       try {
         quantum_errors_[i].compute_superoperator();
       } catch (...) {
@@ -406,7 +406,7 @@ void NoiseModel::enable_kraus_method(int num_threads) {
     exs.resize(std::max(num_threads, 1));
 #pragma omp parallel for if (num_threads > 1 && quantum_errors_.size() > 10)   \
     num_threads(num_threads)
-    for (int i = 0; i < quantum_errors_.size(); i++) {
+    for (int i = 0; i < (int_t)quantum_errors_.size(); i++) {
       try {
         quantum_errors_[i].compute_kraus();
       } catch (...) {
@@ -851,6 +851,8 @@ cmatrix_t NoiseModel::op2superop(const Operations::Op &op) const {
       case ParamGate::cu:
         return Linalg::SMatrix::cu(op.params[0], op.params[1], op.params[2],
                                    op.params[3]);
+      default:
+        break;
       }
     } else {
       // Check if we can convert this gate to a standard superoperator matrix
@@ -897,6 +899,8 @@ cmatrix_t NoiseModel::op2unitary(const Operations::Op &op) const {
         return Linalg::Matrix::rzx(op.params[0]);
       case ParamGate::cp:
         return Linalg::Matrix::cphase(op.params[0]);
+      default:
+        break;
       }
     } else {
       // Check if we can convert this gate to a standard superoperator matrix

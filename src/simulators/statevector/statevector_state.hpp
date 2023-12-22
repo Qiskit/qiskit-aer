@@ -402,7 +402,6 @@ const stringmap_t<Gates> State<statevec_t>::gateset_(
 
 template <class statevec_t>
 void State<statevec_t>::initialize_qreg(uint_t num_qubits) {
-  int_t i;
   initialize_omp();
 
   BaseState::qreg_.set_num_qubits(num_qubits);
@@ -426,8 +425,6 @@ void State<statevec_t>::initialize_statevector(uint_t num_qubits,
 
 template <class statevec_t>
 void State<statevec_t>::initialize_omp() {
-  uint_t i;
-
   BaseState::qreg_.set_omp_threshold(omp_qubit_threshold_);
   if (BaseState::threads_ > 0) // set allowed OMP threads in qubitvector
     BaseState::qreg_.set_omp_threads(BaseState::threads_);
@@ -701,7 +698,7 @@ cmatrix_t State<statevec_t>::vec2density(const reg_t &qubits, const T &vec) {
   cmatrix_t densmat(DIM, DIM);
   if ((N == BaseState::qreg_.num_qubits()) && (qubits == qubits_sorted)) {
     const int_t mask = QV::MASKS[N];
-#pragma omp parallel for if (2 * N > omp_qubit_threshold_ &&                   \
+#pragma omp parallel for if (2 * N > (size_t)omp_qubit_threshold_ &&           \
                              BaseState::threads_ > 1)                          \
     num_threads(BaseState::threads_)
     for (int_t rowcol = 0; rowcol < int_t(DIM * DIM); ++rowcol) {
@@ -750,7 +747,7 @@ void State<statevec_t>::apply_gate(const Operations::Op &op) {
     }
     if (qubits_out.size() > 0) {
       uint_t mask = 0;
-      for (int i = 0; i < qubits_out.size(); i++) {
+      for (uint_t i = 0; i < qubits_out.size(); i++) {
         mask |= (1ull << (qubits_out[i] - BaseState::qreg_.num_qubits()));
       }
       if ((BaseState::qreg_.chunk_index() & mask) == mask) {
@@ -1026,7 +1023,7 @@ template <class statevec_t>
 std::vector<reg_t> State<statevec_t>::sample_measure(const reg_t &qubits,
                                                      uint_t shots,
                                                      RngEngine &rng) {
-  int_t i, j;
+  uint_t i;
   // Generate flat register for storing
   std::vector<double> rnds;
   rnds.reserve(shots);
@@ -1066,9 +1063,9 @@ void State<statevec_t>::apply_initialize(const reg_t &qubits,
     auto apply_global_phase = [&tmp, &params_in, this](int_t i) {
       tmp[i] = params_in[i] * BaseState::global_phase_;
     };
-    Utils::apply_omp_parallel_for((qubits.size() > omp_qubit_threshold_), 0,
-                                  params_in.size(), apply_global_phase,
-                                  BaseState::threads_);
+    Utils::apply_omp_parallel_for(
+        (qubits.size() > (uint_t)omp_qubit_threshold_), 0, params_in.size(),
+        apply_global_phase, BaseState::threads_);
   }
   const cvector_t &params = tmp.empty() ? params_in : tmp;
   if (qubits.size() == BaseState::qreg_.num_qubits()) {

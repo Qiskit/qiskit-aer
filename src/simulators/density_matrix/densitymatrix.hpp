@@ -242,13 +242,13 @@ void DensityMatrix<data_t>::initialize_from_vector(list_t &&vec) {
 
 template <typename data_t>
 void DensityMatrix<data_t>::transpose() {
-  const size_t rows = BaseMatrix::num_rows();
+  const int_t rows = BaseMatrix::num_rows();
 #pragma omp parallel for if (BaseVector::num_qubits_ >                         \
                                  BaseVector::omp_threshold_ &&                 \
                              BaseVector::omp_threads_ > 1)                     \
     num_threads(BaseVector::omp_threads_)
   for (int_t i = 0; i < rows; i++) {
-    for (int_t j = i + 1; j < rows; j++) {
+    for (uint_t j = i + 1; j < rows; j++) {
       const uint_t pos_a = i * rows + j;
       const uint_t pos_b = j * rows + i;
       const auto tmp = BaseVector::data_[pos_a];
@@ -483,7 +483,7 @@ DensityMatrix<data_t>::expval_pauli(const reg_t &qubits,
   auto lambda = [&](const int_t i, double &val_re, double &val_im) -> void {
     (void)val_im; // unused
     auto idx_vec = ((i << 1) & mask_u) | (i & mask_l);
-    auto idx_mat = idx_vec ^ x_mask + nrows * idx_vec;
+    auto idx_mat = (idx_vec ^ x_mask) + nrows * idx_vec;
     // Since rho is hermitian rho[i, j] + rho[j, i] = 2 real(rho[i, j])
     auto val = 2 * std::real(phase * BaseVector::data_[idx_mat]);
     if (z_mask && (AER::Utils::popcount(idx_vec & z_mask) & 1)) {
@@ -511,7 +511,7 @@ double DensityMatrix<data_t>::expval_pauli_non_diagonal_chunk(
 
   auto lambda = [&](const int_t i, double &val_re, double &val_im) -> void {
     (void)val_im; // unused
-    auto idx_mat = i ^ x_mask + nrows * i;
+    auto idx_mat = (i ^ x_mask) + nrows * i;
     auto val = std::real(phase * BaseVector::data_[idx_mat]);
     if (z_mask && (AER::Utils::popcount(i & z_mask) & 1)) {
       val = -val;

@@ -155,12 +155,12 @@ Qobj::Qobj(const inputdata_t &input) {
             // negative position is for global phase
             param_circuit->global_phase_angle = params.second[j];
           } else {
-            if (instr_pos >= num_instr) {
+            if ((uint_t)instr_pos >= num_instr) {
               throw std::invalid_argument(
                   R"(Invalid parameterized qobj: instruction position out of range)");
             }
             auto &op = param_circuit->ops[instr_pos];
-            if (param_pos >= op.params.size()) {
+            if ((uint_t)param_pos >= op.params.size()) {
               throw std::invalid_argument(
                   R"(Invalid parameterized qobj: instruction param position out of range)");
             }
