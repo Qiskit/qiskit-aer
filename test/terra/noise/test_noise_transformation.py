@@ -19,9 +19,8 @@ import unittest
 import numpy
 
 from qiskit.circuit import Reset
-from qiskit.circuit.library.standard_gates import IGate
-from qiskit.circuit.library.standard_gates import XGate, YGate, ZGate, HGate, SGate
-from qiskit.extensions import UnitaryGate
+from qiskit.circuit.library.standard_gates import IGate, XGate, YGate, ZGate, HGate, SGate
+from qiskit.circuit.library.generalized_gates import UnitaryGate
 from qiskit.quantum_info.operators.channel import Kraus
 from qiskit.quantum_info.random import random_unitary
 from qiskit_aer.noise import NoiseModel
