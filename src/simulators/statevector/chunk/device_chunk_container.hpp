@@ -220,7 +220,7 @@ public:
   void allocate_creg(uint_t num_mem, uint_t num_reg);
   int measured_cbit(uint_t iChunk, int qubit) {
     uint_t n64, i64, ibit;
-    if (qubit >= this->num_creg_bits_)
+    if ((uint_t)qubit >= this->num_creg_bits_)
       return -1;
     n64 = (this->num_creg_bits_ + 63) >> 6;
     i64 = qubit >> 6;
@@ -324,7 +324,6 @@ uint_t DeviceChunkContainer<data_t>::Allocate(int idev, int chunk_bits,
                                               bool density_matrix) {
   uint_t nc = chunks;
   uint_t i;
-  int mat_bits;
 
   this->chunk_bits_ = chunk_bits;
   this->num_qubits_ = num_qubits;
@@ -359,13 +358,10 @@ uint_t DeviceChunkContainer<data_t>::Allocate(int idev, int chunk_bits,
 
   if (multi_shots) { // mult-shot parallelization for small qubits
     multi_shots_ = true;
-    mat_bits = AER_DEFAULT_MATRIX_BITS;
     nc = chunks;
     num_matrices_ = chunks;
   } else {
     multi_shots_ = false;
-
-    mat_bits = AER_DEFAULT_MATRIX_BITS;
     num_matrices_ = 1;
     nc = chunks;
   }
@@ -519,7 +515,7 @@ void DeviceChunkContainer<data_t>::calculate_matrix_buffer_size(int bits,
     if (shots > AER_MAX_SAMPLING_SHOTS)
       shots = AER_MAX_SAMPLING_SHOTS;
     uint_t b = this->matrix_bits_;
-    while ((1ull << (b * 2)) < shots) {
+    while ((1ull << (b * 2)) < (uint_t)shots) {
       b++;
     }
     this->matrix_bits_ = b;
@@ -545,7 +541,7 @@ void DeviceChunkContainer<data_t>::calculate_matrix_buffer_size(int bits,
   }
   params_buffer_size_ = size;
 
-  if (shots > 1 && params_buffer_size_ < shots) {
+  if (shots > 1 && params_buffer_size_ < (uint_t)shots) {
     params_buffer_size_ = shots;
   }
 }
@@ -553,10 +549,9 @@ void DeviceChunkContainer<data_t>::calculate_matrix_buffer_size(int bits,
 template <typename data_t>
 void DeviceChunkContainer<data_t>::ResizeMatrixBuffers(int bits,
                                                        int max_shots) {
-  uint_t size;
   uint_t n = num_matrices_ + this->num_buffers_;
 
-  if (bits != this->matrix_bits_) {
+  if ((uint_t)bits != this->matrix_bits_) {
     calculate_matrix_buffer_size(bits, max_shots);
   }
 
@@ -941,7 +936,7 @@ void DeviceChunkContainer<data_t>::set_blocked_qubits(uint_t iChunk,
   auto qubits_sorted = qubits;
   std::sort(qubits_sorted.begin(), qubits_sorted.end());
 
-  int i;
+  uint_t i;
   for (i = 0; i < qubits.size(); i++) {
     blocked_qubits_holder_[iBlock * QV_MAX_REGISTERS + i] = qubits_sorted[i];
   }
@@ -1010,8 +1005,7 @@ void DeviceChunkContainer<data_t>::queue_blocked_gate(
   }
 
   cvector_t<double> mat(4, 0.0);
-  int i;
-  uint_t idx, idxParam, iBlock;
+  uint_t iBlock;
   if (iChunk >= this->num_chunks_) { // for buffer chunks
     iBlock = num_matrices_ + iChunk - this->num_chunks_;
   } else {
@@ -1028,7 +1022,7 @@ void DeviceChunkContainer<data_t>::queue_blocked_gate(
   params.mask_ = mask;
   params.gate_ = gate;
   params.qubit_ = 0;
-  for (i = 0; i < num_blocked_qubits_[iBlock]; i++) {
+  for (uint_t i = 0; i < num_blocked_qubits_[iBlock]; i++) {
     if (blocked_qubits_holder_[iBlock * QV_MAX_REGISTERS + i] == qubit) {
       params.qubit_ = i;
       break;
@@ -1408,8 +1402,8 @@ void DeviceChunkContainer<data_t>::copy_reduce_buffer(std::vector<double> &ret,
                  count * reduce_buffer_size_, tmp.begin());
 #endif
 
-  for (int_t i = 0; i < count; i++) {
-    for (int_t j = 0; j < num_val; j++)
+  for (uint_t i = 0; i < count; i++) {
+    for (uint_t j = 0; j < num_val; j++)
       ret[i * num_val + j] = tmp[i * reduce_buffer_size_ + j];
   }
 }

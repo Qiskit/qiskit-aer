@@ -255,7 +255,7 @@ void State::set_config(const Config &config) {
 }
 
 bool State::validate_parameters(const std::vector<Operations::Op> &ops) const {
-  for (int_t i = 0; i < ops.size(); i++) {
+  for (uint_t i = 0; i < ops.size(); i++) {
     if (ops[i].type == OpType::gate) {
       // check parameter of R gates
       if (ops[i].name == "rx" || ops[i].name == "ry" || ops[i].name == "rz") {
@@ -417,16 +417,14 @@ void State::apply_gate(const Operations::Op &op) {
   case Gates::ry:
     pi2 = (int_t)std::round(std::real(op.params[0]) * 2.0 / M_PI) & 3;
     if (pi2 == 1) {
-      // HX
-      BaseState::qreg_.append_x(op.qubits[0]);
       BaseState::qreg_.append_h(op.qubits[0]);
+      BaseState::qreg_.append_x(op.qubits[0]);
     } else if (pi2 == 2) {
       // Y
       BaseState::qreg_.append_y(op.qubits[0]);
     } else if (pi2 == 3) {
-      // Hdg
-      BaseState::qreg_.append_h(op.qubits[0]);
       BaseState::qreg_.append_x(op.qubits[0]);
+      BaseState::qreg_.append_h(op.qubits[0]);
     }
     break;
   case Gates::rz:
@@ -641,7 +639,7 @@ template <typename T>
 void State::get_probabilities_auxiliary(const reg_t &qubits,
                                         std::string outcome,
                                         double outcome_prob, T &probs) {
-  uint_t qubit_for_branching = -1;
+  int_t qubit_for_branching = -1;
   for (uint_t i = 0; i < qubits.size(); ++i) {
     uint_t qubit = qubits[qubits.size() - i - 1];
     if (outcome[i] == 'X') {
@@ -692,7 +690,7 @@ void State::get_probability_helper(const reg_t &qubits,
                                    const std::string &outcome,
                                    std::string &outcome_carry,
                                    double &prob_carry) {
-  uint_t qubit_for_branching = -1;
+  int_t qubit_for_branching = -1;
   for (uint_t i = 0; i < qubits.size(); ++i) {
     uint_t qubit = qubits[qubits.size() - i - 1];
     if (outcome_carry[i] == 'X') {

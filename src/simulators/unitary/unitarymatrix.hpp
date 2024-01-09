@@ -237,7 +237,6 @@ void UnitaryMatrix<data_t>::initialize() {
   // Zero the underlying vector
   BaseVector::zero();
   // Set to be identity matrix
-  const int_t nrows = rows_; // end for k loop
   auto initialize_proc = [this](int_t i) {
     BaseVector::data_[i * (rows_ + 1)] = 1.0;
   };
@@ -261,7 +260,7 @@ void UnitaryMatrix<data_t>::initialize_from_matrix(
         ").");
   }
   auto initialize_proc = [this, &mat](int_t row) {
-    for (int_t col = 0; col < rows_; ++col) {
+    for (uint_t col = 0; col < rows_; ++col) {
       BaseVector::data_[row + rows_ * col] = mat(row, col);
     }
   };

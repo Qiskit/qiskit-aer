@@ -100,7 +100,7 @@ void BatchConverter::optimize_circuit(Circuit &circ, Noise::NoiseModel &noise,
                                       const opset_t &allowed_opset,
                                       ExperimentResult &result) const {
   // convert operations for batch shots execution
-  for (int_t i = 0; i < circ.ops.size(); i++) {
+  for (uint_t i = 0; i < circ.ops.size(); i++) {
     if (circ.ops[i].has_bind_params) {
       if (circ.ops[i].type == Operations::OpType::gate) {
         gate_to_matrix(circ.ops[i], circ.num_bind_params);
@@ -108,8 +108,8 @@ void BatchConverter::optimize_circuit(Circuit &circ, Noise::NoiseModel &noise,
         // convert matrix to cvector_t in params
         uint_t matrix_size = circ.ops[i].mats[0].size();
         circ.ops[i].params.resize(matrix_size * circ.num_bind_params);
-        for (int_t j = 0; j < circ.num_bind_params; j++) {
-          for (int_t k = 0; k < matrix_size; k++)
+        for (uint_t j = 0; j < circ.num_bind_params; j++) {
+          for (uint_t k = 0; k < matrix_size; k++)
             circ.ops[i].params[j * matrix_size + k] = circ.ops[i].mats[j][k];
         }
         circ.ops[i].mats.clear();
@@ -120,7 +120,7 @@ void BatchConverter::optimize_circuit(Circuit &circ, Noise::NoiseModel &noise,
   // convert global phase to diagonal matrix
   if (circ.global_phase_for_params.size() == circ.num_bind_params) {
     bool has_global_phase = false;
-    for (int_t j = 0; j < circ.num_bind_params; j++) {
+    for (uint_t j = 0; j < circ.num_bind_params; j++) {
       if (!Linalg::almost_equal(circ.global_phase_for_params[j], 0.0)) {
         has_global_phase = true;
         break;
@@ -132,7 +132,7 @@ void BatchConverter::optimize_circuit(Circuit &circ, Noise::NoiseModel &noise,
       phase_op.type = Operations::OpType::diagonal_matrix;
       phase_op.has_bind_params = true;
       phase_op.params.resize(2 * circ.num_bind_params);
-      for (int_t j = 0; j < circ.num_bind_params; j++) {
+      for (uint_t j = 0; j < circ.num_bind_params; j++) {
         auto t = std::exp(complex_t(0.0, circ.global_phase_for_params[j]));
         phase_op.params[j * 2] = t;
         phase_op.params[j * 2 + 1] = t;
@@ -173,64 +173,64 @@ void BatchConverter::gate_to_matrix(Operations::Op &op,
 
   auto store_matrix = [&matrix_array, matrix_size](int_t iparam,
                                                    cvector_t mat) {
-    for (int_t j = 0; j < matrix_size; j++)
+    for (uint_t j = 0; j < matrix_size; j++)
       matrix_array[iparam * matrix_size + j] = mat[j];
   };
 
   switch (it->second) {
   case ParamGates::mcr:
-    for (int_t i = 0; i < num_params; i++)
+    for (uint_t i = 0; i < num_params; i++)
       store_matrix(i,
                    Linalg::VMatrix::r(op.params[i * 2], op.params[i * 2 + 1]));
     break;
   case ParamGates::mcrx:
-    for (int_t i = 0; i < num_params; i++)
+    for (uint_t i = 0; i < num_params; i++)
       store_matrix(i, Linalg::VMatrix::rx(std::real(op.params[i])));
     break;
   case ParamGates::mcry:
-    for (int_t i = 0; i < num_params; i++)
+    for (uint_t i = 0; i < num_params; i++)
       store_matrix(i, Linalg::VMatrix::ry(std::real(op.params[i])));
     break;
   case ParamGates::mcrz:
-    for (int_t i = 0; i < num_params; i++)
+    for (uint_t i = 0; i < num_params; i++)
       store_matrix(i, Linalg::VMatrix::rz_diag(std::real(op.params[i])));
     break;
   case ParamGates::rxx:
-    for (int_t i = 0; i < num_params; i++)
+    for (uint_t i = 0; i < num_params; i++)
       store_matrix(i, Linalg::VMatrix::rxx(std::real(op.params[i])));
     break;
   case ParamGates::ryy:
-    for (int_t i = 0; i < num_params; i++)
+    for (uint_t i = 0; i < num_params; i++)
       store_matrix(i, Linalg::VMatrix::ryy(std::real(op.params[i])));
     break;
   case ParamGates::rzz:
-    for (int_t i = 0; i < num_params; i++)
+    for (uint_t i = 0; i < num_params; i++)
       store_matrix(i, Linalg::VMatrix::rzz_diag(std::real(op.params[i])));
     break;
   case ParamGates::rzx:
-    for (int_t i = 0; i < num_params; i++)
+    for (uint_t i = 0; i < num_params; i++)
       store_matrix(i, Linalg::VMatrix::rzx(std::real(op.params[i])));
     break;
   case ParamGates::mcu3:
-    for (int_t i = 0; i < num_params; i++)
+    for (uint_t i = 0; i < num_params; i++)
       store_matrix(i, Linalg::VMatrix::u3(std::real(op.params[i * 3]),
                                           std::real(op.params[i * 3 + 1]),
                                           std::real(op.params[i * 3 + 2])));
     break;
   case ParamGates::mcu:
-    for (int_t i = 0; i < num_params; i++)
+    for (uint_t i = 0; i < num_params; i++)
       store_matrix(i, Linalg::VMatrix::u4(std::real(op.params[i * 4]),
                                           std::real(op.params[i * 4 + 1]),
                                           std::real(op.params[i * 4 + 2]),
                                           std::real(op.params[i * 4 + 3])));
     break;
   case ParamGates::mcu2:
-    for (int_t i = 0; i < num_params; i++)
+    for (uint_t i = 0; i < num_params; i++)
       store_matrix(i, Linalg::VMatrix::u2(std::real(op.params[i * 2]),
                                           std::real(op.params[i * 2 + 1])));
     break;
   case ParamGates::mcp:
-    for (int_t i = 0; i < num_params; i++)
+    for (uint_t i = 0; i < num_params; i++)
       store_matrix(i, Linalg::VMatrix::phase_diag(std::real(op.params[i])));
     break;
   default:

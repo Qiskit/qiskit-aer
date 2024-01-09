@@ -1,0 +1,4 @@
+---
+fixes:
+  - |
+    fixed ry gate for stabilizer method, PI/2 and PI3/2 was inverted

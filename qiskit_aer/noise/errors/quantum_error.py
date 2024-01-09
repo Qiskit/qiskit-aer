@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 """
-Quantum error class for Qiskit Aer noise model
+Quantum error class for Aer noise model
 """
 import copy
 import numbers
@@ -21,7 +21,7 @@ import numpy as np
 
 from qiskit.circuit import QuantumCircuit, Instruction, QuantumRegister, Reset
 from qiskit.circuit.exceptions import CircuitError
-from qiskit.circuit.library.generalized_gates import PauliGate
+from qiskit.circuit.library.generalized_gates import PauliGate, UnitaryGate
 from qiskit.circuit.library.standard_gates import IGate, XGate, YGate, ZGate
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.base_operator import BaseOperator
@@ -30,13 +30,12 @@ from qiskit.quantum_info.operators.channel.quantum_channel import QuantumChannel
 from qiskit.quantum_info.operators.mixins import TolerancesMixin
 from qiskit.quantum_info.operators.predicates import is_identity_matrix
 from qiskit.quantum_info.operators.symplectic import Clifford
-from qiskit.extensions import UnitaryGate
 from ..noiseerror import NoiseError
 
 
 class QuantumError(BaseOperator, TolerancesMixin):
     """
-    Quantum error class for Qiskit Aer noise model
+    Quantum error class for Aer noise model
 
     .. warning::
              The init interface for this class is not finalized and may

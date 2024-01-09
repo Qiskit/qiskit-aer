@@ -84,6 +84,7 @@ protected:
   uint_t tensor_size_;
   uint_t additional_tensor_size_;
   uint_t out_size_;
+  uint_t work_size_limit_;
   uint_t work_size_;
   uint_t sampling_buffer_size_;
 
@@ -484,6 +485,12 @@ uint_t RawTensorData<data_t>::optimize_contraction(void) {
   cutensornetStatus_t err;
   cudaSetDevice(device_id_);
 
+  size_t freeMem, totalMem;
+  int nid = omp_get_num_threads();
+
+  HANDLE_CUDA_ERROR(cudaMemGetInfo(&freeMem, &totalMem));
+  work_size_limit_ = (freeMem / nid) * 0.9;
+
   /*******************************
    * Find "optimal" contraction order and slicing
    *******************************/
@@ -510,7 +517,7 @@ uint_t RawTensorData<data_t>::optimize_contraction(void) {
                  cutensornetGetErrorString(err));
 
   err = cutensornetContractionOptimize(hTensorNet_, tn_desc_, optimizer_config_,
-                                       work_size_, optimizer_info_);
+                                       work_size_limit_, optimizer_info_);
   if (err != CUTENSORNET_STATUS_SUCCESS)
     assert_error("cutensornetContractionOptimize",
                  cutensornetGetErrorString(err));
@@ -540,27 +547,26 @@ void RawTensorData<data_t>::create_contraction_plan(bool use_autotune) {
     assert_error("cutensornetCreateWorkspaceDescriptor",
                  cutensornetGetErrorString(err));
 
-  uint64_t requiredWorkspaceSize = 0;
-  err = cutensornetWorkspaceComputeSizes(hTensorNet_, tn_desc_, optimizer_info_,
-                                         work_desc_);
+  int64_t requiredWorkspaceSize = 0;
+  err = cutensornetWorkspaceComputeContractionSizes(
+      hTensorNet_, tn_desc_, optimizer_info_, work_desc_);
   if (err != CUTENSORNET_STATUS_SUCCESS)
     assert_error("cutensornetWorkspaceComputeSizes",
                  cutensornetGetErrorString(err));
 
-  err = cutensornetWorkspaceGetSize(
+  err = cutensornetWorkspaceGetMemorySize(
       hTensorNet_, work_desc_, CUTENSORNET_WORKSIZE_PREF_MIN,
-      CUTENSORNET_MEMSPACE_DEVICE, &requiredWorkspaceSize);
+      CUTENSORNET_MEMSPACE_DEVICE, CUTENSORNET_WORKSPACE_SCRATCH,
+      &requiredWorkspaceSize);
   if (err != CUTENSORNET_STATUS_SUCCESS)
     assert_error("cutensornetWorkspaceGetSize", cutensornetGetErrorString(err));
 
-  if (work_size_ < requiredWorkspaceSize) {
-    throw std::runtime_error("ERROR : TensorNet::contractor required memory "
-                             "size for workspace is not enough");
-  }
+  allocate_work(requiredWorkspaceSize);
 
-  err = cutensornetWorkspaceSet(
+  err = cutensornetWorkspaceSetMemory(
       hTensorNet_, work_desc_, CUTENSORNET_MEMSPACE_DEVICE,
-      thrust::raw_pointer_cast(dev_work_.data()), work_size_);
+      CUTENSORNET_WORKSPACE_SCRATCH, thrust::raw_pointer_cast(dev_work_.data()),
+      work_size_);
   if (err != CUTENSORNET_STATUS_SUCCESS)
     assert_error("cutensornetWorkspaceSet", cutensornetGetErrorString(err));
 
@@ -967,8 +973,6 @@ void TensorNetContractor_cuTensorNet<data_t>::allocate_additional_tensors(
 template <typename data_t>
 void TensorNetContractor_cuTensorNet<data_t>::set_additional_tensors(
     const std::vector<std::shared_ptr<Tensor<data_t>>> &tensors) {
-  uint_t size = 0;
-
   remove_additional_tensors();
 
   num_additional_tensors_ = tensors.size();
@@ -1021,24 +1025,12 @@ void TensorNetContractor_cuTensorNet<data_t>::set_output(
 template <typename data_t>
 void TensorNetContractor_cuTensorNet<data_t>::setup_contraction(
     bool use_autotune) {
-  int nid = omp_get_num_threads();
-  cutensornetStatus_t err;
-  size_t freeMem, totalMem;
-  uint_t work_size;
 
   // for MPI distribution
 #ifdef AER_MPI
   MPI_Comm_size(MPI_COMM_WORLD, &nprocs_);
   MPI_Comm_rank(MPI_COMM_WORLD, &myrank_);
 #endif
-
-  // allocate work buffer on GPU
-  if (!tensor_data_[0].work_allocated()) {
-    cudaSetDevice(target_gpus_[0]);
-    HANDLE_CUDA_ERROR(cudaMemGetInfo(&freeMem, &totalMem));
-    work_size = (freeMem / nid) * 0.9;
-    tensor_data_[0].allocate_work(work_size);
-  }
 
   num_devices_used_ = 1;
 
@@ -1060,12 +1052,6 @@ void TensorNetContractor_cuTensorNet<data_t>::setup_contraction(
 
       if (ns > 0) {
         // setup for the device
-        if (!tensor_data_[i].work_allocated()) {
-          cudaSetDevice(target_gpus_[i]);
-          HANDLE_CUDA_ERROR(cudaMemGetInfo(&freeMem, &totalMem));
-          work_size = (freeMem / nid) * 0.9;
-          tensor_data_[i].allocate_work(work_size);
-        }
         tensor_data_[i].copy_tensors_from_device(
             tensor_data_[0]); // copy data from the first device
         tensor_data_[i].create_contraction_descriptor(

@@ -355,7 +355,7 @@ class TestParameterizedQobj(common.QiskitAerTestCase):
         param_map = {theta: [0.1 * i for i in range(3)]}
         param_sets = [{theta: 0.1 * i} for i in range(3)]
 
-        resolved_circuits = [circuit.bind_parameters(param_set) for param_set in param_sets]
+        resolved_circuits = [circuit.assign_parameters(param_set) for param_set in param_sets]
 
         result = backend.run(circuit, parameter_binds=[param_map]).result()
         self.assertSuccess(result)
@@ -480,7 +480,7 @@ class TestParameterizedQobj(common.QiskitAerTestCase):
 
         circs = []
         for v in [1, 2, 3]:
-            circs.append(circ.bind_parameters({theta: v}))
+            circs.append(circ.assign_parameters({theta: v}))
 
         expected = backend.run(circs, shots=10, seed_simulator=100).result()
 

@@ -395,7 +395,7 @@ void ChunkContainer<data_t>::UnmapBuffer(Chunk<data_t> &buf) {
 
 template <typename data_t>
 void ChunkContainer<data_t>::unmap_all(void) {
-  int_t i;
+  uint_t i;
   for (i = 0; i < chunks_map_.size(); i++)
     chunks_map_[i] = false;
   num_chunk_mapped_ = 0;
@@ -804,14 +804,8 @@ void ChunkContainer<data_t>::ExecuteSum2(double *pSum, Function func,
 #endif
 }
 
-void host_func_launcher(void *pParam) {
-  HostFuncBase *func = reinterpret_cast<HostFuncBase *>(pParam);
-  func->execute();
-}
-
 template <typename data_t>
 void ChunkContainer<data_t>::allocate_chunks(void) {
-  uint_t i;
   chunks_map_.resize(num_chunks_, false);
 
   reduced_queue_begin_.resize(num_chunks_, 0);
@@ -855,7 +849,7 @@ void ChunkContainer<data_t>::apply_matrix(
 #else
     if (N <= 10) {
 #endif
-      int i;
+      uint_t i;
       for (i = 0; i < N; i++) {
         qubits_sorted.push_back(qubits[i]);
       }
@@ -918,7 +912,7 @@ void ChunkContainer<data_t>::apply_batched_matrix(
   } else {
     auto qubits_sorted = qubits;
     std::sort(qubits_sorted.begin(), qubits_sorted.end());
-    for (int i = 0; i < N; i++) {
+    for (uint_t i = 0; i < N; i++) {
       qubits_sorted.push_back(qubits[i]);
     }
     StoreUintParams(qubits_sorted, iChunk);
@@ -971,8 +965,8 @@ void ChunkContainer<data_t>::apply_phase(const uint_t iChunk,
                                          const int_t control_bits,
                                          const std::complex<double> phase,
                                          const uint_t gid, const uint_t count) {
-  Execute(phase_func<data_t>(qubits, *(thrust::complex<double> *)&phase),
-          iChunk, gid, count);
+  thrust::complex<double> p(phase);
+  Execute(phase_func<data_t>(qubits, p), iChunk, gid, count);
 }
 
 template <typename data_t>
@@ -989,8 +983,8 @@ void ChunkContainer<data_t>::apply_multi_swaps(const uint_t iChunk,
                                                const uint_t gid,
                                                const uint_t count) {
   // max 5 swaps can be applied at once using GPU's shared memory
-  for (int_t i = 0; i < qubits.size(); i += 10) {
-    int_t n = 10;
+  for (uint_t i = 0; i < qubits.size(); i += 10) {
+    uint_t n = 10;
     if (i + n > qubits.size())
       n = qubits.size() - i;
 
@@ -1009,7 +1003,6 @@ void ChunkContainer<data_t>::apply_permutation(
     const uint_t iChunk, const reg_t &qubits,
     const std::vector<std::pair<uint_t, uint_t>> &pairs, const uint_t gid,
     const uint_t count) {
-  const size_t N = qubits.size();
   auto qubits_sorted = qubits;
   std::sort(qubits_sorted.begin(), qubits_sorted.end());
 
@@ -1080,7 +1073,7 @@ void ChunkContainer<data_t>::probabilities(std::vector<double> &probs,
 
 template <typename data_t>
 double ChunkContainer<data_t>::norm(uint_t iChunk, uint_t count) const {
-  double ret;
+  double ret = 0.0;
   ExecuteSum(&ret, norm_func<data_t>(), iChunk, count);
 
   return ret;
@@ -1089,7 +1082,7 @@ double ChunkContainer<data_t>::norm(uint_t iChunk, uint_t count) const {
 template <typename data_t>
 double ChunkContainer<data_t>::trace(uint_t iChunk, uint_t row,
                                      uint_t count) const {
-  double ret;
+  double ret = 0.0;
   ExecuteSum(&ret, trace_func<data_t>(row), iChunk, count);
 
   return ret;
@@ -1108,7 +1101,7 @@ double ChunkContainer<data_t>::expval_matrix(const uint_t iChunk,
   else {
     auto qubits_sorted = qubits;
     std::sort(qubits_sorted.begin(), qubits_sorted.end());
-    for (int_t i = 0; i < N; i++) {
+    for (uint_t i = 0; i < N; i++) {
       qubits_sorted.push_back(qubits[i]);
     }
 
@@ -1166,7 +1159,6 @@ void ChunkContainer<data_t>::batched_expval_pauli(
                 count, first);
     return;
   }
-  double ret;
   // specialize x_max == 0
   if (x_mask == 0) {
     ExecuteSum2(nullptr,

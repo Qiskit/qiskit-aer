@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2022.
+# (C) Copyright IBM 2022, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -18,13 +18,11 @@ from __future__ import annotations
 
 from collections import defaultdict
 from collections.abc import Sequence
-from copy import copy
 from warnings import warn
 
 import numpy as np
 from qiskit.circuit import ParameterExpression, QuantumCircuit
 from qiskit.compiler import transpile
-from qiskit.opflow import PauliSumOp
 from qiskit.primitives import BaseEstimator, EstimatorResult
 from qiskit.primitives.primitive_job import PrimitiveJob
 from qiskit.primitives.utils import _circuit_key, _observable_key, init_observable
@@ -32,6 +30,15 @@ from qiskit.providers import Options
 from qiskit.quantum_info import Pauli, PauliList
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.result.models import ExperimentResult
+from qiskit.transpiler import CouplingMap, PassManager
+from qiskit.transpiler.passes import (
+    ApplyLayout,
+    EnlargeWithAncilla,
+    FullAncillaAllocation,
+    Optimize1qGatesDecomposition,
+    SetLayout,
+)
+from qiskit.utils import deprecate_func
 
 from .. import AerError, AerSimulator
 
@@ -84,7 +91,7 @@ class Estimator(BaseEstimator):
             transpile_options: Options passed to transpile.
             run_options: Options passed to run.
             approximation: If True, it calculates expectation values with normal distribution
-                approximation.
+                approximation. Note that this appproximation ignores readout errors.
             skip_transpilation: If True, transpilation is skipped.
             abelian_grouping: Whether the observable should be grouped into commuting.
                 If approximation is True, this parameter is ignored and assumed to be False.
@@ -100,7 +107,15 @@ class Estimator(BaseEstimator):
         self._transpile_options = Options()
         if transpile_options is not None:
             self._transpile_options.update_options(**transpile_options)
-        self.approximation = approximation
+        if not approximation:
+            warn(
+                "Option approximation=False is deprecated as of qiskit-aer 0.13. "
+                "It will be removed no earlier than 3 months after the release date. "
+                "Instead, use BackendEstimator from qiskit.primitives.",
+                DeprecationWarning,
+                stacklevel=3,
+            )
+        self._approximation = approximation
         self._skip_transpilation = skip_transpilation
         self._cache: dict[tuple[tuple[int], tuple[int], bool], tuple[dict, dict]] = {}
         self._transpiled_circuits: dict[int, QuantumCircuit] = {}
@@ -108,6 +123,34 @@ class Estimator(BaseEstimator):
         self._circuit_ids: dict[tuple, int] = {}
         self._observable_ids: dict[tuple, int] = {}
         self._abelian_grouping = abelian_grouping
+
+    @property
+    @deprecate_func(
+        since="0.13",
+        package_name="qiskit-aer",
+        is_property=True,
+    )
+    def approximation(self):
+        """The approximation property"""
+        return self._approximation
+
+    @approximation.setter
+    @deprecate_func(
+        since="0.13",
+        package_name="qiskit-aer",
+        is_property=True,
+    )
+    def approximation(self, approximation):
+        """Setter for approximation"""
+        if not approximation:
+            warn(
+                "Option approximation=False is deprecated as of qiskit-aer 0.13. "
+                "It will be removed no earlier than 3 months after the release date. "
+                "Instead, use BackendEstimator from qiskit.primitives.",
+                DeprecationWarning,
+                stacklevel=3,
+            )
+        self._approximation = approximation
 
     def _call(
         self,
@@ -120,7 +163,7 @@ class Estimator(BaseEstimator):
         if seed is not None:
             run_options.setdefault("seed_simulator", seed)
 
-        if self.approximation:
+        if self._approximation:
             return self._compute_with_approximation(
                 circuits, observables, parameter_values, run_options, seed
             )
@@ -130,7 +173,7 @@ class Estimator(BaseEstimator):
     def _run(
         self,
         circuits: Sequence[QuantumCircuit],
-        observables: Sequence[BaseOperator | PauliSumOp],
+        observables: Sequence[BaseOperator],
         parameter_values: Sequence[Sequence[float]],
         **run_options,
     ) -> PrimitiveJob:
@@ -174,7 +217,7 @@ class Estimator(BaseEstimator):
             )
 
         # Key for cache
-        key = (tuple(circuits), tuple(observables), self.approximation)
+        key = (tuple(circuits), tuple(observables), self._approximation)
 
         # Create expectation value experiments.
         if key in self._cache:  # Use a cache
@@ -297,11 +340,20 @@ class Estimator(BaseEstimator):
                 meas_circuit.h(qarg)
             meas_circuit.measure(qarg, clbit)
         meas_circuit.metadata = {"basis": basis}
+
         if self._skip_transpilation:
             return meas_circuit
-        transpile_opts = copy(self._transpile_options)
-        transpile_opts.update_options(initial_layout=self._layouts[circuit_index])
-        return transpile(meas_circuit, self._backend, **transpile_opts.__dict__)
+
+        layout = self._layouts[circuit_index]
+        passmanager = PassManager([SetLayout(layout)])
+        opt1q = Optimize1qGatesDecomposition(target=self._backend.target)
+        passmanager.append(opt1q)
+        if isinstance(self._backend.coupling_map, CouplingMap):
+            coupling_map = self._backend.coupling_map
+            passmanager.append(FullAncillaAllocation(coupling_map))
+            passmanager.append(EnlargeWithAncilla())
+        passmanager.append(ApplyLayout())
+        return passmanager.run(meas_circuit)
 
     @staticmethod
     def _combine_circs(circuit: QuantumCircuit, meas_circuits: list[QuantumCircuit]):
@@ -363,7 +415,7 @@ class Estimator(BaseEstimator):
         self, circuits, observables, parameter_values, run_options, seed
     ):
         # Key for cache
-        key = (tuple(circuits), tuple(observables), self.approximation)
+        key = (tuple(circuits), tuple(observables), self._approximation)
         shots = run_options.pop("shots", None)
 
         # Create expectation value experiments.

@@ -312,6 +312,10 @@ const stringmap_t<Gates>
 
 void State::initialize_qreg(uint_t num_qubits = 0) {
   qreg_.initialize(num_qubits);
+  if (BaseState::has_global_phase_) {
+    BaseState::qreg_.apply_diagonal_matrix(
+        {0}, {BaseState::global_phase_, BaseState::global_phase_});
+  }
 }
 
 void State::initialize_omp() {
@@ -725,14 +729,25 @@ void State::apply_kraus(const reg_t &qubits,
 
 void State::apply_initialize(const reg_t &qubits, const cvector_t &params,
                              RngEngine &rng) {
-  qreg_.apply_initialize(qubits, params, rng);
+  // apply global phase here
+  if (BaseState::has_global_phase_) {
+    cvector_t tmp(params.size());
+    auto apply_global_phase = [&tmp, params, this](int_t i) {
+      tmp[i] = params[i] * BaseState::global_phase_;
+    };
+    Utils::apply_omp_parallel_for((qubits.size() > 14), 0, params.size(),
+                                  apply_global_phase, BaseState::threads_);
+    qreg_.apply_initialize(qubits, tmp, rng);
+  } else {
+    qreg_.apply_initialize(qubits, params, rng);
+  }
 }
 
 void State::apply_measure(const reg_t &qubits, const reg_t &cmemory,
                           const reg_t &cregister, RngEngine &rng) {
   rvector_t rands;
   rands.reserve(qubits.size());
-  for (int_t i = 0; i < qubits.size(); ++i)
+  for (uint_t i = 0; i < qubits.size(); ++i)
     rands.push_back(rng.rand(0., 1.));
   reg_t outcome = qreg_.apply_measure(qubits, rands);
   creg().store_measure(outcome, cmemory, cregister);
@@ -766,10 +781,10 @@ State::sample_measure_using_apply_measure(const reg_t &qubits, uint_t shots,
   all_samples.resize(shots);
   std::vector<rvector_t> rnds_list;
   rnds_list.reserve(shots);
-  for (int_t i = 0; i < shots; ++i) {
+  for (uint_t i = 0; i < shots; ++i) {
     rvector_t rands;
     rands.reserve(qubits.size());
-    for (int_t j = 0; j < qubits.size(); ++j)
+    for (uint_t j = 0; j < qubits.size(); ++j)
       rands.push_back(rng.rand(0., 1.));
     rnds_list.push_back(rands);
   }

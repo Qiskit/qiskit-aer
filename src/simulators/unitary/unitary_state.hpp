@@ -369,7 +369,6 @@ void State<unitary_matrix_t>::initialize_qreg(uint_t num_qubits,
 
 template <class unitary_matrix_t>
 void State<unitary_matrix_t>::initialize_omp() {
-  uint_t i;
   BaseState::qreg_.set_omp_threshold(omp_qubit_threshold_);
   if (BaseState::threads_ > 0)
     BaseState::qreg_.set_omp_threads(
@@ -414,7 +413,7 @@ void State<unitary_matrix_t>::apply_gate(const Operations::Op &op) {
     }
     if (qubits_out.size() > 0) {
       uint_t mask = 0;
-      for (int i = 0; i < qubits_out.size(); i++) {
+      for (uint_t i = 0; i < qubits_out.size(); i++) {
         mask |= (1ull << (qubits_out[i] - BaseState::qreg_.num_qubits()));
       }
       if ((BaseState::qreg_.chunk_index() & mask) == mask) {

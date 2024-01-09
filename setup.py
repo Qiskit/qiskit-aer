@@ -22,9 +22,10 @@ ADD_CUDA_REQUIREMENTS = (
 extras_requirements = {"dask": ["dask", "distributed"]}
 
 requirements = [
-    "qiskit-terra>=0.21.0",
+    "qiskit>=0.45.0",
     "numpy>=1.16.3",
     "scipy>=1.0",
+    "psutil>=5",
 ]
 
 classifiers = [
@@ -64,6 +65,7 @@ if ADD_CUDA_REQUIREMENTS and "gpu" in PACKAGE_NAME and "rocm" not in PACKAGE_NAM
     else:
         requirements_cuda = [
             "nvidia-cuda-runtime-cu12>=12.1.105",
+            "nvidia-nvjitlink-cu12",
             "nvidia-cublas-cu12>=12.1.3.1",
             "nvidia-cusolver-cu12>=11.4.5.107",
             "nvidia-cusparse-cu12>=12.1.0.106",
@@ -89,12 +91,13 @@ is_win_32_bit = platform.system() == "Windows" and platform.architecture()[0] ==
 if is_win_32_bit:
     cmake_args.append("-DCMAKE_GENERATOR_PLATFORM=Win32")
 
+
 setup(
     name=PACKAGE_NAME,
     version=VERSION,
     packages=setuptools.find_packages(exclude=["test*"]),
     cmake_source_dir=".",
-    description="Qiskit Aer - High performance simulators for Qiskit",
+    description="Aer - High performance simulators for Qiskit",
     long_description=README,
     long_description_content_type="text/markdown",
     url="https://github.com/Qiskit/qiskit-aer",
@@ -108,6 +111,11 @@ setup(
     package_data={"qiskit_aer": ["VERSION.txt"], "qiskit_aer.library": ["*.csv"]},
     extras_require=extras_requirements,
     cmake_args=cmake_args,
-    keywords="qiskit aer simulator quantum addon backend",
+    keywords="qiskit, simulator, quantum computing, backend",
     zip_safe=False,
+    entry_points={
+        "qiskit.transpiler.translation": [
+            "aer_backend_plugin = qiskit_aer.backends.plugin.aer_backend_plugin:AerBackendPlugin",
+        ]
+    },
 )

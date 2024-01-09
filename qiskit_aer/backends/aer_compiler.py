@@ -21,8 +21,10 @@ from warnings import warn
 from concurrent.futures import Executor
 import numpy as np
 
-from qiskit.circuit import QuantumCircuit, Clbit, ParameterExpression
-from qiskit.extensions import Initialize
+from qiskit.circuit import QuantumCircuit, Clbit, ClassicalRegister, ParameterExpression
+from qiskit.circuit.classical.expr import Expr, Unary, Binary, Var, Value, ExprVisitor, iter_vars
+from qiskit.circuit.classical.types import Bool, Uint
+from qiskit.circuit.library import Initialize
 from qiskit.providers.options import Options
 from qiskit.pulse import Schedule, ScheduleBlock
 from qiskit.circuit.controlflow import (
@@ -40,7 +42,21 @@ from qiskit_aer.aererror import AerError
 from qiskit_aer.noise import NoiseModel
 
 # pylint: disable=import-error, no-name-in-module
-from qiskit_aer.backends.controller_wrappers import AerCircuit, AerConfig
+from qiskit_aer.backends.controller_wrappers import (
+    AerUnaryExpr,
+    AerUnaryOp,
+    AerBinaryExpr,
+    AerBinaryOp,
+    AerUintValue,
+    AerBoolValue,
+    AerUint,
+    AerBool,
+    AerCast,
+    AerVar,
+    AerCircuit,
+    AerConfig,
+)
+
 from .backend_utils import circuit_optypes
 from ..library.control_flow_instructions import AerMark, AerJump
 
@@ -83,7 +99,9 @@ class AerCompiler:
                 circuit = self._inline_initialize(circuit, compiled_optypes[idx])
                 if self._is_dynamic(circuit, compiled_optypes[idx]):
                     compiled_circ = transpile(
-                        self._inline_circuit(circuit, None, None), basis_gates=basis_gates
+                        self._inline_circuit(circuit, None, None),
+                        basis_gates=basis_gates,
+                        optimization_level=0,
                     )
                     compiled_circuits.append(compiled_circ)
                     # Recompute optype for compiled circuit
@@ -199,12 +217,36 @@ class AerCompiler:
 
         return ret
 
-    def _convert_c_if_args(self, cond_tuple, bit_map):
+    def _convert_jump_conditional(self, cond_tuple, bit_map):
         """Convert a condition tuple according to the wire map."""
-        if isinstance(cond_tuple[0], Clbit):
+        if isinstance(cond_tuple, Expr):
+            return cond_tuple
+        elif isinstance(cond_tuple[0], Clbit):
             return (bit_map[cond_tuple[0]], cond_tuple[1])
-        # ClassicalRegister conditions should already be in the outer circuit.
-        return cond_tuple
+        elif isinstance(cond_tuple[0], ClassicalRegister):
+            # ClassicalRegister conditions should already be in the outer circuit.
+            return cond_tuple
+        elif isinstance(cond_tuple[0], Var):
+            if isinstance(cond_tuple[0].var, Clbit):
+                expr = Var(bit_map[cond_tuple[0].var], cond_tuple[0].type)
+            elif isinstance(cond_tuple[0].var, ClassicalRegister):
+                expr = Var([bit_map[clbit] for clbit in cond_tuple[0].var], cond_tuple[0].type)
+            else:
+                raise AerError(
+                    f"jump condition does not support this tyep of Var: {cond_tuple[0]}."
+                )
+            return (expr, cond_tuple[1])
+
+        raise AerError(f"jump condition does not support {cond_tuple[0].__class__}.")
+
+    def _list_clbit_from_expr(self, bit_map, expr):
+        ret = set()
+        for var in iter_vars(expr):
+            if isinstance(var.var, Clbit):
+                ret.add(bit_map[var.var])
+            elif isinstance(var.var, ClassicalRegister):
+                ret.update(bit_map[bit] for bit in var.var)
+        return ret
 
     def _inline_for_loop_op(self, instruction, parent, bit_map):
         """inline for_loop body while iterating its indexset"""
@@ -229,7 +271,7 @@ class AerCompiler:
             continue_label = f"{loop_name}_{index}"
             inlined_body = self._inline_circuit(body, continue_label, break_label, inner_bit_map)
             if loop_parameter is not None:
-                inlined_body = inlined_body.bind_parameters({loop_parameter: index})
+                inlined_body = inlined_body.assign_parameters({loop_parameter: index})
             parent.append(inlined_body, qargs, cargs)
             parent.append(AerMark(continue_label, len(qargs), len(cargs)), qargs, cargs)
 
@@ -238,7 +280,7 @@ class AerCompiler:
 
     def _inline_while_loop_op(self, instruction, parent, bit_map):
         """inline while_loop body with jump and mark instructions"""
-        condition_tuple = self._convert_c_if_args(instruction.operation.condition, bit_map)
+        condition_tuple = self._convert_jump_conditional(instruction.operation.condition, bit_map)
         (body,) = instruction.operation.params
 
         self._last_flow_id += 1
@@ -262,23 +304,20 @@ class AerCompiler:
         )
         qargs = [bit_map[q] for q in instruction.qubits]
         cargs = [bit_map[c] for c in instruction.clbits]
-        mark_cargs = cargs.copy()
-        mark_cargs.extend(
-            bit_map[c]
-            for c in (
-                (
-                    {condition_tuple[0]}
-                    if isinstance(condition_tuple[0], Clbit)
-                    else set(condition_tuple[0])
-                )
-                - set(instruction.clbits)
-            )
-        )
-        c_if_args = self._convert_c_if_args(condition_tuple, bit_map)
+
+        if isinstance(condition_tuple, Expr):
+            mark_cargs = self._list_clbit_from_expr(bit_map, condition_tuple)
+        elif isinstance(condition_tuple[0], Clbit):
+            mark_cargs = {bit_map[condition_tuple[0]]}
+        else:
+            mark_cargs = {bit_map[c] for c in condition_tuple[0]}
+        mark_cargs = set(cargs).union(mark_cargs) - set(instruction.clbits)
+
+        c_if_args = self._convert_jump_conditional(condition_tuple, bit_map)
 
         parent.append(AerMark(continue_label, len(qargs), len(mark_cargs)), qargs, mark_cargs)
         parent.append(
-            AerJump(loop_start_label, len(qargs), len(mark_cargs)).c_if(*c_if_args),
+            AerJump(loop_start_label, len(qargs), len(mark_cargs)).set_conditional(c_if_args),
             qargs,
             mark_cargs,
         )
@@ -304,22 +343,18 @@ class AerCompiler:
         else:
             if_else_label = if_end_label
 
-        c_if_args = self._convert_c_if_args(condition_tuple, bit_map)
+        c_if_args = self._convert_jump_conditional(condition_tuple, bit_map)
 
         qargs = [bit_map[q] for q in instruction.qubits]
         cargs = [bit_map[c] for c in instruction.clbits]
-        mark_cargs = cargs.copy()
-        mark_cargs.extend(
-            bit_map[c]
-            for c in (
-                (
-                    {condition_tuple[0]}
-                    if isinstance(condition_tuple[0], Clbit)
-                    else set(condition_tuple[0])
-                )
-                - set(instruction.clbits)
-            )
-        )
+
+        if isinstance(condition_tuple, Expr):
+            mark_cargs = self._list_clbit_from_expr(bit_map, condition_tuple)
+        elif isinstance(condition_tuple[0], Clbit):
+            mark_cargs = {bit_map[condition_tuple[0]]}
+        else:
+            mark_cargs = {bit_map[c] for c in condition_tuple[0]}
+        mark_cargs = set(cargs).union(mark_cargs) - set(instruction.clbits)
 
         true_bit_map = {
             inner: bit_map[outer]
@@ -330,7 +365,9 @@ class AerCompiler:
         }
 
         parent.append(
-            AerJump(if_true_label, len(qargs), len(mark_cargs)).c_if(*c_if_args), qargs, mark_cargs
+            AerJump(if_true_label, len(qargs), len(mark_cargs)).set_conditional(c_if_args),
+            qargs,
+            mark_cargs,
         )
         parent.append(AerJump(if_else_label, len(qargs), len(mark_cargs)), qargs, mark_cargs)
         parent.append(AerMark(if_true_label, len(qargs), len(mark_cargs)), qargs, mark_cargs)
@@ -366,11 +403,14 @@ class AerCompiler:
 
         qargs = [bit_map[q] for q in instruction.qubits]
         cargs = [bit_map[c] for c in instruction.clbits]
-        mark_cargs = (
-            set(cargs + [bit_map[instruction.operation.target]])
-            if isinstance(instruction.operation.target, Clbit)
-            else set(cargs + [bit_map[c] for c in instruction.operation.target])
-        ) - set(instruction.clbits)
+
+        if isinstance(instruction.operation.target, Clbit):
+            target_clbits = {bit_map[instruction.operation.target]}
+        elif isinstance(instruction.operation.target, Expr):
+            target_clbits = self._list_clbit_from_expr(bit_map, instruction.operation.target)
+        else:
+            target_clbits = {bit_map[c] for c in instruction.operation.target}
+        mark_cargs = set(cargs).union(target_clbits) - set(instruction.clbits)
 
         switch_end_label = f"{switch_name}_end"
         case_default_label = None
@@ -383,7 +423,9 @@ class AerCompiler:
             case_data = CaseData(
                 label=f"{switch_name}_{i}",
                 args_list=[
-                    self._convert_c_if_args((instruction.operation.target, switch_val), bit_map)
+                    self._convert_jump_conditional(
+                        (instruction.operation.target, switch_val), bit_map
+                    )
                     if switch_val != CASE_DEFAULT
                     else []
                     for switch_val in case[0]
@@ -407,8 +449,17 @@ class AerCompiler:
         for case_data in case_data_list:
             for case_args in case_data.args_list:
                 if len(case_args) > 0:
+                    if isinstance(case_args[0], Expr):
+                        case_args = Binary(
+                            Binary.Op.EQUAL,
+                            case_args[0],
+                            Value(case_args[1], case_args[0].type),
+                            Bool(),
+                        )
                     parent.append(
-                        AerJump(case_data.label, len(qargs), len(mark_cargs)).c_if(*case_args),
+                        AerJump(case_data.label, len(qargs), len(mark_cargs)).set_conditional(
+                            case_args
+                        ),
                         qargs,
                         mark_cargs,
                     )
@@ -580,7 +631,11 @@ def assemble_circuit(circuit: QuantumCircuit):
     for creg in circuit.cregs:
         creg_sizes.append([creg.name, creg.size])
 
-    is_conditional = any(getattr(inst.operation, "condition", None) for inst in circuit.data)
+    is_conditional = any(
+        getattr(inst.operation, "condition_expr", None)
+        or getattr(inst.operation, "condition", None)
+        for inst in circuit.data
+    )
 
     header = QobjExperimentHeader(
         n_qubits=num_qubits,
@@ -607,6 +662,7 @@ def assemble_circuit(circuit: QuantumCircuit):
         # to the conditional instruction to map the creg ?= val condition
         # onto a gating register bit.
         conditional_reg = -1
+        conditional_expr = None
         if hasattr(inst.operation, "condition") and inst.operation.condition:
             ctrl_reg, ctrl_val = inst.operation.condition
             mask = 0
@@ -623,16 +679,124 @@ def assemble_circuit(circuit: QuantumCircuit):
             aer_circ.bfunc(f"0x{mask:X}", f"0x{val:X}", "==", conditional_reg)
             num_of_aer_ops += 1
             max_conditional_idx += 1
+        elif hasattr(inst.operation, "condition_expr") and inst.operation.condition_expr:
+            conditional_expr = inst.operation.condition_expr
 
         num_of_aer_ops += _assemble_op(
-            aer_circ, inst, qubit_indices, clbit_indices, is_conditional, conditional_reg
+            circuit,
+            aer_circ,
+            inst,
+            qubit_indices,
+            clbit_indices,
+            is_conditional,
+            conditional_reg,
+            conditional_expr,
         )
         index_map.append(num_of_aer_ops - 1)
 
     return aer_circ, index_map
 
 
-def _assemble_op(aer_circ, inst, qubit_indices, clbit_indices, is_conditional, conditional_reg):
+def _assemble_type(expr_type):
+    if isinstance(expr_type, Uint):
+        return AerUint(expr_type.width)
+    elif isinstance(expr_type, Bool):
+        return AerBool()
+    else:
+        raise AerError(f"unknown type: {expr_type.__class__}")
+
+
+def _assemble_clbit_indices(circ, c):
+    if isinstance(c, (ClassicalRegister, list)):
+        return [circ.find_bit(cbit).index for cbit in c]
+    elif isinstance(c, Clbit):
+        return [circ.find_bit(c).index]
+    else:
+        raise AerError(f"unknown clibt list: {c.__class__}")
+
+
+def _assemble_unary_operator(op):
+    if op is Unary.Op.BIT_NOT:
+        return AerUnaryOp.BitNot
+    elif op is Unary.Op.LOGIC_NOT:
+        return AerUnaryOp.LogicNot
+    else:
+        raise AerError(f"unknown op: {op}")
+
+
+_BINARY_OP_MAPPING = {
+    Binary.Op.BIT_AND: AerBinaryOp.BitAnd,
+    Binary.Op.BIT_OR: AerBinaryOp.BitOr,
+    Binary.Op.BIT_XOR: AerBinaryOp.BitXor,
+    Binary.Op.LOGIC_AND: AerBinaryOp.LogicAnd,
+    Binary.Op.LOGIC_OR: AerBinaryOp.LogicOr,
+    Binary.Op.EQUAL: AerBinaryOp.Equal,
+    Binary.Op.NOT_EQUAL: AerBinaryOp.NotEqual,
+    Binary.Op.LESS: AerBinaryOp.Less,
+    Binary.Op.LESS_EQUAL: AerBinaryOp.LessEqual,
+    Binary.Op.GREATER: AerBinaryOp.Greater,
+    Binary.Op.GREATER_EQUAL: AerBinaryOp.GreaterEqual,
+}
+
+
+def _assemble_binary_operator(op):
+    if op in _BINARY_OP_MAPPING:
+        return _BINARY_OP_MAPPING[op]
+    else:
+        raise AerError(f"unknown op: {op}")
+
+
+class _AssembleExprImpl(ExprVisitor):
+    """Convert from Expr objects to corresponding objects."""
+
+    def __init__(self, circuit):
+        self.circuit = circuit
+
+    def visit_value(self, node, /):
+        """return Aer's value types."""
+        # pylint: disable=unused-variable
+        if isinstance(node.type, Uint):
+            return AerUintValue(node.type.width, node.value)
+        elif isinstance(node.type, Bool):
+            return AerBoolValue(node.value)
+        else:
+            raise AerError(f"invalid value type is specified: {node.type.__class__}")
+
+    def visit_var(self, node, /):
+        return AerVar(_assemble_type(node.type), _assemble_clbit_indices(self.circuit, node.var))
+
+    def visit_cast(self, node, /):
+        return AerCast(_assemble_type(node.type), node.operand.accept(self))
+
+    def visit_unary(self, node, /):
+        return AerUnaryExpr(_assemble_unary_operator(node.op), node.operand.accept(self))
+
+    def visit_binary(self, node, /):
+        return AerBinaryExpr(
+            _assemble_binary_operator(node.op),
+            node.left.accept(self),
+            node.right.accept(self),
+        )
+
+    def visit_generic(self, node, /):
+        raise AerError(f"unsupported expression is used: {node.__class__}")
+
+
+def _check_no_conditional(inst_name, conditional_reg):
+    if conditional_reg >= 0:
+        raise AerError(f"instruction {inst_name} does not support conditional")
+
+
+def _assemble_op(
+    circ,
+    aer_circ,
+    inst,
+    qubit_indices,
+    clbit_indices,
+    is_conditional,
+    conditional_reg,
+    conditional_expr,
+):
     operation = inst.operation
     qubits = [qubit_indices[qubit] for qubit in inst.qubits]
     clbits = [clbit_indices[clbit] for clbit in inst.clbits]
@@ -648,6 +812,8 @@ def _assemble_op(aer_circ, inst, qubit_indices, clbit_indices, is_conditional, c
                 copied = True
             params[i] = 0.0
 
+    aer_cond_expr = conditional_expr.accept(_AssembleExprImpl(circ)) if conditional_expr else None
+
     num_of_aer_ops = 1
     # fmt: off
     if name in {
@@ -657,28 +823,33 @@ def _assemble_op(aer_circ, inst, qubit_indices, clbit_indices, is_conditional, c
         "rx", "rxx", "ry", "ryy", "rz", "rzx", "rzz", "s", "sdg", "swap", "sx", "sxdg",
         "t", "tdg", "u", "x", "y", "z", "u1", "u2", "u3", "cu", "cu1", "cu2", "cu3",
     }:
-        aer_circ.gate(name, qubits, params, [], conditional_reg, label if label else name)
+        aer_circ.gate(name, qubits, params, [], conditional_reg, aer_cond_expr,
+                      label if label else name)
     elif name == "measure":
         if is_conditional:
             aer_circ.measure(qubits, clbits, clbits)
         else:
             aer_circ.measure(qubits, clbits, [])
     elif name == "reset":
-        aer_circ.reset(qubits)
+        aer_circ.reset(qubits, conditional_reg)
     elif name == "diagonal":
-        aer_circ.diagonal(qubits, params, label if label else "diagonal")
+        aer_circ.diagonal(qubits, params, conditional_reg, label if label else "diagonal")
     elif name == "unitary":
-        aer_circ.unitary(qubits, params[0], conditional_reg, label if label else "unitary")
+        aer_circ.unitary(qubits, params[0], conditional_reg, aer_cond_expr,
+                         label if label else "unitary")
     elif name == "pauli":
-        aer_circ.gate(name, qubits, [], params, conditional_reg, label if label else name)
+        aer_circ.gate(name, qubits, [], params, conditional_reg, aer_cond_expr,
+                      label if label else name)
     elif name == "initialize":
+        _check_no_conditional(name, conditional_reg)
         aer_circ.initialize(qubits, params)
     elif name == "roerror":
+        _check_no_conditional(name, conditional_reg)
         aer_circ.roerror(qubits, params)
     elif name == "multiplexer":
-        aer_circ.multiplexer(qubits, params, conditional_reg, label if label else name)
+        aer_circ.multiplexer(qubits, params, conditional_reg, aer_cond_expr, label if label else name)
     elif name == "kraus":
-        aer_circ.kraus(qubits, params, conditional_reg)
+        aer_circ.kraus(qubits, params, conditional_reg, aer_cond_expr)
     elif name in {
         "save_statevector",
         "save_statevector_dict",
@@ -692,10 +863,13 @@ def _assemble_op(aer_circ, inst, qubit_indices, clbit_indices, is_conditional, c
         "save_state",
         "save_stabilizer",
     }:
+        _check_no_conditional(name, conditional_reg)
         aer_circ.save_state(qubits, name, operation._subtype, label if label else name)
     elif name in {"save_amplitudes", "save_amplitudes_sq"}:
+        _check_no_conditional(name, conditional_reg)
         aer_circ.save_amplitudes(qubits, name, params, operation._subtype, label if label else name)
     elif name in ("save_expval", "save_expval_var"):
+        _check_no_conditional(name, conditional_reg)
         paulis = []
         coeff_reals = []
         coeff_imags = []
@@ -713,27 +887,35 @@ def _assemble_op(aer_circ, inst, qubit_indices, clbit_indices, is_conditional, c
             label if label else name,
         )
     elif name == "set_statevector":
+        _check_no_conditional(name, conditional_reg)
         aer_circ.set_statevector(qubits, params)
     elif name == "set_unitary":
+        _check_no_conditional(name, conditional_reg)
         aer_circ.set_unitary(qubits, params)
     elif name == "set_density_matrix":
+        _check_no_conditional(name, conditional_reg)
         aer_circ.set_density_matrix(qubits, params)
     elif name == "set_stabilizer":
+        _check_no_conditional(name, conditional_reg)
         aer_circ.set_clifford(qubits, params)
     elif name == "set_superop":
+        _check_no_conditional(name, conditional_reg)
         aer_circ.set_superop(qubits, params)
     elif name == "set_matrix_product_state":
+        _check_no_conditional(name, conditional_reg)
         aer_circ.set_matrix_product_state(qubits, params)
     elif name == "superop":
-        aer_circ.superop(qubits, params[0], conditional_reg)
+        aer_circ.superop(qubits, params[0], conditional_reg, aer_cond_expr)
     elif name == "barrier":
+        _check_no_conditional(name, conditional_reg)
         num_of_aer_ops = 0
     elif name == "jump":
-        aer_circ.jump(qubits, params, conditional_reg)
+        aer_circ.jump(qubits, params, conditional_reg, aer_cond_expr)
     elif name == "mark":
+        _check_no_conditional(name, conditional_reg)
         aer_circ.mark(qubits, params)
     elif name == "qerror_loc":
-        aer_circ.set_qerror_loc(qubits, label if label else name, conditional_reg)
+        aer_circ.set_qerror_loc(qubits, label if label else name, conditional_reg, aer_cond_expr)
     elif name in ("for_loop", "while_loop", "if_else"):
         raise AerError(
             "control-flow instructions must be converted " f"to jump and mark instructions: {name}"

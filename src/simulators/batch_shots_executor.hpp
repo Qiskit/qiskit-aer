@@ -133,7 +133,7 @@ void BatchShotsExecutor<state_t>::set_parallelization(
   enable_batch_multi_shots_ = false;
   if (batched_shots_gpu_ && Base::sim_device_ != Device::CPU) {
     enable_batch_multi_shots_ = true;
-    if (circ.num_qubits > batched_shots_gpu_max_qubits_)
+    if (circ.num_qubits > (uint_t)batched_shots_gpu_max_qubits_)
       enable_batch_multi_shots_ = false;
     else if (circ.shots == 1 && circ.num_bind_params == 1)
       enable_batch_multi_shots_ = false;
@@ -150,15 +150,13 @@ template <class state_t>
 void BatchShotsExecutor<state_t>::run_circuit_with_sampling(
     Circuit &circ, const Config &config, RngEngine &init_rng,
     ResultItr result_it) {
-  if (circ.num_bind_params == 1 || !enable_batch_multi_shots_) {
+  if (!enable_batch_multi_shots_) {
     return Executor<state_t>::run_circuit_with_sampling(circ, config, init_rng,
                                                         result_it);
   }
-
   Noise::NoiseModel dummy_noise;
   state_t dummy_state;
-  int_t i;
-  int_t i_begin, n_shots;
+  uint_t i_begin, n_shots;
 
   Base::num_qubits_ = circ.num_qubits;
   Base::num_creg_memory_ = circ.num_memory;
@@ -196,7 +194,7 @@ void BatchShotsExecutor<state_t>::run_circuit_with_sampling(
                                    fusion_result);
   auto time_taken =
       std::chrono::duration<double>(myclock_t::now() - timer_start).count();
-  for (i = 0; i < circ.num_bind_params; i++) {
+  for (uint_t i = 0; i < circ.num_bind_params; i++) {
     ExperimentResult &result = *(result_it + i);
     result.metadata.copy(fusion_result.metadata);
     // Add batched multi-shots optimizaiton metadata
@@ -223,13 +221,13 @@ void BatchShotsExecutor<state_t>::run_circuit_with_sampling(
   while (i_begin < Base::num_local_states_) {
     // loop for states can be stored in available memory
     n_shots = Base::num_local_states_ - i_begin;
-    n_shots = std::min(n_shots, (int_t)Base::num_max_shots_);
+    n_shots = std::min(n_shots, Base::num_max_shots_);
 
     // allocate shots
     this->allocate_states(n_shots, config);
 
     // Set state config
-    for (i = 0; i < n_shots; i++) {
+    for (uint_t i = 0; i < n_shots; i++) {
       Base::states_[i].set_parallelization(Base::parallel_state_update_);
     }
 
@@ -257,7 +255,7 @@ void BatchShotsExecutor<state_t>::run_circuit_with_sampling(
     auto apply_ops_lambda = [this, circ, init_rng, first_meas, final_ops,
                              dummy_noise, &result_it](int_t i) {
       std::vector<RngEngine> rng(Base::num_states_in_group_[i]);
-      for (int_t j = 0; j < Base::num_states_in_group_[i]; j++) {
+      for (uint_t j = 0; j < Base::num_states_in_group_[i]; j++) {
         uint_t iparam =
             Base::global_state_index_ + Base::top_state_of_group_[i] + j;
         if (iparam == 0)
@@ -285,8 +283,8 @@ void BatchShotsExecutor<state_t>::run_circuit_with_sampling(
   if (Base::num_process_per_experiment_ > 1) {
     Base::gather_creg_memory(Base::cregs_, Base::state_index_begin_);
 
-    for (i = 0; i < circ.num_bind_params; i++) {
-      for (int_t j = 0; j < circ.shots; j++) {
+    for (uint_t i = 0; i < circ.num_bind_params; i++) {
+      for (uint_t j = 0; j < circ.shots; j++) {
         (result_it + i)
             ->save_count_data(Base::cregs_[i * circ.shots + j],
                               Base::save_creg_memory_);
@@ -305,7 +303,7 @@ void BatchShotsExecutor<state_t>::run_circuit_with_sampling(
     }
     if (nDev > Base::num_groups_)
       nDev = Base::num_groups_;
-    for (i = 0; i < circ.num_bind_params; i++)
+    for (uint_t i = 0; i < circ.num_bind_params; i++)
       (result_it + i)
           ->metadata.add(nDev, "batched_shots_optimization_parallel_gpus");
   }
@@ -363,10 +361,9 @@ void BatchShotsExecutor<state_t>::run_circuit_shots(
 
   Base::max_matrix_qubits_ = Base::get_max_matrix_qubits(circ_opt);
 
-  int_t i;
-  int_t i_begin, n_shots;
+  uint_t i_begin, n_shots;
 
-  for (i = 0; i < Base::num_bind_params_; i++) {
+  for (uint_t i = 0; i < Base::num_bind_params_; i++) {
     ExperimentResult &result = *(result_it + i);
     result.metadata.copy(fusion_result.metadata);
     // Add batched multi-shots optimizaiton metadata
@@ -383,13 +380,13 @@ void BatchShotsExecutor<state_t>::run_circuit_shots(
   while (i_begin < Base::num_local_states_) {
     // loop for states can be stored in available memory
     n_shots = Base::num_local_states_ - i_begin;
-    n_shots = std::min(n_shots, (int_t)Base::num_max_shots_);
+    n_shots = std::min(n_shots, Base::num_max_shots_);
 
     // allocate shots
     this->allocate_states(n_shots, config);
 
     // Set state config
-    for (i = 0; i < n_shots; i++) {
+    for (uint_t i = 0; i < n_shots; i++) {
       Base::states_[i].set_parallelization(Base::parallel_state_update_);
     }
 
@@ -419,7 +416,7 @@ void BatchShotsExecutor<state_t>::run_circuit_shots(
                              noise](int_t i) {
       par_results[i].resize(circ.num_bind_params);
       std::vector<RngEngine> rng(Base::num_states_in_group_[i]);
-      for (int_t j = 0; j < Base::num_states_in_group_[i]; j++) {
+      for (uint_t j = 0; j < Base::num_states_in_group_[i]; j++) {
         uint_t ishot =
             Base::global_state_index_ + Base::top_state_of_group_[i] + j;
         uint_t iparam = ishot / Base::num_shots_per_bind_param_;
@@ -442,13 +439,13 @@ void BatchShotsExecutor<state_t>::run_circuit_shots(
         Base::num_groups_, apply_ops_lambda, Base::num_groups_);
 
     for (auto &res : par_results) {
-      for (i = 0; i < Base::num_bind_params_; i++) {
+      for (uint_t i = 0; i < Base::num_bind_params_; i++) {
         (result_it + i)->combine(std::move(res[i]));
       }
     }
 
     // collect measured bits and copy memory
-    for (i = 0; i < n_shots; i++) {
+    for (uint_t i = 0; i < n_shots; i++) {
       if (Base::num_process_per_experiment_ > 1) {
         Base::states_[i].qreg().read_measured_data(
             Base::cregs_[Base::global_state_index_ + i_begin + i]);
@@ -470,7 +467,7 @@ void BatchShotsExecutor<state_t>::run_circuit_shots(
   if (Base::num_process_per_experiment_ > 1) {
     Base::gather_creg_memory(Base::cregs_, Base::state_index_begin_);
 
-    for (i = 0; i < circ_opt.shots; i++) {
+    for (uint_t i = 0; i < circ_opt.shots; i++) {
       uint_t iparam = i / Base::num_shots_per_bind_param_;
       (result_it + iparam)
           ->save_count_data(Base::cregs_[i], Base::save_creg_memory_);
@@ -488,7 +485,7 @@ void BatchShotsExecutor<state_t>::run_circuit_shots(
     }
     if (nDev > Base::num_groups_)
       nDev = Base::num_groups_;
-    for (i = 0; i < Base::num_bind_params_; i++)
+    for (uint_t i = 0; i < Base::num_bind_params_; i++)
       (result_it + i)
           ->metadata.add(nDev, "batched_shots_optimization_parallel_gpus");
   }
@@ -510,6 +507,23 @@ void BatchShotsExecutor<state_t>::apply_ops_batched_shots_for_group(
 
   for (auto op = first; op != last; ++op) {
     if (op->type == Operations::OpType::sample_noise) {
+      if (op->expr) {
+        for (uint_t j = Base::top_state_of_group_[i_group];
+             j < Base::top_state_of_group_[i_group + 1]; j++) {
+          Base::states_[j].qreg().enable_batch(false);
+          Base::states_[j].qreg().read_measured_data(Base::states_[j].creg());
+          std::vector<Operations::Op> nops = noise.sample_noise_loc(
+              *op, rng[j - Base::top_state_of_group_[i_group]]);
+          for (uint_t k = 0; k < nops.size(); k++) {
+            Base::states_[j].apply_op(
+                nops[k], *result_it,
+                rng[j - Base::top_state_of_group_[i_group]], false);
+          }
+          Base::states_[j].qreg().enable_batch(true);
+        }
+        continue;
+      }
+
       // sample error here
       uint_t count = Base::num_states_in_group_[i_group];
       std::vector<std::vector<Operations::Op>> noise_ops(count);
@@ -518,13 +532,13 @@ void BatchShotsExecutor<state_t>::apply_ops_batched_shots_for_group(
       uint_t non_pauli_gate_count = 0;
       if (num_inner_threads > 1) {
 #pragma omp parallel for reduction(+: count_ops,non_pauli_gate_count) num_threads(num_inner_threads)
-        for (int_t j = 0; j < count; j++) {
+        for (int_t j = 0; j < (int_t)count; j++) {
           noise_ops[j] = noise.sample_noise_loc(*op, rng[j]);
 
           if (!(noise_ops[j].size() == 0 ||
                 (noise_ops[j].size() == 1 && noise_ops[j][0].name == "id"))) {
             count_ops++;
-            for (int_t k = 0; k < noise_ops[j].size(); k++) {
+            for (uint_t k = 0; k < noise_ops[j].size(); k++) {
               if (noise_ops[j][k].name != "id" && noise_ops[j][k].name != "x" &&
                   noise_ops[j][k].name != "y" && noise_ops[j][k].name != "z" &&
                   noise_ops[j][k].name != "pauli") {
@@ -535,13 +549,13 @@ void BatchShotsExecutor<state_t>::apply_ops_batched_shots_for_group(
           }
         }
       } else {
-        for (int_t j = 0; j < count; j++) {
+        for (uint_t j = 0; j < count; j++) {
           noise_ops[j] = noise.sample_noise_loc(*op, rng[j]);
 
           if (!(noise_ops[j].size() == 0 ||
                 (noise_ops[j].size() == 1 && noise_ops[j][0].name == "id"))) {
             count_ops++;
-            for (int_t k = 0; k < noise_ops[j].size(); k++) {
+            for (uint_t k = 0; k < noise_ops[j].size(); k++) {
               if (noise_ops[j][k].name != "id" && noise_ops[j][k].name != "x" &&
                   noise_ops[j][k].name != "y" && noise_ops[j][k].name != "z" &&
                   noise_ops[j][k].name != "pauli") {
@@ -563,19 +577,20 @@ void BatchShotsExecutor<state_t>::apply_ops_batched_shots_for_group(
         apply_batched_noise_ops(i_group, noise_ops, result_it, rng);
       }
     } else {
-      if (!apply_batched_op(istate, *op, result_it, rng,
-                            final_ops && (op + 1 == last))) {
-        // call apply_op for each state
-        for (int_t j = 0; j < Base::num_states_in_group_[i_group]; j++) {
-          uint_t is = Base::top_state_of_group_[i_group] + j;
-          uint_t ip = (Base::global_state_index_ + is) /
-                      Base::num_shots_per_bind_param_;
-          Base::states_[is].qreg().enable_batch(false);
-          Base::states_[is].qreg().read_measured_data(Base::states_[is].creg());
-          Base::states_[is].apply_op(*op, *(result_it + ip), rng[j],
-                                     final_ops && (op + 1 == last));
-          Base::states_[is].qreg().enable_batch(true);
-        }
+      if (!op->expr && apply_batched_op(istate, *op, result_it, rng,
+                                        final_ops && (op + 1 == last))) {
+        continue;
+      }
+      // call apply_op for each state
+      for (uint_t j = 0; j < Base::num_states_in_group_[i_group]; j++) {
+        uint_t is = Base::top_state_of_group_[i_group] + j;
+        uint_t ip =
+            (Base::global_state_index_ + is) / Base::num_shots_per_bind_param_;
+        Base::states_[is].qreg().enable_batch(false);
+        Base::states_[is].qreg().read_measured_data(Base::states_[is].creg());
+        Base::states_[is].apply_op(*op, *(result_it + ip), rng[j],
+                                   final_ops && (op + 1 == last));
+        Base::states_[is].qreg().enable_batch(true);
       }
     }
   }
@@ -585,13 +600,13 @@ template <class state_t>
 void BatchShotsExecutor<state_t>::apply_batched_noise_ops(
     const int_t i_group, const std::vector<std::vector<Operations::Op>> &ops,
     ResultItr result_it, std::vector<RngEngine> &rng) {
-  int_t i, j, k, count, nop, pos = 0;
+  uint_t count;
   uint_t istate = Base::top_state_of_group_[i_group];
   count = ops.size();
 
   reg_t mask(count);
   std::vector<bool> finished(count, false);
-  for (i = 0; i < count; i++) {
+  for (uint_t i = 0; i < count; i++) {
     int_t cond_reg = -1;
 
     if (finished[i])
@@ -603,7 +618,7 @@ void BatchShotsExecutor<state_t>::apply_batched_noise_ops(
     mask[i] = 1;
 
     // find same ops to be exectuted in a batch
-    for (j = i + 1; j < count; j++) {
+    for (uint_t j = i + 1; j < count; j++) {
       if (finished[j]) {
         mask[j] = 0;
         continue;
@@ -621,7 +636,7 @@ void BatchShotsExecutor<state_t>::apply_batched_noise_ops(
       }
 
       mask[j] = true;
-      for (k = 0; k < ops[i].size(); k++) {
+      for (uint_t k = 0; k < ops[i].size(); k++) {
         if (ops[i][k].conditional) {
           cond_reg = ops[i][k].conditional_reg;
         }
@@ -640,7 +655,7 @@ void BatchShotsExecutor<state_t>::apply_batched_noise_ops(
         cond_reg, mask);
 
     // batched execution on same ops
-    for (k = 0; k < ops[i].size(); k++) {
+    for (uint_t k = 0; k < ops[i].size(); k++) {
       Operations::Op cop = ops[i][k];
 
       // mark op conditional to mask shots
@@ -649,7 +664,7 @@ void BatchShotsExecutor<state_t>::apply_batched_noise_ops(
 
       if (!apply_batched_op(istate, cop, result_it, rng, false)) {
         // call apply_op for each state
-        for (int_t j = 0; j < Base::num_states_in_group_[i_group]; j++) {
+        for (uint_t j = 0; j < Base::num_states_in_group_[i_group]; j++) {
           uint_t is = Base::top_state_of_group_[i_group] + j;
           uint_t ip = (Base::global_state_index_ + is) /
                       Base::num_shots_per_bind_param_;
@@ -671,7 +686,7 @@ void BatchShotsExecutor<state_t>::apply_batched_expval(const int_t istate,
                                                        ResultItr result) {
   std::vector<double> val;
   bool variance = (op.type == Operations::OpType::save_expval_var);
-  for (int_t i = 0; i < op.expval_params.size(); i++) {
+  for (uint_t i = 0; i < op.expval_params.size(); i++) {
     std::complex<double> cprm;
 
     if (variance)
@@ -689,7 +704,7 @@ void BatchShotsExecutor<state_t>::apply_batched_expval(const int_t istate,
     return;
 
   if (variance) {
-    for (int_t i = 0; i < val.size() / 2; i++) {
+    for (uint_t i = 0; i < val.size() / 2; i++) {
       uint_t ip = (Base::global_state_index_ + istate + i) /
                   Base::num_shots_per_bind_param_;
 
@@ -702,7 +717,7 @@ void BatchShotsExecutor<state_t>::apply_batched_expval(const int_t istate,
                               op.save_type);
     }
   } else {
-    for (int_t i = 0; i < val.size(); i++) {
+    for (uint_t i = 0; i < val.size(); i++) {
       uint_t ip = (Base::global_state_index_ + istate + i) /
                   Base::num_shots_per_bind_param_;
 
@@ -720,7 +735,7 @@ void BatchShotsExecutor<state_t>::batched_measure_sampler(
     InputIterator first_meas, InputIterator last_meas, uint_t shots,
     uint_t i_group, ResultItr result, std::vector<RngEngine> &rng) {
   uint_t par_states = 1;
-  if (Base::max_parallel_threads_ >= Base::num_groups_ * 2) {
+  if ((uint_t)Base::max_parallel_threads_ >= Base::num_groups_ * 2) {
     par_states =
         std::min((uint_t)(Base::max_parallel_threads_ / Base::num_groups_),
                  Base::num_states_in_group_[i_group]);
@@ -781,7 +796,7 @@ void BatchShotsExecutor<state_t>::batched_measure_sampler(
     state_end = Base::num_states_in_group_[i_group] * (i + 1) / par_states;
 
     for (; i_state < state_end; i_state++) {
-      for (int_t j = 0; j < shots; j++)
+      for (uint_t j = 0; j < shots; j++)
         rnd_shots[i_state * shots + j] =
             rng[i_state].rand(0, 1) + (double)i_state;
     }
@@ -813,14 +828,14 @@ void BatchShotsExecutor<state_t>::batched_measure_sampler(
       uint_t is = Base::top_state_of_group_[i_group] + i_state;
       uint_t ip = (Base::global_state_index_ + is);
 
-      for (int_t i = 0; i < shots; i++) {
+      for (uint_t i = 0; i < shots; i++) {
         ClassicalRegister creg;
         creg.initialize(num_memory, num_registers);
         reg_t all_samples(meas_qubits.size());
 
         uint_t val = allbit_samples[i_state * shots + i] & mask;
         reg_t allbit_sample = Utils::int2reg(val, 2, Base::num_qubits_);
-        for (int_t mq = 0; mq < meas_qubits.size(); mq++) {
+        for (uint_t mq = 0; mq < meas_qubits.size(); mq++) {
           all_samples[mq] = allbit_sample[meas_qubits[mq]];
         }
 
@@ -853,7 +868,7 @@ void BatchShotsExecutor<state_t>::batched_measure_sampler(
   auto time_taken =
       std::chrono::duration<double>(myclock_t::now() - timer_start).count();
 
-  for (int_t i_state = 0; i_state < Base::num_states_in_group_[i_group];
+  for (uint_t i_state = 0; i_state < Base::num_states_in_group_[i_group];
        i_state++) {
     uint_t ip = Base::global_state_index_ + Base::top_state_of_group_[i_group] +
                 i_state;
