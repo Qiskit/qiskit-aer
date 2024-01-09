@@ -270,9 +270,6 @@ public:
     case BinaryOp::BitAnd:
     case BinaryOp::BitOr:
     case BinaryOp::BitXor:
-      if (left->type->type != ValueType::Uint)
-        throw std::invalid_argument(
-            R"(bit operation allows only for uint expressions.)");
       break;
     case BinaryOp::LogicAnd:
     case BinaryOp::LogicOr:
@@ -299,10 +296,20 @@ public:
   virtual bool eval_bool(const std::string &memory) {
     switch (op) {
     case BinaryOp::BitAnd:
+      if (left->type->type == ValueType::Uint)
+        return eval_uint(memory) != 0;
+      else
+        return left->eval_bool(memory) && right->eval_bool(memory);
     case BinaryOp::BitOr:
+      if (left->type->type == ValueType::Uint)
+        return eval_uint(memory) != 0;
+      else
+        return left->eval_bool(memory) || right->eval_bool(memory);
     case BinaryOp::BitXor:
-      throw std::invalid_argument(
-          R"(eval_bool is called for Bit* binary expression.)");
+      if (left->type->type == ValueType::Uint)
+        return eval_uint(memory) != 0;
+      else
+        return left->eval_bool(memory) ^ right->eval_bool(memory);
     case BinaryOp::LogicAnd:
       return left->eval_bool(memory) && right->eval_bool(memory);
     case BinaryOp::LogicOr:
