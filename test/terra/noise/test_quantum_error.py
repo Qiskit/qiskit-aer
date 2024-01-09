@@ -20,7 +20,7 @@ import numpy as np
 
 from qiskit.circuit import QuantumCircuit, Reset, Measure
 from qiskit.circuit.library.standard_gates import IGate, XGate, YGate, ZGate
-from qiskit.extensions import UnitaryGate
+from qiskit.circuit.library.generalized_gates import UnitaryGate
 from qiskit.quantum_info.operators import SuperOp, Kraus, Pauli
 from qiskit_aer.noise import QuantumError, pauli_error, reset_error
 from qiskit_aer.noise.noiseerror import NoiseError

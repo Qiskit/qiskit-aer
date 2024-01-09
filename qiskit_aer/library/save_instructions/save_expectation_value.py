@@ -16,7 +16,6 @@ Simulator instruction to save exact operator expectation value.
 from numpy import allclose
 from qiskit.quantum_info import Pauli, SparsePauliOp, Operator
 from qiskit.circuit import QuantumCircuit
-from qiskit.extensions.exceptions import ExtensionError
 from .save_data import SaveAverageData
 
 
@@ -51,7 +50,8 @@ class SaveExpectationValue(SaveAverageData):
                                 values [Default: False].
 
         Raises:
-            ExtensionError: if the input operator is invalid or not Hermitian.
+            ValueError: if the input operator is not Hermitian.
+            TypeError: if the input operator is of invalid type.
 
         .. note::
 
@@ -64,7 +64,7 @@ class SaveExpectationValue(SaveAverageData):
         elif not isinstance(operator, SparsePauliOp):
             operator = SparsePauliOp.from_operator(Operator(operator))
         if not allclose(operator.coeffs.imag, 0):
-            raise ExtensionError("Input operator is not Hermitian.")
+            raise ValueError("Input operator is not Hermitian.")
         params = _expval_params(operator, variance=False)
         super().__init__(
             "save_expval",
@@ -109,7 +109,8 @@ class SaveExpectationValueVariance(SaveAverageData):
                                 values [Default: False].
 
         Raises:
-            ExtensionError: if the input operator is invalid or not Hermitian.
+            ValueError: if the input operator is not Hermitian.
+            TypeError: if the input operator is of invalid type.
 
         .. note::
 
@@ -122,7 +123,7 @@ class SaveExpectationValueVariance(SaveAverageData):
         elif not isinstance(operator, SparsePauliOp):
             operator = SparsePauliOp.from_operator(Operator(operator))
         if not allclose(operator.coeffs.imag, 0):
-            raise ExtensionError("Input operator is not Hermitian.")
+            raise ValueError("Input operator is not Hermitian.")
         params = _expval_params(operator, variance=True)
         super().__init__(
             "save_expval_var",
@@ -142,7 +143,7 @@ def _expval_params(operator, variance=False):
     elif not isinstance(operator, SparsePauliOp):
         operator = SparsePauliOp.from_operator(Operator(operator))
     if not isinstance(operator, SparsePauliOp):
-        raise ExtensionError("Invalid input operator")
+        raise TypeError("Invalid input operator")
 
     params = {}
 
@@ -196,7 +197,8 @@ def save_expectation_value(
         QuantumCircuit: with attached instruction.
 
     Raises:
-        ExtensionError: if the input operator is invalid or not Hermitian.
+        ValueError: if the input operator is not Hermitian.
+        TypeError: if the input operator is of invalid type.
 
     .. note::
 
@@ -237,7 +239,8 @@ def save_expectation_value_variance(
         QuantumCircuit: with attached instruction.
 
     Raises:
-        ExtensionError: if the input operator is invalid or not Hermitian.
+        ValueError: if the input operator is not Hermitian.
+        TypeError: if the input operator is of invalid type.
 
     .. note::
 
