@@ -34,6 +34,8 @@ from qiskit.circuit.library import (
     CRZGate,
     MCU1Gate,
     MCXGrayCode,
+    Initialize,
+    UCGate,
 )
 from qiskit.circuit.controlflow import (
     IfElseOp,
@@ -43,8 +45,6 @@ from qiskit.circuit.controlflow import (
     BreakLoopOp,
     SwitchCaseOp,
 )
-from qiskit.extensions import Initialize
-from qiskit.extensions.quantum_initializer import UCGate
 from qiskit.quantum_info.operators.channel.kraus import Kraus
 from qiskit.quantum_info.operators.channel import SuperOp
 from qiskit.quantum_info.operators.channel.quantum_channel import QuantumChannel

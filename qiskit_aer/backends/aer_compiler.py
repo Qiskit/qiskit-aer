@@ -24,7 +24,7 @@ import numpy as np
 from qiskit.circuit import QuantumCircuit, Clbit, ClassicalRegister, ParameterExpression
 from qiskit.circuit.classical.expr import Expr, Unary, Binary, Var, Value, ExprVisitor, iter_vars
 from qiskit.circuit.classical.types import Bool, Uint
-from qiskit.extensions import Initialize
+from qiskit.circuit.library import Initialize
 from qiskit.providers.options import Options
 from qiskit.pulse import Schedule, ScheduleBlock
 from qiskit.circuit.controlflow import (
