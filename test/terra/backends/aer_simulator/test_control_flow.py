@@ -1100,3 +1100,90 @@ class TestControlFlow(SimulatorTestCase):
         counts = result.get_counts()
         self.assertEqual(len(counts), 1)
         self.assertIn("1 1", counts)
+
+    @data("statevector", "density_matrix", "matrix_product_state", "stabilizer")
+    def test_bit_and_operation(self, method):
+        """test bit-and operation"""
+        qr = QuantumRegister(7)
+        cr = ClassicalRegister(7)
+        qc = QuantumCircuit(qr, cr)
+        qc.x(0)
+        qc.x(2)
+        qc.measure(range(4), range(4))  # 0101
+        qc.barrier()
+        b01 = expr.bit_and(cr[0], cr[1])  # 1 & 0 -> 0
+        with qc.if_test(b01):
+            qc.x(4)  # q4 -> 0
+
+        b02 = expr.bit_and(cr[0], cr[2])  # 1 & 1 -> 1
+        with qc.if_test(b02):
+            qc.x(5)  # q5 -> 0
+
+        b13 = expr.bit_and(cr[1], cr[3])  # 0 & 0 -> 0
+        with qc.if_test(b13):
+            qc.x(6)  # q6 -> 0
+
+        qc.measure(range(7), range(7))  # 0100101
+
+        backend = self.backend(method=method)
+        counts = backend.run(qc).result().get_counts()
+        self.assertEqual(len(counts), 1)
+        self.assertIn("0100101", counts)
+
+    @data("statevector", "density_matrix", "matrix_product_state", "stabilizer")
+    def test_bit_or_operation(self, method):
+        """test bit-or operation"""
+        qr = QuantumRegister(7)
+        cr = ClassicalRegister(7)
+        qc = QuantumCircuit(qr, cr)
+        qc.x(0)
+        qc.x(2)
+        qc.measure(range(4), range(4))  # 0101
+        qc.barrier()
+        b01 = expr.bit_or(cr[0], cr[1])  # 1 & 0 -> 1
+        with qc.if_test(b01):
+            qc.x(4)  # q4 -> 1
+
+        b02 = expr.bit_or(cr[0], cr[2])  # 1 & 1 -> 1
+        with qc.if_test(b02):
+            qc.x(5)  # q5 -> 0
+
+        b13 = expr.bit_or(cr[1], cr[3])  # 0 & 0 -> 0
+        with qc.if_test(b13):
+            qc.x(6)  # q6 -> 0
+
+        qc.measure(range(7), range(7))  # 0110101
+
+        backend = self.backend(method=method)
+        counts = backend.run(qc).result().get_counts()
+        self.assertEqual(len(counts), 1)
+        self.assertIn("0110101", counts)
+
+    @data("statevector", "density_matrix", "matrix_product_state", "stabilizer")
+    def test_bit_xor_operation(self, method):
+        """test bit-or operation"""
+        qr = QuantumRegister(7)
+        cr = ClassicalRegister(7)
+        qc = QuantumCircuit(qr, cr)
+        qc.x(0)
+        qc.x(2)
+        qc.measure(range(4), range(4))  # 0101
+        qc.barrier()
+        b01 = expr.bit_xor(cr[0], cr[1])  # 1 & 0 -> 1
+        with qc.if_test(b01):
+            qc.x(4)  # q4 -> 1
+
+        b02 = expr.bit_xor(cr[0], cr[2])  # 1 & 1 -> 0
+        with qc.if_test(b02):
+            qc.x(5)  # q5 -> 0
+
+        b13 = expr.bit_xor(cr[1], cr[3])  # 0 & 0 -> 0
+        with qc.if_test(b13):
+            qc.x(6)  # q6 -> 0
+
+        qc.measure(range(7), range(7))  # 0010101
+
+        backend = self.backend(method=method)
+        counts = backend.run(qc).result().get_counts()
+        self.assertEqual(len(counts), 1)
+        self.assertIn("0010101", counts)

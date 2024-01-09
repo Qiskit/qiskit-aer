@@ -353,12 +353,19 @@ class TestClassicalExpressions(QiskitAerTestCase):
             True,
         )
 
-        # (False & True): error
+        # (False & True): Uint -> error
         try:
-            AerBinaryExpr(AerBinaryOp.BitAnd, AerBoolValue(False), AerBoolValue(True))
+            AerBinaryExpr(AerBinaryOp.BitAnd, AerBoolValue(False), AerBoolValue(True)).eval_uint("")
             self.fail("do not reach here")
         except Exception:
             pass
+        # (False & True) = False
+        self.assertEqual(
+            AerBinaryExpr(AerBinaryOp.BitAnd, AerBoolValue(False), AerBoolValue(True)).eval_bool(
+                ""
+            ),
+            False,
+        )
         # (0b001 & 0b001) = 0b001
         self.assertEqual(
             AerBinaryExpr(
