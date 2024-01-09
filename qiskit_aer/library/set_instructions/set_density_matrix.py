@@ -14,7 +14,6 @@ Instruction to set the density matrix simulator state to a matrix.
 """
 
 from qiskit.circuit import QuantumCircuit, Instruction
-from qiskit.extensions.exceptions import ExtensionError
 from qiskit.quantum_info import DensityMatrix
 from ..default_qubits import default_qubits
 
@@ -31,7 +30,7 @@ class SetDensityMatrix(Instruction):
             state (DensityMatrix): a density matrix.
 
         Raises:
-            ExtensionError: if the input density matrix is not valid.
+            ValueError: if the input density matrix is not valid.
 
         .. note::
 
@@ -42,7 +41,7 @@ class SetDensityMatrix(Instruction):
         if not isinstance(state, DensityMatrix):
             state = DensityMatrix(state)
         if not state.num_qubits or not state.is_valid():
-            raise ExtensionError("The input state is not valid")
+            raise ValueError("The input state is not valid")
         super().__init__("set_density_matrix", state.num_qubits, 0, [state.data])
 
 
@@ -56,8 +55,8 @@ def set_density_matrix(self, state):
         QuantumCircuit: with attached instruction.
 
     Raises:
-        ExtensionError: If the density matrix is the incorrect size for the
-                        current circuit.
+        ValueError: If the density matrix is the incorrect size for the
+            current circuit.
 
     .. note:
 
@@ -67,7 +66,7 @@ def set_density_matrix(self, state):
     if not isinstance(state, DensityMatrix):
         state = DensityMatrix(state)
     if not state.num_qubits or state.num_qubits != len(qubits):
-        raise ExtensionError(
+        raise ValueError(
             "The size of the density matrix for the set state"
             " instruction must be equal to the number of qubits"
             f" in the circuit (state.num_qubits ({state.num_qubits})"
