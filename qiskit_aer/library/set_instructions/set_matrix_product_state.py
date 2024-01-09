@@ -14,7 +14,6 @@ Instruction to set the state simulator state to a matrix.
 """
 
 from qiskit.circuit import QuantumCircuit, Instruction
-from qiskit.extensions.exceptions import ExtensionError
 from ..default_qubits import default_qubits
 
 
@@ -52,7 +51,7 @@ def set_matrix_product_state(self, state):
         QuantumCircuit: with attached instruction.
 
     Raises:
-        ExtensionError: If the structure of the state is incorrect
+        ValueError: If the structure of the state is incorrect
 
     .. note:
 
@@ -60,21 +59,21 @@ def set_matrix_product_state(self, state):
     """
     qubits = default_qubits(self)
     if not isinstance(state, tuple) or len(state) != 2:
-        raise ExtensionError(
+        raise ValueError(
             "The input matrix product state is not valid.  Should be a list of 2 elements"
         )
     if not isinstance(state[0], list) or not isinstance(state[1], list):
-        raise ExtensionError(
+        raise ValueError(
             "The first element of the input matrix product state is not valid. Should be a list."
         )
     if len(state[0]) != len(state[1]) + 1:
-        raise ExtensionError(
+        raise ValueError(
             "The input matrix product state is not valid. "
             "Length of q_reg vector should be 1 more than length of lambda_reg"
         )
     for elem in state[0]:
         if not isinstance(elem, tuple) or len(elem) != 2:
-            raise ExtensionError(
+            raise ValueError(
                 "The input matrix product state is not valid."
                 "The first element should be a list of length 2"
             )
