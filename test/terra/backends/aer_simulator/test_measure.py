@@ -144,7 +144,8 @@ class TestMeasure(SimulatorTestCase):
         targets = ref_measure.measure_counts_deterministic(shots)
         result = backend.run(circuits, shots=shots).result()
         self.assertSuccess(result)
-        sampling = method == "density_matrix" or method == "tensor_network"
+        method_used = result.results[0].metadata.get("method")
+        sampling = method_used == "density_matrix" or method_used == "tensor_network"
         self.compare_result_metadata(result, circuits, "measure_sampling", sampling)
 
     # ---------------------------------------------------------------------

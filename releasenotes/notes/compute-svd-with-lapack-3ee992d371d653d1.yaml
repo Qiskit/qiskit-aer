@@ -1,0 +1,8 @@
+---
+features:
+  - |
+    Replace Qiskit SVD function with OpenBLAS/LAPACK SVD functions ``zgesvd``
+    and ``zgesdd``. By default ``zgesvd`` is used. Performance of ``zgesdd`` is better than
+    that of ``zgesvd`` on large matrices, whereas ``zgesvd`` performs better on small matrices.
+    User can use ``zgesdd`` function
+    setting the environment variable ``QISKIT_LAPACK_SVD=DC``.

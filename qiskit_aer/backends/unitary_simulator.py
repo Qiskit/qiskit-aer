@@ -12,12 +12,13 @@
 
 # pylint: disable=invalid-name
 """
-Qiskit Aer Unitary Simulator Backend.
+Aer Unitary Simulator Backend.
 """
 import copy
 import logging
 from warnings import warn
-from qiskit.utils import local_hardware_info
+
+import psutil
 from qiskit.providers.options import Options
 from qiskit.providers.models import QasmBackendConfiguration
 
@@ -36,7 +37,7 @@ from .backend_utils import (
     map_legacy_method_config,
 )
 
-# pylint: disable=import-error, no-name-in-module
+# pylint: disable=import-error, no-name-in-module, abstract-method
 from .controller_wrappers import aer_controller_execute
 
 # Logger
@@ -218,7 +219,7 @@ class UnitarySimulator(AerBackend):
                 "pauli",
             ]
         ),
-        "custom_instructions": sorted(["save_unitary", "save_state", "set_unitary"]),
+        "custom_instructions": sorted(["save_unitary", "save_state", "set_unitary", "reset"]),
         "gates": [],
     }
 
@@ -239,9 +240,7 @@ class UnitarySimulator(AerBackend):
         self._controller = aer_controller_execute()
 
         if UnitarySimulator._AVAILABLE_DEVICES is None:
-            UnitarySimulator._AVAILABLE_DEVICES = available_devices(
-                self._controller, UnitarySimulator._SIMULATION_DEVICES
-            )
+            UnitarySimulator._AVAILABLE_DEVICES = available_devices(self._controller)
 
         if configuration is None:
             configuration = QasmBackendConfiguration.from_dict(
@@ -341,7 +340,7 @@ class UnitarySimulator(AerBackend):
         2. No measurements or reset
         3. Check number of qubits will fit in local memory.
         """
-        name = self.name()
+        name = self.name
         if getattr(qobj.config, "noise_model", None) is not None:
             raise AerError(f"{name} does not support noise.")
 
@@ -351,7 +350,7 @@ class UnitarySimulator(AerBackend):
             raise AerError(
                 f"Number of qubits ({n_qubits}) is greater than "
                 f'max ({max_qubits}) for "{name}" with '
-                f"{int(local_hardware_info()['memory'])} GB system memory."
+                f"{int(psutil.virtual_memory().total / (1024**3))} GB system memory."
             )
         if qobj.config.shots != 1:
             logger.info('"%s" only supports 1 shot. Setting shots=1.', name)

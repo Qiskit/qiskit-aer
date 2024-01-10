@@ -35,11 +35,11 @@ protected:
   std::vector<std::shared_ptr<ChunkContainer<data_t>>>
       chunks_; // chunk containers for each device and host
 
-  int num_devices_; // number of devices
-  int num_places_;  // number of places (devices + host)
+  uint_t num_devices_; // number of devices
+  uint_t num_places_;  // number of places (devices + host)
 
-  int chunk_bits_; // number of qubits of chunk
-  int num_qubits_; // number of global qubits
+  uint_t chunk_bits_; // number of qubits of chunk
+  uint_t num_qubits_; // number of global qubits
 
   uint_t num_chunks_;  // number of chunks on this process
   uint_t chunk_index_; // global chunk index for the first chunk
@@ -105,7 +105,6 @@ public:
 
 template <typename data_t>
 ChunkManager<data_t>::ChunkManager() {
-  int i, j;
   num_places_ = 1;
   chunk_bits_ = 0;
   num_chunks_ = 0;
@@ -126,7 +125,9 @@ ChunkManager<data_t>::ChunkManager() {
 #else
 
 #ifdef AER_THRUST_GPU
-  if (cudaGetDeviceCount(&num_devices_) == cudaSuccess) {
+  int ndev;
+  if (cudaGetDeviceCount(&ndev) == cudaSuccess) {
+    num_devices_ = ndev;
     num_places_ = num_devices_;
   } else {
     cudaGetLastError();
@@ -168,19 +169,21 @@ uint_t ChunkManager<data_t>::Allocate(int chunk_bits, int nqubits,
                                       bool density_mat, reg_t &gpus,
                                       bool enable_cuStatevec) {
   uint_t num_buffers;
-  int iDev;
+  uint_t iDev;
   uint_t is, ie, nc;
-  int i;
+  uint_t i;
   char *str;
-  bool multi_gpu = false;
-  bool hybrid = false;
 
+  bool hybrid = false;
+#ifdef AER_THRUST_GPU
+  bool multi_gpu = false;
   //--- for test
   str = getenv("AER_MULTI_GPU");
   if (str) {
     multi_gpu = true;
     num_places_ = num_devices_;
   }
+#endif
   str = getenv("AER_HYBRID");
   if (str) {
     hybrid = true;
@@ -192,8 +195,10 @@ uint_t ChunkManager<data_t>::Allocate(int chunk_bits, int nqubits,
   target_gpus_ = gpus;
   if (target_gpus_.size() > 0) {
     num_devices_ = target_gpus_.size();
+#ifdef AER_THRUST_GPU
     if (num_devices_ > 1)
       multi_gpu = true;
+#endif
   } else {
     target_gpus_.resize(num_devices_);
     for (iDev = 0; iDev < num_devices_; iDev++) {
@@ -203,7 +208,7 @@ uint_t ChunkManager<data_t>::Allocate(int chunk_bits, int nqubits,
 
   chunk_index_ = chunk_index;
 
-  if (num_qubits_ != nqubits || chunk_bits_ != chunk_bits ||
+  if (num_qubits_ != (uint_t)nqubits || chunk_bits_ != (uint_t)chunk_bits ||
       nchunks > num_chunks_) {
     // free previous allocation
     Free();
@@ -224,7 +229,6 @@ uint_t ChunkManager<data_t>::Allocate(int chunk_bits, int nqubits,
         multi_shots_ = true;
 
 #ifdef AER_THRUST_CPU
-        multi_gpu = false;
         num_places_ = 1;
 #else
         if (chunk_distribution_enable_) {
@@ -260,7 +264,9 @@ uint_t ChunkManager<data_t>::Allocate(int chunk_bits, int nqubits,
 #endif
       } else { // single chunk
         num_buffers = 0;
+#ifdef AER_THRUST_GPU
         multi_gpu = false;
+#endif
         num_places_ = 1;
         num_chunks_ = nchunks;
         multi_shots_ = false;
@@ -346,7 +352,7 @@ uint_t ChunkManager<data_t>::Allocate(int chunk_bits, int nqubits,
       }
     }
     if (chunks_allocated < num_chunks_) {
-      int nplaces_add = num_places_;
+      uint_t nplaces_add = num_places_;
       if ((num_chunks_ - chunks_allocated) < nplaces_add)
         nplaces_add = (num_chunks_ - chunks_allocated);
       // rest of chunks are stored on host
@@ -391,7 +397,7 @@ uint_t ChunkManager<data_t>::Allocate(int chunk_bits, int nqubits,
 
 template <typename data_t>
 void ChunkManager<data_t>::Free(void) {
-  int i;
+  uint_t i;
 
   for (i = 0; i < chunks_.size(); i++) {
     chunks_[i]->Deallocate();
@@ -408,7 +414,7 @@ void ChunkManager<data_t>::Free(void) {
 
 template <typename data_t>
 bool ChunkManager<data_t>::MapChunk(Chunk<data_t> &chunk, int iplace) {
-  int i;
+  uint_t i;
 
   for (i = 0; i < num_places_; i++) {
     if (chunks_[(iplace + i) % num_places_]->MapChunk(chunk)) {
@@ -422,7 +428,7 @@ bool ChunkManager<data_t>::MapChunk(Chunk<data_t> &chunk, int iplace) {
 template <typename data_t>
 bool ChunkManager<data_t>::MapBufferChunk(Chunk<data_t> &out, int idev) {
   if (idev < 0) {
-    int i;
+    uint_t i;
     for (i = 0; i < num_devices_; i++) {
       if (chunks_[i]->MapBufferChunk(out))
         break;

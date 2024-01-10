@@ -899,27 +899,26 @@ template <class tensor_net_t>
 std::vector<reg_t> State<tensor_net_t>::sample_measure(const reg_t &qubits,
                                                        uint_t shots,
                                                        RngEngine &rng) {
-  int_t i, j;
   // Generate flat register for storing
   std::vector<double> rnds(shots);
 
-  for (i = 0; i < shots; ++i)
+  for (uint_t i = 0; i < shots; ++i)
     rnds[i] = rng.rand(0, 1);
 
   std::vector<reg_t> samples = BaseState::qreg_.sample_measure(rnds);
   std::vector<reg_t> ret(shots);
 
   if (omp_get_num_threads() > 1) {
-    for (i = 0; i < shots; ++i) {
+    for (uint_t i = 0; i < shots; ++i) {
       ret[i].resize(qubits.size());
-      for (j = 0; j < qubits.size(); j++)
+      for (uint_t j = 0; j < qubits.size(); j++)
         ret[i][j] = samples[i][qubits[j]];
     }
   } else {
-#pragma omp parallel for private(j)
-    for (i = 0; i < shots; ++i) {
+#pragma omp parallel for
+    for (int_t i = 0; i < (int_t)shots; ++i) {
       ret[i].resize(qubits.size());
-      for (j = 0; j < qubits.size(); j++)
+      for (uint_t j = 0; j < qubits.size(); j++)
         ret[i][j] = samples[i][qubits[j]];
     }
   }
@@ -928,10 +927,21 @@ std::vector<reg_t> State<tensor_net_t>::sample_measure(const reg_t &qubits,
 
 template <class tensor_net_t>
 void State<tensor_net_t>::apply_initialize(const reg_t &qubits,
-                                           const cvector_t<double> &params,
+                                           const cvector_t<double> &params_in,
                                            RngEngine &rng) {
   auto sorted_qubits = qubits;
   std::sort(sorted_qubits.begin(), sorted_qubits.end());
+  // apply global phase here
+  cvector_t<double> tmp;
+  if (BaseState::has_global_phase_) {
+    tmp.resize(params_in.size());
+    auto apply_global_phase = [&tmp, params_in, this](int_t i) {
+      tmp[i] = params_in[i] * BaseState::global_phase_;
+    };
+    Utils::apply_omp_parallel_for((qubits.size() > 14), 0, params_in.size(),
+                                  apply_global_phase, BaseState::threads_);
+  }
+  const cvector_t<double> &params = tmp.empty() ? params_in : tmp;
   if (qubits.size() == BaseState::qreg_.num_qubits()) {
     // If qubits is all ordered qubits in the statevector
     // we can just initialize the whole state directly
@@ -952,7 +962,7 @@ void State<tensor_net_t>::initialize_from_vector(
   BaseState::qreg_.initialize();
 
   reg_t qubits(BaseState::qreg_.num_qubits());
-  for (int_t i = 0; i < BaseState::qreg_.num_qubits(); i++)
+  for (uint_t i = 0; i < BaseState::qreg_.num_qubits(); i++)
     qubits[i] = i;
   BaseState::qreg_.initialize_component(qubits, params);
 }

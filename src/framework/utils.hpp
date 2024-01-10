@@ -28,8 +28,11 @@
 #include <intrin.h>
 #endif
 
-#if defined(__linux__) || defined(__APPLE__)
+#if defined(__linux__)
 #include <unistd.h>
+#elif defined(__APPLE__)
+#include <sys/sysctl.h>
+#include <sys/types.h>
 #elif defined(_WIN64) || defined(_WIN32)
 // This is needed because windows.h redefine min()/max() so interferes with
 // std::min/max
@@ -1267,13 +1270,16 @@ uint_t (*popcount)(uint_t) = is_avx2_supported() ? &_instrinsic_weight
 bool (*hamming_parity)(uint_t) = &_naive_parity;
 uint_t (*popcount)(uint_t) = &_naive_weight;
 #endif
-
+size_t get_system_memory_mb();
 size_t get_system_memory_mb() {
   size_t total_physical_memory = 0;
-#if defined(__linux__) || defined(__APPLE__)
+#if defined(__linux__)
   size_t pages = (size_t)sysconf(_SC_PHYS_PAGES);
   size_t page_size = (size_t)sysconf(_SC_PAGE_SIZE);
   total_physical_memory = pages * page_size;
+#elif defined(__APPLE__)
+  size_t len = sizeof(total_physical_memory);
+  sysctlbyname("hw.memsize", &total_physical_memory, &len, NULL, 0);
 #elif defined(_WIN64) || defined(_WIN32)
   MEMORYSTATUSEX status;
   status.dwLength = sizeof(status);

@@ -224,3 +224,15 @@ class TestInitialize(SimulatorTestCase):
             actual = backend.run(circ).result().get_statevector(circ)
 
         self.assertAlmostEqual(actual[5], 1)
+
+    @supported_methods(SUPPORTED_METHODS)
+    def test_initialize_with_global_phase(self, method, device):
+        """Test AerSimulator initialize with global phase"""
+        backend = self.backend(method=method, device=device)
+        circ = QuantumCircuit(2)
+        circ.global_phase = np.pi
+        circ.initialize([1, 0, 0, 0])
+        circ.x(0)
+        circ.save_statevector()
+        actual = backend.run(circ).result().get_statevector(circ)
+        self.assertAlmostEqual(actual[1], -1)

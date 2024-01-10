@@ -78,6 +78,8 @@ endif()
 option(STATIC_LINKING "Specify if we want statically link the executable (for
 						redistribution mainly)" FALSE)
 option(BUILD_TESTS "Specify whether we want to build tests or not" FALSE)
+option(USE_BUNDLED_BLAS_WIN "Use the bundled openblas library on Windows when
+							not using AER_BLAS_LIB_PATH" TRUE)
 
 # Allow disabling conan for downstream package managers. Requires all libraries to be present in path
 # Default is value of environment variable if defined or ON
@@ -237,7 +239,7 @@ else()
 		  set(BLA_VENDOR "OpenBLAS")
 		endif()
 	endif()
-	if(WIN32)
+	if(WIN32 AND USE_BUNDLED_BLAS_WIN)
 		message(STATUS "Uncompressing OpenBLAS static library...")
 		set(WIN_ARCH "win64" )
 		if("${CMAKE_SIZEOF_VOID_P}" STREQUAL "4") # Checking if win32 build
