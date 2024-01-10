@@ -65,6 +65,11 @@ std::vector<cmatrix_t> reshape_V_after_SVD(const cmatrix_t V) {
   AER::Utils::split(AER::Utils::dagger(V), Res[0], Res[1], 1);
   return Res;
 }
+std::vector<cmatrix_t> reshape_VH_after_SVD(const cmatrix_t V) {
+  std::vector<cmatrix_t> Res(2);
+  AER::Utils::split(V, Res[0], Res[1], 1);
+  return Res;
+}
 
 //-------------------------------------------------------------
 // function name: num_of_SV
@@ -85,7 +90,8 @@ uint_t num_of_SV(rvector_t S, double threshold) {
 }
 
 double reduce_zeros(cmatrix_t &U, rvector_t &S, cmatrix_t &V,
-                    uint_t max_bond_dimension, double truncation_threshold) {
+                    uint_t max_bond_dimension, double truncation_threshold,
+                    bool mps_lapack) {
   uint_t SV_num = num_of_SV(S, CHOP_THRESHOLD);
   uint_t new_SV_num = SV_num;
 
@@ -107,7 +113,12 @@ double reduce_zeros(cmatrix_t &U, rvector_t &S, cmatrix_t &V,
   }
   U.resize(U.GetRows(), new_SV_num);
   S.resize(new_SV_num);
-  V.resize(V.GetRows(), new_SV_num);
+  // When using LAPACK function, V is V dagger
+  if (mps_lapack) {
+    V.resize(new_SV_num, V.GetColumns());
+  } else {
+    V.resize(V.GetRows(), new_SV_num);
+  }
 
   // discarded_value is the sum of the squares of the Schmidt coeffients
   // that were discarded by approximation
@@ -130,9 +141,28 @@ double reduce_zeros(cmatrix_t &U, rvector_t &S, cmatrix_t &V,
   return discarded_value;
 }
 
+void validate_SVdD_result(const cmatrix_t &A, const cmatrix_t &U,
+                          const rvector_t &S, const cmatrix_t &V) {
+  const uint_t nrows = A.GetRows(), ncols = A.GetColumns();
+
+  cmatrix_t diag_S = diag(S, nrows, ncols);
+  cmatrix_t product = U * diag_S;
+  product = product * V;
+
+  for (uint_t ii = 0; ii < nrows; ii++)
+    for (uint_t jj = 0; jj < ncols; jj++)
+      if (!Linalg::almost_equal(std::abs(A(ii, jj)), std::abs(product(ii, jj)),
+                                THRESHOLD)) {
+        std::cout << std::abs(A(ii, jj)) << " vs " << std::abs(product(ii, jj))
+                  << std::endl;
+        throw std::runtime_error("Error: Wrong SVD calculations: A != USV*");
+      }
+}
+
 void validate_SVD_result(const cmatrix_t &A, const cmatrix_t &U,
                          const rvector_t &S, const cmatrix_t &V) {
   const uint_t nrows = A.GetRows(), ncols = A.GetColumns();
+
   cmatrix_t diag_S = diag(S, nrows, ncols);
   cmatrix_t product = U * diag_S;
   product = product * AER::Utils::dagger(V);
@@ -519,7 +549,17 @@ status csvd(cmatrix_t &A, cmatrix_t &U, rvector_t &S, cmatrix_t &V) {
   return SUCCESS;
 }
 
-void csvd_wrapper(cmatrix_t &A, cmatrix_t &U, rvector_t &S, cmatrix_t &V) {
+void csvd_wrapper(cmatrix_t &A, cmatrix_t &U, rvector_t &S, cmatrix_t &V,
+                  bool lapack) {
+  if (lapack) {
+    lapack_csvd_wrapper(A, U, S, V);
+  } else {
+    qiskit_csvd_wrapper(A, U, S, V);
+  }
+}
+
+void qiskit_csvd_wrapper(cmatrix_t &A, cmatrix_t &U, rvector_t &S,
+                         cmatrix_t &V) {
   cmatrix_t copied_A = A;
   int times = 0;
 #ifdef DEBUG
@@ -550,6 +590,81 @@ void csvd_wrapper(cmatrix_t &A, cmatrix_t &U, rvector_t &S, cmatrix_t &V) {
   // Divide by mul_factor every singular value after we multiplied matrix a
   for (uint_t k = 0; k < S.size(); k++)
     S[k] /= pow(mul_factor, times);
+}
+
+void lapack_csvd_wrapper(cmatrix_t &A, cmatrix_t &U, rvector_t &S,
+                         cmatrix_t &V) {
+  // Activated by default as requested in the PR
+  // #ifdef DEBUG
+  cmatrix_t tempA = A;
+  // #endif
+
+  const size_t m = A.GetRows(), n = A.GetColumns();
+  const size_t min_dim = std::min(m, n);
+  const size_t lda = std::max(m, n);
+  size_t lwork = 2 * min_dim + lda;
+
+  U.resize(m, m);
+  V.resize(n, n);
+
+  complex_t *lapackA = A.move_to_buffer(), *lapackU = U.move_to_buffer(),
+            *lapackV = V.move_to_buffer();
+
+  double *lapackS = new double[min_dim];
+  complex_t *work = new complex_t[lwork];
+  int info;
+
+  if (m >= 64 && n >= 64) {
+    // From experimental results, matrices equal or bigger than this size
+    // perform better using Divide and Conquer approach
+    int *iwork = new int[8 * min_dim];
+    int rwork_size = std::max(5 * min_dim * min_dim + 5 * min_dim,
+                              2 * m * n + 2 * min_dim * min_dim + min_dim);
+
+    double *rwork = (double *)calloc(rwork_size, sizeof(double));
+    lwork = -1;
+    zgesdd_("A", &m, &n, lapackA, &m, lapackS, lapackU, &m, lapackV, &n, work,
+            &lwork, rwork, iwork, &info);
+
+    lwork = (int)work[0].real();
+    complex_t *work_ = (complex_t *)calloc(lwork, sizeof(complex_t));
+
+    zgesdd_("A", &m, &n, lapackA, &m, lapackS, lapackU, &m, lapackV, &n, work_,
+            &lwork, rwork, iwork, &info);
+
+    delete iwork;
+    free(rwork);
+    free(work_);
+  } else {
+    // Default execution follows original method
+    double *rwork = (double *)calloc(5 * min_dim, sizeof(double));
+    zgesvd_("A", "A", &m, &n, lapackA, &m, lapackS, lapackU, &m, lapackV, &n,
+            work, &lwork, rwork, &info);
+    free(rwork);
+  }
+  A = cmatrix_t::move_from_buffer(m, n, lapackA);
+  U = cmatrix_t::move_from_buffer(m, m, lapackU);
+  V = cmatrix_t::move_from_buffer(n, n, lapackV);
+
+  S.clear();
+  for (int i = 0; i < min_dim; i++)
+    S.push_back(lapackS[i]);
+
+  // Activated by default as requested in the PR
+  // #ifdef DEBUG
+  validate_SVdD_result(tempA, U, S, V);
+  // #endif
+
+  delete lapackS;
+  delete work;
+
+  if (info == 0) {
+    return;
+  } else {
+    std::stringstream ss;
+    ss << " SVD failed";
+    throw std::runtime_error(ss.str());
+  }
 }
 
 } // namespace AER
