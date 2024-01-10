@@ -32,7 +32,7 @@ from qiskit.quantum_info import Kraus
 from qiskit.quantum_info.operators.operator import Operator
 from qiskit.quantum_info.operators.symplectic import Pauli, SparsePauliOp
 from qiskit.quantum_info.operators.predicates import matrix_equal
-from qiskit.visualization.state_visualization import numbers_to_latex_terms, state_to_latex
+from qiskit.visualization.state_visualization import _numbers_to_latex_terms, state_to_latex
 from qiskit.circuit.library import QFT, HGate
 
 from test.terra import common
@@ -1392,7 +1392,7 @@ class TestAerStatevector(common.QiskitAerTestCase):
         ]
         with self.assertWarns(DeprecationWarning):
             for numbers, latex_terms in cases:
-                terms = numbers_to_latex_terms(numbers, 15)
+                terms = _numbers_to_latex_terms(numbers, 15)
                 self.assertListEqual(terms, latex_terms)
 
     def test_statevector_draw_latex_regression(self):
