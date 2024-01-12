@@ -1187,3 +1187,52 @@ class TestControlFlow(SimulatorTestCase):
         counts = backend.run(qc).result().get_counts()
         self.assertEqual(len(counts), 1)
         self.assertIn("0010101", counts)
+
+    @data("statevector", "density_matrix", "matrix_product_state", "stabilizer")
+    def test_store_simple(self, method):
+        """test store operation"""
+        backend = self.backend(method=method)
+
+        # Check stored values can be sampled
+        qr = QuantumRegister(4)
+        cr = ClassicalRegister(4)
+        qc = QuantumCircuit(qr, cr)
+        qc.x(2)
+        qc.measure(range(4), range(4))
+        qc.store(cr, 0b1000)  # measured classical registers are modified
+
+        counts = backend.run(qc).result().get_counts()
+        self.assertEqual(len(counts), 1)
+        self.assertIn("1000", counts)
+
+        # Check stored values to creg can be evaluated
+        qr = QuantumRegister(4)
+        cr = ClassicalRegister(4)
+        qc = QuantumCircuit(qr, cr)
+        qc.x(2)
+        qc.measure(range(4), range(4))
+        qc.store(cr, 0b1000)  # override
+        with qc.if_test((2, False)):
+            # must reach
+            qc.x(1)  # 0b1010
+        qc.measure(range(4), range(4))
+
+        counts = backend.run(qc).result().get_counts()
+        self.assertEqual(len(counts), 1)
+        self.assertIn("0110", counts)
+
+        # Check stored values to clbit can be evaluated
+        qr = QuantumRegister(4)
+        cr = ClassicalRegister(4)
+        qc = QuantumCircuit(qr, cr)
+        qc.x(2)
+        qc.measure(range(4), range(4))
+        qc.store(cr[2], False)  # override
+        with qc.if_test((2, False)):
+            # must reach
+            qc.x(1)  # 0b1010
+        qc.measure(range(4), range(4))
+
+        counts = backend.run(qc).result().get_counts()
+        self.assertEqual(len(counts), 1)
+        self.assertIn("0110", counts)

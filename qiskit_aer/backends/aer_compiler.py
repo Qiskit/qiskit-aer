@@ -20,6 +20,7 @@ from typing import List
 from warnings import warn
 from concurrent.futures import Executor
 import numpy as np
+import uuid
 
 from qiskit.circuit import QuantumCircuit, Clbit, ClassicalRegister, ParameterExpression
 from qiskit.circuit.classical.expr import Expr, Unary, Binary, Var, Value, ExprVisitor, iter_vars
@@ -27,6 +28,7 @@ from qiskit.circuit.classical.types import Bool, Uint
 from qiskit.circuit.library import Initialize
 from qiskit.providers.options import Options
 from qiskit.pulse import Schedule, ScheduleBlock
+from qiskit.circuit import Store
 from qiskit.circuit.controlflow import (
     WhileLoopOp,
     ForLoopOp,
@@ -58,7 +60,7 @@ from qiskit_aer.backends.controller_wrappers import (
 )
 
 from .backend_utils import circuit_optypes
-from ..library.control_flow_instructions import AerMark, AerJump
+from ..library.control_flow_instructions import AerMark, AerJump, AerStore
 
 
 class AerCompiler:
@@ -92,17 +94,23 @@ class AerCompiler:
             # Make a shallow copy incase we modify it
             compiled_optypes = list(optypes)
         if isinstance(circuits, list):
-            basis_gates = basis_gates + ["mark", "jump"]
+            basis_gates = basis_gates + ["mark", "jump", "aer_store"]
             compiled_circuits = []
             for idx, circuit in enumerate(circuits):
                 # Resolve initialize
                 circuit = self._inline_initialize(circuit, compiled_optypes[idx])
                 if self._is_dynamic(circuit, compiled_optypes[idx]):
+                    inlined_circ = self._inline_circuit(circuit, None, None)
                     compiled_circ = transpile(
-                        self._inline_circuit(circuit, None, None),
+                        inlined_circ,
                         basis_gates=basis_gates,
                         optimization_level=0,
                     )
+                    # Note: ad-hoc solution to resolve a transplation issue with Var
+                    compiled_circ._vars_local = inlined_circ._vars_local
+                    compiled_circ._vars_input = inlined_circ._vars_input
+                    compiled_circ._vars_capture = inlined_circ._vars_capture
+
                     compiled_circuits.append(compiled_circ)
                     # Recompute optype for compiled circuit
                     compiled_optypes[idx] = circuit_optypes(compiled_circ)
@@ -211,6 +219,12 @@ class AerCompiler:
             elif isinstance(instruction.operation, ContinueLoopOp):
                 ret._append(
                     AerJump(continue_label, ret.num_qubits, ret.num_clbits), ret.qubits, ret.clbits
+                )
+            elif isinstance(instruction.operation, Store):
+                ret._append(
+                    AerStore(ret.num_qubits, ret.num_clbits, instruction.operation),
+                    ret.qubits,
+                    ret.clbits,
                 )
             else:
                 ret._append(instruction)
@@ -613,7 +627,7 @@ def assemble_circuit(circuit: QuantumCircuit):
 
     num_qubits = circuit.num_qubits
     num_memory = circuit.num_clbits
-    max_conditional_idx = 0
+    extra_creg_idx = 0
 
     qreg_sizes = []
     creg_sizes = []
@@ -654,6 +668,12 @@ def assemble_circuit(circuit: QuantumCircuit):
     aer_circ.num_memory = num_memory
     aer_circ.global_phase_angle = global_phase
 
+    var_heap_map = {}
+    for var in _iter_var_recursive(circuit):
+        memory_pos = num_memory + extra_creg_idx
+        var_heap_map[var.name] = (memory_pos, var.type.width)
+        extra_creg_idx += var.type.width
+
     num_of_aer_ops = 0
     index_map = []
     for inst in circuit.data:
@@ -674,10 +694,10 @@ def assemble_circuit(circuit: QuantumCircuit):
                     if clbit in ctrl_reg:
                         mask |= 1 << idx
                         val |= ((ctrl_val >> list(ctrl_reg).index(clbit)) & 1) << idx
-            conditional_reg = num_memory + max_conditional_idx
+            conditional_reg = num_memory + extra_creg_idx
             aer_circ.bfunc(f"0x{mask:X}", f"0x{val:X}", "==", conditional_reg)
             num_of_aer_ops += 1
-            max_conditional_idx += 1
+            extra_creg_idx += 1
         elif hasattr(inst.operation, "condition_expr") and inst.operation.condition_expr:
             conditional_expr = inst.operation.condition_expr
 
@@ -705,11 +725,30 @@ def _assemble_type(expr_type):
         raise AerError(f"unknown type: {expr_type.__class__}")
 
 
+def _iter_var_recursive(circuit):
+    yield from circuit.iter_vars()
+    for data in circuit.data:
+        for param in data[0].params:
+            if isinstance(param, QuantumCircuit):
+                yield from _iter_var_recursive(param)
+
+
+def _find_var_clbits(circuit, uuid):
+    clbit_index = circuit.num_clbits
+    for var in _iter_var_recursive(circuit):
+        if var.var == uuid:
+            return [clbit for clbit in range(clbit_index, clbit_index + var.type.width)]
+        clbit_index += var.type.width
+    raise AerError(f"Var is not registed in this circuit: uuid={uuid}")
+
+
 def _assemble_clbit_indices(circ, c):
     if isinstance(c, (ClassicalRegister, list)):
         return [circ.find_bit(cbit).index for cbit in c]
     elif isinstance(c, Clbit):
         return [circ.find_bit(c).index]
+    elif isinstance(c, uuid.UUID):
+        return _find_var_clbits(circ, c)
     else:
         raise AerError(f"unknown clibt list: {c.__class__}")
 
@@ -795,6 +834,7 @@ def _assemble_op(
     is_conditional,
     conditional_reg,
     conditional_expr,
+    # var_heap_map,
 ):
     operation = inst.operation
     qubits = [qubit_indices[qubit] for qubit in inst.qubits]
@@ -919,7 +959,16 @@ def _assemble_op(
         raise AerError(
             "control-flow instructions must be converted " f"to jump and mark instructions: {name}"
         )
-
+    elif name == "aer_store":
+        if not isinstance(operation.store.lvalue, Var):
+            raise AerError(f"unsupported lvalue : {operation.store.lvalue.__class__}")
+        aer_circ.store(qubits, _assemble_clbit_indices(circ, operation.store.lvalue.var), operation.store.rvalue.accept(_AssembleExprImpl(circ)))
+        num_of_aer_ops = 1
+    elif name == "store":
+        if not isinstance(operation.lvalue, Var):
+            raise AerError(f"unsupported lvalue : {operation.lvalue.__class__}")
+        aer_circ.store(qubits, _assemble_clbit_indices(circ, operation.lvalue.var), operation.rvalue.accept(_AssembleExprImpl(circ)))
+        num_of_aer_ops = 1
     else:
         raise AerError(f"unknown instruction: {name}")
 
