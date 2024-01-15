@@ -369,6 +369,9 @@ void State::set_config(const Config &config) {
     MPS::set_mps_swap_direction(MPS_swap_direction::SWAP_RIGHT);
   else
     MPS::set_mps_swap_direction(MPS_swap_direction::SWAP_LEFT);
+
+  // Set LAPACK SVD
+  MPS::set_mps_lapack_svd(config.mps_lapack);
 }
 
 void State::add_metadata(ExperimentResult &result) const {
@@ -380,6 +383,7 @@ void State::add_metadata(ExperimentResult &result) const {
                       "matrix_product_state_sample_measure_algorithm");
   if (MPS::get_mps_log_data())
     result.metadata.add("{" + MPS::output_log() + "}", "MPS_log_data");
+  result.metadata.add(MPS::get_mps_lapack_svd(), "matrix_product_state_lapack");
 }
 
 void State::output_bond_dimensions(const Operations::Op &op) const {
@@ -803,7 +807,8 @@ std::vector<reg_t> State::sample_measure_all(uint_t shots, RngEngine &rng) {
   std::vector<reg_t> all_samples;
   all_samples.resize(shots);
 
-  for (uint_t i = 0; i < shots; i++) {
+#pragma omp parallel for if (getenv("PRL_PROB_MEAS"))
+  for (int_t i = 0; i < static_cast<int_t>(shots); i++) {
     auto single_result = qreg_.sample_measure(shots, rng);
     all_samples[i] = single_result;
   }
