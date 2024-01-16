@@ -32,7 +32,7 @@ from qiskit.quantum_info import Kraus
 from qiskit.quantum_info.operators.operator import Operator
 from qiskit.quantum_info.operators.symplectic import Pauli, SparsePauliOp
 from qiskit.quantum_info.operators.predicates import matrix_equal
-from qiskit.visualization.state_visualization import numbers_to_latex_terms, state_to_latex
+from qiskit.visualization.state_visualization import state_to_latex
 from qiskit.circuit.library import QFT, HGate
 
 from test.terra import common
@@ -1372,28 +1372,6 @@ class TestAerStatevector(common.QiskitAerTestCase):
         sv = AerStatevector(np.eye(2**15, 1))
         latex_representation = state_to_latex(sv)
         self.assertEqual(latex_representation, " |000000000000000\\rangle")
-
-    def test_number_to_latex_terms(self):
-        """Test conversions of complex numbers to latex terms"""
-
-        cases = [
-            ([1 - 8e-17, 0], ["", None]),
-            ([0, -1], [None, "-"]),
-            ([0, 1], [None, ""]),
-            ([0, 1j], [None, "i"]),
-            ([-1, 1], ["-", "+"]),
-            ([0, 1j], [None, "i"]),
-            ([-1, 1j], ["-", "+i"]),
-            ([1e-16 + 1j], ["i"]),
-            ([-1 + 1e-16 * 1j], ["-"]),
-            ([-1, -1 - 1j], ["-", "+(-1 - i)"]),
-            ([np.sqrt(2) / 2, np.sqrt(2) / 2], ["\\frac{\\sqrt{2}}{2}", "+\\frac{\\sqrt{2}}{2}"]),
-            ([1 + np.sqrt(2)], ["(1 + \\sqrt{2})"]),
-        ]
-        with self.assertWarns(DeprecationWarning):
-            for numbers, latex_terms in cases:
-                terms = numbers_to_latex_terms(numbers, 15)
-                self.assertListEqual(terms, latex_terms)
 
     def test_statevector_draw_latex_regression(self):
         """Test numerical rounding errors are not printed"""

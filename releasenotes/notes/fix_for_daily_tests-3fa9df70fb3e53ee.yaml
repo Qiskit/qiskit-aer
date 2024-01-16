@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    Removed deprecate function test in
+    test.terra.states.test_aer_statevector.TestAerStatevector.test_number_to_latex_terms
+
+    Sorted the output properties in
+    test.terra.noise.test_device_models.test_basic_device_gate_errors_from_target_and_properties
+    to compare correctly.
