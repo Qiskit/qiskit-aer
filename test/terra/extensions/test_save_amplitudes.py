@@ -13,7 +13,6 @@
 
 import unittest
 
-from qiskit.extensions.exceptions import ExtensionError
 from qiskit_aer.library import SaveAmplitudes
 from ..common import QiskitAerTestCase
 
@@ -23,11 +22,11 @@ class TestSaveAmplitudes(QiskitAerTestCase):
 
     def test_invalid_key_raises(self):
         """Test save instruction key is str"""
-        self.assertRaises(ExtensionError, lambda: SaveAmplitudes(1, [0], 1))
+        self.assertRaises(TypeError, lambda: SaveAmplitudes(1, [0], 1))
 
     def test_invalid_state_raises(self):
         """Test non-Hermitian op raises exception."""
-        self.assertRaises(ExtensionError, lambda: SaveAmplitudes(2, [4], "key"))
+        self.assertRaises(ValueError, lambda: SaveAmplitudes(2, [4], "key"))
 
     def test_default_kwarg(self):
         """Test default kwargs"""

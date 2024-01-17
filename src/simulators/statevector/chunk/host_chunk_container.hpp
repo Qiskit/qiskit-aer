@@ -121,7 +121,6 @@ uint_t HostChunkContainer<data_t>::Allocate(int idev, int chunk_bits,
                                             int matrix_bit, int max_shots,
                                             bool density_matrix) {
   uint_t nc = chunks;
-  uint_t i;
 
   ChunkContainer<data_t>::chunk_bits_ = chunk_bits;
   ChunkContainer<data_t>::num_qubits_ = num_qubits;

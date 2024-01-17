@@ -955,7 +955,9 @@ void QubitVector<data_t>::allocate_mem(size_t data_size) {
   if (data_ == nullptr) {
 #if !defined(_WIN64) && !defined(_WIN32)
     void *data = nullptr;
-    posix_memalign(&data, 64, sizeof(std::complex<data_t>) * data_size);
+    if (posix_memalign(&data, 64, sizeof(std::complex<data_t>) * data_size) !=
+        0)
+      throw std::runtime_error("Cannot allocate memory by posix_memalign");
     data_ = reinterpret_cast<std::complex<data_t> *>(data);
 #else
     data_ = reinterpret_cast<std::complex<data_t> *>(
@@ -969,7 +971,8 @@ void QubitVector<data_t>::allocate_checkpoint(size_t data_size) {
   free_checkpoint();
 #if !defined(_WIN64) && !defined(_WIN32)
   void *data = nullptr;
-  posix_memalign(&data, 64, sizeof(std::complex<data_t>) * data_size);
+  if (posix_memalign(&data, 64, sizeof(std::complex<data_t>) * data_size) != 0)
+    throw std::runtime_error("Cannot allocate memory by posix_memalign");
   checkpoint_ = reinterpret_cast<std::complex<data_t> *>(data);
 #else
   checkpoint_ = reinterpret_cast<std::complex<data_t> *>(
@@ -1765,13 +1768,13 @@ void QubitVector<data_t>::apply_chunk_swap(const reg_t &qubits,
     if (write_back) {
 #pragma omp parallel for if (num_qubits_ > omp_threshold_ && omp_threads_ > 1) \
     num_threads(omp_threads_)
-      for (int_t k = 0; k < data_size_; ++k) {
+      for (int_t k = 0; k < (int_t)data_size_; ++k) {
         std::swap(data_[k], src.data_[k]);
       }
     } else {
 #pragma omp parallel for if (num_qubits_ > omp_threshold_ && omp_threads_ > 1) \
     num_threads(omp_threads_)
-      for (int_t k = 0; k < data_size_; ++k) {
+      for (int_t k = 0; k < (int_t)data_size_; ++k) {
         data_[k] = src.data_[k];
       }
     }
@@ -1803,7 +1806,7 @@ void QubitVector<data_t>::apply_chunk_swap(const reg_t &qubits,
   if (q0 >= num_qubits_) { // exchange whole of chunk each other
 #pragma omp parallel for if (num_qubits_ > omp_threshold_ && omp_threads_ > 1) \
     num_threads(omp_threads_)
-    for (int_t k = 0; k < data_size_; ++k) {
+    for (int_t k = 0; k < (int_t)data_size_; ++k) {
       data_[k] = recv_buffer_[k];
     }
   } else {
@@ -1824,13 +1827,13 @@ void QubitVector<data_t>::apply_chunk_swap(QubitVector<data_t> &src,
   if (src.chunk_index_ == chunk_index_) {
 #pragma omp parallel for if (num_qubits_ > omp_threshold_ && omp_threads_ > 1) \
     num_threads(omp_threads_)
-    for (int_t k = 0; k < size; ++k) {
+    for (int_t k = 0; k < (int_t)size; ++k) {
       data_[dest_offset + k] = src.recv_buffer_[src_offset + k];
     }
   } else {
 #pragma omp parallel for if (num_qubits_ > omp_threshold_ && omp_threads_ > 1) \
     num_threads(omp_threads_)
-    for (int_t k = 0; k < size; ++k) {
+    for (int_t k = 0; k < (int_t)size; ++k) {
       std::swap(data_[dest_offset + k], src.data_[src_offset + k]);
     }
   }
@@ -1838,8 +1841,8 @@ void QubitVector<data_t>::apply_chunk_swap(QubitVector<data_t> &src,
 
 template <typename data_t>
 void QubitVector<data_t>::apply_multi_swaps(const reg_t &qubits) {
-  for (int_t i = 0; i < qubits.size(); i += 10) {
-    int_t n = 10;
+  for (uint_t i = 0; i < qubits.size(); i += 10) {
+    uint_t n = 10;
     if (i + n > qubits.size())
       n = qubits.size() - i;
 
@@ -1850,17 +1853,17 @@ void QubitVector<data_t>::apply_multi_swaps(const reg_t &qubits) {
 
     auto lambda = [&](const indexes_t &inds) -> void {
       cvector_t<data_t> cache(size);
-      for (int_t i = 0; i < size; i++)
-        cache[i] = data_[inds[i]];
+      for (uint_t ii = 0; ii < size; ii++)
+        cache[ii] = data_[inds[ii]];
 
-      for (int_t i = 0; i < size; i++) {
-        uint_t pos = i;
-        for (int_t j = 0; j < nq; j += 2) {
+      for (uint_t ii = 0; ii < size; ii++) {
+        uint_t pos = ii;
+        for (uint_t j = 0; j < nq; j += 2) {
           if ((((pos >> j) & 1) ^ ((pos >> (j + 1)) & 1)) != 0) {
             pos ^= ((1ull << j) | (1ull << (j + 1)));
           }
         }
-        data_[inds[i]] = cache[pos];
+        data_[inds[ii]] = cache[pos];
       }
     };
     apply_lambda(lambda, qubits_swap);

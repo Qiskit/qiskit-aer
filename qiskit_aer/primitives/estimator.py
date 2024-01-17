@@ -126,7 +126,7 @@ class Estimator(BaseEstimator):
 
     @property
     @deprecate_func(
-        since=0.13,
+        since="0.13",
         package_name="qiskit-aer",
         is_property=True,
     )
@@ -136,7 +136,7 @@ class Estimator(BaseEstimator):
 
     @approximation.setter
     @deprecate_func(
-        since=0.13,
+        since="0.13",
         package_name="qiskit-aer",
         is_property=True,
     )

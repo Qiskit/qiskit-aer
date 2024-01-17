@@ -84,14 +84,14 @@ void Executor<state_t>::set_config(const Config &config) {
 
 template <class state_t>
 void Executor<state_t>::initialize_qreg(uint_t num_qubits) {
-  int_t iChunk;
+  uint_t iChunk;
   for (iChunk = 0; iChunk < Base::states_.size(); iChunk++) {
     Base::states_[iChunk].qreg().set_num_qubits(Base::chunk_bits_);
   }
 
   if (Base::chunk_omp_parallel_ && Base::num_groups_ > 1) {
 #pragma omp parallel for private(iChunk)
-    for (int_t ig = 0; ig < Base::num_groups_; ig++) {
+    for (int_t ig = 0; ig < (int_t)Base::num_groups_; ig++) {
       for (iChunk = Base::top_state_of_group_[ig];
            iChunk < Base::top_state_of_group_[ig + 1]; iChunk++) {
         uint_t irow, icol;
