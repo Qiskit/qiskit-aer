@@ -1,0 +1,8 @@
+﻿
+
+approximate_noise_model
+========================================
+
+.. currentmodule:: qiskit_aer.utils
+
+.. autofunction:: approximate_noise_model

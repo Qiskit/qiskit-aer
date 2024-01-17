@@ -1,0 +1,8 @@
+﻿
+
+save_probabilities_dict
+==========================================
+
+.. currentmodule:: qiskit_aer.library
+
+.. autofunction:: save_probabilities_dict

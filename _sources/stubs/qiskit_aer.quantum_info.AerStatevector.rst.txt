@@ -1,0 +1,62 @@
+﻿
+
+AerStatevector
+======================================
+
+.. currentmodule:: qiskit_aer.quantum_info
+
+.. autoclass:: AerStatevector
+   :no-members:
+   :no-inherited-members:
+   :no-special-members:
+   :show-inheritance:
+
+
+   
+   .. rubric:: Attributes
+      
+   .. autoattribute:: AerStatevector.atol
+   .. autoattribute:: AerStatevector.data
+   .. autoattribute:: AerStatevector.dim
+   .. autoattribute:: AerStatevector.num_qubits
+   .. autoattribute:: AerStatevector.rtol
+   .. autoattribute:: AerStatevector.settings
+   
+
+
+
+   
+   .. rubric:: Methods
+   
+   .. automethod:: AerStatevector.__getitem__
+   .. automethod:: AerStatevector.__len__
+   .. automethod:: AerStatevector.__mul__
+   .. automethod:: AerStatevector.conjugate
+   .. automethod:: AerStatevector.copy
+   .. automethod:: AerStatevector.dims
+   .. automethod:: AerStatevector.draw
+   .. automethod:: AerStatevector.equiv
+   .. automethod:: AerStatevector.evolve
+   .. automethod:: AerStatevector.expand
+   .. automethod:: AerStatevector.expectation_value
+   .. automethod:: AerStatevector.from_instruction
+   .. automethod:: AerStatevector.from_int
+   .. automethod:: AerStatevector.from_label
+   .. automethod:: AerStatevector.inner
+   .. automethod:: AerStatevector.is_valid
+   .. automethod:: AerStatevector.measure
+   .. automethod:: AerStatevector.metadata
+   .. automethod:: AerStatevector.probabilities
+   .. automethod:: AerStatevector.probabilities_dict
+   .. automethod:: AerStatevector.purity
+   .. automethod:: AerStatevector.reset
+   .. automethod:: AerStatevector.reverse_qargs
+   .. automethod:: AerStatevector.sample_counts
+   .. automethod:: AerStatevector.sample_memory
+   .. automethod:: AerStatevector.seed
+   .. automethod:: AerStatevector.tensor
+   .. automethod:: AerStatevector.to_dict
+   .. automethod:: AerStatevector.to_operator
+   .. automethod:: AerStatevector.trace
+
+   

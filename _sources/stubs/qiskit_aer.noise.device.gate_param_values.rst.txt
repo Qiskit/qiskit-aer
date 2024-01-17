@@ -1,0 +1,8 @@
+﻿
+
+gate_param_values
+=========================================
+
+.. currentmodule:: qiskit_aer.noise.device
+
+.. autofunction:: gate_param_values

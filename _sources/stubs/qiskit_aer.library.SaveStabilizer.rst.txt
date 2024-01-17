@@ -1,0 +1,52 @@
+﻿
+
+SaveStabilizer
+=================================
+
+.. currentmodule:: qiskit_aer.library
+
+.. autoclass:: SaveStabilizer
+   :no-members:
+   :no-inherited-members:
+   :no-special-members:
+   :show-inheritance:
+
+
+   
+   .. rubric:: Attributes
+      
+   .. autoattribute:: SaveStabilizer.base_class
+   .. autoattribute:: SaveStabilizer.condition
+   .. autoattribute:: SaveStabilizer.condition_bits
+   .. autoattribute:: SaveStabilizer.decompositions
+   .. autoattribute:: SaveStabilizer.definition
+   .. autoattribute:: SaveStabilizer.duration
+   .. autoattribute:: SaveStabilizer.label
+   .. autoattribute:: SaveStabilizer.mutable
+   .. autoattribute:: SaveStabilizer.name
+   .. autoattribute:: SaveStabilizer.num_clbits
+   .. autoattribute:: SaveStabilizer.num_qubits
+   .. autoattribute:: SaveStabilizer.params
+   .. autoattribute:: SaveStabilizer.unit
+   
+
+
+
+   
+   .. rubric:: Methods
+   
+   .. automethod:: SaveStabilizer.add_decomposition
+   .. automethod:: SaveStabilizer.assemble
+   .. automethod:: SaveStabilizer.broadcast_arguments
+   .. automethod:: SaveStabilizer.c_if
+   .. automethod:: SaveStabilizer.copy
+   .. automethod:: SaveStabilizer.inverse
+   .. automethod:: SaveStabilizer.is_parameterized
+   .. automethod:: SaveStabilizer.qasm
+   .. automethod:: SaveStabilizer.repeat
+   .. automethod:: SaveStabilizer.reverse_ops
+   .. automethod:: SaveStabilizer.soft_compare
+   .. automethod:: SaveStabilizer.to_mutable
+   .. automethod:: SaveStabilizer.validate_parameter
+
+   

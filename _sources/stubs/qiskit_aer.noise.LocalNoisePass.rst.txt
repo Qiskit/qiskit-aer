@@ -1,0 +1,33 @@
+﻿
+
+LocalNoisePass
+===============================
+
+.. currentmodule:: qiskit_aer.noise
+
+.. autoclass:: LocalNoisePass
+   :no-members:
+   :no-inherited-members:
+   :no-special-members:
+   :show-inheritance:
+
+
+   
+   .. rubric:: Attributes
+      
+   .. autoattribute:: LocalNoisePass.is_analysis_pass
+   .. autoattribute:: LocalNoisePass.is_transformation_pass
+   
+
+
+
+   
+   .. rubric:: Methods
+   
+   .. automethod:: LocalNoisePass.__call__
+   .. automethod:: LocalNoisePass.execute
+   .. automethod:: LocalNoisePass.name
+   .. automethod:: LocalNoisePass.run
+   .. automethod:: LocalNoisePass.update_status
+
+   

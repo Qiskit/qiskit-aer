@@ -1,0 +1,61 @@
+﻿
+
+QasmSimulator
+========================
+
+.. currentmodule:: qiskit_aer
+
+.. autoclass:: QasmSimulator
+   :no-members:
+   :no-inherited-members:
+   :no-special-members:
+   :show-inheritance:
+
+
+   
+   .. rubric:: Attributes
+      
+   .. autoattribute:: QasmSimulator.coupling_map
+   .. autoattribute:: QasmSimulator.dt
+   .. autoattribute:: QasmSimulator.dtm
+   .. autoattribute:: QasmSimulator.instruction_durations
+   .. autoattribute:: QasmSimulator.instruction_schedule_map
+   .. autoattribute:: QasmSimulator.instructions
+   .. autoattribute:: QasmSimulator.max_circuits
+   .. autoattribute:: QasmSimulator.meas_map
+   .. autoattribute:: QasmSimulator.num_qubits
+   .. autoattribute:: QasmSimulator.operation_names
+   .. autoattribute:: QasmSimulator.operations
+   .. autoattribute:: QasmSimulator.options
+   .. autoattribute:: QasmSimulator.provider
+   .. autoattribute:: QasmSimulator.target
+   .. autoattribute:: QasmSimulator.version
+   .. autoattribute:: QasmSimulator.name
+   .. autoattribute:: QasmSimulator.description
+   .. autoattribute:: QasmSimulator.online_date
+   .. autoattribute:: QasmSimulator.backend_version
+   
+
+
+
+   
+   .. rubric:: Methods
+   
+   .. automethod:: QasmSimulator.acquire_channel
+   .. automethod:: QasmSimulator.available_devices
+   .. automethod:: QasmSimulator.available_methods
+   .. automethod:: QasmSimulator.clear_options
+   .. automethod:: QasmSimulator.configuration
+   .. automethod:: QasmSimulator.control_channel
+   .. automethod:: QasmSimulator.drive_channel
+   .. automethod:: QasmSimulator.from_backend
+   .. automethod:: QasmSimulator.get_translation_stage_plugin
+   .. automethod:: QasmSimulator.measure_channel
+   .. automethod:: QasmSimulator.properties
+   .. automethod:: QasmSimulator.qubit_properties
+   .. automethod:: QasmSimulator.run
+   .. automethod:: QasmSimulator.set_option
+   .. automethod:: QasmSimulator.set_options
+   .. automethod:: QasmSimulator.status
+
+   

@@ -1,0 +1,8 @@
+﻿
+
+transpile_noise_model
+======================================
+
+.. currentmodule:: qiskit_aer.utils
+
+.. autofunction:: transpile_noise_model

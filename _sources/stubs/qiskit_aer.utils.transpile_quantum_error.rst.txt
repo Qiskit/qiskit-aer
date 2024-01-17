@@ -1,0 +1,8 @@
+﻿
+
+transpile_quantum_error
+========================================
+
+.. currentmodule:: qiskit_aer.utils
+
+.. autofunction:: transpile_quantum_error

@@ -1,0 +1,8 @@
+﻿
+
+thermal_relaxation_values
+=================================================
+
+.. currentmodule:: qiskit_aer.noise.device
+
+.. autofunction:: thermal_relaxation_values

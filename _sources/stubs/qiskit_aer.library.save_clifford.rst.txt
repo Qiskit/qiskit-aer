@@ -1,0 +1,8 @@
+﻿
+
+save_clifford
+================================
+
+.. currentmodule:: qiskit_aer.library
+
+.. autofunction:: save_clifford

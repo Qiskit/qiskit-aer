@@ -1,0 +1,43 @@
+﻿
+
+ReadoutError
+=============================
+
+.. currentmodule:: qiskit_aer.noise
+
+.. autoclass:: ReadoutError
+   :no-members:
+   :no-inherited-members:
+   :no-special-members:
+   :show-inheritance:
+
+
+   
+   .. rubric:: Attributes
+      
+   .. autoattribute:: ReadoutError.atol
+   .. autoattribute:: ReadoutError.num_qubits
+   .. autoattribute:: ReadoutError.number_of_qubits
+   .. autoattribute:: ReadoutError.probabilities
+   .. autoattribute:: ReadoutError.rtol
+   
+
+
+
+   
+   .. rubric:: Methods
+   
+   .. automethod:: ReadoutError.__mul__
+   .. automethod:: ReadoutError.compose
+   .. automethod:: ReadoutError.copy
+   .. automethod:: ReadoutError.dot
+   .. automethod:: ReadoutError.expand
+   .. automethod:: ReadoutError.ideal
+   .. automethod:: ReadoutError.power
+   .. automethod:: ReadoutError.set_atol
+   .. automethod:: ReadoutError.set_rtol
+   .. automethod:: ReadoutError.tensor
+   .. automethod:: ReadoutError.to_dict
+   .. automethod:: ReadoutError.to_instruction
+
+   

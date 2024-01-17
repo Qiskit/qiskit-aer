@@ -1,0 +1,51 @@
+﻿
+
+QuantumError
+=============================
+
+.. currentmodule:: qiskit_aer.noise
+
+.. autoclass:: QuantumError
+   :no-members:
+   :no-inherited-members:
+   :no-special-members:
+   :show-inheritance:
+
+
+   
+   .. rubric:: Attributes
+      
+   .. autoattribute:: QuantumError.atol
+   .. autoattribute:: QuantumError.circuits
+   .. autoattribute:: QuantumError.dim
+   .. autoattribute:: QuantumError.id
+   .. autoattribute:: QuantumError.num_qubits
+   .. autoattribute:: QuantumError.probabilities
+   .. autoattribute:: QuantumError.qargs
+   .. autoattribute:: QuantumError.rtol
+   .. autoattribute:: QuantumError.size
+   
+
+
+
+   
+   .. rubric:: Methods
+   
+   .. automethod:: QuantumError.__call__
+   .. automethod:: QuantumError.compose
+   .. automethod:: QuantumError.copy
+   .. automethod:: QuantumError.dot
+   .. automethod:: QuantumError.error_term
+   .. automethod:: QuantumError.expand
+   .. automethod:: QuantumError.from_dict
+   .. automethod:: QuantumError.ideal
+   .. automethod:: QuantumError.input_dims
+   .. automethod:: QuantumError.output_dims
+   .. automethod:: QuantumError.power
+   .. automethod:: QuantumError.reshape
+   .. automethod:: QuantumError.tensor
+   .. automethod:: QuantumError.to_dict
+   .. automethod:: QuantumError.to_instruction
+   .. automethod:: QuantumError.to_quantumchannel
+
+   

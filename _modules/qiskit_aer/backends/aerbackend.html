@@ -1,0 +1,1121 @@
+<!doctype html>
+<html class="no-js" lang="en">
+  <head><meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <meta name="color-scheme" content="light dark"><link rel="index" title="Index" href="../../../genindex.html" /><link rel="search" title="Search" href="../../../search.html" />
+
+    <!-- Generated with Sphinx 7.1.2 and Furo 2023.08.19 -->
+        <title>qiskit_aer.backends.aerbackend - Qiskit Aer 0.13.1</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/styles/furo.css?v=135e06be" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=82a976d7" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/styles/qiskit-sphinx-theme.css?v=fe84956c" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/styles/qiskit-ecosystem.css?v=745c5aa7" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/jupyter-sphinx.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/thebelab.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/design-style.1e8bd061cd6da7fc9cf755528e8ffc24.min.css?v=0a3b3ea7" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/styles/furo-extensions.css?v=36a5483c" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #ffffff;
+  --color-code-foreground: black;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style><link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:ital,wght@0,400;0,600;1,400;1,600&display=swap" rel="stylesheet">
+<script src="../../../_static/js/web-components/top-nav-bar.js"></script></head>
+  <body>
+    
+    <script>document.body.dataset.theme = "light";</script>
+    
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg id="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+      <defs><style>.cls-1{fill:none;}</style></defs>
+      <path d="M28,4H4A2,2,0,0,0,2,6V26a2,2,0,0,0,2,2H28a2,2,0,0,0,2-2V6A2,2,0,0,0,28,4ZM4,6H20V26H4ZM28,26H22V6h6Z"/>
+      <rect id="_Transparent_Rectangle_" data-name="&lt;Transparent Rectangle&gt;" class="cls-1" width="32" height="32"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg id="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+      <defs><style>.cls-1{fill:none;}</style></defs>
+      <rect x="4" y="6" width="24" height="2"/>
+      <rect x="4" y="24" width="24" height="2"/>
+      <rect x="4" y="12" width="24" height="2"/>
+      <rect x="4" y="18" width="24" height="2"/>
+      <rect id="_Transparent_Rectangle_" data-name="&lt;Transparent Rectangle&gt;" class="cls-1" width="32" height="32"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg version="1.1" id="icon" xmlns="http://www.w3.org/2000/svg" x="0px" y="0px"
+         viewBox="0 0 32 32" style="enable-background:new 0 0 32 32;" xml:space="preserve"><polygon points="22,16 12,26 10.6,24.6 19.2,16 10.6,7.4 12,6 " stroke="currentColor"/>
+      <rect id="_x3C_Transparent_Rectangle_x3E_" fill="none" width="32" height="32"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-new-tab" viewBox="0 0 32 32">
+    <svg id="icon" xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
+      <defs>
+        <style>
+          .cls-1 {
+            fill: none;
+          }
+        </style>
+      </defs>
+      <path fill="#6929C4" d="M26,28H6a2.0027,2.0027,0,0,1-2-2V6A2.0027,2.0027,0,0,1,6,4H16V6H6V26H26V16h2V26A2.0027,2.0027,0,0,1,26,28Z"/>
+      <polygon fill="#6929C4" points="20 2 20 4 26.586 4 18 12.586 19.414 14 28 5.414 28 12 30 12 30 2 20 2"/>
+      <rect id="_Transparent_Rectangle_" data-name="&lt;Transparent Rectangle&gt;" class="cls-1" width="32" height="32"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-half" viewBox="0 0 24 24">
+    <title>Auto light/dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-shadow">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M13 12h5" />
+      <path d="M13 15h4" />
+      <path d="M13 18h1" />
+      <path d="M13 9h4" />
+      <path d="M13 6h1" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc">
+<label class="overlay sidebar-overlay" for="__navigation">
+  <div class="visually-hidden">Hide navigation sidebar</div>
+</label>
+<label class="overlay toc-overlay" for="__toc">
+  <div class="visually-hidden">Hide table of contents sidebar</div>
+</label>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <div class="visually-hidden">Toggle site navigation sidebar</div>
+        <i class="icon"><svg><use href="#svg-menu"></use></svg></i>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="../../../index.html"><div class="brand">Qiskit Aer 0.13.1</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle">
+          <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+          <svg class="theme-icon-when-auto"><use href="#svg-sun-half"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon no-toc" for="__toc">
+        <div class="visually-hidden">Toggle table of contents sidebar</div>
+        <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><div class="sidebar-brand">
+  <a href="https://www.qiskit.org/ecosystem">
+    <div class="sidebar-logo-container">
+      <img class="sidebar-logo" src="../../../_static/images/ecosystem-logo.svg" alt="Qiskit Ecosystem logo"/>
+    </div>
+  </a>
+  
+  <span class="sidebar-brand-text">Qiskit Aer 0.13.1</span>
+</div><form class="sidebar-search-container" method="get" action="../../../search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../index.html">Home</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started.html">Getting Started</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../../apidocs/aer.html">API Documentation</a><input class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle navigation of API Documentation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../../apidocs/aer_provider.html">Aer Provider (<code class="xref py py-mod docutils literal notranslate"><span class="pre">qiskit_aer</span></code>)</a><input class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle navigation of Aer Provider (qiskit_aer)</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.AerProvider.html">AerProvider</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.AerSimulator.html">AerSimulator</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.QasmSimulator.html">QasmSimulator</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.StatevectorSimulator.html">StatevectorSimulator</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.UnitarySimulator.html">UnitarySimulator</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.AerError.html">AerError</a></li>
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../../apidocs/aer_jobs.html">Aer Jobs (<code class="xref py py-mod docutils literal notranslate"><span class="pre">qiskit_aer.jobs</span></code>)</a><input class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><div class="visually-hidden">Toggle navigation of Aer Jobs (qiskit_aer.jobs)</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.jobs.AerJob.html">AerJob</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.jobs.AerJobSet.html">AerJobSet</a></li>
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../../apidocs/aer_library.html">Instruction Library (<code class="xref py py-mod docutils literal notranslate"><span class="pre">qiskit_aer.library</span></code>)</a><input class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" role="switch" type="checkbox"/><label for="toctree-checkbox-4"><div class="visually-hidden">Toggle navigation of Instruction Library (qiskit_aer.library)</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.library.SetStatevector.html">SetStatevector</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.library.SetDensityMatrix.html">SetDensityMatrix</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.library.SetStabilizer.html">SetStabilizer</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.library.SetSuperOp.html">SetSuperOp</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.library.SetUnitary.html">SetUnitary</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.library.SetMatrixProductState.html">SetMatrixProductState</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.library.set_statevector.html">set_statevector</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.library.set_density_matrix.html">set_density_matrix</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.library.set_stabilizer.html">set_stabilizer</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.library.set_unitary.html">set_unitary</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.library.set_superop.html">set_superop</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.library.set_matrix_product_state.html">set_matrix_product_state</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.library.SaveState.html">SaveState</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.library.SaveStatevector.html">SaveStatevector</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.library.SaveStatevectorDict.html">SaveStatevectorDict</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.library.SaveDensityMatrix.html">SaveDensityMatrix</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.library.SaveMatrixProductState.html">SaveMatrixProductState</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.library.SaveClifford.html">SaveClifford</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.library.SaveStabilizer.html">SaveStabilizer</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.library.SaveSuperOp.html">SaveSuperOp</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.library.SaveUnitary.html">SaveUnitary</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.library.SaveExpectationValue.html">SaveExpectationValue</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.library.SaveExpectationValueVariance.html">SaveExpectationValueVariance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.library.SaveProbabilities.html">SaveProbabilities</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.library.SaveProbabilitiesDict.html">SaveProbabilitiesDict</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.library.SaveAmplitudes.html">SaveAmplitudes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.library.SaveAmplitudesSquared.html">SaveAmplitudesSquared</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.library.save_amplitudes.html">save_amplitudes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.library.save_amplitudes_squared.html">save_amplitudes_squared</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.library.save_clifford.html">save_clifford</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.library.save_density_matrix.html">save_density_matrix</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.library.save_expectation_value.html">save_expectation_value</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.library.save_expectation_value_variance.html">save_expectation_value_variance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.library.save_matrix_product_state.html">save_matrix_product_state</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.library.save_probabilities.html">save_probabilities</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.library.save_probabilities_dict.html">save_probabilities_dict</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.library.save_stabilizer.html">save_stabilizer</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.library.save_state.html">save_state</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.library.save_statevector.html">save_statevector</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.library.save_statevector_dict.html">save_statevector_dict</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.library.save_superop.html">save_superop</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.library.save_unitary.html">save_unitary</a></li>
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../../apidocs/aer_noise.html">Noise Models (<code class="xref py py-mod docutils literal notranslate"><span class="pre">qiskit_aer.noise</span></code>)</a><input class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><div class="visually-hidden">Toggle navigation of Noise Models (qiskit_aer.noise)</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.noise.NoiseModel.html">NoiseModel</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.noise.QuantumError.html">QuantumError</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.noise.ReadoutError.html">ReadoutError</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.noise.pauli_error.html">pauli_error</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.noise.depolarizing_error.html">depolarizing_error</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.noise.mixed_unitary_error.html">mixed_unitary_error</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.noise.coherent_unitary_error.html">coherent_unitary_error</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.noise.reset_error.html">reset_error</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.noise.amplitude_damping_error.html">amplitude_damping_error</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.noise.phase_damping_error.html">phase_damping_error</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.noise.phase_amplitude_damping_error.html">phase_amplitude_damping_error</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.noise.thermal_relaxation_error.html">thermal_relaxation_error</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.noise.kraus_error.html">kraus_error</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.noise.LocalNoisePass.html">LocalNoisePass</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.noise.RelaxationNoisePass.html">RelaxationNoisePass</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.noise.device.basic_device_readout_errors.html">basic_device_readout_errors</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.noise.device.basic_device_gate_errors.html">basic_device_gate_errors</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.noise.device.gate_param_values.html">gate_param_values</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.noise.device.gate_error_values.html">gate_error_values</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.noise.device.gate_length_values.html">gate_length_values</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.noise.device.readout_error_values.html">readout_error_values</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.noise.device.thermal_relaxation_values.html">thermal_relaxation_values</a></li>
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../../apidocs/aer_primitives.html">Primitives (<code class="xref py py-mod docutils literal notranslate"><span class="pre">qiskit_aer.primitives</span></code>)</a><input class="toctree-checkbox" id="toctree-checkbox-6" name="toctree-checkbox-6" role="switch" type="checkbox"/><label for="toctree-checkbox-6"><div class="visually-hidden">Toggle navigation of Primitives (qiskit_aer.primitives)</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.primitives.Sampler.html">Sampler</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.primitives.Estimator.html">Estimator</a></li>
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../../apidocs/aer_utils.html">Utilities (<code class="xref py py-mod docutils literal notranslate"><span class="pre">qiskit_aer.utils</span></code>)</a><input class="toctree-checkbox" id="toctree-checkbox-7" name="toctree-checkbox-7" role="switch" type="checkbox"/><label for="toctree-checkbox-7"><div class="visually-hidden">Toggle navigation of Utilities (qiskit_aer.utils)</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.utils.insert_noise.html">insert_noise</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.utils.approximate_quantum_error.html">approximate_quantum_error</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.utils.approximate_noise_model.html">approximate_noise_model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.utils.transform_noise_model.html">transform_noise_model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.utils.transpile_noise_model.html">transpile_noise_model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.utils.transpile_quantum_error.html">transpile_quantum_error</a></li>
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../../apidocs/aer_quantum_info.html">Aer Quantum Info (<code class="xref py py-mod docutils literal notranslate"><span class="pre">qiskit_aer.quantum_info</span></code>)</a><input class="toctree-checkbox" id="toctree-checkbox-8" name="toctree-checkbox-8" role="switch" type="checkbox"/><label for="toctree-checkbox-8"><div class="visually-hidden">Toggle navigation of Aer Quantum Info (qiskit_aer.quantum_info)</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.quantum_info.AerStatevector.html">AerStatevector</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.quantum_info.AerDensityMatrix.html">AerDensityMatrix</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../apidocs/circuit.html">Additional circuit methods</a></li>
+</ul>
+</li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../../tutorials/index.html">Tutorials</a><input class="toctree-checkbox" id="toctree-checkbox-9" name="toctree-checkbox-9" role="switch" type="checkbox"/><label for="toctree-checkbox-9"><div class="visually-hidden">Toggle navigation of Tutorials</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../tutorials/1_aer_provider.html">Simulators</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../tutorials/2_device_noise_simulation.html">Device backend noise model simulations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../tutorials/3_building_noise_models.html">Building Noise Models</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../tutorials/4_custom_gate_noise.html">Applying noise to custom unitary gates</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../tutorials/5_noise_transformation.html">Noise Transformation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../tutorials/6_extended_stabilizer_tutorial.html">The Extended Stabilizer Simulator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../tutorials/7_matrix_product_state_method.html">Matrix product state simulation method</a></li>
+</ul>
+</li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../../howtos/index.html">How-Tos</a><input class="toctree-checkbox" id="toctree-checkbox-10" name="toctree-checkbox-10" role="switch" type="checkbox"/><label for="toctree-checkbox-10"><div class="visually-hidden">Toggle navigation of How-Tos</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../howtos/parallel.html">Running with Threadpool and DASK</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../howtos/running_gpu.html">Running with multiple-GPUs and/or multiple nodes</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../release_notes.html">Release Notes</a></li>
+</ul>
+
+</div></div>
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle">
+              <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+              <svg class="theme-icon-when-auto"><use href="#svg-sun-half"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon no-toc" for="__toc">
+            <div class="visually-hidden">Toggle table of contents sidebar</div>
+            <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+          </label>
+        </div>
+        <article role="main">
+          <h1>Source code for qiskit_aer.backends.aerbackend</h1><div class="highlight"><pre>
+<span></span><span class="c1"># This code is part of Qiskit.</span>
+<span class="c1">#</span>
+<span class="c1"># (C) Copyright IBM 2018, 2019.</span>
+<span class="c1">#</span>
+<span class="c1"># This code is licensed under the Apache License, Version 2.0. You may</span>
+<span class="c1"># obtain a copy of this license in the LICENSE.txt file in the root directory</span>
+<span class="c1"># of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.</span>
+<span class="c1">#</span>
+<span class="c1"># Any modifications or derivative works of this code must retain this</span>
+<span class="c1"># copyright notice, and modified files need to carry a notice indicating</span>
+<span class="c1"># that they have been altered from the originals.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Aer qasm simulator backend.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">copy</span>
+<span class="kn">import</span> <span class="nn">datetime</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">import</span> <span class="nn">time</span>
+<span class="kn">import</span> <span class="nn">uuid</span>
+<span class="kn">import</span> <span class="nn">warnings</span>
+<span class="kn">from</span> <span class="nn">abc</span> <span class="kn">import</span> <span class="n">ABC</span><span class="p">,</span> <span class="n">abstractmethod</span>
+
+<span class="kn">from</span> <span class="nn">qiskit.circuit</span> <span class="kn">import</span> <span class="n">QuantumCircuit</span><span class="p">,</span> <span class="n">ParameterExpression</span><span class="p">,</span> <span class="n">Delay</span>
+<span class="kn">from</span> <span class="nn">qiskit.compiler</span> <span class="kn">import</span> <span class="n">assemble</span>
+<span class="kn">from</span> <span class="nn">qiskit.providers</span> <span class="kn">import</span> <span class="n">BackendV2</span> <span class="k">as</span> <span class="n">Backend</span>
+<span class="kn">from</span> <span class="nn">qiskit.providers</span> <span class="kn">import</span> <span class="n">convert_to_target</span>
+<span class="kn">from</span> <span class="nn">qiskit.providers.models</span> <span class="kn">import</span> <span class="n">BackendStatus</span>
+<span class="kn">from</span> <span class="nn">qiskit.pulse</span> <span class="kn">import</span> <span class="n">Schedule</span><span class="p">,</span> <span class="n">ScheduleBlock</span>
+<span class="kn">from</span> <span class="nn">qiskit.qobj</span> <span class="kn">import</span> <span class="n">QasmQobj</span><span class="p">,</span> <span class="n">PulseQobj</span>
+<span class="kn">from</span> <span class="nn">qiskit.result</span> <span class="kn">import</span> <span class="n">Result</span>
+<span class="kn">from</span> <span class="nn">qiskit.transpiler</span> <span class="kn">import</span> <span class="n">CouplingMap</span>
+<span class="kn">from</span> <span class="nn">..aererror</span> <span class="kn">import</span> <span class="n">AerError</span>
+<span class="kn">from</span> <span class="nn">..jobs</span> <span class="kn">import</span> <span class="n">AerJob</span><span class="p">,</span> <span class="n">AerJobSet</span><span class="p">,</span> <span class="n">split_qobj</span>
+<span class="kn">from</span> <span class="nn">..noise.noise_model</span> <span class="kn">import</span> <span class="n">NoiseModel</span><span class="p">,</span> <span class="n">QuantumErrorLocation</span>
+<span class="kn">from</span> <span class="nn">..noise.errors.quantum_error</span> <span class="kn">import</span> <span class="n">QuantumChannelInstruction</span>
+<span class="kn">from</span> <span class="nn">.aer_compiler</span> <span class="kn">import</span> <span class="n">compile_circuit</span><span class="p">,</span> <span class="n">assemble_circuits</span><span class="p">,</span> <span class="n">generate_aer_config</span>
+<span class="kn">from</span> <span class="nn">.backend_utils</span> <span class="kn">import</span> <span class="n">format_save_type</span><span class="p">,</span> <span class="n">circuit_optypes</span>
+<span class="kn">from</span> <span class="nn">.name_mapping</span> <span class="kn">import</span> <span class="n">NAME_MAPPING</span>
+
+<span class="c1"># pylint: disable=import-error, no-name-in-module, abstract-method</span>
+<span class="kn">from</span> <span class="nn">.controller_wrappers</span> <span class="kn">import</span> <span class="n">AerConfig</span>
+
+<span class="c1"># Logger</span>
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">AerBackend</span><span class="p">(</span><span class="n">Backend</span><span class="p">,</span> <span class="n">ABC</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Aer Backend class.&quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">configuration</span><span class="p">,</span> <span class="n">properties</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">provider</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">target</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">backend_options</span><span class="o">=</span><span class="kc">None</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Aer class for backends.</span>
+
+<span class="sd">        This method should initialize the module and its configuration, and</span>
+<span class="sd">        raise an exception if a component of the module is</span>
+<span class="sd">        not available.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            configuration (BackendConfiguration): backend configuration.</span>
+<span class="sd">            properties (BackendProperties or None): Optional, backend properties.</span>
+<span class="sd">            provider (Provider): Optional, provider responsible for this backend.</span>
+<span class="sd">            target (Target):  initial target for backend</span>
+<span class="sd">            backend_options (dict or None): Optional set custom backend options.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            AerError: if there is no name in the configuration</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Init configuration and provider in Backend</span>
+        <span class="n">configuration</span><span class="o">.</span><span class="n">simulator</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="n">configuration</span><span class="o">.</span><span class="n">local</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="n">provider</span><span class="o">=</span><span class="n">provider</span><span class="p">,</span>
+            <span class="n">name</span><span class="o">=</span><span class="n">configuration</span><span class="o">.</span><span class="n">backend_name</span><span class="p">,</span>
+            <span class="n">description</span><span class="o">=</span><span class="n">configuration</span><span class="o">.</span><span class="n">description</span><span class="p">,</span>
+            <span class="n">backend_version</span><span class="o">=</span><span class="n">configuration</span><span class="o">.</span><span class="n">backend_version</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Initialize backend properties</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_properties</span> <span class="o">=</span> <span class="n">properties</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_configuration</span> <span class="o">=</span> <span class="n">configuration</span>
+
+        <span class="c1"># Custom option values for config, properties</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_options_configuration</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_options_properties</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_target</span> <span class="o">=</span> <span class="n">target</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_mapping</span> <span class="o">=</span> <span class="n">NAME_MAPPING</span>
+
+        <span class="c1"># Set options from backend_options dictionary</span>
+        <span class="k">if</span> <span class="n">backend_options</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">set_options</span><span class="p">(</span><span class="o">**</span><span class="n">backend_options</span><span class="p">)</span>
+
+        <span class="c1"># build coupling map</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="p">()</span><span class="o">.</span><span class="n">coupling_map</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_coupling_map</span> <span class="o">=</span> <span class="n">CouplingMap</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="p">()</span><span class="o">.</span><span class="n">coupling_map</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_convert_circuit_binds</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">circuit</span><span class="p">,</span> <span class="n">binds</span><span class="p">,</span> <span class="n">idx_map</span><span class="p">):</span>
+        <span class="n">parameterizations</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">def</span> <span class="nf">append_param_values</span><span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="n">bind_pos</span><span class="p">,</span> <span class="n">param</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">param</span> <span class="ow">in</span> <span class="n">binds</span><span class="p">:</span>
+                <span class="n">parameterizations</span><span class="o">.</span><span class="n">append</span><span class="p">([(</span><span class="n">index</span><span class="p">,</span> <span class="n">bind_pos</span><span class="p">),</span> <span class="n">binds</span><span class="p">[</span><span class="n">param</span><span class="p">]])</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">param</span><span class="p">,</span> <span class="n">ParameterExpression</span><span class="p">):</span>
+                <span class="c1"># If parameter expression has no unbound parameters</span>
+                <span class="c1"># it&#39;s already bound and should be skipped</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">param</span><span class="o">.</span><span class="n">parameters</span><span class="p">:</span>
+                    <span class="k">return</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">binds</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="n">AerError</span><span class="p">(</span><span class="s2">&quot;The element of parameter_binds is empty.&quot;</span><span class="p">)</span>
+                <span class="n">len_vals</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="nb">next</span><span class="p">(</span><span class="nb">iter</span><span class="p">(</span><span class="n">binds</span><span class="o">.</span><span class="n">values</span><span class="p">())))</span>
+                <span class="n">bind_list</span> <span class="o">=</span> <span class="p">[</span>
+                    <span class="p">{</span>
+                        <span class="n">parameter</span><span class="p">:</span> <span class="n">binds</span><span class="p">[</span><span class="n">parameter</span><span class="p">][</span><span class="n">i</span><span class="p">]</span>
+                        <span class="k">for</span> <span class="n">parameter</span> <span class="ow">in</span> <span class="n">param</span><span class="o">.</span><span class="n">parameters</span> <span class="o">&amp;</span> <span class="n">binds</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
+                    <span class="p">}</span>
+                    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">len_vals</span><span class="p">)</span>
+                <span class="p">]</span>
+                <span class="n">bound_values</span> <span class="o">=</span> <span class="p">[</span><span class="nb">float</span><span class="p">(</span><span class="n">param</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="n">x</span><span class="p">))</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">bind_list</span><span class="p">]</span>
+                <span class="n">parameterizations</span><span class="o">.</span><span class="n">append</span><span class="p">([(</span><span class="n">index</span><span class="p">,</span> <span class="n">bind_pos</span><span class="p">),</span> <span class="n">bound_values</span><span class="p">])</span>
+
+        <span class="n">append_param_values</span><span class="p">(</span><span class="n">AerConfig</span><span class="o">.</span><span class="n">GLOBAL_PHASE_POS</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">circuit</span><span class="o">.</span><span class="n">global_phase</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">instruction</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">circuit</span><span class="o">.</span><span class="n">data</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">instruction</span><span class="o">.</span><span class="n">operation</span><span class="o">.</span><span class="n">is_parameterized</span><span class="p">():</span>
+                <span class="k">for</span> <span class="n">bind_pos</span><span class="p">,</span> <span class="n">param</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">instruction</span><span class="o">.</span><span class="n">operation</span><span class="o">.</span><span class="n">params</span><span class="p">):</span>
+                    <span class="n">append_param_values</span><span class="p">(</span><span class="n">idx_map</span><span class="p">[</span><span class="n">index</span><span class="p">]</span> <span class="k">if</span> <span class="n">idx_map</span> <span class="k">else</span> <span class="n">index</span><span class="p">,</span> <span class="n">bind_pos</span><span class="p">,</span> <span class="n">param</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">parameterizations</span>
+
+    <span class="k">def</span> <span class="nf">_convert_binds</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">circuits</span><span class="p">,</span> <span class="n">parameter_binds</span><span class="p">,</span> <span class="n">idx_maps</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">circuits</span><span class="p">,</span> <span class="n">QuantumCircuit</span><span class="p">):</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">parameter_binds</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">AerError</span><span class="p">(</span><span class="s2">&quot;More than 1 parameter table provided for a single circuit&quot;</span><span class="p">)</span>
+
+            <span class="k">return</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_convert_circuit_binds</span><span class="p">(</span><span class="n">circuits</span><span class="p">,</span> <span class="n">parameter_binds</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="kc">None</span><span class="p">)]</span>
+        <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">parameter_binds</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">circuits</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="n">AerError</span><span class="p">(</span>
+                <span class="s2">&quot;Number of input circuits does not match number of input &quot;</span>
+                <span class="s2">&quot;parameter bind dictionaries&quot;</span>
+            <span class="p">)</span>
+        <span class="n">parameterizations</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_convert_circuit_binds</span><span class="p">(</span><span class="n">circuit</span><span class="p">,</span> <span class="n">parameter_binds</span><span class="p">[</span><span class="n">idx</span><span class="p">],</span> <span class="n">idx_maps</span><span class="p">[</span><span class="n">idx</span><span class="p">])</span>
+            <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">circuit</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">circuits</span><span class="p">)</span>
+        <span class="p">]</span>
+        <span class="k">return</span> <span class="n">parameterizations</span>
+
+    <span class="c1"># pylint: disable=arguments-differ</span>
+    <span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">circuits</span><span class="p">,</span> <span class="n">validate</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">parameter_binds</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">run_options</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Run a qobj on the backend.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            circuits (QuantumCircuit or list): The QuantumCircuit (or list</span>
+<span class="sd">                of QuantumCircuit objects) to run</span>
+<span class="sd">            validate (bool): validate the Qobj before running (default: False).</span>
+<span class="sd">            parameter_binds (list): A list of parameter binding dictionaries.</span>
+<span class="sd">                                    See additional information (default: None).</span>
+<span class="sd">            run_options (kwargs): additional run time backend options.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            AerJob: The simulation job.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            TypeError: If ``parameter_binds`` is specified with a qobj input or</span>
+<span class="sd">                has a length mismatch with the number of circuits.</span>
+
+<span class="sd">        Additional Information:</span>
+<span class="sd">            * Each parameter binding dictionary is of the form::</span>
+
+<span class="sd">                {</span>
+<span class="sd">                    param_a: [val_1, val_2],</span>
+<span class="sd">                    param_b: [val_3, val_1],</span>
+<span class="sd">                }</span>
+
+<span class="sd">              for all parameters in that circuit. The length of the value</span>
+<span class="sd">              list must be the same for all parameters, and the number of</span>
+<span class="sd">              parameter dictionaries in the list must match the length of</span>
+<span class="sd">              ``circuits`` (if ``circuits`` is a single ``QuantumCircuit``</span>
+<span class="sd">              object it should a list of length 1).</span>
+<span class="sd">            * kwarg options specified in ``run_options`` will temporarily override</span>
+<span class="sd">              any set options of the same name for the current run.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            ValueError: if run is not implemented</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">circuits</span><span class="p">,</span> <span class="p">(</span><span class="n">QuantumCircuit</span><span class="p">,</span> <span class="n">Schedule</span><span class="p">,</span> <span class="n">ScheduleBlock</span><span class="p">)):</span>
+            <span class="n">circuits</span> <span class="o">=</span> <span class="p">[</span><span class="n">circuits</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">circuits</span><span class="p">,</span> <span class="p">(</span><span class="n">QasmQobj</span><span class="p">,</span> <span class="n">PulseQobj</span><span class="p">)):</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+                <span class="s2">&quot;Using a qobj for run() is deprecated as of qiskit-aer 0.9.0&quot;</span>
+                <span class="s2">&quot; and will be removed no sooner than 3 months from that release&quot;</span>
+                <span class="s2">&quot; date. Transpiled circuits should now be passed directly using&quot;</span>
+                <span class="s2">&quot; `backend.run(circuits, **run_options).&quot;</span><span class="p">,</span>
+                <span class="ne">DeprecationWarning</span><span class="p">,</span>
+                <span class="n">stacklevel</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="k">if</span> <span class="n">parameter_binds</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Parameter binds can&#39;t be used with an input qobj&quot;</span><span class="p">)</span>
+            <span class="c1"># A work around to support both qobj options and run options until</span>
+            <span class="c1"># qobj is deprecated is to copy all the set qobj.config fields into</span>
+            <span class="c1"># run_options that don&#39;t override existing fields. This means set</span>
+            <span class="c1"># run_options fields will take precidence over the value for those</span>
+            <span class="c1"># fields that are set via assemble.</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">run_options</span><span class="p">:</span>
+                <span class="n">run_options</span> <span class="o">=</span> <span class="n">circuits</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="vm">__dict__</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">run_options</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">run_options</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">circuits</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="vm">__dict__</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                    <span class="k">if</span> <span class="n">key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">run_options</span> <span class="ow">and</span> <span class="n">value</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                        <span class="n">run_options</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+            <span class="k">if</span> <span class="s2">&quot;parameter_binds&quot;</span> <span class="ow">in</span> <span class="n">run_options</span><span class="p">:</span>
+                <span class="n">parameter_binds</span> <span class="o">=</span> <span class="n">run_options</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;parameter_binds&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_run_qobj</span><span class="p">(</span><span class="n">circuits</span><span class="p">,</span> <span class="n">validate</span><span class="p">,</span> <span class="n">parameter_binds</span><span class="p">,</span> <span class="o">**</span><span class="n">run_options</span><span class="p">)</span>
+
+        <span class="n">only_circuits</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="n">only_pulse</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">for</span> <span class="n">circ</span> <span class="ow">in</span> <span class="n">circuits</span><span class="p">:</span>
+            <span class="n">only_circuits</span> <span class="o">&amp;=</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">circ</span><span class="p">,</span> <span class="n">QuantumCircuit</span><span class="p">)</span>
+            <span class="n">only_pulse</span> <span class="o">&amp;=</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">circ</span><span class="p">,</span> <span class="p">(</span><span class="n">ScheduleBlock</span><span class="p">,</span> <span class="n">Schedule</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="n">only_circuits</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">only_pulse</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">validate</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+                    <span class="s2">&quot;bad input to run() function;&quot;</span>
+                    <span class="s2">&quot;`validation` argument is only effective for input qobj&quot;</span>
+                <span class="p">)</span>
+
+            <span class="n">executor</span> <span class="o">=</span> <span class="n">run_options</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;executor&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">executor</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="s2">&quot;executor&quot;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">options</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">:</span>
+                <span class="n">executor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">options</span><span class="o">.</span><span class="vm">__dict__</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;executor&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">executor</span><span class="p">:</span>
+                <span class="c1"># This path remains for DASK execution to split a qobj insttance</span>
+                <span class="c1"># into sub-qobj instances. This will be replaced with _run_circuits path</span>
+                <span class="c1"># in the near releases</span>
+                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_run_qobj</span><span class="p">(</span><span class="n">circuits</span><span class="p">,</span> <span class="n">validate</span><span class="p">,</span> <span class="n">parameter_binds</span><span class="p">,</span> <span class="o">**</span><span class="n">run_options</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_run_circuits</span><span class="p">(</span><span class="n">circuits</span><span class="p">,</span> <span class="n">parameter_binds</span><span class="p">,</span> <span class="o">**</span><span class="n">run_options</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="ow">not</span> <span class="n">only_circuits</span> <span class="ow">and</span> <span class="n">only_pulse</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_run_qobj</span><span class="p">(</span><span class="n">circuits</span><span class="p">,</span> <span class="n">validate</span><span class="p">,</span> <span class="n">parameter_binds</span><span class="p">,</span> <span class="o">**</span><span class="n">run_options</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="ow">not</span> <span class="n">only_circuits</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">only_pulse</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+                <span class="s2">&quot;bad input to run() function;&quot;</span>
+                <span class="s2">&quot;circuits and schedules cannot be mixed in a single run&quot;</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+                <span class="s2">&quot;bad input to run() function;&quot;</span> <span class="s2">&quot;circuits must be either circuits or schedules&quot;</span>
+            <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_run_circuits</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">circuits</span><span class="p">,</span> <span class="n">parameter_binds</span><span class="p">,</span> <span class="o">**</span><span class="n">run_options</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Run circuits by generating native circuits.&quot;&quot;&quot;</span>
+        <span class="c1"># Submit job</span>
+        <span class="n">job_id</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">uuid</span><span class="o">.</span><span class="n">uuid4</span><span class="p">())</span>
+        <span class="n">aer_job</span> <span class="o">=</span> <span class="n">AerJob</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span>
+            <span class="n">job_id</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_execute_circuits_job</span><span class="p">,</span>
+            <span class="n">parameter_binds</span><span class="o">=</span><span class="n">parameter_binds</span><span class="p">,</span>
+            <span class="n">circuits</span><span class="o">=</span><span class="n">circuits</span><span class="p">,</span>
+            <span class="n">run_options</span><span class="o">=</span><span class="n">run_options</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">aer_job</span><span class="o">.</span><span class="n">submit</span><span class="p">()</span>
+
+        <span class="k">return</span> <span class="n">aer_job</span>
+
+    <span class="c1"># pylint: disable=arguments-differ</span>
+    <span class="k">def</span> <span class="nf">_run_qobj</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">circuits</span><span class="p">,</span> <span class="n">validate</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">parameter_binds</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">run_options</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Run circuits by assembling qobj.&quot;&quot;&quot;</span>
+        <span class="n">qobj</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_assemble</span><span class="p">(</span><span class="n">circuits</span><span class="p">,</span> <span class="n">parameter_binds</span><span class="o">=</span><span class="n">parameter_binds</span><span class="p">,</span> <span class="o">**</span><span class="n">run_options</span><span class="p">)</span>
+
+        <span class="c1"># Optional validation</span>
+        <span class="k">if</span> <span class="n">validate</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_validate</span><span class="p">(</span><span class="n">qobj</span><span class="p">)</span>
+
+        <span class="c1"># Get executor from qobj config and delete attribute so qobj can still be serialized</span>
+        <span class="n">executor</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">qobj</span><span class="o">.</span><span class="n">config</span><span class="p">,</span> <span class="s2">&quot;executor&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">qobj</span><span class="o">.</span><span class="n">config</span><span class="p">,</span> <span class="s2">&quot;executor&quot;</span><span class="p">):</span>
+            <span class="nb">delattr</span><span class="p">(</span><span class="n">qobj</span><span class="o">.</span><span class="n">config</span><span class="p">,</span> <span class="s2">&quot;executor&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Optionally split the job</span>
+        <span class="n">experiments</span> <span class="o">=</span> <span class="n">split_qobj</span><span class="p">(</span>
+            <span class="n">qobj</span><span class="p">,</span>
+            <span class="n">max_size</span><span class="o">=</span><span class="nb">getattr</span><span class="p">(</span><span class="n">qobj</span><span class="o">.</span><span class="n">config</span><span class="p">,</span> <span class="s2">&quot;max_job_size&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
+            <span class="n">max_shot_size</span><span class="o">=</span><span class="nb">getattr</span><span class="p">(</span><span class="n">qobj</span><span class="o">.</span><span class="n">config</span><span class="p">,</span> <span class="s2">&quot;max_shot_size&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Temporarily remove any executor from options so that job submission</span>
+        <span class="c1"># can work with Dask client executors which can&#39;t be pickled</span>
+        <span class="n">opts_executor</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_options</span><span class="p">,</span> <span class="s2">&quot;executor&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_options</span><span class="p">,</span> <span class="s2">&quot;executor&quot;</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_options</span><span class="o">.</span><span class="n">executor</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="c1"># Submit job</span>
+        <span class="n">job_id</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">uuid</span><span class="o">.</span><span class="n">uuid4</span><span class="p">())</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">experiments</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+            <span class="n">aer_job</span> <span class="o">=</span> <span class="n">AerJobSet</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">job_id</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_execute_qobj_job</span><span class="p">,</span> <span class="n">experiments</span><span class="p">,</span> <span class="n">executor</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">aer_job</span> <span class="o">=</span> <span class="n">AerJob</span><span class="p">(</span>
+                <span class="bp">self</span><span class="p">,</span> <span class="n">job_id</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_execute_qobj_job</span><span class="p">,</span> <span class="n">qobj</span><span class="o">=</span><span class="n">experiments</span><span class="p">,</span> <span class="n">executor</span><span class="o">=</span><span class="n">executor</span>
+            <span class="p">)</span>
+        <span class="n">aer_job</span><span class="o">.</span><span class="n">submit</span><span class="p">()</span>
+
+        <span class="c1"># Restore removed executor after submission</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_options</span><span class="p">,</span> <span class="s2">&quot;executor&quot;</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_options</span><span class="o">.</span><span class="n">executor</span> <span class="o">=</span> <span class="n">opts_executor</span>
+
+        <span class="k">return</span> <span class="n">aer_job</span>
+
+    <span class="k">def</span> <span class="nf">configuration</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return the simulator backend configuration.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            BackendConfiguration: the configuration for the backend.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">config</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_configuration</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_options_configuration</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="nb">setattr</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">val</span><span class="p">)</span>
+        <span class="c1"># If config has custom instructions add them to</span>
+        <span class="c1"># basis gates to include them for the qiskit transpiler</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="s2">&quot;custom_instructions&quot;</span><span class="p">):</span>
+            <span class="n">config</span><span class="o">.</span><span class="n">basis_gates</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">basis_gates</span> <span class="o">+</span> <span class="n">config</span><span class="o">.</span><span class="n">custom_instructions</span>
+        <span class="k">return</span> <span class="n">config</span>
+
+    <span class="k">def</span> <span class="nf">properties</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return the simulator backend properties if set.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            BackendProperties: The backend properties or ``None`` if the</span>
+<span class="sd">                               backend does not have properties set.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">properties</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_properties</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_options_properties</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="nb">setattr</span><span class="p">(</span><span class="n">properties</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">val</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">properties</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">max_circuits</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="p">(),</span> <span class="s2">&quot;max_experiments&quot;</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="p">()</span><span class="o">.</span><span class="n">max_experiments</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">target</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_target</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_target</span>
+
+        <span class="k">return</span> <span class="n">convert_to_target</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">properties</span><span class="p">(),</span> <span class="kc">None</span><span class="p">,</span> <span class="n">NAME_MAPPING</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">clear_options</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Reset the simulator options to default values.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_options</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_default_options</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_options_configuration</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_options_properties</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="k">def</span> <span class="nf">status</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return backend status.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            BackendStatus: the status of the backend.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">BackendStatus</span><span class="p">(</span>
+            <span class="n">backend_name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+            <span class="n">backend_version</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="p">()</span><span class="o">.</span><span class="n">backend_version</span><span class="p">,</span>
+            <span class="n">operational</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="n">pending_jobs</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+            <span class="n">status_msg</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_execute_qobj_job</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">qobj</span><span class="p">,</span> <span class="n">job_id</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">format_result</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Run a qobj job&quot;&quot;&quot;</span>
+        <span class="c1"># Start timer</span>
+        <span class="n">start</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+
+        <span class="c1"># Take metadata from headers of experiments to work around JSON serialization error</span>
+        <span class="n">metadata_list</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">metadata_index</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">expr</span> <span class="ow">in</span> <span class="n">qobj</span><span class="o">.</span><span class="n">experiments</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">expr</span><span class="o">.</span><span class="n">header</span><span class="p">,</span> <span class="s2">&quot;metadata&quot;</span><span class="p">):</span>
+                <span class="n">metadata_copy</span> <span class="o">=</span> <span class="n">expr</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+                <span class="n">metadata_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">metadata_copy</span><span class="p">)</span>
+                <span class="n">expr</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
+                <span class="k">if</span> <span class="s2">&quot;id&quot;</span> <span class="ow">in</span> <span class="n">metadata_copy</span><span class="p">:</span>
+                    <span class="n">expr</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">metadata</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">metadata_copy</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">]</span>
+                <span class="n">expr</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">metadata</span><span class="p">[</span><span class="s2">&quot;metadata_index&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">metadata_index</span>
+                <span class="n">metadata_index</span> <span class="o">+=</span> <span class="mi">1</span>
+
+        <span class="c1"># Run simulation</span>
+        <span class="n">output</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_execute_qobj</span><span class="p">(</span><span class="n">qobj</span><span class="p">)</span>
+
+        <span class="c1"># Recover metadata</span>
+        <span class="n">metadata_index</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">expr</span> <span class="ow">in</span> <span class="n">qobj</span><span class="o">.</span><span class="n">experiments</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">expr</span><span class="o">.</span><span class="n">header</span><span class="p">,</span> <span class="s2">&quot;metadata&quot;</span><span class="p">):</span>
+                <span class="n">expr</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
+                <span class="n">expr</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">metadata_list</span><span class="p">[</span><span class="n">metadata_index</span><span class="p">])</span>
+                <span class="n">metadata_index</span> <span class="o">+=</span> <span class="mi">1</span>
+
+        <span class="c1"># Validate output</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">output</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%s</span><span class="s2">: simulation failed.&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">output</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;Output: </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">output</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="n">AerError</span><span class="p">(</span><span class="s2">&quot;simulation terminated without returning valid output.&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Format results</span>
+        <span class="n">output</span><span class="p">[</span><span class="s2">&quot;job_id&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">job_id</span>
+        <span class="n">output</span><span class="p">[</span><span class="s2">&quot;date&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">()</span><span class="o">.</span><span class="n">isoformat</span><span class="p">()</span>
+        <span class="n">output</span><span class="p">[</span><span class="s2">&quot;backend_name&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span>
+        <span class="n">output</span><span class="p">[</span><span class="s2">&quot;backend_version&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="p">()</span><span class="o">.</span><span class="n">backend_version</span>
+
+        <span class="c1"># Push metadata to experiment headers</span>
+        <span class="k">for</span> <span class="n">result</span> <span class="ow">in</span> <span class="n">output</span><span class="p">[</span><span class="s2">&quot;results&quot;</span><span class="p">]:</span>
+            <span class="k">if</span> <span class="p">(</span>
+                <span class="s2">&quot;header&quot;</span> <span class="ow">in</span> <span class="n">result</span>
+                <span class="ow">and</span> <span class="s2">&quot;metadata&quot;</span> <span class="ow">in</span> <span class="n">result</span><span class="p">[</span><span class="s2">&quot;header&quot;</span><span class="p">]</span>
+                <span class="ow">and</span> <span class="s2">&quot;metadata_index&quot;</span> <span class="ow">in</span> <span class="n">result</span><span class="p">[</span><span class="s2">&quot;header&quot;</span><span class="p">][</span><span class="s2">&quot;metadata&quot;</span><span class="p">]</span>
+            <span class="p">):</span>
+                <span class="n">metadata_index</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="s2">&quot;header&quot;</span><span class="p">][</span><span class="s2">&quot;metadata&quot;</span><span class="p">][</span><span class="s2">&quot;metadata_index&quot;</span><span class="p">]</span>
+                <span class="n">result</span><span class="p">[</span><span class="s2">&quot;header&quot;</span><span class="p">][</span><span class="s2">&quot;metadata&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">metadata_list</span><span class="p">[</span><span class="n">metadata_index</span><span class="p">]</span>
+
+        <span class="c1"># Add execution time</span>
+        <span class="n">output</span><span class="p">[</span><span class="s2">&quot;time_taken&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">start</span>
+
+        <span class="c1"># Display warning if simulation failed</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">output</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;success&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">):</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;Simulation failed&quot;</span>
+            <span class="k">if</span> <span class="s2">&quot;status&quot;</span> <span class="ow">in</span> <span class="n">output</span><span class="p">:</span>
+                <span class="n">msg</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot; and returned the following error message:</span><span class="se">\n</span><span class="si">{</span><span class="n">output</span><span class="p">[</span><span class="s1">&#39;status&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">format_result</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_format_results</span><span class="p">(</span><span class="n">output</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">output</span>
+
+    <span class="k">def</span> <span class="nf">_execute_circuits_job</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">circuits</span><span class="p">,</span> <span class="n">parameter_binds</span><span class="p">,</span> <span class="n">run_options</span><span class="p">,</span> <span class="n">job_id</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">format_result</span><span class="o">=</span><span class="kc">True</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Run a job&quot;&quot;&quot;</span>
+        <span class="c1"># Start timer</span>
+        <span class="n">start</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+
+        <span class="c1"># Compile circuits</span>
+        <span class="n">circuits</span><span class="p">,</span> <span class="n">noise_model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_compile</span><span class="p">(</span><span class="n">circuits</span><span class="p">,</span> <span class="o">**</span><span class="n">run_options</span><span class="p">)</span>
+
+        <span class="n">aer_circuits</span><span class="p">,</span> <span class="n">idx_maps</span> <span class="o">=</span> <span class="n">assemble_circuits</span><span class="p">(</span><span class="n">circuits</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">parameter_binds</span><span class="p">:</span>
+            <span class="n">run_options</span><span class="p">[</span><span class="s2">&quot;parameterizations&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_convert_binds</span><span class="p">(</span>
+                <span class="n">circuits</span><span class="p">,</span> <span class="n">parameter_binds</span><span class="p">,</span> <span class="n">idx_maps</span>
+            <span class="p">)</span>
+        <span class="k">elif</span> <span class="ow">not</span> <span class="nb">all</span><span class="p">([</span><span class="nb">len</span><span class="p">(</span><span class="n">circuit</span><span class="o">.</span><span class="n">parameters</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span> <span class="k">for</span> <span class="n">circuit</span> <span class="ow">in</span> <span class="n">circuits</span><span class="p">]):</span>
+            <span class="k">raise</span> <span class="n">AerError</span><span class="p">(</span><span class="s2">&quot;circuits have parameters but parameter_binds is not specified.&quot;</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">circ_id</span><span class="p">,</span> <span class="n">aer_circuit</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">aer_circuits</span><span class="p">):</span>
+            <span class="n">aer_circuit</span><span class="o">.</span><span class="n">circ_id</span> <span class="o">=</span> <span class="n">circ_id</span>
+
+        <span class="n">config</span> <span class="o">=</span> <span class="n">generate_aer_config</span><span class="p">(</span><span class="n">circuits</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">options</span><span class="p">,</span> <span class="o">**</span><span class="n">run_options</span><span class="p">)</span>
+
+        <span class="c1"># Run simulation</span>
+        <span class="n">metadata_map</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="n">aer_circuit</span><span class="o">.</span><span class="n">circ_id</span><span class="p">:</span> <span class="n">circuit</span><span class="o">.</span><span class="n">metadata</span>
+            <span class="k">for</span> <span class="n">aer_circuit</span><span class="p">,</span> <span class="n">circuit</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">aer_circuits</span><span class="p">,</span> <span class="n">circuits</span><span class="p">)</span>
+        <span class="p">}</span>
+        <span class="n">output</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_execute_circuits</span><span class="p">(</span><span class="n">aer_circuits</span><span class="p">,</span> <span class="n">noise_model</span><span class="p">,</span> <span class="n">config</span><span class="p">)</span>
+
+        <span class="c1"># Validate output</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">output</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%s</span><span class="s2">: simulation failed.&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">output</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;Output: </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">output</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="n">AerError</span><span class="p">(</span><span class="s2">&quot;simulation terminated without returning valid output.&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Format results</span>
+        <span class="n">output</span><span class="p">[</span><span class="s2">&quot;job_id&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">job_id</span>
+        <span class="n">output</span><span class="p">[</span><span class="s2">&quot;date&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">()</span><span class="o">.</span><span class="n">isoformat</span><span class="p">()</span>
+        <span class="n">output</span><span class="p">[</span><span class="s2">&quot;backend_name&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span>
+        <span class="n">output</span><span class="p">[</span><span class="s2">&quot;backend_version&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="p">()</span><span class="o">.</span><span class="n">backend_version</span>
+
+        <span class="c1"># Push metadata to experiment headers</span>
+        <span class="k">for</span> <span class="n">result</span> <span class="ow">in</span> <span class="n">output</span><span class="p">[</span><span class="s2">&quot;results&quot;</span><span class="p">]:</span>
+            <span class="k">if</span> <span class="s2">&quot;header&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">result</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="n">result</span><span class="p">[</span><span class="s2">&quot;header&quot;</span><span class="p">][</span><span class="s2">&quot;metadata&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">metadata_map</span><span class="p">[</span><span class="n">result</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;circ_id&quot;</span><span class="p">)]</span>
+
+        <span class="c1"># Add execution time</span>
+        <span class="n">output</span><span class="p">[</span><span class="s2">&quot;time_taken&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">start</span>
+
+        <span class="c1"># Display warning if simulation failed</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">output</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;success&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">):</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;Simulation failed&quot;</span>
+            <span class="k">if</span> <span class="s2">&quot;status&quot;</span> <span class="ow">in</span> <span class="n">output</span><span class="p">:</span>
+                <span class="n">msg</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot; and returned the following error message:</span><span class="se">\n</span><span class="si">{</span><span class="n">output</span><span class="p">[</span><span class="s1">&#39;status&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">format_result</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_format_results</span><span class="p">(</span><span class="n">output</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">output</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_format_results</span><span class="p">(</span><span class="n">output</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Format C++ simulator output for constructing Result&quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">result</span> <span class="ow">in</span> <span class="n">output</span><span class="p">[</span><span class="s2">&quot;results&quot;</span><span class="p">]:</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;data&quot;</span><span class="p">,</span> <span class="p">{})</span>
+            <span class="n">metadata</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;metadata&quot;</span><span class="p">,</span> <span class="p">{})</span>
+            <span class="n">save_types</span> <span class="o">=</span> <span class="n">metadata</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;result_types&quot;</span><span class="p">,</span> <span class="p">{})</span>
+            <span class="n">save_subtypes</span> <span class="o">=</span> <span class="n">metadata</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;result_subtypes&quot;</span><span class="p">,</span> <span class="p">{})</span>
+            <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">save_types</span><span class="p">:</span>
+                    <span class="n">data</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">format_save_type</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="n">save_types</span><span class="p">[</span><span class="n">key</span><span class="p">],</span> <span class="n">save_subtypes</span><span class="p">[</span><span class="n">key</span><span class="p">])</span>
+        <span class="k">return</span> <span class="n">Result</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span><span class="n">output</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_compile</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">circuits</span><span class="p">,</span> <span class="o">**</span><span class="n">run_options</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Compile circuits and noise model&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">circuits</span><span class="p">,</span> <span class="p">(</span><span class="n">QuantumCircuit</span><span class="p">,</span> <span class="n">Schedule</span><span class="p">,</span> <span class="n">ScheduleBlock</span><span class="p">)):</span>
+            <span class="n">circuits</span> <span class="o">=</span> <span class="p">[</span><span class="n">circuits</span><span class="p">]</span>
+        <span class="n">optypes</span> <span class="o">=</span> <span class="p">[</span><span class="n">circuit_optypes</span><span class="p">(</span><span class="n">circ</span><span class="p">)</span> <span class="k">for</span> <span class="n">circ</span> <span class="ow">in</span> <span class="n">circuits</span><span class="p">]</span>
+
+        <span class="c1"># Compile Qasm3 instructions</span>
+        <span class="n">circuits</span><span class="p">,</span> <span class="n">optypes</span> <span class="o">=</span> <span class="n">compile_circuit</span><span class="p">(</span>
+            <span class="n">circuits</span><span class="p">,</span> <span class="n">basis_gates</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="p">()</span><span class="o">.</span><span class="n">basis_gates</span><span class="p">,</span> <span class="n">optypes</span><span class="o">=</span><span class="n">optypes</span>
+        <span class="p">)</span>
+
+        <span class="c1"># run option noise model</span>
+        <span class="n">circuits</span><span class="p">,</span> <span class="n">noise_model</span><span class="p">,</span> <span class="n">run_options</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_assemble_noise_model</span><span class="p">(</span>
+            <span class="n">circuits</span><span class="p">,</span> <span class="n">optypes</span><span class="p">,</span> <span class="o">**</span><span class="n">run_options</span>
+        <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">circuits</span><span class="p">,</span> <span class="n">noise_model</span>
+
+    <span class="k">def</span> <span class="nf">_assemble</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">circuits</span><span class="p">,</span> <span class="n">parameter_binds</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">run_options</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Assemble one or more Qobj for running on the simulator&quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">circuits</span><span class="p">,</span> <span class="p">(</span><span class="n">QasmQobj</span><span class="p">,</span> <span class="n">PulseQobj</span><span class="p">)):</span>
+            <span class="n">qobj</span> <span class="o">=</span> <span class="n">circuits</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># compile and insert noise injection points</span>
+            <span class="n">circuits</span><span class="p">,</span> <span class="n">noise_model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_compile</span><span class="p">(</span><span class="n">circuits</span><span class="p">,</span> <span class="o">**</span><span class="n">run_options</span><span class="p">)</span>
+
+            <span class="c1"># If noise model exists, add it to the run options</span>
+            <span class="k">if</span> <span class="n">noise_model</span><span class="p">:</span>
+                <span class="n">run_options</span><span class="p">[</span><span class="s2">&quot;noise_model&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">noise_model</span>
+
+            <span class="k">if</span> <span class="n">parameter_binds</span><span class="p">:</span>
+                <span class="c1"># Handle parameter binding</span>
+                <span class="n">parameterizations</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_convert_binds</span><span class="p">(</span><span class="n">circuits</span><span class="p">,</span> <span class="n">parameter_binds</span><span class="p">)</span>
+                <span class="n">qobj</span> <span class="o">=</span> <span class="kc">None</span>
+                <span class="k">for</span> <span class="n">circuit</span> <span class="ow">in</span> <span class="n">circuits</span><span class="p">:</span>
+                    <span class="n">assemble_bind</span> <span class="o">=</span> <span class="p">{</span><span class="n">param</span><span class="p">:</span> <span class="mi">1</span> <span class="k">for</span> <span class="n">param</span> <span class="ow">in</span> <span class="n">circuit</span><span class="o">.</span><span class="n">parameters</span><span class="p">}</span>
+                    <span class="n">qobj_tmp</span> <span class="o">=</span> <span class="n">assemble</span><span class="p">(</span>
+                        <span class="p">[</span><span class="n">circuit</span><span class="p">],</span>
+                        <span class="n">backend</span><span class="o">=</span><span class="bp">self</span><span class="p">,</span>
+                        <span class="n">parameter_binds</span><span class="o">=</span><span class="p">[</span><span class="n">assemble_bind</span><span class="p">],</span>
+                        <span class="n">parameterizations</span><span class="o">=</span><span class="n">parameterizations</span><span class="p">,</span>
+                    <span class="p">)</span>
+                    <span class="k">if</span> <span class="n">qobj</span><span class="p">:</span>
+                        <span class="n">qobj</span><span class="o">.</span><span class="n">experiments</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">qobj_tmp</span><span class="o">.</span><span class="n">experiments</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">qobj</span> <span class="o">=</span> <span class="n">qobj_tmp</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">qobj</span> <span class="o">=</span> <span class="n">assemble</span><span class="p">(</span><span class="n">circuits</span><span class="p">,</span> <span class="n">backend</span><span class="o">=</span><span class="bp">self</span><span class="p">)</span>
+
+        <span class="c1"># Add options</span>
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">options</span><span class="o">.</span><span class="vm">__dict__</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">val</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="nb">setattr</span><span class="p">(</span><span class="n">qobj</span><span class="o">.</span><span class="n">config</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">val</span><span class="p">)</span>
+
+        <span class="c1"># Override with run-time options</span>
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">run_options</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="nb">setattr</span><span class="p">(</span><span class="n">qobj</span><span class="o">.</span><span class="n">config</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">val</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">qobj</span>
+
+    <span class="k">def</span> <span class="nf">_assemble_noise_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">circuits</span><span class="p">,</span> <span class="n">optypes</span><span class="p">,</span> <span class="o">**</span><span class="n">run_options</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Move quantum error instructions from circuits to noise model&quot;&quot;&quot;</span>
+        <span class="c1"># Make a shallow copy so we can modify list elements if required</span>
+        <span class="n">run_circuits</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">circuits</span><span class="p">)</span>
+
+        <span class="c1"># Flag for if we need to make a deep copy of the noise model</span>
+        <span class="c1"># This avoids unnecessarily copying the noise model for circuits</span>
+        <span class="c1"># that do not contain a quantum error</span>
+        <span class="n">updated_noise</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="n">noise_model</span> <span class="o">=</span> <span class="n">run_options</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;noise_model&quot;</span><span class="p">,</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">options</span><span class="p">,</span> <span class="s2">&quot;noise_model&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">))</span>
+
+        <span class="c1"># Add custom pass noise only to QuantumCircuit objects that contain delay</span>
+        <span class="c1"># instructions since this is the only instruction handled by the noise pass</span>
+        <span class="c1"># at present</span>
+        <span class="k">if</span> <span class="n">noise_model</span> <span class="ow">and</span> <span class="nb">all</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">circ</span><span class="p">,</span> <span class="n">QuantumCircuit</span><span class="p">)</span> <span class="k">for</span> <span class="n">circ</span> <span class="ow">in</span> <span class="n">run_circuits</span><span class="p">):</span>
+            <span class="n">npm</span> <span class="o">=</span> <span class="n">noise_model</span><span class="o">.</span><span class="n">_pass_manager</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">npm</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="c1"># Get indicies of circuits that need noise transpiling</span>
+                <span class="n">transpile_idxs</span> <span class="o">=</span> <span class="p">[</span><span class="n">idx</span> <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">optype</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">optypes</span><span class="p">)</span> <span class="k">if</span> <span class="n">Delay</span> <span class="ow">in</span> <span class="n">optype</span><span class="p">]</span>
+
+                <span class="c1"># Transpile only the required circuits</span>
+                <span class="n">transpiled_circuits</span> <span class="o">=</span> <span class="n">npm</span><span class="o">.</span><span class="n">run</span><span class="p">([</span><span class="n">run_circuits</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">transpile_idxs</span><span class="p">])</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">transpiled_circuits</span><span class="p">,</span> <span class="n">QuantumCircuit</span><span class="p">):</span>
+                    <span class="n">transpiled_circuits</span> <span class="o">=</span> <span class="p">[</span><span class="n">transpiled_circuits</span><span class="p">]</span>
+
+                <span class="c1"># Update the circuits with transpiled ones</span>
+                <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">circ</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">transpile_idxs</span><span class="p">,</span> <span class="n">transpiled_circuits</span><span class="p">):</span>
+                    <span class="n">run_circuits</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">circ</span>
+                    <span class="n">optypes</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">circuit_optypes</span><span class="p">(</span><span class="n">circ</span><span class="p">)</span>
+
+        <span class="c1"># Check if circuits contain quantum error instructions</span>
+        <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">circ</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">run_circuits</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">QuantumChannelInstruction</span> <span class="ow">in</span> <span class="n">optypes</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span>
+                <span class="n">circ</span><span class="p">,</span> <span class="p">(</span><span class="n">Schedule</span><span class="p">,</span> <span class="n">ScheduleBlock</span><span class="p">)</span>
+            <span class="p">):</span>
+                <span class="n">updated_circ</span> <span class="o">=</span> <span class="kc">False</span>
+                <span class="n">new_data</span> <span class="o">=</span> <span class="p">[]</span>
+                <span class="k">for</span> <span class="n">inst</span><span class="p">,</span> <span class="n">qargs</span><span class="p">,</span> <span class="n">cargs</span> <span class="ow">in</span> <span class="n">circ</span><span class="o">.</span><span class="n">data</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">inst</span><span class="p">,</span> <span class="n">QuantumChannelInstruction</span><span class="p">):</span>
+                        <span class="n">updated_circ</span> <span class="o">=</span> <span class="kc">True</span>
+                        <span class="k">if</span> <span class="ow">not</span> <span class="n">updated_noise</span><span class="p">:</span>
+                            <span class="c1"># Deep copy noise model on first update</span>
+                            <span class="k">if</span> <span class="n">noise_model</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                                <span class="n">noise_model</span> <span class="o">=</span> <span class="n">NoiseModel</span><span class="p">()</span>
+                            <span class="k">else</span><span class="p">:</span>
+                                <span class="n">noise_model</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">noise_model</span><span class="p">)</span>
+                            <span class="n">updated_noise</span> <span class="o">=</span> <span class="kc">True</span>
+                        <span class="c1"># Extract error and replace with place holder</span>
+                        <span class="n">qerror</span> <span class="o">=</span> <span class="n">inst</span><span class="o">.</span><span class="n">_quantum_error</span>
+                        <span class="n">qerror_loc</span> <span class="o">=</span> <span class="n">QuantumErrorLocation</span><span class="p">(</span><span class="n">qerror</span><span class="p">)</span>
+                        <span class="n">new_data</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">qerror_loc</span><span class="p">,</span> <span class="n">qargs</span><span class="p">,</span> <span class="n">cargs</span><span class="p">))</span>
+                        <span class="n">optypes</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">QuantumErrorLocation</span><span class="p">)</span>
+                        <span class="c1"># Add error to noise model</span>
+                        <span class="k">if</span> <span class="n">qerror</span><span class="o">.</span><span class="n">id</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">noise_model</span><span class="o">.</span><span class="n">_default_quantum_errors</span><span class="p">:</span>
+                            <span class="n">noise_model</span><span class="o">.</span><span class="n">add_all_qubit_quantum_error</span><span class="p">(</span><span class="n">qerror</span><span class="p">,</span> <span class="n">qerror</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">new_data</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">inst</span><span class="p">,</span> <span class="n">qargs</span><span class="p">,</span> <span class="n">cargs</span><span class="p">))</span>
+                <span class="k">if</span> <span class="n">updated_circ</span><span class="p">:</span>
+                    <span class="n">new_circ</span> <span class="o">=</span> <span class="n">circ</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+                    <span class="n">new_circ</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">new_data</span>
+                    <span class="n">run_circuits</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">new_circ</span>
+                    <span class="n">optypes</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span><span class="o">.</span><span class="n">discard</span><span class="p">(</span><span class="n">QuantumChannelInstruction</span><span class="p">)</span>
+
+        <span class="c1"># Return the possibly updated circuits and noise model</span>
+        <span class="k">return</span> <span class="n">run_circuits</span><span class="p">,</span> <span class="n">noise_model</span><span class="p">,</span> <span class="n">run_options</span>
+
+    <span class="k">def</span> <span class="nf">_get_executor</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">run_options</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get the executor&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="s2">&quot;executor&quot;</span> <span class="ow">in</span> <span class="n">run_options</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">run_options</span><span class="p">[</span><span class="s2">&quot;executor&quot;</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_options</span><span class="p">,</span> <span class="s2">&quot;executor&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span> <span class="nf">_execute_qobj</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">qobj</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Execute a qobj on the backend.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            qobj (QasmQobj or PulseQobj): simulator input.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            dict: return a dictionary of results.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">pass</span>
+
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span> <span class="nf">_execute_circuits</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">aer_circuits</span><span class="p">,</span> <span class="n">noise_model</span><span class="p">,</span> <span class="n">config</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Execute aer circuits on the backend.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            aer_circuits (List of AerCircuit): simulator input.</span>
+<span class="sd">            noise_model (NoiseModel): noise model</span>
+<span class="sd">            config (Dict): configuration for simulation</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            dict: return a dictionary of results.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">pass</span>
+
+    <span class="k">def</span> <span class="nf">_validate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">qobj</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Validate the qobj for the backend&quot;&quot;&quot;</span>
+        <span class="k">pass</span>
+
+    <span class="k">def</span> <span class="nf">set_option</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Special handling for setting backend options.</span>
+
+<span class="sd">        This method should be extended by sub classes to</span>
+<span class="sd">        update special option values.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            key (str): key to update</span>
+<span class="sd">            value (any): value to update.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            AerError: if key is &#39;method&#39; and val isn&#39;t in available methods.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Add all other options to the options dict</span>
+        <span class="c1"># TODO: in the future this could be replaced with an options class</span>
+        <span class="c1">#       for the simulators like configuration/properties to show all</span>
+        <span class="c1">#       available options</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_configuration</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_set_configuration_option</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_properties</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_set_properties_option</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_options</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="n">AerError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Invalid option </span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="c1"># Only add an option if its value is not None</span>
+                <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_options</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># If setting an existing option to None reset it to default</span>
+                <span class="c1"># this is for backwards compatibility when setting it to None would</span>
+                <span class="c1"># remove it from the options dict</span>
+                <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_options</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_default_options</span><span class="p">(),</span> <span class="n">key</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">set_options</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">fields</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Set the simulator options&quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">fields</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">set_option</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_set_configuration_option</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Special handling for setting backend configuration options.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_options_configuration</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+        <span class="k">elif</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_options_configuration</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_options_configuration</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_set_properties_option</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Special handling for setting backend properties options.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_options_properties</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+        <span class="k">elif</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_options_properties</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_options_properties</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;String representation of an AerBackend.&quot;&quot;&quot;</span>
+        <span class="n">name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span>
+        <span class="n">display</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;&#39;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">&#39;&quot;</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">(</span><span class="si">{</span><span class="n">display</span><span class="si">}</span><span class="s2">)&quot;</span>
+
+    <span class="k">def</span> <span class="nf">get_translation_stage_plugin</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;use custom translation method to avoid gate exchange&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_target</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="s2">&quot;aer_backend_plugin&quot;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+</pre></div>
+        </article>
+      </div>
+      <footer>
+        <div class="related-pages">
+          
+          
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2017-2024, Qiskit Development Team
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            <div class="last-updated">
+              Last updated on 2024/01/17</div>
+          </div>
+          <div class="right-details">
+            
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer no-toc">
+      
+      
+      
+    </aside>
+  </div>
+</div><script src="../../../_static/jquery.js?v=5d32c60e"></script>
+    <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+    <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js?v=cc44ccc5"></script>
+    <script src="../../../_static/doctools.js?v=888ff710"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=4825356b"></script>
+    <script src="../../../_static/thebelab-helper.js"></script>
+    <script src="../../../_static/scripts/qiskit-sphinx-theme.js?v=4d77b8ca"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@jupyter-widgets/html-manager@^1.0.1/dist/embed-amd.js"></script>
+    <script src="../../../_static/design-tabs.js?v=36754332"></script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    </body>
+</html>

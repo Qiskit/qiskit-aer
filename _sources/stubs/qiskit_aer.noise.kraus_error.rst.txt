@@ -1,0 +1,8 @@
+﻿
+
+kraus_error
+============================
+
+.. currentmodule:: qiskit_aer.noise
+
+.. autofunction:: kraus_error

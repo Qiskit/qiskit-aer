@@ -1,0 +1,895 @@
+<!doctype html>
+<html class="no-js" lang="en">
+  <head><meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" /><link rel="next" title="SetStatevector" href="../stubs/qiskit_aer.library.SetStatevector.html" /><link rel="prev" title="AerJobSet" href="../stubs/qiskit_aer.jobs.AerJobSet.html" />
+
+    <!-- Generated with Sphinx 7.1.2 and Furo 2023.08.19 -->
+        <title>Instruction Library (qiskit_aer.library) - Qiskit Aer 0.13.1</title>
+      <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=135e06be" />
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=82a976d7" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/qiskit-sphinx-theme.css?v=fe84956c" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/qiskit-ecosystem.css?v=745c5aa7" />
+    <link rel="stylesheet" type="text/css" href="../_static/jupyter-sphinx.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/design-style.1e8bd061cd6da7fc9cf755528e8ffc24.min.css?v=0a3b3ea7" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo-extensions.css?v=36a5483c" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #ffffff;
+  --color-code-foreground: black;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style><link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:ital,wght@0,400;0,600;1,400;1,600&display=swap" rel="stylesheet">
+<script src="../_static/js/web-components/top-nav-bar.js"></script></head>
+  <body>
+    
+    <script>document.body.dataset.theme = "light";</script>
+    
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg id="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+      <defs><style>.cls-1{fill:none;}</style></defs>
+      <path d="M28,4H4A2,2,0,0,0,2,6V26a2,2,0,0,0,2,2H28a2,2,0,0,0,2-2V6A2,2,0,0,0,28,4ZM4,6H20V26H4ZM28,26H22V6h6Z"/>
+      <rect id="_Transparent_Rectangle_" data-name="&lt;Transparent Rectangle&gt;" class="cls-1" width="32" height="32"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg id="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+      <defs><style>.cls-1{fill:none;}</style></defs>
+      <rect x="4" y="6" width="24" height="2"/>
+      <rect x="4" y="24" width="24" height="2"/>
+      <rect x="4" y="12" width="24" height="2"/>
+      <rect x="4" y="18" width="24" height="2"/>
+      <rect id="_Transparent_Rectangle_" data-name="&lt;Transparent Rectangle&gt;" class="cls-1" width="32" height="32"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg version="1.1" id="icon" xmlns="http://www.w3.org/2000/svg" x="0px" y="0px"
+         viewBox="0 0 32 32" style="enable-background:new 0 0 32 32;" xml:space="preserve"><polygon points="22,16 12,26 10.6,24.6 19.2,16 10.6,7.4 12,6 " stroke="currentColor"/>
+      <rect id="_x3C_Transparent_Rectangle_x3E_" fill="none" width="32" height="32"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-new-tab" viewBox="0 0 32 32">
+    <svg id="icon" xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
+      <defs>
+        <style>
+          .cls-1 {
+            fill: none;
+          }
+        </style>
+      </defs>
+      <path fill="#6929C4" d="M26,28H6a2.0027,2.0027,0,0,1-2-2V6A2.0027,2.0027,0,0,1,6,4H16V6H6V26H26V16h2V26A2.0027,2.0027,0,0,1,26,28Z"/>
+      <polygon fill="#6929C4" points="20 2 20 4 26.586 4 18 12.586 19.414 14 28 5.414 28 12 30 12 30 2 20 2"/>
+      <rect id="_Transparent_Rectangle_" data-name="&lt;Transparent Rectangle&gt;" class="cls-1" width="32" height="32"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-half" viewBox="0 0 24 24">
+    <title>Auto light/dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-shadow">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M13 12h5" />
+      <path d="M13 15h4" />
+      <path d="M13 18h1" />
+      <path d="M13 9h4" />
+      <path d="M13 6h1" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc">
+<label class="overlay sidebar-overlay" for="__navigation">
+  <div class="visually-hidden">Hide navigation sidebar</div>
+</label>
+<label class="overlay toc-overlay" for="__toc">
+  <div class="visually-hidden">Hide table of contents sidebar</div>
+</label>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <div class="visually-hidden">Toggle site navigation sidebar</div>
+        <i class="icon"><svg><use href="#svg-menu"></use></svg></i>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="../index.html"><div class="brand">Qiskit Aer 0.13.1</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle">
+          <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+          <svg class="theme-icon-when-auto"><use href="#svg-sun-half"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <div class="visually-hidden">Toggle table of contents sidebar</div>
+        <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><div class="sidebar-brand">
+  <a href="https://www.qiskit.org/ecosystem">
+    <div class="sidebar-logo-container">
+      <img class="sidebar-logo" src="../_static/images/ecosystem-logo.svg" alt="Qiskit Ecosystem logo"/>
+    </div>
+  </a>
+  
+  <span class="sidebar-brand-text">Qiskit Aer 0.13.1</span>
+</div><form class="sidebar-search-container" method="get" action="../search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../index.html">Home</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../getting_started.html">Getting Started</a></li>
+<li class="toctree-l1 current has-children"><a class="reference internal" href="aer.html">API Documentation</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle navigation of API Documentation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
+<li class="toctree-l2 has-children"><a class="reference internal" href="aer_provider.html">Aer Provider (<code class="xref py py-mod docutils literal notranslate"><span class="pre">qiskit_aer</span></code>)</a><input class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle navigation of Aer Provider (qiskit_aer)</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="../stubs/qiskit_aer.AerProvider.html">AerProvider</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../stubs/qiskit_aer.AerSimulator.html">AerSimulator</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../stubs/qiskit_aer.QasmSimulator.html">QasmSimulator</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../stubs/qiskit_aer.StatevectorSimulator.html">StatevectorSimulator</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../stubs/qiskit_aer.UnitarySimulator.html">UnitarySimulator</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../stubs/qiskit_aer.AerError.html">AerError</a></li>
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="aer_jobs.html">Aer Jobs (<code class="xref py py-mod docutils literal notranslate"><span class="pre">qiskit_aer.jobs</span></code>)</a><input class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><div class="visually-hidden">Toggle navigation of Aer Jobs (qiskit_aer.jobs)</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="../stubs/qiskit_aer.jobs.AerJob.html">AerJob</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../stubs/qiskit_aer.jobs.AerJobSet.html">AerJobSet</a></li>
+</ul>
+</li>
+<li class="toctree-l2 current has-children current-page"><a class="current reference internal" href="#">Instruction Library (<code class="xref py py-mod docutils literal notranslate"><span class="pre">qiskit_aer.library</span></code>)</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" role="switch" type="checkbox"/><label for="toctree-checkbox-4"><div class="visually-hidden">Toggle navigation of Instruction Library (qiskit_aer.library)</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="../stubs/qiskit_aer.library.SetStatevector.html">SetStatevector</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../stubs/qiskit_aer.library.SetDensityMatrix.html">SetDensityMatrix</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../stubs/qiskit_aer.library.SetStabilizer.html">SetStabilizer</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../stubs/qiskit_aer.library.SetSuperOp.html">SetSuperOp</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../stubs/qiskit_aer.library.SetUnitary.html">SetUnitary</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../stubs/qiskit_aer.library.SetMatrixProductState.html">SetMatrixProductState</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../stubs/qiskit_aer.library.set_statevector.html">set_statevector</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../stubs/qiskit_aer.library.set_density_matrix.html">set_density_matrix</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../stubs/qiskit_aer.library.set_stabilizer.html">set_stabilizer</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../stubs/qiskit_aer.library.set_unitary.html">set_unitary</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../stubs/qiskit_aer.library.set_superop.html">set_superop</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../stubs/qiskit_aer.library.set_matrix_product_state.html">set_matrix_product_state</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../stubs/qiskit_aer.library.SaveState.html">SaveState</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../stubs/qiskit_aer.library.SaveStatevector.html">SaveStatevector</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../stubs/qiskit_aer.library.SaveStatevectorDict.html">SaveStatevectorDict</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../stubs/qiskit_aer.library.SaveDensityMatrix.html">SaveDensityMatrix</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../stubs/qiskit_aer.library.SaveMatrixProductState.html">SaveMatrixProductState</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../stubs/qiskit_aer.library.SaveClifford.html">SaveClifford</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../stubs/qiskit_aer.library.SaveStabilizer.html">SaveStabilizer</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../stubs/qiskit_aer.library.SaveSuperOp.html">SaveSuperOp</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../stubs/qiskit_aer.library.SaveUnitary.html">SaveUnitary</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../stubs/qiskit_aer.library.SaveExpectationValue.html">SaveExpectationValue</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../stubs/qiskit_aer.library.SaveExpectationValueVariance.html">SaveExpectationValueVariance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../stubs/qiskit_aer.library.SaveProbabilities.html">SaveProbabilities</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../stubs/qiskit_aer.library.SaveProbabilitiesDict.html">SaveProbabilitiesDict</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../stubs/qiskit_aer.library.SaveAmplitudes.html">SaveAmplitudes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../stubs/qiskit_aer.library.SaveAmplitudesSquared.html">SaveAmplitudesSquared</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../stubs/qiskit_aer.library.save_amplitudes.html">save_amplitudes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../stubs/qiskit_aer.library.save_amplitudes_squared.html">save_amplitudes_squared</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../stubs/qiskit_aer.library.save_clifford.html">save_clifford</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../stubs/qiskit_aer.library.save_density_matrix.html">save_density_matrix</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../stubs/qiskit_aer.library.save_expectation_value.html">save_expectation_value</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../stubs/qiskit_aer.library.save_expectation_value_variance.html">save_expectation_value_variance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../stubs/qiskit_aer.library.save_matrix_product_state.html">save_matrix_product_state</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../stubs/qiskit_aer.library.save_probabilities.html">save_probabilities</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../stubs/qiskit_aer.library.save_probabilities_dict.html">save_probabilities_dict</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../stubs/qiskit_aer.library.save_stabilizer.html">save_stabilizer</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../stubs/qiskit_aer.library.save_state.html">save_state</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../stubs/qiskit_aer.library.save_statevector.html">save_statevector</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../stubs/qiskit_aer.library.save_statevector_dict.html">save_statevector_dict</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../stubs/qiskit_aer.library.save_superop.html">save_superop</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../stubs/qiskit_aer.library.save_unitary.html">save_unitary</a></li>
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="aer_noise.html">Noise Models (<code class="xref py py-mod docutils literal notranslate"><span class="pre">qiskit_aer.noise</span></code>)</a><input class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><div class="visually-hidden">Toggle navigation of Noise Models (qiskit_aer.noise)</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="../stubs/qiskit_aer.noise.NoiseModel.html">NoiseModel</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../stubs/qiskit_aer.noise.QuantumError.html">QuantumError</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../stubs/qiskit_aer.noise.ReadoutError.html">ReadoutError</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../stubs/qiskit_aer.noise.pauli_error.html">pauli_error</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../stubs/qiskit_aer.noise.depolarizing_error.html">depolarizing_error</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../stubs/qiskit_aer.noise.mixed_unitary_error.html">mixed_unitary_error</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../stubs/qiskit_aer.noise.coherent_unitary_error.html">coherent_unitary_error</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../stubs/qiskit_aer.noise.reset_error.html">reset_error</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../stubs/qiskit_aer.noise.amplitude_damping_error.html">amplitude_damping_error</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../stubs/qiskit_aer.noise.phase_damping_error.html">phase_damping_error</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../stubs/qiskit_aer.noise.phase_amplitude_damping_error.html">phase_amplitude_damping_error</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../stubs/qiskit_aer.noise.thermal_relaxation_error.html">thermal_relaxation_error</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../stubs/qiskit_aer.noise.kraus_error.html">kraus_error</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../stubs/qiskit_aer.noise.LocalNoisePass.html">LocalNoisePass</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../stubs/qiskit_aer.noise.RelaxationNoisePass.html">RelaxationNoisePass</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../stubs/qiskit_aer.noise.device.basic_device_readout_errors.html">basic_device_readout_errors</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../stubs/qiskit_aer.noise.device.basic_device_gate_errors.html">basic_device_gate_errors</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../stubs/qiskit_aer.noise.device.gate_param_values.html">gate_param_values</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../stubs/qiskit_aer.noise.device.gate_error_values.html">gate_error_values</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../stubs/qiskit_aer.noise.device.gate_length_values.html">gate_length_values</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../stubs/qiskit_aer.noise.device.readout_error_values.html">readout_error_values</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../stubs/qiskit_aer.noise.device.thermal_relaxation_values.html">thermal_relaxation_values</a></li>
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="aer_primitives.html">Primitives (<code class="xref py py-mod docutils literal notranslate"><span class="pre">qiskit_aer.primitives</span></code>)</a><input class="toctree-checkbox" id="toctree-checkbox-6" name="toctree-checkbox-6" role="switch" type="checkbox"/><label for="toctree-checkbox-6"><div class="visually-hidden">Toggle navigation of Primitives (qiskit_aer.primitives)</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="../stubs/qiskit_aer.primitives.Sampler.html">Sampler</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../stubs/qiskit_aer.primitives.Estimator.html">Estimator</a></li>
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="aer_utils.html">Utilities (<code class="xref py py-mod docutils literal notranslate"><span class="pre">qiskit_aer.utils</span></code>)</a><input class="toctree-checkbox" id="toctree-checkbox-7" name="toctree-checkbox-7" role="switch" type="checkbox"/><label for="toctree-checkbox-7"><div class="visually-hidden">Toggle navigation of Utilities (qiskit_aer.utils)</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="../stubs/qiskit_aer.utils.insert_noise.html">insert_noise</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../stubs/qiskit_aer.utils.approximate_quantum_error.html">approximate_quantum_error</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../stubs/qiskit_aer.utils.approximate_noise_model.html">approximate_noise_model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../stubs/qiskit_aer.utils.transform_noise_model.html">transform_noise_model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../stubs/qiskit_aer.utils.transpile_noise_model.html">transpile_noise_model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../stubs/qiskit_aer.utils.transpile_quantum_error.html">transpile_quantum_error</a></li>
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="aer_quantum_info.html">Aer Quantum Info (<code class="xref py py-mod docutils literal notranslate"><span class="pre">qiskit_aer.quantum_info</span></code>)</a><input class="toctree-checkbox" id="toctree-checkbox-8" name="toctree-checkbox-8" role="switch" type="checkbox"/><label for="toctree-checkbox-8"><div class="visually-hidden">Toggle navigation of Aer Quantum Info (qiskit_aer.quantum_info)</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="../stubs/qiskit_aer.quantum_info.AerStatevector.html">AerStatevector</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../stubs/qiskit_aer.quantum_info.AerDensityMatrix.html">AerDensityMatrix</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="circuit.html">Additional circuit methods</a></li>
+</ul>
+</li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../tutorials/index.html">Tutorials</a><input class="toctree-checkbox" id="toctree-checkbox-9" name="toctree-checkbox-9" role="switch" type="checkbox"/><label for="toctree-checkbox-9"><div class="visually-hidden">Toggle navigation of Tutorials</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../tutorials/1_aer_provider.html">Simulators</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../tutorials/2_device_noise_simulation.html">Device backend noise model simulations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../tutorials/3_building_noise_models.html">Building Noise Models</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../tutorials/4_custom_gate_noise.html">Applying noise to custom unitary gates</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../tutorials/5_noise_transformation.html">Noise Transformation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../tutorials/6_extended_stabilizer_tutorial.html">The Extended Stabilizer Simulator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../tutorials/7_matrix_product_state_method.html">Matrix product state simulation method</a></li>
+</ul>
+</li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../howtos/index.html">How-Tos</a><input class="toctree-checkbox" id="toctree-checkbox-10" name="toctree-checkbox-10" role="switch" type="checkbox"/><label for="toctree-checkbox-10"><div class="visually-hidden">Toggle navigation of How-Tos</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../howtos/parallel.html">Running with Threadpool and DASK</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../howtos/running_gpu.html">Running with multiple-GPUs and/or multiple nodes</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../release_notes.html">Release Notes</a></li>
+</ul>
+
+</div></div>
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          
+<div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle">
+              <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+              <svg class="theme-icon-when-auto"><use href="#svg-sun-half"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <div class="visually-hidden">Toggle table of contents sidebar</div>
+            <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+          </label>
+        </div>
+        <article role="main">
+          <span class="target" id="module-qiskit_aer.library"><span id="aer-library"></span></span><section id="instruction-library-qiskit-aer-library">
+<h1>Instruction Library (<a class="reference internal" href="#module-qiskit_aer.library" title="qiskit_aer.library"><code class="xref py py-mod docutils literal notranslate"><span class="pre">qiskit_aer.library</span></code></a>)<a class="headerlink" href="#instruction-library-qiskit-aer-library" title="Permalink to this heading">#</a></h1>
+<p>This library contains custom qiskit <code class="xref py py-class docutils literal notranslate"><span class="pre">QuantumCircuit</span></code>
+<a class="reference external" href="https://qiskit.org/documentation/stubs/qiskit.circuit.Instruction.html#qiskit.circuit.Instruction" title="(in Qiskit v0.45)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Instruction</span></code></a> subclasses that can be used
+with the Aer circuit simulator backends.</p>
+<section id="setting-a-custom-simulator-state">
+<h2>Setting a Custom Simulator State<a class="headerlink" href="#setting-a-custom-simulator-state" title="Permalink to this heading">#</a></h2>
+<p>The following instruction classes can be used to set the specific
+simulator methods to a custom state. Note that these instructions
+are only valid when applied to all qubits in a circuit. Applying
+to a subset of qubits will raise an exception during execution.</p>
+<section id="instruction-classes">
+<h3>Instruction Classes<a class="headerlink" href="#instruction-classes" title="Permalink to this heading">#</a></h3>
+<div class="table-wrapper autosummary longtable docutils container">
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="../stubs/qiskit_aer.library.SetStatevector.html#qiskit_aer.library.SetStatevector" title="qiskit_aer.library.SetStatevector"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SetStatevector</span></code></a>(state)</p></td>
+<td><p>Set the statevector state of the simulator</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../stubs/qiskit_aer.library.SetDensityMatrix.html#qiskit_aer.library.SetDensityMatrix" title="qiskit_aer.library.SetDensityMatrix"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SetDensityMatrix</span></code></a>(state)</p></td>
+<td><p>Set density matrix state of the simulator</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../stubs/qiskit_aer.library.SetStabilizer.html#qiskit_aer.library.SetStabilizer" title="qiskit_aer.library.SetStabilizer"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SetStabilizer</span></code></a>(state)</p></td>
+<td><p>Set the Clifford stabilizer state of the simulator</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../stubs/qiskit_aer.library.SetSuperOp.html#qiskit_aer.library.SetSuperOp" title="qiskit_aer.library.SetSuperOp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SetSuperOp</span></code></a>(state)</p></td>
+<td><p>Set superop state of the simulator</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../stubs/qiskit_aer.library.SetUnitary.html#qiskit_aer.library.SetUnitary" title="qiskit_aer.library.SetUnitary"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SetUnitary</span></code></a>(state)</p></td>
+<td><p>Set unitary state of the simulator</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../stubs/qiskit_aer.library.SetMatrixProductState.html#qiskit_aer.library.SetMatrixProductState" title="qiskit_aer.library.SetMatrixProductState"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SetMatrixProductState</span></code></a>(state)</p></td>
+<td><p>Set the matrix product state of the simulator</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="quantumcircuit-methods">
+<h3>QuantumCircuit Methods<a class="headerlink" href="#quantumcircuit-methods" title="Permalink to this heading">#</a></h3>
+<p>The set instructions can also be added to circuits by using the
+following <code class="docutils literal notranslate"><span class="pre">QuantumCircuit</span></code> methods which are patched when importing Aer.</p>
+<div class="table-wrapper autosummary longtable docutils container">
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="../stubs/qiskit_aer.library.set_statevector.html#qiskit_aer.library.set_statevector" title="qiskit_aer.library.set_statevector"><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_statevector</span></code></a>(self, state)</p></td>
+<td><p>Set the statevector state of the simulator.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../stubs/qiskit_aer.library.set_density_matrix.html#qiskit_aer.library.set_density_matrix" title="qiskit_aer.library.set_density_matrix"><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_density_matrix</span></code></a>(self, state)</p></td>
+<td><p>Set the density matrix state of the simulator.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../stubs/qiskit_aer.library.set_stabilizer.html#qiskit_aer.library.set_stabilizer" title="qiskit_aer.library.set_stabilizer"><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_stabilizer</span></code></a>(self, state)</p></td>
+<td><p>Set the Clifford stabilizer state of the simulator.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../stubs/qiskit_aer.library.set_unitary.html#qiskit_aer.library.set_unitary" title="qiskit_aer.library.set_unitary"><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_unitary</span></code></a>(self, state)</p></td>
+<td><p>Set the state state of the simulator.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../stubs/qiskit_aer.library.set_superop.html#qiskit_aer.library.set_superop" title="qiskit_aer.library.set_superop"><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_superop</span></code></a>(self, state)</p></td>
+<td><p>Set the superop state of the simulator.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../stubs/qiskit_aer.library.set_matrix_product_state.html#qiskit_aer.library.set_matrix_product_state" title="qiskit_aer.library.set_matrix_product_state"><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_matrix_product_state</span></code></a>(self, state)</p></td>
+<td><p>Set the matrix product state of the simulator.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+</section>
+<section id="saving-simulator-data">
+<h2>Saving Simulator Data<a class="headerlink" href="#saving-simulator-data" title="Permalink to this heading">#</a></h2>
+<section id="simulator-state-save-instruction-classes">
+<h3>Simulator State Save Instruction Classes<a class="headerlink" href="#simulator-state-save-instruction-classes" title="Permalink to this heading">#</a></h3>
+<p>The following instructions can be used to save the state of the simulator
+into the returned result object. The <a class="reference internal" href="../stubs/qiskit_aer.library.SaveState.html#qiskit_aer.library.SaveState" title="qiskit_aer.library.SaveState"><code class="xref py py-class docutils literal notranslate"><span class="pre">SaveState</span></code></a> instruction will
+automatically select the format based on the simulation method (eg.
+<a class="reference internal" href="../stubs/qiskit_aer.library.SaveStatevector.html#qiskit_aer.library.SaveStatevector" title="qiskit_aer.library.SaveStatevector"><code class="xref py py-class docutils literal notranslate"><span class="pre">SaveStatevector</span></code></a> for statevector method, <a class="reference internal" href="../stubs/qiskit_aer.library.SaveDensityMatrix.html#qiskit_aer.library.SaveDensityMatrix" title="qiskit_aer.library.SaveDensityMatrix"><code class="xref py py-class docutils literal notranslate"><span class="pre">SaveDensityMatrix</span></code></a>
+for density matrix method etc.).</p>
+<div class="table-wrapper autosummary longtable docutils container">
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="../stubs/qiskit_aer.library.SaveState.html#qiskit_aer.library.SaveState" title="qiskit_aer.library.SaveState"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SaveState</span></code></a>(num_qubits[, label, pershot, ...])</p></td>
+<td><p>Save simulator state</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../stubs/qiskit_aer.library.SaveStatevector.html#qiskit_aer.library.SaveStatevector" title="qiskit_aer.library.SaveStatevector"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SaveStatevector</span></code></a>(num_qubits[, label, ...])</p></td>
+<td><p>Save statevector</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../stubs/qiskit_aer.library.SaveStatevectorDict.html#qiskit_aer.library.SaveStatevectorDict" title="qiskit_aer.library.SaveStatevectorDict"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SaveStatevectorDict</span></code></a>(num_qubits[, label, ...])</p></td>
+<td><p>Save statevector as ket-form dictionary.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../stubs/qiskit_aer.library.SaveDensityMatrix.html#qiskit_aer.library.SaveDensityMatrix" title="qiskit_aer.library.SaveDensityMatrix"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SaveDensityMatrix</span></code></a>(num_qubits[, label, ...])</p></td>
+<td><p>Save a reduced density matrix.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../stubs/qiskit_aer.library.SaveMatrixProductState.html#qiskit_aer.library.SaveMatrixProductState" title="qiskit_aer.library.SaveMatrixProductState"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SaveMatrixProductState</span></code></a>(num_qubits[, label, ...])</p></td>
+<td><p>Save matrix product state instruction</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../stubs/qiskit_aer.library.SaveClifford.html#qiskit_aer.library.SaveClifford" title="qiskit_aer.library.SaveClifford"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SaveClifford</span></code></a>(num_qubits[, label, pershot])</p></td>
+<td><p>Save Clifford instruction</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../stubs/qiskit_aer.library.SaveStabilizer.html#qiskit_aer.library.SaveStabilizer" title="qiskit_aer.library.SaveStabilizer"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SaveStabilizer</span></code></a>(num_qubits[, label, pershot, ...])</p></td>
+<td><p>Save Stabilizer instruction</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../stubs/qiskit_aer.library.SaveSuperOp.html#qiskit_aer.library.SaveSuperOp" title="qiskit_aer.library.SaveSuperOp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SaveSuperOp</span></code></a>(num_qubits[, label, pershot])</p></td>
+<td><p>Save a SuperOp matrix.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../stubs/qiskit_aer.library.SaveUnitary.html#qiskit_aer.library.SaveUnitary" title="qiskit_aer.library.SaveUnitary"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SaveUnitary</span></code></a>(num_qubits[, label, pershot])</p></td>
+<td><p>Save Unitary</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The <a class="reference internal" href="../stubs/qiskit_aer.library.SaveDensityMatrix.html#qiskit_aer.library.SaveDensityMatrix" title="qiskit_aer.library.SaveDensityMatrix"><code class="xref py py-class docutils literal notranslate"><span class="pre">SaveDensityMatrix</span></code></a> instruction can be used to save the
+reduced densit matrix of a subset of qubits for supported simulation
+methods, however all other save state instructions must be applied
+to all qubits in a run circuit.</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The <a class="reference internal" href="../stubs/qiskit_aer.StatevectorSimulator.html#qiskit_aer.StatevectorSimulator" title="qiskit_aer.StatevectorSimulator"><code class="xref py py-class docutils literal notranslate"><span class="pre">StatevectorSimulator</span></code></a> (and
+<a class="reference internal" href="../stubs/qiskit_aer.UnitarySimulator.html#qiskit_aer.UnitarySimulator" title="qiskit_aer.UnitarySimulator"><code class="xref py py-class docutils literal notranslate"><span class="pre">UnitarySimulator</span></code></a>) backend automatically
+append every run circuit with the a <code class="xref py py-func docutils literal notranslate"><span class="pre">SaveStatevector`()</span></code>
+(<code class="xref py py-func docutils literal notranslate"><span class="pre">SaveUnitary`()</span></code>) instruction using the default label. Hence adding
+any additional save instructions of that type will require specifying a
+custom label for those instructions.</p>
+</div>
+</section>
+<section id="simulator-derived-data-save-instruction-classes">
+<h3>Simulator Derived Data Save Instruction Classes<a class="headerlink" href="#simulator-derived-data-save-instruction-classes" title="Permalink to this heading">#</a></h3>
+<p>The following classes can be used to directly save data derived from the
+simulator state to the returned result object. One some are compatible
+with certain simulation methods.</p>
+<p>For convenience the save instructions can be accessed using
+custom <code class="docutils literal notranslate"><span class="pre">QuantumCircuit</span></code> methods</p>
+<div class="table-wrapper autosummary longtable docutils container">
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="../stubs/qiskit_aer.library.SaveExpectationValue.html#qiskit_aer.library.SaveExpectationValue" title="qiskit_aer.library.SaveExpectationValue"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SaveExpectationValue</span></code></a>(operator[, label, ...])</p></td>
+<td><p>Save expectation value of an operator.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../stubs/qiskit_aer.library.SaveExpectationValueVariance.html#qiskit_aer.library.SaveExpectationValueVariance" title="qiskit_aer.library.SaveExpectationValueVariance"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SaveExpectationValueVariance</span></code></a>(operator[, ...])</p></td>
+<td><p>Save expectation value and variance of an operator.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../stubs/qiskit_aer.library.SaveProbabilities.html#qiskit_aer.library.SaveProbabilities" title="qiskit_aer.library.SaveProbabilities"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SaveProbabilities</span></code></a>(num_qubits[, label, ...])</p></td>
+<td><p>Save measurement outcome probabilities vector.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../stubs/qiskit_aer.library.SaveProbabilitiesDict.html#qiskit_aer.library.SaveProbabilitiesDict" title="qiskit_aer.library.SaveProbabilitiesDict"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SaveProbabilitiesDict</span></code></a>(num_qubits[, label, ...])</p></td>
+<td><p>Save measurement outcome probabilities dict.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../stubs/qiskit_aer.library.SaveAmplitudes.html#qiskit_aer.library.SaveAmplitudes" title="qiskit_aer.library.SaveAmplitudes"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SaveAmplitudes</span></code></a>(num_qubits, params[, label, ...])</p></td>
+<td><p>Save complex statevector amplitudes.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../stubs/qiskit_aer.library.SaveAmplitudesSquared.html#qiskit_aer.library.SaveAmplitudesSquared" title="qiskit_aer.library.SaveAmplitudesSquared"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SaveAmplitudesSquared</span></code></a>(num_qubits, params[, ...])</p></td>
+<td><p>Save squared statevector amplitudes (probabilities).</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>When saving pershot data by using the <code class="docutils literal notranslate"><span class="pre">pershot=True</span></code> kwarg
+in the above instructions, the resulting list may only contain
+a single value rather than the number of shots. This
+happens when a run circuit supports measurement sampling because
+it is either</p>
+<ol class="arabic simple">
+<li><p>An ideal simulation with all measurements at the end.</p></li>
+</ol>
+<p>2. A noisy simulation using the density matrix method with all
+measurements at the end.</p>
+<p>In both these cases only a single shot is actually simulated and
+measurement samples for all shots are calculated from the final
+state.</p>
+</div>
+</section>
+<section id="id1">
+<h3>QuantumCircuit Methods<a class="headerlink" href="#id1" title="Permalink to this heading">#</a></h3>
+<p>The save instructions can also be added to circuits by using the
+following <code class="docutils literal notranslate"><span class="pre">QuantumCircuit</span></code> methods which are patched when importing Aer.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Each save method has a default label for accessing from the
+circuit result data, however duplicate labels in results will result
+in an exception being raised. If you use more than 1 instance of a
+specific save instruction you must set a custom label for the
+additional instructions.</p>
+</div>
+<div class="table-wrapper autosummary longtable docutils container">
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="../stubs/qiskit_aer.library.save_amplitudes.html#qiskit_aer.library.save_amplitudes" title="qiskit_aer.library.save_amplitudes"><code class="xref py py-obj docutils literal notranslate"><span class="pre">save_amplitudes</span></code></a>(self, params[, label, ...])</p></td>
+<td><p>Save complex statevector amplitudes.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../stubs/qiskit_aer.library.save_amplitudes_squared.html#qiskit_aer.library.save_amplitudes_squared" title="qiskit_aer.library.save_amplitudes_squared"><code class="xref py py-obj docutils literal notranslate"><span class="pre">save_amplitudes_squared</span></code></a>(self, params[, ...])</p></td>
+<td><p>Save squared statevector amplitudes (probabilities).</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../stubs/qiskit_aer.library.save_clifford.html#qiskit_aer.library.save_clifford" title="qiskit_aer.library.save_clifford"><code class="xref py py-obj docutils literal notranslate"><span class="pre">save_clifford</span></code></a>(self[, label, pershot])</p></td>
+<td><p>Save the current stabilizer simulator quantum state as a Clifford.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../stubs/qiskit_aer.library.save_density_matrix.html#qiskit_aer.library.save_density_matrix" title="qiskit_aer.library.save_density_matrix"><code class="xref py py-obj docutils literal notranslate"><span class="pre">save_density_matrix</span></code></a>(self[, qubits, label, ...])</p></td>
+<td><p>Save the current simulator quantum state as a density matrix.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../stubs/qiskit_aer.library.save_expectation_value.html#qiskit_aer.library.save_expectation_value" title="qiskit_aer.library.save_expectation_value"><code class="xref py py-obj docutils literal notranslate"><span class="pre">save_expectation_value</span></code></a>(self, operator, qubits)</p></td>
+<td><p>Save the expectation value of a Hermitian operator.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../stubs/qiskit_aer.library.save_expectation_value_variance.html#qiskit_aer.library.save_expectation_value_variance" title="qiskit_aer.library.save_expectation_value_variance"><code class="xref py py-obj docutils literal notranslate"><span class="pre">save_expectation_value_variance</span></code></a>(self, ...[, ...])</p></td>
+<td><p>Save the expectation value of a Hermitian operator.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../stubs/qiskit_aer.library.save_matrix_product_state.html#qiskit_aer.library.save_matrix_product_state" title="qiskit_aer.library.save_matrix_product_state"><code class="xref py py-obj docutils literal notranslate"><span class="pre">save_matrix_product_state</span></code></a>(self[, label, ...])</p></td>
+<td><p>Save the current simulator quantum state as a matrix product state.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../stubs/qiskit_aer.library.save_probabilities.html#qiskit_aer.library.save_probabilities" title="qiskit_aer.library.save_probabilities"><code class="xref py py-obj docutils literal notranslate"><span class="pre">save_probabilities</span></code></a>(self[, qubits, label, ...])</p></td>
+<td><p>Save measurement outcome probabilities vector.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../stubs/qiskit_aer.library.save_probabilities_dict.html#qiskit_aer.library.save_probabilities_dict" title="qiskit_aer.library.save_probabilities_dict"><code class="xref py py-obj docutils literal notranslate"><span class="pre">save_probabilities_dict</span></code></a>(self[, qubits, ...])</p></td>
+<td><p>Save measurement outcome probabilities vector.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../stubs/qiskit_aer.library.save_stabilizer.html#qiskit_aer.library.save_stabilizer" title="qiskit_aer.library.save_stabilizer"><code class="xref py py-obj docutils literal notranslate"><span class="pre">save_stabilizer</span></code></a>(self[, label, pershot, ...])</p></td>
+<td><p>Save the current stabilizer simulator quantum state as a StabilizerState.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../stubs/qiskit_aer.library.save_state.html#qiskit_aer.library.save_state" title="qiskit_aer.library.save_state"><code class="xref py py-obj docutils literal notranslate"><span class="pre">save_state</span></code></a>(self[, label, pershot, conditional])</p></td>
+<td><p>Save the current simulator quantum state.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../stubs/qiskit_aer.library.save_statevector.html#qiskit_aer.library.save_statevector" title="qiskit_aer.library.save_statevector"><code class="xref py py-obj docutils literal notranslate"><span class="pre">save_statevector</span></code></a>(self[, label, pershot, ...])</p></td>
+<td><p>Save the current simulator quantum state as a statevector.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../stubs/qiskit_aer.library.save_statevector_dict.html#qiskit_aer.library.save_statevector_dict" title="qiskit_aer.library.save_statevector_dict"><code class="xref py py-obj docutils literal notranslate"><span class="pre">save_statevector_dict</span></code></a>(self[, label, ...])</p></td>
+<td><p>Save the current simulator quantum state as a statevector as a dict.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../stubs/qiskit_aer.library.save_superop.html#qiskit_aer.library.save_superop" title="qiskit_aer.library.save_superop"><code class="xref py py-obj docutils literal notranslate"><span class="pre">save_superop</span></code></a>(self[, label, pershot])</p></td>
+<td><p>Save the current state of the superop simulator.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../stubs/qiskit_aer.library.save_unitary.html#qiskit_aer.library.save_unitary" title="qiskit_aer.library.save_unitary"><code class="xref py py-obj docutils literal notranslate"><span class="pre">save_unitary</span></code></a>(self[, label, pershot])</p></td>
+<td><p>Save the current state of the unitary simulator.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+</section>
+<section id="method-compatibility">
+<h2>Method Compatibility<a class="headerlink" href="#method-compatibility" title="Permalink to this heading">#</a></h2>
+<p>The following table summarizes which instructions are compatible with
+which simulation methods</p>
+<div class="table-wrapper docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Instruction</p></th>
+<th class="head"><p>Automatic</p></th>
+<th class="head"><p>Statevector</p></th>
+<th class="head"><p>Density Matrix</p></th>
+<th class="head"><p>MPS</p></th>
+<th class="head"><p>Stabilizer</p></th>
+<th class="head"><p>Ext. Stabilizer</p></th>
+<th class="head"><p>Unitary</p></th>
+<th class="head"><p>SuperOp</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><a class="reference internal" href="../stubs/qiskit_aer.library.SaveAmplitudes.html#qiskit_aer.library.SaveAmplitudes" title="qiskit_aer.library.SaveAmplitudes"><code class="xref py py-class docutils literal notranslate"><span class="pre">SaveAmplitudes</span></code></a></p></td>
+<td><p>✔</p></td>
+<td><p>✔</p></td>
+<td><p>✘</p></td>
+<td><p>✔</p></td>
+<td><p>✘</p></td>
+<td><p>✘</p></td>
+<td><p>✘</p></td>
+<td><p>✘</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../stubs/qiskit_aer.library.SaveAmplitudesSquared.html#qiskit_aer.library.SaveAmplitudesSquared" title="qiskit_aer.library.SaveAmplitudesSquared"><code class="xref py py-class docutils literal notranslate"><span class="pre">SaveAmplitudesSquared</span></code></a></p></td>
+<td><p>✔</p></td>
+<td><p>✔</p></td>
+<td><p>✔</p></td>
+<td><p>✔</p></td>
+<td><p>✔</p></td>
+<td><p>✘</p></td>
+<td><p>✘</p></td>
+<td><p>✘</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../stubs/qiskit_aer.library.SaveClifford.html#qiskit_aer.library.SaveClifford" title="qiskit_aer.library.SaveClifford"><code class="xref py py-class docutils literal notranslate"><span class="pre">SaveClifford</span></code></a></p></td>
+<td><p>✔</p></td>
+<td><p>✘</p></td>
+<td><p>✘</p></td>
+<td><p>✘</p></td>
+<td><p>✔</p></td>
+<td><p>✘</p></td>
+<td><p>✘</p></td>
+<td><p>✘</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../stubs/qiskit_aer.library.SaveDensityMatrix.html#qiskit_aer.library.SaveDensityMatrix" title="qiskit_aer.library.SaveDensityMatrix"><code class="xref py py-class docutils literal notranslate"><span class="pre">SaveDensityMatrix</span></code></a></p></td>
+<td><p>✔</p></td>
+<td><p>✔</p></td>
+<td><p>✔</p></td>
+<td><p>✔</p></td>
+<td><p>✘</p></td>
+<td><p>✘</p></td>
+<td><p>✘</p></td>
+<td><p>✘</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../stubs/qiskit_aer.library.SaveExpectationValue.html#qiskit_aer.library.SaveExpectationValue" title="qiskit_aer.library.SaveExpectationValue"><code class="xref py py-class docutils literal notranslate"><span class="pre">SaveExpectationValue</span></code></a></p></td>
+<td><p>✔</p></td>
+<td><p>✔</p></td>
+<td><p>✔</p></td>
+<td><p>✔</p></td>
+<td><p>✔</p></td>
+<td><p>✘</p></td>
+<td><p>✘</p></td>
+<td><p>✘</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../stubs/qiskit_aer.library.SaveExpectationValueVariance.html#qiskit_aer.library.SaveExpectationValueVariance" title="qiskit_aer.library.SaveExpectationValueVariance"><code class="xref py py-class docutils literal notranslate"><span class="pre">SaveExpectationValueVariance</span></code></a></p></td>
+<td><p>✔</p></td>
+<td><p>✔</p></td>
+<td><p>✔</p></td>
+<td><p>✔</p></td>
+<td><p>✔</p></td>
+<td><p>✘</p></td>
+<td><p>✘</p></td>
+<td><p>✘</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../stubs/qiskit_aer.library.SaveMatrixProductState.html#qiskit_aer.library.SaveMatrixProductState" title="qiskit_aer.library.SaveMatrixProductState"><code class="xref py py-class docutils literal notranslate"><span class="pre">SaveMatrixProductState</span></code></a></p></td>
+<td><p>✘</p></td>
+<td><p>✘</p></td>
+<td><p>✘</p></td>
+<td><p>✔</p></td>
+<td><p>✘</p></td>
+<td><p>✘</p></td>
+<td><p>✘</p></td>
+<td><p>✘</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../stubs/qiskit_aer.library.SaveProbabilities.html#qiskit_aer.library.SaveProbabilities" title="qiskit_aer.library.SaveProbabilities"><code class="xref py py-class docutils literal notranslate"><span class="pre">SaveProbabilities</span></code></a></p></td>
+<td><p>✔</p></td>
+<td><p>✔</p></td>
+<td><p>✔</p></td>
+<td><p>✔</p></td>
+<td><p>✔</p></td>
+<td><p>✘</p></td>
+<td><p>✘</p></td>
+<td><p>✘</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../stubs/qiskit_aer.library.SaveProbabilitiesDict.html#qiskit_aer.library.SaveProbabilitiesDict" title="qiskit_aer.library.SaveProbabilitiesDict"><code class="xref py py-class docutils literal notranslate"><span class="pre">SaveProbabilitiesDict</span></code></a></p></td>
+<td><p>✔</p></td>
+<td><p>✔</p></td>
+<td><p>✔</p></td>
+<td><p>✔</p></td>
+<td><p>✔</p></td>
+<td><p>✘</p></td>
+<td><p>✘</p></td>
+<td><p>✘</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../stubs/qiskit_aer.library.SaveStabilizer.html#qiskit_aer.library.SaveStabilizer" title="qiskit_aer.library.SaveStabilizer"><code class="xref py py-class docutils literal notranslate"><span class="pre">SaveStabilizer</span></code></a></p></td>
+<td><p>✔</p></td>
+<td><p>✘</p></td>
+<td><p>✘</p></td>
+<td><p>✘</p></td>
+<td><p>✔</p></td>
+<td><p>✘</p></td>
+<td><p>✘</p></td>
+<td><p>✘</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../stubs/qiskit_aer.library.SaveState.html#qiskit_aer.library.SaveState" title="qiskit_aer.library.SaveState"><code class="xref py py-class docutils literal notranslate"><span class="pre">SaveState</span></code></a></p></td>
+<td><p>✔</p></td>
+<td><p>✔</p></td>
+<td><p>✔</p></td>
+<td><p>✔</p></td>
+<td><p>✔</p></td>
+<td><p>✔</p></td>
+<td><p>✔</p></td>
+<td><p>✔</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../stubs/qiskit_aer.library.SaveStatevector.html#qiskit_aer.library.SaveStatevector" title="qiskit_aer.library.SaveStatevector"><code class="xref py py-class docutils literal notranslate"><span class="pre">SaveStatevector</span></code></a></p></td>
+<td><p>✔</p></td>
+<td><p>✔</p></td>
+<td><p>✘</p></td>
+<td><p>✔</p></td>
+<td><p>✘</p></td>
+<td><p>✔</p></td>
+<td><p>✘</p></td>
+<td><p>✘</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../stubs/qiskit_aer.library.SaveStatevectorDict.html#qiskit_aer.library.SaveStatevectorDict" title="qiskit_aer.library.SaveStatevectorDict"><code class="xref py py-class docutils literal notranslate"><span class="pre">SaveStatevectorDict</span></code></a></p></td>
+<td><p>✔</p></td>
+<td><p>✔</p></td>
+<td><p>✘</p></td>
+<td><p>✘</p></td>
+<td><p>✘</p></td>
+<td><p>✘</p></td>
+<td><p>✘</p></td>
+<td><p>✘</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../stubs/qiskit_aer.library.SaveSuperOp.html#qiskit_aer.library.SaveSuperOp" title="qiskit_aer.library.SaveSuperOp"><code class="xref py py-class docutils literal notranslate"><span class="pre">SaveSuperOp</span></code></a></p></td>
+<td><p>✘</p></td>
+<td><p>✘</p></td>
+<td><p>✘</p></td>
+<td><p>✘</p></td>
+<td><p>✘</p></td>
+<td><p>✘</p></td>
+<td><p>✘</p></td>
+<td><p>✔</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../stubs/qiskit_aer.library.SaveUnitary.html#qiskit_aer.library.SaveUnitary" title="qiskit_aer.library.SaveUnitary"><code class="xref py py-class docutils literal notranslate"><span class="pre">SaveUnitary</span></code></a></p></td>
+<td><p>✘</p></td>
+<td><p>✘</p></td>
+<td><p>✘</p></td>
+<td><p>✘</p></td>
+<td><p>✘</p></td>
+<td><p>✘</p></td>
+<td><p>✔</p></td>
+<td><p>✘</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../stubs/qiskit_aer.library.SetDensityMatrix.html#qiskit_aer.library.SetDensityMatrix" title="qiskit_aer.library.SetDensityMatrix"><code class="xref py py-class docutils literal notranslate"><span class="pre">SetDensityMatrix</span></code></a></p></td>
+<td><p>✔</p></td>
+<td><p>✘</p></td>
+<td><p>✔</p></td>
+<td><p>✘</p></td>
+<td><p>✘</p></td>
+<td><p>✘</p></td>
+<td><p>✘</p></td>
+<td><p>✘</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../stubs/qiskit_aer.library.SetStabilizer.html#qiskit_aer.library.SetStabilizer" title="qiskit_aer.library.SetStabilizer"><code class="xref py py-class docutils literal notranslate"><span class="pre">SetStabilizer</span></code></a></p></td>
+<td><p>✔</p></td>
+<td><p>✘</p></td>
+<td><p>✘</p></td>
+<td><p>✘</p></td>
+<td><p>✔</p></td>
+<td><p>✘</p></td>
+<td><p>✘</p></td>
+<td><p>✘</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../stubs/qiskit_aer.library.SetStatevector.html#qiskit_aer.library.SetStatevector" title="qiskit_aer.library.SetStatevector"><code class="xref py py-class docutils literal notranslate"><span class="pre">SetStatevector</span></code></a></p></td>
+<td><p>✔</p></td>
+<td><p>✔</p></td>
+<td><p>✘</p></td>
+<td><p>✘</p></td>
+<td><p>✘</p></td>
+<td><p>✘</p></td>
+<td><p>✘</p></td>
+<td><p>✘</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../stubs/qiskit_aer.library.SetUnitary.html#qiskit_aer.library.SetUnitary" title="qiskit_aer.library.SetUnitary"><code class="xref py py-class docutils literal notranslate"><span class="pre">SetUnitary</span></code></a></p></td>
+<td><p>✘</p></td>
+<td><p>✘</p></td>
+<td><p>✘</p></td>
+<td><p>✘</p></td>
+<td><p>✘</p></td>
+<td><p>✘</p></td>
+<td><p>✔</p></td>
+<td><p>✘</p></td>
+</tr>
+<tr class="row-odd"><td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+</section>
+
+        </article>
+      </div>
+      <footer>
+        <div class="related-pages">
+          <a class="next-page" href="../stubs/qiskit_aer.library.SetStatevector.html">
+              <div class="page-info">
+                <div class="context">
+                  <span>Next</span>
+                </div>
+                <div class="title">SetStatevector</div>
+              </div>
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+            </a>
+          <a class="prev-page" href="../stubs/qiskit_aer.jobs.AerJobSet.html">
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+              <div class="page-info">
+                <div class="context">
+                  <span>Previous</span>
+                </div>
+                
+                <div class="title">AerJobSet</div>
+                
+              </div>
+            </a>
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2017-2024, Qiskit Development Team
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            <div class="last-updated">
+              Last updated on 2024/01/17</div>
+          </div>
+          <div class="right-details">
+            
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">Instruction Library (<code class="xref py py-mod docutils literal notranslate"><span class="pre">qiskit_aer.library</span></code>)</a><ul>
+<li><a class="reference internal" href="#setting-a-custom-simulator-state">Setting a Custom Simulator State</a><ul>
+<li><a class="reference internal" href="#instruction-classes">Instruction Classes</a></li>
+<li><a class="reference internal" href="#quantumcircuit-methods">QuantumCircuit Methods</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#saving-simulator-data">Saving Simulator Data</a><ul>
+<li><a class="reference internal" href="#simulator-state-save-instruction-classes">Simulator State Save Instruction Classes</a></li>
+<li><a class="reference internal" href="#simulator-derived-data-save-instruction-classes">Simulator Derived Data Save Instruction Classes</a></li>
+<li><a class="reference internal" href="#id1">QuantumCircuit Methods</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#method-compatibility">Method Compatibility</a></li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script src="../_static/jquery.js?v=5d32c60e"></script>
+    <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+    <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js?v=cc44ccc5"></script>
+    <script src="../_static/doctools.js?v=888ff710"></script>
+    <script src="../_static/sphinx_highlight.js?v=4825356b"></script>
+    <script src="../_static/scripts/qiskit-sphinx-theme.js?v=4d77b8ca"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@jupyter-widgets/html-manager@^1.0.1/dist/embed-amd.js"></script>
+    <script src="../_static/design-tabs.js?v=36754332"></script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    </body>
+</html>

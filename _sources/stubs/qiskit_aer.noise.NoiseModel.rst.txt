@@ -1,0 +1,40 @@
+﻿
+
+NoiseModel
+===========================
+
+.. currentmodule:: qiskit_aer.noise
+
+.. autoclass:: NoiseModel
+   :no-members:
+   :no-inherited-members:
+   :no-special-members:
+   :show-inheritance:
+
+
+   
+   .. rubric:: Attributes
+      
+   .. autoattribute:: NoiseModel.basis_gates
+   .. autoattribute:: NoiseModel.noise_instructions
+   .. autoattribute:: NoiseModel.noise_qubits
+   
+
+
+
+   
+   .. rubric:: Methods
+   
+   .. automethod:: NoiseModel.add_all_qubit_quantum_error
+   .. automethod:: NoiseModel.add_all_qubit_readout_error
+   .. automethod:: NoiseModel.add_basis_gates
+   .. automethod:: NoiseModel.add_quantum_error
+   .. automethod:: NoiseModel.add_readout_error
+   .. automethod:: NoiseModel.from_backend
+   .. automethod:: NoiseModel.from_backend_properties
+   .. automethod:: NoiseModel.from_dict
+   .. automethod:: NoiseModel.is_ideal
+   .. automethod:: NoiseModel.reset
+   .. automethod:: NoiseModel.to_dict
+
+   

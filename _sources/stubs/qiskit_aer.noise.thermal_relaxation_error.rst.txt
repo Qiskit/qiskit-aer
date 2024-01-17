@@ -1,0 +1,8 @@
+﻿
+
+thermal_relaxation_error
+=========================================
+
+.. currentmodule:: qiskit_aer.noise
+
+.. autofunction:: thermal_relaxation_error

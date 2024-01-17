@@ -1,0 +1,52 @@
+﻿
+
+SetSuperOp
+=============================
+
+.. currentmodule:: qiskit_aer.library
+
+.. autoclass:: SetSuperOp
+   :no-members:
+   :no-inherited-members:
+   :no-special-members:
+   :show-inheritance:
+
+
+   
+   .. rubric:: Attributes
+      
+   .. autoattribute:: SetSuperOp.base_class
+   .. autoattribute:: SetSuperOp.condition
+   .. autoattribute:: SetSuperOp.condition_bits
+   .. autoattribute:: SetSuperOp.decompositions
+   .. autoattribute:: SetSuperOp.definition
+   .. autoattribute:: SetSuperOp.duration
+   .. autoattribute:: SetSuperOp.label
+   .. autoattribute:: SetSuperOp.mutable
+   .. autoattribute:: SetSuperOp.name
+   .. autoattribute:: SetSuperOp.num_clbits
+   .. autoattribute:: SetSuperOp.num_qubits
+   .. autoattribute:: SetSuperOp.params
+   .. autoattribute:: SetSuperOp.unit
+   
+
+
+
+   
+   .. rubric:: Methods
+   
+   .. automethod:: SetSuperOp.add_decomposition
+   .. automethod:: SetSuperOp.assemble
+   .. automethod:: SetSuperOp.broadcast_arguments
+   .. automethod:: SetSuperOp.c_if
+   .. automethod:: SetSuperOp.copy
+   .. automethod:: SetSuperOp.inverse
+   .. automethod:: SetSuperOp.is_parameterized
+   .. automethod:: SetSuperOp.qasm
+   .. automethod:: SetSuperOp.repeat
+   .. automethod:: SetSuperOp.reverse_ops
+   .. automethod:: SetSuperOp.soft_compare
+   .. automethod:: SetSuperOp.to_mutable
+   .. automethod:: SetSuperOp.validate_parameter
+
+   

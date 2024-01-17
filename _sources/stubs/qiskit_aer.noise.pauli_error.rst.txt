@@ -1,0 +1,8 @@
+﻿
+
+pauli_error
+============================
+
+.. currentmodule:: qiskit_aer.noise
+
+.. autofunction:: pauli_error

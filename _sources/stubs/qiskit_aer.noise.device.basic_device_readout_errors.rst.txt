@@ -1,0 +1,8 @@
+﻿
+
+basic_device_readout_errors
+===================================================
+
+.. currentmodule:: qiskit_aer.noise.device
+
+.. autofunction:: basic_device_readout_errors

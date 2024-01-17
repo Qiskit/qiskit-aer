@@ -1,0 +1,52 @@
+﻿
+
+SaveUnitary
+==============================
+
+.. currentmodule:: qiskit_aer.library
+
+.. autoclass:: SaveUnitary
+   :no-members:
+   :no-inherited-members:
+   :no-special-members:
+   :show-inheritance:
+
+
+   
+   .. rubric:: Attributes
+      
+   .. autoattribute:: SaveUnitary.base_class
+   .. autoattribute:: SaveUnitary.condition
+   .. autoattribute:: SaveUnitary.condition_bits
+   .. autoattribute:: SaveUnitary.decompositions
+   .. autoattribute:: SaveUnitary.definition
+   .. autoattribute:: SaveUnitary.duration
+   .. autoattribute:: SaveUnitary.label
+   .. autoattribute:: SaveUnitary.mutable
+   .. autoattribute:: SaveUnitary.name
+   .. autoattribute:: SaveUnitary.num_clbits
+   .. autoattribute:: SaveUnitary.num_qubits
+   .. autoattribute:: SaveUnitary.params
+   .. autoattribute:: SaveUnitary.unit
+   
+
+
+
+   
+   .. rubric:: Methods
+   
+   .. automethod:: SaveUnitary.add_decomposition
+   .. automethod:: SaveUnitary.assemble
+   .. automethod:: SaveUnitary.broadcast_arguments
+   .. automethod:: SaveUnitary.c_if
+   .. automethod:: SaveUnitary.copy
+   .. automethod:: SaveUnitary.inverse
+   .. automethod:: SaveUnitary.is_parameterized
+   .. automethod:: SaveUnitary.qasm
+   .. automethod:: SaveUnitary.repeat
+   .. automethod:: SaveUnitary.reverse_ops
+   .. automethod:: SaveUnitary.soft_compare
+   .. automethod:: SaveUnitary.to_mutable
+   .. automethod:: SaveUnitary.validate_parameter
+
+   

@@ -1,0 +1,8 @@
+﻿
+
+save_expectation_value
+=========================================
+
+.. currentmodule:: qiskit_aer.library
+
+.. autofunction:: save_expectation_value

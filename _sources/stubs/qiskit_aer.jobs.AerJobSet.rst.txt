@@ -1,0 +1,43 @@
+﻿
+
+AerJobSet
+=========================
+
+.. currentmodule:: qiskit_aer.jobs
+
+.. autoclass:: AerJobSet
+   :no-members:
+   :no-inherited-members:
+   :no-special-members:
+   :show-inheritance:
+
+
+   
+   .. rubric:: Attributes
+      
+   .. autoattribute:: AerJobSet.version
+   
+
+
+
+   
+   .. rubric:: Methods
+   
+   .. automethod:: AerJobSet.backend
+   .. automethod:: AerJobSet.cancel
+   .. automethod:: AerJobSet.cancelled
+   .. automethod:: AerJobSet.done
+   .. automethod:: AerJobSet.executor
+   .. automethod:: AerJobSet.in_final_state
+   .. automethod:: AerJobSet.job
+   .. automethod:: AerJobSet.job_id
+   .. automethod:: AerJobSet.result
+   .. automethod:: AerJobSet.running
+   .. automethod:: AerJobSet.status
+   .. automethod:: AerJobSet.submit
+   .. automethod:: AerJobSet.wait_for_final_state
+   .. automethod:: AerJobSet.worker
+   .. automethod:: AerJobSet.worker_job
+   .. automethod:: AerJobSet.worker_results
+
+   

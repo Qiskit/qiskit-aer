@@ -1,0 +1,52 @@
+﻿
+
+SetMatrixProductState
+========================================
+
+.. currentmodule:: qiskit_aer.library
+
+.. autoclass:: SetMatrixProductState
+   :no-members:
+   :no-inherited-members:
+   :no-special-members:
+   :show-inheritance:
+
+
+   
+   .. rubric:: Attributes
+      
+   .. autoattribute:: SetMatrixProductState.base_class
+   .. autoattribute:: SetMatrixProductState.condition
+   .. autoattribute:: SetMatrixProductState.condition_bits
+   .. autoattribute:: SetMatrixProductState.decompositions
+   .. autoattribute:: SetMatrixProductState.definition
+   .. autoattribute:: SetMatrixProductState.duration
+   .. autoattribute:: SetMatrixProductState.label
+   .. autoattribute:: SetMatrixProductState.mutable
+   .. autoattribute:: SetMatrixProductState.name
+   .. autoattribute:: SetMatrixProductState.num_clbits
+   .. autoattribute:: SetMatrixProductState.num_qubits
+   .. autoattribute:: SetMatrixProductState.params
+   .. autoattribute:: SetMatrixProductState.unit
+   
+
+
+
+   
+   .. rubric:: Methods
+   
+   .. automethod:: SetMatrixProductState.add_decomposition
+   .. automethod:: SetMatrixProductState.assemble
+   .. automethod:: SetMatrixProductState.broadcast_arguments
+   .. automethod:: SetMatrixProductState.c_if
+   .. automethod:: SetMatrixProductState.copy
+   .. automethod:: SetMatrixProductState.inverse
+   .. automethod:: SetMatrixProductState.is_parameterized
+   .. automethod:: SetMatrixProductState.qasm
+   .. automethod:: SetMatrixProductState.repeat
+   .. automethod:: SetMatrixProductState.reverse_ops
+   .. automethod:: SetMatrixProductState.soft_compare
+   .. automethod:: SetMatrixProductState.to_mutable
+   .. automethod:: SetMatrixProductState.validate_parameter
+
+   

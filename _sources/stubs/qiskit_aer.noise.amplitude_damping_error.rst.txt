@@ -1,0 +1,8 @@
+﻿
+
+amplitude_damping_error
+========================================
+
+.. currentmodule:: qiskit_aer.noise
+
+.. autofunction:: amplitude_damping_error

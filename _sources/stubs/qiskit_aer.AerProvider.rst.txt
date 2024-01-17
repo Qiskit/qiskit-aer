@@ -1,0 +1,29 @@
+﻿
+
+AerProvider
+======================
+
+.. currentmodule:: qiskit_aer
+
+.. autoclass:: AerProvider
+   :no-members:
+   :no-inherited-members:
+   :no-special-members:
+   :show-inheritance:
+
+
+   
+   .. rubric:: Attributes
+      
+   .. autoattribute:: AerProvider.version
+   
+
+
+
+   
+   .. rubric:: Methods
+   
+   .. automethod:: AerProvider.backends
+   .. automethod:: AerProvider.get_backend
+
+   

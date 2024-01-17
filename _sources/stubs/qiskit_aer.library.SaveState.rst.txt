@@ -1,0 +1,52 @@
+﻿
+
+SaveState
+============================
+
+.. currentmodule:: qiskit_aer.library
+
+.. autoclass:: SaveState
+   :no-members:
+   :no-inherited-members:
+   :no-special-members:
+   :show-inheritance:
+
+
+   
+   .. rubric:: Attributes
+      
+   .. autoattribute:: SaveState.base_class
+   .. autoattribute:: SaveState.condition
+   .. autoattribute:: SaveState.condition_bits
+   .. autoattribute:: SaveState.decompositions
+   .. autoattribute:: SaveState.definition
+   .. autoattribute:: SaveState.duration
+   .. autoattribute:: SaveState.label
+   .. autoattribute:: SaveState.mutable
+   .. autoattribute:: SaveState.name
+   .. autoattribute:: SaveState.num_clbits
+   .. autoattribute:: SaveState.num_qubits
+   .. autoattribute:: SaveState.params
+   .. autoattribute:: SaveState.unit
+   
+
+
+
+   
+   .. rubric:: Methods
+   
+   .. automethod:: SaveState.add_decomposition
+   .. automethod:: SaveState.assemble
+   .. automethod:: SaveState.broadcast_arguments
+   .. automethod:: SaveState.c_if
+   .. automethod:: SaveState.copy
+   .. automethod:: SaveState.inverse
+   .. automethod:: SaveState.is_parameterized
+   .. automethod:: SaveState.qasm
+   .. automethod:: SaveState.repeat
+   .. automethod:: SaveState.reverse_ops
+   .. automethod:: SaveState.soft_compare
+   .. automethod:: SaveState.to_mutable
+   .. automethod:: SaveState.validate_parameter
+
+   

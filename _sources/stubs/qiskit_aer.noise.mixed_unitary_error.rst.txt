@@ -1,0 +1,8 @@
+﻿
+
+mixed_unitary_error
+====================================
+
+.. currentmodule:: qiskit_aer.noise
+
+.. autofunction:: mixed_unitary_error

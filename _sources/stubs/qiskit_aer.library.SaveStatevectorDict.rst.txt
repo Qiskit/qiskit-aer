@@ -1,0 +1,52 @@
+﻿
+
+SaveStatevectorDict
+======================================
+
+.. currentmodule:: qiskit_aer.library
+
+.. autoclass:: SaveStatevectorDict
+   :no-members:
+   :no-inherited-members:
+   :no-special-members:
+   :show-inheritance:
+
+
+   
+   .. rubric:: Attributes
+      
+   .. autoattribute:: SaveStatevectorDict.base_class
+   .. autoattribute:: SaveStatevectorDict.condition
+   .. autoattribute:: SaveStatevectorDict.condition_bits
+   .. autoattribute:: SaveStatevectorDict.decompositions
+   .. autoattribute:: SaveStatevectorDict.definition
+   .. autoattribute:: SaveStatevectorDict.duration
+   .. autoattribute:: SaveStatevectorDict.label
+   .. autoattribute:: SaveStatevectorDict.mutable
+   .. autoattribute:: SaveStatevectorDict.name
+   .. autoattribute:: SaveStatevectorDict.num_clbits
+   .. autoattribute:: SaveStatevectorDict.num_qubits
+   .. autoattribute:: SaveStatevectorDict.params
+   .. autoattribute:: SaveStatevectorDict.unit
+   
+
+
+
+   
+   .. rubric:: Methods
+   
+   .. automethod:: SaveStatevectorDict.add_decomposition
+   .. automethod:: SaveStatevectorDict.assemble
+   .. automethod:: SaveStatevectorDict.broadcast_arguments
+   .. automethod:: SaveStatevectorDict.c_if
+   .. automethod:: SaveStatevectorDict.copy
+   .. automethod:: SaveStatevectorDict.inverse
+   .. automethod:: SaveStatevectorDict.is_parameterized
+   .. automethod:: SaveStatevectorDict.qasm
+   .. automethod:: SaveStatevectorDict.repeat
+   .. automethod:: SaveStatevectorDict.reverse_ops
+   .. automethod:: SaveStatevectorDict.soft_compare
+   .. automethod:: SaveStatevectorDict.to_mutable
+   .. automethod:: SaveStatevectorDict.validate_parameter
+
+   

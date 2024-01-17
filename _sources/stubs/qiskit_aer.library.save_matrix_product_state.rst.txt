@@ -1,0 +1,8 @@
+﻿
+
+save_matrix_product_state
+============================================
+
+.. currentmodule:: qiskit_aer.library
+
+.. autofunction:: save_matrix_product_state

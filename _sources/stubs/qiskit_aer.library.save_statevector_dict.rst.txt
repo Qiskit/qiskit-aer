@@ -1,0 +1,8 @@
+﻿
+
+save_statevector_dict
+========================================
+
+.. currentmodule:: qiskit_aer.library
+
+.. autofunction:: save_statevector_dict

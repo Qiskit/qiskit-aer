@@ -1,0 +1,52 @@
+﻿
+
+SetUnitary
+=============================
+
+.. currentmodule:: qiskit_aer.library
+
+.. autoclass:: SetUnitary
+   :no-members:
+   :no-inherited-members:
+   :no-special-members:
+   :show-inheritance:
+
+
+   
+   .. rubric:: Attributes
+      
+   .. autoattribute:: SetUnitary.base_class
+   .. autoattribute:: SetUnitary.condition
+   .. autoattribute:: SetUnitary.condition_bits
+   .. autoattribute:: SetUnitary.decompositions
+   .. autoattribute:: SetUnitary.definition
+   .. autoattribute:: SetUnitary.duration
+   .. autoattribute:: SetUnitary.label
+   .. autoattribute:: SetUnitary.mutable
+   .. autoattribute:: SetUnitary.name
+   .. autoattribute:: SetUnitary.num_clbits
+   .. autoattribute:: SetUnitary.num_qubits
+   .. autoattribute:: SetUnitary.params
+   .. autoattribute:: SetUnitary.unit
+   
+
+
+
+   
+   .. rubric:: Methods
+   
+   .. automethod:: SetUnitary.add_decomposition
+   .. automethod:: SetUnitary.assemble
+   .. automethod:: SetUnitary.broadcast_arguments
+   .. automethod:: SetUnitary.c_if
+   .. automethod:: SetUnitary.copy
+   .. automethod:: SetUnitary.inverse
+   .. automethod:: SetUnitary.is_parameterized
+   .. automethod:: SetUnitary.qasm
+   .. automethod:: SetUnitary.repeat
+   .. automethod:: SetUnitary.reverse_ops
+   .. automethod:: SetUnitary.soft_compare
+   .. automethod:: SetUnitary.to_mutable
+   .. automethod:: SetUnitary.validate_parameter
+
+   

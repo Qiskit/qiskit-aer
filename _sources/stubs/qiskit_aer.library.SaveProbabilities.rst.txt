@@ -1,0 +1,52 @@
+﻿
+
+SaveProbabilities
+====================================
+
+.. currentmodule:: qiskit_aer.library
+
+.. autoclass:: SaveProbabilities
+   :no-members:
+   :no-inherited-members:
+   :no-special-members:
+   :show-inheritance:
+
+
+   
+   .. rubric:: Attributes
+      
+   .. autoattribute:: SaveProbabilities.base_class
+   .. autoattribute:: SaveProbabilities.condition
+   .. autoattribute:: SaveProbabilities.condition_bits
+   .. autoattribute:: SaveProbabilities.decompositions
+   .. autoattribute:: SaveProbabilities.definition
+   .. autoattribute:: SaveProbabilities.duration
+   .. autoattribute:: SaveProbabilities.label
+   .. autoattribute:: SaveProbabilities.mutable
+   .. autoattribute:: SaveProbabilities.name
+   .. autoattribute:: SaveProbabilities.num_clbits
+   .. autoattribute:: SaveProbabilities.num_qubits
+   .. autoattribute:: SaveProbabilities.params
+   .. autoattribute:: SaveProbabilities.unit
+   
+
+
+
+   
+   .. rubric:: Methods
+   
+   .. automethod:: SaveProbabilities.add_decomposition
+   .. automethod:: SaveProbabilities.assemble
+   .. automethod:: SaveProbabilities.broadcast_arguments
+   .. automethod:: SaveProbabilities.c_if
+   .. automethod:: SaveProbabilities.copy
+   .. automethod:: SaveProbabilities.inverse
+   .. automethod:: SaveProbabilities.is_parameterized
+   .. automethod:: SaveProbabilities.qasm
+   .. automethod:: SaveProbabilities.repeat
+   .. automethod:: SaveProbabilities.reverse_ops
+   .. automethod:: SaveProbabilities.soft_compare
+   .. automethod:: SaveProbabilities.to_mutable
+   .. automethod:: SaveProbabilities.validate_parameter
+
+   

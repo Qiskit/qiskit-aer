@@ -1,0 +1,60 @@
+﻿
+
+AerDensityMatrix
+========================================
+
+.. currentmodule:: qiskit_aer.quantum_info
+
+.. autoclass:: AerDensityMatrix
+   :no-members:
+   :no-inherited-members:
+   :no-special-members:
+   :show-inheritance:
+
+
+   
+   .. rubric:: Attributes
+      
+   .. autoattribute:: AerDensityMatrix.atol
+   .. autoattribute:: AerDensityMatrix.data
+   .. autoattribute:: AerDensityMatrix.dim
+   .. autoattribute:: AerDensityMatrix.num_qubits
+   .. autoattribute:: AerDensityMatrix.rtol
+   .. autoattribute:: AerDensityMatrix.settings
+   
+
+
+
+   
+   .. rubric:: Methods
+   
+   .. automethod:: AerDensityMatrix.__mul__
+   .. automethod:: AerDensityMatrix.conjugate
+   .. automethod:: AerDensityMatrix.copy
+   .. automethod:: AerDensityMatrix.dims
+   .. automethod:: AerDensityMatrix.draw
+   .. automethod:: AerDensityMatrix.evolve
+   .. automethod:: AerDensityMatrix.expand
+   .. automethod:: AerDensityMatrix.expectation_value
+   .. automethod:: AerDensityMatrix.from_instruction
+   .. automethod:: AerDensityMatrix.from_int
+   .. automethod:: AerDensityMatrix.from_label
+   .. automethod:: AerDensityMatrix.is_valid
+   .. automethod:: AerDensityMatrix.measure
+   .. automethod:: AerDensityMatrix.metadata
+   .. automethod:: AerDensityMatrix.partial_transpose
+   .. automethod:: AerDensityMatrix.probabilities
+   .. automethod:: AerDensityMatrix.probabilities_dict
+   .. automethod:: AerDensityMatrix.purity
+   .. automethod:: AerDensityMatrix.reset
+   .. automethod:: AerDensityMatrix.reverse_qargs
+   .. automethod:: AerDensityMatrix.sample_counts
+   .. automethod:: AerDensityMatrix.sample_memory
+   .. automethod:: AerDensityMatrix.seed
+   .. automethod:: AerDensityMatrix.tensor
+   .. automethod:: AerDensityMatrix.to_dict
+   .. automethod:: AerDensityMatrix.to_operator
+   .. automethod:: AerDensityMatrix.to_statevector
+   .. automethod:: AerDensityMatrix.trace
+
+   

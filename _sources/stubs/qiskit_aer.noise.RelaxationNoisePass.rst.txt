@@ -1,0 +1,33 @@
+﻿
+
+RelaxationNoisePass
+====================================
+
+.. currentmodule:: qiskit_aer.noise
+
+.. autoclass:: RelaxationNoisePass
+   :no-members:
+   :no-inherited-members:
+   :no-special-members:
+   :show-inheritance:
+
+
+   
+   .. rubric:: Attributes
+      
+   .. autoattribute:: RelaxationNoisePass.is_analysis_pass
+   .. autoattribute:: RelaxationNoisePass.is_transformation_pass
+   
+
+
+
+   
+   .. rubric:: Methods
+   
+   .. automethod:: RelaxationNoisePass.__call__
+   .. automethod:: RelaxationNoisePass.execute
+   .. automethod:: RelaxationNoisePass.name
+   .. automethod:: RelaxationNoisePass.run
+   .. automethod:: RelaxationNoisePass.update_status
+
+   

@@ -1,0 +1,2090 @@
+<!doctype html>
+<html class="no-js" lang="en">
+  <head><meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="index" title="Index" href="genindex.html" /><link rel="search" title="Search" href="search.html" /><link rel="prev" title="Running with multiple-GPUs and/or multiple nodes" href="howtos/running_gpu.html" />
+
+    <!-- Generated with Sphinx 7.1.2 and Furo 2023.08.19 -->
+        <title>Release Notes - Qiskit Aer 0.13.1</title>
+      <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?v=135e06be" />
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=82a976d7" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/qiskit-sphinx-theme.css?v=fe84956c" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/qiskit-ecosystem.css?v=745c5aa7" />
+    <link rel="stylesheet" type="text/css" href="_static/jupyter-sphinx.css" />
+    <link rel="stylesheet" type="text/css" href="_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="_static/design-style.1e8bd061cd6da7fc9cf755528e8ffc24.min.css?v=0a3b3ea7" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/furo-extensions.css?v=36a5483c" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #ffffff;
+  --color-code-foreground: black;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style><link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:ital,wght@0,400;0,600;1,400;1,600&display=swap" rel="stylesheet">
+<script src="_static/js/web-components/top-nav-bar.js"></script></head>
+  <body>
+    
+    <script>document.body.dataset.theme = "light";</script>
+    
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg id="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+      <defs><style>.cls-1{fill:none;}</style></defs>
+      <path d="M28,4H4A2,2,0,0,0,2,6V26a2,2,0,0,0,2,2H28a2,2,0,0,0,2-2V6A2,2,0,0,0,28,4ZM4,6H20V26H4ZM28,26H22V6h6Z"/>
+      <rect id="_Transparent_Rectangle_" data-name="&lt;Transparent Rectangle&gt;" class="cls-1" width="32" height="32"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg id="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+      <defs><style>.cls-1{fill:none;}</style></defs>
+      <rect x="4" y="6" width="24" height="2"/>
+      <rect x="4" y="24" width="24" height="2"/>
+      <rect x="4" y="12" width="24" height="2"/>
+      <rect x="4" y="18" width="24" height="2"/>
+      <rect id="_Transparent_Rectangle_" data-name="&lt;Transparent Rectangle&gt;" class="cls-1" width="32" height="32"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg version="1.1" id="icon" xmlns="http://www.w3.org/2000/svg" x="0px" y="0px"
+         viewBox="0 0 32 32" style="enable-background:new 0 0 32 32;" xml:space="preserve"><polygon points="22,16 12,26 10.6,24.6 19.2,16 10.6,7.4 12,6 " stroke="currentColor"/>
+      <rect id="_x3C_Transparent_Rectangle_x3E_" fill="none" width="32" height="32"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-new-tab" viewBox="0 0 32 32">
+    <svg id="icon" xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
+      <defs>
+        <style>
+          .cls-1 {
+            fill: none;
+          }
+        </style>
+      </defs>
+      <path fill="#6929C4" d="M26,28H6a2.0027,2.0027,0,0,1-2-2V6A2.0027,2.0027,0,0,1,6,4H16V6H6V26H26V16h2V26A2.0027,2.0027,0,0,1,26,28Z"/>
+      <polygon fill="#6929C4" points="20 2 20 4 26.586 4 18 12.586 19.414 14 28 5.414 28 12 30 12 30 2 20 2"/>
+      <rect id="_Transparent_Rectangle_" data-name="&lt;Transparent Rectangle&gt;" class="cls-1" width="32" height="32"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-half" viewBox="0 0 24 24">
+    <title>Auto light/dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-shadow">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M13 12h5" />
+      <path d="M13 15h4" />
+      <path d="M13 18h1" />
+      <path d="M13 9h4" />
+      <path d="M13 6h1" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc">
+<label class="overlay sidebar-overlay" for="__navigation">
+  <div class="visually-hidden">Hide navigation sidebar</div>
+</label>
+<label class="overlay toc-overlay" for="__toc">
+  <div class="visually-hidden">Hide table of contents sidebar</div>
+</label>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <div class="visually-hidden">Toggle site navigation sidebar</div>
+        <i class="icon"><svg><use href="#svg-menu"></use></svg></i>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="index.html"><div class="brand">Qiskit Aer 0.13.1</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle">
+          <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+          <svg class="theme-icon-when-auto"><use href="#svg-sun-half"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <div class="visually-hidden">Toggle table of contents sidebar</div>
+        <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><div class="sidebar-brand">
+  <a href="https://www.qiskit.org/ecosystem">
+    <div class="sidebar-logo-container">
+      <img class="sidebar-logo" src="_static/images/ecosystem-logo.svg" alt="Qiskit Ecosystem logo"/>
+    </div>
+  </a>
+  
+  <span class="sidebar-brand-text">Qiskit Aer 0.13.1</span>
+</div><form class="sidebar-search-container" method="get" action="search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="index.html">Home</a></li>
+<li class="toctree-l1"><a class="reference internal" href="getting_started.html">Getting Started</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="apidocs/aer.html">API Documentation</a><input class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle navigation of API Documentation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="apidocs/aer_provider.html">Aer Provider (<code class="xref py py-mod docutils literal notranslate"><span class="pre">qiskit_aer</span></code>)</a><input class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle navigation of Aer Provider (qiskit_aer)</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="stubs/qiskit_aer.AerProvider.html">AerProvider</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stubs/qiskit_aer.AerSimulator.html">AerSimulator</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stubs/qiskit_aer.QasmSimulator.html">QasmSimulator</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stubs/qiskit_aer.StatevectorSimulator.html">StatevectorSimulator</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stubs/qiskit_aer.UnitarySimulator.html">UnitarySimulator</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stubs/qiskit_aer.AerError.html">AerError</a></li>
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="apidocs/aer_jobs.html">Aer Jobs (<code class="xref py py-mod docutils literal notranslate"><span class="pre">qiskit_aer.jobs</span></code>)</a><input class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><div class="visually-hidden">Toggle navigation of Aer Jobs (qiskit_aer.jobs)</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="stubs/qiskit_aer.jobs.AerJob.html">AerJob</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stubs/qiskit_aer.jobs.AerJobSet.html">AerJobSet</a></li>
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="apidocs/aer_library.html">Instruction Library (<code class="xref py py-mod docutils literal notranslate"><span class="pre">qiskit_aer.library</span></code>)</a><input class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" role="switch" type="checkbox"/><label for="toctree-checkbox-4"><div class="visually-hidden">Toggle navigation of Instruction Library (qiskit_aer.library)</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="stubs/qiskit_aer.library.SetStatevector.html">SetStatevector</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stubs/qiskit_aer.library.SetDensityMatrix.html">SetDensityMatrix</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stubs/qiskit_aer.library.SetStabilizer.html">SetStabilizer</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stubs/qiskit_aer.library.SetSuperOp.html">SetSuperOp</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stubs/qiskit_aer.library.SetUnitary.html">SetUnitary</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stubs/qiskit_aer.library.SetMatrixProductState.html">SetMatrixProductState</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stubs/qiskit_aer.library.set_statevector.html">set_statevector</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stubs/qiskit_aer.library.set_density_matrix.html">set_density_matrix</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stubs/qiskit_aer.library.set_stabilizer.html">set_stabilizer</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stubs/qiskit_aer.library.set_unitary.html">set_unitary</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stubs/qiskit_aer.library.set_superop.html">set_superop</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stubs/qiskit_aer.library.set_matrix_product_state.html">set_matrix_product_state</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stubs/qiskit_aer.library.SaveState.html">SaveState</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stubs/qiskit_aer.library.SaveStatevector.html">SaveStatevector</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stubs/qiskit_aer.library.SaveStatevectorDict.html">SaveStatevectorDict</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stubs/qiskit_aer.library.SaveDensityMatrix.html">SaveDensityMatrix</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stubs/qiskit_aer.library.SaveMatrixProductState.html">SaveMatrixProductState</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stubs/qiskit_aer.library.SaveClifford.html">SaveClifford</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stubs/qiskit_aer.library.SaveStabilizer.html">SaveStabilizer</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stubs/qiskit_aer.library.SaveSuperOp.html">SaveSuperOp</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stubs/qiskit_aer.library.SaveUnitary.html">SaveUnitary</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stubs/qiskit_aer.library.SaveExpectationValue.html">SaveExpectationValue</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stubs/qiskit_aer.library.SaveExpectationValueVariance.html">SaveExpectationValueVariance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stubs/qiskit_aer.library.SaveProbabilities.html">SaveProbabilities</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stubs/qiskit_aer.library.SaveProbabilitiesDict.html">SaveProbabilitiesDict</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stubs/qiskit_aer.library.SaveAmplitudes.html">SaveAmplitudes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stubs/qiskit_aer.library.SaveAmplitudesSquared.html">SaveAmplitudesSquared</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stubs/qiskit_aer.library.save_amplitudes.html">save_amplitudes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stubs/qiskit_aer.library.save_amplitudes_squared.html">save_amplitudes_squared</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stubs/qiskit_aer.library.save_clifford.html">save_clifford</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stubs/qiskit_aer.library.save_density_matrix.html">save_density_matrix</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stubs/qiskit_aer.library.save_expectation_value.html">save_expectation_value</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stubs/qiskit_aer.library.save_expectation_value_variance.html">save_expectation_value_variance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stubs/qiskit_aer.library.save_matrix_product_state.html">save_matrix_product_state</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stubs/qiskit_aer.library.save_probabilities.html">save_probabilities</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stubs/qiskit_aer.library.save_probabilities_dict.html">save_probabilities_dict</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stubs/qiskit_aer.library.save_stabilizer.html">save_stabilizer</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stubs/qiskit_aer.library.save_state.html">save_state</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stubs/qiskit_aer.library.save_statevector.html">save_statevector</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stubs/qiskit_aer.library.save_statevector_dict.html">save_statevector_dict</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stubs/qiskit_aer.library.save_superop.html">save_superop</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stubs/qiskit_aer.library.save_unitary.html">save_unitary</a></li>
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="apidocs/aer_noise.html">Noise Models (<code class="xref py py-mod docutils literal notranslate"><span class="pre">qiskit_aer.noise</span></code>)</a><input class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><div class="visually-hidden">Toggle navigation of Noise Models (qiskit_aer.noise)</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="stubs/qiskit_aer.noise.NoiseModel.html">NoiseModel</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stubs/qiskit_aer.noise.QuantumError.html">QuantumError</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stubs/qiskit_aer.noise.ReadoutError.html">ReadoutError</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stubs/qiskit_aer.noise.pauli_error.html">pauli_error</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stubs/qiskit_aer.noise.depolarizing_error.html">depolarizing_error</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stubs/qiskit_aer.noise.mixed_unitary_error.html">mixed_unitary_error</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stubs/qiskit_aer.noise.coherent_unitary_error.html">coherent_unitary_error</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stubs/qiskit_aer.noise.reset_error.html">reset_error</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stubs/qiskit_aer.noise.amplitude_damping_error.html">amplitude_damping_error</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stubs/qiskit_aer.noise.phase_damping_error.html">phase_damping_error</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stubs/qiskit_aer.noise.phase_amplitude_damping_error.html">phase_amplitude_damping_error</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stubs/qiskit_aer.noise.thermal_relaxation_error.html">thermal_relaxation_error</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stubs/qiskit_aer.noise.kraus_error.html">kraus_error</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stubs/qiskit_aer.noise.LocalNoisePass.html">LocalNoisePass</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stubs/qiskit_aer.noise.RelaxationNoisePass.html">RelaxationNoisePass</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stubs/qiskit_aer.noise.device.basic_device_readout_errors.html">basic_device_readout_errors</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stubs/qiskit_aer.noise.device.basic_device_gate_errors.html">basic_device_gate_errors</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stubs/qiskit_aer.noise.device.gate_param_values.html">gate_param_values</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stubs/qiskit_aer.noise.device.gate_error_values.html">gate_error_values</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stubs/qiskit_aer.noise.device.gate_length_values.html">gate_length_values</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stubs/qiskit_aer.noise.device.readout_error_values.html">readout_error_values</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stubs/qiskit_aer.noise.device.thermal_relaxation_values.html">thermal_relaxation_values</a></li>
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="apidocs/aer_primitives.html">Primitives (<code class="xref py py-mod docutils literal notranslate"><span class="pre">qiskit_aer.primitives</span></code>)</a><input class="toctree-checkbox" id="toctree-checkbox-6" name="toctree-checkbox-6" role="switch" type="checkbox"/><label for="toctree-checkbox-6"><div class="visually-hidden">Toggle navigation of Primitives (qiskit_aer.primitives)</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="stubs/qiskit_aer.primitives.Sampler.html">Sampler</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stubs/qiskit_aer.primitives.Estimator.html">Estimator</a></li>
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="apidocs/aer_utils.html">Utilities (<code class="xref py py-mod docutils literal notranslate"><span class="pre">qiskit_aer.utils</span></code>)</a><input class="toctree-checkbox" id="toctree-checkbox-7" name="toctree-checkbox-7" role="switch" type="checkbox"/><label for="toctree-checkbox-7"><div class="visually-hidden">Toggle navigation of Utilities (qiskit_aer.utils)</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="stubs/qiskit_aer.utils.insert_noise.html">insert_noise</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stubs/qiskit_aer.utils.approximate_quantum_error.html">approximate_quantum_error</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stubs/qiskit_aer.utils.approximate_noise_model.html">approximate_noise_model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stubs/qiskit_aer.utils.transform_noise_model.html">transform_noise_model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stubs/qiskit_aer.utils.transpile_noise_model.html">transpile_noise_model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stubs/qiskit_aer.utils.transpile_quantum_error.html">transpile_quantum_error</a></li>
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="apidocs/aer_quantum_info.html">Aer Quantum Info (<code class="xref py py-mod docutils literal notranslate"><span class="pre">qiskit_aer.quantum_info</span></code>)</a><input class="toctree-checkbox" id="toctree-checkbox-8" name="toctree-checkbox-8" role="switch" type="checkbox"/><label for="toctree-checkbox-8"><div class="visually-hidden">Toggle navigation of Aer Quantum Info (qiskit_aer.quantum_info)</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="stubs/qiskit_aer.quantum_info.AerStatevector.html">AerStatevector</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stubs/qiskit_aer.quantum_info.AerDensityMatrix.html">AerDensityMatrix</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="apidocs/circuit.html">Additional circuit methods</a></li>
+</ul>
+</li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="tutorials/index.html">Tutorials</a><input class="toctree-checkbox" id="toctree-checkbox-9" name="toctree-checkbox-9" role="switch" type="checkbox"/><label for="toctree-checkbox-9"><div class="visually-hidden">Toggle navigation of Tutorials</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="tutorials/1_aer_provider.html">Simulators</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorials/2_device_noise_simulation.html">Device backend noise model simulations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorials/3_building_noise_models.html">Building Noise Models</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorials/4_custom_gate_noise.html">Applying noise to custom unitary gates</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorials/5_noise_transformation.html">Noise Transformation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorials/6_extended_stabilizer_tutorial.html">The Extended Stabilizer Simulator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorials/7_matrix_product_state_method.html">Matrix product state simulation method</a></li>
+</ul>
+</li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="howtos/index.html">How-Tos</a><input class="toctree-checkbox" id="toctree-checkbox-10" name="toctree-checkbox-10" role="switch" type="checkbox"/><label for="toctree-checkbox-10"><div class="visually-hidden">Toggle navigation of How-Tos</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="howtos/parallel.html">Running with Threadpool and DASK</a></li>
+<li class="toctree-l2"><a class="reference internal" href="howtos/running_gpu.html">Running with multiple-GPUs and/or multiple nodes</a></li>
+</ul>
+</li>
+<li class="toctree-l1 current current-page"><a class="current reference internal" href="#">Release Notes</a></li>
+</ul>
+
+</div></div>
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          
+<div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle">
+              <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+              <svg class="theme-icon-when-auto"><use href="#svg-sun-half"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <div class="visually-hidden">Toggle table of contents sidebar</div>
+            <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+          </label>
+        </div>
+        <article role="main">
+          <section id="release-notes">
+<h1>Release Notes<a class="headerlink" href="#release-notes" title="Permalink to this heading">#</a></h1>
+<section id="release-notes-0-13-2">
+<span id="id1"></span><h2>0.13.2<a class="headerlink" href="#release-notes-0-13-2" title="Permalink to this heading">#</a></h2>
+<section id="new-features">
+<span id="release-notes-0-13-2-new-features"></span><h3>New Features<a class="headerlink" href="#new-features" title="Permalink to this heading">#</a></h3>
+<ul class="simple">
+<li><p>Added support for running qiskit-aer with Python 3.12.</p></li>
+</ul>
+</section>
+<section id="deprecation-notes">
+<span id="release-notes-0-13-2-deprecation-notes"></span><h3>Deprecation Notes<a class="headerlink" href="#deprecation-notes" title="Permalink to this heading">#</a></h3>
+<ul class="simple">
+<li><p>Removed importing qiskit.test from test and include some classes in Aer</p></li>
+</ul>
+</section>
+<section id="bug-fixes">
+<span id="release-notes-0-13-2-bug-fixes"></span><h3>Bug Fixes<a class="headerlink" href="#bug-fixes" title="Permalink to this heading">#</a></h3>
+<ul class="simple">
+<li><p>Fixed GPU batched shots optimization and GPU runtime parameter binding
+failures caused by wrong checking of return condition</p></li>
+</ul>
+<ul class="simple">
+<li><p>This fix changes <cite>device</cite> query method from running simple circuit to
+search devices from C++ binary to prevent initializing GPUs at
+initialization phase and simulation methods are listed in Python code.
+Aer built with GPU support will not initialize when <cite>device=CPU</cite> is used.
+And only initialize and access GPUs defined in <cite>target_gpus</cite> option.</p></li>
+</ul>
+</section>
+</section>
+<section id="release-notes-0-13-1">
+<span id="id2"></span><h2>0.13.1<a class="headerlink" href="#release-notes-0-13-1" title="Permalink to this heading">#</a></h2>
+<section id="prelude">
+<span id="release-notes-0-13-1-prelude"></span><h3>Prelude<a class="headerlink" href="#prelude" title="Permalink to this heading">#</a></h3>
+<p>Aer Release 0.13.1 is bug fix release for 0.13.0. The most important fixes are for issues caused by upgrading AerBackend to BackendV2 interface. Aer 0.13.1 is now ready for Qiskit 0.45.</p>
+</section>
+<section id="upgrade-notes">
+<span id="release-notes-0-13-1-upgrade-notes"></span><h3>Upgrade Notes<a class="headerlink" href="#upgrade-notes" title="Permalink to this heading">#</a></h3>
+<ul class="simple">
+<li><p>Added <a class="reference external" href="https://pypi.org/project/psutil/">psutil</a> as a dependency for
+Qiskit Aer. This is used to determine the amount of physical resources
+available. <code class="docutils literal notranslate"><span class="pre">psutil</span></code> is currently a dependency of Qiskit, which is a
+requirement for Qiskit Aer, so <code class="docutils literal notranslate"><span class="pre">psutil</span></code> was effectively already required
+for any <code class="docutils literal notranslate"><span class="pre">qiskit-aer</span></code> installation. But, as qiskit-aer is now using it
+directly is now a direct dependency for <code class="docutils literal notranslate"><span class="pre">qiskit-aer</span></code>.</p></li>
+</ul>
+<ul class="simple">
+<li><p>The <a class="reference internal" href="stubs/qiskit_aer.primitives.Estimator.html#qiskit_aer.primitives.Estimator.run" title="qiskit_aer.primitives.Estimator.run"><code class="xref py py-meth docutils literal notranslate"><span class="pre">qiskit_aer.primitives.Estimator.run()</span></code></a> method no longer supports
+<code class="docutils literal notranslate"><span class="pre">observables</span></code> input arguments of type <code class="docutils literal notranslate"><span class="pre">PauliSumOp</span></code>. The <code class="docutils literal notranslate"><span class="pre">PauliSumOp</span></code>
+class was deprecated in Qiskit 0.44 and will be removed in Qiskit 1.0.
+Alternative types that you can use instead of <code class="docutils literal notranslate"><span class="pre">PauliSumOp</span></code> are
+<a class="reference external" href="https://qiskit.org/documentation/stubs/qiskit.quantum_info.SparsePauliOp.html#qiskit.quantum_info.SparsePauliOp" title="(in Qiskit v0.45)"><code class="xref py py-class docutils literal notranslate"><span class="pre">qiskit.quantum_info.SparsePauliOp</span></code></a> or <a class="reference external" href="https://qiskit.org/documentation/stubs/qiskit.quantum_info.Pauli.html#qiskit.quantum_info.Pauli" title="(in Qiskit v0.45)"><code class="xref py py-class docutils literal notranslate"><span class="pre">qiskit.quantum_info.Pauli</span></code></a>.</p></li>
+</ul>
+</section>
+<section id="release-notes-0-13-1-bug-fixes">
+<span id="id3"></span><h3>Bug Fixes<a class="headerlink" href="#release-notes-0-13-1-bug-fixes" title="Permalink to this heading">#</a></h3>
+<ul>
+<li><p>Fixes AerBackend issues caused by upgading to BackendV2 in 0.13.0 release
+and fix test failures for Qiskit 0.45 release.</p>
+<p>For issue #1987, added description if backend given by from_backend does not
+have description.</p>
+<p>For issue #1988, added building coupling map from option.</p>
+<p>For issue #1982, added custome pass maneger to rebuild basis gates from
+input circuits to prevent unnecessary gate changes</p>
+</li>
+</ul>
+<ul class="simple">
+<li><p>Fixed <cite>stabilizer</cite> was selected with <cite>method=”automatic” ` when simulating
+circuits with rotational gates with noise models for small number of qubits
+even it is faster to calculate with `density_matrix</cite> method.
+This fix checks if <cite>density_matrix</cite> method with noise model is faster or not
+at first and then check using <cite>stabilizer</cite> method.
+This is side effect of implementing rotational gates in stabilizer PR #1938</p></li>
+</ul>
+<ul class="simple">
+<li><p>Fixed basis gates sets of Aer backend, moved <cite>reset</cite> and <cite>switch_case</cite>
+to custom instructions.</p></li>
+</ul>
+<ul class="simple">
+<li><p>Extended stabilizer simulation was sharing a single copy of RngEngine amongst
+parallelized states in <code class="docutils literal notranslate"><span class="pre">ExtendedStabilizer::State::apply_ops_parallel</span></code>, 
+leading to thread safety issue. Now, a new RngEngine is seeded for each parallel
+state.</p></li>
+</ul>
+<ul class="simple">
+<li><p>When applying <cite>initialize</cite>, global phase was not multiplied to state.
+This fix multiplies global phase to <cite>initialize</cite> operation.
+Also this fix applies global phase to <cite>matrix_product_state</cite> method,
+which did not use global phase.</p></li>
+</ul>
+<ul class="simple">
+<li><p>Fixes order of applying read out error in sampling measure
+in circuit executors. Ordering is reversed to fit to the older verison
+of Aer.
+Also fixed check of bacth execution.</p></li>
+</ul>
+<ul class="simple">
+<li><p>fixed ry gate for stabilizer method, PI/2 and PI3/2 was inverted</p></li>
+</ul>
+<ul class="simple">
+<li><p>For dynamic circuits, aer_compiler calls transpiler without optimizaiton
+level. Because id gates are removed by transpiler, noise applied id gates
+did not work correctly. This fix adds optimization_level=0 not to remove
+id gates of dynamic circuits</p></li>
+</ul>
+</section>
+</section>
+<section id="release-notes-0-13-0">
+<span id="id4"></span><h2>0.13.0<a class="headerlink" href="#release-notes-0-13-0" title="Permalink to this heading">#</a></h2>
+<section id="release-notes-0-13-0-prelude">
+<span id="id5"></span><h3>Prelude<a class="headerlink" href="#release-notes-0-13-0-prelude" title="Permalink to this heading">#</a></h3>
+<p>Here are highlights of the Aer 0.13.0 release:
+Aer’s backend is now backendV2.
+Introducing shot-branching optimization that accelerates dynamic circuits simulations. By using <cite>shot_branching_enable=True</cite>, multi-shots simulation starts with single state and state will be branched with attached shots dynamically. This option is available for <cite>statevector</cite>, <cite>density_matrix</cite> and <cite>tensor_network</cite> methods.
+Adding support for classical expressions used for branch operations.
+Introducing runtime parameter binding that accelerates parameterized circuits simulations on GPU. With <cite>runtime_parameter_bind_enable=True</cite> and <cite>batched_shots_gpu=True</cite>, this optimization will be enabled on GPU. This optimization can be used with Aer primitives.
+Fix dynamic link library path for GPU binary distributions.
+Now Aer supports AMD’s GPUs based on ROCm (building from source code only)</p>
+<p>Build environment variable was added to enable building Qiskit-Aer without the CUDA  requirements. The new variable is <code class="docutils literal notranslate"><span class="pre">QISKIT_ADD_CUDA_REQUIREMENTS</span></code> and can be set to  False/No/Off or True/Yes/On. By default, it is assumed True.</p>
+</section>
+<section id="release-notes-0-13-0-new-features">
+<span id="id6"></span><h3>New Features<a class="headerlink" href="#release-notes-0-13-0-new-features" title="Permalink to this heading">#</a></h3>
+<ul>
+<li><p>ROCm support has been added matching the existing CUDA implementation based
+on the <code class="docutils literal notranslate"><span class="pre">thrust</span></code> library. This enables Qiskit-Aer to run on AMD GPUs,
+including the AMD Instinct GPU line based on the CDNA architecture. To build
+the standalone version, the following should be sufficient:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">cmake</span> <span class="o">&lt;</span><span class="n">Qiskit</span><span class="o">-</span><span class="n">Aer</span> <span class="n">source</span> <span class="n">folder</span><span class="o">&gt;</span> <span class="o">-</span><span class="n">G</span> <span class="n">Ninja</span> \
+  <span class="o">-</span><span class="n">DCMAKE_INSTALL_PREFIX</span><span class="o">=&lt;</span><span class="n">Qiskit</span><span class="o">-</span><span class="n">Aer</span> <span class="n">target</span> <span class="n">instalation</span> <span class="n">folder</span><span class="o">&gt;</span> \
+  <span class="o">-</span><span class="n">DSKBUILD</span><span class="o">=</span><span class="n">FALSE</span> \
+  <span class="o">-</span><span class="n">DAER_THRUST_BACKEND</span><span class="o">=</span><span class="n">ROCM</span> \
+  <span class="o">-</span><span class="n">DAER_MPI</span><span class="o">=&lt;</span><span class="nb">set</span> <span class="n">to</span> <span class="n">ON</span> <span class="ow">or</span> <span class="n">OFF</span> <span class="n">depending</span> <span class="n">on</span> <span class="n">whether</span> <span class="n">to</span> <span class="n">activate</span> <span class="n">MPI</span> <span class="n">support</span><span class="o">&gt;</span> \
+  <span class="o">-</span><span class="n">DAER_ROCM_ARCH</span><span class="o">=&lt;</span><span class="n">target</span> <span class="n">AMD</span> <span class="n">GPU</span> <span class="nb">list</span><span class="p">,</span> <span class="n">white</span><span class="o">-</span><span class="n">space</span> <span class="n">separated</span><span class="p">,</span> <span class="n">e</span><span class="o">.</span><span class="n">g</span><span class="o">.</span> <span class="s1">&#39;gfx90a gfx908&#39;</span><span class="o">&gt;</span> \
+  <span class="o">-</span><span class="n">DCMAKE_BUILD_TYPE</span><span class="o">=</span><span class="n">Release</span> \
+  <span class="o">-</span><span class="n">DBUILD_TESTS</span><span class="o">=</span><span class="kc">True</span>
+<span class="n">ninja</span> <span class="n">install</span>
+</pre></div>
+</div>
+<p>Alternatively, and possibly preferred for most use cases, you can create a Python
+wheel file that you can install as part of your Python environemnt:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">cd</span> <span class="o">&lt;</span><span class="n">Qiskit</span><span class="o">-</span><span class="n">Aer</span> <span class="n">source</span> <span class="n">folder</span><span class="o">&gt;</span>
+
+<span class="n">QISKIT_AER_PACKAGE_NAME</span><span class="o">=</span><span class="s1">&#39;qiskit-aer-gpu-rocm&#39;</span> \
+   <span class="n">python3</span> <span class="n">setup</span><span class="o">.</span><span class="n">py</span> <span class="n">bdist_wheel</span> <span class="o">--</span> \
+      <span class="o">-</span><span class="n">DAER_THRUST_BACKEND</span><span class="o">=</span><span class="n">ROCM</span> \
+      <span class="o">-</span><span class="n">DAER_MPI</span><span class="o">=&lt;</span><span class="nb">set</span> <span class="n">to</span> <span class="n">ON</span> <span class="ow">or</span> <span class="n">OFF</span> <span class="n">depending</span> <span class="n">on</span> <span class="n">whether</span> <span class="n">to</span> <span class="n">activate</span> <span class="n">MPI</span> <span class="n">support</span><span class="o">&gt;</span> \
+      <span class="o">-</span><span class="n">DAER_ROCM_ARCH</span><span class="o">=&lt;</span><span class="n">target</span> <span class="n">AMD</span> <span class="n">GPU</span> <span class="nb">list</span><span class="p">,</span> <span class="n">white</span><span class="o">-</span><span class="n">space</span> <span class="n">separated</span><span class="p">,</span> <span class="n">e</span><span class="o">.</span><span class="n">g</span><span class="o">.</span> <span class="s1">&#39;gfx90a gfx908&#39;</span><span class="o">&gt;</span>
+
+<span class="n">pip</span> <span class="n">install</span> <span class="o">--</span><span class="n">force</span><span class="o">-</span><span class="n">reinstall</span> <span class="n">dist</span><span class="o">/</span><span class="n">qiskit_aer_gpu_rocm</span><span class="o">-*.</span><span class="n">whl</span>
+</pre></div>
+</div>
+<p>In both cases, the host system needs to have a functional ROCm instalation and 
+the environment variable <code class="docutils literal notranslate"><span class="pre">ROCM_PATH</span></code> set pointing to the ROCm instalation folder if
+that is not the default <code class="docutils literal notranslate"><span class="pre">/opt/rocm</span></code>.
+Depending on how your Python environment is set, you might need to install
+Qiskit-Aer’s required development modules:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">cd</span> <span class="o">&lt;</span><span class="n">Qiskit</span><span class="o">-</span><span class="n">Aer</span> <span class="n">source</span> <span class="n">folder</span><span class="o">&gt;</span>
+<span class="n">pip</span> <span class="n">install</span> <span class="o">-</span><span class="n">r</span> <span class="n">requirements</span><span class="o">-</span><span class="n">dev</span><span class="o">.</span><span class="n">txt</span>
+</pre></div>
+</div>
+</li>
+</ul>
+<ul class="simple">
+<li><p>This release restructures <code class="docutils literal notranslate"><span class="pre">State</span></code> classes.
+Adding circuit executor classes that runs a circuit and manages multiple
+states for multi-shots simulations or multi-chunk simulations for large
+number of qubits.
+Previously <code class="docutils literal notranslate"><span class="pre">StateChunk</span></code> class manages multiple chunks for multi-shots or
+multi-chunk simulations but now <code class="docutils literal notranslate"><span class="pre">State</span></code> class only has one state
+and all the parallelization codes are moved to <code class="docutils literal notranslate"><span class="pre">Executor</span></code> classes.
+Now all <code class="docutils literal notranslate"><span class="pre">State</span></code> classes are independent from parallelization.
+Also some of the functions in <code class="docutils literal notranslate"><span class="pre">Aer::Controller</span></code> class are moved to
+<code class="docutils literal notranslate"><span class="pre">CircuitExecutor::Executor</span></code> class.</p></li>
+</ul>
+<ul class="simple">
+<li><p>Shot-branching technique that accelerates dynamic circuits simulations
+is implemented with restructured <code class="docutils literal notranslate"><span class="pre">Executor</span></code> classes.
+Shot-branching is currently applicable to statevector density_matrix
+and tensor_network methods.
+Shot-branching provides dynamic distribution of multi-shots
+by branching states when applying dynamic operations
+(measure, reset, initialize, noises)
+By default <code class="docutils literal notranslate"><span class="pre">shot_branching_enable</span></code> is disabled.
+And by setting <code class="docutils literal notranslate"><span class="pre">shot_branching_sampling_enable</span></code>, final measures will be
+done by sampling measure that will speed up to get counts for multiple shots
+sharing the same state.</p></li>
+</ul>
+<ul class="simple">
+<li><p>A new option <code class="docutils literal notranslate"><span class="pre">target_gpus</span></code> is added to select GPUs used for the
+simulation. A list of target GPU’s ID is passed for example
+<code class="docutils literal notranslate"><span class="pre">target_gpus=[0,</span> <span class="pre">2]</span></code> select 2 GPUs to be used.
+Without this option, all the available GPUs are used.</p></li>
+</ul>
+<ul class="simple">
+<li><p>This release restructures <code class="docutils literal notranslate"><span class="pre">State</span></code> classes.
+Adding circuit executor classes that runs a circuit and manages multiple
+states for multi-shots simulations or multi-chunk simulations for large
+number of qubits.
+Previously <code class="docutils literal notranslate"><span class="pre">StateChunk</span></code> class manages multiple chunks for multi-shots or
+multi-chunk simulations but now <code class="docutils literal notranslate"><span class="pre">State</span></code> class only has one state
+and all the parallelization codes are moved to <code class="docutils literal notranslate"><span class="pre">Executor</span></code> classes.
+Now all <code class="docutils literal notranslate"><span class="pre">State</span></code> classes are independent from parallelization.
+Also some of the functions in <code class="docutils literal notranslate"><span class="pre">Aer::Controller</span></code> class are moved to
+<code class="docutils literal notranslate"><span class="pre">CircuitExecutor::Executor</span></code> class.</p></li>
+</ul>
+<ul class="simple">
+<li><p>Shot-branching technique that accelerates dynamic circuits simulations
+is implemented with restructured <code class="docutils literal notranslate"><span class="pre">Executor</span></code> classes.
+Shot-branching is currently applicable to statevector, density_matrix
+and tensor_network methods.
+Shot-branching provides dynamic distribution of multi-shots
+by branching states when applying dynamic operations
+(measure, reset, initialize, noises)
+By default <code class="docutils literal notranslate"><span class="pre">shot_branching_enable</span></code> is disabled.
+And by setting <code class="docutils literal notranslate"><span class="pre">shot_branching_sampling_enable</span></code>, final measures will be
+done by sampling measure that will speed up to get counts for multiple shots
+sharing the same state.</p></li>
+</ul>
+<ul class="simple">
+<li><p>New option for GPU simulation <code class="docutils literal notranslate"><span class="pre">target_gpus</span></code> is added.
+A list of GPUs used for the simulation can be set by this option.
+Without this option, all the available GPUs are used.
+For example, if there is 4 GPUs, <code class="docutils literal notranslate"><span class="pre">target_gpus=[0,</span> <span class="pre">2]</span></code> will use 2 GPUs.</p></li>
+</ul>
+<ul class="simple">
+<li><p>Enable 2-qubit gate ECR for aer_stabilizer_simulator. Refer to
+<cite>#1883 &lt;https://github.com/Qiskit/qiskit-aer/issues/1883</cite> for more
+details.</p></li>
+</ul>
+<ul class="simple">
+<li><p>Implements from_dict() method for QuantumError. This takes a dictionary
+and checks if style is the one from to_dict() method. If any mismatches
+are determined then NoiseError is raised. Else dict is parsed and a new
+QuantumError with noise_ops created.</p></li>
+</ul>
+<ul class="simple">
+<li><p>A runtime parameter binding option is implemented to bind paramters at
+runtime to a single circuit instead running multiple circuits as input.
+An option <code class="docutils literal notranslate"><span class="pre">runtime_parameter_bind_enable=True</span></code> enables this feature and
+for GPU, <code class="docutils literal notranslate"><span class="pre">batched_shots_gpu=True</span></code> should be also set to speed up
+simulating parameterized circuit.</p></li>
+</ul>
+<ul>
+<li><p>A new environment variable <code class="docutils literal notranslate"><span class="pre">QISKIT_ADD_CUDA_REQUIREMENTS</span></code> can be sed to control 
+whether or not build the Python package for Qiskit-Aer with CUDA requirements. This 
+flag can be set to False/No/Off or True/Yes/On. By default it is assumed True. This 
+is useful in case a CUDA instalation is already available on the system where 
+Qiskit-Aer will run. Not including the requirements results in a smaller footprint 
+and facilitates leveraging different CUDA installs for development purposes. 
+The new flag can used like:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>cd &lt;Qiskit-Aer source folder&gt;
+
+QISKIT_AER_PACKAGE_NAME=&#39;qiskit-aer-gpu&#39; \
+QISKIT_AER_CUDA_MAJOR=$CUDA_MAJOR \
+QISKIT_ADD_CUDA_REQUIREMENTS=False \
+   python3 setup.py bdist_wheel -- \
+      -DAER_THRUST_BACKEND=CUDA ...
+</pre></div>
+</div>
+</li>
+</ul>
+<ul class="simple">
+<li><p>Update Aer Backend to BackendV2. Refer to <cite>#1681&lt;https://github.com/Qiskit/qiskit-aer/issues/1681&gt;</cite>. 
+BackendV2 is differs from BackendV1 in the following points: backend.name() changes to backend.name string attribute, 
+the configuration attribute no longer exists, and the options attribute is added. For more information about BackendV2 is
+<cite>here&lt;https://qiskit.org/documentation/stubs/qiskit.providers.BackendV2.html&gt;</cite>.</p></li>
+</ul>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">c_if</span></code> is supportted of <code class="docutils literal notranslate"><span class="pre">reset</span></code> instruction and an exception
+is thrown if <cite>c_if</cite> is called for an instruction that does not 
+support <code class="docutils literal notranslate"><span class="pre">c_if</span></code>.</p></li>
+</ul>
+<ul class="simple">
+<li><p>Support <code class="docutils literal notranslate"><span class="pre">qiskit.circuit.classical.expr.Expr</span></code> introduced in Qiskit 0.44.
+If a circuit includes unsupported expression which will be introduced in Qiskit 0.45
+or later, <code class="docutils literal notranslate"><span class="pre">AerError</span></code> is thrown. Objects of sub-classes of <code class="docutils literal notranslate"><span class="pre">Expr</span></code> are converted to
+corresponding sub-classes of <code class="docutils literal notranslate"><span class="pre">AER::Operations::CExpr</span></code> in C++ and evaluated. 
+In addition, <code class="docutils literal notranslate"><span class="pre">AER::Operations::RegComparison</span></code> in <code class="docutils literal notranslate"><span class="pre">bfunc</span></code> operation is replaced
+with corresponding binary operations.</p></li>
+</ul>
+<ul class="simple">
+<li><p>Add support of <code class="xref py py-class docutils literal notranslate"><span class="pre">qiskit.circuit.controlflow.SwitchCaseOp</span></code> that was introduced
+in qiskit-terra 0.24.0. The instruction is converted to multiple instructions of
+<code class="xref py py-class docutils literal notranslate"><span class="pre">AerMark</span></code> and <code class="xref py py-class docutils literal notranslate"><span class="pre">AerJump</span></code> with <cite>c_if</cite> conditions.</p></li>
+</ul>
+<ul class="simple">
+<li><p><cite>aer_apply_u3</cite> is added to <cite>aer_runtime_api.h</cite></p></li>
+</ul>
+</section>
+<section id="known-issues">
+<span id="release-notes-0-13-0-known-issues"></span><h3>Known Issues<a class="headerlink" href="#known-issues" title="Permalink to this heading">#</a></h3>
+<ul class="simple">
+<li><p>Fix a bug that returns wrong expectation values in <code class="xref py py-class docutils literal notranslate"><span class="pre">Estimator</span></code> when
+<code class="docutils literal notranslate"><span class="pre">abelian_grouping=True</span></code>.</p></li>
+</ul>
+<ul class="simple">
+<li><p>Though Aer supports <code class="docutils literal notranslate"><span class="pre">switch</span></code> for several methods, transpilation of circuits with <code class="docutils literal notranslate"><span class="pre">switch</span></code> has been failed.
+This commit enables such transpilation by adding <code class="docutils literal notranslate"><span class="pre">switch_case</span></code> operations into basis gates.</p></li>
+</ul>
+</section>
+<section id="release-notes-0-13-0-upgrade-notes">
+<span id="id7"></span><h3>Upgrade Notes<a class="headerlink" href="#release-notes-0-13-0-upgrade-notes" title="Permalink to this heading">#</a></h3>
+<ul class="simple">
+<li><p>Fixed a bug that caused results to be incorrectly ordered or errors in
+<a class="reference internal" href="stubs/qiskit_aer.primitives.Estimator.html#qiskit_aer.primitives.Estimator" title="qiskit_aer.primitives.Estimator"><code class="xref py py-class docutils literal notranslate"><span class="pre">Estimator</span></code></a> with <code class="docutils literal notranslate"><span class="pre">approximation=True</span></code>.</p></li>
+</ul>
+<ul class="simple">
+<li><p>Improved performance when the same circuits and multiple parameters are passed to
+<a class="reference internal" href="stubs/qiskit_aer.primitives.Estimator.html#qiskit_aer.primitives.Estimator" title="qiskit_aer.primitives.Estimator"><code class="xref py py-class docutils literal notranslate"><span class="pre">Estimator</span></code></a> with <code class="docutils literal notranslate"><span class="pre">approximation=True</span></code>.</p></li>
+</ul>
+<ul class="simple">
+<li><p>Qiskit Aer 0.13 has dropped support for <code class="docutils literal notranslate"><span class="pre">PulseSimulator</span></code> following deprecation warnings started in
+Qiskit Aer 0.12. Use Qiskit Dynamics to run pulse-level simulation.
+<a class="reference external" href="https://qiskit.org/ecosystem/dynamics/">https://qiskit.org/ecosystem/dynamics/</a></p></li>
+</ul>
+<ul>
+<li><p>Qiskit Aer now requires CUDA version for GPU simulator to 11.2 or
+higher.  Previously, CUDA 10.1 was the minimum supported version.
+This change was necessary because of changes in the upstream CUDA
+ecosystem, including cuQuantum support. To support users running
+with different versions of CUDA there is now a separate package available
+for running with CUDA 11:  <code class="docutils literal notranslate"><span class="pre">qiskit-aer-gpu-cu11</span></code> and using the
+<code class="docutils literal notranslate"><span class="pre">qiskit-aer-gpu</span></code> package now requires CUDA 12. If you’re an existing
+user of the <code class="docutils literal notranslate"><span class="pre">qiskit-aer-gpu</span></code> package and want to use CUDA 11
+you will need to run:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">pip</span> <span class="n">uninstall</span> <span class="n">qiskit</span><span class="o">-</span><span class="n">aer</span><span class="o">-</span><span class="n">gpu</span> <span class="o">&amp;&amp;</span> <span class="n">pip</span> <span class="n">install</span> <span class="o">-</span><span class="n">U</span> <span class="n">qiskit</span><span class="o">-</span><span class="n">aer</span><span class="o">-</span><span class="n">gpu</span><span class="o">-</span><span class="n">cu11</span>
+</pre></div>
+</div>
+<p>to go from the previously CUDA 10.x compatible <code class="docutils literal notranslate"><span class="pre">qiskit-aer-gpu</span></code>
+package’s releases to upgrade to the new CUDA 11 compatible
+package. If you’re running CUDA 12 locally already you can upgrade
+the <code class="docutils literal notranslate"><span class="pre">qiskit-aer-gpu</span></code> package as normal.</p>
+</li>
+</ul>
+<ul class="simple">
+<li><p>Improved performance when the same circuits and multiple parameters are passed to
+<a class="reference internal" href="stubs/qiskit_aer.primitives.Sampler.html#qiskit_aer.primitives.Sampler" title="qiskit_aer.primitives.Sampler"><code class="xref py py-class docutils literal notranslate"><span class="pre">Sampler</span></code></a>.</p></li>
+</ul>
+<ul class="simple">
+<li><p>Adding support of rotation gates (rx, ry and rz gates) to stabilizer method
+when input theta is multiple of pi/2.
+If <code class="docutils literal notranslate"><span class="pre">method=automatic</span></code> is specified (this is default), if all the input
+theta of rotation gates are multiple of pi/2 <code class="docutils literal notranslate"><span class="pre">method=stabilizer</span></code>
+is selected. Of when user sets <code class="docutils literal notranslate"><span class="pre">method=stabilizer</span></code> and any of theta
+is not multiple of pi/2, Aer raises an exception.</p></li>
+</ul>
+</section>
+<section id="release-notes-0-13-0-deprecation-notes">
+<span id="id8"></span><h3>Deprecation Notes<a class="headerlink" href="#release-notes-0-13-0-deprecation-notes" title="Permalink to this heading">#</a></h3>
+<ul class="simple">
+<li><p>Options of meth:<cite>~.AerSimulator.run</cite> need to use correct types.</p></li>
+</ul>
+</section>
+<section id="release-notes-0-13-0-bug-fixes">
+<span id="id9"></span><h3>Bug Fixes<a class="headerlink" href="#release-notes-0-13-0-bug-fixes" title="Permalink to this heading">#</a></h3>
+<ul class="simple">
+<li><p>Aer runtime api (from contrib) exposed the wrong sx operation,
+implemented with a rx. The implementation is changed now by
+adding AerState::apply_mcsx and calling it from aer_apply_sx.
+This way the api has the same behavior as the documentation 
+states and also how the sx gate behaves in python.
+Fix for: https://github.com/Qiskit/qiskit-aer/issues/1925</p></li>
+</ul>
+<ul class="simple">
+<li><p>Performance regression due to introduction of <code class="docutils literal notranslate"><span class="pre">AER::Config</span></code> is fixed.
+This class has many fields but is frequently copied in <code class="docutils literal notranslate"><span class="pre">AER::Transpile::CircuitOptimization</span></code>.
+Originally <code class="docutils literal notranslate"><span class="pre">json_t</span></code> (former class for configuration) was also frequently copied but
+it does have entries in most cases and then this copy overhead is not a problem.
+With this fix, <code class="docutils literal notranslate"><span class="pre">AER::Transpile::CircuitOptimization</span></code> does not copy <code class="docutils literal notranslate"><span class="pre">AER::Config</span></code>.</p></li>
+</ul>
+<ul class="simple">
+<li><p>When BLAS calls are failed, because omp threads do not handle exceptions,
+Aer crashes without any error messages. This fix is for omp threads to catch
+exceptions correctly and then rethrow them outside of omp loops.</p></li>
+</ul>
+<ul class="simple">
+<li><p>Previously, parameters for gates are not validate in C++. If parameters are shorter than
+expected (due to custom gate), segmentaion faults are thrown. This commit adds checks
+whether parameter lenght is expceted. This commit will fix issues reported in #1612.
+<a class="reference external" href="https://github.com/Qiskit/qiskit-aer/issues/1612">https://github.com/Qiskit/qiskit-aer/issues/1612</a></p></li>
+</ul>
+<ul class="simple">
+<li><p>Since 0.12.0, parameter values in circuits are temporarily replaced with constant values
+and parameter values are assigned in C++ library. Therefore, if <cite>parameter_binds</cite> is specified,
+simulator returns results with the constnat values as paramter values. With this commit,
+Aer raises an error if <cite>parameter_binds</cite> is not specified though circuits have parameters.</p></li>
+</ul>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">measure</span></code> in libaer.so wrongly read classical memory by assuming
+opposite ordering of its indices. This fix corrects the assumed ordering.
+This change affects only libaer.so and not python applications.</p></li>
+</ul>
+<ul class="simple">
+<li><p>Available devices and methods are no longer queried when importing Aer.</p></li>
+</ul>
+<ul class="simple">
+<li><p>Previously <a class="reference internal" href="stubs/qiskit_aer.AerSimulator.html#qiskit_aer.AerSimulator" title="qiskit_aer.AerSimulator"><code class="xref py py-class docutils literal notranslate"><span class="pre">AerSimulator</span></code></a> modifies circuit metadata to maintain
+consistency between input and output of simulation with side effect of
+unexpected view of metadata from applicatiln in simiulation. This fix
+avoids using circuit metadata to maintain consistency internaly and then
+always provides consistent view of metadata to application.</p></li>
+</ul>
+<ul class="simple">
+<li><p>Fixed a bug where the variance in metadata in EstimatorResult was complex and now returns float.</p></li>
+</ul>
+<ul class="simple">
+<li><p>Change <code class="docutils literal notranslate"><span class="pre">AER::Vector</span></code> object alignement to 64-byte. In some cases, it is used to 
+initialize <code class="docutils literal notranslate"><span class="pre">AER:QV::QubitVector</span></code> objects by moving storage ownership to these 
+objects. As the code assumes that <code class="docutils literal notranslate"><span class="pre">AER:QV::QubitVector</span></code> storage is at least 
+32-byte aligned for AVX2 load instructions, this change enforces the same alignement 
+requirements for both  <code class="docutils literal notranslate"><span class="pre">AER::Vector</span></code> and  <code class="docutils literal notranslate"><span class="pre">AER:QV::QubitVector</span></code> objects so that 
+one doesn’t get into segmentation faults.</p></li>
+</ul>
+<ul class="simple">
+<li><p>Fixes an issue when compiling a release version on windows with vc++,  
+also unrolls a for, avoiding an unnecessary switch inside it.
+The fix is for <a class="reference external" href="https://github.com/Qiskit/qiskit-aer/issues/1918">https://github.com/Qiskit/qiskit-aer/issues/1918</a></p></li>
+</ul>
+<ul class="simple">
+<li><p>Fixed a build break to compile Qiskit Aer with cuQuautum support (<cite>AER_ENABLE_CUQUANTUM=true</cite>).
+This change does not affect build for CPU and normal GPU binaries.</p></li>
+</ul>
+<ul class="simple">
+<li><p>Fixed a bug where <a class="reference internal" href="stubs/qiskit_aer.noise.NoiseModel.html#qiskit_aer.noise.NoiseModel.from_backend" title="qiskit_aer.noise.NoiseModel.from_backend"><code class="xref py py-meth docutils literal notranslate"><span class="pre">from_backend()</span></code></a> with <code class="docutils literal notranslate"><span class="pre">BackendV2</span></code> and non-zero <code class="docutils literal notranslate"><span class="pre">temperature</span></code>
+produces relaxation noises with incorrect excitation population.
+Fixed <a class="reference external" href="https://github.com/Qiskit/qiskit-aer/issues/1937">#1937</a>.</p></li>
+</ul>
+<ul class="simple">
+<li><p>Fixed a bug in <a class="reference internal" href="stubs/qiskit_aer.noise.NoiseModel.html#qiskit_aer.noise.NoiseModel.from_backend" title="qiskit_aer.noise.NoiseModel.from_backend"><code class="xref py py-meth docutils literal notranslate"><span class="pre">from_backend()</span></code></a> that raised an error when
+the backend has no T1 and T2 values (i.e. None) for a qubit in its qubit properties.
+This commit updates <code class="xref py py-meth docutils literal notranslate"><span class="pre">NoiseModel.from_backend()</span></code> and <code class="xref py py-func docutils literal notranslate"><span class="pre">basic_device_gate_errors()</span></code>
+so that they add an identity <code class="docutils literal notranslate"><span class="pre">QuantumError</span></code> (i.e. effectively no thermal relaxation error)
+to a qubit with no T1 and T2 values for all gates acting on qubits including the qubit.
+Fixed <a class="reference external" href="https://github.com/Qiskit/qiskit-aer/issues/1779">#1779</a>
+and <a class="reference external" href="https://github.com/Qiskit/qiskit-aer/issues/1815">#1815</a>.</p></li>
+</ul>
+<ul class="simple">
+<li><p>Fixed a bug where <a class="reference internal" href="stubs/qiskit_aer.noise.NoiseModel.html#qiskit_aer.noise.NoiseModel.from_backend" title="qiskit_aer.noise.NoiseModel.from_backend"><code class="xref py py-meth docutils literal notranslate"><span class="pre">from_backend()</span></code></a> raises an error when
+a backend reports no T2 value (while it reports T1 value) for a qubit,
+which was an oversight in the previous fix on None handling:
+<a class="reference external" href="https://github.com/Qiskit/qiskit-aer/issues/1818">#1818</a>.
+Fixed <a class="reference external" href="https://github.com/Qiskit/qiskit-aer/issues/1896">#1896</a>.</p></li>
+</ul>
+<ul class="simple">
+<li><p>Fix an issue even if the number of qubits is set by a coupling map 
+or device’s configuration, when the simulation method is configured, 
+the number of qubits is overwritten in accordance with the method. 
+Fixed <a class="reference external" href="https://github.com/Qiskit/qiskit-aer/issues/1769">#1769</a></p></li>
+</ul>
+<ul class="simple">
+<li><p>A function <code class="docutils literal notranslate"><span class="pre">aer_state_initialize()</span></code> in C API wrongly takes no argument though
+it initializes a state created by <code class="docutils literal notranslate"><span class="pre">aer_state()</span></code>. Example codes pass <code class="docutils literal notranslate"><span class="pre">handler</span></code>
+and rouboustness of C compiler allows its compilation. This commit corrects for
+<code class="docutils literal notranslate"><span class="pre">aer_state_initialize()</span></code> to take an argument <code class="docutils literal notranslate"><span class="pre">handler</span></code> to be initialized.</p></li>
+</ul>
+<ul class="simple">
+<li><p>This is fix for library path setting in CMakeLists.txt for cuQuantum SDK.
+Because the latest cuQuantum includes libraries for CUDA 11.x and 12.x,
+this fix uses CUDA version returned from FindCUDA to the path of libraries
+of cuQuantum and cuTENSOR.</p></li>
+</ul>
+<ul class="simple">
+<li><p>This is fix for static link libraries of cuQuantum when building with
+CUQUANTUM_STATIC=true.</p></li>
+</ul>
+<ul class="simple">
+<li><p>Fixing binary distribution package for GPU support, adding some  missing
+dynamic link pathes for CUDA and cuQuantum libraries.
+By this fix, Qiskit Aer can be executed without setting LD_LIBRARY_PATH.</p></li>
+</ul>
+<ul class="simple">
+<li><p>Fix the version of matplotlib required by seaborn</p></li>
+</ul>
+<ul class="simple">
+<li><p>MPI parallelization was not enabled since we have not used qobj.
+This fix sets the number of processes and MPI rank correctly.</p></li>
+</ul>
+<ul>
+<li><p>State::set_config was not called before calling State::required_memory_mb.
+Extended stabilizer uses parameter from config to calculate required memory
+so size was not correct before this fix.
+Now Config is passed to required_memory_mb function.</p>
+<p>State::required_memory_mb for MPS method returned wrong memory size.
+This fix adds memory size estimation by calculating max bond dimension.</p>
+</li>
+</ul>
+<ul class="simple">
+<li><p>OpenMP parallel nested was not correctly set when number of input circuits
+is less than number of threads.
+Also parallel state update was not correctly set if number of input circuits
+is more than 1.
+This release fixes these settings to get more speed up with OpenMP.
+For single circuit with multiple-shots run, when nested parallel is used
+<cite>omp_nested=True</cite> is set in the metadata of result for a circuit.</p></li>
+</ul>
+<ul class="simple">
+<li><p>OpenMP nested parallel simulation for parallel experiments + parallel state
+update was very slow because gate fusion uses unitary simulator inside
+and it used omp parallel region. This fix remove parallel region in
+gate fusion and improve performance of nested parallel simulations</p></li>
+</ul>
+<ul class="simple">
+<li><p><code class="xref py py-class docutils literal notranslate"><span class="pre">AerCircuit</span></code> is created from a circuit by iterating its operations
+while skipping barrier instructions. However, skipping barrier instructions
+make wrong positionings of parameter bindings. This fix adds
+<code class="xref py py-meth docutils literal notranslate"><span class="pre">barrier()</span></code> and keeps parametr bindings correct.</p></li>
+</ul>
+<ul class="simple">
+<li><p>If a circuit has conditional and parameters, the circuit was not be
+correctly simulated because parameter bindings of Aer used wrong positions
+to apply parameters. This is from a lack of consideration of bfunc operations
+injected by conditional. With this commit, parameters are set to correct
+positions with consideration of injected bfun operations.</p></li>
+</ul>
+<ul class="simple">
+<li><p>Parameters for global phases were not correctly set in #1814.
+<a class="reference external" href="https://github.com/Qiskit/qiskit-aer/pull/1814">https://github.com/Qiskit/qiskit-aer/pull/1814</a>
+Parameter values for global phases were copied to a template circuit and not to
+actual circuits to be simulated. This commit correctly copies parameter values
+to circuits to be simulated.</p></li>
+</ul>
+<ul class="simple">
+<li><p>Aer still supports Qobj as an argument of <a class="reference internal" href="stubs/qiskit_aer.AerSimulator.html#qiskit_aer.AerSimulator.run" title="qiskit_aer.AerSimulator.run"><code class="xref py py-meth docutils literal notranslate"><span class="pre">run()</span></code></a> though
+it was deprecated. However, since 0.12.0, it always fails if no <code class="docutils literal notranslate"><span class="pre">run_options</span></code>
+is specified. This fix enables simulation of Qobj without <code class="docutils literal notranslate"><span class="pre">run_options</span></code>.</p></li>
+</ul>
+<ul class="simple">
+<li><p>requried_memory_mb function for statevector returns wrong value when number
+of qubits is very large because of overflow of 64 bits integer.
+Now it returns SIZE_MAX value when number of qubits is too large so that
+Qiskit Aer can know memory is not sufficient for
+statvector/unitary/density matrix methods.</p></li>
+</ul>
+<ul class="simple">
+<li><p>This release fixes an issue in measurement function of stabilizer simulator</p></li>
+</ul>
+<ul class="simple">
+<li><p>Since 0.12.0, <code class="xref py py-class docutils literal notranslate"><span class="pre">AerConfig</span></code> is used for simulation configuration while
+performing strict type checking for arguments of meth:<cite>~.AerSimulator.run</cite>.
+This commit adds casting if argument types are not expected.</p></li>
+</ul>
+<ul class="simple">
+<li><p>Adresses two opened issues, one about replacing a char* parameter to a
+const char*, another one for adding support for the latest vc++ in
+conan.cmake
+Changes:    
+Passing const char* to a char* parameter in CacheBlocking::insert_sim_op call: #1905
+https://github.com/Qiskit/qiskit-aer/issues/1905
+Add support for the latest VC++ in conan.cmake #1906:
+https://github.com/Qiskit/qiskit-aer/issues/1906</p></li>
+</ul>
+<ul class="simple">
+<li><p>Results of <code class="docutils literal notranslate"><span class="pre">backend.run()</span></code> were not serializable because they include <code class="xref py py-class docutils literal notranslate"><span class="pre">AerCircuit</span></code>s.
+This commit makes the results serializable by removing <code class="xref py py-class docutils literal notranslate"><span class="pre">AerCircuit</span></code>s from metadata.</p></li>
+</ul>
+<ul class="simple">
+<li><p>:meth:<code class="docutils literal notranslate"><span class="pre">QuantumCircuit.save_statevector()</span></code> does not work if the circuit
+is generated from OpenQASM3 text because its quantum registers have duplicated
+qubit instances. With this commit, :meth:<code class="docutils literal notranslate"><span class="pre">QuantumCircuit.save_statevector()</span></code>
+uses :data:<code class="docutils literal notranslate"><span class="pre">QuantumCircuit.qubits</span></code> to get qubits to be saved.</p></li>
+</ul>
+<ul class="simple">
+<li><p>:meth:<code class="docutils literal notranslate"><span class="pre">QuantumCircuit.initialize()</span></code> with <cite>int</cite> value was not processed
+correctly as reported in <cite>#1821 &lt;https://github.com/Qiskit/qiskit-aer/issues/1821&gt;</cite>.
+This commit enables such initialization by decomposing initialize instructions.</p></li>
+</ul>
+<ul class="simple">
+<li><p><a class="reference external" href="https://qiskit.org/documentation/stubs/qiskit.circuit.QuantumCircuit.html#qiskit.circuit.QuantumCircuit" title="(in Qiskit v0.45)"><code class="xref py py-class docutils literal notranslate"><span class="pre">QuantumCircuit</span></code></a> supports parameterization for its <cite>global_phase</cite>.
+However, Aer has not allowed such parameterization and failed when transpiler generates
+parameterized global phases. This commit supports parameterization of <cite>global_phase</cite> and
+resolve issues related to <a class="reference external" href="https://github.com/Qiskit/qiskit-aer/issues/1795">https://github.com/Qiskit/qiskit-aer/issues/1795</a>,
+<a class="reference external" href="https://github.com/Qiskit/qiskit-aer/issues/1781">https://github.com/Qiskit/qiskit-aer/issues/1781</a>, and <a class="reference external" href="https://github.com/Qiskit/qiskit-aer/issues/1798">https://github.com/Qiskit/qiskit-aer/issues/1798</a>.</p></li>
+</ul>
+<ul class="simple">
+<li><p>Aer will now use <code class="docutils literal notranslate"><span class="pre">omp_set_max_active_levels()</span></code> instead of the deprecated <code class="docutils literal notranslate"><span class="pre">omp_set_nested()</span></code> when compiled against recent versions of OpenMP.</p></li>
+</ul>
+</section>
+</section>
+<section id="release-notes-0-12-0">
+<span id="id10"></span><h2>0.12.0<a class="headerlink" href="#release-notes-0-12-0" title="Permalink to this heading">#</a></h2>
+<section id="release-notes-0-12-0-prelude">
+<span id="id11"></span><h3>Prelude<a class="headerlink" href="#release-notes-0-12-0-prelude" title="Permalink to this heading">#</a></h3>
+<p>The Qiskit Aer 0.12.0 release highlights are:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>Added a new GPU tensor network simulator based on
+<a class="reference external" href="https://docs.nvidia.com/cuda/cuquantum/cutensornet/index.html">cuTensorNet</a></p></li>
+<li><p>Added a new <a class="reference internal" href="stubs/qiskit_aer.quantum_info.AerDensityMatrix.html#qiskit_aer.quantum_info.AerDensityMatrix" title="qiskit_aer.quantum_info.AerDensityMatrix"><code class="xref py py-class docutils literal notranslate"><span class="pre">AerDensityMatrix</span></code></a> class to the <a class="reference internal" href="apidocs/aer_quantum_info.html#module-qiskit_aer.quantum_info" title="qiskit_aer.quantum_info"><code class="xref py py-mod docutils literal notranslate"><span class="pre">qiskit_aer.quantum_info</span></code></a> module</p></li>
+<li><p>Greatly improving the runtime performance of the <a class="reference internal" href="stubs/qiskit_aer.AerSimulator.html#qiskit_aer.AerSimulator" title="qiskit_aer.AerSimulator"><code class="xref py py-class docutils literal notranslate"><span class="pre">AerSimulator</span></code></a> and the legacy
+<a class="reference internal" href="stubs/qiskit_aer.QasmSimulator.html#qiskit_aer.QasmSimulator" title="qiskit_aer.QasmSimulator"><code class="xref py py-class docutils literal notranslate"><span class="pre">QasmSimulator</span></code></a>, <a class="reference internal" href="stubs/qiskit_aer.StatevectorSimulator.html#qiskit_aer.StatevectorSimulator" title="qiskit_aer.StatevectorSimulator"><code class="xref py py-class docutils literal notranslate"><span class="pre">StatevectorSimulator</span></code></a>, and <a class="reference internal" href="stubs/qiskit_aer.UnitarySimulator.html#qiskit_aer.UnitarySimulator" title="qiskit_aer.UnitarySimulator"><code class="xref py py-class docutils literal notranslate"><span class="pre">UnitarySimulator</span></code></a>
+classes by directly converting the input <code class="xref py py-class docutils literal notranslate"><span class="pre">QuantumCircuit</span></code> objects to an internal
+C++ representation instead of first serializing the circuit to a <code class="xref py py-class docutils literal notranslate"><span class="pre">QasmQobj</span></code>. This
+improvement will be most noticeable for circuits with a small number of qubits or parameterized
+circuits using the <code class="docutils literal notranslate"><span class="pre">parameter_binds</span></code> keyword argument.</p></li>
+</ul>
+</div></blockquote>
+</section>
+<section id="release-notes-0-12-0-new-features">
+<span id="id12"></span><h3>New Features<a class="headerlink" href="#release-notes-0-12-0-new-features" title="Permalink to this heading">#</a></h3>
+<ul class="simple">
+<li><p>Added a new class method <a class="reference internal" href="stubs/qiskit_aer.noise.NoiseModel.html#qiskit_aer.noise.NoiseModel.from_backend_properties" title="qiskit_aer.noise.NoiseModel.from_backend_properties"><code class="xref py py-meth docutils literal notranslate"><span class="pre">from_backend_properties()</span></code></a> to
+the <code class="xref py py-class docutils literal notranslate"><span class="pre">NoiseModel</span></code>. This enables constructing a new <a class="reference internal" href="stubs/qiskit_aer.noise.NoiseModel.html#qiskit_aer.noise.NoiseModel" title="qiskit_aer.noise.NoiseModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">NoiseModel</span></code></a>
+from a <code class="xref py py-class docutils literal notranslate"><span class="pre">BackendProperties</span></code> object. Similar functionality used
+to be present in the <a class="reference internal" href="stubs/qiskit_aer.noise.NoiseModel.html#qiskit_aer.noise.NoiseModel.from_backend" title="qiskit_aer.noise.NoiseModel.from_backend"><code class="xref py py-meth docutils literal notranslate"><span class="pre">NoiseModel.from_backend()</span></code></a> constructor,
+however it was removed since a <code class="xref py py-class docutils literal notranslate"><span class="pre">BackendProperties</span></code> object alone
+doesn’t contain sufficient information to create a <a class="reference internal" href="stubs/qiskit_aer.noise.NoiseModel.html#qiskit_aer.noise.NoiseModel" title="qiskit_aer.noise.NoiseModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">NoiseModel</span></code></a>
+object.</p></li>
+</ul>
+<ul class="simple">
+<li><p>Added a new class, <a class="reference internal" href="stubs/qiskit_aer.quantum_info.AerDensityMatrix.html#qiskit_aer.quantum_info.AerDensityMatrix" title="qiskit_aer.quantum_info.AerDensityMatrix"><code class="xref py py-class docutils literal notranslate"><span class="pre">AerDensityMatrix</span></code></a>, to the <a class="reference internal" href="apidocs/aer_quantum_info.html#module-qiskit_aer.quantum_info" title="qiskit_aer.quantum_info"><code class="xref py py-mod docutils literal notranslate"><span class="pre">qiskit_aer.quantum_info</span></code></a>
+module. This class is used to provide the same interface to the
+upstream <a class="reference external" href="https://qiskit.org/documentation/stubs/qiskit.quantum_info.DensityMatrix.html#qiskit.quantum_info.DensityMatrix" title="(in Qiskit v0.45)"><code class="xref py py-class docutils literal notranslate"><span class="pre">DensityMatrix</span></code></a> class in Qiskit but backed by
+Qiskit Aer’s simulation.</p></li>
+</ul>
+<ul class="simple">
+<li><p>Added a new keyword argument, <code class="docutils literal notranslate"><span class="pre">abelian_grouping</span></code>, to
+the <a class="reference internal" href="stubs/qiskit_aer.primitives.Estimator.html#qiskit_aer.primitives.Estimator" title="qiskit_aer.primitives.Estimator"><code class="xref py py-class docutils literal notranslate"><span class="pre">Estimator</span></code></a>. This argument is used to control whether the
+<a class="reference internal" href="stubs/qiskit_aer.primitives.Estimator.html#qiskit_aer.primitives.Estimator" title="qiskit_aer.primitives.Estimator"><code class="xref py py-class docutils literal notranslate"><span class="pre">Estimator</span></code></a> will group the input observables into qubit-wise
+commutable observables which reduces the number of circuit executions
+required to compute the expectation value and improves the runtime
+performance of the <a class="reference internal" href="stubs/qiskit_aer.primitives.Estimator.html#qiskit_aer.primitives.Estimator" title="qiskit_aer.primitives.Estimator"><code class="xref py py-class docutils literal notranslate"><span class="pre">Estimator</span></code></a>. By default this is set to
+<code class="docutils literal notranslate"><span class="pre">True</span></code>.</p></li>
+</ul>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">AerState</span></code> has a new method <code class="docutils literal notranslate"><span class="pre">initialize_density_matrix()</span></code> that sets a density matrix
+to <code class="docutils literal notranslate"><span class="pre">AER::QV::DensityMatrix</span></code>. This method will be called in <code class="docutils literal notranslate"><span class="pre">q.i.states.DensityMatrix</span></code>
+to initialize its data with <code class="docutils literal notranslate"><span class="pre">ndarray</span></code>. <code class="docutils literal notranslate"><span class="pre">initialize_density_matrix()</span></code> has a boolean
+argument that specifies copy or share of <code class="docutils literal notranslate"><span class="pre">ndarray</span></code> data. If the data is shared with
+C++ and python, the data must not be collected in python while C++ accesses it.</p></li>
+</ul>
+<ul class="simple">
+<li><p>The overhead for running simulations with <a class="reference internal" href="stubs/qiskit_aer.AerSimulator.html#qiskit_aer.AerSimulator.run" title="qiskit_aer.AerSimulator.run"><code class="xref py py-meth docutils literal notranslate"><span class="pre">run()</span></code></a>
+(for all simulator backend classess) has been greatly reduced. This was
+accomplished by no longer internally serializing
+<a class="reference external" href="https://qiskit.org/documentation/stubs/qiskit.circuit.QuantumCircuit.html#qiskit.circuit.QuantumCircuit" title="(in Qiskit v0.45)"><code class="xref py py-class docutils literal notranslate"><span class="pre">QuantumCircuit</span></code></a> objects into
+<a class="reference external" href="https://qiskit.org/documentation/stubs/qiskit.qobj.QasmQobj.html#qiskit.qobj.QasmQobj" title="(in Qiskit v0.45)"><code class="xref py py-class docutils literal notranslate"><span class="pre">QasmQobj</span></code></a> and instead the
+<a class="reference external" href="https://qiskit.org/documentation/stubs/qiskit.circuit.QuantumCircuit.html#qiskit.circuit.QuantumCircuit" title="(in Qiskit v0.45)"><code class="xref py py-class docutils literal notranslate"><span class="pre">QuantumCircuit</span></code></a> object directly to
+an internal C++  circuit structure used for simulation. This improvement
+is most noticeable for simulations of circuts with a small number of qubits
+or parameterized circuits using the <code class="docutils literal notranslate"><span class="pre">parameter_binds</span></code> keyword argument
+of <a class="reference internal" href="stubs/qiskit_aer.AerSimulator.html#qiskit_aer.AerSimulator.run" title="qiskit_aer.AerSimulator.run"><code class="xref py py-meth docutils literal notranslate"><span class="pre">run()</span></code></a>.
+Note that pulse simualation (via the now deprecated <code class="xref py py-class docutils literal notranslate"><span class="pre">PulseSimulator</span></code>)
+and DASK-based simulation still use the internal serialization and will
+not see this performance improvement.</p></li>
+</ul>
+<ul class="simple">
+<li><p>Added a new method to the <a class="reference internal" href="stubs/qiskit_aer.jobs.AerJob.html#qiskit_aer.jobs.AerJob" title="qiskit_aer.jobs.AerJob"><code class="xref py py-class docutils literal notranslate"><span class="pre">AerJob</span></code></a>, <a class="reference internal" href="stubs/qiskit_aer.jobs.AerJob.html#qiskit_aer.jobs.AerJob.circuits" title="qiskit_aer.jobs.AerJob.circuits"><code class="xref py py-meth docutils literal notranslate"><span class="pre">circuits()</span></code></a>, which
+returns  a list of <a class="reference external" href="https://qiskit.org/documentation/stubs/qiskit.circuit.QuantumCircuit.html#qiskit.circuit.QuantumCircuit" title="(in Qiskit v0.45)"><code class="xref py py-class docutils literal notranslate"><span class="pre">QuantumCircuit</span></code></a> objects. This method returns
+<code class="docutils literal notranslate"><span class="pre">None</span></code> if Qobj is used for simulation.</p></li>
+</ul>
+<ul class="simple">
+<li><p><code class="xref py py-class docutils literal notranslate"><span class="pre">AerState</span></code> and <a class="reference internal" href="stubs/qiskit_aer.quantum_info.AerStatevector.html#qiskit_aer.quantum_info.AerStatevector" title="qiskit_aer.quantum_info.AerStatevector"><code class="xref py py-class docutils literal notranslate"><span class="pre">AerStatevector</span></code></a> now support applying <a class="reference external" href="https://qiskit.org/documentation/stubs/qiskit.quantum_info.Kraus.html#qiskit.quantum_info.Kraus" title="(in Qiskit v0.45)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Kraus</span></code></a> operators.
+In <a class="reference internal" href="stubs/qiskit_aer.quantum_info.AerStatevector.html#qiskit_aer.quantum_info.AerStatevector" title="qiskit_aer.quantum_info.AerStatevector"><code class="xref py py-class docutils literal notranslate"><span class="pre">AerStatevector</span></code></a>, one of the Kraus operators is applied randomly to the quantum state based on the error probabilities.</p></li>
+</ul>
+<ul>
+<li><p>Added a new simulation method based on NVIDIA’s <a class="reference external" href="https://docs.nvidia.com/cuda/cuquantum/cutensornet/index.html">cuTensorNet</a>
+APIs of cuQuantum SDK. This provides a GPU accelerated general tensor
+network simulator that can simulate any quantum circuit, by internally
+translating the circuit into a tensor network to perform the simulation.
+To use this simulation method, set <code class="docutils literal notranslate"><span class="pre">method=&quot;tensor_network&quot;</span></code> and
+<code class="docutils literal notranslate"><span class="pre">device=&quot;GPU&quot;</span></code> when initializing an <a class="reference internal" href="stubs/qiskit_aer.AerSimulator.html#qiskit_aer.AerSimulator" title="qiskit_aer.AerSimulator"><code class="xref py py-class docutils literal notranslate"><span class="pre">AerSimulator</span></code></a> object.
+For example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">qiskit_aer</span> <span class="kn">import</span> <span class="n">AerSimulator</span>
+
+<span class="n">tensor_net_sim</span> <span class="o">=</span> <span class="n">AerSimulator</span><span class="p">(</span><span class="n">method</span><span class="o">=</span><span class="s2">&quot;tensor_network&quot;</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="s2">&quot;GPU&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>This method supports both statevector and density matrix simulations.
+Noise simulation can also be done with a density matrix single shot
+simulation if there are not any <a class="reference internal" href="stubs/qiskit_aer.library.SaveStatevector.html#qiskit_aer.library.SaveStatevector" title="qiskit_aer.library.SaveStatevector"><code class="xref py py-class docutils literal notranslate"><span class="pre">SaveStatevector</span></code></a> operations
+in the circuit.</p>
+<p>This new simulation method also supports parallelization with multiple GPUs and
+MPI processes by using tensor network slicing technique. However, this type of
+simulation will likely take a very long time if the input circuits are
+complicated.</p>
+</li>
+</ul>
+<ul class="simple">
+<li><p>The <code class="docutils literal notranslate"><span class="pre">BLA_VENDOR</span></code> environment variable can now be specified to use a
+different BLAS library when building Qiskit Aer from source. By default
+if this is not specified OpenBLAS will be used by default. If
+the BLAS library specified in <cite>BLA_VENDOR`</cite> can not be found then the
+Cmake build process will stop.</p></li>
+</ul>
+</section>
+<section id="release-notes-0-12-0-known-issues">
+<span id="id13"></span><h3>Known Issues<a class="headerlink" href="#release-notes-0-12-0-known-issues" title="Permalink to this heading">#</a></h3>
+<ul class="simple">
+<li><p>This release of Qiskit Aer is not compatible with the Conan 2.X release
+series. If you are building Qiskit Aer from source manually ensure that
+you are using a Conan 1.x release. Compatibility with newer versions
+of Conan will be fixed in a future release. You can refer to
+issue <a class="reference external" href="https://github.com/Qiskit/qiskit-aer/issues/1730">#1730</a> for
+more details.</p></li>
+</ul>
+</section>
+<section id="release-notes-0-12-0-upgrade-notes">
+<span id="id14"></span><h3>Upgrade Notes<a class="headerlink" href="#release-notes-0-12-0-upgrade-notes" title="Permalink to this heading">#</a></h3>
+<ul class="simple">
+<li><p>The default behavior of the <a class="reference internal" href="stubs/qiskit_aer.primitives.Estimator.html#qiskit_aer.primitives.Estimator" title="qiskit_aer.primitives.Estimator"><code class="xref py py-class docutils literal notranslate"><span class="pre">Estimator</span></code></a> primitive will now
+group the input observable into qubit-wise commutable observables.
+The grouping reduces the number of circuits to be executed and improves
+the performance. If you desire the previous behavior you can initialize
+your <a class="reference internal" href="stubs/qiskit_aer.primitives.Estimator.html#qiskit_aer.primitives.Estimator" title="qiskit_aer.primitives.Estimator"><code class="xref py py-class docutils literal notranslate"><span class="pre">Estimator</span></code></a> instance with the keyword argument
+<code class="docutils literal notranslate"><span class="pre">abelian_grouping=False</span></code>.</p></li>
+</ul>
+<ul class="simple">
+<li><p>Removed the usage of primitives with the context manager and the initialization with circuits,
+(observables only for Estimator), and parameters
+which has been deprecated in the Qiskit Terra 0.22.0 release in October 2022.</p></li>
+</ul>
+<ul class="simple">
+<li><p>The behavior of <a class="reference internal" href="stubs/qiskit_aer.AerSimulator.html#qiskit_aer.AerSimulator.run" title="qiskit_aer.AerSimulator.run"><code class="xref py py-meth docutils literal notranslate"><span class="pre">run()</span></code></a> method has changed when invalid
+or otherwise unsimulatable <code class="xref py py-class docutils literal notranslate"><span class="pre">QuantumCircuit</span></code> objects are passed as
+an input. Previously, in these cases the <a class="reference internal" href="stubs/qiskit_aer.AerSimulator.html#qiskit_aer.AerSimulator.run" title="qiskit_aer.AerSimulator.run"><code class="xref py py-meth docutils literal notranslate"><span class="pre">run()</span></code></a> method
+would return an <a class="reference internal" href="stubs/qiskit_aer.jobs.AerJob.html#qiskit_aer.jobs.AerJob" title="qiskit_aer.jobs.AerJob"><code class="xref py py-class docutils literal notranslate"><span class="pre">AerJob</span></code></a> whose <a class="reference internal" href="stubs/qiskit_aer.jobs.AerJob.html#qiskit_aer.jobs.AerJob.result" title="qiskit_aer.jobs.AerJob.result"><code class="xref py py-meth docutils literal notranslate"><span class="pre">result()</span></code></a> method would
+return a <code class="xref py py-class docutils literal notranslate"><span class="pre">Result</span></code> with the <code class="docutils literal notranslate"><span class="pre">ERROR</span></code> or <code class="docutils literal notranslate"><span class="pre">PARTIAL</span> <span class="pre">COMPLETED</span></code>
+(depending on whether all the circuit inputs or only some were invalid or not).
+Starting in this release instead of returning a result object with these statuses
+an exception will be raised instead. This change was necessary because
+of the performance improvements by no longer internally serializing the
+<code class="xref py py-class docutils literal notranslate"><span class="pre">QuantumCircuit</span></code> objects to a Qobj before passing it to C++, instead
+the direct conversion from <code class="xref py py-class docutils literal notranslate"><span class="pre">QuantumCircuit</span></code> now errors directly when
+trying to simulate a circuit Qiskit Aer is unable to execute. If you desire the
+previous behavior you can build Qiskit Aer in standalone mode and manually
+serialize your <code class="xref py py-class docutils literal notranslate"><span class="pre">QuantumCircuit</span></code> objects to a JSON representation of
+the <code class="xref py py-class docutils literal notranslate"><span class="pre">QasmQobj</span></code> which you then pass to the standalone Aer binary
+which will retain the previous behavior.</p></li>
+</ul>
+<ul class="simple">
+<li><p>A deprecated method <code class="xref py py-meth docutils literal notranslate"><span class="pre">add_nonlocal_quantum_error()</span></code> in <a class="reference internal" href="stubs/qiskit_aer.noise.NoiseModel.html#qiskit_aer.noise.NoiseModel" title="qiskit_aer.noise.NoiseModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">NoiseModel</span></code></a> has been
+removed. No alternative method is available. If you want to add non-local quantum errors,
+you should write a transpiler pass that inserts your own quantum error into a circuit,
+and run the pass just before running the circuit on Aer simulator.</p></li>
+</ul>
+<ul class="simple">
+<li><p>The <a class="reference internal" href="stubs/qiskit_aer.noise.NoiseModel.html#qiskit_aer.noise.NoiseModel.from_backend" title="qiskit_aer.noise.NoiseModel.from_backend"><code class="xref py py-meth docutils literal notranslate"><span class="pre">NoiseModel.from_backend()</span></code></a> now has changed not to accept <code class="docutils literal notranslate"><span class="pre">BackendProperties</span></code>
+object as a <code class="docutils literal notranslate"><span class="pre">backend</span></code> argument. Use newly added <a class="reference internal" href="stubs/qiskit_aer.noise.NoiseModel.html#qiskit_aer.noise.NoiseModel.from_backend_properties" title="qiskit_aer.noise.NoiseModel.from_backend_properties"><code class="xref py py-meth docutils literal notranslate"><span class="pre">NoiseModel.from_backend_properties()</span></code></a>
+method instead.</p></li>
+</ul>
+<ul>
+<li><p>A deprecated <code class="docutils literal notranslate"><span class="pre">standard_gates</span></code> argument broadly used in several methods and functions
+(listed below) across <a class="reference internal" href="apidocs/aer_noise.html#module-qiskit_aer.noise" title="qiskit_aer.noise"><code class="xref py py-mod docutils literal notranslate"><span class="pre">noise</span></code></a> module has been removed.</p>
+<ul class="simple">
+<li><p><code class="xref py py-meth docutils literal notranslate"><span class="pre">NoiseModel.from_backend()</span></code> and <code class="xref py py-func docutils literal notranslate"><span class="pre">noise.device.basic_device_gate_errors()</span></code></p></li>
+<li><p><code class="xref py py-func docutils literal notranslate"><span class="pre">kraus_error()</span></code>, <code class="xref py py-func docutils literal notranslate"><span class="pre">mixed_unitary_error()</span></code>, <code class="xref py py-func docutils literal notranslate"><span class="pre">pauli_error()</span></code> and
+<code class="xref py py-func docutils literal notranslate"><span class="pre">depolarizing_error()</span></code> in <code class="xref py py-mod docutils literal notranslate"><span class="pre">noise.errors.standard_errors</span></code></p></li>
+<li><p><code class="xref py py-meth docutils literal notranslate"><span class="pre">QuantumError.__init__()</span></code></p></li>
+</ul>
+<p>No alternative means are available because the user should be agnostic about
+how the simulator represents noises (quantum errors) internally.</p>
+</li>
+</ul>
+<ul>
+<li><p>The constructor of <a class="reference internal" href="stubs/qiskit_aer.noise.QuantumError.html#qiskit_aer.noise.QuantumError" title="qiskit_aer.noise.QuantumError"><code class="xref py py-class docutils literal notranslate"><span class="pre">QuantumError</span></code></a> has now dropped the support of deprecated
+json-like input for <code class="docutils literal notranslate"><span class="pre">noise_ops</span></code> argument.
+Use the new styple input for <code class="docutils literal notranslate"><span class="pre">noise_ops</span></code> argument instead, for example,</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">qiskit.circuit.library</span> <span class="kn">import</span> <span class="n">IGate</span><span class="p">,</span> <span class="n">XGate</span>
+<span class="kn">from</span> <span class="nn">qiskit_aer.noise</span> <span class="kn">import</span> <span class="n">QuantumError</span>
+
+<span class="n">error</span> <span class="o">=</span> <span class="n">QuantumError</span><span class="p">([</span>
+    <span class="p">((</span><span class="n">IGate</span><span class="p">(),</span> <span class="p">[</span><span class="mi">1</span><span class="p">]),</span> <span class="mf">0.9</span><span class="p">),</span>
+    <span class="p">((</span><span class="n">XGate</span><span class="p">(),</span> <span class="p">[</span><span class="mi">1</span><span class="p">]),</span> <span class="mf">0.1</span><span class="p">),</span>
+<span class="p">])</span>
+
+<span class="c1"># json-like input is no longer accepted (the following code fails)</span>
+<span class="c1">#  error = QuantumError([</span>
+<span class="c1">#      ([{&quot;name&quot;: &quot;I&quot;, &quot;qubits&quot;: [1]}], 0.9),</span>
+<span class="c1">#      ([{&quot;name&quot;: &quot;X&quot;, &quot;qubits&quot;: [1]}], 0.1),</span>
+<span class="c1">#  ])</span>
+</pre></div>
+</div>
+<p>Also it has dropped deprecated arguments:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">number_of_qubits</span></code>: Use <code class="docutils literal notranslate"><span class="pre">QuantumCircuit</span></code> to define <code class="docutils literal notranslate"><span class="pre">noise_ops</span></code> instead.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">atol</span></code>: Use <code class="xref py py-attr docutils literal notranslate"><span class="pre">QuantumError.atol</span></code> attribute instead.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">standard_gates</span></code>: No alternative is available (users should not too much care about
+internal representation of quantum errors).</p></li>
+</ul>
+</li>
+</ul>
+<ul class="simple">
+<li><p>The deprecated <code class="xref py py-mod docutils literal notranslate"><span class="pre">noise.errors.errorutils</span></code> module has been entirely removed
+and no alternatives are available.
+All functions in the module were helper functions meant to be used
+only for implementing functions in <code class="xref py py-mod docutils literal notranslate"><span class="pre">standard_errors</span></code>
+(i.e. they should have been provided as private functions)
+and no longer used in it.</p></li>
+</ul>
+<ul class="simple">
+<li><p>The deprecated <code class="xref py py-mod docutils literal notranslate"><span class="pre">utils.noise_remapper</span></code> have been entirely removed and no alternatives
+are available since the C++ code now automatically truncates and remaps noise models
+if it truncates circuits.</p></li>
+</ul>
+<ul class="simple">
+<li><p>All deprecated functions (<code class="xref py py-func docutils literal notranslate"><span class="pre">pauli_operators()</span></code> and <code class="xref py py-func docutils literal notranslate"><span class="pre">reset_operators()</span></code>)
+and class (<code class="xref py py-class docutils literal notranslate"><span class="pre">NoiseTransformer</span></code>) in <code class="xref py py-mod docutils literal notranslate"><span class="pre">utils.noise_transformation</span></code> module
+have been removed, and no alternatives are available.
+They were in fact private functions/class used only for implementing
+<code class="xref py py-func docutils literal notranslate"><span class="pre">approximate_quantum_error()</span></code> and should not have been public.</p></li>
+</ul>
+<ul class="simple">
+<li><p>The previously deprecated <code class="docutils literal notranslate"><span class="pre">qobj</span></code> argument name of the
+<a class="reference internal" href="stubs/qiskit_aer.AerSimulator.html#qiskit_aer.AerSimulator" title="qiskit_aer.AerSimulator"><code class="xref py py-class docutils literal notranslate"><span class="pre">AerSimulator</span></code></a> and <code class="xref py py-class docutils literal notranslate"><span class="pre">PulseSimulator</span></code> classes’
+<a class="reference internal" href="stubs/qiskit_aer.AerSimulator.html#qiskit_aer.AerSimulator.run" title="qiskit_aer.AerSimulator.run"><code class="xref py py-meth docutils literal notranslate"><span class="pre">run()</span></code></a> method has now been removed. This argument
+name was deprecated as part of the Qiskit Aer 0.8.0 release and has
+been by the <code class="docutils literal notranslate"><span class="pre">circuits</span></code> and <code class="docutils literal notranslate"><span class="pre">schedules</span></code> argument name respectively.</p></li>
+</ul>
+<ul>
+<li><p>Aer’s <code class="docutils literal notranslate"><span class="pre">setup.py</span></code> has been updated to no longer attempt to make calls to <code class="docutils literal notranslate"><span class="pre">pip</span></code> to
+install build requirements, both manually and via the <code class="docutils literal notranslate"><span class="pre">setup_requires</span></code> option in
+<code class="docutils literal notranslate"><span class="pre">setuptools.setup</span></code>.  The preferred way to build Aer is to use a <a class="reference external" href="https://peps.python.org/pep-0517/">PEP 517</a>-compatible
+builder such as:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>pip install .
+</pre></div>
+</div>
+<p>This change means that a direct call to <code class="docutils literal notranslate"><span class="pre">setup.py</span></code> will no longer work if the
+build requirements are not installed.  This is inline with modern Python packaging
+guidelines.</p>
+</li>
+</ul>
+</section>
+<section id="release-notes-0-12-0-deprecation-notes">
+<span id="id15"></span><h3>Deprecation Notes<a class="headerlink" href="#release-notes-0-12-0-deprecation-notes" title="Permalink to this heading">#</a></h3>
+<ul class="simple">
+<li><p>Support for running Qiskit Aer with Python 3.7 support has been deprecated
+and will be removed in a future release. This means
+starting in a future release you will need to upgrade the Python
+version you’re using to Python 3.8 or above.</p></li>
+</ul>
+<ul class="simple">
+<li><p>The <code class="xref py py-class docutils literal notranslate"><span class="pre">PulseSimulator</span></code> backend has been deprecated and will be
+removed in a future release. If you’re using the <code class="xref py py-class docutils literal notranslate"><span class="pre">PulseSimulator</span></code>
+backend to perform pulse level simulation, instead you should use the
+<a class="reference external" href="https://qiskit.org/documentation/dynamics/">Qiskit Dynamics</a> library
+instead to perform the simulation. Qiskit Dynamics provides a more
+flexible and robust pulse level simulation framework than the
+<code class="xref py py-class docutils literal notranslate"><span class="pre">PulseSimulator</span></code> backend.</p></li>
+</ul>
+<ul class="simple">
+<li><p>The <a class="reference internal" href="stubs/qiskit_aer.jobs.AerJob.html#qiskit_aer.jobs.AerJob.qobj" title="qiskit_aer.jobs.AerJob.qobj"><code class="xref py py-meth docutils literal notranslate"><span class="pre">qobj()</span></code></a> method of the <code class="xref py py-class docutils literal notranslate"><span class="pre">AerJob</span></code> class is
+now deprecated and will be removed in a future release. The use of
+the qobj format as input to <a class="reference internal" href="stubs/qiskit_aer.AerSimulator.html#qiskit_aer.AerSimulator.run" title="qiskit_aer.AerSimulator.run"><code class="xref py py-meth docutils literal notranslate"><span class="pre">run()</span></code></a> has been
+deprecated since qiskit-aer 0.9.0 and in most cases this method
+would return <code class="docutils literal notranslate"><span class="pre">None</span></code> now anyway. If you’d like to get the input
+to the <code class="docutils literal notranslate"><span class="pre">run()</span></code> method now you can use the <a class="reference internal" href="stubs/qiskit_aer.jobs.AerJob.html#qiskit_aer.jobs.AerJob.circuits" title="qiskit_aer.jobs.AerJob.circuits"><code class="xref py py-meth docutils literal notranslate"><span class="pre">circuits()</span></code></a>
+method instead, which will return the <code class="xref py py-class docutils literal notranslate"><span class="pre">QuantumCircuit</span></code>
+objects that were simulated in the job.</p></li>
+</ul>
+<ul class="simple">
+<li><p>A <code class="docutils literal notranslate"><span class="pre">warnings</span></code> argument broadly used in several methods and functions
+across <a class="reference internal" href="apidocs/aer_noise.html#module-qiskit_aer.noise" title="qiskit_aer.noise"><code class="xref py py-mod docutils literal notranslate"><span class="pre">noise</span></code></a> module has been deprecated in favor of
+the use of filtering functions in Python’s standard <code class="docutils literal notranslate"><span class="pre">warnings</span></code> library.</p></li>
+</ul>
+</section>
+<section id="release-notes-0-12-0-bug-fixes">
+<span id="id16"></span><h3>Bug Fixes<a class="headerlink" href="#release-notes-0-12-0-bug-fixes" title="Permalink to this heading">#</a></h3>
+<ul class="simple">
+<li><p>Fixed an issue when creating a new <a class="reference internal" href="stubs/qiskit_aer.quantum_info.AerStatevector.html#qiskit_aer.quantum_info.AerStatevector" title="qiskit_aer.quantum_info.AerStatevector"><code class="xref py py-class docutils literal notranslate"><span class="pre">AerStatevector</span></code></a> instance
+from a <code class="docutils literal notranslate"><span class="pre">numpy.ndarray</span></code> that had non-contiguous memory. Previously,
+this would result in unexpected behavior (and a potential error) as
+the <a class="reference internal" href="stubs/qiskit_aer.quantum_info.AerStatevector.html#qiskit_aer.quantum_info.AerStatevector" title="qiskit_aer.quantum_info.AerStatevector"><code class="xref py py-class docutils literal notranslate"><span class="pre">AerStatevector</span></code></a> assumed the input array was contiguous. This
+has been fixed so that memory layout is checked and the <code class="docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>
+will be copied internally as a contiguous array before using it.</p></li>
+</ul>
+<ul class="simple">
+<li><p>Fixed an issue with the <a class="reference internal" href="stubs/qiskit_aer.primitives.Sampler.html#qiskit_aer.primitives.Sampler" title="qiskit_aer.primitives.Sampler"><code class="xref py py-class docutils literal notranslate"><span class="pre">Sampler</span></code></a> class where it would previously
+fail if the input <code class="xref py py-class docutils literal notranslate"><span class="pre">QuantumCircuit</span></code> contained multiple
+multiple classical registers.
+Fixed <a class="reference external" href="https://github.com/Qiskit/qiskit-aer/issues/1679">#1679</a></p></li>
+</ul>
+<ul class="simple">
+<li><p>The bits count of classical register used on the GPU was not set before
+calculating free available memory for chunks that causes infinite loop.
+So this fix set bits count before allocating chunks if batch shots
+execution is enabled.</p></li>
+</ul>
+<ul class="simple">
+<li><p>Fix build errors and test errors when enabling GPU but disabling cuQuantum.</p></li>
+</ul>
+<ul class="simple">
+<li><p>Fixed an issue in the matrix product state simulation method (i.e.
+setting the keyword argument <code class="docutils literal notranslate"><span class="pre">method=&quot;matrix_product_state&quot;</span></code> when
+initializing an <a class="reference internal" href="stubs/qiskit_aer.AerSimulator.html#qiskit_aer.AerSimulator" title="qiskit_aer.AerSimulator"><code class="xref py py-class docutils literal notranslate"><span class="pre">AerSimulator</span></code></a> object) where the simulator
+would incorrectly sort the qubits prior to performing measurment
+potentially resulting in an infinite loop. This has been fixed so
+the measurement of the qubits occurs in the order of the current MPS
+structure and then sorting afterwards as a post-processing step. This also
+will likely improve the performance of the simulation method and enable
+more accurate representation of entangled states.
+Fixed <a class="reference external" href="https://github.com/Qiskit/qiskit-aer/issues/1694">#1694</a></p></li>
+</ul>
+<ul>
+<li><p>The <a class="reference internal" href="stubs/qiskit_aer.AerSimulator.html#qiskit_aer.AerSimulator" title="qiskit_aer.AerSimulator"><code class="xref py py-class docutils literal notranslate"><span class="pre">AerSimulator</span></code></a> backend with methods:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">statevector</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">density_matrix</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">matrix_product_state</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">stabilizer</span></code></p></li>
+</ul>
+<p>now report that they support <code class="docutils literal notranslate"><span class="pre">break_loop</span></code> and <code class="docutils literal notranslate"><span class="pre">continue_loop</span></code> instructions when used
+as backends for the Terra <a class="reference external" href="https://qiskit.org/documentation/apidoc/compiler.html#qiskit.compiler.transpile" title="(in Qiskit v0.45)"><code class="xref py py-func docutils literal notranslate"><span class="pre">transpile()</span></code></a> function.  The simulators
+already did support these, but had just not been reporting it.</p>
+</li>
+</ul>
+</section>
+</section>
+<section id="release-notes-0-11-0">
+<span id="id17"></span><h2>0.11.0<a class="headerlink" href="#release-notes-0-11-0" title="Permalink to this heading">#</a></h2>
+<section id="release-notes-0-11-0-prelude">
+<span id="id18"></span><h3>Prelude<a class="headerlink" href="#release-notes-0-11-0-prelude" title="Permalink to this heading">#</a></h3>
+<p>The Qiskit Aer 0.11.0 release highlights are:</p>
+<ul class="simple">
+<li><p>The migration to a new self-contained Python namespace <code class="docutils literal notranslate"><span class="pre">qiskit_aer</span></code></p></li>
+<li><p>The introduction of the <a class="reference internal" href="stubs/qiskit_aer.quantum_info.AerStatevector.html#qiskit_aer.quantum_info.AerStatevector" title="qiskit_aer.quantum_info.AerStatevector"><code class="xref py py-class docutils literal notranslate"><span class="pre">AerStatevector</span></code></a> class</p></li>
+<li><p>The introduction of Aer implementations of <a class="reference external" href="https://qiskit.org/documentation/apidoc/primitives.html#module-qiskit.primitives" title="(in Qiskit v0.45)"><code class="xref py py-mod docutils literal notranslate"><span class="pre">primitives</span></code></a>,
+<a class="reference internal" href="stubs/qiskit_aer.primitives.Sampler.html#qiskit_aer.primitives.Sampler" title="qiskit_aer.primitives.Sampler"><code class="xref py py-class docutils literal notranslate"><span class="pre">Sampler</span></code></a> and <a class="reference internal" href="stubs/qiskit_aer.primitives.Estimator.html#qiskit_aer.primitives.Estimator" title="qiskit_aer.primitives.Estimator"><code class="xref py py-class docutils literal notranslate"><span class="pre">Estimator</span></code></a></p></li>
+<li><p>Introduction of support for running with <a class="reference external" href="https://developer.nvidia.com/cuquantum-sdk">cuQuantum</a></p></li>
+</ul>
+</section>
+<section id="release-notes-0-11-0-new-features">
+<span id="id19"></span><h3>New Features<a class="headerlink" href="#release-notes-0-11-0-new-features" title="Permalink to this heading">#</a></h3>
+<ul class="simple">
+<li><p>Added support for <code class="xref py py-class docutils literal notranslate"><span class="pre">BackendV2</span></code> to
+<a class="reference internal" href="stubs/qiskit_aer.noise.NoiseModel.html#qiskit_aer.noise.NoiseModel.from_backend" title="qiskit_aer.noise.NoiseModel.from_backend"><code class="xref py py-meth docutils literal notranslate"><span class="pre">from_backend()</span></code></a>.
+Now it can generate a <a class="reference internal" href="stubs/qiskit_aer.noise.NoiseModel.html#qiskit_aer.noise.NoiseModel" title="qiskit_aer.noise.NoiseModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">NoiseModel</span></code></a> object from an
+input <code class="xref py py-class docutils literal notranslate"><span class="pre">BackendV2</span></code> instance. When a <code class="xref py py-class docutils literal notranslate"><span class="pre">BackendV2</span></code>
+input is used on <a class="reference internal" href="stubs/qiskit_aer.noise.NoiseModel.html#qiskit_aer.noise.NoiseModel.from_backend" title="qiskit_aer.noise.NoiseModel.from_backend"><code class="xref py py-meth docutils literal notranslate"><span class="pre">from_backend()</span></code></a> the two deprecated
+options, <code class="docutils literal notranslate"><span class="pre">standard_gates</span></code> and <code class="docutils literal notranslate"><span class="pre">warnings</span></code>, are gracefully ignored.</p></li>
+</ul>
+<ul class="simple">
+<li><p>Added Aer implementation of <a class="reference external" href="https://qiskit.org/documentation/apidoc/primitives.html#module-qiskit.primitives" title="(in Qiskit v0.45)"><code class="xref py py-mod docutils literal notranslate"><span class="pre">primitives</span></code></a>,
+<a class="reference internal" href="stubs/qiskit_aer.primitives.Sampler.html#qiskit_aer.primitives.Sampler" title="qiskit_aer.primitives.Sampler"><code class="xref py py-class docutils literal notranslate"><span class="pre">Sampler</span></code></a> and <code class="xref py py-class docutils literal notranslate"><span class="pre">BaseSampler</span></code> and
+<a class="reference external" href="https://qiskit.org/documentation/stubs/qiskit.primitives.BaseEstimator.html#qiskit.primitives.BaseEstimator" title="(in Qiskit v0.45)"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseEstimator</span></code></a> interfaces leverage qiskit aer to
+efficiently perform the computation of the primitive operations. You can
+refer to the <a class="reference external" href="https://qiskit.org/documentation/apidoc/primitives.html#module-qiskit.primitives" title="(in Qiskit v0.45)"><code class="xref py py-mod docutils literal notranslate"><span class="pre">qiskit.primitives</span></code></a> docs for a more detailed description
+of the primitives API.</p></li>
+</ul>
+<ul class="simple">
+<li><p>Added a shared library to Qiskit Aer that allows external programs to use
+Aer’s simulation methods. This is an experimental feature and its API
+may be changed without the deprecation period.</p></li>
+</ul>
+<ul class="simple">
+<li><p>Added support for M1 macOS systems. Precompiled binaries for supported
+Python versions &gt;=3.8 on arm64 macOS will now be published on PyPI for this
+and future releases.</p></li>
+</ul>
+<ul class="simple">
+<li><p>Added support for cuQuantum, NVIDIA’s APIs for quantum computing,
+to accelerate statevector, density matrix and unitary simulators
+by using GPUs.
+This is experiemental implementation for cuQuantum Beta 2. (0.1.0)
+cuStateVec APIs are enabled to accelerate instead of Aer’s implementations
+by building Aer by setting path of cuQuantum to <code class="docutils literal notranslate"><span class="pre">CUSTATEVEC_ROOT</span></code>.
+(binary distribution is not available currently.)
+cuStateVector is enabled by setting <code class="docutils literal notranslate"><span class="pre">device='GPU'</span></code> and 
+<code class="docutils literal notranslate"><span class="pre">cuStateVec_threshold</span></code> options. cuStateVec is enabled when number of
+qubits of input circuit is equal or greater than <code class="docutils literal notranslate"><span class="pre">cuStateVec_threshold</span></code>.</p></li>
+</ul>
+<ul class="simple">
+<li><p>Added partial support for running on ppc64le and s390x Linux platforms.
+This release will start publishing pre-compiled binaries for ppc64le and
+s390x Linux platforms on all Python versions. However, unlike other
+supported platforms not all of Qiskit’s upstream dependencies support these
+platforms yet. So a C/C++ compiler may be required to build and install
+these dependencies and a simple <code class="docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">qiskit-aer</span></code> with just a
+working Python environment will not be sufficient to install Qiskit Aer.
+Additionally, these same constraints prevent us from testing the
+pre-compiled wheels before publishing them, so the same guarantees around
+platform support that exist for the other platforms don’t apply to these
+platforms.</p></li>
+</ul>
+<ul>
+<li><p>Allow initialization with a label, that consists of <code class="docutils literal notranslate"><span class="pre">+-rl</span></code>. Now the following
+code works:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">qiskit</span>
+<span class="kn">from</span> <span class="nn">qiskit_aer</span> <span class="kn">import</span> <span class="n">AerSimulator</span>
+
+<span class="n">qc</span> <span class="o">=</span> <span class="n">qiskit</span><span class="o">.</span><span class="n">QuantumCircuit</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span>
+<span class="n">qc</span><span class="o">.</span><span class="n">initialize</span><span class="p">(</span><span class="s1">&#39;+-rl&#39;</span><span class="p">)</span>
+<span class="n">qc</span><span class="o">.</span><span class="n">save_statevector</span><span class="p">()</span>
+
+<span class="n">AerSimulator</span><span class="p">(</span><span class="n">method</span><span class="o">=</span><span class="s2">&quot;statevector&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">qc</span><span class="p">)</span>
+</pre></div>
+</div>
+</li>
+</ul>
+</section>
+<section id="release-notes-0-11-0-known-issues">
+<span id="id20"></span><h3>Known Issues<a class="headerlink" href="#release-notes-0-11-0-known-issues" title="Permalink to this heading">#</a></h3>
+<ul class="simple">
+<li><p>When running on Linux s390x platforms (or other big endian platforms)
+running circuits that contain <code class="xref py py-class docutils literal notranslate"><span class="pre">UnitaryGate</span></code> operations will not
+work because of an endianess bug.
+See <a class="reference external" href="https://github.com/Qiskit/qiskit-aer/issues/1506">#1506</a> for more
+details.</p></li>
+</ul>
+</section>
+<section id="release-notes-0-11-0-upgrade-notes">
+<span id="id21"></span><h3>Upgrade Notes<a class="headerlink" href="#release-notes-0-11-0-upgrade-notes" title="Permalink to this heading">#</a></h3>
+<ul class="simple">
+<li><p>MPI parallelization for large number of qubits is optimized to apply
+multiple chunk-swaps as all-to-all communication that can decrease
+data size exchanged over MPI processes. This upgrade improve scalability
+of parallelization.</p></li>
+</ul>
+<ul>
+<li><p>Set default <code class="docutils literal notranslate"><span class="pre">fusion_max_qubit</span></code> and <code class="docutils literal notranslate"><span class="pre">fusion_threshold</span></code> depending on the configured
+<code class="docutils literal notranslate"><span class="pre">method</span></code> for <code class="xref py py-class docutils literal notranslate"><span class="pre">AerSimulator</span></code>. Previously, the default values of
+<code class="docutils literal notranslate"><span class="pre">fusion_max_qubit</span></code> and <code class="docutils literal notranslate"><span class="pre">fusion_threshold</span></code> were <code class="docutils literal notranslate"><span class="pre">5</span></code> and <code class="docutils literal notranslate"><span class="pre">14</span></code> respectively for
+all simulation methods. However, their optimal values depend on running methods. If you
+depended on the previous defaults you can explicitly set <code class="docutils literal notranslate"><span class="pre">fusion_max_qubit=5</span></code> or
+<code class="docutils literal notranslate"><span class="pre">fusion_threshold=14</span></code> to retain the previous default behavior. For example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">qiskit_aer</span> <span class="kn">import</span> <span class="n">AerSimulator</span>
+
+<span class="n">sim</span> <span class="o">=</span> <span class="n">AerSimulator</span><span class="p">(</span><span class="n">method</span><span class="o">=</span><span class="s1">&#39;mps&#39;</span><span class="p">,</span> <span class="n">fusion_max_qubit</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">fusion_threshold</span><span class="o">=</span><span class="mi">14</span><span class="p">)</span>
+</pre></div>
+</div>
+</li>
+</ul>
+<ul class="simple">
+<li><p>This is update to support cuQuantum 22.5.0.41 including bug fix of
+thread safety in some cuStateVec APIs. Now Qiskit Aer turns on
+multi-threading for multi-shots and multi-chunk parallelization
+when enabling cuStateVec.</p></li>
+</ul>
+<ul class="simple">
+<li><p>Running qiskit-aer with Python 3.6 is no longer supported. Python &gt;= 3.7
+is now required to install and run qiskit-aer.</p></li>
+</ul>
+<ul class="simple">
+<li><p>The <code class="docutils literal notranslate"><span class="pre">qiskit-aer</span></code> Python package has moved to be a self-contained
+namespace, <code class="docutils literal notranslate"><span class="pre">qiskit_aer</span></code>. Previously, it shared
+a namespace with <code class="docutils literal notranslate"><span class="pre">qiskit-terra</span></code> by being <code class="docutils literal notranslate"><span class="pre">qiskit.providers.aer</span></code>.
+<a class="reference external" href="https://github.com/Qiskit/qiskit/issues/559">This was problematic for several reasons</a>,
+and this release moves away from it. For the time being <code class="docutils literal notranslate"><span class="pre">import</span> <span class="pre">qiskit.providers.aer</span></code>
+will continue to work and redirect to <code class="docutils literal notranslate"><span class="pre">qiskit_aer</span></code> automatically. Imports from the legacy
+<code class="docutils literal notranslate"><span class="pre">qiskit.provider.aer</span></code> namespace will emit a <code class="docutils literal notranslate"><span class="pre">DeprecationWarning</span></code> in the
+future. To avoid any potential issues starting with this release,
+updating all imports from <code class="docutils literal notranslate"><span class="pre">qiskit.providers.aer</span></code> to <code class="docutils literal notranslate"><span class="pre">qiskit_aer</span></code> and
+from <code class="docutils literal notranslate"><span class="pre">qiskit.Aer</span></code> to <code class="docutils literal notranslate"><span class="pre">qiskit_aer.Aer</span></code> is recommended.</p></li>
+</ul>
+<ul class="simple">
+<li><p>Removed snapshot instructions (such as <code class="docutils literal notranslate"><span class="pre">SnapshotStatevector</span></code>) which were deprecated since 0.9.0.
+Applications that use these instructions need to be modified to use corresponding save
+instructions (such as <a class="reference internal" href="stubs/qiskit_aer.library.SaveStatevector.html#qiskit_aer.library.SaveStatevector" title="qiskit_aer.library.SaveStatevector"><code class="xref py py-class docutils literal notranslate"><span class="pre">SaveStatevector</span></code></a>).</p></li>
+</ul>
+<ul class="simple">
+<li><p>Removed the <code class="docutils literal notranslate"><span class="pre">qiskit_aer.extensions</span></code> module completely.  With the removal of
+the snapshot instructions, this module has become empty and no longer serves
+a purpose.</p></li>
+</ul>
+<ul class="simple">
+<li><p>The required version of Qiskit Terra has been bumped to 0.20.0.</p></li>
+</ul>
+</section>
+<section id="release-notes-0-11-0-bug-fixes">
+<span id="id22"></span><h3>Bug Fixes<a class="headerlink" href="#release-notes-0-11-0-bug-fixes" title="Permalink to this heading">#</a></h3>
+<ul class="simple">
+<li><p>Fixes for MPI chunk distribution. Including fix for global indexing
+for Thrust implementations, fix for cache blocking of non-gate operations.
+Also savestatevector returns same statevector to all processes
+(only 1st process received statevector previously.)</p></li>
+</ul>
+<ul class="simple">
+<li><p>Handles a multiplexer gate as a unitary gate if it has no control qubits.
+Previously, if a multiplexer gate does not have control qubits, quantum state
+was not updated.</p></li>
+</ul>
+<ul>
+<li><p>Fixes a bug in <a class="reference internal" href="stubs/qiskit_aer.noise.RelaxationNoisePass.html#qiskit_aer.noise.RelaxationNoisePass" title="qiskit_aer.noise.RelaxationNoisePass"><code class="xref py py-class docutils literal notranslate"><span class="pre">RelaxationNoisePass</span></code></a> where instruction durations
+were always assumed to be in <em>dt</em> time units, regardless of the actual
+unit of the isntruction. Now unit conversion is correctly handled for
+all instruction duration units.</p>
+<p>See <a class="reference external" href="https://github.com/Qiskit/qiskit-aer/issues/1453">#1453</a>
+for details.</p>
+</li>
+</ul>
+<ul>
+<li><p>Fixed simulation of <code class="docutils literal notranslate"><span class="pre">for</span></code> loops where the loop parameter was not used in
+the body of the loop.  For example, previously this code would fail, but
+will now succeed:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">qiskit</span>
+<span class="kn">from</span> <span class="nn">qiskit_aer</span> <span class="kn">import</span> <span class="n">AerSimulator</span>
+
+<span class="n">qc</span> <span class="o">=</span> <span class="n">qiskit</span><span class="o">.</span><span class="n">QuantumCircuit</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+<span class="k">with</span> <span class="n">qc</span><span class="o">.</span><span class="n">for_loop</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">4</span><span class="p">))</span> <span class="k">as</span> <span class="n">i</span><span class="p">:</span>
+    <span class="n">qc</span><span class="o">.</span><span class="n">h</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+    <span class="n">qc</span><span class="o">.</span><span class="n">cx</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+
+<span class="n">AerSimulator</span><span class="p">(</span><span class="n">method</span><span class="o">=</span><span class="s2">&quot;statevector&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">qc</span><span class="p">)</span>
+</pre></div>
+</div>
+</li>
+</ul>
+<ul>
+<li><p>Fixes a bug in <code class="docutils literal notranslate"><span class="pre">NoiseModel.from_backend()</span></code> that raised an error when
+T2 value greater than 2 * T1 was supplied by the backend.
+After this fix, it becomes to truncate T2 value up to 2 * T1 and
+issue a user warning if truncates.
+The bug was introduced at #1391 and, before that, <code class="docutils literal notranslate"><span class="pre">NoiseModel.from_backend()</span></code> had
+truncated the T2 value up to 2 * T1 silently.</p>
+<p>See <a class="reference external" href="https://github.com/Qiskit/qiskit-aer/issues/1464">Issue 1464</a>
+for details.</p>
+</li>
+</ul>
+<ul class="simple">
+<li><p>Fix performance regression in noisy simulations due to large increase in
+serialization overhead for loading noise models from Python into C++
+resulting from unintended nested Python multiprocessing calls.
+See <a class="reference external" href="https://github.com/Qiskit/qiskit-aer/issues/1407">issue 1407</a>
+for details.</p></li>
+</ul>
+<ul class="simple">
+<li><p>This is the fix for Issue #1557. Different seed numbers are generated for
+each process if <cite>seed_simulator</cite> option is not set. This fix average seed
+set in Circuit for all processes to use the same seed number.</p></li>
+</ul>
+<ul class="simple">
+<li><p>This is a fix of MPI parallelization for multi-chunk parallelization and
+multi-shot distribution over parallel processes. There were missing
+distribution configuration that prevents MPI distribution, is now fixed.</p></li>
+</ul>
+<ul class="simple">
+<li><p>This is fix for cache blocking transpiler and chunk parallelization for
+GPUs or MPI. This fix fixes issue with qubits which has many control or
+target qubits (&gt; blocking_qubits). From this fix, only target qubits of
+the multi-controlled gate is cache blocked in blocking_qubits.
+But it does not support case if number of target qubits is still larger
+than blocking_qubits (i.e. large unitary matrix multiplication)</p></li>
+</ul>
+<ul>
+<li><p>Fixes a bug in <a class="reference internal" href="stubs/qiskit_aer.noise.QuantumError.html#qiskit_aer.noise.QuantumError.to_dict" title="qiskit_aer.noise.QuantumError.to_dict"><code class="xref py py-meth docutils literal notranslate"><span class="pre">QuantumError.to_dict()</span></code></a> where N-qubit circuit
+instructions where the assembled instruction always applied to
+qubits <code class="docutils literal notranslate"><span class="pre">[0,</span> <span class="pre">...,</span> <span class="pre">N-1]</span></code> rather than the instruction qubits. This
+bug also affected device and fake backend noise models.</p>
+<p>See <a class="reference external" href="https://github.com/Qiskit/qiskit-aer/issues/1415">Issue 1415</a>
+for details.</p>
+</li>
+</ul>
+<ul class="simple">
+<li><p>Because a seed was randomly assigned to each circuit if seed_simulator is not set,
+multi-circuit simulation was not reproducible with another multi-circuit simulation.
+Users needed to run multiple single-circuit simulation with the seed_simulator which
+is randomly assigned in the multi-circuit simulation. This fix allows users to reproduce
+multi-circuit simulation with another multi-circuit simulation by setting seed_simulator
+of the first circuit in the first multi-circuit simulation. This fix also resolve an
+issue reported in <a class="reference external" href="https://github.com/Qiskit/qiskit-aer/issues/1511">https://github.com/Qiskit/qiskit-aer/issues/1511</a>, where simulation
+with parameter-binds returns identical results for each circuit instance.</p></li>
+</ul>
+<ul class="simple">
+<li><p>Fix performance issue in multi-shots batched optimization for GPU when
+using Pauli noise. This fix allows multi-threading to runtime noise
+sampling, and uses nested OpenMP parallelization when using multiple GPUs.
+This is fix for
+<cite>issue 1473 &lt;https://github.com/Qiskit/qiskit-aer/issues/1473&gt;</cite></p></li>
+</ul>
+<ul class="simple">
+<li><p>This is the fix for cuStateVec support, fix for build error
+because of specification change of some APIs of cuStateVec
+from cuQuantum version 0.40.</p></li>
+</ul>
+</section>
+</section>
+<section id="release-notes-0-10-0">
+<span id="id23"></span><h2>0.10.0<a class="headerlink" href="#release-notes-0-10-0" title="Permalink to this heading">#</a></h2>
+<section id="release-notes-0-10-0-prelude">
+<span id="id24"></span><h3>Prelude<a class="headerlink" href="#release-notes-0-10-0-prelude" title="Permalink to this heading">#</a></h3>
+<p>The Qiskit Aer 0.10 release includes several performance and noise model
+improvements. Some highlights are:</p>
+<ul class="simple">
+<li><p>Improved performance for parallel shot GPU and HPC simulations</p></li>
+<li><p>Support for simulation of circuits containing QASM 3.0 control-flow instructions</p></li>
+<li><p>Support for relaxation noise on scheduled circuits in backend noise models</p></li>
+<li><p>Support of user-created transpiler passes for defining custom gate errors and
+noise models, and inserting them into circuits.</p></li>
+</ul>
+</section>
+<section id="release-notes-0-10-0-new-features">
+<span id="id25"></span><h3>New Features<a class="headerlink" href="#release-notes-0-10-0-new-features" title="Permalink to this heading">#</a></h3>
+<ul class="simple">
+<li><p>Added support of QASM 3.0 control-flow instructions introduced in Qiskit-Terra
+0.19.0. Supported instructions are <a class="reference external" href="https://qiskit.org/documentation/stubs/qiskit.circuit.ForLoopOp.html#qiskit.circuit.ForLoopOp" title="(in Qiskit v0.45)"><code class="xref py py-class docutils literal notranslate"><span class="pre">ForLoopOp</span></code></a>,
+<a class="reference external" href="https://qiskit.org/documentation/stubs/qiskit.circuit.WhileLoopOp.html#qiskit.circuit.WhileLoopOp" title="(in Qiskit v0.45)"><code class="xref py py-class docutils literal notranslate"><span class="pre">WhileLoopOp</span></code></a>, <a class="reference external" href="https://qiskit.org/documentation/stubs/qiskit.circuit.ContinueLoopOp.html#qiskit.circuit.ContinueLoopOp" title="(in Qiskit v0.45)"><code class="xref py py-class docutils literal notranslate"><span class="pre">ContinueLoopOp</span></code></a>,
+<a class="reference external" href="https://qiskit.org/documentation/stubs/qiskit.circuit.BreakLoopOp.html#qiskit.circuit.BreakLoopOp" title="(in Qiskit v0.45)"><code class="xref py py-class docutils literal notranslate"><span class="pre">BreakLoopOp</span></code></a>, <a class="reference external" href="https://qiskit.org/documentation/stubs/qiskit.circuit.IfElseOp.html#qiskit.circuit.IfElseOp" title="(in Qiskit v0.45)"><code class="xref py py-class docutils literal notranslate"><span class="pre">IfElseOp</span></code></a>.</p></li>
+</ul>
+<ul>
+<li><p>Added a batched-shot simulation optimization for GPU simulations. This
+optional feature will use available memory on 1 or more GPUs to run multiple
+simulation shots in parallel for greatly improved performance on
+multi-shot simulations with noise models and/or intermediate measurements.</p>
+<p>This option is enabled by default when using <code class="docutils literal notranslate"><span class="pre">device=&quot;GPU&quot;</span></code> and a
+simulation <code class="docutils literal notranslate"><span class="pre">method</span></code> of either <code class="docutils literal notranslate"><span class="pre">&quot;statevector&quot;</span></code> or <code class="docutils literal notranslate"><span class="pre">&quot;density_matrix&quot;</span></code>
+with the <code class="xref py py-class docutils literal notranslate"><span class="pre">AerSimulator</span></code>.  It can be disabled by
+setting <code class="docutils literal notranslate"><span class="pre">batched_shots_gpu=False</span></code> in the simulator options.</p>
+<p>This optimization is most beneficial for small to medium numbers of qubits
+where there is sufficient GPU memory to run multiple simulations in
+parallel. The maximum number of active circuit qubits for enabling this
+optimization can be configured using the <code class="docutils literal notranslate"><span class="pre">batch_shots_gpu_max_qubits</span></code>
+simulator option. The default value of this option is 16.</p>
+</li>
+</ul>
+<ul>
+<li><p>Added the new <code class="docutils literal notranslate"><span class="pre">max_shot_size</span></code> option to a custom executor for
+running multiple shots of a noisy circuit in parallel.</p>
+<p>For example configuring <code class="docutils literal notranslate"><span class="pre">max_shot_size</span></code> with a custom executor:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">backend</span> <span class="o">=</span> <span class="n">AerSimulator</span><span class="p">(</span>
+   <span class="n">max_shot_size</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">max_job_size</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">executor</span><span class="o">=</span><span class="n">custom_executor</span><span class="p">)</span>
+<span class="n">job</span> <span class="o">=</span> <span class="n">backend</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">circuits</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>will split the shots of a noisy circuit into multiple circuits.
+After all individual shots have finished executing, the job results
+are automatically combined into a single <a class="reference external" href="https://qiskit.org/documentation/stubs/qiskit.result.Result.html#qiskit.result.Result" title="(in Qiskit v0.45)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Result</span></code></a>
+object that is returned by <code class="docutils literal notranslate"><span class="pre">job.result()</span></code>.</p>
+</li>
+</ul>
+<ul class="simple">
+<li><p>Added the <code class="docutils literal notranslate"><span class="pre">mps_swap_direction</span></code> simulator option that allows the user to determine
+the direction of internal swaps, when they are inserted for a
+2-qubit gate. Possible values are <code class="docutils literal notranslate"><span class="pre">&quot;mps_swap_right&quot;</span></code> and <code class="docutils literal notranslate"><span class="pre">&quot;mps_swap_left&quot;</span></code>.
+The direction of the swaps may affect performance, depending on the circuit.</p></li>
+</ul>
+<ul class="simple">
+<li><p>Implemented a new measurement sampling optimization for the
+<code class="docutils literal notranslate"><span class="pre">&quot;matrix_product_state&quot;</span></code> simulation method of the
+<code class="xref py py-class docutils literal notranslate"><span class="pre">AerSimulator</span></code>. Currently this algorithm
+is used only when all qubits are measured and when the simulator
+<code class="docutils literal notranslate"><span class="pre">mps_sample_measure_algorithm</span></code> simulator option is set to <code class="docutils literal notranslate"><span class="pre">&quot;mps_probabilities&quot;</span></code>.</p></li>
+</ul>
+<ul class="simple">
+<li><p>Improved the performance of the measure instruction for the <code class="docutils literal notranslate"><span class="pre">&quot;matrix_product_state&quot;</span></code>
+simulation method of the <code class="xref py py-class docutils literal notranslate"><span class="pre">AerSimulator</span></code>.</p></li>
+</ul>
+<ul>
+<li><p>Added a <code class="xref py py-class docutils literal notranslate"><span class="pre">SaveClifford</span></code> instruction for
+saving the state of the stabilizer simulation method as a
+<a class="reference external" href="https://qiskit.org/documentation/stubs/qiskit.quantum_info.Clifford.html#qiskit.quantum_info.Clifford" title="(in Qiskit v0.45)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Clifford</span></code></a> object.</p>
+<p>Note that this instruction is essentially equivalent to the
+<code class="xref py py-class docutils literal notranslate"><span class="pre">SaveStabilizer</span></code> instruction, however
+that instruction will return the saved state as a
+<a class="reference external" href="https://qiskit.org/documentation/stubs/qiskit.quantum_info.StabilizerState.html#qiskit.quantum_info.StabilizerState" title="(in Qiskit v0.45)"><code class="xref py py-class docutils literal notranslate"><span class="pre">StabilizerState</span></code></a> object instead of a
+<a class="reference external" href="https://qiskit.org/documentation/stubs/qiskit.quantum_info.Clifford.html#qiskit.quantum_info.Clifford" title="(in Qiskit v0.45)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Clifford</span></code></a> object.</p>
+</li>
+</ul>
+<ul>
+<li><p>Added two transpiler passes for inserting instruction-dependent quantum
+errors into circuits:</p>
+<ul class="simple">
+<li><p><code class="xref py py-class docutils literal notranslate"><span class="pre">qiskit.providers.aer.noise.LocalNoisePass</span></code></p></li>
+<li><p><code class="xref py py-class docutils literal notranslate"><span class="pre">qiskit.providers.aer.noise.RelaxationNoisePass</span></code></p></li>
+</ul>
+<p>The <code class="xref py py-class docutils literal notranslate"><span class="pre">LocalNoisePass</span></code> pass can
+be used to implement custom parameterized noise models by defining a
+noise generating function of the form</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">fn</span><span class="p">(</span>
+    <span class="n">inst</span><span class="p">:</span> <span class="n">Instruction</span><span class="p">,</span>
+    <span class="n">qubits</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">InstructionLike</span>
+</pre></div>
+</div>
+<p>which returns a noise instruction (eg. a <a class="reference internal" href="stubs/qiskit_aer.noise.QuantumError.html#qiskit_aer.noise.QuantumError" title="qiskit_aer.noise.QuantumError"><code class="xref py py-class docutils literal notranslate"><span class="pre">QuantumError</span></code></a> or other instruction)
+that can depend on any properties or parameters of the instruction and
+qubit arguements.</p>
+<p>This function can be applied to all instructions in a circuit, or a
+specified subset (See the
+<code class="xref py py-class docutils literal notranslate"><span class="pre">LocalNoisePass</span></code> documentation
+for additional details.)</p>
+<p>The <code class="xref py py-class docutils literal notranslate"><span class="pre">RelaxationNoisePass</span></code>
+is a special case of the
+<code class="xref py py-class docutils literal notranslate"><span class="pre">LocalNoisePass</span></code> using a
+predefined noise function that returns a tensor product of
+<code class="xref py py-func docutils literal notranslate"><span class="pre">thermal_relaxation_error()</span></code> on each
+qubit in an instruction, dependent on the instruction’s duration and
+the supplied relaxation time constant parameters of the pass.</p>
+</li>
+</ul>
+<ul>
+<li><p>The basic device noise model implemented by
+<a class="reference internal" href="stubs/qiskit_aer.noise.NoiseModel.html#qiskit_aer.noise.NoiseModel.from_backend" title="qiskit_aer.noise.NoiseModel.from_backend"><code class="xref py py-meth docutils literal notranslate"><span class="pre">NoiseModel.from_backend()</span></code></a> and
+<a class="reference internal" href="stubs/qiskit_aer.AerSimulator.html#qiskit_aer.AerSimulator.from_backend" title="qiskit_aer.AerSimulator.from_backend"><code class="xref py py-meth docutils literal notranslate"><span class="pre">AerSimulator.from_backend()</span></code></a> has been
+upgraded to allow adding duration-dependent relaxation errors on
+circuit delay gates using the
+<code class="xref py py-class docutils literal notranslate"><span class="pre">RelaxationNoisePass</span></code>.</p>
+<p>To enable this noise when running noisy simulations you must first
+schedule your circuit to insert scheduled delay instructions as
+follows:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">backend</span> <span class="o">=</span> <span class="n">AerSimulator</span><span class="o">.</span><span class="n">from_backend</span><span class="p">(</span><span class="n">ibmq_backend</span><span class="p">)</span>
+<span class="n">scheduled_circuit</span> <span class="o">=</span> <span class="n">qiskit</span><span class="o">.</span><span class="n">transpile</span><span class="p">(</span>
+    <span class="n">circuit</span><span class="p">,</span> <span class="n">backend</span><span class="o">=</span><span class="n">backend</span><span class="p">,</span> <span class="n">scheduling_method</span><span class="o">=</span><span class="s1">&#39;asap&#39;</span><span class="p">)</span>
+<span class="n">result</span> <span class="o">=</span> <span class="n">backend</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">scheduled_circuit</span><span class="p">)</span><span class="o">.</span><span class="n">result</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>If the circuit is transpiled without being scheduled (and also
+contains no delay instructions) the noisy simulation will not include
+the effect of delay relaxation errors. In this case the simulation
+will be equivalent to the previous qiskit-aer 0.9 simulation where
+relaxation noise is only added to gate instructions based on their
+duration as obtained from the backend properties.</p>
+</li>
+</ul>
+<ul>
+<li><p>The constructor of <code class="xref py py-class docutils literal notranslate"><span class="pre">QuantumError</span></code> now
+accepts several new types of input as <code class="docutils literal notranslate"><span class="pre">noise_ops</span></code> argument, for example:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">from</span> <span class="nn">qiskit</span> <span class="kn">import</span> <span class="n">QuantumCircuit</span>
+<span class="kn">from</span> <span class="nn">qiskit.circuit.library</span> <span class="kn">import</span> <span class="n">IGate</span><span class="p">,</span> <span class="n">XGate</span><span class="p">,</span> <span class="n">Reset</span>
+<span class="kn">from</span> <span class="nn">qiskit.quantum_info</span> <span class="kn">import</span> <span class="n">Kraus</span>
+<span class="kn">from</span> <span class="nn">qiskit.providers.aer.noise</span> <span class="kn">import</span> <span class="n">QuantumError</span>
+
+<span class="c1"># Quantum channels</span>
+<span class="n">kraus</span> <span class="o">=</span> <span class="n">Kraus</span><span class="p">([</span>
+    <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="mf">0.9</span><span class="p">)]],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">complex</span><span class="p">),</span>
+    <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mf">0.9</span><span class="p">)]],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">complex</span><span class="p">)</span>
+<span class="p">])</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">QuantumError</span><span class="p">(</span><span class="n">kraus</span><span class="p">))</span>
+
+<span class="c1"># Construction from a QuantumCircuit</span>
+<span class="n">qc</span> <span class="o">=</span> <span class="n">QuantumCircuit</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+<span class="n">qc</span><span class="o">.</span><span class="n">h</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+<span class="n">qc</span><span class="o">.</span><span class="n">cx</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+<span class="n">error</span> <span class="o">=</span> <span class="n">QuantumError</span><span class="p">(</span><span class="n">qc</span><span class="p">)</span>
+
+<span class="c1"># Construction from a tuple of (Instruction, List[int]), where the list of</span>
+<span class="c1"># integers represents the qubits.</span>
+<span class="n">error</span> <span class="o">=</span> <span class="n">QuantumError</span><span class="p">((</span><span class="n">Reset</span><span class="p">(),</span> <span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
+
+<span class="c1"># Construction from an iterable of objects in the same form as above, but</span>
+<span class="c1"># where each also has an associated probability.</span>
+<span class="n">error</span> <span class="o">=</span> <span class="n">QuantumError</span><span class="p">([</span>
+    <span class="p">((</span><span class="n">IGate</span><span class="p">(),</span> <span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="mf">0.9</span><span class="p">),</span>
+    <span class="p">((</span><span class="n">XGate</span><span class="p">(),</span> <span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="mf">0.1</span><span class="p">),</span>
+<span class="p">])</span>
+
+<span class="c1"># A short-hand for the iterable form above, where the qubits are implicit,</span>
+<span class="c1"># and each instruction is over all qubits.</span>
+<span class="n">error</span> <span class="o">=</span> <span class="n">QuantumError</span><span class="p">([(</span><span class="n">IGate</span><span class="p">(),</span> <span class="mf">0.9</span><span class="p">),</span> <span class="p">(</span><span class="n">XGate</span><span class="p">(),</span> <span class="mf">0.1</span><span class="p">)])</span>
+</pre></div>
+</div>
+<p>Note that the original JSON-based input format is deperecated.</p>
+</li>
+</ul>
+<ul class="simple">
+<li><p>Added a utility function <code class="xref py py-func docutils literal notranslate"><span class="pre">qiskit.providers.aer.utils.transform_noise_model()</span></code>
+for constructing a noise model by applying a supplied function to all
+<code class="xref py py-class docutils literal notranslate"><span class="pre">QuantumError</span></code>s in the noise model.</p></li>
+</ul>
+<ul class="simple">
+<li><p>Added two utility functions
+<code class="xref py py-func docutils literal notranslate"><span class="pre">qiskit.providers.aer.utils.transpile_quantum_error()</span></code> and
+<code class="xref py py-func docutils literal notranslate"><span class="pre">qiskit.providers.aer.utils.transpile_noise_model()</span></code> for transpiling
+the circuits contained in <code class="xref py py-class docutils literal notranslate"><span class="pre">QuantumError</span></code>,
+and all errors in a <code class="xref py py-class docutils literal notranslate"><span class="pre">NoiseModel</span></code>.</p></li>
+</ul>
+<ul>
+<li><p>Added the ability to add <code class="xref py py-class docutils literal notranslate"><span class="pre">QuantumError</span></code>
+objects directly to a <code class="xref py py-class docutils literal notranslate"><span class="pre">QuantumCircuit</span></code> without converting
+to a <a class="reference external" href="https://qiskit.org/documentation/stubs/qiskit.quantum_info.Kraus.html#qiskit.quantum_info.Kraus" title="(in Qiskit v0.45)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Kraus</span></code></a> instruction.</p>
+<p>Circuits containing quantum errors can now be run on the
+<code class="xref py py-class docutils literal notranslate"><span class="pre">AerSimulator</span></code> and
+<code class="xref py py-class docutils literal notranslate"><span class="pre">QasmSimulator</span></code> simulators as an alternative
+to, or in addition to, building a
+<code class="xref py py-class docutils literal notranslate"><span class="pre">NoiseModel</span></code> for defining noisy circuit
+instructions.</p>
+<p>Example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">qiskit</span> <span class="kn">import</span> <span class="n">QuantumCircuit</span>
+<span class="kn">from</span> <span class="nn">qiskit.providers.aer</span> <span class="kn">import</span> <span class="n">AerSimulator</span>
+<span class="kn">from</span> <span class="nn">qiskit.providers.aer.noise</span> <span class="kn">import</span> <span class="n">pauli_error</span>
+
+<span class="n">error_h</span> <span class="o">=</span> <span class="n">pauli_error</span><span class="p">([(</span><span class="s1">&#39;I&#39;</span><span class="p">,</span> <span class="mf">0.95</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;X&#39;</span><span class="p">,</span> <span class="mf">0.05</span><span class="p">)])</span>
+<span class="n">error_cx</span> <span class="o">=</span> <span class="n">pauli_error</span><span class="p">([(</span><span class="s1">&#39;II&#39;</span><span class="p">,</span> <span class="mf">0.9</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;XX&#39;</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">)])</span>
+
+<span class="n">qc</span> <span class="o">=</span> <span class="n">QuantumCircuit</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
+<span class="n">qc</span><span class="o">.</span><span class="n">h</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+<span class="n">qc</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">error_h</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+<span class="n">qc</span><span class="o">.</span><span class="n">cx</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+<span class="n">qc</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">error_cx</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
+<span class="n">qc</span><span class="o">.</span><span class="n">cx</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+<span class="n">qc</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">error_cx</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">])</span>
+<span class="n">qc</span><span class="o">.</span><span class="n">measure_all</span><span class="p">()</span>
+
+<span class="n">backend</span> <span class="o">=</span> <span class="n">AerSimulator</span><span class="p">(</span><span class="n">method</span><span class="o">=</span><span class="s1">&#39;stabilizer&#39;</span><span class="p">)</span>
+<span class="n">result</span> <span class="o">=</span> <span class="n">backend</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">qc</span><span class="p">)</span><span class="o">.</span><span class="n">result</span><span class="p">()</span>
+<span class="n">result</span><span class="o">.</span><span class="n">get_counts</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Circuits containing quantum errors can also be evaluated using
+the <a class="reference external" href="https://qiskit.org/documentation/apidoc/quantum_info.html#module-qiskit.quantum_info" title="(in Qiskit v0.45)"><code class="xref py py-mod docutils literal notranslate"><span class="pre">quantum_info</span></code></a> quantum channel and
+<a class="reference external" href="https://qiskit.org/documentation/stubs/qiskit.quantum_info.DensityMatrix.html#qiskit.quantum_info.DensityMatrix" title="(in Qiskit v0.45)"><code class="xref py py-class docutils literal notranslate"><span class="pre">DensityMatrix</span></code></a> classes.</p>
+</li>
+</ul>
+</section>
+<section id="release-notes-0-10-0-upgrade-notes">
+<span id="id26"></span><h3>Upgrade Notes<a class="headerlink" href="#release-notes-0-10-0-upgrade-notes" title="Permalink to this heading">#</a></h3>
+<ul class="simple">
+<li><p>The return type of several save instructions have been changed to be the
+corresponding Qiskit Terra classes rather than raw NumPy arrays or
+dictionaries. The types that have changed are</p>
+<ul>
+<li><p><a class="reference internal" href="stubs/qiskit_aer.library.save_statevector.html#qiskit_aer.library.save_statevector" title="qiskit_aer.library.save_statevector"><code class="xref py py-func docutils literal notranslate"><span class="pre">save_statevector()</span></code></a> now returns as a
+<a class="reference external" href="https://qiskit.org/documentation/stubs/qiskit.quantum_info.Statevector.html#qiskit.quantum_info.Statevector" title="(in Qiskit v0.45)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Statevector</span></code></a></p></li>
+<li><p><a class="reference internal" href="stubs/qiskit_aer.library.save_density_matrix.html#qiskit_aer.library.save_density_matrix" title="qiskit_aer.library.save_density_matrix"><code class="xref py py-func docutils literal notranslate"><span class="pre">save_density_matrix()</span></code></a> now returns as a
+<a class="reference external" href="https://qiskit.org/documentation/stubs/qiskit.quantum_info.DensityMatrix.html#qiskit.quantum_info.DensityMatrix" title="(in Qiskit v0.45)"><code class="xref py py-class docutils literal notranslate"><span class="pre">DensityMatrix</span></code></a></p></li>
+<li><p><a class="reference internal" href="stubs/qiskit_aer.library.save_stabilizer.html#qiskit_aer.library.save_stabilizer" title="qiskit_aer.library.save_stabilizer"><code class="xref py py-func docutils literal notranslate"><span class="pre">save_stabilizer()</span></code></a> now returns as
+<a class="reference external" href="https://qiskit.org/documentation/stubs/qiskit.quantum_info.StabilizerState.html#qiskit.quantum_info.StabilizerState" title="(in Qiskit v0.45)"><code class="xref py py-class docutils literal notranslate"><span class="pre">StabilizerState</span></code></a></p></li>
+<li><p><a class="reference internal" href="stubs/qiskit_aer.library.save_unitary.html#qiskit_aer.library.save_unitary" title="qiskit_aer.library.save_unitary"><code class="xref py py-func docutils literal notranslate"><span class="pre">save_unitary()</span></code></a> now returns as
+<a class="reference external" href="https://qiskit.org/documentation/stubs/qiskit.quantum_info.Operator.html#qiskit.quantum_info.Operator" title="(in Qiskit v0.45)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Operator</span></code></a></p></li>
+<li><p><a class="reference internal" href="stubs/qiskit_aer.library.save_superop.html#qiskit_aer.library.save_superop" title="qiskit_aer.library.save_superop"><code class="xref py py-func docutils literal notranslate"><span class="pre">save_superop()</span></code></a> now returns as
+<a class="reference external" href="https://qiskit.org/documentation/stubs/qiskit.quantum_info.SuperOp.html#qiskit.quantum_info.SuperOp" title="(in Qiskit v0.45)"><code class="xref py py-class docutils literal notranslate"><span class="pre">SuperOp</span></code></a></p></li>
+<li><p><a class="reference internal" href="stubs/qiskit_aer.library.save_probabilities_dict.html#qiskit_aer.library.save_probabilities_dict" title="qiskit_aer.library.save_probabilities_dict"><code class="xref py py-func docutils literal notranslate"><span class="pre">save_probabilities_dict()</span></code></a> now returns as a
+<a class="reference external" href="https://qiskit.org/documentation/stubs/qiskit.result.ProbDistribution.html#qiskit.result.ProbDistribution" title="(in Qiskit v0.45)"><code class="xref py py-class docutils literal notranslate"><span class="pre">ProbDistribution</span></code></a></p></li>
+</ul>
+</li>
+</ul>
+<ul class="simple">
+<li><p>Changed the default value of <code class="docutils literal notranslate"><span class="pre">standard_gates</span></code> to <code class="docutils literal notranslate"><span class="pre">None</span></code> for all functions
+in <code class="xref py py-mod docutils literal notranslate"><span class="pre">qiskit.providers.aer.noise.errors.standard_errors</span></code> as
+those functions are updated so that they use standard gates by default.</p></li>
+</ul>
+<ul class="simple">
+<li><p>When an unsupported argument is supplied to <a class="reference internal" href="stubs/qiskit_aer.utils.approximate_quantum_error.html#qiskit_aer.utils.approximate_quantum_error" title="qiskit_aer.utils.approximate_quantum_error"><code class="xref py py-func docutils literal notranslate"><span class="pre">approximate_quantum_error()</span></code></a>,
+it will now raise a <code class="xref py py-class docutils literal notranslate"><span class="pre">NoiseError</span></code> instead of a <code class="docutils literal notranslate"><span class="pre">RuntimeError</span></code>.</p></li>
+</ul>
+</section>
+<section id="release-notes-0-10-0-deprecation-notes">
+<span id="id27"></span><h3>Deprecation Notes<a class="headerlink" href="#release-notes-0-10-0-deprecation-notes" title="Permalink to this heading">#</a></h3>
+<ul class="simple">
+<li><p>Using NumPy <code class="docutils literal notranslate"><span class="pre">ndarray</span></code> methods and attributes on the return type of
+<a class="reference internal" href="stubs/qiskit_aer.library.save_statevector.html#qiskit_aer.library.save_statevector" title="qiskit_aer.library.save_statevector"><code class="xref py py-func docutils literal notranslate"><span class="pre">save_statevector()</span></code></a>, <a class="reference internal" href="stubs/qiskit_aer.library.save_density_matrix.html#qiskit_aer.library.save_density_matrix" title="qiskit_aer.library.save_density_matrix"><code class="xref py py-func docutils literal notranslate"><span class="pre">save_density_matrix()</span></code></a>,
+<a class="reference internal" href="stubs/qiskit_aer.library.save_unitary.html#qiskit_aer.library.save_unitary" title="qiskit_aer.library.save_unitary"><code class="xref py py-func docutils literal notranslate"><span class="pre">save_unitary()</span></code></a>, and <a class="reference internal" href="stubs/qiskit_aer.library.save_superop.html#qiskit_aer.library.save_superop" title="qiskit_aer.library.save_superop"><code class="xref py py-func docutils literal notranslate"><span class="pre">save_superop()</span></code></a> has been deprecated, and
+will stop working in a future release.
+These instructions now return <a class="reference external" href="https://qiskit.org/documentation/apidoc/quantum_info.html#module-qiskit.quantum_info" title="(in Qiskit v0.45)"><code class="xref py py-mod docutils literal notranslate"><span class="pre">qiskit.quantum_info</span></code></a> classes for their
+return types. Partial backwards compatability with treating these objects as
+NumPy arrays is implemented by forwarding methods to the internal array
+during the deprecation period.</p></li>
+</ul>
+<ul class="simple">
+<li><p>Passing in a <code class="xref py py-class docutils literal notranslate"><span class="pre">BackendProperties</span></code> object for the <code class="docutils literal notranslate"><span class="pre">backend</span></code> argument of
+<a class="reference internal" href="stubs/qiskit_aer.noise.NoiseModel.html#qiskit_aer.noise.NoiseModel.from_backend" title="qiskit_aer.noise.NoiseModel.from_backend"><code class="xref py py-meth docutils literal notranslate"><span class="pre">NoiseModel.from_backend()</span></code></a> has been deprecated, as it is incompatible
+with duration dependent delay noises, and will be removed in a future release.
+Pass in a Qiskit Terra <code class="xref py py-class docutils literal notranslate"><span class="pre">BackendV1</span></code> object instead.</p></li>
+</ul>
+<ul class="simple">
+<li><p>Deprecated the <code class="docutils literal notranslate"><span class="pre">number_of_qubits</span></code> option of the <a class="reference internal" href="stubs/qiskit_aer.noise.QuantumError.html#qiskit_aer.noise.QuantumError" title="qiskit_aer.noise.QuantumError"><code class="xref py py-class docutils literal notranslate"><span class="pre">QuantumError</span></code></a>
+constructor in favor of automatic determination of the dimension.</p></li>
+</ul>
+<ul class="simple">
+<li><p>Deprecated the <code class="docutils literal notranslate"><span class="pre">standard_gates</span></code> option of the <a class="reference internal" href="stubs/qiskit_aer.noise.QuantumError.html#qiskit_aer.noise.QuantumError" title="qiskit_aer.noise.QuantumError"><code class="xref py py-class docutils literal notranslate"><span class="pre">QuantumError</span></code></a>
+constructor in favor of externalizing such basis-change functionality.
+In many cases, you can transform any error into an error defined
+only with specific gates using <a class="reference internal" href="stubs/qiskit_aer.utils.approximate_quantum_error.html#qiskit_aer.utils.approximate_quantum_error" title="qiskit_aer.utils.approximate_quantum_error"><code class="xref py py-func docutils literal notranslate"><span class="pre">approximate_quantum_error()</span></code></a>.</p></li>
+</ul>
+<ul class="simple">
+<li><p>Deprecated the <code class="docutils literal notranslate"><span class="pre">standard_gates</span></code> option of all functions in
+<code class="xref py py-mod docutils literal notranslate"><span class="pre">qiskit.providers.aer.noise.errors.standard_errors</span></code>
+in favor of returning errors in the form of a mixture of standard gates
+as much as possible by default.</p></li>
+</ul>
+<ul class="simple">
+<li><p>Deprecated all functions in <code class="xref py py-mod docutils literal notranslate"><span class="pre">errorutils</span></code>
+because they are helper functions meant to be used only for implementing
+functions in <code class="xref py py-mod docutils literal notranslate"><span class="pre">qiskit.providers.aer.noise.errors.standard_errors</span></code> and
+they should have been provided as private functions.</p></li>
+</ul>
+<ul class="simple">
+<li><p>Deprecated the <code class="docutils literal notranslate"><span class="pre">standard_gates</span></code> option of <a class="reference internal" href="stubs/qiskit_aer.noise.NoiseModel.html#qiskit_aer.noise.NoiseModel.from_backend" title="qiskit_aer.noise.NoiseModel.from_backend"><code class="xref py py-meth docutils literal notranslate"><span class="pre">NoiseModel.from_backend()</span></code></a>
+in favor of externalizing such basis-change functionality.</p></li>
+</ul>
+<ul class="simple">
+<li><p>Deprecated <a class="reference internal" href="stubs/qiskit_aer.noise.NoiseModel.html#qiskit_aer.noise.NoiseModel.from_dict" title="qiskit_aer.noise.NoiseModel.from_dict"><code class="xref py py-meth docutils literal notranslate"><span class="pre">NoiseModel.from_dict()</span></code></a> to make the noise model
+independent of Qobj (JSON) format.</p></li>
+</ul>
+<ul class="simple">
+<li><p>Deprecated all public variables, functions and classes in
+<code class="xref py py-mod docutils literal notranslate"><span class="pre">qiskit.providers.aer.noise.utils.noise_transformation</span></code> except for
+<a class="reference internal" href="stubs/qiskit_aer.utils.approximate_quantum_error.html#qiskit_aer.utils.approximate_quantum_error" title="qiskit_aer.utils.approximate_quantum_error"><code class="xref py py-func docutils literal notranslate"><span class="pre">approximate_quantum_error()</span></code></a> and <a class="reference internal" href="stubs/qiskit_aer.utils.approximate_noise_model.html#qiskit_aer.utils.approximate_noise_model" title="qiskit_aer.utils.approximate_noise_model"><code class="xref py py-func docutils literal notranslate"><span class="pre">approximate_noise_model()</span></code></a>,
+because they are helper functions meant to be used only for implementing the
+<code class="docutils literal notranslate"><span class="pre">approximate_*</span></code> functions and they should have been provided as private functions.</p></li>
+</ul>
+<ul class="simple">
+<li><p>Deprecated <code class="xref py py-func docutils literal notranslate"><span class="pre">remap_noise_model()</span></code> since the C++ code now automatically
+truncates and remaps noise models if it truncates circuits.</p></li>
+</ul>
+</section>
+<section id="other-notes">
+<span id="release-notes-0-10-0-other-notes"></span><h3>Other Notes<a class="headerlink" href="#other-notes" title="Permalink to this heading">#</a></h3>
+<ul class="simple">
+<li><p>Changes in the implementation of the function <a class="reference internal" href="stubs/qiskit_aer.utils.approximate_quantum_error.html#qiskit_aer.utils.approximate_quantum_error" title="qiskit_aer.utils.approximate_quantum_error"><code class="xref py py-func docutils literal notranslate"><span class="pre">approximate_quantum_error()</span></code></a>
+may change the resulting approximate error compared to Qiskit Aer 0.9.</p></li>
+</ul>
+</section>
+</section>
+<section id="release-notes-0-9-0">
+<span id="id28"></span><h2>0.9.0<a class="headerlink" href="#release-notes-0-9-0" title="Permalink to this heading">#</a></h2>
+<section id="release-notes-0-9-0-prelude">
+<span id="id29"></span><h3>Prelude<a class="headerlink" href="#release-notes-0-9-0-prelude" title="Permalink to this heading">#</a></h3>
+<p>The 0.9 release includes new backend options for parallel exeuction
+of large numbers of circuits on a HPC cluster using a Dask distributed,
+along with other general performance improvements and bug fixes.</p>
+</section>
+<section id="release-notes-0-9-0-new-features">
+<span id="id30"></span><h3>New Features<a class="headerlink" href="#release-notes-0-9-0-new-features" title="Permalink to this heading">#</a></h3>
+<ul class="simple">
+<li><p>Add qiskit library <a class="reference external" href="https://qiskit.org/documentation/stubs/qiskit.circuit.library.SXdgGate.html#qiskit.circuit.library.SXdgGate" title="(in Qiskit v0.45)"><code class="xref py py-class docutils literal notranslate"><span class="pre">SXdgGate</span></code></a>
+and <a class="reference external" href="https://qiskit.org/documentation/stubs/qiskit.circuit.library.CUGate.html#qiskit.circuit.library.CUGate" title="(in Qiskit v0.45)"><code class="xref py py-class docutils literal notranslate"><span class="pre">CUGate</span></code></a> to the supported basis gates for
+the Aer simulator backends. Note that the <a class="reference external" href="https://qiskit.org/documentation/stubs/qiskit.circuit.library.CUGate.html#qiskit.circuit.library.CUGate" title="(in Qiskit v0.45)"><code class="xref py py-class docutils literal notranslate"><span class="pre">CUGate</span></code></a>
+gate is only natively
+supported for the <code class="docutils literal notranslate"><span class="pre">statevector</span></code> and <code class="docutils literal notranslate"><span class="pre">unitary</span></code> methods. For other simulation
+methods it must be transpiled to the supported basis gates for that method.</p></li>
+</ul>
+<ul class="simple">
+<li><p>Adds support for N-qubit Pauli gate (
+<code class="xref py py-class docutils literal notranslate"><span class="pre">qiskit.circuit.library.generalized_gates.PauliGate</span></code>) to all
+simulation methods of the
+<code class="xref py py-class docutils literal notranslate"><span class="pre">AerSimulator</span></code> and
+<code class="xref py py-class docutils literal notranslate"><span class="pre">QasmSimulator</span></code>.</p></li>
+</ul>
+<ul>
+<li><p>Adds the ability to set a custom executor and configure job splitting for
+executing multiple circuits in parallel on a HPC clustor. A custom
+executor can be set using the <code class="docutils literal notranslate"><span class="pre">executor</span></code> option, and job splitting is
+configured by using the <code class="docutils literal notranslate"><span class="pre">max_job_size</span></code> option.</p>
+<p>For example configuring a backend and executing using</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">backend</span> <span class="o">=</span> <span class="n">AerSimulator</span><span class="p">(</span><span class="n">max_job_size</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">executor</span><span class="o">=</span><span class="n">custom_executor</span><span class="p">)</span>
+<span class="n">job</span> <span class="o">=</span> <span class="n">backend</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">circuits</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>will split the exection into multiple jobs each containing a single
+circuit. If job splitting is enabled the <code class="docutils literal notranslate"><span class="pre">run</span></code> method will return a
+<code class="xref py py-class docutils literal notranslate"><span class="pre">AerJobSet</span></code> object containing all the
+individual <code class="xref py py-class docutils literal notranslate"><span class="pre">AerJob</span></code> classes. After all
+individual jobs finish running the job results are automatically combined
+into a single Result object that is returned by <code class="docutils literal notranslate"><span class="pre">job.result()</span></code>.</p>
+<p>Supported executors include those in the Python <code class="docutils literal notranslate"><span class="pre">concurrent.futures</span></code>
+<a class="reference external" href="https://docs.python.org/3/library/concurrent.futures.html">module</a>
+(eg. <code class="docutils literal notranslate"><span class="pre">ThreadPoolExecutor</span></code>, <code class="docutils literal notranslate"><span class="pre">ProcessPoolExecutor</span></code>), and
+<a class="reference external" href="http://dask.org">Dask</a> distributed  Client executors if the optional
+dask library is installed. Using a Dask executor allows configuring parallel
+execution of multiple circuits on HPC clusters. See the 
+Dask executor <a class="reference internal" href="howtos/parallel.html#dask"><span class="std std-ref">API Documentation</span></a> for additional details
+on using Dask executors for HPC simulation.</p>
+</li>
+</ul>
+</section>
+<section id="release-notes-0-9-0-upgrade-notes">
+<span id="id31"></span><h3>Upgrade Notes<a class="headerlink" href="#release-notes-0-9-0-upgrade-notes" title="Permalink to this heading">#</a></h3>
+<ul class="simple">
+<li><p>The default basis for the <code class="xref py py-class docutils literal notranslate"><span class="pre">NoiseModel</span></code>
+class has been changed from <code class="docutils literal notranslate"><span class="pre">[&quot;id&quot;,</span> <span class="pre">&quot;u3&quot;,</span> <span class="pre">&quot;cx&quot;]</span></code> to
+<code class="docutils literal notranslate"><span class="pre">[&quot;id&quot;,</span> <span class="pre">&quot;rz&quot;,</span> <span class="pre">&quot;sx&quot;,</span> <span class="pre">&quot;cx&quot;]</span></code> due to the deprecation of the <code class="docutils literal notranslate"><span class="pre">u3</span></code> circuit
+method in qiskit-terra and change of qiskit-ibmq-provider backend basis
+gates. To use the old basis gates you can initialize a noise model with
+custom basis gates as <code class="docutils literal notranslate"><span class="pre">NoiseModel(basis_gates=[&quot;id&quot;,</span> <span class="pre">&quot;u3&quot;,</span> <span class="pre">&quot;cx&quot;])</span></code>.</p></li>
+</ul>
+<ul class="simple">
+<li><p>Removed the <code class="docutils literal notranslate"><span class="pre">backend_options</span></code> kwarg from the <code class="docutils literal notranslate"><span class="pre">run</span></code> methnod of Aer backends
+that was deprecated in qiskit-aer 0.7. All run options must now be passed as
+separate kwargs.</p></li>
+</ul>
+<ul class="simple">
+<li><p>Removed passing <code class="docutils literal notranslate"><span class="pre">system_model</span></code> as a positional arg for the <code class="docutils literal notranslate"><span class="pre">run</span></code> method of the
+<code class="xref py py-class docutils literal notranslate"><span class="pre">PulseSimulator</span></code>.</p></li>
+</ul>
+</section>
+<section id="release-notes-0-9-0-deprecation-notes">
+<span id="id32"></span><h3>Deprecation Notes<a class="headerlink" href="#release-notes-0-9-0-deprecation-notes" title="Permalink to this heading">#</a></h3>
+<ul class="simple">
+<li><p>Passing an assembled qobj directly to the
+<code class="xref py py-meth docutils literal notranslate"><span class="pre">run()</span></code> method of the Aer simulator
+backends has been deprecated in favor of passing transpiled circuits
+directly as <code class="docutils literal notranslate"><span class="pre">backend.run(circuits,</span> <span class="pre">**run_options)</span></code>.</p></li>
+</ul>
+<ul class="simple">
+<li><p>All snapshot instructions in <code class="xref py py-mod docutils literal notranslate"><span class="pre">qiskit.providers.aer.extensions</span></code> have
+been deprecated. For replacement use the save instructions from the
+<code class="xref py py-mod docutils literal notranslate"><span class="pre">qiskit.providers.aer.library</span></code> module.</p></li>
+</ul>
+<ul class="simple">
+<li><p>Adding non-local quantum errors to a
+<code class="xref py py-class docutils literal notranslate"><span class="pre">NoiseModel</span></code> has been deprecated due to
+inconsistencies in how this noise is applied to the optimized circuit.
+Non-local noise should be manually added to a scheduled circuit in Qiskit
+using a custom transpiler pass before being run on the simulator.</p></li>
+</ul>
+<ul class="simple">
+<li><p>Use of the <code class="docutils literal notranslate"><span class="pre">method</span></code> option of the
+<code class="xref py py-class docutils literal notranslate"><span class="pre">StatevectorSimulator</span></code>, and 
+<code class="xref py py-class docutils literal notranslate"><span class="pre">UnitarySimulator</span></code> to run a GPU simulation
+has been deprecated. To run a GPU simulation on a compatible system
+use the option <code class="docutils literal notranslate"><span class="pre">device='GPU'</span></code> instead.</p></li>
+</ul>
+</section>
+<section id="release-notes-0-9-0-bug-fixes">
+<span id="id33"></span><h3>Bug Fixes<a class="headerlink" href="#release-notes-0-9-0-bug-fixes" title="Permalink to this heading">#</a></h3>
+<ul class="simple">
+<li><p>Fixes bug where the if the required memory is smaller than the system memory the
+multi-chunk simulation method was enabled and simulation was still started.
+This case will now throw an insufficient memory exception.</p></li>
+</ul>
+<ul class="simple">
+<li><p>Fixes issue where setting the <code class="docutils literal notranslate"><span class="pre">shots</span></code> option for a backend with
+<code class="docutils literal notranslate"><span class="pre">set_options(shots=k)</span></code> was always running the default number of shots (1024)
+rather than the specified value.</p></li>
+</ul>
+<ul class="simple">
+<li><p>Fixes a bug in how the <code class="xref py py-class docutils literal notranslate"><span class="pre">AerSimulator</span></code> handled the
+option value for <code class="docutils literal notranslate"><span class="pre">max_parallel_experiments=1</span></code>. Previously this was treated
+the same as <code class="docutils literal notranslate"><span class="pre">max_parallel_experiments=0</span></code>.</p></li>
+</ul>
+<ul class="simple">
+<li><p>Fixes bug in the <code class="docutils literal notranslate"><span class="pre">extended_stabilizer</span></code> simulation method where it
+incorrectly treated qelay gate and multi-qubit Pauli instructions as
+unsupported.</p></li>
+</ul>
+<ul class="simple">
+<li><p>Fixes typo in the <code class="xref py py-class docutils literal notranslate"><span class="pre">AerSimulator</span></code> and
+<code class="xref py py-class docutils literal notranslate"><span class="pre">QasmSimulator</span></code> options for the
+<code class="docutils literal notranslate"><span class="pre">extended_stabilizer_norm_estimation_repetitions</span></code> option.</p></li>
+</ul>
+</section>
+</section>
+</section>
+
+        </article>
+      </div>
+      <footer>
+        <div class="related-pages">
+          
+          <a class="prev-page" href="howtos/running_gpu.html">
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+              <div class="page-info">
+                <div class="context">
+                  <span>Previous</span>
+                </div>
+                
+                <div class="title">Running with multiple-GPUs and/or multiple nodes</div>
+                
+              </div>
+            </a>
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2017-2024, Qiskit Development Team
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            <div class="last-updated">
+              Last updated on 2024/01/17</div>
+          </div>
+          <div class="right-details">
+            
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">Release Notes</a><ul>
+<li><a class="reference internal" href="#release-notes-0-13-2">0.13.2</a><ul>
+<li><a class="reference internal" href="#new-features">New Features</a></li>
+<li><a class="reference internal" href="#deprecation-notes">Deprecation Notes</a></li>
+<li><a class="reference internal" href="#bug-fixes">Bug Fixes</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#release-notes-0-13-1">0.13.1</a><ul>
+<li><a class="reference internal" href="#prelude">Prelude</a></li>
+<li><a class="reference internal" href="#upgrade-notes">Upgrade Notes</a></li>
+<li><a class="reference internal" href="#release-notes-0-13-1-bug-fixes">Bug Fixes</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#release-notes-0-13-0">0.13.0</a><ul>
+<li><a class="reference internal" href="#release-notes-0-13-0-prelude">Prelude</a></li>
+<li><a class="reference internal" href="#release-notes-0-13-0-new-features">New Features</a></li>
+<li><a class="reference internal" href="#known-issues">Known Issues</a></li>
+<li><a class="reference internal" href="#release-notes-0-13-0-upgrade-notes">Upgrade Notes</a></li>
+<li><a class="reference internal" href="#release-notes-0-13-0-deprecation-notes">Deprecation Notes</a></li>
+<li><a class="reference internal" href="#release-notes-0-13-0-bug-fixes">Bug Fixes</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#release-notes-0-12-0">0.12.0</a><ul>
+<li><a class="reference internal" href="#release-notes-0-12-0-prelude">Prelude</a></li>
+<li><a class="reference internal" href="#release-notes-0-12-0-new-features">New Features</a></li>
+<li><a class="reference internal" href="#release-notes-0-12-0-known-issues">Known Issues</a></li>
+<li><a class="reference internal" href="#release-notes-0-12-0-upgrade-notes">Upgrade Notes</a></li>
+<li><a class="reference internal" href="#release-notes-0-12-0-deprecation-notes">Deprecation Notes</a></li>
+<li><a class="reference internal" href="#release-notes-0-12-0-bug-fixes">Bug Fixes</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#release-notes-0-11-0">0.11.0</a><ul>
+<li><a class="reference internal" href="#release-notes-0-11-0-prelude">Prelude</a></li>
+<li><a class="reference internal" href="#release-notes-0-11-0-new-features">New Features</a></li>
+<li><a class="reference internal" href="#release-notes-0-11-0-known-issues">Known Issues</a></li>
+<li><a class="reference internal" href="#release-notes-0-11-0-upgrade-notes">Upgrade Notes</a></li>
+<li><a class="reference internal" href="#release-notes-0-11-0-bug-fixes">Bug Fixes</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#release-notes-0-10-0">0.10.0</a><ul>
+<li><a class="reference internal" href="#release-notes-0-10-0-prelude">Prelude</a></li>
+<li><a class="reference internal" href="#release-notes-0-10-0-new-features">New Features</a></li>
+<li><a class="reference internal" href="#release-notes-0-10-0-upgrade-notes">Upgrade Notes</a></li>
+<li><a class="reference internal" href="#release-notes-0-10-0-deprecation-notes">Deprecation Notes</a></li>
+<li><a class="reference internal" href="#other-notes">Other Notes</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#release-notes-0-9-0">0.9.0</a><ul>
+<li><a class="reference internal" href="#release-notes-0-9-0-prelude">Prelude</a></li>
+<li><a class="reference internal" href="#release-notes-0-9-0-new-features">New Features</a></li>
+<li><a class="reference internal" href="#release-notes-0-9-0-upgrade-notes">Upgrade Notes</a></li>
+<li><a class="reference internal" href="#release-notes-0-9-0-deprecation-notes">Deprecation Notes</a></li>
+<li><a class="reference internal" href="#release-notes-0-9-0-bug-fixes">Bug Fixes</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script src="_static/jquery.js?v=5d32c60e"></script>
+    <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+    <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js?v=cc44ccc5"></script>
+    <script src="_static/doctools.js?v=888ff710"></script>
+    <script src="_static/sphinx_highlight.js?v=4825356b"></script>
+    <script src="_static/scripts/qiskit-sphinx-theme.js?v=4d77b8ca"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@jupyter-widgets/html-manager@^1.0.1/dist/embed-amd.js"></script>
+    <script src="_static/design-tabs.js?v=36754332"></script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    </body>
+</html>

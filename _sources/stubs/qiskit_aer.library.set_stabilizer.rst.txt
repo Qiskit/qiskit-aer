@@ -1,0 +1,8 @@
+﻿
+
+set_stabilizer
+=================================
+
+.. currentmodule:: qiskit_aer.library
+
+.. autofunction:: set_stabilizer

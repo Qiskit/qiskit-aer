@@ -1,0 +1,976 @@
+<!doctype html>
+<html class="no-js" lang="en">
+  <head><meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" /><link rel="next" title="AerError" href="qiskit_aer.AerError.html" /><link rel="prev" title="StatevectorSimulator" href="qiskit_aer.StatevectorSimulator.html" />
+
+    <!-- Generated with Sphinx 7.1.2 and Furo 2023.08.19 -->
+        <title>UnitarySimulator - Qiskit Aer 0.13.1</title>
+      <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=135e06be" />
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=82a976d7" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/qiskit-sphinx-theme.css?v=fe84956c" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/qiskit-ecosystem.css?v=745c5aa7" />
+    <link rel="stylesheet" type="text/css" href="../_static/jupyter-sphinx.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/design-style.1e8bd061cd6da7fc9cf755528e8ffc24.min.css?v=0a3b3ea7" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo-extensions.css?v=36a5483c" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #ffffff;
+  --color-code-foreground: black;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style><link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:ital,wght@0,400;0,600;1,400;1,600&display=swap" rel="stylesheet">
+<script src="../_static/js/web-components/top-nav-bar.js"></script></head>
+  <body>
+    
+    <script>document.body.dataset.theme = "light";</script>
+    
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg id="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+      <defs><style>.cls-1{fill:none;}</style></defs>
+      <path d="M28,4H4A2,2,0,0,0,2,6V26a2,2,0,0,0,2,2H28a2,2,0,0,0,2-2V6A2,2,0,0,0,28,4ZM4,6H20V26H4ZM28,26H22V6h6Z"/>
+      <rect id="_Transparent_Rectangle_" data-name="&lt;Transparent Rectangle&gt;" class="cls-1" width="32" height="32"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg id="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+      <defs><style>.cls-1{fill:none;}</style></defs>
+      <rect x="4" y="6" width="24" height="2"/>
+      <rect x="4" y="24" width="24" height="2"/>
+      <rect x="4" y="12" width="24" height="2"/>
+      <rect x="4" y="18" width="24" height="2"/>
+      <rect id="_Transparent_Rectangle_" data-name="&lt;Transparent Rectangle&gt;" class="cls-1" width="32" height="32"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg version="1.1" id="icon" xmlns="http://www.w3.org/2000/svg" x="0px" y="0px"
+         viewBox="0 0 32 32" style="enable-background:new 0 0 32 32;" xml:space="preserve"><polygon points="22,16 12,26 10.6,24.6 19.2,16 10.6,7.4 12,6 " stroke="currentColor"/>
+      <rect id="_x3C_Transparent_Rectangle_x3E_" fill="none" width="32" height="32"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-new-tab" viewBox="0 0 32 32">
+    <svg id="icon" xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
+      <defs>
+        <style>
+          .cls-1 {
+            fill: none;
+          }
+        </style>
+      </defs>
+      <path fill="#6929C4" d="M26,28H6a2.0027,2.0027,0,0,1-2-2V6A2.0027,2.0027,0,0,1,6,4H16V6H6V26H26V16h2V26A2.0027,2.0027,0,0,1,26,28Z"/>
+      <polygon fill="#6929C4" points="20 2 20 4 26.586 4 18 12.586 19.414 14 28 5.414 28 12 30 12 30 2 20 2"/>
+      <rect id="_Transparent_Rectangle_" data-name="&lt;Transparent Rectangle&gt;" class="cls-1" width="32" height="32"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-half" viewBox="0 0 24 24">
+    <title>Auto light/dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-shadow">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M13 12h5" />
+      <path d="M13 15h4" />
+      <path d="M13 18h1" />
+      <path d="M13 9h4" />
+      <path d="M13 6h1" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc">
+<label class="overlay sidebar-overlay" for="__navigation">
+  <div class="visually-hidden">Hide navigation sidebar</div>
+</label>
+<label class="overlay toc-overlay" for="__toc">
+  <div class="visually-hidden">Hide table of contents sidebar</div>
+</label>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <div class="visually-hidden">Toggle site navigation sidebar</div>
+        <i class="icon"><svg><use href="#svg-menu"></use></svg></i>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="../index.html"><div class="brand">Qiskit Aer 0.13.1</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle">
+          <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+          <svg class="theme-icon-when-auto"><use href="#svg-sun-half"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <div class="visually-hidden">Toggle table of contents sidebar</div>
+        <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><div class="sidebar-brand">
+  <a href="https://www.qiskit.org/ecosystem">
+    <div class="sidebar-logo-container">
+      <img class="sidebar-logo" src="../_static/images/ecosystem-logo.svg" alt="Qiskit Ecosystem logo"/>
+    </div>
+  </a>
+  
+  <span class="sidebar-brand-text">Qiskit Aer 0.13.1</span>
+</div><form class="sidebar-search-container" method="get" action="../search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../index.html">Home</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../getting_started.html">Getting Started</a></li>
+<li class="toctree-l1 current has-children"><a class="reference internal" href="../apidocs/aer.html">API Documentation</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle navigation of API Documentation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
+<li class="toctree-l2 current has-children"><a class="reference internal" href="../apidocs/aer_provider.html">Aer Provider (<code class="xref py py-mod docutils literal notranslate"><span class="pre">qiskit_aer</span></code>)</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle navigation of Aer Provider (qiskit_aer)</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.AerProvider.html">AerProvider</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.AerSimulator.html">AerSimulator</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.QasmSimulator.html">QasmSimulator</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.StatevectorSimulator.html">StatevectorSimulator</a></li>
+<li class="toctree-l3 current current-page"><a class="current reference internal" href="#">UnitarySimulator</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.AerError.html">AerError</a></li>
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../apidocs/aer_jobs.html">Aer Jobs (<code class="xref py py-mod docutils literal notranslate"><span class="pre">qiskit_aer.jobs</span></code>)</a><input class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><div class="visually-hidden">Toggle navigation of Aer Jobs (qiskit_aer.jobs)</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.jobs.AerJob.html">AerJob</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.jobs.AerJobSet.html">AerJobSet</a></li>
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../apidocs/aer_library.html">Instruction Library (<code class="xref py py-mod docutils literal notranslate"><span class="pre">qiskit_aer.library</span></code>)</a><input class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" role="switch" type="checkbox"/><label for="toctree-checkbox-4"><div class="visually-hidden">Toggle navigation of Instruction Library (qiskit_aer.library)</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.library.SetStatevector.html">SetStatevector</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.library.SetDensityMatrix.html">SetDensityMatrix</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.library.SetStabilizer.html">SetStabilizer</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.library.SetSuperOp.html">SetSuperOp</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.library.SetUnitary.html">SetUnitary</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.library.SetMatrixProductState.html">SetMatrixProductState</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.library.set_statevector.html">set_statevector</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.library.set_density_matrix.html">set_density_matrix</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.library.set_stabilizer.html">set_stabilizer</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.library.set_unitary.html">set_unitary</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.library.set_superop.html">set_superop</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.library.set_matrix_product_state.html">set_matrix_product_state</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.library.SaveState.html">SaveState</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.library.SaveStatevector.html">SaveStatevector</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.library.SaveStatevectorDict.html">SaveStatevectorDict</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.library.SaveDensityMatrix.html">SaveDensityMatrix</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.library.SaveMatrixProductState.html">SaveMatrixProductState</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.library.SaveClifford.html">SaveClifford</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.library.SaveStabilizer.html">SaveStabilizer</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.library.SaveSuperOp.html">SaveSuperOp</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.library.SaveUnitary.html">SaveUnitary</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.library.SaveExpectationValue.html">SaveExpectationValue</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.library.SaveExpectationValueVariance.html">SaveExpectationValueVariance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.library.SaveProbabilities.html">SaveProbabilities</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.library.SaveProbabilitiesDict.html">SaveProbabilitiesDict</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.library.SaveAmplitudes.html">SaveAmplitudes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.library.SaveAmplitudesSquared.html">SaveAmplitudesSquared</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.library.save_amplitudes.html">save_amplitudes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.library.save_amplitudes_squared.html">save_amplitudes_squared</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.library.save_clifford.html">save_clifford</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.library.save_density_matrix.html">save_density_matrix</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.library.save_expectation_value.html">save_expectation_value</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.library.save_expectation_value_variance.html">save_expectation_value_variance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.library.save_matrix_product_state.html">save_matrix_product_state</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.library.save_probabilities.html">save_probabilities</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.library.save_probabilities_dict.html">save_probabilities_dict</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.library.save_stabilizer.html">save_stabilizer</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.library.save_state.html">save_state</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.library.save_statevector.html">save_statevector</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.library.save_statevector_dict.html">save_statevector_dict</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.library.save_superop.html">save_superop</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.library.save_unitary.html">save_unitary</a></li>
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../apidocs/aer_noise.html">Noise Models (<code class="xref py py-mod docutils literal notranslate"><span class="pre">qiskit_aer.noise</span></code>)</a><input class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><div class="visually-hidden">Toggle navigation of Noise Models (qiskit_aer.noise)</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.noise.NoiseModel.html">NoiseModel</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.noise.QuantumError.html">QuantumError</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.noise.ReadoutError.html">ReadoutError</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.noise.pauli_error.html">pauli_error</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.noise.depolarizing_error.html">depolarizing_error</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.noise.mixed_unitary_error.html">mixed_unitary_error</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.noise.coherent_unitary_error.html">coherent_unitary_error</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.noise.reset_error.html">reset_error</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.noise.amplitude_damping_error.html">amplitude_damping_error</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.noise.phase_damping_error.html">phase_damping_error</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.noise.phase_amplitude_damping_error.html">phase_amplitude_damping_error</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.noise.thermal_relaxation_error.html">thermal_relaxation_error</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.noise.kraus_error.html">kraus_error</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.noise.LocalNoisePass.html">LocalNoisePass</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.noise.RelaxationNoisePass.html">RelaxationNoisePass</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.noise.device.basic_device_readout_errors.html">basic_device_readout_errors</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.noise.device.basic_device_gate_errors.html">basic_device_gate_errors</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.noise.device.gate_param_values.html">gate_param_values</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.noise.device.gate_error_values.html">gate_error_values</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.noise.device.gate_length_values.html">gate_length_values</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.noise.device.readout_error_values.html">readout_error_values</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.noise.device.thermal_relaxation_values.html">thermal_relaxation_values</a></li>
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../apidocs/aer_primitives.html">Primitives (<code class="xref py py-mod docutils literal notranslate"><span class="pre">qiskit_aer.primitives</span></code>)</a><input class="toctree-checkbox" id="toctree-checkbox-6" name="toctree-checkbox-6" role="switch" type="checkbox"/><label for="toctree-checkbox-6"><div class="visually-hidden">Toggle navigation of Primitives (qiskit_aer.primitives)</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.primitives.Sampler.html">Sampler</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.primitives.Estimator.html">Estimator</a></li>
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../apidocs/aer_utils.html">Utilities (<code class="xref py py-mod docutils literal notranslate"><span class="pre">qiskit_aer.utils</span></code>)</a><input class="toctree-checkbox" id="toctree-checkbox-7" name="toctree-checkbox-7" role="switch" type="checkbox"/><label for="toctree-checkbox-7"><div class="visually-hidden">Toggle navigation of Utilities (qiskit_aer.utils)</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.utils.insert_noise.html">insert_noise</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.utils.approximate_quantum_error.html">approximate_quantum_error</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.utils.approximate_noise_model.html">approximate_noise_model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.utils.transform_noise_model.html">transform_noise_model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.utils.transpile_noise_model.html">transpile_noise_model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.utils.transpile_quantum_error.html">transpile_quantum_error</a></li>
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../apidocs/aer_quantum_info.html">Aer Quantum Info (<code class="xref py py-mod docutils literal notranslate"><span class="pre">qiskit_aer.quantum_info</span></code>)</a><input class="toctree-checkbox" id="toctree-checkbox-8" name="toctree-checkbox-8" role="switch" type="checkbox"/><label for="toctree-checkbox-8"><div class="visually-hidden">Toggle navigation of Aer Quantum Info (qiskit_aer.quantum_info)</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.quantum_info.AerStatevector.html">AerStatevector</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.quantum_info.AerDensityMatrix.html">AerDensityMatrix</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../apidocs/circuit.html">Additional circuit methods</a></li>
+</ul>
+</li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../tutorials/index.html">Tutorials</a><input class="toctree-checkbox" id="toctree-checkbox-9" name="toctree-checkbox-9" role="switch" type="checkbox"/><label for="toctree-checkbox-9"><div class="visually-hidden">Toggle navigation of Tutorials</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../tutorials/1_aer_provider.html">Simulators</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../tutorials/2_device_noise_simulation.html">Device backend noise model simulations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../tutorials/3_building_noise_models.html">Building Noise Models</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../tutorials/4_custom_gate_noise.html">Applying noise to custom unitary gates</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../tutorials/5_noise_transformation.html">Noise Transformation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../tutorials/6_extended_stabilizer_tutorial.html">The Extended Stabilizer Simulator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../tutorials/7_matrix_product_state_method.html">Matrix product state simulation method</a></li>
+</ul>
+</li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../howtos/index.html">How-Tos</a><input class="toctree-checkbox" id="toctree-checkbox-10" name="toctree-checkbox-10" role="switch" type="checkbox"/><label for="toctree-checkbox-10"><div class="visually-hidden">Toggle navigation of How-Tos</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../howtos/parallel.html">Running with Threadpool and DASK</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../howtos/running_gpu.html">Running with multiple-GPUs and/or multiple nodes</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../release_notes.html">Release Notes</a></li>
+</ul>
+
+</div></div>
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          
+<div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle">
+              <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+              <svg class="theme-icon-when-auto"><use href="#svg-sun-half"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <div class="visually-hidden">Toggle table of contents sidebar</div>
+            <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+          </label>
+        </div>
+        <article role="main">
+          <section id="unitarysimulator">
+<h1>UnitarySimulator<a class="headerlink" href="#unitarysimulator" title="Permalink to this heading">#</a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="qiskit_aer.UnitarySimulator">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">UnitarySimulator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">configuration</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">properties</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">provider</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">backend_options</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/qiskit_aer/backends/unitary_simulator.html#UnitarySimulator"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_aer.UnitarySimulator" title="Permalink to this definition">#</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">AerBackend</span></code></p>
+<p>Ideal quantum circuit unitary simulator.</p>
+<p><strong>Configurable Options</strong></p>
+<p>The <cite>UnitarySimulator</cite> supports CPU and GPU simulation methods and
+additional configurable options. These may be set using the appropriate kwargs
+during initialization. They can also be set of updated using the
+<a class="reference internal" href="#qiskit_aer.UnitarySimulator.set_options" title="qiskit_aer.UnitarySimulator.set_options"><code class="xref py py-meth docutils literal notranslate"><span class="pre">set_options()</span></code></a> method.</p>
+<p>Run-time options may also be specified as kwargs using the <a class="reference internal" href="#qiskit_aer.UnitarySimulator.run" title="qiskit_aer.UnitarySimulator.run"><code class="xref py py-meth docutils literal notranslate"><span class="pre">run()</span></code></a> method.
+These will not be stored in the backend and will only apply to that execution.
+They will also override any previously set options.</p>
+<p>For example, to configure a a single-precision simulator</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">backend</span> <span class="o">=</span> <span class="n">UnitarySimulator</span><span class="p">(</span><span class="n">precision</span><span class="o">=</span><span class="s1">&#39;single&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Backend Options</strong></p>
+<p>The following configurable backend options are supported</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">device</span></code> (str): Set the simulation device (Default: <code class="docutils literal notranslate"><span class="pre">&quot;CPU&quot;</span></code>).
+Use <a class="reference internal" href="#qiskit_aer.UnitarySimulator.available_devices" title="qiskit_aer.UnitarySimulator.available_devices"><code class="xref py py-meth docutils literal notranslate"><span class="pre">available_devices()</span></code></a> to return a list of devices supported
+on the current system.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">method</span></code> (str): [DEPRECATED] Set the simulation method supported
+methods are <code class="docutils literal notranslate"><span class="pre">&quot;unitary&quot;</span></code> for CPU simulation, and
+<code class="docutils literal notranslate"><span class="pre">&quot;unitary_gpu&quot;</span></code> for GPU simulation. This option has been
+deprecated, use the <code class="docutils literal notranslate"><span class="pre">device</span></code> option to set “CPU” or “GPU”
+simulation instead.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">precision</span></code> (str): Set the floating point precision for
+certain simulation methods to either <code class="docutils literal notranslate"><span class="pre">&quot;single&quot;</span></code> or <code class="docutils literal notranslate"><span class="pre">&quot;double&quot;</span></code>
+precision (default: <code class="docutils literal notranslate"><span class="pre">&quot;double&quot;</span></code>).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">executor</span></code> (futures.Executor): Set a custom executor for
+asynchronous running of simulation jobs (Default: None).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">max_shot_size</span></code> (int or None): If the number of shots of a noisy
+circuit exceeds this value simulation will be split into multi
+circuits for execution and the results accumulated. If <code class="docutils literal notranslate"><span class="pre">None</span></code>
+circuits will not be split based on shots. When splitting circuits
+use the <code class="docutils literal notranslate"><span class="pre">max_job_size</span></code> option to control how these split circuits
+should be submitted to the executor (Default: None).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">max_shot_size</span></code> (int or None): If the number of shots with
+a noise model exceeds this value, simulation will split the experiments into
+sub experiments in the qobj. If <code class="docutils literal notranslate"><span class="pre">None</span></code>  simulator does nothing (Default: None).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">&quot;initial_unitary&quot;</span></code> (matrix_like): Sets a custom initial unitary
+matrix for the simulation instead of identity (Default: None).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">&quot;validation_threshold&quot;</span></code> (double): Sets the threshold for checking
+if initial unitary and target unitary are unitary matrices.
+(Default: 1e-8).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">&quot;zero_threshold&quot;</span></code> (double): Sets the threshold for truncating
+small values to zero in the result data (Default: 1e-10).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">&quot;max_parallel_threads&quot;</span></code> (int): Sets the maximum number of CPU
+cores used by OpenMP for parallelization. If set to 0 the
+maximum will be set to the number of CPU cores (Default: 0).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">&quot;max_parallel_experiments&quot;</span></code> (int): Sets the maximum number of
+qobj experiments that may be executed in parallel up to the
+max_parallel_threads value. If set to 1 parallel circuit
+execution will be disabled. If set to 0 the maximum will be
+automatically set to max_parallel_threads (Default: 1).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">&quot;max_memory_mb&quot;</span></code> (int): Sets the maximum size of memory
+to store a state vector. If a state vector needs more, an error
+is thrown. In general, a state vector of n-qubits uses 2^n complex
+values (16 Bytes). If set to 0, the maximum will be automatically
+set to the system memory size (Default: 0).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">&quot;statevector_parallel_threshold&quot;</span></code> (int): Sets the threshold that
+2 * “n_qubits” must be greater than to enable OpenMP
+parallelization for matrix multiplication during execution of
+an experiment. If parallel circuit or shot execution is enabled
+this will only use unallocated CPU cores up to
+max_parallel_threads. Note that setting this too low can reduce
+performance (Default: 14).</p></li>
+</ul>
+<p>These backend options apply in circuit optimization passes:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">fusion_enable</span></code> (bool): Enable fusion optimization in circuit
+optimization passes [Default: True]</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">fusion_verbose</span></code> (bool): Output gates generated in fusion optimization
+into metadata [Default: False]</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">fusion_max_qubit</span></code> (int): Maximum number of qubits for a operation generated
+in a fusion optimization [Default: 5]</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">fusion_threshold</span></code> (int): Threshold that number of qubits must be greater
+than or equal to enable fusion optimization [Default: 7]</p></li>
+</ul>
+<p>Aer class for backends.</p>
+<p>This method should initialize the module and its configuration, and
+raise an exception if a component of the module is
+not available.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>configuration</strong> (<em>BackendConfiguration</em>) – backend configuration.</p></li>
+<li><p><strong>properties</strong> (<em>BackendProperties</em><em> or </em><em>None</em>) – Optional, backend properties.</p></li>
+<li><p><strong>provider</strong> (<em>Provider</em>) – Optional, provider responsible for this backend.</p></li>
+<li><p><strong>target</strong> (<em>Target</em>) – initial target for backend</p></li>
+<li><p><strong>backend_options</strong> (<em>dict</em><em> or </em><em>None</em>) – Optional set custom backend options.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="qiskit_aer.AerError.html#qiskit_aer.AerError" title="qiskit_aer.AerError"><strong>AerError</strong></a> – if there is no name in the configuration</p>
+</dd>
+</dl>
+<p class="rubric">Attributes</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="qiskit_aer.UnitarySimulator.coupling_map">
+<span class="sig-name descname"><span class="pre">coupling_map</span></span><a class="headerlink" href="#qiskit_aer.UnitarySimulator.coupling_map" title="Permalink to this definition">#</a></dt>
+<dd><p>Return the <a class="reference external" href="https://qiskit.org/documentation/stubs/qiskit.transpiler.CouplingMap.html#qiskit.transpiler.CouplingMap" title="(in Qiskit v0.45)"><code class="xref py py-class docutils literal notranslate"><span class="pre">CouplingMap</span></code></a> object</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="qiskit_aer.UnitarySimulator.dt">
+<span class="sig-name descname"><span class="pre">dt</span></span><a class="headerlink" href="#qiskit_aer.UnitarySimulator.dt" title="Permalink to this definition">#</a></dt>
+<dd><p>Return the system time resolution of input signals</p>
+<p>This is required to be implemented if the backend supports Pulse
+scheduling.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The input signal timestep in seconds. If the backend doesn’t define <code class="docutils literal notranslate"><span class="pre">dt</span></code>, <code class="docutils literal notranslate"><span class="pre">None</span></code> will
+be returned.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="qiskit_aer.UnitarySimulator.dtm">
+<span class="sig-name descname"><span class="pre">dtm</span></span><a class="headerlink" href="#qiskit_aer.UnitarySimulator.dtm" title="Permalink to this definition">#</a></dt>
+<dd><p>Return the system time resolution of output signals</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The output signal timestep in seconds.</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>NotImplementedError</strong> – if the backend doesn’t support querying the
+    output signal timestep</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="qiskit_aer.UnitarySimulator.instruction_durations">
+<span class="sig-name descname"><span class="pre">instruction_durations</span></span><a class="headerlink" href="#qiskit_aer.UnitarySimulator.instruction_durations" title="Permalink to this definition">#</a></dt>
+<dd><p>Return the <a class="reference external" href="https://qiskit.org/documentation/stubs/qiskit.transpiler.InstructionDurations.html#qiskit.transpiler.InstructionDurations" title="(in Qiskit v0.45)"><code class="xref py py-class docutils literal notranslate"><span class="pre">InstructionDurations</span></code></a> object.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="qiskit_aer.UnitarySimulator.instruction_schedule_map">
+<span class="sig-name descname"><span class="pre">instruction_schedule_map</span></span><a class="headerlink" href="#qiskit_aer.UnitarySimulator.instruction_schedule_map" title="Permalink to this definition">#</a></dt>
+<dd><p>Return the <a class="reference external" href="https://qiskit.org/documentation/stubs/qiskit.pulse.InstructionScheduleMap.html#qiskit.pulse.InstructionScheduleMap" title="(in Qiskit v0.45)"><code class="xref py py-class docutils literal notranslate"><span class="pre">InstructionScheduleMap</span></code></a> for the
+instructions defined in this backend’s target.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="qiskit_aer.UnitarySimulator.instructions">
+<span class="sig-name descname"><span class="pre">instructions</span></span><a class="headerlink" href="#qiskit_aer.UnitarySimulator.instructions" title="Permalink to this definition">#</a></dt>
+<dd><p>A list of Instruction tuples on the backend of the form <code class="docutils literal notranslate"><span class="pre">(instruction,</span> <span class="pre">(qubits)</span></code></p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="qiskit_aer.UnitarySimulator.max_circuits">
+<span class="sig-name descname"><span class="pre">max_circuits</span></span><a class="headerlink" href="#qiskit_aer.UnitarySimulator.max_circuits" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="qiskit_aer.UnitarySimulator.meas_map">
+<span class="sig-name descname"><span class="pre">meas_map</span></span><a class="headerlink" href="#qiskit_aer.UnitarySimulator.meas_map" title="Permalink to this definition">#</a></dt>
+<dd><p>Return the grouping of measurements which are multiplexed</p>
+<p>This is required to be implemented if the backend supports Pulse
+scheduling.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The grouping of measurements which are multiplexed</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>NotImplementedError</strong> – if the backend doesn’t support querying the
+    measurement mapping</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="qiskit_aer.UnitarySimulator.num_qubits">
+<span class="sig-name descname"><span class="pre">num_qubits</span></span><a class="headerlink" href="#qiskit_aer.UnitarySimulator.num_qubits" title="Permalink to this definition">#</a></dt>
+<dd><p>Return the number of qubits the backend has.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="qiskit_aer.UnitarySimulator.operation_names">
+<span class="sig-name descname"><span class="pre">operation_names</span></span><a class="headerlink" href="#qiskit_aer.UnitarySimulator.operation_names" title="Permalink to this definition">#</a></dt>
+<dd><p>A list of instruction names that the backend supports.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="qiskit_aer.UnitarySimulator.operations">
+<span class="sig-name descname"><span class="pre">operations</span></span><a class="headerlink" href="#qiskit_aer.UnitarySimulator.operations" title="Permalink to this definition">#</a></dt>
+<dd><p>A list of <a class="reference external" href="https://qiskit.org/documentation/stubs/qiskit.circuit.Instruction.html#qiskit.circuit.Instruction" title="(in Qiskit v0.45)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Instruction</span></code></a> instances that the backend supports.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="qiskit_aer.UnitarySimulator.options">
+<span class="sig-name descname"><span class="pre">options</span></span><a class="headerlink" href="#qiskit_aer.UnitarySimulator.options" title="Permalink to this definition">#</a></dt>
+<dd><p>Return the options for the backend</p>
+<p>The options of a backend are the dynamic parameters defining
+how the backend is used. These are used to control the <a class="reference internal" href="#qiskit_aer.UnitarySimulator.run" title="qiskit_aer.UnitarySimulator.run"><code class="xref py py-meth docutils literal notranslate"><span class="pre">run()</span></code></a>
+method.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="qiskit_aer.UnitarySimulator.provider">
+<span class="sig-name descname"><span class="pre">provider</span></span><a class="headerlink" href="#qiskit_aer.UnitarySimulator.provider" title="Permalink to this definition">#</a></dt>
+<dd><p>Return the backend Provider.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>the Provider responsible for the backend.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>Provider</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="qiskit_aer.UnitarySimulator.target">
+<span class="sig-name descname"><span class="pre">target</span></span><a class="headerlink" href="#qiskit_aer.UnitarySimulator.target" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="qiskit_aer.UnitarySimulator.version">
+<span class="sig-name descname"><span class="pre">version</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">2</span></em><a class="headerlink" href="#qiskit_aer.UnitarySimulator.version" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="qiskit_aer.UnitarySimulator.name">
+<span class="sig-name descname"><span class="pre">name</span></span><a class="headerlink" href="#qiskit_aer.UnitarySimulator.name" title="Permalink to this definition">#</a></dt>
+<dd><p>Name of the backend.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="qiskit_aer.UnitarySimulator.description">
+<span class="sig-name descname"><span class="pre">description</span></span><a class="headerlink" href="#qiskit_aer.UnitarySimulator.description" title="Permalink to this definition">#</a></dt>
+<dd><p>Optional human-readable description.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="qiskit_aer.UnitarySimulator.online_date">
+<span class="sig-name descname"><span class="pre">online_date</span></span><a class="headerlink" href="#qiskit_aer.UnitarySimulator.online_date" title="Permalink to this definition">#</a></dt>
+<dd><p>Date that the backend came online.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="qiskit_aer.UnitarySimulator.backend_version">
+<span class="sig-name descname"><span class="pre">backend_version</span></span><a class="headerlink" href="#qiskit_aer.UnitarySimulator.backend_version" title="Permalink to this definition">#</a></dt>
+<dd><p>Version of the backend being provided.  This is not the same as
+<code class="xref py py-attr docutils literal notranslate"><span class="pre">BackendV2.version</span></code>, which is the version of the <code class="xref py py-class docutils literal notranslate"><span class="pre">Backend</span></code>
+abstract interface.</p>
+</dd></dl>
+
+<p class="rubric">Methods</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="qiskit_aer.UnitarySimulator.acquire_channel">
+<span class="sig-name descname"><span class="pre">acquire_channel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">qubit</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#qiskit_aer.UnitarySimulator.acquire_channel" title="Permalink to this definition">#</a></dt>
+<dd><p>Return the acquisition channel for the given qubit.</p>
+<p>This is required to be implemented if the backend supports Pulse
+scheduling.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The Qubit measurement acquisition line.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>AcquireChannel</p>
+</dd>
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>NotImplementedError</strong> – if the backend doesn’t support querying the
+    measurement mapping</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="qiskit_aer.UnitarySimulator.available_devices">
+<span class="sig-name descname"><span class="pre">available_devices</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/qiskit_aer/backends/unitary_simulator.html#UnitarySimulator.available_devices"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_aer.UnitarySimulator.available_devices" title="Permalink to this definition">#</a></dt>
+<dd><p>Return the available simulation methods.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="qiskit_aer.UnitarySimulator.available_methods">
+<span class="sig-name descname"><span class="pre">available_methods</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/qiskit_aer/backends/unitary_simulator.html#UnitarySimulator.available_methods"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_aer.UnitarySimulator.available_methods" title="Permalink to this definition">#</a></dt>
+<dd><p>Return the available simulation methods.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="qiskit_aer.UnitarySimulator.clear_options">
+<span class="sig-name descname"><span class="pre">clear_options</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#qiskit_aer.UnitarySimulator.clear_options" title="Permalink to this definition">#</a></dt>
+<dd><p>Reset the simulator options to default values.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="qiskit_aer.UnitarySimulator.configuration">
+<span class="sig-name descname"><span class="pre">configuration</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#qiskit_aer.UnitarySimulator.configuration" title="Permalink to this definition">#</a></dt>
+<dd><p>Return the simulator backend configuration.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>the configuration for the backend.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>BackendConfiguration</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="qiskit_aer.UnitarySimulator.control_channel">
+<span class="sig-name descname"><span class="pre">control_channel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">qubits</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Iterable</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#qiskit_aer.UnitarySimulator.control_channel" title="Permalink to this definition">#</a></dt>
+<dd><p>Return the secondary drive channel for the given qubit</p>
+<p>This is typically utilized for controlling multiqubit interactions.
+This channel is derived from other channels.</p>
+<p>This is required to be implemented if the backend supports Pulse
+scheduling.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>qubits</strong> – Tuple or list of qubits of the form
+<code class="docutils literal notranslate"><span class="pre">(control_qubit,</span> <span class="pre">target_qubit)</span></code>.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The multi qubit control line.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>List[ControlChannel]</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>NotImplementedError</strong> – if the backend doesn’t support querying the
+    measurement mapping</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="qiskit_aer.UnitarySimulator.drive_channel">
+<span class="sig-name descname"><span class="pre">drive_channel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">qubit</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#qiskit_aer.UnitarySimulator.drive_channel" title="Permalink to this definition">#</a></dt>
+<dd><p>Return the drive channel for the given qubit.</p>
+<p>This is required to be implemented if the backend supports Pulse
+scheduling.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The Qubit drive channel</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>DriveChannel</p>
+</dd>
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>NotImplementedError</strong> – if the backend doesn’t support querying the
+    measurement mapping</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="qiskit_aer.UnitarySimulator.get_translation_stage_plugin">
+<span class="sig-name descname"><span class="pre">get_translation_stage_plugin</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#qiskit_aer.UnitarySimulator.get_translation_stage_plugin" title="Permalink to this definition">#</a></dt>
+<dd><p>use custom translation method to avoid gate exchange</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="qiskit_aer.UnitarySimulator.measure_channel">
+<span class="sig-name descname"><span class="pre">measure_channel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">qubit</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#qiskit_aer.UnitarySimulator.measure_channel" title="Permalink to this definition">#</a></dt>
+<dd><p>Return the measure stimulus channel for the given qubit.</p>
+<p>This is required to be implemented if the backend supports Pulse
+scheduling.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The Qubit measurement stimulus line</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>MeasureChannel</p>
+</dd>
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>NotImplementedError</strong> – if the backend doesn’t support querying the
+    measurement mapping</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="qiskit_aer.UnitarySimulator.properties">
+<span class="sig-name descname"><span class="pre">properties</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#qiskit_aer.UnitarySimulator.properties" title="Permalink to this definition">#</a></dt>
+<dd><p>Return the simulator backend properties if set.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><dl class="simple">
+<dt>The backend properties or <code class="docutils literal notranslate"><span class="pre">None</span></code> if the</dt><dd><p>backend does not have properties set.</p>
+</dd>
+</dl>
+</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>BackendProperties</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="qiskit_aer.UnitarySimulator.qubit_properties">
+<span class="sig-name descname"><span class="pre">qubit_properties</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">qubit</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://qiskit.org/documentation/stubs/qiskit.providers.QubitProperties.html#qiskit.providers.QubitProperties" title="(in Qiskit v0.45)"><span class="pre">QubitProperties</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://qiskit.org/documentation/stubs/qiskit.providers.QubitProperties.html#qiskit.providers.QubitProperties" title="(in Qiskit v0.45)"><span class="pre">QubitProperties</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#qiskit_aer.UnitarySimulator.qubit_properties" title="Permalink to this definition">#</a></dt>
+<dd><p>Return QubitProperties for a given qubit.</p>
+<p>If there are no defined or the backend doesn’t support querying these
+details this method does not need to be implemented.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>qubit</strong> – The qubit to get the
+<code class="xref py py-class docutils literal notranslate"><span class="pre">QubitProperties</span></code> object for. This can
+be a single integer for 1 qubit or a list of qubits and a list
+of <code class="xref py py-class docutils literal notranslate"><span class="pre">QubitProperties</span></code> objects will be
+returned in the same order</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The <code class="xref py py-class docutils literal notranslate"><span class="pre">QubitProperties</span></code> object for the
+specified qubit. If a list of qubits is provided a list will be
+returned. If properties are missing for a qubit this can be
+<code class="docutils literal notranslate"><span class="pre">None</span></code>.</p>
+</dd>
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>NotImplementedError</strong> – if the backend doesn’t support querying the
+    qubit properties</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="qiskit_aer.UnitarySimulator.run">
+<span class="sig-name descname"><span class="pre">run</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">circuits</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">validate</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parameter_binds</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">run_options</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#qiskit_aer.UnitarySimulator.run" title="Permalink to this definition">#</a></dt>
+<dd><p>Run a qobj on the backend.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>circuits</strong> (<em>QuantumCircuit</em><em> or </em><em>list</em>) – The QuantumCircuit (or list
+of QuantumCircuit objects) to run</p></li>
+<li><p><strong>validate</strong> (<em>bool</em>) – validate the Qobj before running (default: False).</p></li>
+<li><p><strong>parameter_binds</strong> (<em>list</em>) – A list of parameter binding dictionaries.
+See additional information (default: None).</p></li>
+<li><p><strong>run_options</strong> (<em>kwargs</em>) – additional run time backend options.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The simulation job.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="qiskit_aer.jobs.AerJob.html#qiskit_aer.jobs.AerJob" title="qiskit_aer.jobs.AerJob">AerJob</a></p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>TypeError</strong> – If <code class="docutils literal notranslate"><span class="pre">parameter_binds</span></code> is specified with a qobj input or
+    has a length mismatch with the number of circuits.</p>
+</dd>
+</dl>
+<dl>
+<dt>Additional Information:</dt><dd><ul>
+<li><p>Each parameter binding dictionary is of the form:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+    <span class="n">param_a</span><span class="p">:</span> <span class="p">[</span><span class="n">val_1</span><span class="p">,</span> <span class="n">val_2</span><span class="p">],</span>
+    <span class="n">param_b</span><span class="p">:</span> <span class="p">[</span><span class="n">val_3</span><span class="p">,</span> <span class="n">val_1</span><span class="p">],</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>for all parameters in that circuit. The length of the value
+list must be the same for all parameters, and the number of
+parameter dictionaries in the list must match the length of
+<code class="docutils literal notranslate"><span class="pre">circuits</span></code> (if <code class="docutils literal notranslate"><span class="pre">circuits</span></code> is a single <code class="docutils literal notranslate"><span class="pre">QuantumCircuit</span></code>
+object it should a list of length 1).</p>
+</li>
+<li><p>kwarg options specified in <code class="docutils literal notranslate"><span class="pre">run_options</span></code> will temporarily override
+any set options of the same name for the current run.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ValueError</strong> – if run is not implemented</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="qiskit_aer.UnitarySimulator.set_option">
+<span class="sig-name descname"><span class="pre">set_option</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/qiskit_aer/backends/unitary_simulator.html#UnitarySimulator.set_option"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_aer.UnitarySimulator.set_option" title="Permalink to this definition">#</a></dt>
+<dd><p>Special handling for setting backend options.</p>
+<p>This method should be extended by sub classes to
+update special option values.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>key</strong> (<em>str</em>) – key to update</p></li>
+<li><p><strong>value</strong> (<em>any</em>) – value to update.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="qiskit_aer.AerError.html#qiskit_aer.AerError" title="qiskit_aer.AerError"><strong>AerError</strong></a> – if key is ‘method’ and val isn’t in available methods.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="qiskit_aer.UnitarySimulator.set_options">
+<span class="sig-name descname"><span class="pre">set_options</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">fields</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#qiskit_aer.UnitarySimulator.set_options" title="Permalink to this definition">#</a></dt>
+<dd><p>Set the simulator options</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="qiskit_aer.UnitarySimulator.status">
+<span class="sig-name descname"><span class="pre">status</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#qiskit_aer.UnitarySimulator.status" title="Permalink to this definition">#</a></dt>
+<dd><p>Return backend status.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>the status of the backend.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>BackendStatus</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+
+        </article>
+      </div>
+      <footer>
+        <div class="related-pages">
+          <a class="next-page" href="qiskit_aer.AerError.html">
+              <div class="page-info">
+                <div class="context">
+                  <span>Next</span>
+                </div>
+                <div class="title">AerError</div>
+              </div>
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+            </a>
+          <a class="prev-page" href="qiskit_aer.StatevectorSimulator.html">
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+              <div class="page-info">
+                <div class="context">
+                  <span>Previous</span>
+                </div>
+                
+                <div class="title">StatevectorSimulator</div>
+                
+              </div>
+            </a>
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2017-2024, Qiskit Development Team
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            <div class="last-updated">
+              Last updated on 2024/01/17</div>
+          </div>
+          <div class="right-details">
+            
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">UnitarySimulator</a><ul>
+<li><a class="reference internal" href="#qiskit_aer.UnitarySimulator"><code class="docutils literal notranslate"><span class="pre">UnitarySimulator</span></code></a><ul>
+<li><a class="reference internal" href="#qiskit_aer.UnitarySimulator.coupling_map"><code class="docutils literal notranslate"><span class="pre">UnitarySimulator.coupling_map</span></code></a></li>
+<li><a class="reference internal" href="#qiskit_aer.UnitarySimulator.dt"><code class="docutils literal notranslate"><span class="pre">UnitarySimulator.dt</span></code></a></li>
+<li><a class="reference internal" href="#qiskit_aer.UnitarySimulator.dtm"><code class="docutils literal notranslate"><span class="pre">UnitarySimulator.dtm</span></code></a></li>
+<li><a class="reference internal" href="#qiskit_aer.UnitarySimulator.instruction_durations"><code class="docutils literal notranslate"><span class="pre">UnitarySimulator.instruction_durations</span></code></a></li>
+<li><a class="reference internal" href="#qiskit_aer.UnitarySimulator.instruction_schedule_map"><code class="docutils literal notranslate"><span class="pre">UnitarySimulator.instruction_schedule_map</span></code></a></li>
+<li><a class="reference internal" href="#qiskit_aer.UnitarySimulator.instructions"><code class="docutils literal notranslate"><span class="pre">UnitarySimulator.instructions</span></code></a></li>
+<li><a class="reference internal" href="#qiskit_aer.UnitarySimulator.max_circuits"><code class="docutils literal notranslate"><span class="pre">UnitarySimulator.max_circuits</span></code></a></li>
+<li><a class="reference internal" href="#qiskit_aer.UnitarySimulator.meas_map"><code class="docutils literal notranslate"><span class="pre">UnitarySimulator.meas_map</span></code></a></li>
+<li><a class="reference internal" href="#qiskit_aer.UnitarySimulator.num_qubits"><code class="docutils literal notranslate"><span class="pre">UnitarySimulator.num_qubits</span></code></a></li>
+<li><a class="reference internal" href="#qiskit_aer.UnitarySimulator.operation_names"><code class="docutils literal notranslate"><span class="pre">UnitarySimulator.operation_names</span></code></a></li>
+<li><a class="reference internal" href="#qiskit_aer.UnitarySimulator.operations"><code class="docutils literal notranslate"><span class="pre">UnitarySimulator.operations</span></code></a></li>
+<li><a class="reference internal" href="#qiskit_aer.UnitarySimulator.options"><code class="docutils literal notranslate"><span class="pre">UnitarySimulator.options</span></code></a></li>
+<li><a class="reference internal" href="#qiskit_aer.UnitarySimulator.provider"><code class="docutils literal notranslate"><span class="pre">UnitarySimulator.provider</span></code></a></li>
+<li><a class="reference internal" href="#qiskit_aer.UnitarySimulator.target"><code class="docutils literal notranslate"><span class="pre">UnitarySimulator.target</span></code></a></li>
+<li><a class="reference internal" href="#qiskit_aer.UnitarySimulator.version"><code class="docutils literal notranslate"><span class="pre">UnitarySimulator.version</span></code></a></li>
+<li><a class="reference internal" href="#qiskit_aer.UnitarySimulator.name"><code class="docutils literal notranslate"><span class="pre">UnitarySimulator.name</span></code></a></li>
+<li><a class="reference internal" href="#qiskit_aer.UnitarySimulator.description"><code class="docutils literal notranslate"><span class="pre">UnitarySimulator.description</span></code></a></li>
+<li><a class="reference internal" href="#qiskit_aer.UnitarySimulator.online_date"><code class="docutils literal notranslate"><span class="pre">UnitarySimulator.online_date</span></code></a></li>
+<li><a class="reference internal" href="#qiskit_aer.UnitarySimulator.backend_version"><code class="docutils literal notranslate"><span class="pre">UnitarySimulator.backend_version</span></code></a></li>
+<li><a class="reference internal" href="#qiskit_aer.UnitarySimulator.acquire_channel"><code class="docutils literal notranslate"><span class="pre">UnitarySimulator.acquire_channel()</span></code></a></li>
+<li><a class="reference internal" href="#qiskit_aer.UnitarySimulator.available_devices"><code class="docutils literal notranslate"><span class="pre">UnitarySimulator.available_devices()</span></code></a></li>
+<li><a class="reference internal" href="#qiskit_aer.UnitarySimulator.available_methods"><code class="docutils literal notranslate"><span class="pre">UnitarySimulator.available_methods()</span></code></a></li>
+<li><a class="reference internal" href="#qiskit_aer.UnitarySimulator.clear_options"><code class="docutils literal notranslate"><span class="pre">UnitarySimulator.clear_options()</span></code></a></li>
+<li><a class="reference internal" href="#qiskit_aer.UnitarySimulator.configuration"><code class="docutils literal notranslate"><span class="pre">UnitarySimulator.configuration()</span></code></a></li>
+<li><a class="reference internal" href="#qiskit_aer.UnitarySimulator.control_channel"><code class="docutils literal notranslate"><span class="pre">UnitarySimulator.control_channel()</span></code></a></li>
+<li><a class="reference internal" href="#qiskit_aer.UnitarySimulator.drive_channel"><code class="docutils literal notranslate"><span class="pre">UnitarySimulator.drive_channel()</span></code></a></li>
+<li><a class="reference internal" href="#qiskit_aer.UnitarySimulator.get_translation_stage_plugin"><code class="docutils literal notranslate"><span class="pre">UnitarySimulator.get_translation_stage_plugin()</span></code></a></li>
+<li><a class="reference internal" href="#qiskit_aer.UnitarySimulator.measure_channel"><code class="docutils literal notranslate"><span class="pre">UnitarySimulator.measure_channel()</span></code></a></li>
+<li><a class="reference internal" href="#qiskit_aer.UnitarySimulator.properties"><code class="docutils literal notranslate"><span class="pre">UnitarySimulator.properties()</span></code></a></li>
+<li><a class="reference internal" href="#qiskit_aer.UnitarySimulator.qubit_properties"><code class="docutils literal notranslate"><span class="pre">UnitarySimulator.qubit_properties()</span></code></a></li>
+<li><a class="reference internal" href="#qiskit_aer.UnitarySimulator.run"><code class="docutils literal notranslate"><span class="pre">UnitarySimulator.run()</span></code></a></li>
+<li><a class="reference internal" href="#qiskit_aer.UnitarySimulator.set_option"><code class="docutils literal notranslate"><span class="pre">UnitarySimulator.set_option()</span></code></a></li>
+<li><a class="reference internal" href="#qiskit_aer.UnitarySimulator.set_options"><code class="docutils literal notranslate"><span class="pre">UnitarySimulator.set_options()</span></code></a></li>
+<li><a class="reference internal" href="#qiskit_aer.UnitarySimulator.status"><code class="docutils literal notranslate"><span class="pre">UnitarySimulator.status()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script src="../_static/jquery.js?v=5d32c60e"></script>
+    <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+    <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js?v=cc44ccc5"></script>
+    <script src="../_static/doctools.js?v=888ff710"></script>
+    <script src="../_static/sphinx_highlight.js?v=4825356b"></script>
+    <script src="../_static/scripts/qiskit-sphinx-theme.js?v=4d77b8ca"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@jupyter-widgets/html-manager@^1.0.1/dist/embed-amd.js"></script>
+    <script src="../_static/design-tabs.js?v=36754332"></script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    </body>
+</html>

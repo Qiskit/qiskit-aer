@@ -1,0 +1,8 @@
+﻿
+
+phase_damping_error
+====================================
+
+.. currentmodule:: qiskit_aer.noise
+
+.. autofunction:: phase_damping_error

@@ -1,0 +1,60 @@
+﻿
+
+StatevectorSimulator
+===============================
+
+.. currentmodule:: qiskit_aer
+
+.. autoclass:: StatevectorSimulator
+   :no-members:
+   :no-inherited-members:
+   :no-special-members:
+   :show-inheritance:
+
+
+   
+   .. rubric:: Attributes
+      
+   .. autoattribute:: StatevectorSimulator.coupling_map
+   .. autoattribute:: StatevectorSimulator.dt
+   .. autoattribute:: StatevectorSimulator.dtm
+   .. autoattribute:: StatevectorSimulator.instruction_durations
+   .. autoattribute:: StatevectorSimulator.instruction_schedule_map
+   .. autoattribute:: StatevectorSimulator.instructions
+   .. autoattribute:: StatevectorSimulator.max_circuits
+   .. autoattribute:: StatevectorSimulator.meas_map
+   .. autoattribute:: StatevectorSimulator.num_qubits
+   .. autoattribute:: StatevectorSimulator.operation_names
+   .. autoattribute:: StatevectorSimulator.operations
+   .. autoattribute:: StatevectorSimulator.options
+   .. autoattribute:: StatevectorSimulator.provider
+   .. autoattribute:: StatevectorSimulator.target
+   .. autoattribute:: StatevectorSimulator.version
+   .. autoattribute:: StatevectorSimulator.name
+   .. autoattribute:: StatevectorSimulator.description
+   .. autoattribute:: StatevectorSimulator.online_date
+   .. autoattribute:: StatevectorSimulator.backend_version
+   
+
+
+
+   
+   .. rubric:: Methods
+   
+   .. automethod:: StatevectorSimulator.acquire_channel
+   .. automethod:: StatevectorSimulator.available_devices
+   .. automethod:: StatevectorSimulator.available_methods
+   .. automethod:: StatevectorSimulator.clear_options
+   .. automethod:: StatevectorSimulator.configuration
+   .. automethod:: StatevectorSimulator.control_channel
+   .. automethod:: StatevectorSimulator.drive_channel
+   .. automethod:: StatevectorSimulator.get_translation_stage_plugin
+   .. automethod:: StatevectorSimulator.measure_channel
+   .. automethod:: StatevectorSimulator.properties
+   .. automethod:: StatevectorSimulator.qubit_properties
+   .. automethod:: StatevectorSimulator.run
+   .. automethod:: StatevectorSimulator.set_option
+   .. automethod:: StatevectorSimulator.set_options
+   .. automethod:: StatevectorSimulator.status
+
+   

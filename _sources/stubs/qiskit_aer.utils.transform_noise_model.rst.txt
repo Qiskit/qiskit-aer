@@ -1,0 +1,8 @@
+﻿
+
+transform_noise_model
+======================================
+
+.. currentmodule:: qiskit_aer.utils
+
+.. autofunction:: transform_noise_model

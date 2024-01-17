@@ -1,0 +1,41 @@
+﻿
+
+AerJob
+======================
+
+.. currentmodule:: qiskit_aer.jobs
+
+.. autoclass:: AerJob
+   :no-members:
+   :no-inherited-members:
+   :no-special-members:
+   :show-inheritance:
+
+
+   
+   .. rubric:: Attributes
+      
+   .. autoattribute:: AerJob.version
+   
+
+
+
+   
+   .. rubric:: Methods
+   
+   .. automethod:: AerJob.backend
+   .. automethod:: AerJob.cancel
+   .. automethod:: AerJob.cancelled
+   .. automethod:: AerJob.circuits
+   .. automethod:: AerJob.done
+   .. automethod:: AerJob.executor
+   .. automethod:: AerJob.in_final_state
+   .. automethod:: AerJob.job_id
+   .. automethod:: AerJob.qobj
+   .. automethod:: AerJob.result
+   .. automethod:: AerJob.running
+   .. automethod:: AerJob.status
+   .. automethod:: AerJob.submit
+   .. automethod:: AerJob.wait_for_final_state
+
+   

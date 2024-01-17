@@ -1,0 +1,52 @@
+﻿
+
+SetStabilizer
+================================
+
+.. currentmodule:: qiskit_aer.library
+
+.. autoclass:: SetStabilizer
+   :no-members:
+   :no-inherited-members:
+   :no-special-members:
+   :show-inheritance:
+
+
+   
+   .. rubric:: Attributes
+      
+   .. autoattribute:: SetStabilizer.base_class
+   .. autoattribute:: SetStabilizer.condition
+   .. autoattribute:: SetStabilizer.condition_bits
+   .. autoattribute:: SetStabilizer.decompositions
+   .. autoattribute:: SetStabilizer.definition
+   .. autoattribute:: SetStabilizer.duration
+   .. autoattribute:: SetStabilizer.label
+   .. autoattribute:: SetStabilizer.mutable
+   .. autoattribute:: SetStabilizer.name
+   .. autoattribute:: SetStabilizer.num_clbits
+   .. autoattribute:: SetStabilizer.num_qubits
+   .. autoattribute:: SetStabilizer.params
+   .. autoattribute:: SetStabilizer.unit
+   
+
+
+
+   
+   .. rubric:: Methods
+   
+   .. automethod:: SetStabilizer.add_decomposition
+   .. automethod:: SetStabilizer.assemble
+   .. automethod:: SetStabilizer.broadcast_arguments
+   .. automethod:: SetStabilizer.c_if
+   .. automethod:: SetStabilizer.copy
+   .. automethod:: SetStabilizer.inverse
+   .. automethod:: SetStabilizer.is_parameterized
+   .. automethod:: SetStabilizer.qasm
+   .. automethod:: SetStabilizer.repeat
+   .. automethod:: SetStabilizer.reverse_ops
+   .. automethod:: SetStabilizer.soft_compare
+   .. automethod:: SetStabilizer.to_mutable
+   .. automethod:: SetStabilizer.validate_parameter
+
+   

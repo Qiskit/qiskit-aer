@@ -1,0 +1,8 @@
+﻿
+
+set_unitary
+==============================
+
+.. currentmodule:: qiskit_aer.library
+
+.. autofunction:: set_unitary

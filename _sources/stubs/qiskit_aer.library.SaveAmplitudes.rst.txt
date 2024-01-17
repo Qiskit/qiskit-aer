@@ -1,0 +1,52 @@
+﻿
+
+SaveAmplitudes
+=================================
+
+.. currentmodule:: qiskit_aer.library
+
+.. autoclass:: SaveAmplitudes
+   :no-members:
+   :no-inherited-members:
+   :no-special-members:
+   :show-inheritance:
+
+
+   
+   .. rubric:: Attributes
+      
+   .. autoattribute:: SaveAmplitudes.base_class
+   .. autoattribute:: SaveAmplitudes.condition
+   .. autoattribute:: SaveAmplitudes.condition_bits
+   .. autoattribute:: SaveAmplitudes.decompositions
+   .. autoattribute:: SaveAmplitudes.definition
+   .. autoattribute:: SaveAmplitudes.duration
+   .. autoattribute:: SaveAmplitudes.label
+   .. autoattribute:: SaveAmplitudes.mutable
+   .. autoattribute:: SaveAmplitudes.name
+   .. autoattribute:: SaveAmplitudes.num_clbits
+   .. autoattribute:: SaveAmplitudes.num_qubits
+   .. autoattribute:: SaveAmplitudes.params
+   .. autoattribute:: SaveAmplitudes.unit
+   
+
+
+
+   
+   .. rubric:: Methods
+   
+   .. automethod:: SaveAmplitudes.add_decomposition
+   .. automethod:: SaveAmplitudes.assemble
+   .. automethod:: SaveAmplitudes.broadcast_arguments
+   .. automethod:: SaveAmplitudes.c_if
+   .. automethod:: SaveAmplitudes.copy
+   .. automethod:: SaveAmplitudes.inverse
+   .. automethod:: SaveAmplitudes.is_parameterized
+   .. automethod:: SaveAmplitudes.qasm
+   .. automethod:: SaveAmplitudes.repeat
+   .. automethod:: SaveAmplitudes.reverse_ops
+   .. automethod:: SaveAmplitudes.soft_compare
+   .. automethod:: SaveAmplitudes.to_mutable
+   .. automethod:: SaveAmplitudes.validate_parameter
+
+   

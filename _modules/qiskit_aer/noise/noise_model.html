@@ -1,0 +1,1610 @@
+<!doctype html>
+<html class="no-js" lang="en">
+  <head><meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <meta name="color-scheme" content="light dark"><link rel="index" title="Index" href="../../../genindex.html" /><link rel="search" title="Search" href="../../../search.html" />
+
+    <!-- Generated with Sphinx 7.1.2 and Furo 2023.08.19 -->
+        <title>qiskit_aer.noise.noise_model - Qiskit Aer 0.13.1</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/styles/furo.css?v=135e06be" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=82a976d7" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/styles/qiskit-sphinx-theme.css?v=fe84956c" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/styles/qiskit-ecosystem.css?v=745c5aa7" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/jupyter-sphinx.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/thebelab.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/design-style.1e8bd061cd6da7fc9cf755528e8ffc24.min.css?v=0a3b3ea7" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/styles/furo-extensions.css?v=36a5483c" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #ffffff;
+  --color-code-foreground: black;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style><link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:ital,wght@0,400;0,600;1,400;1,600&display=swap" rel="stylesheet">
+<script src="../../../_static/js/web-components/top-nav-bar.js"></script></head>
+  <body>
+    
+    <script>document.body.dataset.theme = "light";</script>
+    
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg id="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+      <defs><style>.cls-1{fill:none;}</style></defs>
+      <path d="M28,4H4A2,2,0,0,0,2,6V26a2,2,0,0,0,2,2H28a2,2,0,0,0,2-2V6A2,2,0,0,0,28,4ZM4,6H20V26H4ZM28,26H22V6h6Z"/>
+      <rect id="_Transparent_Rectangle_" data-name="&lt;Transparent Rectangle&gt;" class="cls-1" width="32" height="32"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg id="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+      <defs><style>.cls-1{fill:none;}</style></defs>
+      <rect x="4" y="6" width="24" height="2"/>
+      <rect x="4" y="24" width="24" height="2"/>
+      <rect x="4" y="12" width="24" height="2"/>
+      <rect x="4" y="18" width="24" height="2"/>
+      <rect id="_Transparent_Rectangle_" data-name="&lt;Transparent Rectangle&gt;" class="cls-1" width="32" height="32"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg version="1.1" id="icon" xmlns="http://www.w3.org/2000/svg" x="0px" y="0px"
+         viewBox="0 0 32 32" style="enable-background:new 0 0 32 32;" xml:space="preserve"><polygon points="22,16 12,26 10.6,24.6 19.2,16 10.6,7.4 12,6 " stroke="currentColor"/>
+      <rect id="_x3C_Transparent_Rectangle_x3E_" fill="none" width="32" height="32"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-new-tab" viewBox="0 0 32 32">
+    <svg id="icon" xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
+      <defs>
+        <style>
+          .cls-1 {
+            fill: none;
+          }
+        </style>
+      </defs>
+      <path fill="#6929C4" d="M26,28H6a2.0027,2.0027,0,0,1-2-2V6A2.0027,2.0027,0,0,1,6,4H16V6H6V26H26V16h2V26A2.0027,2.0027,0,0,1,26,28Z"/>
+      <polygon fill="#6929C4" points="20 2 20 4 26.586 4 18 12.586 19.414 14 28 5.414 28 12 30 12 30 2 20 2"/>
+      <rect id="_Transparent_Rectangle_" data-name="&lt;Transparent Rectangle&gt;" class="cls-1" width="32" height="32"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-half" viewBox="0 0 24 24">
+    <title>Auto light/dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-shadow">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M13 12h5" />
+      <path d="M13 15h4" />
+      <path d="M13 18h1" />
+      <path d="M13 9h4" />
+      <path d="M13 6h1" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc">
+<label class="overlay sidebar-overlay" for="__navigation">
+  <div class="visually-hidden">Hide navigation sidebar</div>
+</label>
+<label class="overlay toc-overlay" for="__toc">
+  <div class="visually-hidden">Hide table of contents sidebar</div>
+</label>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <div class="visually-hidden">Toggle site navigation sidebar</div>
+        <i class="icon"><svg><use href="#svg-menu"></use></svg></i>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="../../../index.html"><div class="brand">Qiskit Aer 0.13.1</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle">
+          <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+          <svg class="theme-icon-when-auto"><use href="#svg-sun-half"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon no-toc" for="__toc">
+        <div class="visually-hidden">Toggle table of contents sidebar</div>
+        <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><div class="sidebar-brand">
+  <a href="https://www.qiskit.org/ecosystem">
+    <div class="sidebar-logo-container">
+      <img class="sidebar-logo" src="../../../_static/images/ecosystem-logo.svg" alt="Qiskit Ecosystem logo"/>
+    </div>
+  </a>
+  
+  <span class="sidebar-brand-text">Qiskit Aer 0.13.1</span>
+</div><form class="sidebar-search-container" method="get" action="../../../search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../index.html">Home</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started.html">Getting Started</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../../apidocs/aer.html">API Documentation</a><input class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle navigation of API Documentation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../../apidocs/aer_provider.html">Aer Provider (<code class="xref py py-mod docutils literal notranslate"><span class="pre">qiskit_aer</span></code>)</a><input class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle navigation of Aer Provider (qiskit_aer)</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.AerProvider.html">AerProvider</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.AerSimulator.html">AerSimulator</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.QasmSimulator.html">QasmSimulator</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.StatevectorSimulator.html">StatevectorSimulator</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.UnitarySimulator.html">UnitarySimulator</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.AerError.html">AerError</a></li>
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../../apidocs/aer_jobs.html">Aer Jobs (<code class="xref py py-mod docutils literal notranslate"><span class="pre">qiskit_aer.jobs</span></code>)</a><input class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><div class="visually-hidden">Toggle navigation of Aer Jobs (qiskit_aer.jobs)</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.jobs.AerJob.html">AerJob</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.jobs.AerJobSet.html">AerJobSet</a></li>
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../../apidocs/aer_library.html">Instruction Library (<code class="xref py py-mod docutils literal notranslate"><span class="pre">qiskit_aer.library</span></code>)</a><input class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" role="switch" type="checkbox"/><label for="toctree-checkbox-4"><div class="visually-hidden">Toggle navigation of Instruction Library (qiskit_aer.library)</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.library.SetStatevector.html">SetStatevector</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.library.SetDensityMatrix.html">SetDensityMatrix</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.library.SetStabilizer.html">SetStabilizer</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.library.SetSuperOp.html">SetSuperOp</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.library.SetUnitary.html">SetUnitary</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.library.SetMatrixProductState.html">SetMatrixProductState</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.library.set_statevector.html">set_statevector</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.library.set_density_matrix.html">set_density_matrix</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.library.set_stabilizer.html">set_stabilizer</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.library.set_unitary.html">set_unitary</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.library.set_superop.html">set_superop</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.library.set_matrix_product_state.html">set_matrix_product_state</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.library.SaveState.html">SaveState</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.library.SaveStatevector.html">SaveStatevector</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.library.SaveStatevectorDict.html">SaveStatevectorDict</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.library.SaveDensityMatrix.html">SaveDensityMatrix</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.library.SaveMatrixProductState.html">SaveMatrixProductState</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.library.SaveClifford.html">SaveClifford</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.library.SaveStabilizer.html">SaveStabilizer</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.library.SaveSuperOp.html">SaveSuperOp</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.library.SaveUnitary.html">SaveUnitary</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.library.SaveExpectationValue.html">SaveExpectationValue</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.library.SaveExpectationValueVariance.html">SaveExpectationValueVariance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.library.SaveProbabilities.html">SaveProbabilities</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.library.SaveProbabilitiesDict.html">SaveProbabilitiesDict</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.library.SaveAmplitudes.html">SaveAmplitudes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.library.SaveAmplitudesSquared.html">SaveAmplitudesSquared</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.library.save_amplitudes.html">save_amplitudes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.library.save_amplitudes_squared.html">save_amplitudes_squared</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.library.save_clifford.html">save_clifford</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.library.save_density_matrix.html">save_density_matrix</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.library.save_expectation_value.html">save_expectation_value</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.library.save_expectation_value_variance.html">save_expectation_value_variance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.library.save_matrix_product_state.html">save_matrix_product_state</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.library.save_probabilities.html">save_probabilities</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.library.save_probabilities_dict.html">save_probabilities_dict</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.library.save_stabilizer.html">save_stabilizer</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.library.save_state.html">save_state</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.library.save_statevector.html">save_statevector</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.library.save_statevector_dict.html">save_statevector_dict</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.library.save_superop.html">save_superop</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.library.save_unitary.html">save_unitary</a></li>
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../../apidocs/aer_noise.html">Noise Models (<code class="xref py py-mod docutils literal notranslate"><span class="pre">qiskit_aer.noise</span></code>)</a><input class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><div class="visually-hidden">Toggle navigation of Noise Models (qiskit_aer.noise)</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.noise.NoiseModel.html">NoiseModel</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.noise.QuantumError.html">QuantumError</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.noise.ReadoutError.html">ReadoutError</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.noise.pauli_error.html">pauli_error</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.noise.depolarizing_error.html">depolarizing_error</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.noise.mixed_unitary_error.html">mixed_unitary_error</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.noise.coherent_unitary_error.html">coherent_unitary_error</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.noise.reset_error.html">reset_error</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.noise.amplitude_damping_error.html">amplitude_damping_error</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.noise.phase_damping_error.html">phase_damping_error</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.noise.phase_amplitude_damping_error.html">phase_amplitude_damping_error</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.noise.thermal_relaxation_error.html">thermal_relaxation_error</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.noise.kraus_error.html">kraus_error</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.noise.LocalNoisePass.html">LocalNoisePass</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.noise.RelaxationNoisePass.html">RelaxationNoisePass</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.noise.device.basic_device_readout_errors.html">basic_device_readout_errors</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.noise.device.basic_device_gate_errors.html">basic_device_gate_errors</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.noise.device.gate_param_values.html">gate_param_values</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.noise.device.gate_error_values.html">gate_error_values</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.noise.device.gate_length_values.html">gate_length_values</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.noise.device.readout_error_values.html">readout_error_values</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.noise.device.thermal_relaxation_values.html">thermal_relaxation_values</a></li>
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../../apidocs/aer_primitives.html">Primitives (<code class="xref py py-mod docutils literal notranslate"><span class="pre">qiskit_aer.primitives</span></code>)</a><input class="toctree-checkbox" id="toctree-checkbox-6" name="toctree-checkbox-6" role="switch" type="checkbox"/><label for="toctree-checkbox-6"><div class="visually-hidden">Toggle navigation of Primitives (qiskit_aer.primitives)</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.primitives.Sampler.html">Sampler</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.primitives.Estimator.html">Estimator</a></li>
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../../apidocs/aer_utils.html">Utilities (<code class="xref py py-mod docutils literal notranslate"><span class="pre">qiskit_aer.utils</span></code>)</a><input class="toctree-checkbox" id="toctree-checkbox-7" name="toctree-checkbox-7" role="switch" type="checkbox"/><label for="toctree-checkbox-7"><div class="visually-hidden">Toggle navigation of Utilities (qiskit_aer.utils)</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.utils.insert_noise.html">insert_noise</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.utils.approximate_quantum_error.html">approximate_quantum_error</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.utils.approximate_noise_model.html">approximate_noise_model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.utils.transform_noise_model.html">transform_noise_model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.utils.transpile_noise_model.html">transpile_noise_model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.utils.transpile_quantum_error.html">transpile_quantum_error</a></li>
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../../apidocs/aer_quantum_info.html">Aer Quantum Info (<code class="xref py py-mod docutils literal notranslate"><span class="pre">qiskit_aer.quantum_info</span></code>)</a><input class="toctree-checkbox" id="toctree-checkbox-8" name="toctree-checkbox-8" role="switch" type="checkbox"/><label for="toctree-checkbox-8"><div class="visually-hidden">Toggle navigation of Aer Quantum Info (qiskit_aer.quantum_info)</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.quantum_info.AerStatevector.html">AerStatevector</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../stubs/qiskit_aer.quantum_info.AerDensityMatrix.html">AerDensityMatrix</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../apidocs/circuit.html">Additional circuit methods</a></li>
+</ul>
+</li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../../tutorials/index.html">Tutorials</a><input class="toctree-checkbox" id="toctree-checkbox-9" name="toctree-checkbox-9" role="switch" type="checkbox"/><label for="toctree-checkbox-9"><div class="visually-hidden">Toggle navigation of Tutorials</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../tutorials/1_aer_provider.html">Simulators</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../tutorials/2_device_noise_simulation.html">Device backend noise model simulations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../tutorials/3_building_noise_models.html">Building Noise Models</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../tutorials/4_custom_gate_noise.html">Applying noise to custom unitary gates</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../tutorials/5_noise_transformation.html">Noise Transformation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../tutorials/6_extended_stabilizer_tutorial.html">The Extended Stabilizer Simulator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../tutorials/7_matrix_product_state_method.html">Matrix product state simulation method</a></li>
+</ul>
+</li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../../howtos/index.html">How-Tos</a><input class="toctree-checkbox" id="toctree-checkbox-10" name="toctree-checkbox-10" role="switch" type="checkbox"/><label for="toctree-checkbox-10"><div class="visually-hidden">Toggle navigation of How-Tos</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../howtos/parallel.html">Running with Threadpool and DASK</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../howtos/running_gpu.html">Running with multiple-GPUs and/or multiple nodes</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../release_notes.html">Release Notes</a></li>
+</ul>
+
+</div></div>
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle">
+              <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+              <svg class="theme-icon-when-auto"><use href="#svg-sun-half"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon no-toc" for="__toc">
+            <div class="visually-hidden">Toggle table of contents sidebar</div>
+            <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+          </label>
+        </div>
+        <article role="main">
+          <h1>Source code for qiskit_aer.noise.noise_model</h1><div class="highlight"><pre>
+<span></span><span class="c1"># This code is part of Qiskit.</span>
+<span class="c1">#</span>
+<span class="c1"># (C) Copyright IBM 2018, 2019.</span>
+<span class="c1">#</span>
+<span class="c1"># This code is licensed under the Apache License, Version 2.0. You may</span>
+<span class="c1"># obtain a copy of this license in the LICENSE.txt file in the root directory</span>
+<span class="c1"># of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.</span>
+<span class="c1">#</span>
+<span class="c1"># Any modifications or derivative works of this code must retain this</span>
+<span class="c1"># copyright notice, and modified files need to carry a notice indicating</span>
+<span class="c1"># that they have been altered from the originals.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Noise model class for Aer simulators.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">copy</span>
+<span class="kn">import</span> <span class="nn">json</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Optional</span>
+<span class="kn">from</span> <span class="nn">warnings</span> <span class="kn">import</span> <span class="n">warn</span><span class="p">,</span> <span class="n">catch_warnings</span><span class="p">,</span> <span class="n">filterwarnings</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">from</span> <span class="nn">qiskit.circuit</span> <span class="kn">import</span> <span class="n">Instruction</span><span class="p">,</span> <span class="n">Delay</span>
+<span class="kn">from</span> <span class="nn">qiskit.circuit</span> <span class="kn">import</span> <span class="n">QuantumCircuit</span>
+<span class="kn">from</span> <span class="nn">qiskit.circuit</span> <span class="kn">import</span> <span class="n">Reset</span>
+<span class="kn">from</span> <span class="nn">qiskit.circuit.library.generalized_gates</span> <span class="kn">import</span> <span class="n">PauliGate</span><span class="p">,</span> <span class="n">UnitaryGate</span>
+<span class="kn">from</span> <span class="nn">qiskit.providers</span> <span class="kn">import</span> <span class="n">QubitProperties</span>
+<span class="kn">from</span> <span class="nn">qiskit.providers.exceptions</span> <span class="kn">import</span> <span class="n">BackendPropertyError</span>
+<span class="kn">from</span> <span class="nn">qiskit.providers.models</span> <span class="kn">import</span> <span class="n">BackendProperties</span>
+<span class="kn">from</span> <span class="nn">qiskit.transpiler</span> <span class="kn">import</span> <span class="n">PassManager</span>
+<span class="kn">from</span> <span class="nn">qiskit.utils</span> <span class="kn">import</span> <span class="n">apply_prefix</span>
+<span class="kn">from</span> <span class="nn">.device.models</span> <span class="kn">import</span> <span class="n">_excited_population</span><span class="p">,</span> <span class="n">_truncate_t2_value</span>
+<span class="kn">from</span> <span class="nn">.device.models</span> <span class="kn">import</span> <span class="n">basic_device_gate_errors</span>
+<span class="kn">from</span> <span class="nn">.device.models</span> <span class="kn">import</span> <span class="n">basic_device_readout_errors</span>
+<span class="kn">from</span> <span class="nn">.errors.quantum_error</span> <span class="kn">import</span> <span class="n">QuantumError</span>
+<span class="kn">from</span> <span class="nn">.errors.readout_error</span> <span class="kn">import</span> <span class="n">ReadoutError</span>
+<span class="kn">from</span> <span class="nn">.noiseerror</span> <span class="kn">import</span> <span class="n">NoiseError</span>
+<span class="kn">from</span> <span class="nn">.passes</span> <span class="kn">import</span> <span class="n">RelaxationNoisePass</span>
+<span class="kn">from</span> <span class="nn">..backends.backend_utils</span> <span class="kn">import</span> <span class="n">BASIS_GATES</span>
+
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">AerJSONEncoder</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">JSONEncoder</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    JSON encoder for NumPy arrays and complex numbers.</span>
+
+<span class="sd">    This functions as the standard JSON Encoder but adds support</span>
+<span class="sd">    for encoding:</span>
+<span class="sd">        complex numbers z as lists [z.real, z.imag]</span>
+<span class="sd">        ndarrays as nested lists.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># pylint: disable=method-hidden,arguments-differ</span>
+    <span class="k">def</span> <span class="nf">default</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obj</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">obj</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="nb">complex</span><span class="p">):</span>
+            <span class="k">return</span> <span class="p">[</span><span class="n">obj</span><span class="o">.</span><span class="n">real</span><span class="p">,</span> <span class="n">obj</span><span class="o">.</span><span class="n">imag</span><span class="p">]</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="s2">&quot;to_dict&quot;</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">obj</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">default</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">QuantumErrorLocation</span><span class="p">(</span><span class="n">Instruction</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Instruction for referencing a multi-qubit error in a NoiseModel&quot;&quot;&quot;</span>
+
+    <span class="n">_directive</span> <span class="o">=</span> <span class="kc">True</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">qerror</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Construct a new quantum error location instruction.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            qerror (QuantumError): the quantum error to reference.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="s2">&quot;qerror_loc&quot;</span><span class="p">,</span> <span class="n">qerror</span><span class="o">.</span><span class="n">num_qubits</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="p">[],</span> <span class="n">label</span><span class="o">=</span><span class="n">qerror</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="NoiseModel"><a class="viewcode-back" href="../../../stubs/qiskit_aer.noise.NoiseModel.html#qiskit_aer.noise.NoiseModel">[docs]</a><span class="k">class</span> <span class="nc">NoiseModel</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Noise model class for Aer simulators.</span>
+
+<span class="sd">    This class is used to represent noise model for the</span>
+<span class="sd">    :class:`~qiskit_aer.QasmSimulator`. It can be used to construct</span>
+<span class="sd">    custom noise models for simulator, or to automatically generate a basic</span>
+<span class="sd">    device noise model for an IBMQ backend. See the</span>
+<span class="sd">    :mod:`~qiskit_aer.noise` module documentation for additional</span>
+<span class="sd">    information.</span>
+
+<span class="sd">    **Example: Basic device noise model**</span>
+
+<span class="sd">    An approximate :class:`NoiseModel` can be generated automatically from the</span>
+<span class="sd">    properties of real device backends from the IBMQ provider using the</span>
+<span class="sd">    :meth:`~NoiseModel.from_backend` method.</span>
+
+<span class="sd">    .. code-block:: python</span>
+
+<span class="sd">        from qiskit import IBMQ, Aer</span>
+<span class="sd">        from qiskit_aer.noise import NoiseModel</span>
+
+<span class="sd">        provider = IBMQ.load_account()</span>
+<span class="sd">        backend = provider.get_backend(&#39;ibmq_vigo&#39;)</span>
+<span class="sd">        noise_model = NoiseModel.from_backend(backend)</span>
+<span class="sd">        print(noise_model)</span>
+
+
+<span class="sd">    **Example: Custom noise model**</span>
+
+<span class="sd">    Custom noise models can be used by adding :class:`QuantumError` to circuit</span>
+<span class="sd">    gate, reset or measure instructions, and :class:`ReadoutError` to measure</span>
+<span class="sd">    instructions.</span>
+
+<span class="sd">    .. code-block:: python</span>
+
+<span class="sd">        import qiskit_aer.noise as noise</span>
+
+<span class="sd">        # Error probabilities</span>
+<span class="sd">        prob_1 = 0.001  # 1-qubit gate</span>
+<span class="sd">        prob_2 = 0.01   # 2-qubit gate</span>
+
+<span class="sd">        # Depolarizing quantum errors</span>
+<span class="sd">        error_1 = noise.depolarizing_error(prob_1, 1)</span>
+<span class="sd">        error_2 = noise.depolarizing_error(prob_2, 2)</span>
+
+<span class="sd">        # Add errors to noise model</span>
+<span class="sd">        noise_model = noise.NoiseModel()</span>
+<span class="sd">        noise_model.add_all_qubit_quantum_error(error_1, [&#39;rz&#39;, &#39;sx&#39;, &#39;x&#39;])</span>
+<span class="sd">        noise_model.add_all_qubit_quantum_error(error_2, [&#39;cx&#39;])</span>
+<span class="sd">        print(noise_model)</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># Checks for standard 1-3 qubit instructions</span>
+    <span class="n">_1qubit_instructions</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span>
+        <span class="p">[</span>
+            <span class="s2">&quot;u1&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;u2&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;u3&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;u&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;p&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;r&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;rx&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;ry&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;rz&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;id&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;x&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;y&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;z&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;h&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;s&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;sdg&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;sx&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;sxdg&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;t&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;tdg&quot;</span><span class="p">,</span>
+        <span class="p">]</span>
+    <span class="p">)</span>
+    <span class="n">_2qubit_instructions</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span>
+        <span class="p">[</span>
+            <span class="s2">&quot;swap&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;cx&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;cy&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;cz&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;csx&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;cp&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;cu&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;cu1&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;cu2&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;cu3&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;rxx&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;ryy&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;rzz&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;rzx&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;ecr&quot;</span><span class="p">,</span>
+        <span class="p">]</span>
+    <span class="p">)</span>
+    <span class="n">_3qubit_instructions</span> <span class="o">=</span> <span class="nb">set</span><span class="p">([</span><span class="s2">&quot;ccx&quot;</span><span class="p">,</span> <span class="s2">&quot;cswap&quot;</span><span class="p">])</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">basis_gates</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize an empty noise model.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            basis_gates (list[str] or None): Specify an initial basis_gates</span>
+<span class="sd">                for the noise model. If None a default value of [&#39;id&#39;, &#39;rz&#39;, &#39;sx&#39;, &#39;cx&#39;]</span>
+<span class="sd">                is used (Default: None).</span>
+
+<span class="sd">        Additional Information:</span>
+<span class="sd">        Errors added to the noise model will have their instruction</span>
+<span class="sd">        appended to the noise model basis_gates if the instruction is in</span>
+<span class="sd">        the :class:`~qiskit_aer.QasmSimulator` basis_gates. If</span>
+<span class="sd">        the instruction is not in the</span>
+<span class="sd">        :class:`~qiskit_aer.QasmSimulator` basis_gates it is</span>
+<span class="sd">        assumed to be a label for a standard gate, and that gate should be</span>
+<span class="sd">        added to the `NoiseModel` basis_gates either using the init method,</span>
+<span class="sd">        or the :meth:`add_basis_gates` method.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">basis_gates</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># Default basis gates is id, rz, sx, cx so that all standard</span>
+            <span class="c1"># non-identity instructions can be unrolled to rz, sx, cx,</span>
+            <span class="c1"># and identities won&#39;t be unrolled</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_basis_gates</span> <span class="o">=</span> <span class="nb">set</span><span class="p">([</span><span class="s2">&quot;id&quot;</span><span class="p">,</span> <span class="s2">&quot;rz&quot;</span><span class="p">,</span> <span class="s2">&quot;sx&quot;</span><span class="p">,</span> <span class="s2">&quot;cx&quot;</span><span class="p">])</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_basis_gates</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">name</span> <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_instruction_names_labels</span><span class="p">(</span><span class="n">basis_gates</span><span class="p">))</span>
+        <span class="c1"># Store gates with a noise model defined</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_noise_instructions</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+        <span class="c1"># Store qubits referenced in noise model.</span>
+        <span class="c1"># These include gate qubits in local quantum and readout errors.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_noise_qubits</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+        <span class="c1"># Default (all-qubit) quantum errors are stored as:</span>
+        <span class="c1"># dict(str: QuantumError)</span>
+        <span class="c1"># where they keys are the instruction str label</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_default_quantum_errors</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="c1"># Local quantum errors are stored as:</span>
+        <span class="c1"># dict(str: dict(tuple: QuantumError))</span>
+        <span class="c1"># where the outer keys are the instruction str label and the</span>
+        <span class="c1"># inner dict keys are the gate qubits</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_local_quantum_errors</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="c1"># Default (all-qubit) readout error is stored as a single</span>
+        <span class="c1"># ReadoutError object since there may only be one defined.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_default_readout_error</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="c1"># Local readout errors are stored as:</span>
+        <span class="c1"># dict(tuple: ReadoutError)</span>
+        <span class="c1"># where the dict keys are the gate qubits.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_local_readout_errors</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="c1"># Custom noise passes</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_custom_noise_passes</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">basis_gates</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return basis_gates for compiling to the noise model.&quot;&quot;&quot;</span>
+        <span class="c1"># Convert noise instructions to basis_gates string</span>
+        <span class="k">return</span> <span class="nb">sorted</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_basis_gates</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">noise_instructions</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return the set of noisy instructions for this noise model.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">sorted</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_noise_instructions</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">noise_qubits</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return the set of noisy qubits for this noise model.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">sorted</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_noise_qubits</span><span class="p">)</span>
+
+<div class="viewcode-block" id="NoiseModel.from_backend"><a class="viewcode-back" href="../../../stubs/qiskit_aer.noise.NoiseModel.html#qiskit_aer.noise.NoiseModel.from_backend">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">from_backend</span><span class="p">(</span>
+        <span class="bp">cls</span><span class="p">,</span>
+        <span class="n">backend</span><span class="p">,</span>
+        <span class="n">gate_error</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">readout_error</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">thermal_relaxation</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">temperature</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">gate_lengths</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">gate_length_units</span><span class="o">=</span><span class="s2">&quot;ns&quot;</span><span class="p">,</span>
+        <span class="n">warnings</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return a noise model derived from a devices backend properties.</span>
+
+<span class="sd">        This function generates a noise model based on:</span>
+
+<span class="sd">        * 1 and 2 qubit gate errors consisting of a</span>
+<span class="sd">          :func:`depolarizing_error` followed</span>
+<span class="sd">          by a :func:`thermal_relaxation_error`.</span>
+
+<span class="sd">        * Single qubit :class:`ReadoutError` on all measurements.</span>
+
+<span class="sd">        The error (noise) parameters are tuned for each individual qubit based on</span>
+<span class="sd">        the :math:`T_1`, :math:`T_2`, frequency and readout error parameters for</span>
+<span class="sd">        each qubit, and the gate error and gate time parameters for each gate</span>
+<span class="sd">        obtained from the device backend properties.</span>
+
+<span class="sd">        Note that if un-physical parameters are supplied, they are internally truncated to</span>
+<span class="sd">        the theoretical bound values. For example, if :math:`T_2 &gt; 2 T_1`, :math:`T_2`</span>
+<span class="sd">        parameter will be truncated to :math:`2 T_1`.</span>
+
+<span class="sd">        **Additional Information**</span>
+
+<span class="sd">        The noise model includes the following errors:</span>
+
+<span class="sd">        * If ``readout_error=True`` include single qubit readout</span>
+<span class="sd">          errors on measurements.</span>
+
+<span class="sd">        * If ``gate_error=True`` and ``thermal_relaxation=True`` include:</span>
+
+<span class="sd">            * Single-qubit gate errors consisting of a :func:`depolarizing_error`</span>
+<span class="sd">              followed by a :func:`thermal_relaxation_error` for the qubit the</span>
+<span class="sd">              gate acts on.</span>
+
+<span class="sd">            * Two-qubit gate errors consisting of a 2-qubit</span>
+<span class="sd">              :func:`depolarizing_error` followed by single qubit</span>
+<span class="sd">              :func:`thermal_relaxation_error` on each qubit participating in</span>
+<span class="sd">              the gate.</span>
+
+<span class="sd">        * If ``gate_error=True`` is ``True`` and ``thermal_relaxation=False``:</span>
+
+<span class="sd">            * An N-qubit :func:`depolarizing_error` on each N-qubit gate.</span>
+
+<span class="sd">        * If ``gate_error=False`` and ``thermal_relaxation=True`` include</span>
+<span class="sd">          single-qubit :func:`thermal_relaxation_errors` on each qubits</span>
+<span class="sd">          participating in a multi-qubit gate.</span>
+
+<span class="sd">        For best practice in simulating a backend make sure that the</span>
+<span class="sd">        circuit is compiled using the set of basis gates in the noise</span>
+<span class="sd">        module by setting ``basis_gates=noise_model.basis_gates``</span>
+<span class="sd">        and using the device coupling map with</span>
+<span class="sd">        ``coupling_map=backend.configuration().coupling_map``</span>
+
+<span class="sd">        **Specifying custom gate times**</span>
+
+<span class="sd">        The ``gate_lengths`` kwarg can be used to specify custom gate times</span>
+<span class="sd">        to add gate errors using the :math:`T_1` and :math:`T_2` values from</span>
+<span class="sd">        the backend properties. This should be passed as a list of tuples</span>
+<span class="sd">        ``gate_lengths=[(name, value), ...]``</span>
+<span class="sd">        where ``name`` is the gate name string, and ``value`` is the gate time</span>
+<span class="sd">        in nanoseconds.</span>
+
+<span class="sd">        If a custom gate is specified that already exists in</span>
+<span class="sd">        the backend properties, the ``gate_lengths`` value will override the</span>
+<span class="sd">        gate time value from the backend properties.</span>
+<span class="sd">        If non-default values are used gate_lengths should be a list</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            backend (Backend): backend. For BackendV2, `warnings`</span>
+<span class="sd">                               options are ignored, and their default values are used.</span>
+<span class="sd">            gate_error (bool): Include depolarizing gate errors (Default: True).</span>
+<span class="sd">            readout_error (Bool): Include readout errors in model</span>
+<span class="sd">                                  (Default: True).</span>
+<span class="sd">            thermal_relaxation (Bool): Include thermal relaxation errors</span>
+<span class="sd">                                       (Default: True).</span>
+<span class="sd">            temperature (double): qubit temperature in milli-Kelvin (mK) for</span>
+<span class="sd">                                  thermal relaxation errors (Default: 0).</span>
+<span class="sd">            gate_lengths (list): Custom gate times for thermal relaxation errors.</span>
+<span class="sd">                                  Used to extend or override the gate times in</span>
+<span class="sd">                                  the backend properties (Default: None))</span>
+<span class="sd">            gate_length_units (str): Time units for gate length values in</span>
+<span class="sd">                                     gate_lengths. Can be &#39;ns&#39;, &#39;ms&#39;, &#39;us&#39;,</span>
+<span class="sd">                                     or &#39;s&#39; (Default: &#39;ns&#39;).</span>
+<span class="sd">            warnings (bool): DEPRECATED, Display warnings (Default: None).</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            NoiseModel: An approximate noise model for the device backend.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            NoiseError: If the input backend is not valid.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">warnings</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">warn</span><span class="p">(</span>
+                <span class="s1">&#39;&quot;warnings&quot; argument has been deprecated as of qiskit-aer 0.12.0 &#39;</span>
+                <span class="s2">&quot;and will be removed no earlier than 3 months from that release date. &quot;</span>
+                <span class="s2">&quot;Use the warnings filter in Python standard library instead.&quot;</span><span class="p">,</span>
+                <span class="ne">DeprecationWarning</span><span class="p">,</span>
+                <span class="n">stacklevel</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">warnings</span> <span class="o">=</span> <span class="kc">True</span>
+
+        <span class="n">backend_interface_version</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">backend</span><span class="p">,</span> <span class="s2">&quot;version&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">backend_interface_version</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+            <span class="n">backend_interface_version</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="n">target</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">backend_interface_version</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">warnings</span><span class="p">:</span>
+                <span class="n">warn</span><span class="p">(</span>
+                    <span class="s2">&quot;When a BackendV2 is supplied, `warnings`&quot;</span>
+                    <span class="s2">&quot; are ignored, and their default values are used.&quot;</span><span class="p">,</span>
+                    <span class="ne">UserWarning</span><span class="p">,</span>
+                <span class="p">)</span>
+            <span class="n">properties</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="n">basis_gates</span> <span class="o">=</span> <span class="n">backend</span><span class="o">.</span><span class="n">operation_names</span>
+            <span class="n">target</span> <span class="o">=</span> <span class="n">backend</span><span class="o">.</span><span class="n">target</span>
+            <span class="k">if</span> <span class="n">gate_lengths</span><span class="p">:</span>
+                <span class="c1"># Update target based on gate_lengths and gate_length_units</span>
+                <span class="n">target</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">target</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">op_name</span><span class="p">,</span> <span class="n">qubits</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">gate_lengths</span><span class="p">:</span>
+                    <span class="n">prop</span> <span class="o">=</span> <span class="n">target</span><span class="p">[</span><span class="n">op_name</span><span class="p">][</span><span class="n">qubits</span><span class="p">]</span>
+                    <span class="n">prop</span><span class="o">.</span><span class="n">duration</span> <span class="o">=</span> <span class="n">apply_prefix</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">gate_length_units</span><span class="p">)</span>  <span class="c1"># convert to seconds</span>
+                    <span class="n">target</span><span class="o">.</span><span class="n">update_instruction_properties</span><span class="p">(</span><span class="n">op_name</span><span class="p">,</span> <span class="n">qubits</span><span class="p">,</span> <span class="n">prop</span><span class="p">)</span>
+            <span class="n">all_qubit_properties</span> <span class="o">=</span> <span class="n">backend</span><span class="o">.</span><span class="n">target</span><span class="o">.</span><span class="n">qubit_properties</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">all_qubit_properties</span><span class="p">:</span>
+                <span class="n">warn</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;Qiskit backend </span><span class="si">{</span><span class="n">backend</span><span class="si">}</span><span class="s2"> has no QubitProperties, so the resulting&quot;</span>
+                    <span class="s2">&quot; noise model will not include any thermal relaxation errors.&quot;</span><span class="p">,</span>
+                    <span class="ne">UserWarning</span><span class="p">,</span>
+                <span class="p">)</span>
+            <span class="n">dt</span> <span class="o">=</span> <span class="n">backend</span><span class="o">.</span><span class="n">dt</span>
+        <span class="k">elif</span> <span class="n">backend_interface_version</span> <span class="o">&lt;=</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">properties</span> <span class="o">=</span> <span class="n">backend</span><span class="o">.</span><span class="n">properties</span><span class="p">()</span>
+            <span class="n">configuration</span> <span class="o">=</span> <span class="n">backend</span><span class="o">.</span><span class="n">configuration</span><span class="p">()</span>
+            <span class="n">basis_gates</span> <span class="o">=</span> <span class="n">configuration</span><span class="o">.</span><span class="n">basis_gates</span>
+            <span class="n">all_qubit_properties</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="n">QubitProperties</span><span class="p">(</span>
+                    <span class="n">t1</span><span class="o">=</span><span class="n">properties</span><span class="o">.</span><span class="n">t1</span><span class="p">(</span><span class="n">q</span><span class="p">),</span> <span class="n">t2</span><span class="o">=</span><span class="n">properties</span><span class="o">.</span><span class="n">t2</span><span class="p">(</span><span class="n">q</span><span class="p">),</span> <span class="n">frequency</span><span class="o">=</span><span class="n">properties</span><span class="o">.</span><span class="n">frequency</span><span class="p">(</span><span class="n">q</span><span class="p">)</span>
+                <span class="p">)</span>
+                <span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">configuration</span><span class="o">.</span><span class="n">num_qubits</span><span class="p">)</span>
+            <span class="p">]</span>
+            <span class="n">dt</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">configuration</span><span class="p">,</span> <span class="s2">&quot;dt&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">properties</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">NoiseError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Qiskit backend </span><span class="si">{</span><span class="n">backend</span><span class="si">}</span><span class="s2"> does not have a BackendProperties&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">NoiseError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">backend</span><span class="si">}</span><span class="s2"> is not a Qiskit backend&quot;</span><span class="p">)</span>
+
+        <span class="n">noise_model</span> <span class="o">=</span> <span class="n">NoiseModel</span><span class="p">(</span><span class="n">basis_gates</span><span class="o">=</span><span class="n">basis_gates</span><span class="p">)</span>
+
+        <span class="c1"># Add single-qubit readout errors</span>
+        <span class="k">if</span> <span class="n">readout_error</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">qubits</span><span class="p">,</span> <span class="n">error</span> <span class="ow">in</span> <span class="n">basic_device_readout_errors</span><span class="p">(</span><span class="n">properties</span><span class="p">,</span> <span class="n">target</span><span class="o">=</span><span class="n">target</span><span class="p">):</span>
+                <span class="n">noise_model</span><span class="o">.</span><span class="n">add_readout_error</span><span class="p">(</span><span class="n">error</span><span class="p">,</span> <span class="n">qubits</span><span class="p">,</span> <span class="n">warnings</span><span class="o">=</span><span class="n">warnings</span><span class="p">)</span>
+
+        <span class="c1"># Add gate errors</span>
+        <span class="k">with</span> <span class="n">catch_warnings</span><span class="p">():</span>
+            <span class="n">filterwarnings</span><span class="p">(</span><span class="s2">&quot;ignore&quot;</span><span class="p">,</span> <span class="n">category</span><span class="o">=</span><span class="ne">DeprecationWarning</span><span class="p">,</span> <span class="n">module</span><span class="o">=</span><span class="s2">&quot;qiskit_aer.noise&quot;</span><span class="p">)</span>
+            <span class="n">gate_errors</span> <span class="o">=</span> <span class="n">basic_device_gate_errors</span><span class="p">(</span>
+                <span class="n">properties</span><span class="p">,</span>
+                <span class="n">gate_error</span><span class="o">=</span><span class="n">gate_error</span><span class="p">,</span>
+                <span class="n">thermal_relaxation</span><span class="o">=</span><span class="n">thermal_relaxation</span><span class="p">,</span>
+                <span class="n">gate_lengths</span><span class="o">=</span><span class="n">gate_lengths</span><span class="p">,</span>
+                <span class="n">gate_length_units</span><span class="o">=</span><span class="n">gate_length_units</span><span class="p">,</span>
+                <span class="n">temperature</span><span class="o">=</span><span class="n">temperature</span><span class="p">,</span>
+                <span class="n">warnings</span><span class="o">=</span><span class="n">warnings</span><span class="p">,</span>
+                <span class="n">target</span><span class="o">=</span><span class="n">target</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">qubits</span><span class="p">,</span> <span class="n">error</span> <span class="ow">in</span> <span class="n">gate_errors</span><span class="p">:</span>
+            <span class="n">noise_model</span><span class="o">.</span><span class="n">add_quantum_error</span><span class="p">(</span><span class="n">error</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">qubits</span><span class="p">,</span> <span class="n">warnings</span><span class="o">=</span><span class="n">warnings</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">thermal_relaxation</span> <span class="ow">and</span> <span class="n">all_qubit_properties</span><span class="p">:</span>
+            <span class="c1"># Add delay errors via RelaxationNiose pass</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">excited_state_populations</span> <span class="o">=</span> <span class="p">[</span>
+                    <span class="n">_excited_population</span><span class="p">(</span><span class="n">freq</span><span class="o">=</span><span class="n">q</span><span class="o">.</span><span class="n">frequency</span><span class="p">,</span> <span class="n">temperature</span><span class="o">=</span><span class="n">temperature</span><span class="p">)</span>
+                    <span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="n">all_qubit_properties</span>
+                <span class="p">]</span>
+            <span class="k">except</span> <span class="n">BackendPropertyError</span><span class="p">:</span>
+                <span class="n">excited_state_populations</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">t1s</span> <span class="o">=</span> <span class="p">[</span><span class="n">prop</span><span class="o">.</span><span class="n">t1</span> <span class="k">for</span> <span class="n">prop</span> <span class="ow">in</span> <span class="n">all_qubit_properties</span><span class="p">]</span>
+                <span class="n">t2s</span> <span class="o">=</span> <span class="p">[</span><span class="n">_truncate_t2_value</span><span class="p">(</span><span class="n">prop</span><span class="o">.</span><span class="n">t1</span><span class="p">,</span> <span class="n">prop</span><span class="o">.</span><span class="n">t2</span><span class="p">)</span> <span class="k">for</span> <span class="n">prop</span> <span class="ow">in</span> <span class="n">all_qubit_properties</span><span class="p">]</span>
+                <span class="n">delay_pass</span> <span class="o">=</span> <span class="n">RelaxationNoisePass</span><span class="p">(</span>
+                    <span class="n">t1s</span><span class="o">=</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">inf</span> <span class="k">if</span> <span class="n">x</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">t1s</span><span class="p">],</span>  <span class="c1"># replace None with np.inf</span>
+                    <span class="n">t2s</span><span class="o">=</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">inf</span> <span class="k">if</span> <span class="n">x</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">t2s</span><span class="p">],</span>  <span class="c1"># replace None with np.inf</span>
+                    <span class="n">dt</span><span class="o">=</span><span class="n">dt</span><span class="p">,</span>
+                    <span class="n">op_types</span><span class="o">=</span><span class="n">Delay</span><span class="p">,</span>
+                    <span class="n">excited_state_populations</span><span class="o">=</span><span class="n">excited_state_populations</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="n">noise_model</span><span class="o">.</span><span class="n">_custom_noise_passes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">delay_pass</span><span class="p">)</span>
+            <span class="k">except</span> <span class="n">BackendPropertyError</span><span class="p">:</span>
+                <span class="c1"># Device does not have the required T1 or T2 information</span>
+                <span class="c1"># in its properties</span>
+                <span class="k">pass</span>
+
+        <span class="k">return</span> <span class="n">noise_model</span></div>
+
+<div class="viewcode-block" id="NoiseModel.from_backend_properties"><a class="viewcode-back" href="../../../stubs/qiskit_aer.noise.NoiseModel.html#qiskit_aer.noise.NoiseModel.from_backend_properties">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">from_backend_properties</span><span class="p">(</span>
+        <span class="bp">cls</span><span class="p">,</span>
+        <span class="n">backend_properties</span><span class="p">:</span> <span class="n">BackendProperties</span><span class="p">,</span>
+        <span class="n">gate_error</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">readout_error</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">thermal_relaxation</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">temperature</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+        <span class="n">gate_lengths</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">list</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">gate_length_units</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;ns&quot;</span><span class="p">,</span>
+        <span class="n">dt</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return a noise model derived from a backend properties.</span>
+
+<span class="sd">        This method basically generates a noise model in the same way as</span>
+<span class="sd">        :meth:`~.NoiseModel.from_backend`. One small difference is that the ``dt`` option is</span>
+<span class="sd">        required to be set manually if you want to add thermal relaxation noises to delay</span>
+<span class="sd">        instructions with durations in ``dt`` time unit. Because it is not supplied by a</span>
+<span class="sd">        :class:`BackendProperties` object unlike a :class:`Backend` object.</span>
+<span class="sd">        Note that the resulting noise model is the same as described in</span>
+<span class="sd">        :meth:`~.NoiseModel.from_backend` so please refer to it for the details.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            backend_properties (BackendProperties): The property of backend.</span>
+<span class="sd">            gate_error (Bool): Include depolarizing gate errors (Default: True).</span>
+<span class="sd">            readout_error (Bool): Include readout errors in model (Default: True).</span>
+<span class="sd">            thermal_relaxation (Bool): Include thermal relaxation errors (Default: True).</span>
+<span class="sd">                If no ``t1`` and ``t2`` values are provided (i.e. None) in ``target`` for a qubit,</span>
+<span class="sd">                an identity ``QuantumError` (i.e. effectively no thermal relaxation error)</span>
+<span class="sd">                will be added to the qubit even if this flag is set to True.</span>
+<span class="sd">                If no ``frequency`` is not defined (i.e. None) in ``target`` for a qubit,</span>
+<span class="sd">                no excitation is considered in the thermal relaxation error on the qubit</span>
+<span class="sd">                even with non-zero ``temperature``.</span>
+<span class="sd">            temperature (double): qubit temperature in milli-Kelvin (mK) for</span>
+<span class="sd">                                  thermal relaxation errors (Default: 0).</span>
+<span class="sd">            gate_lengths (Optional[list]): Custom gate times for thermal relaxation errors.</span>
+<span class="sd">                                  Used to extend or override the gate times in</span>
+<span class="sd">                                  the backend properties (Default: None))</span>
+<span class="sd">            gate_length_units (str): Time units for gate length values in</span>
+<span class="sd">                                     gate_lengths. Can be &#39;ns&#39;, &#39;ms&#39;, &#39;us&#39;,</span>
+<span class="sd">                                     or &#39;s&#39; (Default: &#39;ns&#39;).</span>
+<span class="sd">            dt (Optional[float]): Backend sample time (resolution) in seconds (Default: None).</span>
+<span class="sd">                        Required to convert time unit of durations to seconds</span>
+<span class="sd">                        if including thermal relaxation errors on delay instructions.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            NoiseModel: An approximate noise model for the device backend.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            NoiseError: If the input backend properties are not valid.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">backend_properties</span><span class="p">,</span> <span class="n">BackendProperties</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="n">NoiseError</span><span class="p">(</span>
+                <span class="s2">&quot;</span><span class="si">{}</span><span class="s2"> is not a Qiskit backend or&quot;</span> <span class="s2">&quot; BackendProperties&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">backend_properties</span><span class="p">)</span>
+            <span class="p">)</span>
+        <span class="n">basis_gates</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">prop</span> <span class="ow">in</span> <span class="n">backend_properties</span><span class="o">.</span><span class="n">gates</span><span class="p">:</span>
+            <span class="n">basis_gates</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">prop</span><span class="o">.</span><span class="n">gate</span><span class="p">)</span>
+        <span class="n">basis_gates</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">basis_gates</span><span class="p">)</span>
+        <span class="n">num_qubits</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">backend_properties</span><span class="o">.</span><span class="n">qubits</span><span class="p">)</span>
+        <span class="n">noise_model</span> <span class="o">=</span> <span class="n">NoiseModel</span><span class="p">(</span><span class="n">basis_gates</span><span class="o">=</span><span class="n">basis_gates</span><span class="p">)</span>
+
+        <span class="c1"># Add single-qubit readout errors</span>
+        <span class="k">if</span> <span class="n">readout_error</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">qubits</span><span class="p">,</span> <span class="n">error</span> <span class="ow">in</span> <span class="n">basic_device_readout_errors</span><span class="p">(</span><span class="n">backend_properties</span><span class="p">):</span>
+                <span class="n">noise_model</span><span class="o">.</span><span class="n">add_readout_error</span><span class="p">(</span><span class="n">error</span><span class="p">,</span> <span class="n">qubits</span><span class="p">)</span>
+
+        <span class="n">gate_errors</span> <span class="o">=</span> <span class="n">basic_device_gate_errors</span><span class="p">(</span>
+            <span class="n">backend_properties</span><span class="p">,</span>
+            <span class="n">gate_error</span><span class="o">=</span><span class="n">gate_error</span><span class="p">,</span>
+            <span class="n">thermal_relaxation</span><span class="o">=</span><span class="n">thermal_relaxation</span><span class="p">,</span>
+            <span class="n">gate_lengths</span><span class="o">=</span><span class="n">gate_lengths</span><span class="p">,</span>
+            <span class="n">gate_length_units</span><span class="o">=</span><span class="n">gate_length_units</span><span class="p">,</span>
+            <span class="n">temperature</span><span class="o">=</span><span class="n">temperature</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">qubits</span><span class="p">,</span> <span class="n">error</span> <span class="ow">in</span> <span class="n">gate_errors</span><span class="p">:</span>
+            <span class="n">noise_model</span><span class="o">.</span><span class="n">add_quantum_error</span><span class="p">(</span><span class="n">error</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">qubits</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">thermal_relaxation</span><span class="p">:</span>
+            <span class="c1"># Add delay errors via RelaxationNiose pass</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">excited_state_populations</span> <span class="o">=</span> <span class="p">[</span>
+                    <span class="n">_excited_population</span><span class="p">(</span>
+                        <span class="n">freq</span><span class="o">=</span><span class="n">backend_properties</span><span class="o">.</span><span class="n">frequency</span><span class="p">(</span><span class="n">q</span><span class="p">),</span> <span class="n">temperature</span><span class="o">=</span><span class="n">temperature</span>
+                    <span class="p">)</span>
+                    <span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_qubits</span><span class="p">)</span>
+                <span class="p">]</span>
+            <span class="k">except</span> <span class="n">BackendPropertyError</span><span class="p">:</span>
+                <span class="n">excited_state_populations</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">delay_pass</span> <span class="o">=</span> <span class="n">RelaxationNoisePass</span><span class="p">(</span>
+                    <span class="n">t1s</span><span class="o">=</span><span class="p">[</span><span class="n">backend_properties</span><span class="o">.</span><span class="n">t1</span><span class="p">(</span><span class="n">q</span><span class="p">)</span> <span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_qubits</span><span class="p">)],</span>
+                    <span class="n">t2s</span><span class="o">=</span><span class="p">[</span>
+                        <span class="n">_truncate_t2_value</span><span class="p">(</span><span class="n">backend_properties</span><span class="o">.</span><span class="n">t1</span><span class="p">(</span><span class="n">q</span><span class="p">),</span> <span class="n">backend_properties</span><span class="o">.</span><span class="n">t2</span><span class="p">(</span><span class="n">q</span><span class="p">))</span>
+                        <span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_qubits</span><span class="p">)</span>
+                    <span class="p">],</span>
+                    <span class="n">dt</span><span class="o">=</span><span class="n">dt</span><span class="p">,</span>
+                    <span class="n">op_types</span><span class="o">=</span><span class="n">Delay</span><span class="p">,</span>
+                    <span class="n">excited_state_populations</span><span class="o">=</span><span class="n">excited_state_populations</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="n">noise_model</span><span class="o">.</span><span class="n">_custom_noise_passes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">delay_pass</span><span class="p">)</span>
+            <span class="k">except</span> <span class="n">BackendPropertyError</span><span class="p">:</span>
+                <span class="c1"># Device does not have the required T1 or T2 information</span>
+                <span class="c1"># in its properties</span>
+                <span class="k">pass</span>
+
+        <span class="k">return</span> <span class="n">noise_model</span></div>
+
+<div class="viewcode-block" id="NoiseModel.is_ideal"><a class="viewcode-back" href="../../../stubs/qiskit_aer.noise.NoiseModel.html#qiskit_aer.noise.NoiseModel.is_ideal">[docs]</a>    <span class="k">def</span> <span class="nf">is_ideal</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>  <span class="c1"># pylint: disable=too-many-return-statements</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return True if the noise model has no noise terms.&quot;&quot;&quot;</span>
+        <span class="c1"># Get default errors</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_default_quantum_errors</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_default_readout_error</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_local_quantum_errors</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_local_readout_errors</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_custom_noise_passes</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span>
+        <span class="k">return</span> <span class="kc">True</span></div>
+
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Noise model repr&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="s2">&quot;&lt;NoiseModel on </span><span class="si">{}</span><span class="s2">&gt;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_noise_instructions</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Noise model string representation&quot;&quot;&quot;</span>
+
+        <span class="c1"># Check if noise model is ideal</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_ideal</span><span class="p">():</span>
+            <span class="k">return</span> <span class="s2">&quot;NoiseModel: Ideal&quot;</span>
+
+        <span class="c1"># Get default errors</span>
+        <span class="n">default_error_ops</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">inst</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_default_quantum_errors</span><span class="p">:</span>
+            <span class="n">default_error_ops</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">inst</span><span class="p">))</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_default_readout_error</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="s2">&quot;measure&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">default_error_ops</span><span class="p">:</span>
+                <span class="n">default_error_ops</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;measure&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Get local errors</span>
+        <span class="n">local_error_ops</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">inst</span><span class="p">,</span> <span class="n">dic</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_local_quantum_errors</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">for</span> <span class="n">qubits</span> <span class="ow">in</span> <span class="n">dic</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                <span class="n">local_error_ops</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">inst</span><span class="p">,</span> <span class="n">qubits</span><span class="p">))</span>
+        <span class="k">for</span> <span class="n">qubits</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_local_readout_errors</span><span class="p">:</span>
+            <span class="n">tmp</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;measure&quot;</span><span class="p">,</span> <span class="n">qubits</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">tmp</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">local_error_ops</span><span class="p">:</span>
+                <span class="n">local_error_ops</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tmp</span><span class="p">)</span>
+
+        <span class="n">output</span> <span class="o">=</span> <span class="s2">&quot;NoiseModel:&quot;</span>
+        <span class="n">output</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">  Basis gates: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">basis_gates</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_noise_instructions</span><span class="p">:</span>
+            <span class="n">output</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">  Instructions with noise: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_noise_instructions</span><span class="p">))</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_noise_qubits</span><span class="p">:</span>
+            <span class="n">output</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">  Qubits with noise: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_noise_qubits</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">default_error_ops</span><span class="p">:</span>
+            <span class="n">output</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">  All-qubits errors: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">default_error_ops</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">local_error_ops</span><span class="p">:</span>
+            <span class="n">output</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">  Specific qubit errors: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">local_error_ops</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">output</span>
+
+    <span class="k">def</span> <span class="fm">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Test if two noise models are equal.&quot;&quot;&quot;</span>
+        <span class="c1"># This returns True if both noise models have:</span>
+        <span class="c1"># the same basis_gates</span>
+        <span class="c1"># the same noise_qubits</span>
+        <span class="c1"># the same noise_instructions</span>
+        <span class="k">if</span> <span class="p">(</span>
+            <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">NoiseModel</span><span class="p">)</span>
+            <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">basis_gates</span> <span class="o">!=</span> <span class="n">other</span><span class="o">.</span><span class="n">basis_gates</span>
+            <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">noise_qubits</span> <span class="o">!=</span> <span class="n">other</span><span class="o">.</span><span class="n">noise_qubits</span>
+            <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">noise_instructions</span> <span class="o">!=</span> <span class="n">other</span><span class="o">.</span><span class="n">noise_instructions</span>
+        <span class="p">):</span>
+            <span class="k">return</span> <span class="kc">False</span>
+        <span class="c1"># Check default readout errors is equal</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_readout_errors_equal</span><span class="p">(</span><span class="n">other</span><span class="p">):</span>
+            <span class="k">return</span> <span class="kc">False</span>
+        <span class="c1"># Check quantum errors equal</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_all_qubit_quantum_errors_equal</span><span class="p">(</span><span class="n">other</span><span class="p">):</span>
+            <span class="k">return</span> <span class="kc">False</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_local_quantum_errors_equal</span><span class="p">(</span><span class="n">other</span><span class="p">):</span>
+            <span class="k">return</span> <span class="kc">False</span>
+        <span class="c1"># If we made it here they are equal</span>
+        <span class="k">return</span> <span class="kc">True</span>
+
+<div class="viewcode-block" id="NoiseModel.reset"><a class="viewcode-back" href="../../../stubs/qiskit_aer.noise.NoiseModel.html#qiskit_aer.noise.NoiseModel.reset">[docs]</a>    <span class="k">def</span> <span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Reset the noise model.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="NoiseModel.add_basis_gates"><a class="viewcode-back" href="../../../stubs/qiskit_aer.noise.NoiseModel.html#qiskit_aer.noise.NoiseModel.add_basis_gates">[docs]</a>    <span class="k">def</span> <span class="nf">add_basis_gates</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">instructions</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Add additional gates to the noise model basis_gates.</span>
+
+<span class="sd">        This should be used to add any gates that are identified by a</span>
+<span class="sd">        custom gate label in the noise model.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            instructions (list[str] or</span>
+<span class="sd">                          list[Instruction]): the instructions error applies to.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_instruction_names_labels</span><span class="p">(</span><span class="n">instructions</span><span class="p">):</span>
+            <span class="c1"># If the instruction is in the default basis gates for the</span>
+            <span class="c1"># AerSimulator we add it to the basis gates.</span>
+            <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">BASIS_GATES</span><span class="p">[</span><span class="s2">&quot;automatic&quot;</span><span class="p">]:</span>
+                <span class="k">if</span> <span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;measure&quot;</span><span class="p">,</span> <span class="s2">&quot;reset&quot;</span><span class="p">,</span> <span class="s2">&quot;initialize&quot;</span><span class="p">,</span> <span class="s2">&quot;kraus&quot;</span><span class="p">,</span> <span class="s2">&quot;superop&quot;</span><span class="p">,</span> <span class="s2">&quot;roerror&quot;</span><span class="p">]:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_basis_gates</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">name</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="NoiseModel.add_all_qubit_quantum_error"><a class="viewcode-back" href="../../../stubs/qiskit_aer.noise.NoiseModel.html#qiskit_aer.noise.NoiseModel.add_all_qubit_quantum_error">[docs]</a>    <span class="k">def</span> <span class="nf">add_all_qubit_quantum_error</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">error</span><span class="p">,</span> <span class="n">instructions</span><span class="p">,</span> <span class="n">warnings</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Add a quantum error to the noise model that applies to all qubits.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            error (QuantumError): the quantum error object.</span>
+<span class="sd">            instructions (str or list[str] or</span>
+<span class="sd">                          Instruction or</span>
+<span class="sd">                          list[Instruction]): the instructions error applies to.</span>
+<span class="sd">            warnings (bool): Display warning if appending to an instruction that</span>
+<span class="sd">                             already has an error (Default: True).</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            NoiseError: if the input parameters are invalid.</span>
+
+<span class="sd">        Additional Information:</span>
+<span class="sd">            If the error object is ideal it will not be added to the model.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Format input as QuantumError</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">error</span><span class="p">,</span> <span class="n">QuantumError</span><span class="p">):</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">error</span> <span class="o">=</span> <span class="n">QuantumError</span><span class="p">(</span><span class="n">error</span><span class="p">)</span>
+            <span class="k">except</span> <span class="n">NoiseError</span> <span class="k">as</span> <span class="n">ex</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">NoiseError</span><span class="p">(</span><span class="s2">&quot;Input is not a valid quantum error.&quot;</span><span class="p">)</span> <span class="kn">from</span> <span class="nn">ex</span>
+        <span class="c1"># Check if error is ideal and if so don&#39;t add to the noise model</span>
+        <span class="k">if</span> <span class="n">error</span><span class="o">.</span><span class="n">ideal</span><span class="p">():</span>
+            <span class="k">return</span>
+
+        <span class="c1"># Add instructions</span>
+        <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">label</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_instruction_names_labels</span><span class="p">(</span><span class="n">instructions</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_check_number_of_qubits</span><span class="p">(</span><span class="n">error</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">label</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_default_quantum_errors</span><span class="p">:</span>
+                <span class="n">new_error</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_default_quantum_errors</span><span class="p">[</span><span class="n">label</span><span class="p">]</span><span class="o">.</span><span class="n">compose</span><span class="p">(</span><span class="n">error</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_default_quantum_errors</span><span class="p">[</span><span class="n">label</span><span class="p">]</span> <span class="o">=</span> <span class="n">new_error</span>
+                <span class="k">if</span> <span class="n">warnings</span><span class="p">:</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                        <span class="s2">&quot;WARNING: all-qubit error already exists for &quot;</span>
+                        <span class="s1">&#39;instruction &quot;</span><span class="si">%s</span><span class="s1">&quot;, &#39;</span>
+                        <span class="s2">&quot;composing with additional error.&quot;</span><span class="p">,</span>
+                        <span class="n">label</span><span class="p">,</span>
+                    <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_default_quantum_errors</span><span class="p">[</span><span class="n">label</span><span class="p">]</span> <span class="o">=</span> <span class="n">error</span>
+            <span class="c1"># Check if a specific qubit error has been applied for this instruction</span>
+            <span class="k">if</span> <span class="n">label</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_local_quantum_errors</span><span class="p">:</span>
+                <span class="n">local_qubits</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_keys2str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_local_quantum_errors</span><span class="p">[</span><span class="n">label</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+                <span class="k">if</span> <span class="n">warnings</span><span class="p">:</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                        <span class="s2">&quot;WARNING: all-qubit error for instruction &quot;</span>
+                        <span class="s1">&#39;&quot;</span><span class="si">%s</span><span class="s1">&quot; will not apply to qubits: &#39;</span>
+                        <span class="s2">&quot;</span><span class="si">%s</span><span class="s2"> as specific error already exists.&quot;</span><span class="p">,</span>
+                        <span class="n">label</span><span class="p">,</span>
+                        <span class="n">local_qubits</span><span class="p">,</span>
+                    <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_noise_instructions</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">label</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">add_basis_gates</span><span class="p">(</span><span class="n">name</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="NoiseModel.add_quantum_error"><a class="viewcode-back" href="../../../stubs/qiskit_aer.noise.NoiseModel.html#qiskit_aer.noise.NoiseModel.add_quantum_error">[docs]</a>    <span class="k">def</span> <span class="nf">add_quantum_error</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">error</span><span class="p">,</span> <span class="n">instructions</span><span class="p">,</span> <span class="n">qubits</span><span class="p">,</span> <span class="n">warnings</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Add a quantum error to the noise model.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            error (QuantumError): the quantum error object.</span>
+<span class="sd">            instructions (str or list[str] or</span>
+<span class="sd">                          Instruction or</span>
+<span class="sd">                          list[Instruction]): the instructions error applies to.</span>
+<span class="sd">            qubits (Sequence[int]): qubits instruction error applies to.</span>
+<span class="sd">            warnings (bool): Display warning if appending to an instruction that</span>
+<span class="sd">                             already has an error (Default: True).</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            NoiseError: if the input parameters are invalid.</span>
+
+<span class="sd">        Additional Information:</span>
+<span class="sd">            If the error object is ideal it will not be added to the model.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Error checking</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">error</span><span class="p">,</span> <span class="n">QuantumError</span><span class="p">):</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">error</span> <span class="o">=</span> <span class="n">QuantumError</span><span class="p">(</span><span class="n">error</span><span class="p">)</span>
+            <span class="k">except</span> <span class="n">NoiseError</span> <span class="k">as</span> <span class="n">ex</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">NoiseError</span><span class="p">(</span><span class="s2">&quot;Input is not a valid quantum error.&quot;</span><span class="p">)</span> <span class="kn">from</span> <span class="nn">ex</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">qubits</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">qubits</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">TypeError</span> <span class="k">as</span> <span class="n">ex</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">NoiseError</span><span class="p">(</span><span class="s2">&quot;Qubits must be convertible to a tuple of integers&quot;</span><span class="p">)</span> <span class="kn">from</span> <span class="nn">ex</span>
+        <span class="c1"># Check if error is ideal and if so don&#39;t add to the noise model</span>
+        <span class="k">if</span> <span class="n">error</span><span class="o">.</span><span class="n">ideal</span><span class="p">():</span>
+            <span class="k">return</span>
+        <span class="c1"># Add noise qubits</span>
+        <span class="k">for</span> <span class="n">qubit</span> <span class="ow">in</span> <span class="n">qubits</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_noise_qubits</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">qubit</span><span class="p">)</span>
+        <span class="c1"># Add instructions</span>
+        <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">label</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_instruction_names_labels</span><span class="p">(</span><span class="n">instructions</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_check_number_of_qubits</span><span class="p">(</span><span class="n">error</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">label</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="n">NoiseError</span><span class="p">(</span><span class="s2">&quot;Qobj invalid instructions.&quot;</span><span class="p">)</span>
+            <span class="c1"># Check number of qubits is correct for standard instructions</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_check_number_of_qubits</span><span class="p">(</span><span class="n">error</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">label</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_local_quantum_errors</span><span class="p">:</span>
+                <span class="n">qubit_dict</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_local_quantum_errors</span><span class="p">[</span><span class="n">label</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">qubit_dict</span> <span class="o">=</span> <span class="p">{}</span>
+
+            <span class="c1"># Convert qubits list to hashable string</span>
+            <span class="k">if</span> <span class="n">error</span><span class="o">.</span><span class="n">num_qubits</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">qubits</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="n">NoiseError</span><span class="p">(</span>
+                    <span class="s2">&quot;Number of qubits (</span><span class="si">{}</span><span class="s2">) does not match &quot;</span>
+                    <span class="s2">&quot; the error size (</span><span class="si">{}</span><span class="s2">)&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">qubits</span><span class="p">),</span> <span class="n">error</span><span class="o">.</span><span class="n">num_qubits</span><span class="p">)</span>
+                <span class="p">)</span>
+            <span class="k">if</span> <span class="n">qubits</span> <span class="ow">in</span> <span class="n">qubit_dict</span><span class="p">:</span>
+                <span class="n">new_error</span> <span class="o">=</span> <span class="n">qubit_dict</span><span class="p">[</span><span class="n">qubits</span><span class="p">]</span><span class="o">.</span><span class="n">compose</span><span class="p">(</span><span class="n">error</span><span class="p">)</span>
+                <span class="n">qubit_dict</span><span class="p">[</span><span class="n">qubits</span><span class="p">]</span> <span class="o">=</span> <span class="n">new_error</span>
+                <span class="k">if</span> <span class="n">warnings</span><span class="p">:</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                        <span class="s2">&quot;WARNING: quantum error already exists for &quot;</span>
+                        <span class="s1">&#39;instruction &quot;</span><span class="si">%s</span><span class="s1">&quot; on qubits </span><span class="si">%s</span><span class="s1"> &#39;</span>
+                        <span class="s2">&quot;, appending additional error.&quot;</span><span class="p">,</span>
+                        <span class="n">label</span><span class="p">,</span>
+                        <span class="n">qubits</span><span class="p">,</span>
+                    <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">qubit_dict</span><span class="p">[</span><span class="n">qubits</span><span class="p">]</span> <span class="o">=</span> <span class="n">error</span>
+            <span class="c1"># Add updated dictionary</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_local_quantum_errors</span><span class="p">[</span><span class="n">label</span><span class="p">]</span> <span class="o">=</span> <span class="n">qubit_dict</span>
+
+            <span class="c1"># Check if all-qubit error is already defined for this instruction</span>
+            <span class="k">if</span> <span class="n">label</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_default_quantum_errors</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">warnings</span><span class="p">:</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                        <span class="s1">&#39;WARNING: Specific error for instruction &quot;</span><span class="si">%s</span><span class="s1">&quot; &#39;</span>
+                        <span class="s2">&quot;on qubits </span><span class="si">%s</span><span class="s2"> overrides previously defined &quot;</span>
+                        <span class="s2">&quot;all-qubit error for these qubits.&quot;</span><span class="p">,</span>
+                        <span class="n">label</span><span class="p">,</span>
+                        <span class="n">qubits</span><span class="p">,</span>
+                    <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_noise_instructions</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">label</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">add_basis_gates</span><span class="p">(</span><span class="n">name</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="NoiseModel.add_all_qubit_readout_error"><a class="viewcode-back" href="../../../stubs/qiskit_aer.noise.NoiseModel.html#qiskit_aer.noise.NoiseModel.add_all_qubit_readout_error">[docs]</a>    <span class="k">def</span> <span class="nf">add_all_qubit_readout_error</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">error</span><span class="p">,</span> <span class="n">warnings</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Add a single-qubit readout error that applies measure on all qubits.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            error (ReadoutError): the quantum error object.</span>
+<span class="sd">            warnings (bool): Display warning if appending to an instruction that</span>
+<span class="sd">                             already has an error (Default: True)</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            NoiseError: if the input parameters are invalid.</span>
+
+<span class="sd">        Additional Information:</span>
+<span class="sd">            If the error object is ideal it will not be added to the model.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># Error checking</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">error</span><span class="p">,</span> <span class="n">ReadoutError</span><span class="p">):</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">error</span> <span class="o">=</span> <span class="n">ReadoutError</span><span class="p">(</span><span class="n">error</span><span class="p">)</span>
+            <span class="k">except</span> <span class="n">NoiseError</span> <span class="k">as</span> <span class="n">ex</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">NoiseError</span><span class="p">(</span><span class="s2">&quot;Input is not a valid readout error.&quot;</span><span class="p">)</span> <span class="kn">from</span> <span class="nn">ex</span>
+
+        <span class="c1"># Check if error is ideal and if so don&#39;t add to the noise model</span>
+        <span class="k">if</span> <span class="n">error</span><span class="o">.</span><span class="n">ideal</span><span class="p">():</span>
+            <span class="k">return</span>
+
+        <span class="c1"># Check number of qubits is correct for standard instructions</span>
+        <span class="k">if</span> <span class="n">error</span><span class="o">.</span><span class="n">number_of_qubits</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">NoiseError</span><span class="p">(</span><span class="s2">&quot;All-qubit readout errors must defined as single-qubit errors.&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_default_readout_error</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">warnings</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                    <span class="s2">&quot;WARNING: all-qubit readout error already exists, &quot;</span>
+                    <span class="s2">&quot;overriding with new readout error.&quot;</span>
+                <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_default_readout_error</span> <span class="o">=</span> <span class="n">error</span>
+
+        <span class="c1"># Check if a specific qubit error has been applied for this instruction</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_local_readout_errors</span><span class="p">:</span>
+            <span class="n">local_qubits</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_keys2str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_local_readout_errors</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+            <span class="k">if</span> <span class="n">warnings</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                    <span class="s2">&quot;WARNING: The all-qubit readout error will not &quot;</span>
+                    <span class="s2">&quot;apply to measure of qubits qubits: </span><span class="si">%s</span><span class="s2"> &quot;</span>
+                    <span class="s2">&quot;as specific readout errors already exist.&quot;</span><span class="p">,</span>
+                    <span class="n">local_qubits</span><span class="p">,</span>
+                <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_noise_instructions</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s2">&quot;measure&quot;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="NoiseModel.add_readout_error"><a class="viewcode-back" href="../../../stubs/qiskit_aer.noise.NoiseModel.html#qiskit_aer.noise.NoiseModel.add_readout_error">[docs]</a>    <span class="k">def</span> <span class="nf">add_readout_error</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">error</span><span class="p">,</span> <span class="n">qubits</span><span class="p">,</span> <span class="n">warnings</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Add a readout error to the noise model.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            error (ReadoutError): the quantum error object.</span>
+<span class="sd">            qubits (list[int] or tuple[int]): qubits instruction error applies to.</span>
+<span class="sd">            warnings (bool): Display warning if appending to an instruction that</span>
+<span class="sd">                             already has an error [Default: True]</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            NoiseError: if the input parameters are invalid.</span>
+
+<span class="sd">        Additional Information:</span>
+<span class="sd">            If the error object is ideal it will not be added to the model.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># Error checking</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">error</span><span class="p">,</span> <span class="n">ReadoutError</span><span class="p">):</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">error</span> <span class="o">=</span> <span class="n">ReadoutError</span><span class="p">(</span><span class="n">error</span><span class="p">)</span>
+            <span class="k">except</span> <span class="n">NoiseError</span> <span class="k">as</span> <span class="n">ex</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">NoiseError</span><span class="p">(</span><span class="s2">&quot;Input is not a valid readout error.&quot;</span><span class="p">)</span> <span class="kn">from</span> <span class="nn">ex</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">qubits</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">qubits</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">TypeError</span> <span class="k">as</span> <span class="n">ex</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">NoiseError</span><span class="p">(</span><span class="s2">&quot;Qubits must be convertible to a tuple of integers&quot;</span><span class="p">)</span> <span class="kn">from</span> <span class="nn">ex</span>
+
+        <span class="c1"># Check if error is ideal and if so don&#39;t add to the noise model</span>
+        <span class="k">if</span> <span class="n">error</span><span class="o">.</span><span class="n">ideal</span><span class="p">():</span>
+            <span class="k">return</span>
+
+        <span class="c1"># Add noise qubits</span>
+        <span class="k">for</span> <span class="n">qubit</span> <span class="ow">in</span> <span class="n">qubits</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_noise_qubits</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">qubit</span><span class="p">)</span>
+
+        <span class="c1"># Check error matches qubit size</span>
+        <span class="k">if</span> <span class="n">error</span><span class="o">.</span><span class="n">number_of_qubits</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">qubits</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="n">NoiseError</span><span class="p">(</span>
+                <span class="s2">&quot;Number of qubits (</span><span class="si">{}</span><span class="s2">) does not match the readout &quot;</span>
+                <span class="s2">&quot;error size (</span><span class="si">{}</span><span class="s2">)&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">qubits</span><span class="p">),</span> <span class="n">error</span><span class="o">.</span><span class="n">number_of_qubits</span><span class="p">)</span>
+            <span class="p">)</span>
+        <span class="c1"># Check if we are overriding a previous error</span>
+        <span class="k">if</span> <span class="n">qubits</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_local_readout_errors</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">warnings</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                    <span class="s2">&quot;WARNING: readout error already exists for qubits &quot;</span>
+                    <span class="s2">&quot;</span><span class="si">%s</span><span class="s2">, overriding with new readout error.&quot;</span><span class="p">,</span>
+                    <span class="n">qubits</span><span class="p">,</span>
+                <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_local_readout_errors</span><span class="p">[</span><span class="n">qubits</span><span class="p">]</span> <span class="o">=</span> <span class="n">error</span>
+
+        <span class="c1"># Check if all-qubit readout error is already defined</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_default_readout_error</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">warnings</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                    <span class="s2">&quot;WARNING: Specific readout error on qubits &quot;</span>
+                    <span class="s2">&quot;</span><span class="si">%s</span><span class="s2"> overrides previously defined &quot;</span>
+                    <span class="s2">&quot;all-qubit readout error for these qubits.&quot;</span><span class="p">,</span>
+                    <span class="n">qubits</span><span class="p">,</span>
+                <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_noise_instructions</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s2">&quot;measure&quot;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="NoiseModel.to_dict"><a class="viewcode-back" href="../../../stubs/qiskit_aer.noise.NoiseModel.html#qiskit_aer.noise.NoiseModel.to_dict">[docs]</a>    <span class="k">def</span> <span class="nf">to_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">serializable</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Return the noise model as a dictionary.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            serializable (bool): if `True`, return a dict containing only types</span>
+<span class="sd">                that can be serializable by the stdlib `json` module.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            dict: a dictionary for a noise model.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">error_list</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="c1"># Add default quantum errors</span>
+        <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">error</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_default_quantum_errors</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">error_dict</span> <span class="o">=</span> <span class="n">error</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span>
+            <span class="n">error_dict</span><span class="p">[</span><span class="s2">&quot;operations&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">name</span><span class="p">]</span>
+            <span class="n">error_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">error_dict</span><span class="p">)</span>
+
+        <span class="c1"># Add specific qubit errors</span>
+        <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">qubit_dict</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_local_quantum_errors</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">for</span> <span class="n">qubits</span><span class="p">,</span> <span class="n">error</span> <span class="ow">in</span> <span class="n">qubit_dict</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="n">error_dict</span> <span class="o">=</span> <span class="n">error</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span>
+                <span class="n">error_dict</span><span class="p">[</span><span class="s2">&quot;operations&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">name</span><span class="p">]</span>
+                <span class="n">error_dict</span><span class="p">[</span><span class="s2">&quot;gate_qubits&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">qubits</span><span class="p">]</span>
+                <span class="n">error_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">error_dict</span><span class="p">)</span>
+
+        <span class="c1"># Add default readout error</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_default_readout_error</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">error_dict</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_default_readout_error</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span>
+            <span class="n">error_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">error_dict</span><span class="p">)</span>
+
+        <span class="c1"># Add local readout error</span>
+        <span class="k">for</span> <span class="n">qubits</span><span class="p">,</span> <span class="n">error</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_local_readout_errors</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">error_dict</span> <span class="o">=</span> <span class="n">error</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span>
+            <span class="n">error_dict</span><span class="p">[</span><span class="s2">&quot;gate_qubits&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">qubits</span><span class="p">]</span>
+            <span class="n">error_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">error_dict</span><span class="p">)</span>
+
+        <span class="n">ret</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;errors&quot;</span><span class="p">:</span> <span class="n">error_list</span><span class="p">}</span>
+        <span class="k">if</span> <span class="n">serializable</span><span class="p">:</span>
+            <span class="n">ret</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">ret</span><span class="p">,</span> <span class="bp">cls</span><span class="o">=</span><span class="n">AerJSONEncoder</span><span class="p">))</span>
+
+        <span class="k">return</span> <span class="n">ret</span></div>
+
+<div class="viewcode-block" id="NoiseModel.from_dict"><a class="viewcode-back" href="../../../stubs/qiskit_aer.noise.NoiseModel.html#qiskit_aer.noise.NoiseModel.from_dict">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">from_dict</span><span class="p">(</span><span class="n">noise_dict</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Load NoiseModel from a dictionary.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            noise_dict (dict): A serialized noise model.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            NoiseModel: the noise model.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            NoiseError: if dict cannot be converted to NoiseModel.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">warn</span><span class="p">(</span>
+            <span class="s2">&quot;from_dict has been deprecated as of qiskit-aer 0.10.0&quot;</span>
+            <span class="s2">&quot; and will be removed no earlier than 3 months from that release date.&quot;</span><span class="p">,</span>
+            <span class="ne">DeprecationWarning</span><span class="p">,</span>
+            <span class="n">stacklevel</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="k">def</span> <span class="nf">inst_dic_list_to_circuit</span><span class="p">(</span><span class="n">dic_list</span><span class="p">):</span>
+            <span class="n">num_qubits</span> <span class="o">=</span> <span class="nb">max</span><span class="p">([</span><span class="nb">max</span><span class="p">(</span><span class="n">dic</span><span class="p">[</span><span class="s2">&quot;qubits&quot;</span><span class="p">])</span> <span class="k">for</span> <span class="n">dic</span> <span class="ow">in</span> <span class="n">dic_list</span><span class="p">])</span> <span class="o">+</span> <span class="mi">1</span>
+            <span class="n">circ</span> <span class="o">=</span> <span class="n">QuantumCircuit</span><span class="p">(</span><span class="n">num_qubits</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">dic</span> <span class="ow">in</span> <span class="n">dic_list</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">dic</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;reset&quot;</span><span class="p">:</span>
+                    <span class="n">circ</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Reset</span><span class="p">(),</span> <span class="n">qargs</span><span class="o">=</span><span class="n">dic</span><span class="p">[</span><span class="s2">&quot;qubits&quot;</span><span class="p">])</span>
+                <span class="k">elif</span> <span class="n">dic</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;kraus&quot;</span><span class="p">:</span>
+                    <span class="n">circ</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                        <span class="n">Instruction</span><span class="p">(</span>
+                            <span class="n">name</span><span class="o">=</span><span class="s2">&quot;kraus&quot;</span><span class="p">,</span>
+                            <span class="n">num_qubits</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">dic</span><span class="p">[</span><span class="s2">&quot;qubits&quot;</span><span class="p">]),</span>
+                            <span class="n">num_clbits</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+                            <span class="n">params</span><span class="o">=</span><span class="n">dic</span><span class="p">[</span><span class="s2">&quot;params&quot;</span><span class="p">],</span>
+                        <span class="p">),</span>
+                        <span class="n">qargs</span><span class="o">=</span><span class="n">dic</span><span class="p">[</span><span class="s2">&quot;qubits&quot;</span><span class="p">],</span>
+                    <span class="p">)</span>
+                <span class="k">elif</span> <span class="n">dic</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;unitary&quot;</span><span class="p">:</span>
+                    <span class="n">circ</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">UnitaryGate</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">dic</span><span class="p">[</span><span class="s2">&quot;params&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">]),</span> <span class="n">qargs</span><span class="o">=</span><span class="n">dic</span><span class="p">[</span><span class="s2">&quot;qubits&quot;</span><span class="p">])</span>
+                <span class="k">elif</span> <span class="n">dic</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;pauli&quot;</span><span class="p">:</span>
+                    <span class="n">circ</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">PauliGate</span><span class="p">(</span><span class="n">dic</span><span class="p">[</span><span class="s2">&quot;params&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">]),</span> <span class="n">qargs</span><span class="o">=</span><span class="n">dic</span><span class="p">[</span><span class="s2">&quot;qubits&quot;</span><span class="p">])</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">with</span> <span class="n">catch_warnings</span><span class="p">():</span>
+                        <span class="n">filterwarnings</span><span class="p">(</span>
+                            <span class="s2">&quot;ignore&quot;</span><span class="p">,</span>
+                            <span class="n">category</span><span class="o">=</span><span class="ne">DeprecationWarning</span><span class="p">,</span>
+                            <span class="n">module</span><span class="o">=</span><span class="s2">&quot;qiskit_aer.noise.errors.errorutils&quot;</span><span class="p">,</span>
+                        <span class="p">)</span>
+                        <span class="n">circ</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                            <span class="n">UnitaryGate</span><span class="p">(</span>
+                                <span class="n">label</span><span class="o">=</span><span class="n">dic</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">],</span> <span class="n">data</span><span class="o">=</span><span class="n">_standard_gate_unitary</span><span class="p">(</span><span class="n">dic</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">])</span>
+                            <span class="p">),</span>
+                            <span class="n">qargs</span><span class="o">=</span><span class="n">dic</span><span class="p">[</span><span class="s2">&quot;qubits&quot;</span><span class="p">],</span>
+                        <span class="p">)</span>
+            <span class="k">return</span> <span class="n">circ</span>
+
+        <span class="c1"># Return noise model</span>
+        <span class="n">noise_model</span> <span class="o">=</span> <span class="n">NoiseModel</span><span class="p">()</span>
+
+        <span class="c1"># Get error terms</span>
+        <span class="n">errors</span> <span class="o">=</span> <span class="n">noise_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;errors&quot;</span><span class="p">,</span> <span class="p">[])</span>
+
+        <span class="k">for</span> <span class="n">error</span> <span class="ow">in</span> <span class="n">errors</span><span class="p">:</span>
+            <span class="n">error_type</span> <span class="o">=</span> <span class="n">error</span><span class="p">[</span><span class="s2">&quot;type&quot;</span><span class="p">]</span>
+
+            <span class="c1"># Add QuantumError</span>
+            <span class="k">if</span> <span class="n">error_type</span> <span class="o">==</span> <span class="s2">&quot;qerror&quot;</span><span class="p">:</span>
+                <span class="n">circuits</span> <span class="o">=</span> <span class="p">[</span><span class="n">inst_dic_list_to_circuit</span><span class="p">(</span><span class="n">dics</span><span class="p">)</span> <span class="k">for</span> <span class="n">dics</span> <span class="ow">in</span> <span class="n">error</span><span class="p">[</span><span class="s2">&quot;instructions&quot;</span><span class="p">]]</span>
+                <span class="n">noise_ops</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">circuits</span><span class="p">,</span> <span class="n">error</span><span class="p">[</span><span class="s2">&quot;probabilities&quot;</span><span class="p">]))</span>
+                <span class="n">qerror</span> <span class="o">=</span> <span class="n">QuantumError</span><span class="p">(</span><span class="n">noise_ops</span><span class="p">)</span>
+                <span class="n">qerror</span><span class="o">.</span><span class="n">_id</span> <span class="o">=</span> <span class="n">error</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;id&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">or</span> <span class="n">qerror</span><span class="o">.</span><span class="n">id</span>
+                <span class="n">instruction_names</span> <span class="o">=</span> <span class="n">error</span><span class="p">[</span><span class="s2">&quot;operations&quot;</span><span class="p">]</span>
+                <span class="n">all_gate_qubits</span> <span class="o">=</span> <span class="n">error</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;gate_qubits&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">all_gate_qubits</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="k">for</span> <span class="n">gate_qubits</span> <span class="ow">in</span> <span class="n">all_gate_qubits</span><span class="p">:</span>
+                        <span class="c1"># Add local quantum error</span>
+                        <span class="n">noise_model</span><span class="o">.</span><span class="n">add_quantum_error</span><span class="p">(</span>
+                            <span class="n">qerror</span><span class="p">,</span> <span class="n">instruction_names</span><span class="p">,</span> <span class="n">gate_qubits</span><span class="p">,</span> <span class="n">warnings</span><span class="o">=</span><span class="kc">False</span>
+                        <span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="c1"># Add all-qubit quantum error</span>
+                    <span class="n">noise_model</span><span class="o">.</span><span class="n">add_all_qubit_quantum_error</span><span class="p">(</span>
+                        <span class="n">qerror</span><span class="p">,</span> <span class="n">instruction_names</span><span class="p">,</span> <span class="n">warnings</span><span class="o">=</span><span class="kc">False</span>
+                    <span class="p">)</span>
+
+            <span class="c1"># Add ReadoutError</span>
+            <span class="k">elif</span> <span class="n">error_type</span> <span class="o">==</span> <span class="s2">&quot;roerror&quot;</span><span class="p">:</span>
+                <span class="n">probabilities</span> <span class="o">=</span> <span class="n">error</span><span class="p">[</span><span class="s2">&quot;probabilities&quot;</span><span class="p">]</span>
+                <span class="n">all_gate_qubits</span> <span class="o">=</span> <span class="n">error</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;gate_qubits&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+                <span class="n">roerror</span> <span class="o">=</span> <span class="n">ReadoutError</span><span class="p">(</span><span class="n">probabilities</span><span class="p">)</span>
+                <span class="c1"># Add local readout error</span>
+                <span class="k">if</span> <span class="n">all_gate_qubits</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="k">for</span> <span class="n">gate_qubits</span> <span class="ow">in</span> <span class="n">all_gate_qubits</span><span class="p">:</span>
+                        <span class="n">noise_model</span><span class="o">.</span><span class="n">add_readout_error</span><span class="p">(</span><span class="n">roerror</span><span class="p">,</span> <span class="n">gate_qubits</span><span class="p">,</span> <span class="n">warnings</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+                <span class="c1"># Add all-qubit readout error</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">noise_model</span><span class="o">.</span><span class="n">add_all_qubit_readout_error</span><span class="p">(</span><span class="n">roerror</span><span class="p">,</span> <span class="n">warnings</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+            <span class="c1"># Invalid error type</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">NoiseError</span><span class="p">(</span><span class="s2">&quot;Invalid error type: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">error_type</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">noise_model</span></div>
+
+    <span class="k">def</span> <span class="nf">_instruction_names_labels</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">instructions</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return two lists of instruction name strings and label strings.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">instructions</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
+            <span class="n">instructions</span> <span class="o">=</span> <span class="p">[</span><span class="n">instructions</span><span class="p">]</span>
+        <span class="n">names_labels</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">inst</span> <span class="ow">in</span> <span class="n">instructions</span><span class="p">:</span>
+            <span class="c1"># If instruction does not have a label we use the name</span>
+            <span class="c1"># as the label</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">inst</span><span class="p">,</span> <span class="n">Instruction</span><span class="p">):</span>
+                <span class="n">name</span> <span class="o">=</span> <span class="n">inst</span><span class="o">.</span><span class="n">name</span>
+                <span class="n">label</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">inst</span><span class="p">,</span> <span class="s2">&quot;label&quot;</span><span class="p">,</span> <span class="n">inst</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+                <span class="n">names_labels</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">name</span><span class="p">,</span> <span class="n">label</span><span class="p">))</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">inst</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+                <span class="n">names_labels</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">inst</span><span class="p">,</span> <span class="n">inst</span><span class="p">))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">NoiseError</span><span class="p">(</span><span class="s2">&quot;Invalid instruction type </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">inst</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">names_labels</span>
+
+    <span class="k">def</span> <span class="nf">_check_number_of_qubits</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">error</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Check if error is corrected number of qubits for standard instruction.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            error (QuantumError): the quantum error object.</span>
+<span class="sd">            name (str): qobj instruction name to apply error to.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            NoiseError: If instruction and error qubit number do not match.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">def</span> <span class="nf">error_message</span><span class="p">(</span><span class="n">gate_qubits</span><span class="p">):</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="s2">&quot;</span><span class="si">{}</span><span class="s2"> qubit QuantumError&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">error</span><span class="o">.</span><span class="n">num_qubits</span><span class="p">)</span>
+                <span class="o">+</span> <span class="s2">&quot; cannot be applied to </span><span class="si">{}</span><span class="s2"> qubit&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">gate_qubits</span><span class="p">)</span>
+                <span class="o">+</span> <span class="s1">&#39; instruction &quot;</span><span class="si">{}</span><span class="s1">&quot;.&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+            <span class="p">)</span>
+            <span class="k">return</span> <span class="n">msg</span>
+
+        <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_1qubit_instructions</span> <span class="ow">and</span> <span class="n">error</span><span class="o">.</span><span class="n">num_qubits</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">NoiseError</span><span class="p">(</span><span class="n">error_message</span><span class="p">(</span><span class="mi">1</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_2qubit_instructions</span> <span class="ow">and</span> <span class="n">error</span><span class="o">.</span><span class="n">num_qubits</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">NoiseError</span><span class="p">(</span><span class="n">error_message</span><span class="p">(</span><span class="mi">2</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_3qubit_instructions</span> <span class="ow">and</span> <span class="n">error</span><span class="o">.</span><span class="n">num_qubits</span> <span class="o">!=</span> <span class="mi">3</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">NoiseError</span><span class="p">(</span><span class="n">error_message</span><span class="p">(</span><span class="mi">3</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">_keys2str</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">keys</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Convert dicitonary keys to comma seperated print string.&quot;&quot;&quot;</span>
+        <span class="n">tmp</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2">, &quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">key</span><span class="p">)</span> <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">keys</span><span class="p">])</span>
+        <span class="k">return</span> <span class="n">tmp</span><span class="p">[:</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">_readout_errors_equal</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Check two noise models have equal readout errors&quot;&quot;&quot;</span>
+        <span class="c1"># Check default readout error is equal</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_default_readout_error</span> <span class="o">!=</span> <span class="n">other</span><span class="o">.</span><span class="n">_default_readout_error</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span>
+        <span class="c1"># Check local readout errors are equal</span>
+        <span class="k">if</span> <span class="nb">sorted</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_local_readout_errors</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span> <span class="o">!=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">other</span><span class="o">.</span><span class="n">_local_readout_errors</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
+            <span class="k">return</span> <span class="kc">False</span>
+        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_local_readout_errors</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_local_readout_errors</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">!=</span> <span class="n">other</span><span class="o">.</span><span class="n">_local_readout_errors</span><span class="p">[</span><span class="n">key</span><span class="p">]:</span>
+                <span class="k">return</span> <span class="kc">False</span>
+        <span class="k">return</span> <span class="kc">True</span>
+
+    <span class="k">def</span> <span class="nf">_all_qubit_quantum_errors_equal</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Check two noise models have equal local quantum errors&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">sorted</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_default_quantum_errors</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span> <span class="o">!=</span> <span class="nb">sorted</span><span class="p">(</span>
+            <span class="n">other</span><span class="o">.</span><span class="n">_default_quantum_errors</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
+        <span class="p">):</span>
+            <span class="k">return</span> <span class="kc">False</span>
+        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_default_quantum_errors</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_default_quantum_errors</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">!=</span> <span class="n">other</span><span class="o">.</span><span class="n">_default_quantum_errors</span><span class="p">[</span><span class="n">key</span><span class="p">]:</span>
+                <span class="k">return</span> <span class="kc">False</span>
+        <span class="k">return</span> <span class="kc">True</span>
+
+    <span class="k">def</span> <span class="nf">_local_quantum_errors_equal</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Check two noise models have equal local quantum errors&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">sorted</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_local_quantum_errors</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span> <span class="o">!=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">other</span><span class="o">.</span><span class="n">_local_quantum_errors</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
+            <span class="k">return</span> <span class="kc">False</span>
+        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_local_quantum_errors</span><span class="p">:</span>
+            <span class="n">inner_dict1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_local_quantum_errors</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+            <span class="n">inner_dict2</span> <span class="o">=</span> <span class="n">other</span><span class="o">.</span><span class="n">_local_quantum_errors</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+            <span class="k">if</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">inner_dict1</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span> <span class="o">!=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">inner_dict2</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
+                <span class="k">return</span> <span class="kc">False</span>
+            <span class="k">for</span> <span class="n">inner_key</span> <span class="ow">in</span> <span class="n">inner_dict1</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">inner_dict1</span><span class="p">[</span><span class="n">inner_key</span><span class="p">]</span> <span class="o">!=</span> <span class="n">inner_dict2</span><span class="p">[</span><span class="n">inner_key</span><span class="p">]:</span>
+                    <span class="k">return</span> <span class="kc">False</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_local_quantum_errors</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">!=</span> <span class="n">other</span><span class="o">.</span><span class="n">_local_quantum_errors</span><span class="p">[</span><span class="n">key</span><span class="p">]:</span>
+                <span class="k">return</span> <span class="kc">False</span>
+        <span class="k">return</span> <span class="kc">True</span>
+
+    <span class="k">def</span> <span class="nf">_pass_manager</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">PassManager</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Return the pass manager that add custom noises defined as noise passes</span>
+<span class="sd">        (stored in the _custom_noise_passes field). Note that the pass manager</span>
+<span class="sd">        does not include passes to add other noises (stored in the different field).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">passes</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">passes</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_custom_noise_passes</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">passes</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">PassManager</span><span class="p">(</span><span class="n">passes</span><span class="p">)</span>
+        <span class="k">return</span> <span class="kc">None</span></div>
+
+
+<span class="k">def</span> <span class="nf">_standard_gate_unitary</span><span class="p">(</span><span class="n">name</span><span class="p">):</span>
+    <span class="c1"># To be removed with from_dict</span>
+    <span class="n">unitary_matrices</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="p">(</span><span class="s2">&quot;id&quot;</span><span class="p">,</span> <span class="s2">&quot;I&quot;</span><span class="p">):</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">complex</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">&quot;x&quot;</span><span class="p">,</span> <span class="s2">&quot;X&quot;</span><span class="p">):</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">]],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">complex</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">&quot;y&quot;</span><span class="p">,</span> <span class="s2">&quot;Y&quot;</span><span class="p">):</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="n">j</span><span class="p">],</span> <span class="p">[</span><span class="mi">1</span><span class="n">j</span><span class="p">,</span> <span class="mi">0</span><span class="p">]],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">complex</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">&quot;z&quot;</span><span class="p">,</span> <span class="s2">&quot;Z&quot;</span><span class="p">):</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">complex</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">&quot;h&quot;</span><span class="p">,</span> <span class="s2">&quot;H&quot;</span><span class="p">):</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">complex</span><span class="p">)</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">2</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">&quot;s&quot;</span><span class="p">,</span> <span class="s2">&quot;S&quot;</span><span class="p">):</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="n">j</span><span class="p">]],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">complex</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">&quot;sdg&quot;</span><span class="p">,</span> <span class="s2">&quot;Sdg&quot;</span><span class="p">):</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="n">j</span><span class="p">]],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">complex</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">&quot;t&quot;</span><span class="p">,</span> <span class="s2">&quot;T&quot;</span><span class="p">):</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="mi">1</span><span class="n">j</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mi">4</span><span class="p">)]],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">complex</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">&quot;tdg&quot;</span><span class="p">,</span> <span class="s2">&quot;Tdg&quot;</span><span class="p">):</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="n">j</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mi">4</span><span class="p">)]],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">complex</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">&quot;cx&quot;</span><span class="p">,</span> <span class="s2">&quot;CX&quot;</span><span class="p">,</span> <span class="s2">&quot;cx_01&quot;</span><span class="p">):</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+            <span class="p">[[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">complex</span>
+        <span class="p">),</span>
+        <span class="p">(</span><span class="s2">&quot;cx_10&quot;</span><span class="p">,):</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+            <span class="p">[[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">complex</span>
+        <span class="p">),</span>
+        <span class="p">(</span><span class="s2">&quot;cz&quot;</span><span class="p">,</span> <span class="s2">&quot;CZ&quot;</span><span class="p">):</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+            <span class="p">[[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">complex</span>
+        <span class="p">),</span>
+        <span class="p">(</span><span class="s2">&quot;swap&quot;</span><span class="p">,</span> <span class="s2">&quot;SWAP&quot;</span><span class="p">):</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+            <span class="p">[[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">complex</span>
+        <span class="p">),</span>
+        <span class="p">(</span><span class="s2">&quot;ccx&quot;</span><span class="p">,</span> <span class="s2">&quot;CCX&quot;</span><span class="p">,</span> <span class="s2">&quot;ccx_012&quot;</span><span class="p">,</span> <span class="s2">&quot;ccx_102&quot;</span><span class="p">):</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+            <span class="p">[</span>
+                <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+                <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+                <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+                <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span>
+                <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+                <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+                <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+                <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+            <span class="p">],</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="nb">complex</span><span class="p">,</span>
+        <span class="p">),</span>
+        <span class="p">(</span><span class="s2">&quot;ccx_021&quot;</span><span class="p">,</span> <span class="s2">&quot;ccx_201&quot;</span><span class="p">):</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+            <span class="p">[</span>
+                <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+                <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+                <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+                <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+                <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+                <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span>
+                <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+                <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+            <span class="p">],</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="nb">complex</span><span class="p">,</span>
+        <span class="p">),</span>
+        <span class="p">(</span><span class="s2">&quot;ccx_120&quot;</span><span class="p">,</span> <span class="s2">&quot;ccx_210&quot;</span><span class="p">):</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+            <span class="p">[</span>
+                <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+                <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+                <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+                <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+                <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+                <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+                <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span>
+                <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+            <span class="p">],</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="nb">complex</span><span class="p">,</span>
+        <span class="p">),</span>
+    <span class="p">}</span>
+
+    <span class="k">return</span> <span class="nb">next</span><span class="p">((</span><span class="n">value</span> <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">unitary_matrices</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">key</span><span class="p">),</span> <span class="kc">None</span><span class="p">)</span>
+</pre></div>
+        </article>
+      </div>
+      <footer>
+        <div class="related-pages">
+          
+          
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2017-2024, Qiskit Development Team
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            <div class="last-updated">
+              Last updated on 2024/01/17</div>
+          </div>
+          <div class="right-details">
+            
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer no-toc">
+      
+      
+      
+    </aside>
+  </div>
+</div><script src="../../../_static/jquery.js?v=5d32c60e"></script>
+    <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+    <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js?v=cc44ccc5"></script>
+    <script src="../../../_static/doctools.js?v=888ff710"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=4825356b"></script>
+    <script src="../../../_static/thebelab-helper.js"></script>
+    <script src="../../../_static/scripts/qiskit-sphinx-theme.js?v=4d77b8ca"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@jupyter-widgets/html-manager@^1.0.1/dist/embed-amd.js"></script>
+    <script src="../../../_static/design-tabs.js?v=36754332"></script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    </body>
+</html>

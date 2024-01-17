@@ -1,0 +1,8 @@
+﻿
+
+depolarizing_error
+===================================
+
+.. currentmodule:: qiskit_aer.noise
+
+.. autofunction:: depolarizing_error

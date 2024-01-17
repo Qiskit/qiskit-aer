@@ -1,0 +1,8 @@
+﻿
+
+coherent_unitary_error
+=======================================
+
+.. currentmodule:: qiskit_aer.noise
+
+.. autofunction:: coherent_unitary_error

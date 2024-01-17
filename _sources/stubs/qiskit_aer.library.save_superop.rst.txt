@@ -1,0 +1,8 @@
+﻿
+
+save_superop
+===============================
+
+.. currentmodule:: qiskit_aer.library
+
+.. autofunction:: save_superop

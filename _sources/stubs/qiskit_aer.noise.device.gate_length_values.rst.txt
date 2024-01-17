@@ -1,0 +1,8 @@
+﻿
+
+gate_length_values
+==========================================
+
+.. currentmodule:: qiskit_aer.noise.device
+
+.. autofunction:: gate_length_values

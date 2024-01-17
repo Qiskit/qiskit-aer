@@ -1,0 +1,8 @@
+﻿
+
+insert_noise
+=============================
+
+.. currentmodule:: qiskit_aer.utils
+
+.. autofunction:: insert_noise

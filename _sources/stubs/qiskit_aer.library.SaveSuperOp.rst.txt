@@ -1,0 +1,52 @@
+﻿
+
+SaveSuperOp
+==============================
+
+.. currentmodule:: qiskit_aer.library
+
+.. autoclass:: SaveSuperOp
+   :no-members:
+   :no-inherited-members:
+   :no-special-members:
+   :show-inheritance:
+
+
+   
+   .. rubric:: Attributes
+      
+   .. autoattribute:: SaveSuperOp.base_class
+   .. autoattribute:: SaveSuperOp.condition
+   .. autoattribute:: SaveSuperOp.condition_bits
+   .. autoattribute:: SaveSuperOp.decompositions
+   .. autoattribute:: SaveSuperOp.definition
+   .. autoattribute:: SaveSuperOp.duration
+   .. autoattribute:: SaveSuperOp.label
+   .. autoattribute:: SaveSuperOp.mutable
+   .. autoattribute:: SaveSuperOp.name
+   .. autoattribute:: SaveSuperOp.num_clbits
+   .. autoattribute:: SaveSuperOp.num_qubits
+   .. autoattribute:: SaveSuperOp.params
+   .. autoattribute:: SaveSuperOp.unit
+   
+
+
+
+   
+   .. rubric:: Methods
+   
+   .. automethod:: SaveSuperOp.add_decomposition
+   .. automethod:: SaveSuperOp.assemble
+   .. automethod:: SaveSuperOp.broadcast_arguments
+   .. automethod:: SaveSuperOp.c_if
+   .. automethod:: SaveSuperOp.copy
+   .. automethod:: SaveSuperOp.inverse
+   .. automethod:: SaveSuperOp.is_parameterized
+   .. automethod:: SaveSuperOp.qasm
+   .. automethod:: SaveSuperOp.repeat
+   .. automethod:: SaveSuperOp.reverse_ops
+   .. automethod:: SaveSuperOp.soft_compare
+   .. automethod:: SaveSuperOp.to_mutable
+   .. automethod:: SaveSuperOp.validate_parameter
+
+   

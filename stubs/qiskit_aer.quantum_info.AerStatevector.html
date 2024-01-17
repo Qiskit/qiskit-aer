@@ -1,0 +1,1209 @@
+<!doctype html>
+<html class="no-js" lang="en">
+  <head><meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" /><link rel="next" title="AerDensityMatrix" href="qiskit_aer.quantum_info.AerDensityMatrix.html" /><link rel="prev" title="Aer Quantum Info (qiskit_aer.quantum_info)" href="../apidocs/aer_quantum_info.html" />
+
+    <!-- Generated with Sphinx 7.1.2 and Furo 2023.08.19 -->
+        <title>AerStatevector - Qiskit Aer 0.13.1</title>
+      <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=135e06be" />
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=82a976d7" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/qiskit-sphinx-theme.css?v=fe84956c" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/qiskit-ecosystem.css?v=745c5aa7" />
+    <link rel="stylesheet" type="text/css" href="../_static/jupyter-sphinx.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/design-style.1e8bd061cd6da7fc9cf755528e8ffc24.min.css?v=0a3b3ea7" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo-extensions.css?v=36a5483c" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #ffffff;
+  --color-code-foreground: black;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style><link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:ital,wght@0,400;0,600;1,400;1,600&display=swap" rel="stylesheet">
+<script src="../_static/js/web-components/top-nav-bar.js"></script></head>
+  <body>
+    
+    <script>document.body.dataset.theme = "light";</script>
+    
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg id="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+      <defs><style>.cls-1{fill:none;}</style></defs>
+      <path d="M28,4H4A2,2,0,0,0,2,6V26a2,2,0,0,0,2,2H28a2,2,0,0,0,2-2V6A2,2,0,0,0,28,4ZM4,6H20V26H4ZM28,26H22V6h6Z"/>
+      <rect id="_Transparent_Rectangle_" data-name="&lt;Transparent Rectangle&gt;" class="cls-1" width="32" height="32"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg id="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+      <defs><style>.cls-1{fill:none;}</style></defs>
+      <rect x="4" y="6" width="24" height="2"/>
+      <rect x="4" y="24" width="24" height="2"/>
+      <rect x="4" y="12" width="24" height="2"/>
+      <rect x="4" y="18" width="24" height="2"/>
+      <rect id="_Transparent_Rectangle_" data-name="&lt;Transparent Rectangle&gt;" class="cls-1" width="32" height="32"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg version="1.1" id="icon" xmlns="http://www.w3.org/2000/svg" x="0px" y="0px"
+         viewBox="0 0 32 32" style="enable-background:new 0 0 32 32;" xml:space="preserve"><polygon points="22,16 12,26 10.6,24.6 19.2,16 10.6,7.4 12,6 " stroke="currentColor"/>
+      <rect id="_x3C_Transparent_Rectangle_x3E_" fill="none" width="32" height="32"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-new-tab" viewBox="0 0 32 32">
+    <svg id="icon" xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
+      <defs>
+        <style>
+          .cls-1 {
+            fill: none;
+          }
+        </style>
+      </defs>
+      <path fill="#6929C4" d="M26,28H6a2.0027,2.0027,0,0,1-2-2V6A2.0027,2.0027,0,0,1,6,4H16V6H6V26H26V16h2V26A2.0027,2.0027,0,0,1,26,28Z"/>
+      <polygon fill="#6929C4" points="20 2 20 4 26.586 4 18 12.586 19.414 14 28 5.414 28 12 30 12 30 2 20 2"/>
+      <rect id="_Transparent_Rectangle_" data-name="&lt;Transparent Rectangle&gt;" class="cls-1" width="32" height="32"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-half" viewBox="0 0 24 24">
+    <title>Auto light/dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-shadow">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M13 12h5" />
+      <path d="M13 15h4" />
+      <path d="M13 18h1" />
+      <path d="M13 9h4" />
+      <path d="M13 6h1" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc">
+<label class="overlay sidebar-overlay" for="__navigation">
+  <div class="visually-hidden">Hide navigation sidebar</div>
+</label>
+<label class="overlay toc-overlay" for="__toc">
+  <div class="visually-hidden">Hide table of contents sidebar</div>
+</label>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <div class="visually-hidden">Toggle site navigation sidebar</div>
+        <i class="icon"><svg><use href="#svg-menu"></use></svg></i>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="../index.html"><div class="brand">Qiskit Aer 0.13.1</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle">
+          <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+          <svg class="theme-icon-when-auto"><use href="#svg-sun-half"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <div class="visually-hidden">Toggle table of contents sidebar</div>
+        <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><div class="sidebar-brand">
+  <a href="https://www.qiskit.org/ecosystem">
+    <div class="sidebar-logo-container">
+      <img class="sidebar-logo" src="../_static/images/ecosystem-logo.svg" alt="Qiskit Ecosystem logo"/>
+    </div>
+  </a>
+  
+  <span class="sidebar-brand-text">Qiskit Aer 0.13.1</span>
+</div><form class="sidebar-search-container" method="get" action="../search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../index.html">Home</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../getting_started.html">Getting Started</a></li>
+<li class="toctree-l1 current has-children"><a class="reference internal" href="../apidocs/aer.html">API Documentation</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle navigation of API Documentation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
+<li class="toctree-l2 has-children"><a class="reference internal" href="../apidocs/aer_provider.html">Aer Provider (<code class="xref py py-mod docutils literal notranslate"><span class="pre">qiskit_aer</span></code>)</a><input class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle navigation of Aer Provider (qiskit_aer)</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.AerProvider.html">AerProvider</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.AerSimulator.html">AerSimulator</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.QasmSimulator.html">QasmSimulator</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.StatevectorSimulator.html">StatevectorSimulator</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.UnitarySimulator.html">UnitarySimulator</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.AerError.html">AerError</a></li>
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../apidocs/aer_jobs.html">Aer Jobs (<code class="xref py py-mod docutils literal notranslate"><span class="pre">qiskit_aer.jobs</span></code>)</a><input class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><div class="visually-hidden">Toggle navigation of Aer Jobs (qiskit_aer.jobs)</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.jobs.AerJob.html">AerJob</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.jobs.AerJobSet.html">AerJobSet</a></li>
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../apidocs/aer_library.html">Instruction Library (<code class="xref py py-mod docutils literal notranslate"><span class="pre">qiskit_aer.library</span></code>)</a><input class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" role="switch" type="checkbox"/><label for="toctree-checkbox-4"><div class="visually-hidden">Toggle navigation of Instruction Library (qiskit_aer.library)</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.library.SetStatevector.html">SetStatevector</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.library.SetDensityMatrix.html">SetDensityMatrix</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.library.SetStabilizer.html">SetStabilizer</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.library.SetSuperOp.html">SetSuperOp</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.library.SetUnitary.html">SetUnitary</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.library.SetMatrixProductState.html">SetMatrixProductState</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.library.set_statevector.html">set_statevector</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.library.set_density_matrix.html">set_density_matrix</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.library.set_stabilizer.html">set_stabilizer</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.library.set_unitary.html">set_unitary</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.library.set_superop.html">set_superop</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.library.set_matrix_product_state.html">set_matrix_product_state</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.library.SaveState.html">SaveState</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.library.SaveStatevector.html">SaveStatevector</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.library.SaveStatevectorDict.html">SaveStatevectorDict</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.library.SaveDensityMatrix.html">SaveDensityMatrix</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.library.SaveMatrixProductState.html">SaveMatrixProductState</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.library.SaveClifford.html">SaveClifford</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.library.SaveStabilizer.html">SaveStabilizer</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.library.SaveSuperOp.html">SaveSuperOp</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.library.SaveUnitary.html">SaveUnitary</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.library.SaveExpectationValue.html">SaveExpectationValue</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.library.SaveExpectationValueVariance.html">SaveExpectationValueVariance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.library.SaveProbabilities.html">SaveProbabilities</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.library.SaveProbabilitiesDict.html">SaveProbabilitiesDict</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.library.SaveAmplitudes.html">SaveAmplitudes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.library.SaveAmplitudesSquared.html">SaveAmplitudesSquared</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.library.save_amplitudes.html">save_amplitudes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.library.save_amplitudes_squared.html">save_amplitudes_squared</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.library.save_clifford.html">save_clifford</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.library.save_density_matrix.html">save_density_matrix</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.library.save_expectation_value.html">save_expectation_value</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.library.save_expectation_value_variance.html">save_expectation_value_variance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.library.save_matrix_product_state.html">save_matrix_product_state</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.library.save_probabilities.html">save_probabilities</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.library.save_probabilities_dict.html">save_probabilities_dict</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.library.save_stabilizer.html">save_stabilizer</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.library.save_state.html">save_state</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.library.save_statevector.html">save_statevector</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.library.save_statevector_dict.html">save_statevector_dict</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.library.save_superop.html">save_superop</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.library.save_unitary.html">save_unitary</a></li>
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../apidocs/aer_noise.html">Noise Models (<code class="xref py py-mod docutils literal notranslate"><span class="pre">qiskit_aer.noise</span></code>)</a><input class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><div class="visually-hidden">Toggle navigation of Noise Models (qiskit_aer.noise)</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.noise.NoiseModel.html">NoiseModel</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.noise.QuantumError.html">QuantumError</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.noise.ReadoutError.html">ReadoutError</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.noise.pauli_error.html">pauli_error</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.noise.depolarizing_error.html">depolarizing_error</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.noise.mixed_unitary_error.html">mixed_unitary_error</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.noise.coherent_unitary_error.html">coherent_unitary_error</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.noise.reset_error.html">reset_error</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.noise.amplitude_damping_error.html">amplitude_damping_error</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.noise.phase_damping_error.html">phase_damping_error</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.noise.phase_amplitude_damping_error.html">phase_amplitude_damping_error</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.noise.thermal_relaxation_error.html">thermal_relaxation_error</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.noise.kraus_error.html">kraus_error</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.noise.LocalNoisePass.html">LocalNoisePass</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.noise.RelaxationNoisePass.html">RelaxationNoisePass</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.noise.device.basic_device_readout_errors.html">basic_device_readout_errors</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.noise.device.basic_device_gate_errors.html">basic_device_gate_errors</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.noise.device.gate_param_values.html">gate_param_values</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.noise.device.gate_error_values.html">gate_error_values</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.noise.device.gate_length_values.html">gate_length_values</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.noise.device.readout_error_values.html">readout_error_values</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.noise.device.thermal_relaxation_values.html">thermal_relaxation_values</a></li>
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../apidocs/aer_primitives.html">Primitives (<code class="xref py py-mod docutils literal notranslate"><span class="pre">qiskit_aer.primitives</span></code>)</a><input class="toctree-checkbox" id="toctree-checkbox-6" name="toctree-checkbox-6" role="switch" type="checkbox"/><label for="toctree-checkbox-6"><div class="visually-hidden">Toggle navigation of Primitives (qiskit_aer.primitives)</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.primitives.Sampler.html">Sampler</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.primitives.Estimator.html">Estimator</a></li>
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../apidocs/aer_utils.html">Utilities (<code class="xref py py-mod docutils literal notranslate"><span class="pre">qiskit_aer.utils</span></code>)</a><input class="toctree-checkbox" id="toctree-checkbox-7" name="toctree-checkbox-7" role="switch" type="checkbox"/><label for="toctree-checkbox-7"><div class="visually-hidden">Toggle navigation of Utilities (qiskit_aer.utils)</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.utils.insert_noise.html">insert_noise</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.utils.approximate_quantum_error.html">approximate_quantum_error</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.utils.approximate_noise_model.html">approximate_noise_model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.utils.transform_noise_model.html">transform_noise_model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.utils.transpile_noise_model.html">transpile_noise_model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.utils.transpile_quantum_error.html">transpile_quantum_error</a></li>
+</ul>
+</li>
+<li class="toctree-l2 current has-children"><a class="reference internal" href="../apidocs/aer_quantum_info.html">Aer Quantum Info (<code class="xref py py-mod docutils literal notranslate"><span class="pre">qiskit_aer.quantum_info</span></code>)</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-8" name="toctree-checkbox-8" role="switch" type="checkbox"/><label for="toctree-checkbox-8"><div class="visually-hidden">Toggle navigation of Aer Quantum Info (qiskit_aer.quantum_info)</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
+<li class="toctree-l3 current current-page"><a class="current reference internal" href="#">AerStatevector</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qiskit_aer.quantum_info.AerDensityMatrix.html">AerDensityMatrix</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../apidocs/circuit.html">Additional circuit methods</a></li>
+</ul>
+</li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../tutorials/index.html">Tutorials</a><input class="toctree-checkbox" id="toctree-checkbox-9" name="toctree-checkbox-9" role="switch" type="checkbox"/><label for="toctree-checkbox-9"><div class="visually-hidden">Toggle navigation of Tutorials</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../tutorials/1_aer_provider.html">Simulators</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../tutorials/2_device_noise_simulation.html">Device backend noise model simulations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../tutorials/3_building_noise_models.html">Building Noise Models</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../tutorials/4_custom_gate_noise.html">Applying noise to custom unitary gates</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../tutorials/5_noise_transformation.html">Noise Transformation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../tutorials/6_extended_stabilizer_tutorial.html">The Extended Stabilizer Simulator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../tutorials/7_matrix_product_state_method.html">Matrix product state simulation method</a></li>
+</ul>
+</li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../howtos/index.html">How-Tos</a><input class="toctree-checkbox" id="toctree-checkbox-10" name="toctree-checkbox-10" role="switch" type="checkbox"/><label for="toctree-checkbox-10"><div class="visually-hidden">Toggle navigation of How-Tos</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../howtos/parallel.html">Running with Threadpool and DASK</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../howtos/running_gpu.html">Running with multiple-GPUs and/or multiple nodes</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../release_notes.html">Release Notes</a></li>
+</ul>
+
+</div></div>
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          
+<div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle">
+              <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+              <svg class="theme-icon-when-auto"><use href="#svg-sun-half"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <div class="visually-hidden">Toggle table of contents sidebar</div>
+            <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+          </label>
+        </div>
+        <article role="main">
+          <section id="aerstatevector">
+<h1>AerStatevector<a class="headerlink" href="#aerstatevector" title="Permalink to this heading">#</a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="qiskit_aer.quantum_info.AerStatevector">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">AerStatevector</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dims</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">configs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/qiskit_aer/quantum_info/states/aer_statevector.html#AerStatevector"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_aer.quantum_info.AerStatevector" title="Permalink to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://qiskit.org/documentation/stubs/qiskit.quantum_info.Statevector.html#qiskit.quantum_info.Statevector" title="(in Qiskit v0.45)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Statevector</span></code></a></p>
+<p>AerStatevector class</p>
+<p>This class inherits <code class="xref py py-class docutils literal notranslate"><span class="pre">Statevector</span></code>, which stores probability amplitudes
+in its <cite>ndarray</cite>. class:<cite>AerStatevector</cite> generates this <cite>ndarray</cite> by using the
+same runtime with <code class="xref py py-class docutils literal notranslate"><span class="pre">AerSimulator</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>or</strong> (<em>data</em><em> (</em><em>np.array</em><em> or </em><em>list</em><em> or </em><em>Statevector</em><em> or </em><a class="reference internal" href="#qiskit_aer.quantum_info.AerStatevector" title="qiskit_aer.quantum_info.AerStatevector"><em>AerStatevector</em></a><em> or </em><em>QuantumCircuit</em>) – qiskit.circuit.Instruction):
+Data from which the statevector can be constructed. This can be either a complex
+vector, another statevector or a <code class="docutils literal notranslate"><span class="pre">QuantumCircuit</span></code> or <code class="docutils literal notranslate"><span class="pre">Instruction</span></code>
+(<code class="docutils literal notranslate"><span class="pre">Operator</span></code> is not supported in the current implementation).  If the data is
+a circuit or instruction, the statevector is constructed by assuming that all
+qubits are initialized to the zero state.</p></li>
+<li><p><strong>dims</strong> (<em>int</em><em> or </em><em>tuple</em><em> or </em><em>list</em>) – Optional. The subsystem dimension of
+the state (See additional information).</p></li>
+<li><p><strong>configs</strong> (<em>kwargs</em>) – configurations of <code class="xref py py-class docutils literal notranslate"><span class="pre">AerSimulator</span></code>. <cite>method</cite> configuration must
+be <cite>statevector</cite> or <cite>matrix_product_state</cite>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="qiskit_aer.AerError.html#qiskit_aer.AerError" title="qiskit_aer.AerError"><strong>AerError</strong></a> – if input data is not valid.</p>
+</dd>
+</dl>
+<dl class="simple">
+<dt>Additional Information:</dt><dd><p>The <code class="docutils literal notranslate"><span class="pre">dims</span></code> kwarg is used to <code class="docutils literal notranslate"><span class="pre">Statevector</span></code> constructor.</p>
+</dd>
+</dl>
+<p class="rubric">Attributes</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="qiskit_aer.quantum_info.AerStatevector.atol">
+<span class="sig-name descname"><span class="pre">atol</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">1e-08</span></em><a class="headerlink" href="#qiskit_aer.quantum_info.AerStatevector.atol" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="qiskit_aer.quantum_info.AerStatevector.data">
+<span class="sig-name descname"><span class="pre">data</span></span><a class="headerlink" href="#qiskit_aer.quantum_info.AerStatevector.data" title="Permalink to this definition">#</a></dt>
+<dd><p>Return data.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="qiskit_aer.quantum_info.AerStatevector.dim">
+<span class="sig-name descname"><span class="pre">dim</span></span><a class="headerlink" href="#qiskit_aer.quantum_info.AerStatevector.dim" title="Permalink to this definition">#</a></dt>
+<dd><p>Return total state dimension.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="qiskit_aer.quantum_info.AerStatevector.num_qubits">
+<span class="sig-name descname"><span class="pre">num_qubits</span></span><a class="headerlink" href="#qiskit_aer.quantum_info.AerStatevector.num_qubits" title="Permalink to this definition">#</a></dt>
+<dd><p>Return the number of qubits if a N-qubit state or None otherwise.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="qiskit_aer.quantum_info.AerStatevector.rtol">
+<span class="sig-name descname"><span class="pre">rtol</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">1e-05</span></em><a class="headerlink" href="#qiskit_aer.quantum_info.AerStatevector.rtol" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="qiskit_aer.quantum_info.AerStatevector.settings">
+<span class="sig-name descname"><span class="pre">settings</span></span><a class="headerlink" href="#qiskit_aer.quantum_info.AerStatevector.settings" title="Permalink to this definition">#</a></dt>
+<dd><p>Return settings.</p>
+</dd></dl>
+
+<p class="rubric">Methods</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="qiskit_aer.quantum_info.AerStatevector.__getitem__">
+<span class="sig-name descname"><span class="pre">__getitem__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">np.complex128</span></span></span><a class="headerlink" href="#qiskit_aer.quantum_info.AerStatevector.__getitem__" title="Permalink to this definition">#</a></dt>
+<dd><p>Return Statevector item either by index or binary label
+:param key: index or corresponding binary label, e.g. ‘01’ = 1.
+:type key: int or str</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Statevector item.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>numpy.complex128</p>
+</dd>
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>QiskitError</strong> – if key is not valid.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="qiskit_aer.quantum_info.AerStatevector.__len__">
+<span class="sig-name descname"><span class="pre">__len__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#qiskit_aer.quantum_info.AerStatevector.__len__" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="qiskit_aer.quantum_info.AerStatevector.__mul__">
+<span class="sig-name descname"><span class="pre">__mul__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">other</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#qiskit_aer.quantum_info.AerStatevector.__mul__" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="qiskit_aer.quantum_info.AerStatevector.conjugate">
+<span class="sig-name descname"><span class="pre">conjugate</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/qiskit_aer/quantum_info/states/aer_statevector.html#AerStatevector.conjugate"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_aer.quantum_info.AerStatevector.conjugate" title="Permalink to this definition">#</a></dt>
+<dd><p>Return the conjugate of the operator.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="qiskit_aer.quantum_info.AerStatevector.copy">
+<span class="sig-name descname"><span class="pre">copy</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#qiskit_aer.quantum_info.AerStatevector.copy" title="Permalink to this definition">#</a></dt>
+<dd><p>Make a copy of current operator.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="qiskit_aer.quantum_info.AerStatevector.dims">
+<span class="sig-name descname"><span class="pre">dims</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">qargs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#qiskit_aer.quantum_info.AerStatevector.dims" title="Permalink to this definition">#</a></dt>
+<dd><p>Return tuple of input dimension for specified subsystems.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="qiskit_aer.quantum_info.AerStatevector.draw">
+<span class="sig-name descname"><span class="pre">draw</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">output</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">drawer_args</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#qiskit_aer.quantum_info.AerStatevector.draw" title="Permalink to this definition">#</a></dt>
+<dd><p>Return a visualization of the Statevector.</p>
+<p><strong>repr</strong>: ASCII TextMatrix of the state’s <code class="docutils literal notranslate"><span class="pre">__repr__</span></code>.</p>
+<p><strong>text</strong>: ASCII TextMatrix that can be printed in the console.</p>
+<p><strong>latex</strong>: An IPython Latex object for displaying in Jupyter Notebooks.</p>
+<p><strong>latex_source</strong>: Raw, uncompiled ASCII source to generate array using LaTeX.</p>
+<p><strong>qsphere</strong>: Matplotlib figure, rendering of statevector using <cite>plot_state_qsphere()</cite>.</p>
+<p><strong>hinton</strong>: Matplotlib figure, rendering of statevector using <cite>plot_state_hinton()</cite>.</p>
+<p><strong>bloch</strong>: Matplotlib figure, rendering of statevector using <cite>plot_bloch_multivector()</cite>.</p>
+<p><strong>city</strong>: Matplotlib figure, rendering of statevector using <cite>plot_state_city()</cite>.</p>
+<p><strong>paulivec</strong>: Matplotlib figure, rendering of statevector using <cite>plot_state_paulivec()</cite>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>output</strong> (<em>str</em>) – Select the output method to use for drawing the
+state. Valid choices are <cite>repr</cite>, <cite>text</cite>, <cite>latex</cite>, <cite>latex_source</cite>,
+<cite>qsphere</cite>, <cite>hinton</cite>, <cite>bloch</cite>, <cite>city</cite>, or <cite>paulivec</cite>. Default is <cite>repr</cite>.
+Default can be changed by adding the line <code class="docutils literal notranslate"><span class="pre">state_drawer</span> <span class="pre">=</span> <span class="pre">&lt;default&gt;</span></code> to
+<code class="docutils literal notranslate"><span class="pre">~/.qiskit/settings.conf</span></code> under <code class="docutils literal notranslate"><span class="pre">[default]</span></code>.</p></li>
+<li><p><strong>drawer_args</strong> – Arguments to be passed directly to the relevant drawing
+function or constructor (<cite>TextMatrix()</cite>, <cite>array_to_latex()</cite>,
+<cite>plot_state_qsphere()</cite>, <cite>plot_state_hinton()</cite> or <cite>plot_bloch_multivector()</cite>).
+See the relevant function under <cite>qiskit.visualization</cite> for that function’s
+documentation.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">matplotlib.Figure</span></code> or <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> or
+<code class="xref py py-class docutils literal notranslate"><span class="pre">TextMatrix</span></code> or <code class="xref py py-class docutils literal notranslate"><span class="pre">IPython.display.Latex</span></code>:
+Drawing of the Statevector.</p>
+</dd>
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ValueError</strong> – when an invalid output method is selected.</p>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<p>Plot one of the Bell states</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">numpy</span> <span class="kn">import</span> <span class="n">sqrt</span>
+<span class="kn">from</span> <span class="nn">qiskit.quantum_info</span> <span class="kn">import</span> <span class="n">Statevector</span>
+<span class="n">sv</span><span class="o">=</span><span class="n">Statevector</span><span class="p">([</span><span class="mi">1</span><span class="o">/</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">2</span><span class="p">),</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="o">/</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">2</span><span class="p">)])</span>
+<span class="n">sv</span><span class="o">.</span><span class="n">draw</span><span class="p">(</span><span class="n">output</span><span class="o">=</span><span class="s1">&#39;hinton&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>(<a class="reference download internal" download="" href="../_downloads/3967b5c43c415dbdeece9638c02260b3/qiskit_aer-quantum_info-AerStatevector-1.py"><code class="xref download docutils literal notranslate"><span class="pre">Source</span> <span class="pre">code</span></code></a>, <a class="reference download internal" download="" href="../_downloads/7bfc70c24cf1758d2ced5cfdb8d7ff83/qiskit_aer-quantum_info-AerStatevector-1.png"><code class="xref download docutils literal notranslate"><span class="pre">png</span></code></a>, <a class="reference download internal" download="" href="../_downloads/32daa58915a25ca486ca490df4778ef9/qiskit_aer-quantum_info-AerStatevector-1.hires.png"><code class="xref download docutils literal notranslate"><span class="pre">hires.png</span></code></a>, <a class="reference download internal" download="" href="../_downloads/917e026a0b7703437663969a2473b83e/qiskit_aer-quantum_info-AerStatevector-1.pdf"><code class="xref download docutils literal notranslate"><span class="pre">pdf</span></code></a>)</p>
+<figure class="align-default">
+<img alt="../_images/qiskit_aer-quantum_info-AerStatevector-1.png" class="plot-directive" src="../_images/qiskit_aer-quantum_info-AerStatevector-1.png" />
+</figure>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="qiskit_aer.quantum_info.AerStatevector.equiv">
+<span class="sig-name descname"><span class="pre">equiv</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">other</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Statevector</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rtol</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">atol</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="headerlink" href="#qiskit_aer.quantum_info.AerStatevector.equiv" title="Permalink to this definition">#</a></dt>
+<dd><p>Return True if other is equivalent as a statevector up to global phase.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>If other is not a Statevector, but can be used to initialize a statevector object,
+this will check that Statevector(other) is equivalent to the current statevector up
+to global phase.</p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>other</strong> (<em>Statevector</em>) – an object from which a <code class="docutils literal notranslate"><span class="pre">Statevector</span></code> can be constructed.</p></li>
+<li><p><strong>rtol</strong> (<em>float</em>) – relative tolerance value for comparison.</p></li>
+<li><p><strong>atol</strong> (<em>float</em>) – absolute tolerance value for comparison.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if statevectors are equivalent up to global phase.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>bool</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="qiskit_aer.quantum_info.AerStatevector.evolve">
+<span class="sig-name descname"><span class="pre">evolve</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">other</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Operator</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">QuantumCircuit</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Instruction</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">qargs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Statevector</span></span></span><a class="headerlink" href="#qiskit_aer.quantum_info.AerStatevector.evolve" title="Permalink to this definition">#</a></dt>
+<dd><p>Evolve a quantum state by the operator.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>other</strong> (<em>Operator</em><em> | </em><em>QuantumCircuit</em><em> | </em><em>circuit.Instruction</em>) – The operator to evolve by.</p></li>
+<li><p><strong>qargs</strong> (<em>list</em>) – a list of Statevector subsystem positions to apply
+the operator on.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>the output quantum state.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Statevector</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>QiskitError</strong> – if the operator dimension does not match the
+    specified Statevector subsystem dimensions.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="qiskit_aer.quantum_info.AerStatevector.expand">
+<span class="sig-name descname"><span class="pre">expand</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">other</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://qiskit.org/documentation/stubs/qiskit.quantum_info.Statevector.html#qiskit.quantum_info.Statevector" title="(in Qiskit v0.45)"><span class="pre">Statevector</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://qiskit.org/documentation/stubs/qiskit.quantum_info.Statevector.html#qiskit.quantum_info.Statevector" title="(in Qiskit v0.45)"><span class="pre">Statevector</span></a></span></span><a class="headerlink" href="#qiskit_aer.quantum_info.AerStatevector.expand" title="Permalink to this definition">#</a></dt>
+<dd><p>Return the tensor product state other ⊗ self.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>other</strong> (<em>Statevector</em>) – a quantum state object.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>the tensor product state other ⊗ self.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Statevector</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>QiskitError</strong> – if other is not a quantum state.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="qiskit_aer.quantum_info.AerStatevector.expectation_value">
+<span class="sig-name descname"><span class="pre">expectation_value</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">oper</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">BaseOperator</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">QuantumCircuit</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Instruction</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">qargs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">None</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">complex</span></span></span><a class="headerlink" href="#qiskit_aer.quantum_info.AerStatevector.expectation_value" title="Permalink to this definition">#</a></dt>
+<dd><p>Compute the expectation value of an operator.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>oper</strong> (<em>Operator</em>) – an operator to evaluate expval of.</p></li>
+<li><p><strong>qargs</strong> (<em>None</em><em> or </em><em>list</em>) – subsystems to apply operator on.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>the expectation value.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>complex</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="qiskit_aer.quantum_info.AerStatevector.from_instruction">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_instruction</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">instruction</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/qiskit_aer/quantum_info/states/aer_statevector.html#AerStatevector.from_instruction"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_aer.quantum_info.AerStatevector.from_instruction" title="Permalink to this definition">#</a></dt>
+<dd><p>Return the output statevector of an instruction.</p>
+<p>The statevector is initialized in the state <span class="math notranslate nohighlight">\(|{0,\ldots,0}\rangle\)</span> of the
+same number of qubits as the input instruction or circuit, evolved
+by the input instruction, and the output statevector returned.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>instruction</strong> (<a class="reference external" href="https://qiskit.org/documentation/stubs/qiskit.circuit.Instruction.html#qiskit.circuit.Instruction" title="(in Qiskit v0.45)"><em>qiskit.circuit.Instruction</em></a><em> or </em><em>QuantumCircuit</em>) – instruction or circuit</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The final statevector.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Statevector</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>QiskitError</strong> – if the instruction contains invalid instructions for
+    the statevector simulation.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="qiskit_aer.quantum_info.AerStatevector.from_int">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_int</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">i</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dims</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/qiskit_aer/quantum_info/states/aer_statevector.html#AerStatevector.from_int"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_aer.quantum_info.AerStatevector.from_int" title="Permalink to this definition">#</a></dt>
+<dd><p>Return a computational basis statevector.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>i</strong> (<em>int</em>) – the basis state element.</p></li>
+<li><p><strong>dims</strong> (<em>int</em><em> or </em><em>tuple</em><em> or </em><em>list</em>) – The subsystem dimensions of the statevector
+(See additional information).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The computational basis state <span class="math notranslate nohighlight">\(|i\rangle\)</span>.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Statevector</p>
+</dd>
+</dl>
+<dl class="simple">
+<dt>Additional Information:</dt><dd><p>The <code class="docutils literal notranslate"><span class="pre">dims</span></code> kwarg can be an integer or an iterable of integers.</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">Iterable</span></code> – the subsystem dimensions are the values in the list
+with the total number of subsystems given by the length of the list.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Int</span></code> – the integer specifies the total dimension of the
+state. If it is a power of two the state will be initialized
+as an N-qubit state. If it is not a power of  two the state
+will have a single d-dimensional subsystem.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="qiskit_aer.quantum_info.AerStatevector.from_label">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_label</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">label</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/qiskit_aer/quantum_info/states/aer_statevector.html#AerStatevector.from_label"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_aer.quantum_info.AerStatevector.from_label" title="Permalink to this definition">#</a></dt>
+<dd><p>Return a tensor product of Pauli X,Y,Z eigenstates.</p>
+<div class="table-wrapper docutils container" id="id1">
+<table class="docutils align-default" id="id1">
+<caption><span class="caption-number">Table 1 </span><span class="caption-text">Single-qubit state labels</span><a class="headerlink" href="#id1" title="Permalink to this table">#</a></caption>
+<thead>
+<tr class="row-odd"><th class="head"><p>Label</p></th>
+<th class="head"><p>Statevector</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">&quot;0&quot;</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\([1, 0]\)</span></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">&quot;1&quot;</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\([0, 1]\)</span></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">&quot;+&quot;</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\([1 / \sqrt{2},  1 / \sqrt{2}]\)</span></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">&quot;-&quot;</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\([1 / \sqrt{2},  -1 / \sqrt{2}]\)</span></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">&quot;r&quot;</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\([1 / \sqrt{2},  i / \sqrt{2}]\)</span></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">&quot;l&quot;</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\([1 / \sqrt{2},  -i / \sqrt{2}]\)</span></p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>label</strong> (<em>string</em>) – a eigenstate string ket label (see table for
+allowed values).</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The N-qubit basis state density matrix.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Statevector</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>QiskitError</strong> – if the label contains invalid characters, or the
+    length of the label is larger than an explicitly
+    specified num_qubits.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="qiskit_aer.quantum_info.AerStatevector.inner">
+<span class="sig-name descname"><span class="pre">inner</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">other</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://qiskit.org/documentation/stubs/qiskit.quantum_info.Statevector.html#qiskit.quantum_info.Statevector" title="(in Qiskit v0.45)"><span class="pre">Statevector</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">complex128</span></span></span><a class="headerlink" href="#qiskit_aer.quantum_info.AerStatevector.inner" title="Permalink to this definition">#</a></dt>
+<dd><p>Return the inner product of self and other as
+<span class="math notranslate nohighlight">\(\langle self| other \rangle\)</span>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>other</strong> (<em>Statevector</em>) – a quantum state object.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>the inner product of self and other, <span class="math notranslate nohighlight">\(\langle self| other \rangle\)</span>.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>np.complex128</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>QiskitError</strong> – if other is not a quantum state or has different dimension.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="qiskit_aer.quantum_info.AerStatevector.is_valid">
+<span class="sig-name descname"><span class="pre">is_valid</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atol</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rtol</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="headerlink" href="#qiskit_aer.quantum_info.AerStatevector.is_valid" title="Permalink to this definition">#</a></dt>
+<dd><p>Return True if a Statevector has norm 1.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="qiskit_aer.quantum_info.AerStatevector.measure">
+<span class="sig-name descname"><span class="pre">measure</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">qargs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">tuple</span></span></span><a class="headerlink" href="#qiskit_aer.quantum_info.AerStatevector.measure" title="Permalink to this definition">#</a></dt>
+<dd><p>Measure subsystems and return outcome and post-measure state.</p>
+<p>Note that this function uses the QuantumStates internal random
+number generator for sampling the measurement outcome. The RNG
+seed can be set using the <a class="reference internal" href="#qiskit_aer.quantum_info.AerStatevector.seed" title="qiskit_aer.quantum_info.AerStatevector.seed"><code class="xref py py-meth docutils literal notranslate"><span class="pre">seed()</span></code></a> method.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>qargs</strong> (<em>list</em><em> or </em><em>None</em>) – subsystems to sample measurements for,
+if None sample measurement of all
+subsystems (Default: None).</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>the pair <code class="docutils literal notranslate"><span class="pre">(outcome,</span> <span class="pre">state)</span></code> where <code class="docutils literal notranslate"><span class="pre">outcome</span></code> is the</dt><dd><p>measurement outcome string label, and <code class="docutils literal notranslate"><span class="pre">state</span></code> is the
+collapsed post-measurement state for the corresponding
+outcome.</p>
+</dd>
+</dl>
+</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>tuple</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="qiskit_aer.quantum_info.AerStatevector.metadata">
+<span class="sig-name descname"><span class="pre">metadata</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/qiskit_aer/quantum_info/states/aer_statevector.html#AerStatevector.metadata"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_aer.quantum_info.AerStatevector.metadata" title="Permalink to this definition">#</a></dt>
+<dd><p>Return result metadata of an operation that executed lastly.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="qiskit_aer.quantum_info.AerStatevector.probabilities">
+<span class="sig-name descname"><span class="pre">probabilities</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">qargs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">None</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">decimals</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">None</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">np.ndarray</span></span></span><a class="headerlink" href="#qiskit_aer.quantum_info.AerStatevector.probabilities" title="Permalink to this definition">#</a></dt>
+<dd><p>Return the subsystem measurement probability vector.</p>
+<p>Measurement probabilities are with respect to measurement in the
+computation (diagonal) basis.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>qargs</strong> (<em>None</em><em> or </em><em>list</em>) – subsystems to return probabilities for,
+if None return for all subsystems (Default: None).</p></li>
+<li><p><strong>decimals</strong> (<em>None</em><em> or </em><em>int</em>) – the number of decimal places to round
+values. If None no rounding is done (Default: None).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The Numpy vector array of probabilities.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>np.array</p>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<p>Consider a 2-qubit product state
+<span class="math notranslate nohighlight">\(|\psi\rangle=|+\rangle\otimes|0\rangle\)</span>.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">qiskit.quantum_info</span> <span class="kn">import</span> <span class="n">Statevector</span>
+
+<span class="n">psi</span> <span class="o">=</span> <span class="n">Statevector</span><span class="o">.</span><span class="n">from_label</span><span class="p">(</span><span class="s1">&#39;+0&#39;</span><span class="p">)</span>
+
+<span class="c1"># Probabilities for measuring both qubits</span>
+<span class="n">probs</span> <span class="o">=</span> <span class="n">psi</span><span class="o">.</span><span class="n">probabilities</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;probs: </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">probs</span><span class="p">))</span>
+
+<span class="c1"># Probabilities for measuring only qubit-0</span>
+<span class="n">probs_qubit_0</span> <span class="o">=</span> <span class="n">psi</span><span class="o">.</span><span class="n">probabilities</span><span class="p">([</span><span class="mi">0</span><span class="p">])</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Qubit-0 probs: </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">probs_qubit_0</span><span class="p">))</span>
+
+<span class="c1"># Probabilities for measuring only qubit-1</span>
+<span class="n">probs_qubit_1</span> <span class="o">=</span> <span class="n">psi</span><span class="o">.</span><span class="n">probabilities</span><span class="p">([</span><span class="mi">1</span><span class="p">])</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Qubit-1 probs: </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">probs_qubit_1</span><span class="p">))</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">probs</span><span class="p">:</span> <span class="p">[</span><span class="mf">0.5</span> <span class="mf">0.</span>  <span class="mf">0.5</span> <span class="mf">0.</span> <span class="p">]</span>
+<span class="n">Qubit</span><span class="o">-</span><span class="mi">0</span> <span class="n">probs</span><span class="p">:</span> <span class="p">[</span><span class="mf">1.</span> <span class="mf">0.</span><span class="p">]</span>
+<span class="n">Qubit</span><span class="o">-</span><span class="mi">1</span> <span class="n">probs</span><span class="p">:</span> <span class="p">[</span><span class="mf">0.5</span> <span class="mf">0.5</span><span class="p">]</span>
+</pre></div>
+</div>
+<p>We can also permute the order of qubits in the <code class="docutils literal notranslate"><span class="pre">qargs</span></code> list
+to change the qubit position in the probabilities output</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">qiskit.quantum_info</span> <span class="kn">import</span> <span class="n">Statevector</span>
+
+<span class="n">psi</span> <span class="o">=</span> <span class="n">Statevector</span><span class="o">.</span><span class="n">from_label</span><span class="p">(</span><span class="s1">&#39;+0&#39;</span><span class="p">)</span>
+
+<span class="c1"># Probabilities for measuring both qubits</span>
+<span class="n">probs</span> <span class="o">=</span> <span class="n">psi</span><span class="o">.</span><span class="n">probabilities</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;probs: </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">probs</span><span class="p">))</span>
+
+<span class="c1"># Probabilities for measuring both qubits</span>
+<span class="c1"># but swapping qubits 0 and 1 in output</span>
+<span class="n">probs_swapped</span> <span class="o">=</span> <span class="n">psi</span><span class="o">.</span><span class="n">probabilities</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Swapped probs: </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">probs_swapped</span><span class="p">))</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">probs</span><span class="p">:</span> <span class="p">[</span><span class="mf">0.5</span> <span class="mf">0.</span>  <span class="mf">0.5</span> <span class="mf">0.</span> <span class="p">]</span>
+<span class="n">Swapped</span> <span class="n">probs</span><span class="p">:</span> <span class="p">[</span><span class="mf">0.5</span> <span class="mf">0.5</span> <span class="mf">0.</span>  <span class="mf">0.</span> <span class="p">]</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="qiskit_aer.quantum_info.AerStatevector.probabilities_dict">
+<span class="sig-name descname"><span class="pre">probabilities_dict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">qargs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">None</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">list</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">decimals</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">None</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">dict</span></span></span><a class="headerlink" href="#qiskit_aer.quantum_info.AerStatevector.probabilities_dict" title="Permalink to this definition">#</a></dt>
+<dd><p>Return the subsystem measurement probability dictionary.</p>
+<p>Measurement probabilities are with respect to measurement in the
+computation (diagonal) basis.</p>
+<p>This dictionary representation uses a Ket-like notation where the
+dictionary keys are qudit strings for the subsystem basis vectors.
+If any subsystem has a dimension greater than 10 comma delimiters are
+inserted between integers so that subsystems can be distinguished.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>qargs</strong> (<em>None</em><em> or </em><em>list</em>) – subsystems to return probabilities for,
+if None return for all subsystems (Default: None).</p></li>
+<li><p><strong>decimals</strong> (<em>None</em><em> or </em><em>int</em>) – the number of decimal places to round
+values. If None no rounding is done (Default: None).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The measurement probabilities in dict (ket) form.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>dict</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="qiskit_aer.quantum_info.AerStatevector.purity">
+<span class="sig-name descname"><span class="pre">purity</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">float64</span></span></span><a class="headerlink" href="#qiskit_aer.quantum_info.AerStatevector.purity" title="Permalink to this definition">#</a></dt>
+<dd><p>Return the purity of the quantum state.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="qiskit_aer.quantum_info.AerStatevector.reset">
+<span class="sig-name descname"><span class="pre">reset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">qargs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Statevector</span></span></span><a class="headerlink" href="#qiskit_aer.quantum_info.AerStatevector.reset" title="Permalink to this definition">#</a></dt>
+<dd><p>Reset state or subsystems to the 0-state.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>qargs</strong> (<em>list</em><em> or </em><em>None</em>) – subsystems to reset, if None all
+subsystems will be reset to their 0-state
+(Default: None).</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>the reset state.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Statevector</p>
+</dd>
+</dl>
+<dl class="simple">
+<dt>Additional Information:</dt><dd><p>If all subsystems are reset this will return the ground state
+on all subsystems. If only a some subsystems are reset this
+function will perform a measurement on those subsystems and
+evolve the subsystems so that the collapsed post-measurement
+states are rotated to the 0-state. The RNG seed for this
+sampling can be set using the <a class="reference internal" href="#qiskit_aer.quantum_info.AerStatevector.seed" title="qiskit_aer.quantum_info.AerStatevector.seed"><code class="xref py py-meth docutils literal notranslate"><span class="pre">seed()</span></code></a> method.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="qiskit_aer.quantum_info.AerStatevector.reverse_qargs">
+<span class="sig-name descname"><span class="pre">reverse_qargs</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://qiskit.org/documentation/stubs/qiskit.quantum_info.Statevector.html#qiskit.quantum_info.Statevector" title="(in Qiskit v0.45)"><span class="pre">Statevector</span></a></span></span><a class="headerlink" href="#qiskit_aer.quantum_info.AerStatevector.reverse_qargs" title="Permalink to this definition">#</a></dt>
+<dd><p>Return a Statevector with reversed subsystem ordering.</p>
+<p>For a tensor product state this is equivalent to reversing the order
+of tensor product subsystems. For a statevector
+<span class="math notranslate nohighlight">\(|\psi \rangle = |\psi_{n-1} \rangle \otimes ... \otimes |\psi_0 \rangle\)</span>
+the returned statevector will be
+<span class="math notranslate nohighlight">\(|\psi_{0} \rangle \otimes ... \otimes |\psi_{n-1} \rangle\)</span>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>the Statevector with reversed subsystem order.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>Statevector</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="qiskit_aer.quantum_info.AerStatevector.sample_counts">
+<span class="sig-name descname"><span class="pre">sample_counts</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">shots</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">qargs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">None</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">list</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Counts</span></span></span><a class="headerlink" href="#qiskit_aer.quantum_info.AerStatevector.sample_counts" title="Permalink to this definition">#</a></dt>
+<dd><p>Sample a dict of qubit measurement outcomes in the computational basis.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>shots</strong> (<em>int</em>) – number of samples to generate.</p></li>
+<li><p><strong>qargs</strong> (<em>None</em><em> or </em><em>list</em>) – subsystems to sample measurements for,
+if None sample measurement of all
+subsystems (Default: None).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>sampled counts dictionary.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Counts</p>
+</dd>
+</dl>
+<p>Additional Information:</p>
+<blockquote>
+<div><p>This function <em>samples</em> measurement outcomes using the measure
+<a class="reference internal" href="#qiskit_aer.quantum_info.AerStatevector.probabilities" title="qiskit_aer.quantum_info.AerStatevector.probabilities"><code class="xref py py-meth docutils literal notranslate"><span class="pre">probabilities()</span></code></a> for the current state and <cite>qargs</cite>. It does
+not actually implement the measurement so the current state is
+not modified.</p>
+<p>The seed for random number generator used for sampling can be
+set to a fixed value by using the stats <a class="reference internal" href="#qiskit_aer.quantum_info.AerStatevector.seed" title="qiskit_aer.quantum_info.AerStatevector.seed"><code class="xref py py-meth docutils literal notranslate"><span class="pre">seed()</span></code></a> method.</p>
+</div></blockquote>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="qiskit_aer.quantum_info.AerStatevector.sample_memory">
+<span class="sig-name descname"><span class="pre">sample_memory</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">shots</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">qargs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/qiskit_aer/quantum_info/states/aer_statevector.html#AerStatevector.sample_memory"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_aer.quantum_info.AerStatevector.sample_memory" title="Permalink to this definition">#</a></dt>
+<dd><p>Sample a list of qubit measurement outcomes in the computational basis.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>shots</strong> (<em>int</em>) – number of samples to generate.</p></li>
+<li><p><strong>qargs</strong> (<em>None</em><em> or </em><em>list</em>) – subsystems to sample measurements for,
+if None sample measurement of all
+subsystems (Default: None).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>list of sampled counts if the order sampled.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>np.array</p>
+</dd>
+</dl>
+<p>Additional Information:</p>
+<blockquote>
+<div><p>This function <em>samples</em> measurement outcomes using the measure
+<a class="reference internal" href="#qiskit_aer.quantum_info.AerStatevector.probabilities" title="qiskit_aer.quantum_info.AerStatevector.probabilities"><code class="xref py py-meth docutils literal notranslate"><span class="pre">probabilities()</span></code></a> for the current state and <cite>qargs</cite>. It does
+not actually implement the measurement so the current state is
+not modified.</p>
+<p>The seed for random number generator used for sampling can be
+set to a fixed value by using the stats <a class="reference internal" href="#qiskit_aer.quantum_info.AerStatevector.seed" title="qiskit_aer.quantum_info.AerStatevector.seed"><code class="xref py py-meth docutils literal notranslate"><span class="pre">seed()</span></code></a> method.</p>
+</div></blockquote>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="qiskit_aer.quantum_info.AerStatevector.seed">
+<span class="sig-name descname"><span class="pre">seed</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/qiskit_aer/quantum_info/states/aer_statevector.html#AerStatevector.seed"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_aer.quantum_info.AerStatevector.seed" title="Permalink to this definition">#</a></dt>
+<dd><p>Set the seed for the quantum state RNG.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="qiskit_aer.quantum_info.AerStatevector.tensor">
+<span class="sig-name descname"><span class="pre">tensor</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">other</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://qiskit.org/documentation/stubs/qiskit.quantum_info.Statevector.html#qiskit.quantum_info.Statevector" title="(in Qiskit v0.45)"><span class="pre">Statevector</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://qiskit.org/documentation/stubs/qiskit.quantum_info.Statevector.html#qiskit.quantum_info.Statevector" title="(in Qiskit v0.45)"><span class="pre">Statevector</span></a></span></span><a class="headerlink" href="#qiskit_aer.quantum_info.AerStatevector.tensor" title="Permalink to this definition">#</a></dt>
+<dd><p>Return the tensor product state self ⊗ other.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>other</strong> (<em>Statevector</em>) – a quantum state object.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>the tensor product operator self ⊗ other.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Statevector</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>QiskitError</strong> – if other is not a quantum state.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="qiskit_aer.quantum_info.AerStatevector.to_dict">
+<span class="sig-name descname"><span class="pre">to_dict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">decimals</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">None</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">dict</span></span></span><a class="headerlink" href="#qiskit_aer.quantum_info.AerStatevector.to_dict" title="Permalink to this definition">#</a></dt>
+<dd><p>Convert the statevector to dictionary form.</p>
+<p>This dictionary representation uses a Ket-like notation where the
+dictionary keys are qudit strings for the subsystem basis vectors.
+If any subsystem has a dimension greater than 10 comma delimiters are
+inserted between integers so that subsystems can be distinguished.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>decimals</strong> (<em>None</em><em> or </em><em>int</em>) – the number of decimal places to round
+values. If None no rounding is done
+(Default: None).</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>the dictionary form of the Statevector.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>dict</p>
+</dd>
+</dl>
+<p class="rubric">Example</p>
+<p>The ket-form of a 2-qubit statevector
+<span class="math notranslate nohighlight">\(|\psi\rangle = |-\rangle\otimes |0\rangle\)</span></p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">qiskit.quantum_info</span> <span class="kn">import</span> <span class="n">Statevector</span>
+
+<span class="n">psi</span> <span class="o">=</span> <span class="n">Statevector</span><span class="o">.</span><span class="n">from_label</span><span class="p">(</span><span class="s1">&#39;-0&#39;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">psi</span><span class="o">.</span><span class="n">to_dict</span><span class="p">())</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">{</span><span class="s1">&#39;00&#39;</span><span class="p">:</span> <span class="p">(</span><span class="mf">0.7071067811865475</span><span class="o">+</span><span class="mi">0</span><span class="n">j</span><span class="p">),</span> <span class="s1">&#39;10&#39;</span><span class="p">:</span> <span class="p">(</span><span class="o">-</span><span class="mf">0.7071067811865475</span><span class="o">+</span><span class="mi">0</span><span class="n">j</span><span class="p">)}</span>
+</pre></div>
+</div>
+<p>For non-qubit subsystems the integer range can go from 0 to 9. For
+example in a qutrit system</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">qiskit.quantum_info</span> <span class="kn">import</span> <span class="n">Statevector</span>
+
+<span class="n">vec</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">9</span><span class="p">)</span>
+<span class="n">vec</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+<span class="n">vec</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+<span class="n">psi</span> <span class="o">=</span> <span class="n">Statevector</span><span class="p">(</span><span class="n">vec</span><span class="p">,</span> <span class="n">dims</span><span class="o">=</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">psi</span><span class="o">.</span><span class="n">to_dict</span><span class="p">())</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">{</span><span class="s1">&#39;00&#39;</span><span class="p">:</span> <span class="p">(</span><span class="mf">0.7071067811865475</span><span class="o">+</span><span class="mi">0</span><span class="n">j</span><span class="p">),</span> <span class="s1">&#39;22&#39;</span><span class="p">:</span> <span class="p">(</span><span class="mf">0.7071067811865475</span><span class="o">+</span><span class="mi">0</span><span class="n">j</span><span class="p">)}</span>
+</pre></div>
+</div>
+<p>For large subsystem dimensions delimiters are required. The
+following example is for a 20-dimensional system consisting of
+a qubit and 10-dimensional qudit.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">qiskit.quantum_info</span> <span class="kn">import</span> <span class="n">Statevector</span>
+
+<span class="n">vec</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="mi">10</span><span class="p">)</span>
+<span class="n">vec</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+<span class="n">vec</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+<span class="n">psi</span> <span class="o">=</span> <span class="n">Statevector</span><span class="p">(</span><span class="n">vec</span><span class="p">,</span> <span class="n">dims</span><span class="o">=</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">10</span><span class="p">))</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">psi</span><span class="o">.</span><span class="n">to_dict</span><span class="p">())</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">{</span><span class="s1">&#39;00&#39;</span><span class="p">:</span> <span class="p">(</span><span class="mf">0.7071067811865475</span><span class="o">+</span><span class="mi">0</span><span class="n">j</span><span class="p">),</span> <span class="s1">&#39;91&#39;</span><span class="p">:</span> <span class="p">(</span><span class="mf">0.7071067811865475</span><span class="o">+</span><span class="mi">0</span><span class="n">j</span><span class="p">)}</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="qiskit_aer.quantum_info.AerStatevector.to_operator">
+<span class="sig-name descname"><span class="pre">to_operator</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://qiskit.org/documentation/stubs/qiskit.quantum_info.Operator.html#qiskit.quantum_info.Operator" title="(in Qiskit v0.45)"><span class="pre">Operator</span></a></span></span><a class="headerlink" href="#qiskit_aer.quantum_info.AerStatevector.to_operator" title="Permalink to this definition">#</a></dt>
+<dd><p>Convert state to a rank-1 projector operator</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="qiskit_aer.quantum_info.AerStatevector.trace">
+<span class="sig-name descname"><span class="pre">trace</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">float64</span></span></span><a class="headerlink" href="#qiskit_aer.quantum_info.AerStatevector.trace" title="Permalink to this definition">#</a></dt>
+<dd><p>Return the trace of the quantum state as a density matrix.</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+
+        </article>
+      </div>
+      <footer>
+        <div class="related-pages">
+          <a class="next-page" href="qiskit_aer.quantum_info.AerDensityMatrix.html">
+              <div class="page-info">
+                <div class="context">
+                  <span>Next</span>
+                </div>
+                <div class="title">AerDensityMatrix</div>
+              </div>
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+            </a>
+          <a class="prev-page" href="../apidocs/aer_quantum_info.html">
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+              <div class="page-info">
+                <div class="context">
+                  <span>Previous</span>
+                </div>
+                
+                <div class="title">Aer Quantum Info (<code class="xref py py-mod docutils literal notranslate"><span class="pre">qiskit_aer.quantum_info</span></code>)</div>
+                
+              </div>
+            </a>
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2017-2024, Qiskit Development Team
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            <div class="last-updated">
+              Last updated on 2024/01/17</div>
+          </div>
+          <div class="right-details">
+            
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">AerStatevector</a><ul>
+<li><a class="reference internal" href="#qiskit_aer.quantum_info.AerStatevector"><code class="docutils literal notranslate"><span class="pre">AerStatevector</span></code></a><ul>
+<li><a class="reference internal" href="#qiskit_aer.quantum_info.AerStatevector.atol"><code class="docutils literal notranslate"><span class="pre">AerStatevector.atol</span></code></a></li>
+<li><a class="reference internal" href="#qiskit_aer.quantum_info.AerStatevector.data"><code class="docutils literal notranslate"><span class="pre">AerStatevector.data</span></code></a></li>
+<li><a class="reference internal" href="#qiskit_aer.quantum_info.AerStatevector.dim"><code class="docutils literal notranslate"><span class="pre">AerStatevector.dim</span></code></a></li>
+<li><a class="reference internal" href="#qiskit_aer.quantum_info.AerStatevector.num_qubits"><code class="docutils literal notranslate"><span class="pre">AerStatevector.num_qubits</span></code></a></li>
+<li><a class="reference internal" href="#qiskit_aer.quantum_info.AerStatevector.rtol"><code class="docutils literal notranslate"><span class="pre">AerStatevector.rtol</span></code></a></li>
+<li><a class="reference internal" href="#qiskit_aer.quantum_info.AerStatevector.settings"><code class="docutils literal notranslate"><span class="pre">AerStatevector.settings</span></code></a></li>
+<li><a class="reference internal" href="#qiskit_aer.quantum_info.AerStatevector.__getitem__"><code class="docutils literal notranslate"><span class="pre">AerStatevector.__getitem__()</span></code></a></li>
+<li><a class="reference internal" href="#qiskit_aer.quantum_info.AerStatevector.__len__"><code class="docutils literal notranslate"><span class="pre">AerStatevector.__len__()</span></code></a></li>
+<li><a class="reference internal" href="#qiskit_aer.quantum_info.AerStatevector.__mul__"><code class="docutils literal notranslate"><span class="pre">AerStatevector.__mul__()</span></code></a></li>
+<li><a class="reference internal" href="#qiskit_aer.quantum_info.AerStatevector.conjugate"><code class="docutils literal notranslate"><span class="pre">AerStatevector.conjugate()</span></code></a></li>
+<li><a class="reference internal" href="#qiskit_aer.quantum_info.AerStatevector.copy"><code class="docutils literal notranslate"><span class="pre">AerStatevector.copy()</span></code></a></li>
+<li><a class="reference internal" href="#qiskit_aer.quantum_info.AerStatevector.dims"><code class="docutils literal notranslate"><span class="pre">AerStatevector.dims()</span></code></a></li>
+<li><a class="reference internal" href="#qiskit_aer.quantum_info.AerStatevector.draw"><code class="docutils literal notranslate"><span class="pre">AerStatevector.draw()</span></code></a></li>
+<li><a class="reference internal" href="#qiskit_aer.quantum_info.AerStatevector.equiv"><code class="docutils literal notranslate"><span class="pre">AerStatevector.equiv()</span></code></a></li>
+<li><a class="reference internal" href="#qiskit_aer.quantum_info.AerStatevector.evolve"><code class="docutils literal notranslate"><span class="pre">AerStatevector.evolve()</span></code></a></li>
+<li><a class="reference internal" href="#qiskit_aer.quantum_info.AerStatevector.expand"><code class="docutils literal notranslate"><span class="pre">AerStatevector.expand()</span></code></a></li>
+<li><a class="reference internal" href="#qiskit_aer.quantum_info.AerStatevector.expectation_value"><code class="docutils literal notranslate"><span class="pre">AerStatevector.expectation_value()</span></code></a></li>
+<li><a class="reference internal" href="#qiskit_aer.quantum_info.AerStatevector.from_instruction"><code class="docutils literal notranslate"><span class="pre">AerStatevector.from_instruction()</span></code></a></li>
+<li><a class="reference internal" href="#qiskit_aer.quantum_info.AerStatevector.from_int"><code class="docutils literal notranslate"><span class="pre">AerStatevector.from_int()</span></code></a></li>
+<li><a class="reference internal" href="#qiskit_aer.quantum_info.AerStatevector.from_label"><code class="docutils literal notranslate"><span class="pre">AerStatevector.from_label()</span></code></a></li>
+<li><a class="reference internal" href="#qiskit_aer.quantum_info.AerStatevector.inner"><code class="docutils literal notranslate"><span class="pre">AerStatevector.inner()</span></code></a></li>
+<li><a class="reference internal" href="#qiskit_aer.quantum_info.AerStatevector.is_valid"><code class="docutils literal notranslate"><span class="pre">AerStatevector.is_valid()</span></code></a></li>
+<li><a class="reference internal" href="#qiskit_aer.quantum_info.AerStatevector.measure"><code class="docutils literal notranslate"><span class="pre">AerStatevector.measure()</span></code></a></li>
+<li><a class="reference internal" href="#qiskit_aer.quantum_info.AerStatevector.metadata"><code class="docutils literal notranslate"><span class="pre">AerStatevector.metadata()</span></code></a></li>
+<li><a class="reference internal" href="#qiskit_aer.quantum_info.AerStatevector.probabilities"><code class="docutils literal notranslate"><span class="pre">AerStatevector.probabilities()</span></code></a></li>
+<li><a class="reference internal" href="#qiskit_aer.quantum_info.AerStatevector.probabilities_dict"><code class="docutils literal notranslate"><span class="pre">AerStatevector.probabilities_dict()</span></code></a></li>
+<li><a class="reference internal" href="#qiskit_aer.quantum_info.AerStatevector.purity"><code class="docutils literal notranslate"><span class="pre">AerStatevector.purity()</span></code></a></li>
+<li><a class="reference internal" href="#qiskit_aer.quantum_info.AerStatevector.reset"><code class="docutils literal notranslate"><span class="pre">AerStatevector.reset()</span></code></a></li>
+<li><a class="reference internal" href="#qiskit_aer.quantum_info.AerStatevector.reverse_qargs"><code class="docutils literal notranslate"><span class="pre">AerStatevector.reverse_qargs()</span></code></a></li>
+<li><a class="reference internal" href="#qiskit_aer.quantum_info.AerStatevector.sample_counts"><code class="docutils literal notranslate"><span class="pre">AerStatevector.sample_counts()</span></code></a></li>
+<li><a class="reference internal" href="#qiskit_aer.quantum_info.AerStatevector.sample_memory"><code class="docutils literal notranslate"><span class="pre">AerStatevector.sample_memory()</span></code></a></li>
+<li><a class="reference internal" href="#qiskit_aer.quantum_info.AerStatevector.seed"><code class="docutils literal notranslate"><span class="pre">AerStatevector.seed()</span></code></a></li>
+<li><a class="reference internal" href="#qiskit_aer.quantum_info.AerStatevector.tensor"><code class="docutils literal notranslate"><span class="pre">AerStatevector.tensor()</span></code></a></li>
+<li><a class="reference internal" href="#qiskit_aer.quantum_info.AerStatevector.to_dict"><code class="docutils literal notranslate"><span class="pre">AerStatevector.to_dict()</span></code></a></li>
+<li><a class="reference internal" href="#qiskit_aer.quantum_info.AerStatevector.to_operator"><code class="docutils literal notranslate"><span class="pre">AerStatevector.to_operator()</span></code></a></li>
+<li><a class="reference internal" href="#qiskit_aer.quantum_info.AerStatevector.trace"><code class="docutils literal notranslate"><span class="pre">AerStatevector.trace()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script src="../_static/jquery.js?v=5d32c60e"></script>
+    <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+    <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js?v=cc44ccc5"></script>
+    <script src="../_static/doctools.js?v=888ff710"></script>
+    <script src="../_static/sphinx_highlight.js?v=4825356b"></script>
+    <script src="../_static/scripts/qiskit-sphinx-theme.js?v=4d77b8ca"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@jupyter-widgets/html-manager@^1.0.1/dist/embed-amd.js"></script>
+    <script src="../_static/design-tabs.js?v=36754332"></script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    </body>
+</html>

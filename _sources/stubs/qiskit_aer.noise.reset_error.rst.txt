@@ -1,0 +1,8 @@
+﻿
+
+reset_error
+============================
+
+.. currentmodule:: qiskit_aer.noise
+
+.. autofunction:: reset_error

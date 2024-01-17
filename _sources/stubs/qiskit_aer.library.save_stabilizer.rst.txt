@@ -1,0 +1,8 @@
+﻿
+
+save_stabilizer
+==================================
+
+.. currentmodule:: qiskit_aer.library
+
+.. autofunction:: save_stabilizer
