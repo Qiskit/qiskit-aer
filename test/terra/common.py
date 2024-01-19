@@ -18,7 +18,7 @@ import inspect
 import logging
 import os
 import warnings
-import testtools
+import unittest
 from enum import Enum
 from itertools import repeat
 from math import pi
@@ -44,7 +44,7 @@ class Path(Enum):
 
 
 @enforce_subclasses_call(["setUp", "setUpClass", "tearDown", "tearDownClass"])
-class BaseQiskitAerTestCase(testtools.TestCase):
+class BaseQiskitAerTestCase(unittest.TestCase):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.__setup_called = False
