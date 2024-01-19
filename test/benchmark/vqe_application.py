@@ -24,6 +24,7 @@ from qiskit.chemistry.components.variational_forms import UCCSD
 from qiskit.chemistry.drivers import PySCFDriver, UnitsType
 from qiskit_aer import AerProvider
 
+
 class UCCSDBenchmarkSuite:
     def __init__(self, name="uccsd_benchmark"):
         self.mol_strings = {
