@@ -715,6 +715,16 @@ class AerSimulator(AerBackend):
         if configuration is None:
             configuration = QasmBackendConfiguration.from_dict(AerSimulator._DEFAULT_CONFIGURATION)
 
+        # set backend name from method and device in option
+        if configuration.backend_name == "aer_simulator":
+            for key, value in backend_options.items():
+                if key == "method":
+                    if value not in [None, "automatic"]:
+                        configuration.backend_name += f"_{value}"
+                if key == "device":
+                    if value not in [None, "CPU"]:
+                        configuration.backend_name += f"_{value}".lower()
+
         # Cache basis gates since computing the intersection
         # of noise model, method, and config gates is expensive.
         self._cached_basis_gates = self._BASIS_GATES["automatic"]
@@ -805,17 +815,6 @@ class AerSimulator(AerBackend):
         pad = " " * (len(self.__class__.__name__) + 1)
         return f"{display[:-1]}\n{pad}noise_model={repr(noise_model)})"
 
-    def _name(self):
-        """Format backend name string for simulator"""
-        name = self._configuration.backend_name
-        method = getattr(self.options, "method", None)
-        if method not in [None, "automatic"]:
-            name += f"_{method}"
-        device = getattr(self.options, "device", None)
-        if device not in [None, "CPU"]:
-            name += f"_{device}".lower()
-        return name
-
     @classmethod
     def from_backend(cls, backend, **options):
         """Initialize simulator from backend."""
@@ -895,8 +894,6 @@ class AerSimulator(AerBackend):
             getattr(self.options, "method", "automatic")
         ]
         config.basis_gates = self._cached_basis_gates + config.custom_instructions
-        # Update simulator name
-        config.backend_name = self._name()
         return config
 
     def _execute_circuits(self, aer_circuits, noise_model, config):
