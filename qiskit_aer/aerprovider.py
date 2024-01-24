@@ -38,18 +38,20 @@ class AerProvider(Provider):
             for method in methods:
                 for device in devices:
                     name = "aer_simulator"
-                    if method not in [None, "automatic"]:
-                        name += f"_{method}"
-                    elif method == "tensor_network":
-                        if device == "GPU":
-                            name += f"_{device}".lower()
-                            backends.append((name, AerSimulator, method, device))
+                    if method in [None, "automatic"]:
+                        backends.append((name, AerSimulator, method, device))
                     else:
-                        if device == "CPU":
-                            backends.append((name, AerSimulator, method, device))
-                        elif method in ["statevector", "density_matrix", "unitary"]:
-                            name += f"_{device}".lower()
-                            backends.append((name, AerSimulator, method, device))
+                        name += f"_{method}"
+                        if method == "tensor_network":
+                            if device == "GPU":
+                                name += f"_{device}".lower()
+                                backends.append((name, AerSimulator, method, device))
+                        else:
+                            if device == "CPU":
+                                backends.append((name, AerSimulator, method, device))
+                            elif method in ["statevector", "density_matrix", "unitary"]:
+                                name += f"_{device}".lower()
+                                backends.append((name, AerSimulator, method, device))
 
             # Add legacy backend names
             backends += [
