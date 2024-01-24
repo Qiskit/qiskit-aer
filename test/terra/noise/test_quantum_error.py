@@ -20,9 +20,9 @@ import numpy as np
 
 from qiskit.circuit import QuantumCircuit, Reset, Measure
 from qiskit.circuit.library.standard_gates import IGate, XGate, YGate, ZGate
-from qiskit.extensions import UnitaryGate
+from qiskit.circuit.library.generalized_gates import UnitaryGate
 from qiskit.quantum_info.operators import SuperOp, Kraus, Pauli
-from qiskit_aer.noise import QuantumError
+from qiskit_aer.noise import QuantumError, pauli_error, reset_error
 from qiskit_aer.noise.noiseerror import NoiseError
 
 
@@ -143,7 +143,7 @@ class TestQuantumError(QiskitAerTestCase):
 
         # up to global phase
         qc = QuantumCircuit(1, global_phase=0.5)
-        qc.i(0)
+        qc.id(0)
         self.assertTrue(QuantumError(qc).ideal())
         self.assertTrue(QuantumError(UnitaryGate(-1.0 * np.eye(2))).ideal())
 
@@ -254,6 +254,151 @@ class TestQuantumError(QiskitAerTestCase):
             ]
         )
         self.assertEqual(actual, expected)
+
+    def test_from_dict_pauli(self):
+        """Test from_dict method for pauli errors."""
+        p_error_rate = 0.05
+        error_quantum = pauli_error([("X", p_error_rate), ("I", 1 - p_error_rate)])
+
+        error_dict = error_quantum.to_dict()
+        error_quantum2 = QuantumError.from_dict(error=error_dict)
+        self.assertEqual(error_quantum, error_quantum2)
+
+    def test_from_dict_kraus(self):
+        """Test from_dict method for kraus channels."""
+        noise_ops = Kraus(
+            [np.sqrt(0.9) * np.array([[1, 0], [0, 1]]), np.sqrt(0.1) * np.array([[0, 1], [1, 0]])]
+        )
+
+        error_quantum = QuantumError(noise_ops)
+        error_dict = error_quantum.to_dict()
+
+        error_kraus = QuantumError.from_dict(error_dict)
+        self.assertEqual(error_quantum, error_kraus)
+
+    def test_from_dict_reset(self):
+        """Test from_dict method for reset errors."""
+        error_quantum = reset_error(0.98, 0.02)
+
+        error_dict = error_quantum.to_dict()
+
+        error_reset = QuantumError.from_dict(error_dict)
+        self.assertEqual(error_quantum, error_reset)
+
+    def test_from_dict_unitarygate(self):
+        """Test from_dict method for unitarygate errors."""
+        error_quantum = QuantumError(UnitaryGate(np.eye(2)))
+
+        error_dict = error_quantum.to_dict()
+
+        error_unitary = QuantumError.from_dict(error_dict)
+        self.assertEqual(error_quantum, error_unitary)
+
+    def test_from_dict_raise_if_error_is_measure(self):
+        """Test exception is raised by from_dict method for measure errors."""
+        error_quantum = QuantumError(UnitaryGate(np.eye(2)))
+
+        error_dict = error_quantum.to_dict()
+
+        # exchange instruction "unitary" with "measure" to provoke exception
+        error_dict["instructions"][0][0]["name"] = "measure"
+        with self.assertRaises(NoiseError):
+            error_unitary = QuantumError.from_dict(error_dict)
+
+    def test_from_dict_raise_if_parameter_is_non_dict(self):
+        """Test exception is raised by from_dict if parameter is not a dict"""
+        dict_param = []
+        with self.assertRaises(NoiseError):
+            QuantumError.from_dict(dict_param)
+
+    def test_from_dict_raise_if_parameter_is_not_well_formed(self):
+        """Test exception is raised by from_dict if parameter is not well formed"""
+        error_quantum = QuantumError(UnitaryGate(np.eye(2)))
+
+        # remove 'type'
+        error_dict_type = error_quantum.to_dict()
+        error_dict_type.pop("type")
+        with self.assertRaises(NoiseError):
+            error_unitary = QuantumError.from_dict(error_dict_type)
+
+        # remove 'id'
+        error_dict_id = error_quantum.to_dict()
+        error_dict_id.pop("id")
+        with self.assertRaises(NoiseError):
+            error_unitary = QuantumError.from_dict(error_dict_id)
+
+        # remove 'operations'
+        error_dict_operations = error_quantum.to_dict()
+        error_dict_operations.pop("operations")
+        with self.assertRaises(NoiseError):
+            error_unitary = QuantumError.from_dict(error_dict_operations)
+
+        # remove 'instructions'
+        error_dict_instructions = error_quantum.to_dict()
+        error_dict_instructions.pop("instructions")
+        with self.assertRaises(NoiseError):
+            error_unitary = QuantumError.from_dict(error_dict_instructions)
+
+        # remove 'probabilities'
+        error_dict_probabilities = error_quantum.to_dict()
+        error_dict_probabilities.pop("probabilities")
+        with self.assertRaises(NoiseError):
+            error_unitary = QuantumError.from_dict(error_dict_probabilities)
+
+    def test_from_dict_raise_if_len_probabilites_is_not_len_instructions(self):
+        """Test exception is raised by from_dict if length of probabilities does not meet length of instructions"""
+        # test more probabilities than instructions
+        error_quantum = QuantumError(UnitaryGate(np.eye(2)))
+
+        error_dict = error_quantum.to_dict()
+
+        # add another probabilities not matching no instructions
+        error_dict["probabilities"].append(0.8)
+        with self.assertRaises(NoiseError):
+            error_unitary = QuantumError.from_dict(error_dict)
+
+        # test less probabilities than instructions
+        error_dict2 = error_quantum.to_dict()
+
+        # remove another probabilities not matching no instructions
+        error_dict2["probabilities"].remove(1.0)
+        with self.assertRaises(NoiseError):
+            error_unitary = QuantumError.from_dict(error_dict2)
+
+    def test_from_dict_raise_if_kraus_has_no_params(self):
+        """Test exception is raised by from_dict if kraus has not attribute params"""
+        noise_ops = Kraus(
+            [np.sqrt(0.9) * np.array([[1, 0], [0, 1]]), np.sqrt(0.1) * np.array([[0, 1], [1, 0]])]
+        )
+
+        error_quantum = QuantumError(noise_ops)
+        error_dict = error_quantum.to_dict()
+
+        # remove params to provoke exception
+        error_dict["instructions"][0][0].pop("params")
+        with self.assertRaises(NoiseError):
+            error_kraus = QuantumError.from_dict(error_dict)
+
+    def test_from_dict_raise_if_unitary_has_no_params(self):
+        error_quantum = QuantumError(UnitaryGate(np.eye(2)))
+
+        error_dict = error_quantum.to_dict()
+
+        # remove params to provoke exception
+        error_dict["instructions"][0][0].pop("params")
+        with self.assertRaises(NoiseError):
+            error_unitary = QuantumError.from_dict(error_dict)
+
+    def test_from_dict_raise_if_instruction_not_supported(self):
+        """Test exception is raised by from_dict if instruction is not supported"""
+        error_quantum = QuantumError(UnitaryGate(np.eye(2)))
+
+        error_dict = error_quantum.to_dict()
+
+        # exchange instruction "unitary" with "blubb" to provoke exception
+        error_dict["instructions"][0][0]["name"] = "blubb"
+        with self.assertRaises(NoiseError):
+            error_unitary = QuantumError.from_dict(error_dict)
 
 
 if __name__ == "__main__":

@@ -125,6 +125,7 @@ struct Config {
   double chop_threshold = 1e-8;
   uint_t mps_parallel_threshold = 14;
   uint_t mps_omp_threads = 1;
+  bool mps_lapack = false;
   // # tensor network options
   uint_t tensor_network_num_sampling_qubits = 10;
   bool use_cuTensorNet_autotuning = false;
@@ -171,6 +172,7 @@ struct Config {
   optional<uint_t> memory_blocking_bits;
   optional<uint_t> extended_stabilizer_norm_estimation_default_samples;
   optional<reg_t> target_gpus;
+  optional<bool> runtime_parameter_bind_enable;
 
   void clear() {
     shots = 1024;
@@ -230,6 +232,7 @@ struct Config {
     chop_threshold = 1e-8;
     mps_parallel_threshold = 14;
     mps_omp_threads = 1;
+    mps_lapack = false;
     // # tensor network options
     tensor_network_num_sampling_qubits = 10;
     use_cuTensorNet_autotuning = false;
@@ -270,7 +273,9 @@ struct Config {
     unitary_parallel_threshold.clear();
     memory_blocking_bits.clear();
     extended_stabilizer_norm_estimation_default_samples.clear();
+
     target_gpus.clear();
+    runtime_parameter_bind_enable.clear();
   }
 
   void merge(const Config &other) {
@@ -356,6 +361,7 @@ struct Config {
     chop_threshold = other.chop_threshold;
     mps_parallel_threshold = other.mps_parallel_threshold;
     mps_omp_threads = other.mps_omp_threads;
+    mps_lapack = other.mps_lapack;
     // # tensor network options
     tensor_network_num_sampling_qubits =
         other.tensor_network_num_sampling_qubits;
@@ -412,8 +418,12 @@ struct Config {
     if (other.extended_stabilizer_norm_estimation_default_samples.has_value())
       extended_stabilizer_norm_estimation_default_samples.value(
           other.extended_stabilizer_norm_estimation_default_samples.value());
+
     if (other.target_gpus.has_value())
       target_gpus.value(other.target_gpus.value());
+    if (other.runtime_parameter_bind_enable.has_value())
+      runtime_parameter_bind_enable.value(
+          other.runtime_parameter_bind_enable.value());
   }
 };
 
@@ -492,6 +502,7 @@ inline void from_json(const json_t &js, Config &config) {
   get_value(config.chop_threshold, "chop_threshold", js);
   get_value(config.mps_parallel_threshold, "mps_parallel_threshold", js);
   get_value(config.mps_omp_threads, "mps_omp_threads", js);
+  get_value(config.mps_lapack, "mps_lapack", js);
   // # tensor network options
   get_value(config.tensor_network_num_sampling_qubits,
             "tensor_network_num_sampling_qubits", js);
@@ -529,6 +540,8 @@ inline void from_json(const json_t &js, Config &config) {
   get_value(config.extended_stabilizer_norm_estimation_default_samples,
             "extended_stabilizer_norm_estimation_default_samples", js);
   get_value(config.target_gpus, "target_gpus", js);
+  get_value(config.runtime_parameter_bind_enable,
+            "runtime_parameter_bind_enable", js);
 }
 
 } // namespace AER

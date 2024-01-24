@@ -38,8 +38,8 @@ const Operations::OpSet StateOpSet(
      OpType::save_amps_sq, OpType::save_stabilizer, OpType::save_clifford,
      OpType::save_state, OpType::set_stabilizer, OpType::jump, OpType::mark},
     // Gates
-    {"CX", "cx", "cy", "cz", "swap", "id", "x", "y", "z", "h", "s", "sdg", "sx",
-     "sxdg", "delay", "pauli", "ecr"});
+    {"CX", "cx",  "cy", "cz",   "swap",  "id",    "x",   "y",  "z",  "h",
+     "s",  "sdg", "sx", "sxdg", "delay", "pauli", "ecr", "rx", "ry", "rz"});
 
 enum class Gates {
   id,
@@ -56,7 +56,10 @@ enum class Gates {
   cz,
   swap,
   pauli,
-  ecr
+  ecr,
+  rx,
+  ry,
+  rz
 };
 
 //============================================================================
@@ -100,6 +103,9 @@ public:
   // to the system state
   virtual std::vector<reg_t> sample_measure(const reg_t &qubits, uint_t shots,
                                             RngEngine &rng) override;
+
+  bool
+  validate_parameters(const std::vector<Operations::Op> &ops) const override;
 
 protected:
   //-----------------------------------------------------------------------
@@ -203,7 +209,10 @@ const stringmap_t<Gates> State::gateset_({
     {"cz", Gates::cz},       // Controlled-Z gate
     {"swap", Gates::swap},   // SWAP gate
     {"pauli", Gates::pauli}, // Pauli gate
-    {"ecr", Gates::ecr}      // ECR gate
+    {"ecr", Gates::ecr},     // ECR gate
+    {"rx", Gates::rx},       // RX gate (only support k * pi/2 cases)
+    {"ry", Gates::ry},       // RY gate (only support k * pi/2 cases)
+    {"rz", Gates::rz}        // RZ gate (only support k * pi/2 cases)
 });
 
 //============================================================================
@@ -243,6 +252,23 @@ void State::set_config(const Config &config) {
   // Load max snapshot qubit size and set hard limit of 64 qubits.
   max_qubits_snapshot_probs_ = config.stabilizer_max_snapshot_probabilities;
   max_qubits_snapshot_probs_ = std::max<uint_t>(max_qubits_snapshot_probs_, 64);
+}
+
+bool State::validate_parameters(const std::vector<Operations::Op> &ops) const {
+  for (uint_t i = 0; i < ops.size(); i++) {
+    if (ops[i].type == OpType::gate) {
+      // check parameter of R gates
+      if (ops[i].name == "rx" || ops[i].name == "ry" || ops[i].name == "rz") {
+        double pi2 = std::real(ops[i].params[0]) * 2.0 / M_PI;
+        double pi2_int = (double)std::round(pi2);
+
+        if (!AER::Linalg::almost_equal(pi2, pi2_int)) {
+          return false;
+        }
+      }
+    }
+  }
+  return true;
 }
 
 //=========================================================================
@@ -298,6 +324,7 @@ void State::apply_op(const Operations::Op &op, ExperimentResult &result,
 }
 
 void State::apply_gate(const Operations::Op &op) {
+  int_t pi2;
   // Check Op is supported by State
   auto it = gateset_.find(op.name);
   if (it == gateset_.end())
@@ -368,6 +395,51 @@ void State::apply_gate(const Operations::Op &op) {
     BaseState::qreg_.append_cx(op.qubits[0], op.qubits[1]);
     BaseState::qreg_.append_x(op.qubits[0]);
     BaseState::qreg_.append_x(op.qubits[1]);
+    break;
+  case Gates::rx:
+    pi2 = (int_t)std::round(std::real(op.params[0]) * 2.0 / M_PI) & 3;
+    if (pi2 == 1) {
+      // HSH
+      BaseState::qreg_.append_h(op.qubits[0]);
+      BaseState::qreg_.append_s(op.qubits[0]);
+      BaseState::qreg_.append_h(op.qubits[0]);
+    } else if (pi2 == 2) {
+      // X
+      BaseState::qreg_.append_x(op.qubits[0]);
+    } else if (pi2 == 3) {
+      // HSdgH
+      BaseState::qreg_.append_h(op.qubits[0]);
+      BaseState::qreg_.append_z(op.qubits[0]);
+      BaseState::qreg_.append_s(op.qubits[0]);
+      BaseState::qreg_.append_h(op.qubits[0]);
+    }
+    break;
+  case Gates::ry:
+    pi2 = (int_t)std::round(std::real(op.params[0]) * 2.0 / M_PI) & 3;
+    if (pi2 == 1) {
+      BaseState::qreg_.append_h(op.qubits[0]);
+      BaseState::qreg_.append_x(op.qubits[0]);
+    } else if (pi2 == 2) {
+      // Y
+      BaseState::qreg_.append_y(op.qubits[0]);
+    } else if (pi2 == 3) {
+      BaseState::qreg_.append_x(op.qubits[0]);
+      BaseState::qreg_.append_h(op.qubits[0]);
+    }
+    break;
+  case Gates::rz:
+    pi2 = (int_t)std::round(std::real(op.params[0]) * 2.0 / M_PI) & 3;
+    if (pi2 == 1) {
+      // S
+      BaseState::qreg_.append_s(op.qubits[0]);
+    } else if (pi2 == 2) {
+      // Z
+      BaseState::qreg_.append_z(op.qubits[0]);
+    } else if (pi2 == 3) {
+      // Sdg
+      BaseState::qreg_.append_z(op.qubits[0]);
+      BaseState::qreg_.append_s(op.qubits[0]);
+    }
     break;
   default:
     // We shouldn't reach here unless there is a bug in gateset
@@ -567,7 +639,7 @@ template <typename T>
 void State::get_probabilities_auxiliary(const reg_t &qubits,
                                         std::string outcome,
                                         double outcome_prob, T &probs) {
-  uint_t qubit_for_branching = -1;
+  int_t qubit_for_branching = -1;
   for (uint_t i = 0; i < qubits.size(); ++i) {
     uint_t qubit = qubits[qubits.size() - i - 1];
     if (outcome[i] == 'X') {
@@ -618,7 +690,7 @@ void State::get_probability_helper(const reg_t &qubits,
                                    const std::string &outcome,
                                    std::string &outcome_carry,
                                    double &prob_carry) {
-  uint_t qubit_for_branching = -1;
+  int_t qubit_for_branching = -1;
   for (uint_t i = 0; i < qubits.size(); ++i) {
     uint_t qubit = qubits[qubits.size() - i - 1];
     if (outcome_carry[i] == 'X') {

@@ -59,7 +59,7 @@ class TestNoiseModel(QiskitAerTestCase):
         for _ in range(30):
             # Add noisy identities
             circuit.barrier(qr)
-            circuit.i(qr)
+            circuit.id(qr)
         circuit.barrier(qr)
         circuit.measure(qr, cr)
         shots = 4000
@@ -388,7 +388,7 @@ class TestNoiseModel(QiskitAerTestCase):
         circ.cx(0, 1)
         circ.measure_all()
 
-        backend = FakeLagos()
+        backend = FakeLagosV2()
         noise_model = NoiseModel.from_backend(backend)
 
         qc = transpile(circ, backend, scheduling_method="alap")

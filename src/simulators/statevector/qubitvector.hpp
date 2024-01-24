@@ -144,9 +144,9 @@ public:
                             const cvector_t<double> &state);
 
   // setup chunk
-  bool chunk_setup(int chunk_bits, int num_qubits, uint_t chunk_index,
-                   uint_t num_local_chunks);
-  bool chunk_setup(QubitVector<data_t> &base, const uint_t chunk_index);
+  uint_t chunk_setup(int chunk_bits, int num_qubits, uint_t chunk_index,
+                     uint_t num_local_chunks);
+  uint_t chunk_setup(QubitVector<data_t> &base, const uint_t chunk_index);
   uint_t chunk_index(void) { return chunk_index_; }
 
   // cache control for chunks on host
@@ -165,6 +165,7 @@ public:
   void release_recv_buffer(void) const;
 
   void set_max_matrix_bits(int_t bits) {}
+  void set_max_sampling_shots(int_t shots) {}
 
   void synchronize(void) {}
 
@@ -348,6 +349,14 @@ public:
   void apply_batched_kraus(const reg_t &qubits,
                            const std::vector<cmatrix_t> &kmats,
                            std::vector<RngEngine> &rng) {}
+  // apply matrices to each chunk in a batch
+  void apply_batched_matrix(const reg_t &qubits, const cvector_t<double> &mat,
+                            const uint_t num_matrices,
+                            const uint_t num_shots_per_matrix) {}
+  void apply_batched_diagonal_matrix(const reg_t &qubits,
+                                     const cvector_t<double> &mat,
+                                     const uint_t num_matrices,
+                                     const uint_t num_shots_per_matrix) {}
 
   //-----------------------------------------------------------------------
   // Norms
@@ -401,6 +410,10 @@ public:
                       const uint_t z_count, const uint_t z_count_pair,
                       const complex_t initial_phase = 1.0) const;
 
+  void batched_expval_pauli(std::vector<double> &val, const reg_t &qubits,
+                            const std::string &pauli, bool variance,
+                            std::complex<double> param, bool last,
+                            const complex_t initial_phase = 1.0) const {}
   //-----------------------------------------------------------------------
   // JSON configuration settings
   //-----------------------------------------------------------------------
@@ -890,11 +903,10 @@ template <typename data_t>
 void QubitVector<data_t>::zero() {
   const int_t END = data_size_; // end for k loop
 
-#pragma omp parallel for if (num_qubits_ > omp_threshold_ && omp_threads_ > 1) \
-    num_threads(omp_threads_)
-  for (int_t k = 0; k < END; ++k) {
-    data_[k] = 0.0;
-  }
+  auto zero_proc = [this](int_t i) { data_[i] = 0.0; };
+  Utils::apply_omp_parallel_for(
+      (num_qubits_ > omp_threshold_ && omp_threads_ > 1), 0, END, zero_proc,
+      omp_threads_);
 }
 
 template <typename data_t>
@@ -943,7 +955,9 @@ void QubitVector<data_t>::allocate_mem(size_t data_size) {
   if (data_ == nullptr) {
 #if !defined(_WIN64) && !defined(_WIN32)
     void *data = nullptr;
-    posix_memalign(&data, 64, sizeof(std::complex<data_t>) * data_size);
+    if (posix_memalign(&data, 64, sizeof(std::complex<data_t>) * data_size) !=
+        0)
+      throw std::runtime_error("Cannot allocate memory by posix_memalign");
     data_ = reinterpret_cast<std::complex<data_t> *>(data);
 #else
     data_ = reinterpret_cast<std::complex<data_t> *>(
@@ -957,7 +971,8 @@ void QubitVector<data_t>::allocate_checkpoint(size_t data_size) {
   free_checkpoint();
 #if !defined(_WIN64) && !defined(_WIN32)
   void *data = nullptr;
-  posix_memalign(&data, 64, sizeof(std::complex<data_t>) * data_size);
+  if (posix_memalign(&data, 64, sizeof(std::complex<data_t>) * data_size) != 0)
+    throw std::runtime_error("Cannot allocate memory by posix_memalign");
   checkpoint_ = reinterpret_cast<std::complex<data_t> *>(data);
 #else
   checkpoint_ = reinterpret_cast<std::complex<data_t> *>(
@@ -1027,18 +1042,18 @@ std::complex<double> QubitVector<data_t>::inner_product() const {
 
 // setup chunk
 template <typename data_t>
-bool QubitVector<data_t>::chunk_setup(int chunk_bits, int num_qubits,
-                                      uint_t chunk_index,
-                                      uint_t num_local_chunks) {
+uint_t QubitVector<data_t>::chunk_setup(int chunk_bits, int num_qubits,
+                                        uint_t chunk_index,
+                                        uint_t num_local_chunks) {
   chunk_index_ = chunk_index;
-  return true;
+  return num_local_chunks;
 }
 
 template <typename data_t>
-bool QubitVector<data_t>::chunk_setup(QubitVector<data_t> &base,
-                                      const uint_t chunk_index) {
+uint_t QubitVector<data_t>::chunk_setup(QubitVector<data_t> &base,
+                                        const uint_t chunk_index) {
   chunk_index_ = chunk_index;
-  return true;
+  return 0;
 }
 
 // prepare buffer for MPI send/recv
@@ -1753,13 +1768,13 @@ void QubitVector<data_t>::apply_chunk_swap(const reg_t &qubits,
     if (write_back) {
 #pragma omp parallel for if (num_qubits_ > omp_threshold_ && omp_threads_ > 1) \
     num_threads(omp_threads_)
-      for (int_t k = 0; k < data_size_; ++k) {
+      for (int_t k = 0; k < (int_t)data_size_; ++k) {
         std::swap(data_[k], src.data_[k]);
       }
     } else {
 #pragma omp parallel for if (num_qubits_ > omp_threshold_ && omp_threads_ > 1) \
     num_threads(omp_threads_)
-      for (int_t k = 0; k < data_size_; ++k) {
+      for (int_t k = 0; k < (int_t)data_size_; ++k) {
         data_[k] = src.data_[k];
       }
     }
@@ -1791,7 +1806,7 @@ void QubitVector<data_t>::apply_chunk_swap(const reg_t &qubits,
   if (q0 >= num_qubits_) { // exchange whole of chunk each other
 #pragma omp parallel for if (num_qubits_ > omp_threshold_ && omp_threads_ > 1) \
     num_threads(omp_threads_)
-    for (int_t k = 0; k < data_size_; ++k) {
+    for (int_t k = 0; k < (int_t)data_size_; ++k) {
       data_[k] = recv_buffer_[k];
     }
   } else {
@@ -1812,13 +1827,13 @@ void QubitVector<data_t>::apply_chunk_swap(QubitVector<data_t> &src,
   if (src.chunk_index_ == chunk_index_) {
 #pragma omp parallel for if (num_qubits_ > omp_threshold_ && omp_threads_ > 1) \
     num_threads(omp_threads_)
-    for (int_t k = 0; k < size; ++k) {
+    for (int_t k = 0; k < (int_t)size; ++k) {
       data_[dest_offset + k] = src.recv_buffer_[src_offset + k];
     }
   } else {
 #pragma omp parallel for if (num_qubits_ > omp_threshold_ && omp_threads_ > 1) \
     num_threads(omp_threads_)
-    for (int_t k = 0; k < size; ++k) {
+    for (int_t k = 0; k < (int_t)size; ++k) {
       std::swap(data_[dest_offset + k], src.data_[src_offset + k]);
     }
   }
@@ -1826,8 +1841,8 @@ void QubitVector<data_t>::apply_chunk_swap(QubitVector<data_t> &src,
 
 template <typename data_t>
 void QubitVector<data_t>::apply_multi_swaps(const reg_t &qubits) {
-  for (int_t i = 0; i < qubits.size(); i += 10) {
-    int_t n = 10;
+  for (uint_t i = 0; i < qubits.size(); i += 10) {
+    uint_t n = 10;
     if (i + n > qubits.size())
       n = qubits.size() - i;
 
@@ -1838,17 +1853,17 @@ void QubitVector<data_t>::apply_multi_swaps(const reg_t &qubits) {
 
     auto lambda = [&](const indexes_t &inds) -> void {
       cvector_t<data_t> cache(size);
-      for (int_t i = 0; i < size; i++)
-        cache[i] = data_[inds[i]];
+      for (uint_t ii = 0; ii < size; ii++)
+        cache[ii] = data_[inds[ii]];
 
-      for (int_t i = 0; i < size; i++) {
-        uint_t pos = i;
-        for (int_t j = 0; j < nq; j += 2) {
+      for (uint_t ii = 0; ii < size; ii++) {
+        uint_t pos = ii;
+        for (uint_t j = 0; j < nq; j += 2) {
           if ((((pos >> j) & 1) ^ ((pos >> (j + 1)) & 1)) != 0) {
             pos ^= ((1ull << j) | (1ull << (j + 1)));
           }
         }
-        data_[inds[i]] = cache[pos];
+        data_[inds[ii]] = cache[pos];
       }
     };
     apply_lambda(lambda, qubits_swap);

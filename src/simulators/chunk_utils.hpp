@@ -23,12 +23,21 @@ namespace AER {
 namespace Chunk {
 
 void get_qubits_inout(const int chunk_qubits, const reg_t &qubits,
+                      reg_t &qubits_in, reg_t &qubits_out);
+void get_inout_ctrl_qubits(const Operations::Op &op, const uint_t num_qubits,
+                           reg_t &qubits_in, reg_t &qubits_out);
+Operations::Op correct_gate_op_in_chunk(const Operations::Op &op,
+                                        reg_t &qubits_in);
+void block_diagonal_matrix(const uint_t gid, const uint_t chunk_bits,
+                           reg_t &qubits, cvector_t &diag);
+
+void get_qubits_inout(const int chunk_qubits, const reg_t &qubits,
                       reg_t &qubits_in, reg_t &qubits_out) {
-  int_t i;
+  uint_t i;
   qubits_in.clear();
   qubits_out.clear();
   for (i = 0; i < qubits.size(); i++) {
-    if (qubits[i] < chunk_qubits) { // in chunk
+    if (qubits[i] < (uint_t)chunk_qubits) { // in chunk
       qubits_in.push_back(qubits[i]);
     } else {
       qubits_out.push_back(qubits[i]);
@@ -40,7 +49,7 @@ void get_inout_ctrl_qubits(const Operations::Op &op, const uint_t num_qubits,
                            reg_t &qubits_in, reg_t &qubits_out) {
   if (op.type == Operations::OpType::gate &&
       (op.name[0] == 'c' || op.name.find("mc") == 0)) {
-    for (int i = 0; i < op.qubits.size(); i++) {
+    for (uint_t i = 0; i < op.qubits.size(); i++) {
       if (op.qubits[i] < num_qubits)
         qubits_in.push_back(op.qubits[i]);
       else

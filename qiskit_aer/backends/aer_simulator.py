@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 """
-Qiskit Aer qasm simulator backend.
+Aer qasm simulator backend.
 """
 
 import copy
@@ -31,7 +31,7 @@ from .backend_utils import (
     BASIS_GATES,
 )
 
-# pylint: disable=import-error, no-name-in-module
+# pylint: disable=import-error, no-name-in-module, abstract-method
 from .controller_wrappers import aer_controller_execute
 
 logger = logging.getLogger(__name__)
@@ -318,6 +318,12 @@ class AerSimulator(AerBackend):
     * ``accept_distributed_results`` (bool): This option enables storing
       results independently in each process (Default: None).
 
+    * ``runtime_parameter_bind_enable`` (bool): If this option is True
+      parameters are bound at runtime by using multi-shots without constructing
+      circuits for each parameters. For GPU this option can be used with
+      ``batched_shots_gpu`` to run with multiple parameters in a batch.
+      (Default: False).
+
     These backend options only apply when using the ``"statevector"``
     simulation method:
 
@@ -442,6 +448,9 @@ class AerSimulator(AerBackend):
 
     * ``mps_omp_threads`` (int): This option sets the number of OMP threads (Default: 1).
 
+    * ``mps_lapack`` (bool): This option indicates to compute the SVD function
+      using OpenBLAS/Lapack interface (Default: False).
+
     These backend options only apply when using the ``tensor_network``
     simulation method:
 
@@ -510,6 +519,8 @@ class AerSimulator(AerBackend):
                 "while_loop",
                 "break_loop",
                 "continue_loop",
+                "reset",
+                "switch_case",
             ]
         ),
         "density_matrix": sorted(
@@ -532,6 +543,8 @@ class AerSimulator(AerBackend):
                 "while_loop",
                 "break_loop",
                 "continue_loop",
+                "reset",
+                "switch_case",
             ]
         ),
         "matrix_product_state": sorted(
@@ -556,6 +569,8 @@ class AerSimulator(AerBackend):
                 "while_loop",
                 "break_loop",
                 "continue_loop",
+                "reset",
+                "switch_case",
             ]
         ),
         "stabilizer": sorted(
@@ -577,6 +592,8 @@ class AerSimulator(AerBackend):
                 "while_loop",
                 "break_loop",
                 "continue_loop",
+                "reset",
+                "switch_case",
             ]
         ),
         "extended_stabilizer": sorted(
@@ -585,6 +602,7 @@ class AerSimulator(AerBackend):
                 "qerror_loc",
                 "roerror",
                 "save_statevector",
+                "reset",
             ]
         ),
         "unitary": sorted(
@@ -592,6 +610,7 @@ class AerSimulator(AerBackend):
                 "save_state",
                 "save_unitary",
                 "set_unitary",
+                "reset",
             ]
         ),
         "superop": sorted(
@@ -603,6 +622,7 @@ class AerSimulator(AerBackend):
                 "save_state",
                 "save_superop",
                 "set_superop",
+                "reset",
             ]
         ),
         "tensor_network": sorted(
@@ -624,6 +644,8 @@ class AerSimulator(AerBackend):
                 "save_statevector_dict",
                 "set_statevector",
                 "set_density_matrix",
+                "reset",
+                "switch_case",
             ]
         ),
     }
@@ -676,17 +698,17 @@ class AerSimulator(AerBackend):
 
     _AVAILABLE_DEVICES = None
 
-    def __init__(self, configuration=None, properties=None, provider=None, **backend_options):
+    def __init__(
+        self, configuration=None, properties=None, provider=None, target=None, **backend_options
+    ):
         self._controller = aer_controller_execute()
 
         # Update available methods and devices for class
         if AerSimulator._AVAILABLE_DEVICES is None:
-            AerSimulator._AVAILABLE_DEVICES = available_devices(
-                self._controller, AerSimulator._SIMULATION_DEVICES
-            )
+            AerSimulator._AVAILABLE_DEVICES = available_devices(self._controller)
         if AerSimulator._AVAILABLE_METHODS is None:
             AerSimulator._AVAILABLE_METHODS = available_methods(
-                self._controller, AerSimulator._SIMULATION_METHODS, AerSimulator._AVAILABLE_DEVICES
+                AerSimulator._SIMULATION_METHODS, AerSimulator._AVAILABLE_DEVICES
             )
 
         # Default configuration
@@ -698,7 +720,11 @@ class AerSimulator(AerBackend):
         self._cached_basis_gates = self._BASIS_GATES["automatic"]
 
         super().__init__(
-            configuration, properties=properties, provider=provider, backend_options=backend_options
+            configuration,
+            properties=properties,
+            provider=provider,
+            target=target,
+            backend_options=backend_options,
         )
 
     @classmethod
@@ -762,9 +788,12 @@ class AerSimulator(AerBackend):
             chop_threshold=1e-8,
             mps_parallel_threshold=14,
             mps_omp_threads=1,
+            mps_lapack=False,
             # tensor network options
             tensor_network_num_sampling_qubits=10,
             use_cuTensorNet_autotuning=False,
+            # parameter binding
+            runtime_parameter_bind_enable=False,
         )
 
     def __repr__(self):
@@ -776,7 +805,7 @@ class AerSimulator(AerBackend):
         pad = " " * (len(self.__class__.__name__) + 1)
         return f"{display[:-1]}\n{pad}noise_model={repr(noise_model)})"
 
-    def name(self):
+    def _name(self):
         """Format backend name string for simulator"""
         name = self._configuration.backend_name
         method = getattr(self.options, "method", None)
@@ -791,6 +820,11 @@ class AerSimulator(AerBackend):
     def from_backend(cls, backend, **options):
         """Initialize simulator from backend."""
         if isinstance(backend, BackendV2):
+            if backend.description is None:
+                description = "created by AerSimulator.from_backend"
+            else:
+                description = backend.description
+
             configuration = QasmBackendConfiguration(
                 backend_name=f"'aer_simulator({backend.name})",
                 backend_version=backend.backend_version,
@@ -805,8 +839,10 @@ class AerSimulator(AerBackend):
                 max_shots=int(1e6),
                 coupling_map=list(backend.coupling_map.get_edges()),
                 max_experiments=backend.max_circuits,
+                description=description,
             )
             properties = target_to_backend_properties(backend.target)
+            target = backend.target
         elif isinstance(backend, BackendV1):
             # Get configuration and properties from backend
             configuration = copy.copy(backend.configuration())
@@ -815,6 +851,8 @@ class AerSimulator(AerBackend):
             # Customize configuration name
             name = configuration.backend_name
             configuration.backend_name = f"aer_simulator({name})"
+
+            target = None
         else:
             raise TypeError(
                 "The backend argument requires a BackendV2 or BackendV1 object, "
@@ -831,7 +869,7 @@ class AerSimulator(AerBackend):
                 options["noise_model"] = noise_model
 
         # Initialize simulator
-        sim = cls(configuration=configuration, properties=properties, **options)
+        sim = cls(configuration=configuration, properties=properties, target=target, **options)
         return sim
 
     def available_methods(self):
@@ -858,7 +896,7 @@ class AerSimulator(AerBackend):
         ]
         config.basis_gates = self._cached_basis_gates + config.custom_instructions
         # Update simulator name
-        config.backend_name = self.name()
+        config.backend_name = self._name()
         return config
 
     def _execute_circuits(self, aer_circuits, noise_model, config):

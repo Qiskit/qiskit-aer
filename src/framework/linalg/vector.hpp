@@ -31,7 +31,16 @@ namespace AER {
 
 template <class T>
 T *malloc_data(size_t size) {
+#if !defined(_WIN64) && !defined(_WIN32)
+  // Data allocated here may need to be properly aligned to be compliant with
+  // AVX2.
+  void *data = nullptr;
+  if (posix_memalign(&data, 64, sizeof(T) * size) != 0)
+    throw std::runtime_error("Cannot allocate memory by posix_memalign");
+  return reinterpret_cast<T *>(data);
+#else
   return reinterpret_cast<T *>(malloc(sizeof(T) * size));
+#endif
 }
 
 template <class T>

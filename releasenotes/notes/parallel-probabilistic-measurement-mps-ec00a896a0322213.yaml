@@ -1,0 +1,5 @@
+---
+upgrade:
+  - |
+    Improve performance in MPS measurement method ``matrix_product_state::sample_measure_all``
+    by parallelizing the shots.

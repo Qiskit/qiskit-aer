@@ -49,7 +49,6 @@ void zgesdd_(const char *jobu, const size_t *m, const size_t *n,
 }
 
 #else
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -77,5 +76,4 @@ void zgesdd_(const char *jobz, const size_t *m, const size_t *n,
 #endif
 
 #endif // MKL or not
-
 #endif // end __lapack_protos_h_

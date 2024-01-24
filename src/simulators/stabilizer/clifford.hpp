@@ -422,7 +422,6 @@ bool Clifford::measure_and_update(const uint64_t qubit,
   auto anticom = z_anticommuting(qubit);
 
   int nid = omp_get_num_threads();
-
   if (anticom.first) {
     bool outcome = (randint == 1);
     auto row = anticom.second;
@@ -432,7 +431,7 @@ bool Clifford::measure_and_update(const uint64_t qubit,
     auto measure_non_determinisitic_func = [this, rS, row,
                                             qubit](AER::int_t i) {
       uint64_t row_mask = ~0ull;
-      if ((row >> destabilizer_phases_.BLOCK_BITS) == i)
+      if ((row >> destabilizer_phases_.BLOCK_BITS) == (uint_t)i)
         row_mask ^= (1ull << (row & destabilizer_phases_.BLOCK_MASK));
 
       uint64_t d_mask = row_mask & destabilizer_table_[qubit].X(i);
@@ -515,90 +514,86 @@ bool Clifford::measure_and_update(const uint64_t qubit,
     return outcome;
   } else {
     // Deterministic outcome
-    bool outcome = false;
+    uint_t outcome = 0;
     Pauli::Pauli<BV::BinaryVector> accum(num_qubits_);
-    uint64_t blocks = destabilizer_phases_.blockLength();
+    uint_t blocks = destabilizer_phases_.blockLength();
 
     if (blocks < 2) {
-      for (uint64_t i = 0; i < num_qubits_; i++) {
-        if (destabilizer_table_[qubit].X[i]) {
-          bool b0 = false, b1 = false;
-          for (size_t q = 0; q < num_qubits_; q++) {
-            bool t0, t1, add;
-            bool accumX = accum.X[q];
-            bool accumZ = accum.Z[q];
+      for (uint_t ib = 0; ib < blocks; ib++) {
+        uint_t destabilizer_mask = destabilizer_table_[qubit].X(ib);
+        uint_t exponent_l = 0ull;
+        uint_t exponent_h = 0ull;
 
-            t0 = accumX & stabilizer_table_[q].Z[i];
-            t1 = accumZ ^ stabilizer_table_[q].X[i];
+        for (uint_t q = 0; q < num_qubits_; q++) {
+          uint_t tl, th, add;
+          uint_t accumX = 0ull - (uint_t)accum.X[q];
+          uint_t accumZ = 0ull - (uint_t)accum.Z[q];
 
-            b1 ^= (t0 & b0);
-            b0 ^= t0;
-            b1 ^= (t0 & t1);
+          tl = accumX & stabilizer_table_[q].Z(ib);
+          th = accumZ ^ stabilizer_table_[q].X(ib);
 
-            t0 = stabilizer_table_[q].X[i] & accumZ;
-            t1 = stabilizer_table_[q].Z[i] ^ accumX;
-            t1 ^= t0;
+          add = tl & exponent_l;
+          exponent_l ^= tl;
+          exponent_h ^= add;
+          exponent_h ^= (tl & th);
 
-            b1 ^= (t0 & b0);
-            b0 ^= t0;
-            b1 ^= (t0 & t1);
+          tl = stabilizer_table_[q].X(ib) & accumZ;
+          th = stabilizer_table_[q].Z(ib) ^ accumX;
+          th ^= tl;
 
-            accum.X.setValue(stabilizer_table_[q].X[i] ^ accum.X[q], q);
-            accum.Z.setValue(stabilizer_table_[q].Z[i] ^ accum.Z[q], q);
-          }
-          b1 ^= (stabilizer_phases_[i] ^ outcome);
+          add = tl & exponent_l;
+          exponent_l ^= tl;
+          exponent_h ^= add;
+          exponent_h ^= (tl & th);
 
-          if (b0) {
-            throw std::runtime_error("Clifford: rowsum error");
-          }
-          outcome = b1;
+          add = stabilizer_table_[q].X(ib) & destabilizer_mask;
+          accumX &= AER::Utils::popcount(add) & 1;
+          add = stabilizer_table_[q].Z(ib) & destabilizer_mask;
+          accumZ &= AER::Utils::popcount(add) & 1;
+
+          accum.X.setValue((bool)accumX, q);
+          accum.Z.setValue((bool)accumZ, q);
+        }
+        exponent_h ^= stabilizer_phases_(ib);
+        outcome ^= (exponent_h & destabilizer_mask);
+
+        if ((exponent_l & destabilizer_mask) != 0) {
+          throw std::runtime_error("Clifford: rowsum error");
         }
       }
     } else {
-      uint64_t blockSize = destabilizer_phases_.blockSize();
+      uint_t blockSize = destabilizer_phases_.blockSize();
 
       // loop for cache blocking
-      for (uint64_t ii = 0; ii < blocks; ii++) {
-        uint64_t destabilizer_mask = destabilizer_table_[qubit].X(ii);
+      for (uint_t ii = 0; ii < blocks; ii++) {
+        uint_t destabilizer_mask = destabilizer_table_[qubit].X(ii);
         if (destabilizer_mask == 0)
           continue;
 
-        uint64_t exponent_l = 0;
-        uint64_t exponent_lc = 0;
-        uint64_t exponent_h = 0;
+        uint_t exponent_l = 0;
+        uint_t exponent_lc = 0;
+        uint_t exponent_h = 0;
 
         auto measure_determinisitic_func =
             [this, &accum, &exponent_l, &exponent_lc, &exponent_h, blocks,
              blockSize, destabilizer_mask, ii](AER::int_t qq) {
-              uint64_t qs = qq * blockSize;
-              uint64_t qe = qs + blockSize;
+              uint_t qs = qq * blockSize;
+              uint_t qe = qs + blockSize;
               if (qe > num_qubits_)
                 qe = num_qubits_;
 
-              uint64_t local_exponent_l = 0;
-              uint64_t local_exponent_h = 0;
+              uint_t local_exponent_l = 0;
+              uint_t local_exponent_h = 0;
 
-              for (uint64_t q = qs; q < qe; q++) {
-                uint64_t sX = stabilizer_table_[q].X(ii);
-                uint64_t sZ = stabilizer_table_[q].Z(ii);
+              for (uint_t q = qs; q < qe; q++) {
+                uint_t sX = stabilizer_table_[q].X(ii);
+                uint_t sZ = stabilizer_table_[q].Z(ii);
 
-                // set accum for this block
-                uint64_t accumX = destabilizer_mask & sX;
-                uint64_t accumZ = destabilizer_mask & sZ;
-                for (int b = 1; b < blockSize; b *= 2) {
-                  accumX ^= (accumX << b);
-                  accumZ ^= (accumZ << b);
-                }
-                accumX ^= (0ull - (uint64_t)accum.X[q]);
-                accumZ ^= (0ull - (uint64_t)accum.Z[q]);
-                accum.X.setValue((accumX >> (blockSize - 1)), q);
-                accum.Z.setValue((accumZ >> (blockSize - 1)), q);
-
-                accumX ^= sX;
-                accumZ ^= sZ;
+                uint_t accumX = (0ull - (uint_t)accum.X[q]);
+                uint_t accumZ = (0ull - (uint_t)accum.Z[q]);
 
                 // exponents for this block
-                uint64_t t0, t1;
+                uint_t t0, t1;
 
                 t0 = accumX & sZ;
                 t1 = accumZ ^ sX;
@@ -614,6 +609,12 @@ bool Clifford::measure_and_update(const uint64_t qubit,
                 local_exponent_h ^= (t0 & local_exponent_l);
                 local_exponent_l ^= t0;
                 local_exponent_h ^= (t0 & t1);
+
+                // update accum
+                accumX &= AER::Utils::popcount(sX & destabilizer_mask) & 1;
+                accum.X.setValue((accumX != 0), q);
+                accumZ &= AER::Utils::popcount(sZ & destabilizer_mask) & 1;
+                accum.Z.setValue((accumZ != 0), q);
               }
 
 #pragma omp atomic
@@ -627,16 +628,14 @@ bool Clifford::measure_and_update(const uint64_t qubit,
             (num_qubits_ > omp_threshold_ && omp_threads_ > 1 && nid == 1), 0,
             blocks, measure_determinisitic_func, omp_threads_);
 
-        exponent_h ^=
-            (exponent_lc ^
-             exponent_l); // if exponent_l is 0 and any of local_exponent_l is
-                          // 1, then flip exponent_h
-
-        exponent_h ^= (stabilizer_phases_(ii) & destabilizer_mask);
-        outcome ^= ((AER::Utils::popcount(exponent_h) & 1) != 0);
+        // if exponent_l is 0 and any of local_exponent_l is
+        // 1, then flip exponent_h
+        exponent_h ^= (exponent_lc ^ exponent_l);
+        exponent_h ^= stabilizer_phases_(ii);
+        outcome ^= (exponent_h & destabilizer_mask);
       }
     }
-    return outcome;
+    return ((AER::Utils::popcount(outcome) & 1) != 0);
   }
 }
 

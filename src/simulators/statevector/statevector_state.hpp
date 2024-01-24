@@ -156,6 +156,9 @@ public:
   virtual std::vector<reg_t> sample_measure(const reg_t &qubits, uint_t shots,
                                             RngEngine &rng) override;
 
+  // Helper function for computing expectation value
+  virtual double expval_pauli(const reg_t &qubits,
+                              const std::string &pauli) override;
   //-----------------------------------------------------------------------
   // Additional methods
   //-----------------------------------------------------------------------
@@ -170,7 +173,7 @@ public:
   // Apply instructions
   //-----------------------------------------------------------------------
 
-  // Applies a sypported Gate operation to the state class.
+  // Applies a supported Gate operation to the state class.
   // If the input is not in allowed_gates an exeption will be raised.
   void apply_gate(const Operations::Op &op);
 
@@ -222,6 +225,9 @@ public:
   // Return the reduced density matrix for the simulator
   cmatrix_t density_matrix(const reg_t &qubits);
 
+  // Apply the global phase
+  void apply_global_phase();
+
 protected:
   //-----------------------------------------------------------------------
   // Save data instructions
@@ -249,9 +255,6 @@ protected:
   void apply_save_amplitudes(const Operations::Op &op,
                              ExperimentResult &result);
 
-  // Helper function for computing expectation value
-  virtual double expval_pauli(const reg_t &qubits,
-                              const std::string &pauli) override;
   //-----------------------------------------------------------------------
   // Measurement Helpers
   //-----------------------------------------------------------------------
@@ -302,9 +305,6 @@ protected:
   //-----------------------------------------------------------------------
   // Config Settings
   //-----------------------------------------------------------------------
-
-  // Apply the global phase
-  void apply_global_phase();
 
   // OpenMP qubit threshold
   int omp_qubit_threshold_ = 14;
@@ -402,7 +402,6 @@ const stringmap_t<Gates> State<statevec_t>::gateset_(
 
 template <class statevec_t>
 void State<statevec_t>::initialize_qreg(uint_t num_qubits) {
-  int_t i;
   initialize_omp();
 
   BaseState::qreg_.set_num_qubits(num_qubits);
@@ -426,8 +425,6 @@ void State<statevec_t>::initialize_statevector(uint_t num_qubits,
 
 template <class statevec_t>
 void State<statevec_t>::initialize_omp() {
-  uint_t i;
-
   BaseState::qreg_.set_omp_threshold(omp_qubit_threshold_);
   if (BaseState::threads_ > 0) // set allowed OMP threads in qubitvector
     BaseState::qreg_.set_omp_threads(BaseState::threads_);
@@ -438,6 +435,8 @@ bool State<statevec_t>::allocate(uint_t num_qubits, uint_t block_bits,
                                  uint_t num_parallel_shots) {
   if (BaseState::max_matrix_qubits_ > 0)
     BaseState::qreg_.set_max_matrix_bits(BaseState::max_matrix_qubits_);
+  if (BaseState::max_sampling_shots_ > 0)
+    BaseState::qreg_.set_max_sampling_shots(BaseState::max_sampling_shots_);
 
   BaseState::qreg_.set_target_gpus(BaseState::target_gpus_);
   BaseState::qreg_.chunk_setup(block_bits, num_qubits, 0, 1);
@@ -699,7 +698,7 @@ cmatrix_t State<statevec_t>::vec2density(const reg_t &qubits, const T &vec) {
   cmatrix_t densmat(DIM, DIM);
   if ((N == BaseState::qreg_.num_qubits()) && (qubits == qubits_sorted)) {
     const int_t mask = QV::MASKS[N];
-#pragma omp parallel for if (2 * N > omp_qubit_threshold_ &&                   \
+#pragma omp parallel for if (2 * N > (size_t)omp_qubit_threshold_ &&           \
                              BaseState::threads_ > 1)                          \
     num_threads(BaseState::threads_)
     for (int_t rowcol = 0; rowcol < int_t(DIM * DIM); ++rowcol) {
@@ -748,7 +747,7 @@ void State<statevec_t>::apply_gate(const Operations::Op &op) {
     }
     if (qubits_out.size() > 0) {
       uint_t mask = 0;
-      for (int i = 0; i < qubits_out.size(); i++) {
+      for (uint_t i = 0; i < qubits_out.size(); i++) {
         mask |= (1ull << (qubits_out[i] - BaseState::qreg_.num_qubits()));
       }
       if ((BaseState::qreg_.chunk_index() & mask) == mask) {
@@ -1024,7 +1023,7 @@ template <class statevec_t>
 std::vector<reg_t> State<statevec_t>::sample_measure(const reg_t &qubits,
                                                      uint_t shots,
                                                      RngEngine &rng) {
-  int_t i, j;
+  uint_t i;
   // Generate flat register for storing
   std::vector<double> rnds;
   rnds.reserve(shots);
@@ -1053,10 +1052,22 @@ std::vector<reg_t> State<statevec_t>::sample_measure(const reg_t &qubits,
 
 template <class statevec_t>
 void State<statevec_t>::apply_initialize(const reg_t &qubits,
-                                         const cvector_t &params,
+                                         const cvector_t &params_in,
                                          RngEngine &rng) {
   auto sorted_qubits = qubits;
   std::sort(sorted_qubits.begin(), sorted_qubits.end());
+  // apply global phase here
+  cvector_t tmp;
+  if (BaseState::has_global_phase_) {
+    tmp.resize(params_in.size());
+    auto apply_global_phase = [&tmp, &params_in, this](int_t i) {
+      tmp[i] = params_in[i] * BaseState::global_phase_;
+    };
+    Utils::apply_omp_parallel_for(
+        (qubits.size() > (uint_t)omp_qubit_threshold_), 0, params_in.size(),
+        apply_global_phase, BaseState::threads_);
+  }
+  const cvector_t &params = tmp.empty() ? params_in : tmp;
   if (qubits.size() == BaseState::qreg_.num_qubits()) {
     // If qubits is all ordered qubits in the statevector
     // we can just initialize the whole state directly

@@ -21,6 +21,9 @@ DISABLE_WARNING_PUSH
 #include <cuda.h>
 #include <cuda_runtime.h>
 #endif
+#ifdef AER_THRUST_ROCM
+#include <hip/hip_runtime.h>
+#endif
 DISABLE_WARNING_POP
 
 #include "misc/wrap_thrust.hpp"
@@ -66,7 +69,10 @@ protected:
 public:
   GateFuncBase() {
     data_ = NULL;
+    matrix_ = NULL;
+    params_ = NULL;
     base_index_ = 0;
+    chunk_bits_ = 0;
     cregs_ = NULL;
     num_creg_bits_ = 0;
     conditional_bit_ = -1;
@@ -144,7 +150,7 @@ public:
 template <typename data_t>
 class GateFuncWithCache : public GateFuncBase<data_t> {
 protected:
-  int nqubits_;
+  uint_t nqubits_;
 
 public:
   GateFuncWithCache(uint_t nq) { nqubits_ = nq; }
@@ -207,7 +213,7 @@ public:
 template <typename data_t>
 class GateFuncSumWithCache : public GateFuncBase<data_t> {
 protected:
-  int nqubits_;
+  uint_t nqubits_;
 
 public:
   GateFuncSumWithCache(uint_t nq) { nqubits_ = nq; }
@@ -273,7 +279,7 @@ public:
       : public thrust::unary_function<difference_type, difference_type> {
     difference_type stride;
 
-    stride_functor(difference_type stride) : stride(stride) {}
+    stride_functor(difference_type _stride) : stride(_stride) {}
 
     __host__ __device__ difference_type
     operator()(const difference_type &i) const {
@@ -298,8 +304,8 @@ public:
   typedef PermutationIterator iterator;
 
   // construct strided_range for the range [first,last)
-  strided_range(Iterator first, Iterator last, difference_type stride)
-      : first(first), last(last), stride(stride) {}
+  strided_range(Iterator _first, Iterator _last, difference_type _stride)
+      : first(_first), last(_last), stride(_stride) {}
 
   iterator begin(void) const {
     return PermutationIterator(
@@ -406,7 +412,7 @@ public:
 template <typename data_t>
 class initialize_component_func : public GateFuncBase<data_t> {
 protected:
-  int nqubits;
+  uint_t nqubits;
   uint_t offset;
   uint_t mat_pos;
   uint_t mat_num;
@@ -822,7 +828,7 @@ public:
   int qubits_count(void) { return 4; }
 
   __host__ __device__ void operator()(const uint_t &i) const {
-    uint_t i0, i1, i2, i3, i4, offset, f0, f1, f2;
+    uint_t i0, i1, i2, i3, i4, offset;
     thrust::complex<data_t> *vec;
     thrust::complex<data_t> q0, q1, q2, q3, q4, q5, q6, q7;
     thrust::complex<data_t> q8, q9, q10, q11, q12, q13, q14, q15;
@@ -862,9 +868,6 @@ public:
     q15 = vec[i0 + offset3 + offset2 + offset1 + offset0];
 
     offset = 0;
-    f0 = 0;
-    f1 = 0;
-    f2 = 0;
     for (j = 0; j < 16; j++) {
       r = pMat[0 + j] * q0;
       r += pMat[16 + j] * q1;
@@ -902,7 +905,7 @@ public:
   __host__ __device__ void
   run_with_cache(uint_t _tid, uint_t _idx,
                  thrust::complex<data_t> *_cache) const {
-    uint_t j, threadID;
+    uint_t j;
     thrust::complex<data_t> q, r;
     thrust::complex<double> m;
     uint_t mat_size, irow;
@@ -933,9 +936,9 @@ public:
 template <typename data_t>
 class MatrixMultNxN_LU : public GateFuncBase<data_t> {
 protected:
-  int nqubits;
+  uint_t nqubits;
   uint_t matSize;
-  int nswap;
+  uint_t nswap;
 
 public:
   MatrixMultNxN_LU(const cvector_t<double> &mat, const reg_t &qb,
@@ -975,7 +978,7 @@ public:
         params[nqubits + i] = j;
       }
 
-      if (dmax != 0) {
+      if (dmax > 0) {
         c0 = matLU[(i << nqubits) + params[nqubits + i]];
 
         for (j = i + 1; j < matSize; j++) {
@@ -1195,6 +1198,119 @@ public:
   const char *name(void) { return "matrix_Cmult2x2"; }
 };
 
+template <typename data_t>
+class BatchedMatrixMult2x2 : public GateFuncBase<data_t> {
+protected:
+  uint_t matrix_begin_;
+  uint_t num_shots_per_matrix_;
+  uint_t mask_;
+  uint_t cmask_;
+  uint_t offset_;
+  uint_t nqubits_;
+
+public:
+  BatchedMatrixMult2x2(const reg_t &qubits, uint_t imat,
+                       uint_t nshots_per_mat) {
+    uint_t i;
+    nqubits_ = qubits.size();
+
+    offset_ = 1ull << qubits[nqubits_ - 1];
+    mask_ = (1ull << qubits[nqubits_ - 1]) - 1;
+    cmask_ = 0;
+    for (i = 0; i < nqubits_ - 1; i++) {
+      cmask_ |= (1ull << qubits[i]);
+    }
+    matrix_begin_ = imat;
+    num_shots_per_matrix_ = nshots_per_mat;
+  }
+
+  int qubits_count(void) { return 1; }
+  int num_control_bits(void) { return nqubits_ - 1; }
+
+  __host__ __device__ void operator()(const uint_t &i) const {
+    uint_t i0, i1;
+    thrust::complex<data_t> q0, q1;
+    thrust::complex<data_t> *vec0;
+    thrust::complex<data_t> *vec1;
+
+    vec0 = this->data_;
+
+    vec1 = vec0 + offset_;
+
+    i1 = i & mask_;
+    i0 = (i - i1) << 1;
+    i0 += i1;
+
+    if (((i0 + this->base_index_) & cmask_) == cmask_) {
+      thrust::complex<double> m0, m1, m2, m3;
+      q0 = vec0[i0];
+      q1 = vec1[i0];
+
+      uint_t iChunk = (this->base_index_ + i) >> this->chunk_bits_;
+      // matrix offset from the top of buffer
+      uint_t i_mat = (iChunk / num_shots_per_matrix_) - matrix_begin_;
+      thrust::complex<double> *mat = this->matrix_ + i_mat * 4ull;
+
+      m0 = mat[0];
+      m1 = mat[1];
+      m2 = mat[2];
+      m3 = mat[3];
+
+      vec0[i0] = m0 * q0 + m2 * q1;
+      vec1[i0] = m1 * q0 + m3 * q1;
+    }
+  }
+  const char *name(void) { return "BatchedMatrixMult2x2"; }
+};
+
+template <typename data_t>
+class BatchedMatrixMultNxN : public GateFuncWithCache<data_t> {
+protected:
+  uint_t matrix_begin_;
+  uint_t num_shots_per_matrix_;
+
+public:
+  BatchedMatrixMultNxN(uint_t nq, uint_t imat, uint_t nshots_per_mat)
+      : GateFuncWithCache<data_t>(nq) {
+    matrix_begin_ = imat;
+    num_shots_per_matrix_ = nshots_per_mat;
+  }
+
+  __host__ __device__ void
+  run_with_cache(uint_t _tid, uint_t _idx,
+                 thrust::complex<data_t> *_cache) const {
+    uint_t j;
+    thrust::complex<data_t> q, r;
+    thrust::complex<double> m;
+    uint_t mat_size, irow;
+    thrust::complex<data_t> *vec;
+    thrust::complex<double> *pMat;
+
+    uint_t iChunk = (this->base_index_ + _tid) >> this->chunk_bits_;
+    // matrix offset from the top of buffer
+    uint_t i_mat = (iChunk / num_shots_per_matrix_) - matrix_begin_;
+
+    mat_size = 1ull << this->nqubits_;
+
+    vec = this->data_;
+    pMat = this->matrix_ + i_mat * mat_size * mat_size;
+
+    irow = _tid & (mat_size - 1);
+
+    r = 0.0;
+    for (j = 0; j < mat_size; j++) {
+      m = pMat[irow + mat_size * j];
+      q = _cache[(_tid & 1023) - irow + j];
+
+      r += m * q;
+    }
+
+    vec[_idx] = r;
+  }
+
+  const char *name(void) { return "BatchedMatrixMultNxN"; }
+};
+
 //------------------------------------------------------------------------------
 // Diagonal matrix multiplication
 //------------------------------------------------------------------------------
@@ -1286,7 +1402,7 @@ public:
 template <typename data_t>
 class DiagonalMultNxN : public GateFuncBase<data_t> {
 protected:
-  int nqubits;
+  uint_t nqubits;
 
 public:
   DiagonalMultNxN(const reg_t &qb) { nqubits = qb.size(); }
@@ -1347,7 +1463,7 @@ public:
     }
   }
 
-  int qubits_count(void) { return nqubits; }
+  int qubits_count(void) { return 1; }
   int num_control_bits(void) { return nqubits - 1; }
 
   bool is_diagonal(void) { return true; }
@@ -1373,6 +1489,115 @@ public:
     }
   }
   const char *name(void) { return "diagonal_Cmult2x2"; }
+};
+
+template <typename data_t>
+class BatchedDiagonalMatrixMult2x2 : public GateFuncBase<data_t> {
+protected:
+  uint_t matrix_begin_;
+  uint_t num_shots_per_matrix_;
+  uint_t mask_;
+  uint_t cmask_;
+  uint_t offset_;
+  uint_t nqubits_;
+
+public:
+  BatchedDiagonalMatrixMult2x2(const reg_t &qubits, uint_t imat,
+                               uint_t nshots_per_mat) {
+    uint_t i;
+    nqubits_ = qubits.size();
+
+    mask_ = (1ull << qubits[nqubits_ - 1]);
+    cmask_ = 0;
+    for (i = 0; i < nqubits_ - 1; i++) {
+      cmask_ |= (1ull << qubits[i]);
+    }
+    matrix_begin_ = imat;
+    num_shots_per_matrix_ = nshots_per_mat;
+  }
+
+  int qubits_count(void) { return 1; }
+  int num_control_bits(void) { return nqubits_ - 1; }
+  bool is_diagonal(void) { return true; }
+
+  __host__ __device__ void operator()(const uint_t &i) const {
+    uint_t gid;
+    thrust::complex<data_t> q0;
+    thrust::complex<double> m;
+    thrust::complex<data_t> *vec;
+
+    vec = this->data_;
+    gid = this->base_index_;
+
+    if (((i + gid) & cmask_) == cmask_) {
+      uint_t iChunk = (i + gid) >> this->chunk_bits_;
+      // matrix offset from the top of buffer
+      uint_t i_mat = (iChunk / num_shots_per_matrix_) - matrix_begin_;
+      thrust::complex<double> *mat = this->matrix_ + i_mat * 2ull;
+
+      q0 = vec[i];
+      if ((i + gid) & mask_) {
+        m = mat[1];
+      } else {
+        m = mat[0];
+      }
+      vec[i] = m * q0;
+    }
+  }
+  const char *name(void) { return "BatchedDiagonalMatrixMult2x2"; }
+};
+
+template <typename data_t>
+class BatchedDiagonalMatrixMultNxN : public GateFuncBase<data_t> {
+protected:
+  uint_t matrix_begin_;
+  uint_t num_shots_per_matrix_;
+  uint_t nqubits_;
+
+public:
+  BatchedDiagonalMatrixMultNxN(const uint_t nq, uint_t imat,
+                               uint_t nshots_per_mat) {
+    nqubits_ = nq;
+
+    matrix_begin_ = imat;
+    num_shots_per_matrix_ = nshots_per_mat;
+  }
+
+  int qubits_count(void) { return nqubits_; }
+  int num_control_bits(void) { return 0; }
+  bool is_diagonal(void) { return true; }
+
+  __host__ __device__ void operator()(const uint_t &i) const {
+    uint_t j, im;
+    thrust::complex<data_t> *vec;
+    thrust::complex<data_t> q;
+    thrust::complex<double> m;
+    uint_t *qubits;
+    uint_t gid;
+
+    gid = this->base_index_;
+
+    uint_t iChunk = (i + gid) >> this->chunk_bits_;
+    // matrix offset from the top of buffer
+    uint_t i_mat = (iChunk / num_shots_per_matrix_) - matrix_begin_;
+    thrust::complex<double> *mat = this->matrix_ + i_mat * 2ull;
+
+    vec = this->data_;
+    qubits = this->params_;
+
+    q = vec[i];
+
+    im = 0;
+    for (j = 0; j < nqubits_; j++) {
+      if ((((i + gid) >> qubits[j]) & 1) != 0) {
+        im += (1 << j);
+      }
+    }
+    m = mat[im];
+    vec[i] = m * q;
+  }
+
+  const char *name(void) { return "BatchedDiagonalMatrixMultNxN"; }
 };
 
 //------------------------------------------------------------------------------
@@ -1668,9 +1893,8 @@ public:
   CSwapChunk_func(const reg_t &qubits, uint_t block_bits,
                   thrust::complex<data_t> *pVec0,
                   thrust::complex<data_t> *pVec1, bool wb) {
-    int i;
-    int nqubits;
-    int qubit_t;
+    uint_t nqubits;
+    uint_t qubit_t;
     nqubits = qubits.size();
 
     if (qubits[nqubits - 2] < qubits[nqubits - 1]) {
@@ -1794,6 +2018,7 @@ protected:
 public:
   norm_func(void) {}
   bool is_diagonal(void) { return true; }
+  bool batch_enable(void) { return true; }
 
   __host__ __device__ double operator()(const uint_t &i) const {
     thrust::complex<data_t> q;
@@ -1851,10 +2076,8 @@ public:
     thrust::complex<data_t> q, r;
     thrust::complex<double> m;
     uint_t mat_size, irow;
-    thrust::complex<data_t> *vec;
     thrust::complex<double> *pMat;
 
-    vec = this->data_;
     pMat = this->matrix_;
 
     mat_size = 1ull << this->nqubits_;
@@ -2104,7 +2327,7 @@ public:
   expval_pauli_Z_func(uint_t z) { z_mask_ = z; }
 
   bool is_diagonal(void) { return true; }
-  bool batch_enable(void) { return false; }
+  bool batch_enable(void) { return true; }
 
   __host__ __device__ double operator()(const uint_t &i) const {
     thrust::complex<data_t> *vec;
@@ -2145,7 +2368,7 @@ public:
     mask_u_ = ~((1ull << (x_max + 1)) - 1);
     mask_l_ = (1ull << x_max) - 1;
   }
-  bool batch_enable(void) { return false; }
+  bool batch_enable(void) { return true; }
 
   __host__ __device__ double operator()(const uint_t &i) const {
     thrust::complex<data_t> *vec;
@@ -2243,6 +2466,155 @@ public:
     return ret;
   }
   const char *name(void) { return "expval_pauli_inter_chunk"; }
+};
+
+template <typename data_t>
+class batched_expval_I_func : public GateFuncBase<data_t> {
+protected:
+  bool variance_;
+  double param_;
+  double param_var_;
+
+public:
+  batched_expval_I_func(bool var, thrust::complex<double> par) {
+    variance_ = var;
+    param_ = par.real();
+    param_var_ = par.imag();
+  }
+  bool is_diagonal(void) { return true; }
+  bool batch_enable(void) { return true; }
+
+  __host__ __device__ thrust::complex<double>
+  operator()(const uint_t &i) const {
+    thrust::complex<data_t> q;
+    thrust::complex<data_t> *vec;
+    double d, dv = 0.0;
+
+    vec = this->data_;
+    q = vec[i];
+    d = (double)(q.real() * q.real() + q.imag() * q.imag());
+
+    if (variance_)
+      dv = d * param_var_;
+    d *= param_;
+    return thrust::complex<double>(d, dv);
+  }
+  const char *name(void) { return "batched_expval_I_func"; }
+};
+
+template <typename data_t>
+class batched_expval_pauli_Z_func : public GateFuncBase<data_t> {
+protected:
+  uint_t z_mask_;
+  bool variance_;
+  double param_;
+  double param_var_;
+
+public:
+  batched_expval_pauli_Z_func(bool var, thrust::complex<double> par, uint_t z) {
+    variance_ = var;
+    param_ = par.real();
+    param_var_ = par.imag();
+    z_mask_ = z;
+  }
+
+  bool is_diagonal(void) { return true; }
+  bool batch_enable(void) { return true; }
+
+  __host__ __device__ thrust::complex<double>
+  operator()(const uint_t &i) const {
+    thrust::complex<data_t> *vec;
+    thrust::complex<data_t> q0;
+    double d, dv = 0.0;
+
+    vec = this->data_;
+
+    q0 = vec[i];
+    d = q0.real() * q0.real() + q0.imag() * q0.imag();
+
+    if (z_mask_ != 0) {
+      if (pop_count_kernel(i & z_mask_) & 1)
+        d = -d;
+    }
+
+    if (variance_)
+      dv = d * param_var_;
+    d *= param_;
+    return thrust::complex<double>(d, dv);
+  }
+  const char *name(void) { return "batched_expval_pauli_Z_func"; }
+};
+
+template <typename data_t>
+class batched_expval_pauli_XYZ_func : public GateFuncBase<data_t> {
+protected:
+  uint_t x_mask_;
+  uint_t z_mask_;
+  uint_t mask_l_;
+  uint_t mask_u_;
+  thrust::complex<data_t> phase_;
+  bool variance_;
+  double param_;
+  double param_var_;
+
+public:
+  batched_expval_pauli_XYZ_func(bool var, thrust::complex<double> par, uint_t x,
+                                uint_t z, uint_t x_max,
+                                std::complex<data_t> p) {
+    variance_ = var;
+    param_ = par.real();
+    param_var_ = par.imag();
+
+    x_mask_ = x;
+    z_mask_ = z;
+    phase_ = p;
+
+    mask_u_ = ~((1ull << (x_max + 1)) - 1);
+    mask_l_ = (1ull << x_max) - 1;
+  }
+  bool batch_enable(void) { return true; }
+
+  __host__ __device__ thrust::complex<double>
+  operator()(const uint_t &i) const {
+    thrust::complex<data_t> *vec;
+    thrust::complex<data_t> q0;
+    thrust::complex<data_t> q1;
+    thrust::complex<data_t> q0p;
+    thrust::complex<data_t> q1p;
+    double d0, d1, ret, ret_v = 0.0;
+    uint_t idx0, idx1;
+
+    vec = this->data_;
+
+    idx0 = ((i << 1) & mask_u_) | (i & mask_l_);
+    idx1 = idx0 ^ x_mask_;
+
+    q0 = vec[idx0];
+    q1 = vec[idx1];
+    q0p = q1 * phase_;
+    q1p = q0 * phase_;
+    d0 = q0.real() * q0p.real() + q0.imag() * q0p.imag();
+    d1 = q1.real() * q1p.real() + q1.imag() * q1p.imag();
+
+    if (z_mask_ != 0) {
+      if (pop_count_kernel(idx0 & z_mask_) & 1)
+        ret = -d0;
+      else
+        ret = d0;
+      if (pop_count_kernel(idx1 & z_mask_) & 1)
+        ret -= d1;
+      else
+        ret += d1;
+    } else {
+      ret = d0 + d1;
+    }
+
+    if (variance_)
+      ret_v = ret * param_var_;
+    ret *= param_;
+    return thrust::complex<double>(ret, ret_v);
+  }
+  const char *name(void) { return "batched_expval_pauli_XYZ_func"; }
 };
 
 //------------------------------------------------------------------------------

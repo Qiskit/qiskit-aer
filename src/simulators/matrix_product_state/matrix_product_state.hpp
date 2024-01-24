@@ -38,6 +38,8 @@
 #include "matrix_product_state_internal.hpp"
 #include "simulators/state.hpp"
 
+#include "matrix_product_state_size_estimator.hpp"
+
 namespace AER {
 namespace MatrixProductState {
 
@@ -310,6 +312,10 @@ const stringmap_t<Gates>
 
 void State::initialize_qreg(uint_t num_qubits = 0) {
   qreg_.initialize(num_qubits);
+  if (BaseState::has_global_phase_) {
+    BaseState::qreg_.apply_diagonal_matrix(
+        {0}, {BaseState::global_phase_, BaseState::global_phase_});
+  }
 }
 
 void State::initialize_omp() {
@@ -320,14 +326,12 @@ void State::initialize_omp() {
 
 size_t State::required_memory_mb(uint_t num_qubits,
                                  const std::vector<Operations::Op> &ops) const {
-  // for each qubit we have a tensor structure.
-  // Initially, each tensor contains 2 matrices with a single complex double
-  // Depending on the number of 2-qubit gates,
-  // these matrices may double their size
-  // for now - compute only initial size
-  // later - FIXME
-  size_t mem_mb = 16 * 2 * num_qubits;
-  return mem_mb;
+  if (num_qubits > 1) {
+    MPSSizeEstimator est(num_qubits);
+    uint_t size = est.estimate(ops);
+    return (size >> 20);
+  }
+  return 0;
 }
 
 void State::set_config(const Config &config) {
@@ -365,6 +369,9 @@ void State::set_config(const Config &config) {
     MPS::set_mps_swap_direction(MPS_swap_direction::SWAP_RIGHT);
   else
     MPS::set_mps_swap_direction(MPS_swap_direction::SWAP_LEFT);
+
+  // Set LAPACK SVD
+  MPS::set_mps_lapack_svd(config.mps_lapack);
 }
 
 void State::add_metadata(ExperimentResult &result) const {
@@ -376,6 +383,7 @@ void State::add_metadata(ExperimentResult &result) const {
                       "matrix_product_state_sample_measure_algorithm");
   if (MPS::get_mps_log_data())
     result.metadata.add("{" + MPS::output_log() + "}", "MPS_log_data");
+  result.metadata.add(MPS::get_mps_lapack_svd(), "matrix_product_state_lapack");
 }
 
 void State::output_bond_dimensions(const Operations::Op &op) const {
@@ -721,14 +729,25 @@ void State::apply_kraus(const reg_t &qubits,
 
 void State::apply_initialize(const reg_t &qubits, const cvector_t &params,
                              RngEngine &rng) {
-  qreg_.apply_initialize(qubits, params, rng);
+  // apply global phase here
+  if (BaseState::has_global_phase_) {
+    cvector_t tmp(params.size());
+    auto apply_global_phase = [&tmp, params, this](int_t i) {
+      tmp[i] = params[i] * BaseState::global_phase_;
+    };
+    Utils::apply_omp_parallel_for((qubits.size() > 14), 0, params.size(),
+                                  apply_global_phase, BaseState::threads_);
+    qreg_.apply_initialize(qubits, tmp, rng);
+  } else {
+    qreg_.apply_initialize(qubits, params, rng);
+  }
 }
 
 void State::apply_measure(const reg_t &qubits, const reg_t &cmemory,
                           const reg_t &cregister, RngEngine &rng) {
   rvector_t rands;
   rands.reserve(qubits.size());
-  for (int_t i = 0; i < qubits.size(); ++i)
+  for (uint_t i = 0; i < qubits.size(); ++i)
     rands.push_back(rng.rand(0., 1.));
   reg_t outcome = qreg_.apply_measure(qubits, rands);
   creg().store_measure(outcome, cmemory, cregister);
@@ -762,10 +781,10 @@ State::sample_measure_using_apply_measure(const reg_t &qubits, uint_t shots,
   all_samples.resize(shots);
   std::vector<rvector_t> rnds_list;
   rnds_list.reserve(shots);
-  for (int_t i = 0; i < shots; ++i) {
+  for (uint_t i = 0; i < shots; ++i) {
     rvector_t rands;
     rands.reserve(qubits.size());
-    for (int_t j = 0; j < qubits.size(); ++j)
+    for (uint_t j = 0; j < qubits.size(); ++j)
       rands.push_back(rng.rand(0., 1.));
     rnds_list.push_back(rands);
   }
@@ -788,7 +807,8 @@ std::vector<reg_t> State::sample_measure_all(uint_t shots, RngEngine &rng) {
   std::vector<reg_t> all_samples;
   all_samples.resize(shots);
 
-  for (uint_t i = 0; i < shots; i++) {
+#pragma omp parallel for if (getenv("PRL_PROB_MEAS"))
+  for (int_t i = 0; i < static_cast<int_t>(shots); i++) {
     auto single_result = qreg_.sample_measure(shots, rng);
     all_samples[i] = single_result;
   }

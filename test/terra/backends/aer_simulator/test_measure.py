@@ -23,6 +23,9 @@ from qiskit_aer.noise.errors import ReadoutError, depolarizing_error
 from qiskit.circuit.library import QuantumVolume
 from qiskit.quantum_info.random import random_unitary
 from test.terra.backends.simulator_test_case import SimulatorTestCase, supported_methods
+import numpy as np
+
+import os
 
 SUPPORTED_METHODS = [
     "automatic",
@@ -141,7 +144,8 @@ class TestMeasure(SimulatorTestCase):
         targets = ref_measure.measure_counts_deterministic(shots)
         result = backend.run(circuits, shots=shots).result()
         self.assertSuccess(result)
-        sampling = method == "density_matrix" or method == "tensor_network"
+        method_used = result.results[0].metadata.get("method")
+        sampling = method_used == "density_matrix" or method_used == "tensor_network"
         self.compare_result_metadata(result, circuits, "measure_sampling", sampling)
 
     # ---------------------------------------------------------------------
@@ -200,6 +204,68 @@ class TestMeasure(SimulatorTestCase):
         self.compare_result_metadata(result, circuits, "measure_sampling", False)
 
     # ---------------------------------------------------------------------
+    # Test stabilizer measure
+    # ---------------------------------------------------------------------
+    @supported_methods(["stabilizer"])
+    def test_measure_stablizer_64bit(self, method, device):
+        backend = self.backend(method=method, device=device)
+        shots = 10000
+        delta = 0.05
+        circ = QuantumCircuit(65, 32)
+
+        circ.reset(0)
+        for i in range(0, 30, 6):
+            circ.h(i)
+            circ.h(i + 4)
+        circ.h(30)
+        circ.h(31)
+
+        for i in range(1, 32, 2):
+            circ.cx(i + 32, i)
+        for i in range(0, 30, 6):
+            circ.cx(i, i + 32)
+            circ.cx(i + 4, i + 36)
+        circ.cx(30, 62)
+
+        for i in range(1, 30, 2):
+            circ.cx(i + 35, i)
+        for i in range(4, 32, 4):
+            circ.cx(i, i + 29)
+
+        for i in range(0, 30, 2):
+            circ.cx(i + 35, i)
+        for i in range(1, 30, 6):
+            circ.cx(i, i + 33)
+            circ.cx(i + 2, i + 35)
+        circ.cx(31, 64)
+
+        for i in range(0, 32):
+            circ.measure(i, i)
+        result = backend.run(circ, shots=shots).result()
+        counts = result.get_counts()
+        self.assertSuccess(result)
+
+        n_anc = 32
+        totals = np.zeros(n_anc, dtype=int)
+        for outcomes, num_counts in counts.items():
+            new_totals = num_counts * np.array([int(bit) for bit in outcomes][::-1])
+            assert len(new_totals) == n_anc
+            totals += new_totals
+        output = {}
+        for i in range(0, 32):
+            output[hex(i)] = totals[i]
+
+        targets = {}
+        for i in range(0, 30, 3):
+            targets[hex(i)] = shots / 2
+            targets[hex(i + 1)] = shots / 2
+            targets[hex(i + 2)] = 0
+        targets[hex(30)] = shots / 2
+        targets[hex(31)] = shots / 2
+
+        self.assertDictAlmostEqual(output, targets, delta=delta * shots)
+
+    # ---------------------------------------------------------------------
     # Test MPS algorithms for measure
     # ---------------------------------------------------------------------
     def test_mps_measure_alg_qv(self):
@@ -256,6 +322,22 @@ class TestMeasure(SimulatorTestCase):
 
             self.assertDictAlmostEqual(
                 result1.get_counts(circuit), result2.get_counts(circuit), delta=0.1 * shots
+            )
+
+            # Test also parallel version
+            os.environ["PRL_PROB_MEAS"] = "1"
+            result2_prl = backend.run(
+                circuit, shots=shots, mps_sample_measure_algorithm="mps_probabilities"
+            ).result()
+            self.assertTrue(getattr(result2_prl, "success", "True"))
+            del os.environ["PRL_PROB_MEAS"]  # Python 3.8 in Windows
+            # os.unsetenv("PRL_PROB_MEAS")  # SInce Python 3.9
+
+            self.assertDictAlmostEqual(
+                result1.get_counts(circuit), result2_prl.get_counts(circuit), delta=0.1 * shots
+            )
+            self.assertDictAlmostEqual(
+                result2.get_counts(circuit), result2_prl.get_counts(circuit), delta=0.1 * shots
             )
 
     def test_mps_measure_with_limited_bond_dimension(self):

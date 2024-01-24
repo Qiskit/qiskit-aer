@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    This fix changes `device` query method from running simple circuit to
+    search devices from C++ binary to prevent initializing GPUs at
+    initialization phase and simulation methods are listed in Python code.
+    Aer built with GPU support will not initialize when `device=CPU` is used.
+    And only initialize and access GPUs defined in `target_gpus` option.

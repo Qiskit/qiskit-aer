@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fixed GPU batched shots optimization and GPU runtime parameter binding
+    failures caused by wrong checking of return condition

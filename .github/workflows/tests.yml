@@ -32,7 +32,7 @@ jobs:
         run: |
           set -e
           pip install -U pip wheel
-          pip install -U -c constraints.txt -r requirements-dev.txt qiskit-terra numpy scipy
+          pip install -U -c constraints.txt -r requirements-dev.txt qiskit numpy scipy
         shell: bash
       - name: Run clang-format
         run: |
@@ -49,7 +49,7 @@ jobs:
     needs: ["lint"]
     strategy:
       matrix:
-        python-version: [3.8, 3.9, "3.10", '3.11']
+        python-version: [3.8, 3.9, "3.10", '3.11', "3.12.0"]
         platform: [
           { os: "ubuntu-latest", python-architecture: "x64" },
         ]
@@ -92,7 +92,7 @@ jobs:
     timeout-minutes: 60
     strategy:
       matrix:
-        python-version: [3.8, 3.9, "3.10", "3.11"]
+        python-version: [3.8, 3.9, "3.10", "3.11", "3.12.0"]
         os: ["ubuntu-latest"]
     env:
       AER_THRUST_BACKEND: OMP
@@ -175,8 +175,8 @@ jobs:
       - name: Install Aer
         run: |
           set -e
-          python -I -m build --wheel --config-setting=--build-option=-- --config-setting=--build-option=-DTEST_JSON=1
-          pip install --find-links=dist qiskit-aer
+          python -I -m build --wheel --config-setting=--build-option=-DTEST_JSON=1
+          pip install -U dist/*.whl
       - name: Run Tests
         run: |
           set -e
@@ -190,7 +190,7 @@ jobs:
     timeout-minutes: 60
     strategy:
       matrix:
-        python-version: [3.8, 3.9, "3.10", '3.11']
+        python-version: [3.8, 3.9, "3.10", '3.11', "3.12.0"]
         os: ["macOS-latest"]
     env:
       AER_THRUST_BACKEND: OMP
@@ -233,7 +233,7 @@ jobs:
     timeout-minutes: 60
     strategy:
       matrix:
-        python-version: [3.8, 3.9, "3.10", "3.11"]
+        python-version: [3.8, 3.9, "3.10", "3.11", "3.12.0"]
         os: ["windows-2019"]
     env:
       AER_THRUST_BACKEND: OMP
@@ -267,7 +267,7 @@ jobs:
         run: |
           set -e
           python -I -m build --wheel
-          pip install --find-links=dist qiskit-aer
+          pip install -U dist/*.whl
         shell: bash
       - name: Run Tests
         env:

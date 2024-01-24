@@ -310,6 +310,12 @@ public:
   // If N=3 this implements an optimized CCRZ gate
   virtual void apply_mcrz(const reg_t &qubits, const double theta);
 
+  // Apply a general N-qubit multi-controlled SX-gate
+  // If N=1 this implements an optimized SX gate
+  // If N=2 this implements an optimized CSX gate
+  // If N=3 this implements an optimized CCSX gate
+  virtual void apply_mcsx(const reg_t &qubits);
+
   //-----------------------------------------------------------------------
   // Apply Non-Unitary Gates
   //-----------------------------------------------------------------------
@@ -624,7 +630,7 @@ void AerState::set_seed(int_t seed) {
 reg_t AerState::allocate_qubits(uint_t num_qubits) {
   assert_not_initialized();
   reg_t ret;
-  for (auto i = 0; i < num_qubits; ++i)
+  for (uint_t i = 0; i < num_qubits; ++i)
     ret.push_back(num_of_qubits_++);
   return ret;
 };
@@ -810,7 +816,7 @@ reg_t AerState::initialize_statevector(uint_t num_of_qubits, complex_t *data,
 
   reg_t ret;
   ret.reserve(num_of_qubits);
-  for (auto i = 0; i < num_of_qubits; ++i)
+  for (uint_t i = 0; i < num_of_qubits; ++i)
     ret.push_back(i);
   return ret;
 };
@@ -855,7 +861,7 @@ reg_t AerState::initialize_density_matrix(uint_t num_of_qubits, complex_t *data,
 
   reg_t ret;
   ret.reserve(num_of_qubits);
-  for (auto i = 0; i < num_of_qubits; ++i)
+  for (uint_t i = 0; i < num_of_qubits; ++i)
     ret.push_back(i);
   return ret;
 };
@@ -886,7 +892,7 @@ AER::Vector<complex_t> AerState::move_to_vector() {
     throw std::runtime_error("move_to_vector() supports only statevector or "
                              "matrix_product_state or density_matrix methods");
   }
-  for (auto i = 0; i < num_of_qubits_; ++i)
+  for (uint_t i = 0; i < num_of_qubits_; ++i)
     op.qubits.push_back(i);
   op.string_params.push_back("s");
   op.save_type = Operations::DataSubType::single;
@@ -901,7 +907,7 @@ AER::Vector<complex_t> AerState::move_to_vector() {
             .value()["s"]
             .value());
     clear();
-    return std::move(vec);
+    return vec;
   } else if (method_ == Method::density_matrix) {
     auto mat =
         std::move(static_cast<DataMap<AverageData, matrix<complex_t>, 1>>(
@@ -911,7 +917,7 @@ AER::Vector<complex_t> AerState::move_to_vector() {
     auto vec = Vector<complex_t>::move_from_buffer(
         mat.GetColumns() * mat.GetRows(), mat.move_to_buffer());
     clear();
-    return std::move(vec);
+    return vec;
   } else {
     throw std::runtime_error("move_to_vector() supports only statevector or "
                              "matrix_product_state or density_matrix methods");
@@ -935,7 +941,7 @@ matrix<complex_t> AerState::move_to_matrix() {
     throw std::runtime_error("move_to_matrix() supports only statevector or "
                              "matrix_product_state or density_matrix methods");
   }
-  for (auto i = 0; i < num_of_qubits_; ++i)
+  for (uint_t i = 0; i < num_of_qubits_; ++i)
     op.qubits.push_back(i);
   op.string_params.push_back("s");
   op.save_type = Operations::DataSubType::single;
@@ -960,7 +966,7 @@ matrix<complex_t> AerState::move_to_matrix() {
                 .value())["s"]
             .value());
     clear();
-    return std::move(mat);
+    return mat;
   } else {
     throw std::runtime_error("move_to_matrix() supports only statevector or "
                              "matrix_product_state or density_matrix methods");
@@ -1288,6 +1294,17 @@ void AerState::apply_mcrz(const reg_t &qubits, const double theta) {
   op.name = "mcrz";
   op.qubits = qubits;
   op.params = {theta};
+
+  buffer_op(std::move(op));
+}
+
+void AerState::apply_mcsx(const reg_t &qubits) {
+  assert_initialized();
+
+  Operations::Op op;
+  op.type = Operations::OpType::gate;
+  op.qubits = qubits;
+  op.name = "mcsx";
 
   buffer_op(std::move(op));
 }

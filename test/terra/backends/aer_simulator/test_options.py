@@ -46,7 +46,7 @@ class TestOptions(SimulatorTestCase):
         qc.h([0, 1])
         qc.reset(0)
         qc.measure_all()
-        qc = transpile(qc, backend)
+        qc = transpile(qc, backend, optimization_level=0)
 
         counts1 = backend.run(qc).result().get_counts(0)
         counts2 = backend.run(qc).result().get_counts(0)
@@ -71,7 +71,7 @@ class TestOptions(SimulatorTestCase):
         qc.h([0, 1])
         qc.reset(0)
         qc.measure_all()
-        qc = transpile(qc, backend)
+        qc = transpile(qc, backend, optimization_level=0)
         seed = 1234
         counts1 = backend.run(qc, seed_simulator=seed).result().get_counts(0)
         counts2 = backend.run(qc, seed_simulator=seed).result().get_counts(0)

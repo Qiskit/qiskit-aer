@@ -38,6 +38,7 @@ public:
   // Parent class aliases
   using BaseVector = QubitVectorThrust<data_t>;
   using BaseMatrix = UnitaryMatrixThrust<data_t>;
+  using BaseVector::probabilities;
 
   //-----------------------------------------------------------------------
   // Constructors and Destructor
@@ -449,9 +450,9 @@ public:
 template <typename data_t>
 class DensityDiagMatMultNxN : public Chunk::GateFuncBase<data_t> {
 protected:
-  int nqubits_;
-  int total_bits_;
-  int chunk_bits_;
+  uint_t nqubits_;
+  uint_t total_bits_;
+  uint_t chunk_bits_;
 
 public:
   DensityDiagMatMultNxN(const reg_t &qb, int total, int chunk) {
@@ -541,7 +542,7 @@ public:
     offset_ = 1ull << qubits[qubits.size() - 1];
     offset_sp_ = 1ull << (qubits[qubits.size() - 1] + chunk_qubits_);
     cmask_ = 0;
-    for (int i = 0; i < qubits.size() - 1; i++)
+    for (uint_t i = 0; i < qubits.size() - 1; i++)
       cmask_ |= (1ull << qubits[i]);
     enable_batch_ = batch;
   }
@@ -629,7 +630,7 @@ public:
     offset_ = 1ull << qubits[qubits.size() - 1];
     offset_sp_ = 1ull << (qubits[qubits.size() - 1] + chunk_qubits_);
     cmask_ = 0;
-    for (int i = 0; i < qubits.size() - 1; i++)
+    for (uint_t i = 0; i < qubits.size() - 1; i++)
       cmask_ |= (1ull << qubits[i]);
     enable_batch_ = batch;
   }
@@ -1081,7 +1082,7 @@ public:
     vec = this->data_;
 
     idx_vec = ((i << 1) & mask_u_) | (i & mask_l_);
-    idx_mat = idx_vec ^ x_mask_ + rows_ * idx_vec;
+    idx_mat = (idx_vec ^ x_mask_) + rows_ * idx_vec;
 
     q0 = vec[idx_mat];
     q0 = 2 * phase_ * q0;
@@ -1158,7 +1159,7 @@ public:
 
     vec = this->data_;
 
-    idx_mat = i ^ x_mask_ + rows_ * i;
+    idx_mat = (i ^ x_mask_) + rows_ * i;
 
     q0 = vec[idx_mat];
     q0 = phase_ * q0;
@@ -1353,7 +1354,7 @@ template <typename data_t>
 void DensityMatrixThrust<data_t>::apply_batched_measure(
     const reg_t &qubits, std::vector<RngEngine> &rng, const reg_t &cmemory,
     const reg_t &cregs) {
-  const int_t DIM = 1 << qubits.size();
+  const uint_t DIM = 1 << qubits.size();
   uint_t i, count = 1;
   if (BaseVector::enable_batch_) {
     if (BaseVector::chunk_.pos() != 0) {
@@ -1503,7 +1504,7 @@ void DensityMatrixThrust<data_t>::apply_reset(const reg_t &qubits) {
   auto qubits_sorted = qubits;
   std::sort(qubits_sorted.begin(), qubits_sorted.end());
 
-  for (int_t i = 0; i < qubits.size(); i++) {
+  for (uint_t i = 0; i < qubits.size(); i++) {
     qubits_sorted.push_back(qubits[i]);
   }
   BaseVector::chunk_.StoreUintParams(qubits_sorted);
