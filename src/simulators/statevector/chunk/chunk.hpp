@@ -165,10 +165,10 @@ public:
     }
   }
 
-  void ResizeMatrixBuffers(int bits, int max_shots) {
+  void ResizeMatrixBuffers(int bits) {
     // synchronize all kernel execution before changing matrix buffer size
     chunk_container_.lock()->synchronize(chunk_pos_);
-    chunk_container_.lock()->ResizeMatrixBuffers(bits, max_shots);
+    chunk_container_.lock()->ResizeMatrixBuffers(bits);
   }
 
   void CopyIn(Chunk<data_t> &src) {
@@ -262,13 +262,6 @@ public:
     }
     return chunk_container_.lock()->probability_buffer(chunk_pos_);
   }
-  void copy_reduce_buffer(std::vector<double> &ret, uint_t num_val) const {
-    if (cache_) {
-      return cache_->copy_reduce_buffer(ret, num_val);
-    }
-    return chunk_container_.lock()->copy_reduce_buffer(ret, chunk_pos_,
-                                                       num_val);
-  }
 
   void synchronize(void) const {
     if (cache_) {
@@ -323,20 +316,6 @@ public:
       chunk_container_.lock()->apply_matrix(chunk_pos_, qubits, control_bits,
                                             mat, chunk_index_, count);
   }
-  void apply_batched_matrix(const reg_t &qubits, const int_t control_bits,
-                            const cvector_t<double> &mat,
-                            const uint_t num_shots_per_matrix,
-                            const uint_t count) {
-    if (cache_)
-      cache_->chunk_container_.lock()->apply_batched_matrix(
-          cache_->chunk_pos_, qubits, control_bits, mat, num_shots_per_matrix,
-          chunk_index_, count);
-    else
-      chunk_container_.lock()->apply_batched_matrix(
-          chunk_pos_, qubits, control_bits, mat, num_shots_per_matrix,
-          chunk_index_, count);
-  }
-
   // apply diagonal matrix
   void apply_diagonal_matrix(const reg_t &qubits, const int_t control_bits,
                              const cvector_t<double> &diag,
@@ -348,21 +327,6 @@ public:
       chunk_container_.lock()->apply_diagonal_matrix(
           chunk_pos_, qubits, control_bits, diag, chunk_index_, count);
   }
-  void apply_batched_diagonal_matrix(const reg_t &qubits,
-                                     const int_t control_bits,
-                                     const cvector_t<double> &diag,
-                                     const uint_t num_shots_per_matrix,
-                                     const uint_t count) {
-    if (cache_)
-      cache_->chunk_container_.lock()->apply_batched_diagonal_matrix(
-          cache_->chunk_pos_, qubits, control_bits, diag, num_shots_per_matrix,
-          chunk_index_, count);
-    else
-      chunk_container_.lock()->apply_batched_diagonal_matrix(
-          chunk_pos_, qubits, control_bits, diag, num_shots_per_matrix,
-          chunk_index_, count);
-  }
-
   // apply (controlled) X
   void apply_X(const reg_t &qubits, const uint_t count) {
     if (cache_)
@@ -446,14 +410,6 @@ public:
                       const complex_t initial_phase) const {
     return chunk_container_.lock()->expval_pauli(chunk_pos_, qubits, pauli,
                                                  initial_phase);
-  }
-  void batched_expval_pauli(const uint_t count, const reg_t &qubits,
-                            const std::string &pauli, bool variance,
-                            std::complex<double> param, bool first,
-                            const complex_t initial_phase) const {
-    chunk_container_.lock()->batched_expval_pauli(chunk_pos_, count, qubits,
-                                                  pauli, variance, param, first,
-                                                  initial_phase);
   }
 };
 

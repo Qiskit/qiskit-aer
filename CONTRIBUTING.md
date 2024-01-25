@@ -5,7 +5,7 @@ included in the Qiskit documentation:
 
 https://qiskit.org/documentation/contributing_to_qiskit.html
 
-## Contributing to Aer
+## Contributing to Qiskit Aer
 
 In addition to the general guidelines, there are specific details for
 contributing to Aer. These are documented below.
@@ -105,33 +105,33 @@ look something like::
 ```yaml
 features:
   - |
-    Introduced a new feature ``foo``, that adds support for doing something to
-    ``AerProvider`` objects. It can be used by using the ``foo`` function,
+    Introduced a new feature foo, that adds support for doing something to
+    ``QuantumCircuit`` objects. It can be used by using the foo function,
     for example::
 
-      from qiskit_aer import foo
-      from qiskit_aer import AerProvider
-      foo(AerProvider())
+      from qiskit import foo
+      from qiskit import QuantumCircuit
+      foo(QuantumCircuit())
 
   - |
-    The ``qiskit_aer.AerProvider`` module has a new method ``foo()``. This is
-    the equivalent of calling the ``qiskit_aer.foo()`` to do something to your
-    ``AerProvider``. This is the equivalent of running ``qiskit_aer.foo()`` on
-    your provider, but it has the convenience of running it natively on
+    The ``qiskit.QuantumCircuit`` module has a new method ``foo()``. This is
+    the equivalent of calling the ``qiskit.foo()`` to do something to your
+    QuantumCircuit. This is the equivalent of running ``qiskit.foo()`` on
+    your circuit, but provides the convenience of running it natively on
     an object. For example::
 
-      from qiskit_aer import AerProvider
+      from qiskit import QuantumCircuit
 
-      provider = AerProvider()
-      provider.foo()
+      circ = QuantumCircuit()
+      circ.foo()
 
 deprecations:
   - |
-    The ``qiskit_aer.bar`` module has been deprecated and will be removed in a
+    The ``qiskit.bar`` module has been deprecated and will be removed in a
     future release. Its sole function, ``foobar()`` has been superseded by the
-    ``qiskit_aer.foo()`` function which provides similar functionality but with
+    ``qiskit.foo()`` function which provides similar functionality but with
     more accurate results and better performance. You should update your calls
-    ``qiskit_aer.bar.foobar()`` calls to ``qiskit_aer.foo()``.
+    ``qiskit.bar.foobar()`` calls to ``qiskit.foo()``.
 ```
 
 You can also look at other release notes for other examples.
@@ -180,7 +180,7 @@ it has been tagged::
 At release time, ``reno report`` is used to generate the release notes for the
 release and the output will be submitted as a pull request to the documentation
 repository's [release notes file](
-https://github.com/Qiskit/qiskit-aer/blob/master/docs/release_notes.rst)
+https://github.com/Qiskit/qiskit/blob/master/docs/release_notes.rst)
 
 #### Building release notes locally
 
@@ -193,7 +193,7 @@ particular will be located at `docs/_build/html/release_notes.html`
 
 ## Style and lint
 
-Aer uses 3 tools for verifying code formatting and lint checking. The
+Qiskit Aer uses 3 tools for verifying code formatting and lint checking. The
 first tool is [black](https://github.com/psf/black) which is a Python code formatting
 tool that will automatically update the code formatting to a consistent style.
 The second tool is [pylint](https://www.pylint.org/) which is a code linter
@@ -211,7 +211,7 @@ any error you will have to fix these issues by manually updating your code.
 
 ### Development Cycle
 
-The development cycle for Aer is all handled in the open using
+The development cycle for qiskit-aer is all handled in the open using
 the project boards in GitHub for project management. We use milestones
 in GitHub to track work for specific releases. The features or other changes
 that we want to include in a release will be tagged and discussed in GitHub.
@@ -222,12 +222,12 @@ previous version in the release notes.
 
 * `main`:
 
-The main branch is used for development of the next version of Aer.
+The main branch is used for development of the next version of qiskit-aer.
 It will be updated frequently and should not be considered stable. The API
 can and will change on main as we introduce and refine new features.
 
 * `stable/*` branches:
-Branches under `stable/*` are used to maintain released versions of `qiskit-aer`.
+Branches under `stable/*` are used to maintain released versions of qiskit-aer.
 It contains the version of the code corresponding to the latest release for
 that minor version on pypi. For example, stable/0.4 contains the code for the
 0.4.0 release on pypi. The API on these branches are stable and the only changes
@@ -235,7 +235,7 @@ merged to it are bugfixes.
 
 ### Release cycle
 
-When it is time to release a new minor version of `qiskit-aer`, we will:
+When it is time to release a new minor version of qiskit-aer, we will:
 
 1.  Create a new tag with the version number and push it to github
 2.  Change the `main` version to the next release version.
@@ -268,7 +268,7 @@ window
     $ conda activate QiskitDevEnv
 ```
 
-- Clone the `Aer` repo via *git*.
+- Clone the `Qiskit Aer` repo via *git*.
 ```
     $ git clone https://github.com/Qiskit/qiskit-aer
 ```
@@ -301,7 +301,7 @@ You're now ready to build from source! Follow the instructions for your platform
 
 ### Linux
 
-Aer is officially supported on Red Hat, CentOS, Fedora, and Ubuntu distributions, as long as you can install a GCC version that is C++14 compatible and a few dependencies we need.
+Qiskit is officially supported on Red Hat, CentOS, Fedora, and Ubuntu distributions, as long as you can install a GCC version that is C++14 compatible and a few dependencies we need.
 
 #### <a name="linux-dependencies"> Dependencies </a>
 
@@ -635,12 +635,10 @@ options we have on `Aer` to CMake, we use its native mechanism:
 
 ### Building with GPU support
 
-Aer can exploit GPU's horsepower to accelerate some simulations, specially the larger ones.
-GPU access is supported either via CUDA® (NVIDIA® chipset) or ROCm® (AMD® GPUs).
-
-#### Building with CUDA® support
-To build with CUDA® support, you need to have CUDA® >= 11.2 preinstalled. See install instructions [here](https://developer.nvidia.com/cuda-toolkit-archive).
-Please note that we only support CUDA® GPU acceleration on Linux platforms at the moment.
+Qiskit Aer can exploit GPU's horsepower to accelerate some simulations, specially the larger ones.
+GPU access is supported via CUDA® (NVIDIA® chipset), so to build with GPU support, you need
+to have CUDA® >= 11.2 preinstalled. See install instructions [here](https://developer.nvidia.com/cuda-toolkit-archive)
+Please note that we only support GPU acceleration on Linux platforms at the moment.
 
 Once CUDA® is properly installed, you only need to set a flag so the build system knows what to do:
 
@@ -666,18 +664,18 @@ or
 This will reduce the amount of compilation time when, for example, the architecture auto detection
 fails and the build system compiles all common architectures.
 
-Few notes on CUDA® GPU builds:
+Few notes on GPU builds:
 1. Building takes considerable more time than non-GPU build, so be patient :)
 2. CUDA® >= 11.2 imposes the restriction of building with g++ version not newer than 8
 3. We don't need NVIDIA® drivers for building, but we need them for running simulations
 4. Only Linux platforms are supported
 
-Aer now supports cuQuantum optimized Quantum computing APIs from NVIDIA®.
+Qiskit Aer now supports cuQuantum optimized Quantum computing APIs from NVIDIA®.
 cuStateVec APIs can be exploited to accelerate statevector, density_matrix and unitary methods.
 cuTensorNet APIs can be exploited to tensor_network merthod.
 This implementation requires CUDA® toolkit version 11.2 or higher and Volta or Ampare architecture GPUs.
 
-Before building Aer with cuQuantum support, install required components via pip install as following.
+Before building Qiskit Aer with cuQuantum support, install required components via pip install as following.
 
     qiskit-aer$ pip install nvidia-cuda-runtime-cu11 nvidia-cublas-cu11 nvidia-cusolver-cu11 nvidia-cusparse-cu11 cuquantum-cu11
 
@@ -708,66 +706,16 @@ Also you can accelrate density matrix and unitary matrix simulations as well.
 sim = AerSimulator(method='density_matrix', device='GPU')
 results = execute(circuit,sim,cuStateVec_enable=True).result()
 ```
-#### Building with ROCm® support
-ROCm® support has been added matching the CUDA® implementation based
-on the `thrust` library. This enables Aer to run on AMD® GPUs,
-including the AMD® Instinct GPU line based on the CDNA architecture. 
-ROCm® only support linux platforms.
 
-To build the standalone version, the following should be sufficient:
 
-```
-cmake <qiskit-aer source folder> -G Ninja \
-   -DCMAKE_INSTALL_PREFIX=<qiskit-aer target instalation folder> \
-   -DSKBUILD=FALSE \
-   -DAER_THRUST_BACKEND=ROCM \
-   -DAER_MPI=<set to ON or OFF depending on whether to activate MPI support> \
-   -DAER_ROCM_ARCH=<target AMD GPU list, white-space separated, e.g. 'gfx90a gfx908'> \
-   -DCMAKE_BUILD_TYPE=Release \
-   -DBUILD_TESTS=True
-ninja install
-```
-Alternatively, and possibly preferred for most use cases, you can create a Python
-wheel file that you can install as part of your Python environemnt:
-```
-cd <qiskit-aer source folder>
-
-QISKIT_AER_PACKAGE_NAME='qiskit-aer-gpu-rocm' \
-   python3 setup.py bdist_wheel -- \
-      -DAER_THRUST_BACKEND=ROCM \
-      -DAER_MPI=<set to ON or OFF depending on whether to activate MPI support> \
-      -DAER_ROCM_ARCH=<target AMD GPU list, white-space separated, e.g. 'gfx90a gfx908'>
-
-pip install --force-reinstall dist/qiskit_aer_gpu_rocm-*.whl
-```
-  
-In both cases, the host system needs to have a functional ROCm® instalation and 
-the environment variable `ROCM_PATH` set pointing to the ROCm® instalation folder if
-that is not the default `/opt/rocm`.
-Depending on how your Python environment is set, you might need to install
-Aer's required development modules:
-```
-cd <qiskit-aer source folder>
-pip install -r requirements-dev.txt
-```
-
-To leverage the ROCm® implementations no code changes are needed on top of one
-already does for CUDA®. Running with cuStateVec, for instance, requires set 
-`device='GPU'` to AerSimulator option and set `cuStateVec_enable=True` option,
-similarly to what is done for CUDA®:
-
-```
-sim = AerSimulator(method='statevector', device='GPU')
-results = execute(circuit,sim,cuStateVec_enable=True).result()
-```
 
 ### Building with MPI support
 
-Aer can parallelize its simulation on the cluster systems by using MPI. 
+Qiskit Aer can parallelize its simulation on the cluster systems by using MPI. 
 This can extend available memory space to simulate quantum circuits with larger number of qubits and also can accelerate the simulation by parallel computing. 
 To use MPI support, any MPI library (i.e. OpenMPI) should be installed and configured on the system.
 
-Aer supports MPI both with and without GPU support. Currently following simulation methods are supported to be parallelized by MPI.
+Qiskit Aer supports MPI both with and without GPU support. Currently following simulation methods are supported to be parallelized by MPI.
 
  - statevector
  - density_matrix
@@ -795,7 +743,7 @@ For example,
 
 ### Running with multiple-GPUs and/or multiple nodes
 
-Aer parallelizes simulations by distributing quantum states into distributed memory space.
+Qiskit Aer parallelizes simulations by distributing quantum states into distributed memory space.
 To decrease data transfer between spaces the distributed states are managed as chunks that is a sub-state for smaller qubits than the input circuits.
 
 For example, 
@@ -809,7 +757,7 @@ And the (noiseless) swap gates are inserted to exchange data.
 Please refer to this paper (https://arxiv.org/abs/2102.02957) for more detailed algorithm and implementation of parallel simulation.
 
 So to simulate by using multiple GPUs or multiple nodes on the cluster, following configurations should be set to backend options.
-(If there is not enough memory to simulate the input circuit, Aer automatically set following options, but it is recommended to explicitly set them)
+(If there is not enough memory to simulate the input circuit, Qiskit Aer automatically set following options, but it is recommended to explicitly set them)
 
  - blocking_enable
 
@@ -828,13 +776,13 @@ circ.measure_all()
 result = execute(circ, sim, shots=100, blocking_enable=True, blocking_qubits=23).result()
 ```
 
-To run Aer with Python script with MPI parallelization, MPI executer such as mpirun should be used to submit a job on the cluster. Following example shows how to run Python script using 4 processes by using mpirun.
+To run Qiskit Aer with Python script with MPI parallelization, MPI executer such as mpirun should be used to submit a job on the cluster. Following example shows how to run Python script using 4 processes by using mpirun.
 
 ```
 mpirun -np 4 python example.py
 ```
 
-MPI_Init function is called inside Aer, so you do not have to manage MPI processes in Python script.
+MPI_Init function is called inside Qiskit Aer, so you do not have to manage MPI processes in Python script.
 Following metadatas are useful to find on which process is this script running. 
 
  - num_mpi_processes : shows number of processes using for this simulation
@@ -855,9 +803,9 @@ myrank = meta['mpi_rank']
 Multiple shots are also distributed to multiple nodes when setting `device=GPU` and `batched_shots_gpu=True`. The results are distributed to each processes.
 
 
-Note : In the script, make sure that the same random seed should be used for all processes so that the consistent circuits and parameters are passed to Aer. To do so add following option to the script.
+Note : In the script, make sure that the same random seed should be used for all processes so that the consistent circuits and parameters are passed to Qiskit Aer. To do so add following option to the script.
 ```
-from qiskit_algorithms.utils import algorithm_globals
+from qiskit.utils import algorithm_globals
 algorithm_globals.random_seed = consistent_seed_to_all_processes
 ```
 
@@ -966,16 +914,6 @@ These are the flags:
     Default: No value.
     Example: ``python ./setup.py bdist_wheel -- -DAER_BLAS_LIB_PATH=/path/to/look/for/blas/``
 
-* USE_BUNDLED_BLAS_WIN
-
-    Tells CMake to use the bundled OpenBLAS library vendored into the source code when building on Windows.
-    When this option is set to `False`, CMake will use its standard method to search for the BLAS library aginst which to link instead of using the vendored version.
-    The `AER_BLAS_LIB_PATH` option takes precedence over this option.
-
-    Values: True|False
-    Default: True
-    Example: ``python ./setup.py bdist_wheel -- -DUSE_BUNDLED_BLAS_WIN=FALSE``
-
 * BUILD_TESTS
 
     It will tell the build system to build C++ tests along with the simulator.
@@ -1059,10 +997,10 @@ These are the flags:
 Code contributions are expected to include tests that provide coverage for the
 changes being made.
 
-We have two types of tests in the codebase: Qiskit integration tests and
+We have two types of tests in the codebase: Qiskit Terra integration tests and
 Standalone integration tests.
 
-For Qiskit integration tests, you first need to build and install the Qiskit Python extension, and then run ``unittest`` Python framework.
+For Qiskit Terra integration tests, you first need to build and install the Qiskit Python extension, and then run `unittest` Python framework.
 
 ```
 qiskit-aer$ pip install .
@@ -1177,7 +1115,7 @@ After this, you can step through the code and continue with your debug session a
 
 ## Dealing with the git blame ignore list
 
-In the ``Qiskit/qiskit-aer`` repository we maintain a list of commits for git blame to
+In the qiskit-aer repository we maintain a list of commits for git blame to
 ignore. This is mostly commits that are code style changes that don't change
 the functionality but just change the code formatting (for example, when we
 migrated to use black for code formatting). This file, `.git-blame-ignore-revs`

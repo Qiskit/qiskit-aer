@@ -260,10 +260,10 @@ class AerStatevector(Statevector):
                 pass
             else:
                 applied = False
-        elif inst.name == "reset":
-            aer_state.apply_reset(qubits)
         elif inst.name == "kraus":
             aer_state.apply_kraus(qubits, inst.params)
+        elif inst.name == "reset":
+            aer_state.apply_reset(qubits)
         elif inst.name == "barrier":
             pass
         else:

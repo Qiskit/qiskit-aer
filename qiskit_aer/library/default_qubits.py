@@ -14,6 +14,7 @@ Helper function
 """
 
 from qiskit.circuit import QuantumRegister
+from qiskit.extensions.exceptions import ExtensionError
 
 
 def default_qubits(circuit, qubits=None):
@@ -26,7 +27,7 @@ def default_qubits(circuit, qubits=None):
             [Default: None]
 
     Raises:
-        ValueError: if default qubits fails.
+            ExtensionError: if default qubits fails.
 
     Returns:
         list: qubits list.
@@ -36,9 +37,9 @@ def default_qubits(circuit, qubits=None):
     # This is needed for full register snapshots like statevector
     if isinstance(qubits, QuantumRegister):
         qubits = qubits[:]
-    if qubits is None:
+    if not qubits:
         qubits = list(circuit.qubits)
         if len(qubits) == 0:
-            raise ValueError("no qubits for snapshot")
+            raise ExtensionError("no qubits for snapshot")
 
     return qubits

@@ -84,14 +84,14 @@ void Executor<state_t>::set_config(const Config &config) {
 
 template <class state_t>
 void Executor<state_t>::initialize_qreg(uint_t num_qubits) {
-  uint_t iChunk;
+  int_t iChunk;
   for (iChunk = 0; iChunk < Base::states_.size(); iChunk++) {
     Base::states_[iChunk].qreg().set_num_qubits(Base::chunk_bits_);
   }
 
   if (Base::chunk_omp_parallel_ && Base::num_groups_ > 1) {
 #pragma omp parallel for private(iChunk)
-    for (int_t ig = 0; ig < (int_t)Base::num_groups_; ig++) {
+    for (int_t ig = 0; ig < Base::num_groups_; ig++) {
       for (iChunk = Base::top_state_of_group_[ig];
            iChunk < Base::top_state_of_group_[ig + 1]; iChunk++) {
         uint_t irow, icol;
@@ -99,10 +99,9 @@ void Executor<state_t>::initialize_qreg(uint_t num_qubits) {
                ((Base::num_qubits_ - Base::chunk_bits_));
         icol = (Base::global_state_index_ + iChunk) -
                (irow << ((Base::num_qubits_ - Base::chunk_bits_)));
-        if (irow == icol) {
+        if (irow == icol)
           Base::states_[iChunk].qreg().initialize();
-          Base::states_[iChunk].apply_global_phase();
-        } else
+        else
           Base::states_[iChunk].qreg().zero();
       }
     }
@@ -113,13 +112,14 @@ void Executor<state_t>::initialize_qreg(uint_t num_qubits) {
              ((Base::num_qubits_ - Base::chunk_bits_));
       icol = (Base::global_state_index_ + iChunk) -
              (irow << ((Base::num_qubits_ - Base::chunk_bits_)));
-      if (irow == icol) {
+      if (irow == icol)
         Base::states_[iChunk].qreg().initialize();
-        Base::states_[iChunk].apply_global_phase();
-      } else
+      else
         Base::states_[iChunk].qreg().zero();
     }
   }
+
+  Base::apply_global_phase();
 }
 
 template <class state_t>

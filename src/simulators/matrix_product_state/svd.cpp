@@ -89,8 +89,7 @@ uint_t num_of_SV(rvector_t S, double threshold) {
 }
 
 double reduce_zeros(cmatrix_t &U, rvector_t &S, cmatrix_t &V,
-                    uint_t max_bond_dimension, double truncation_threshold,
-                    bool mps_lapack) {
+                    uint_t max_bond_dimension, double truncation_threshold) {
   uint_t SV_num = num_of_SV(S, CHOP_THRESHOLD);
   uint_t new_SV_num = SV_num;
 
@@ -140,28 +139,9 @@ double reduce_zeros(cmatrix_t &U, rvector_t &S, cmatrix_t &V,
   return discarded_value;
 }
 
-void validate_SVdD_result(const cmatrix_t &A, const cmatrix_t &U,
-                          const rvector_t &S, const cmatrix_t &V) {
-  const uint_t nrows = A.GetRows(), ncols = A.GetColumns();
-
-  cmatrix_t diag_S = diag(S, nrows, ncols);
-  cmatrix_t product = U * diag_S;
-  product = product * V;
-
-  for (uint_t ii = 0; ii < nrows; ii++)
-    for (uint_t jj = 0; jj < ncols; jj++)
-      if (!Linalg::almost_equal(std::abs(A(ii, jj)), std::abs(product(ii, jj)),
-                                THRESHOLD)) {
-        std::cout << std::abs(A(ii, jj)) << " vs " << std::abs(product(ii, jj))
-                  << std::endl;
-        throw std::runtime_error("Error: Wrong SVD calculations: A != USV*");
-      }
-}
-
 void validate_SVD_result(const cmatrix_t &A, const cmatrix_t &U,
                          const rvector_t &S, const cmatrix_t &V) {
   const uint_t nrows = A.GetRows(), ncols = A.GetColumns();
-
   cmatrix_t diag_S = diag(S, nrows, ncols);
   cmatrix_t product = U * diag_S;
   product = product * AER::Utils::dagger(V);
@@ -639,6 +619,7 @@ void lapack_csvd_wrapper(cmatrix_t &A, cmatrix_t &U, rvector_t &S,
             work, &lwork, rwork, &info);
     free(rwork);
   }
+
   A = cmatrix_t::move_from_buffer(m, n, lapackA);
   U = cmatrix_t::move_from_buffer(m, m, lapackU);
   V = cmatrix_t::move_from_buffer(n, n, lapackV);

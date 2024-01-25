@@ -14,6 +14,7 @@ Simulator instruction to save statevector amplitudes and amplitudes squared.
 """
 
 from qiskit.circuit import QuantumCircuit
+from qiskit.extensions.exceptions import ExtensionError
 from .save_data import SaveSingleData, SaveAverageData
 from ..default_qubits import default_qubits
 
@@ -36,7 +37,7 @@ class SaveAmplitudes(SaveSingleData):
                                 [Default: False].
 
         Raises:
-            ValueError: if params is invalid for the specified number of qubits.
+            ExtensionError: if params is invalid for the specified number of qubits.
         """
         params = _format_amplitude_params(params, num_qubits)
         super().__init__(
@@ -77,7 +78,7 @@ class SaveAmplitudesSquared(SaveAverageData):
                                 [Default: False].
 
         Raises:
-            ValueError: if params is invalid for the specified number of qubits.
+            ExtensionError: if params is invalid for the specified number of qubits.
         """
         params = _format_amplitude_params(params, num_qubits)
         super().__init__(
@@ -108,7 +109,7 @@ def save_amplitudes(self, params, label="amplitudes", pershot=False, conditional
         QuantumCircuit: with attached instruction.
 
     Raises:
-        ValueError: if params is invalid for the specified number of qubits.
+        ExtensionError: if params is invalid for the specified number of qubits.
     """
     qubits = default_qubits(self)
     instr = SaveAmplitudes(
@@ -138,7 +139,7 @@ def save_amplitudes_squared(
         QuantumCircuit: with attached instruction.
 
     Raises:
-        ValueError: if params is invalid for the specified number of qubits.
+        ExtensionError: if params is invalid for the specified number of qubits.
     """
     qubits = default_qubits(self)
     instr = SaveAmplitudesSquared(
@@ -160,7 +161,7 @@ def _format_amplitude_params(params, num_qubits=None):
         else:
             params = [int(i, 2) for i in params]
     if num_qubits and max(params) >= 2**num_qubits:
-        raise ValueError("Param values contain a state larger than the number of qubits")
+        raise ExtensionError("Param values contain a state larger than the number of qubits")
     return params
 
 

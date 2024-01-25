@@ -14,6 +14,7 @@ Instruction to set the state simulator state to a superop matrix.
 """
 
 from qiskit.circuit import QuantumCircuit, Instruction
+from qiskit.extensions.exceptions import ExtensionError
 from qiskit.quantum_info import SuperOp
 from ..default_qubits import default_qubits
 
@@ -30,7 +31,7 @@ class SetSuperOp(Instruction):
             state (QuantumChannel): A CPTP quantum channel.
 
         Raises:
-            ValueError: if the input QuantumChannel is not CPTP.
+            ExtensionError: if the input QuantumChannel is not CPTP.
 
         .. note::
 
@@ -41,7 +42,7 @@ class SetSuperOp(Instruction):
         if not isinstance(state, SuperOp):
             state = SuperOp(state)
         if not state.num_qubits or not state.is_cptp():
-            raise ValueError("The input quantum channel is not CPTP")
+            raise ExtensionError("The input quantum channel is not CPTP")
         super().__init__("set_superop", state.num_qubits, 0, [state.data])
 
 
@@ -55,8 +56,9 @@ def set_superop(self, state):
         QuantumCircuit: with attached instruction.
 
     Raises:
-        ValueError: If the state is the incorrect size for the current circuit.
-        ValueError: if the input QuantumChannel is not CPTP.
+        ExtensionError: If the state is the incorrect size for the
+                        current circuit.
+        ExtensionError: if the input QuantumChannel is not CPTP.
 
     .. note:
 
@@ -66,7 +68,7 @@ def set_superop(self, state):
     if not isinstance(state, SuperOp):
         state = SuperOp(state)
     if not state.num_qubits or state.num_qubits != len(qubits):
-        raise ValueError(
+        raise ExtensionError(
             "The size of the quantum channel for the set_superop"
             " instruction must be equal to the number of qubits"
             f" in the circuit (state.num_qubits ({state.num_qubits})"

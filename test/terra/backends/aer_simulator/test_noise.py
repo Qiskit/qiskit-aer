@@ -15,7 +15,6 @@ AerSimulator Integration Tests
 
 from ddt import ddt
 from qiskit_aer import noise
-import numpy as np
 
 import qiskit.quantum_info as qi
 from qiskit import transpile
@@ -69,20 +68,6 @@ class TestNoise(SimulatorTestCase):
             result = backend.run(circuit, shots=shots).result()
             self.assertSuccess(result)
             self.compare_counts(result, [circuit], [target], delta=0.05 * shots)
-
-    @supported_methods(ALL_METHODS)
-    def test_readout_noise_without_basis_gates(self, method, device):
-        """Test simulation with classical readout error noise model w/o basis gates."""
-        backend = self.backend(method=method, device=device)
-        noise_model = noise.NoiseModel()
-        noise_model.add_readout_error(np.array([[0.9, 0.1], [0.1, 0.9]]), [0])
-        backend.set_options(noise_model=noise_model)
-        circ = QuantumCircuit(1, 1)
-        circ.reset(0)
-        circ.measure(0, 0)
-        circ = transpile(circ, backend)
-        result = backend.run(circ, shots=1).result()
-        self.assertSuccess(result)
 
     @supported_methods(ALL_METHODS)
     def test_pauli_gate_noise(self, method, device):

@@ -54,57 +54,20 @@ public:
       for (size_t i = 0; i < op.qubits.size(); i++)
         op.qubits[i] = orig2remapped[op.qubits[i]];
 
-    op_t fusioned_op;
-    if (num_params_ == 0) {
-      fusioned_op = generate_operation_internal(fusioned_ops, arg_qubits);
-      if (diagonal) {
-        std::vector<complex_t> vec;
-        vec.assign((1UL << fusioned_op.qubits.size()), 0);
-        for (size_t i = 0; i < vec.size(); ++i)
-          vec[i] = fusioned_op.mats[0](i, i);
-        fusioned_op = Operations::make_diagonal(
-            fusioned_op.qubits, std::move(vec), -1, std::string("fusion"));
-      }
-    } else {
-      // loop for runtime parameter binding
-      for (uint_t p = 0; p < num_params_; p++) {
-        std::vector<op_t> ops;
-        ops.reserve(fusioned_ops.size());
-        for (auto &op : fusioned_ops) {
-          if (op.has_bind_params)
-            ops.push_back(bind_parameter(op, p, num_params_));
-          else
-            ops.push_back(op);
-        }
-        auto new_op = generate_operation_internal(ops, arg_qubits);
-
-        if (diagonal) {
-          std::vector<complex_t> vec;
-          vec.assign((1UL << new_op.qubits.size()), 0);
-          for (size_t i = 0; i < vec.size(); ++i)
-            vec[i] = new_op.mats[0](i, i);
-          new_op = Operations::make_diagonal(new_op.qubits, std::move(vec), -1,
-                                             std::string("fusion"));
-        }
-
-        if (p == 0)
-          fusioned_op = new_op;
-        else {
-          fusioned_op.has_bind_params = true;
-          if (fusioned_op.type == Operations::OpType::diagonal_matrix)
-            fusioned_op.params.insert(fusioned_op.params.end(),
-                                      new_op.params.begin(),
-                                      new_op.params.end());
-          else
-            fusioned_op.mats.insert(fusioned_op.mats.end(), new_op.mats.begin(),
-                                    new_op.mats.end());
-        }
-      }
-    }
+    auto fusioned_op = generate_operation_internal(fusioned_ops, arg_qubits);
 
     // Revert qubits
     for (size_t i = 0; i < fusioned_op.qubits.size(); i++)
       fusioned_op.qubits[i] = remapped2orig[fusioned_op.qubits[i]];
+
+    if (diagonal) {
+      std::vector<complex_t> vec;
+      vec.assign((1UL << fusioned_op.qubits.size()), 0);
+      for (size_t i = 0; i < vec.size(); ++i)
+        vec[i] = fusioned_op.mats[0](i, i);
+      fusioned_op = Operations::make_diagonal(
+          fusioned_op.qubits, std::move(vec), std::string("fusion"));
+    }
 
     return fusioned_op;
   };
@@ -138,11 +101,8 @@ public:
     return false;
   };
 
-  void set_num_params(uint_t n) { num_params_ = n; }
-
 private:
   const static Operations::OpSet noise_opset_;
-  uint_t num_params_ = 1;
 };
 
 const Operations::OpSet FusionMethod::noise_opset_({Operations::OpType::kraus,
@@ -449,18 +409,18 @@ bool NQubitFusion<N>::aggregate_operations(oplist_t &ops,
   std::vector<std::pair<uint_t, std::vector<op_t>>> targets;
   bool fused = false;
 
-  for (int op_idx = fusion_start; op_idx < fusion_end; ++op_idx) {
+  for (uint_t op_idx = fusion_start; op_idx < fusion_end; ++op_idx) {
     // skip operations to be ignored
     if (!method.can_apply(ops[op_idx], max_fused_qubits) ||
         ops[op_idx].type == optype_t::nop)
       continue;
 
     // 1. find a N-qubit operation
-    if (ops[op_idx].qubits.size() != N) {
+    if (ops[op_idx].qubits.size() != N)
       continue;
-    }
 
-    std::vector<uint_t> fusing_op_idxs = {(uint_t)op_idx};
+    std::vector<uint_t> fusing_op_idxs = {op_idx};
+
     std::vector<uint_t> fusing_qubits;
     fusing_qubits.insert(fusing_qubits.end(), ops[op_idx].qubits.begin(),
                          ops[op_idx].qubits.end());
@@ -877,8 +837,6 @@ void Fusion::optimize_circuit(Circuit &circ, Noise::NoiseModel &noise,
                                                    allow_superop, allow_kraus);
   result.metadata.add(method.name(), "fusion", "method");
 
-  method.set_num_params(circ.num_bind_params);
-
   bool applied = false;
   for (const std::shared_ptr<Fuser> &fuser : fusers) {
     fuser->set_metadata(result);
@@ -893,21 +851,11 @@ void Fusion::optimize_circuit(Circuit &circ, Noise::NoiseModel &noise,
       if (circ.ops.size() % parallelization_)
         ++unit;
 
-      if (parallelization_ > 1) {
-#pragma omp parallel for num_threads(parallelization_)
-        for (int_t i = 0; i < (int_t)parallelization_; i++) {
-          int_t start = unit * i;
-          int_t end = std::min(start + unit, (int_t)circ.ops.size());
-          optimize_circuit(circ, noise, allowed_opset, start, end, fuser,
-                           method);
-        }
-      } else {
-        for (uint_t i = 0; i < parallelization_; i++) {
-          int_t start = unit * i;
-          int_t end = std::min(start + unit, (int_t)circ.ops.size());
-          optimize_circuit(circ, noise, allowed_opset, start, end, fuser,
-                           method);
-        }
+#pragma omp parallel for if (parallelization_ > 1) num_threads(parallelization_)
+      for (int_t i = 0; i < parallelization_; i++) {
+        int_t start = unit * i;
+        int_t end = std::min(start + unit, (int_t)circ.ops.size());
+        optimize_circuit(circ, noise, allowed_opset, start, end, fuser, method);
       }
       result.metadata.add(parallelization_, "fusion", "parallelization");
     }

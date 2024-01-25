@@ -62,7 +62,7 @@ jobs:
         shell: bash
       - name: Run qobj
         run: |
-          pip install -U qiskit
+          pip install -U qiskit-terra
           python tools/generate_qobj.py
           cd out
           Release/qasm_simulator ../qobj.json | python ../tools/verify_standalone_results.py
@@ -109,7 +109,7 @@ jobs:
         shell: bash
       - name: Run qobj
         run: |
-          pip install -U qiskit
+          pip install -U qiskit-terra
           python tools/generate_qobj.py
           cd out
           /usr/bin/mpirun.openmpi -host localhost:2 -np 2 Release/qasm_simulator ../qobj.json | python ../tools/verify_standalone_results.py
@@ -132,7 +132,7 @@ jobs:
         uses: microsoft/setup-msbuild@v1.0.2
         if: runner.os == 'Windows'
       - name: Install deps
-        run: python -m pip install -U cibuildwheel==2.16.2
+        run: python -m pip install -U cibuildwheel==2.11.2
       - name: Build Wheels
         env:
           AER_CMAKE_OPENMP_BUILD: 1
@@ -152,7 +152,7 @@ jobs:
         with:
           python-version: 3.8
       - name: Install deps
-        run: python -m pip install -U cibuildwheel==2.16.2
+        run: python -m pip install -U cibuildwheel==2.11.2
       - name: Build Wheels
         env:
           CIBW_ARCHS_MACOS: arm64

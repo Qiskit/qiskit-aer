@@ -14,6 +14,7 @@ Instruction to set the state simulator state to a matrix.
 """
 
 from qiskit.circuit import QuantumCircuit, Instruction
+from qiskit.extensions.exceptions import ExtensionError
 from qiskit.quantum_info import Statevector
 from ..default_qubits import default_qubits
 
@@ -30,7 +31,7 @@ class SetStatevector(Instruction):
             state (Statevector): a statevector.
 
         Raises:
-            ValueError: if the input is not a valid state.
+            ExtensionError: if the input is not a valid state.
 
         .. note::
 
@@ -41,7 +42,7 @@ class SetStatevector(Instruction):
         if not isinstance(state, Statevector):
             state = Statevector(state)
         if not state.num_qubits or not state.is_valid():
-            raise ValueError("The input statevector is not valid")
+            raise ExtensionError("The input statevector is not valid")
         super().__init__("set_statevector", state.num_qubits, 0, [state.data])
 
 
@@ -55,8 +56,8 @@ def set_statevector(self, state):
         QuantumCircuit: with attached instruction.
 
     Raises:
-        ValueError: If the state is the incorrect size for the
-            current circuit.
+        ExtensionError: If the state is the incorrect size for the
+                        current circuit.
 
     .. note:
 
@@ -66,7 +67,7 @@ def set_statevector(self, state):
     if not isinstance(state, Statevector):
         state = Statevector(state)
     if not state.num_qubits or state.num_qubits != len(qubits):
-        raise ValueError(
+        raise ExtensionError(
             "The size of the statevector for the set_statevector"
             " instruction must be equal to the number of qubits"
             f" in the circuit (state.num_qubits ({state.num_qubits})"

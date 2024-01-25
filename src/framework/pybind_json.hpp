@@ -32,8 +32,6 @@
 
 #include "misc/warnings.hpp"
 DISABLE_WARNING_PUSH
-#pragma GCC diagnostic ignored "-Wfloat-equal"
-
 #include <pybind11/cast.h>
 #include <pybind11/complex.h>
 #include <pybind11/numpy.h>
@@ -42,7 +40,6 @@ DISABLE_WARNING_PUSH
 
 #include <nlohmann/json.hpp>
 DISABLE_WARNING_POP
-#pragma GCC diagnostic warning "-Wfloat-equal"
 
 #include "framework/json.hpp"
 
@@ -296,7 +293,7 @@ void std::from_json(const json_t &js, py::object &o) {
     o = py::str(js.get<nl::json::string_t>());
   } else if (js.is_array()) {
     std::vector<py::object> obj(js.size());
-    for (size_t i = 0; i < js.size(); i++) {
+    for (auto i = 0; i < js.size(); i++) {
       py::object tmp;
       from_json(js[i], tmp);
       obj[i] = tmp;

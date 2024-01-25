@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 
 """
-Exception for errors raised by Aer simulators backends.
+Exception for errors raised by Qiskit Aer simulators backends.
 """
 
 from qiskit import QiskitError

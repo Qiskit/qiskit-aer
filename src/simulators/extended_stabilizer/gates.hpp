@@ -24,17 +24,6 @@
 #include "framework/operations.hpp"
 #include "framework/types.hpp"
 
-// In ROCm builds, device-side implementation of pow is a template overload
-// whereas host-side is a template. This means that the device always takes
-// precedence which causes issues compiling the pow constexpr. Therefore we
-// create a template overload here as well.
-// TODO: remove when fixed in clang (https://reviews.llvm.org/D158247).
-#ifdef AER_THRUST_ROCM
-namespace std {
-constexpr double pow(double x, int y) { return std::pow<double, int>(x, y); }
-} // namespace std
-#endif
-
 namespace CHSimulator {
 using uint_t = uint_fast64_t;
 using complex_t = std::complex<double>;

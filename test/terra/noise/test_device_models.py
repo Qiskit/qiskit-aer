@@ -13,14 +13,12 @@
 """
 Tests for utility functions to create device noise model.
 """
-import numpy as np
+
 from test.terra.common import QiskitAerTestCase
 
-from qiskit.circuit.library.standard_gates import XGate
+from qiskit.providers import QubitProperties
 from qiskit.providers.fake_provider import FakeNairobi, FakeNairobiV2
-from qiskit.transpiler import Target, QubitProperties, InstructionProperties
 from qiskit_aer.noise.device.models import basic_device_gate_errors
-from qiskit_aer.noise.errors.standard_errors import thermal_relaxation_error
 
 
 class TestDeviceNoiseModel(QiskitAerTestCase):
@@ -59,9 +57,7 @@ class TestDeviceNoiseModel(QiskitAerTestCase):
         errors_from_properties = basic_device_gate_errors(properties=FakeNairobi().properties())
         errors_from_target = basic_device_gate_errors(target=FakeNairobiV2().target)
         self.assertEqual(len(errors_from_properties), len(errors_from_target))
-        errors_from_properties_s = sorted(errors_from_properties)
-        errors_from_target_s = sorted(errors_from_target)
-        for err_properties, err_target in zip(errors_from_properties_s, errors_from_target_s):
+        for err_properties, err_target in zip(errors_from_properties, errors_from_target):
             name1, qargs1, err1 = err_properties
             name2, qargs2, err2 = err_target
             self.assertEqual(name1, name2)
@@ -74,16 +70,3 @@ class TestDeviceNoiseModel(QiskitAerTestCase):
         target = FakeNairobiV2().target
         target.qubit_properties[0].t2 = None
         basic_device_gate_errors(target=target)
-
-    def test_non_zero_temperature(self):
-        """Test if non-zero excited_state_population is obtained when positive temperature is supplied.
-        See https://github.com/Qiskit/qiskit-aer/issues/1937 for the details."""
-        t1, t2, frequency, duration = 1e-4, 1e-4, 5e9, 5e-8
-        target = Target(qubit_properties=[QubitProperties(t1=t1, t2=t2, frequency=frequency)])
-        target.add_instruction(XGate(), {(0,): InstructionProperties(duration=duration)})
-        errors = basic_device_gate_errors(target=target, gate_error=False, temperature=100)
-        _, _, x_error = errors[0]
-        no_excitation_error = thermal_relaxation_error(t1, t2, duration, excited_state_population=0)
-        x_error_matrix = x_error.to_quantumchannel().data
-        no_excitation_error_matrix = no_excitation_error.to_quantumchannel().data
-        self.assertFalse(np.allclose(x_error_matrix, no_excitation_error_matrix))

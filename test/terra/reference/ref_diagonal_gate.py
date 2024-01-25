@@ -17,7 +17,10 @@ Test circuits and reference outputs for diagonal instruction.
 
 import numpy as np
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
-from qiskit.circuit.library import Diagonal
+
+# Backwards compatibility for Terra <= 0.13
+if not hasattr(QuantumCircuit, "diagonal"):
+    QuantumCircuit.diagonal = QuantumCircuit.diag_gate
 
 
 def diagonal_gate_circuits_deterministic(final_measure=True):
@@ -38,7 +41,7 @@ def diagonal_gate_circuits_deterministic(final_measure=True):
         for diag in [arg, np.array(arg), np.array(arg, dtype=float), np.array(arg, dtype=complex)]:
             circuit = QuantumCircuit(*regs)
             circuit.h(qubit)
-            circuit.append(Diagonal(diag), [qubit])
+            circuit.diagonal(list(diag), [qubit])
             circuit.h(qubit)
             if final_measure:
                 circuit.barrier(qr)
@@ -50,7 +53,7 @@ def diagonal_gate_circuits_deterministic(final_measure=True):
     for diag in [arg, np.array(arg), np.array(arg, dtype=float), np.array(arg, dtype=complex)]:
         circuit = QuantumCircuit(*regs)
         circuit.h(qr)
-        circuit.append(Diagonal(diag), qr)
+        circuit.diagonal(list(diag), qr)
         circuit.h(qr)
         if final_measure:
             circuit.barrier(qr)
@@ -61,7 +64,7 @@ def diagonal_gate_circuits_deterministic(final_measure=True):
     for diag in [np.array([1, 1, 1, np.exp(-1j * np.pi / k)]) for k in [10, 100, 1000, 10000]]:
         circuit = QuantumCircuit(*regs)
         circuit.x(qr)
-        circuit.append(Diagonal(diag), qr)
+        circuit.diagonal(list(diag), qr)
         if final_measure:
             circuit.barrier(qr)
             circuit.measure(qr, cr)

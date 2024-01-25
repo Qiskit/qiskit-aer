@@ -43,7 +43,7 @@ namespace {
 /** Remember we cannot use STL (or memcpy) **/
 template <typename T, typename U>
 void copy(T dest, const U orig, size_t size) {
-  for (size_t i = 0; i < size; ++i)
+  for (auto i = 0; i < size; ++i)
     dest[i] = orig[i];
 }
 
@@ -770,12 +770,22 @@ inline void _apply_matrix_double_avx_q0q1(RealVectorView<double> &reals,
   for (size_t i = 0; i < (1ULL << num_qubits); i += 4) {
     auto index = indexes[i];
     _mm_load_twoarray_complex(reals[index], imags[index], vreals[i], vimags[i]);
-    vreals[i + 1] = _mm256_permute4x64_pd(vreals[i], PERM_D_Q0Q1_0);
-    vimags[i + 1] = _mm256_permute4x64_pd(vimags[i], PERM_D_Q0Q1_0);
-    vreals[i + 2] = _mm256_permute4x64_pd(vreals[i], PERM_D_Q0Q1_1);
-    vimags[i + 2] = _mm256_permute4x64_pd(vimags[i], PERM_D_Q0Q1_1);
-    vreals[i + 3] = _mm256_permute4x64_pd(vreals[i], PERM_D_Q0Q1_2);
-    vimags[i + 3] = _mm256_permute4x64_pd(vimags[i], PERM_D_Q0Q1_2);
+    for (size_t j = 1; j < 4; ++j) {
+      switch (j) {
+      case 1:
+        vreals[i + j] = _mm256_permute4x64_pd(vreals[i], PERM_D_Q0Q1_0);
+        vimags[i + j] = _mm256_permute4x64_pd(vimags[i], PERM_D_Q0Q1_0);
+        break;
+      case 2:
+        vreals[i + j] = _mm256_permute4x64_pd(vreals[i], PERM_D_Q0Q1_1);
+        vimags[i + j] = _mm256_permute4x64_pd(vimags[i], PERM_D_Q0Q1_1);
+        break;
+      case 3:
+        vreals[i + j] = _mm256_permute4x64_pd(vreals[i], PERM_D_Q0Q1_2);
+        vimags[i + j] = _mm256_permute4x64_pd(vimags[i], PERM_D_Q0Q1_2);
+        break;
+      }
+    }
   }
 
   size_t mindex = 0;
@@ -1114,8 +1124,7 @@ Avx apply_diagonal_matrix_avx<double>(
 #endif
 #if !defined(_WIN64) && !defined(_WIN32)
     void *data = nullptr;
-    if (posix_memalign(&data, 64, sizeof(std::complex<double>) * 2) != 0)
-      throw std::runtime_error("Cannot allocate memory by posix_memalign");
+    posix_memalign(&data, 64, sizeof(std::complex<double>) * 2);
     auto double_tmp = reinterpret_cast<std::complex<double> *>(data);
 #else
   auto double_tmp = reinterpret_cast<std::complex<double> *>(
@@ -1123,7 +1132,7 @@ Avx apply_diagonal_matrix_avx<double>(
 #endif
 
     size_t q0_mask_ = 0;
-    for (size_t i = 0; i < qregs_size; ++i) {
+    for (int i = 0; i < qregs_size; ++i) {
       if (qregs[i] == 0) {
         q0_mask_ = 1UL << i;
         break;
@@ -1136,9 +1145,9 @@ Avx apply_diagonal_matrix_avx<double>(
 
 #pragma omp for
     for (int64_t k = 0; k < END; k += 1) {
-      const int64_t base = k << (batch + 1);
-      const int64_t until = base + (1UL << (batch + 1));
-      for (int64_t i = base; i < until; i += 2) {
+      const auto base = k << (batch + 1);
+      const auto until = base + (1UL << (batch + 1));
+      for (auto i = base; i < until; i += 2) {
         auto tgt_qv_data =
             _mm256_load(reinterpret_cast<double *>(&(qv_data[i])));
         auto input_data = _load_diagonal_input(input_vec, double_tmp, i, qregs,
@@ -1172,8 +1181,7 @@ Avx apply_diagonal_matrix_avx<float>(float *qv_data_, const uint64_t data_size,
   {
 #if !defined(_WIN64) && !defined(_WIN32)
     void *data = nullptr;
-    if (posix_memalign(&data, 64, sizeof(std::complex<float>) * 4) != 0)
-      throw std::runtime_error("Cannot allocate memory by posix_memalign");
+    posix_memalign(&data, 64, sizeof(std::complex<float>) * 4);
     auto float_tmp = reinterpret_cast<std::complex<float> *>(data);
 #else
     auto float_tmp = reinterpret_cast<std::complex<float> *>(
@@ -1201,9 +1209,9 @@ Avx apply_diagonal_matrix_avx<float>(float *qv_data_, const uint64_t data_size,
 
 #pragma omp for
     for (int64_t k = 0; k < END; k += 1) {
-      const int64_t base = k << (batch + 2);
-      const int64_t until = base + (1UL << (batch + 2));
-      for (int64_t i = base; i < until; i += 4) {
+      const auto base = k << (batch + 2);
+      const auto until = base + (1UL << (batch + 2));
+      for (auto i = base; i < until; i += 4) {
         m256_t<float> tgt_qv_data =
             _mm256_load(reinterpret_cast<float *>(&(qv_data[i])));
         auto input_data = _load_diagonal_input(input_vec, float_tmp, i, qregs,
