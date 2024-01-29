@@ -27,6 +27,7 @@ from test.terra.reference.ref_non_clifford import (
 from qiskit.quantum_info.states import Statevector
 from qiskit.circuit.library import Isometry, UCGate
 
+
 def multiplexer_cx_gate_circuits_deterministic(final_measure=True):
     """multiplexer-gate simulating cx gate, test circuits with deterministic counts."""
     circuits = []
