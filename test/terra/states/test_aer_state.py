@@ -20,6 +20,8 @@ import numpy as np
 from qiskit.circuit import QuantumCircuit, Gate
 from qiskit.quantum_info.random import random_unitary
 from qiskit.quantum_info import random_statevector, random_density_matrix
+from qiskit.circuit.library import DiagonalGate
+
 from qiskit_aer import AerSimulator
 
 from test.terra import common
@@ -375,9 +377,9 @@ class TestAerState(common.QiskitAerTestCase):
 
         circuit = QuantumCircuit(5)
         circuit.initialize(init_state, [0, 1, 2, 3, 4])
-        circuit.diagonal(diag_1, [0])
-        circuit.diagonal(diag_2, [1, 2])
-        circuit.diagonal(diag_3, [3, 4, 0])
+        circuit.append(DiagonalGate(diag_1), [0])
+        circuit.append(DiagonalGate(diag_2), [1, 2])
+        circuit.append(DiagonalGate(diag_3), [3, 4, 0])
         circuit.save_statevector()
 
         aer_simulator = AerSimulator(method="statevector")

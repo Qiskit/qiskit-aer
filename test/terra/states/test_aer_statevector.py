@@ -34,6 +34,7 @@ from qiskit.quantum_info.operators.symplectic import Pauli, SparsePauliOp
 from qiskit.quantum_info.operators.predicates import matrix_equal
 from qiskit.visualization.state_visualization import state_to_latex
 from qiskit.circuit.library import QFT, HGate
+from qiskit.circuit.library import DiagonalGate
 
 from test.terra import common
 from qiskit_aer import AerSimulator
@@ -289,7 +290,7 @@ class TestAerStatevector(common.QiskitAerTestCase):
         circuit = QuantumCircuit(3)
         circuit.h(range(3))
         diagonal = [1.0, 1.0, 1.0, -1.0, 1.0, 1.0, 1.0, -1.0]
-        circuit.diagonal(diagonal, list(range(3)))
+        circuit.append(DiagonalGate(diagonal), list(range(3)))
         target = AerStatevector.from_label("000").evolve(Operator(circuit))
         psi = AerStatevector.from_instruction(circuit)
         self.assertEqual(psi, target)
