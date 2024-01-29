@@ -16,7 +16,7 @@ from ddt import ddt
 from test.terra.reference import ref_conditionals
 from test.terra.backends.simulator_test_case import SimulatorTestCase, supported_methods
 
-from qiskit import transpile, QuantumCircuit
+from qiskit import QuantumCircuit
 from qiskit.circuit.library import DiagonalGate
 
 
