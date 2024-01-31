@@ -444,7 +444,6 @@ class QasmSimulator(AerBackend):
         # Update available methods for class
         if QasmSimulator._AVAILABLE_METHODS is None:
             QasmSimulator._AVAILABLE_METHODS = available_methods(
-                self._controller,
                 QasmSimulator._SIMULATION_METHODS,
                 QasmSimulator._SIMULATION_DEVICES,
             )
@@ -528,6 +527,7 @@ class QasmSimulator(AerBackend):
             chop_threshold=1e-8,
             mps_parallel_threshold=14,
             mps_omp_threads=1,
+            mps_lapack=False,
         )
 
     @classmethod

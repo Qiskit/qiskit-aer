@@ -263,7 +263,7 @@ void std::from_json(const json_t &js,
 template <typename RealType>
 void std::to_json(json_t &js, const AER::Vector<std::complex<RealType>> &vec) {
   std::vector<std::vector<RealType>> out;
-  for (int64_t i = 0; i < vec.size(); ++i) {
+  for (size_t i = 0; i < vec.size(); ++i) {
     auto &z = vec[i];
     out.push_back(std::vector<RealType>{real(z), imag(z)});
   }

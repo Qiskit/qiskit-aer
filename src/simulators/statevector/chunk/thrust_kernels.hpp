@@ -69,7 +69,10 @@ protected:
 public:
   GateFuncBase() {
     data_ = NULL;
+    matrix_ = NULL;
+    params_ = NULL;
     base_index_ = 0;
+    chunk_bits_ = 0;
     cregs_ = NULL;
     num_creg_bits_ = 0;
     conditional_bit_ = -1;
@@ -147,7 +150,7 @@ public:
 template <typename data_t>
 class GateFuncWithCache : public GateFuncBase<data_t> {
 protected:
-  int nqubits_;
+  uint_t nqubits_;
 
 public:
   GateFuncWithCache(uint_t nq) { nqubits_ = nq; }
@@ -210,7 +213,7 @@ public:
 template <typename data_t>
 class GateFuncSumWithCache : public GateFuncBase<data_t> {
 protected:
-  int nqubits_;
+  uint_t nqubits_;
 
 public:
   GateFuncSumWithCache(uint_t nq) { nqubits_ = nq; }
@@ -276,7 +279,7 @@ public:
       : public thrust::unary_function<difference_type, difference_type> {
     difference_type stride;
 
-    stride_functor(difference_type stride) : stride(stride) {}
+    stride_functor(difference_type _stride) : stride(_stride) {}
 
     __host__ __device__ difference_type
     operator()(const difference_type &i) const {
@@ -301,8 +304,8 @@ public:
   typedef PermutationIterator iterator;
 
   // construct strided_range for the range [first,last)
-  strided_range(Iterator first, Iterator last, difference_type stride)
-      : first(first), last(last), stride(stride) {}
+  strided_range(Iterator _first, Iterator _last, difference_type _stride)
+      : first(_first), last(_last), stride(_stride) {}
 
   iterator begin(void) const {
     return PermutationIterator(
@@ -409,7 +412,7 @@ public:
 template <typename data_t>
 class initialize_component_func : public GateFuncBase<data_t> {
 protected:
-  int nqubits;
+  uint_t nqubits;
   uint_t offset;
   uint_t mat_pos;
   uint_t mat_num;
@@ -825,7 +828,7 @@ public:
   int qubits_count(void) { return 4; }
 
   __host__ __device__ void operator()(const uint_t &i) const {
-    uint_t i0, i1, i2, i3, i4, offset, f0, f1, f2;
+    uint_t i0, i1, i2, i3, i4, offset;
     thrust::complex<data_t> *vec;
     thrust::complex<data_t> q0, q1, q2, q3, q4, q5, q6, q7;
     thrust::complex<data_t> q8, q9, q10, q11, q12, q13, q14, q15;
@@ -865,9 +868,6 @@ public:
     q15 = vec[i0 + offset3 + offset2 + offset1 + offset0];
 
     offset = 0;
-    f0 = 0;
-    f1 = 0;
-    f2 = 0;
     for (j = 0; j < 16; j++) {
       r = pMat[0 + j] * q0;
       r += pMat[16 + j] * q1;
@@ -936,9 +936,9 @@ public:
 template <typename data_t>
 class MatrixMultNxN_LU : public GateFuncBase<data_t> {
 protected:
-  int nqubits;
+  uint_t nqubits;
   uint_t matSize;
-  int nswap;
+  uint_t nswap;
 
 public:
   MatrixMultNxN_LU(const cvector_t<double> &mat, const reg_t &qb,
@@ -978,7 +978,7 @@ public:
         params[nqubits + i] = j;
       }
 
-      if (dmax != 0) {
+      if (dmax > 0) {
         c0 = matLU[(i << nqubits) + params[nqubits + i]];
 
         for (j = i + 1; j < matSize; j++) {
@@ -1211,7 +1211,7 @@ protected:
 public:
   BatchedMatrixMult2x2(const reg_t &qubits, uint_t imat,
                        uint_t nshots_per_mat) {
-    int i;
+    uint_t i;
     nqubits_ = qubits.size();
 
     offset_ = 1ull << qubits[nqubits_ - 1];
@@ -1402,7 +1402,7 @@ public:
 template <typename data_t>
 class DiagonalMultNxN : public GateFuncBase<data_t> {
 protected:
-  int nqubits;
+  uint_t nqubits;
 
 public:
   DiagonalMultNxN(const reg_t &qb) { nqubits = qb.size(); }
@@ -1504,7 +1504,7 @@ protected:
 public:
   BatchedDiagonalMatrixMult2x2(const reg_t &qubits, uint_t imat,
                                uint_t nshots_per_mat) {
-    int i;
+    uint_t i;
     nqubits_ = qubits.size();
 
     mask_ = (1ull << qubits[nqubits_ - 1]);
@@ -1557,7 +1557,6 @@ protected:
 public:
   BatchedDiagonalMatrixMultNxN(const uint_t nq, uint_t imat,
                                uint_t nshots_per_mat) {
-    int i;
     nqubits_ = nq;
 
     matrix_begin_ = imat;
@@ -1894,9 +1893,8 @@ public:
   CSwapChunk_func(const reg_t &qubits, uint_t block_bits,
                   thrust::complex<data_t> *pVec0,
                   thrust::complex<data_t> *pVec1, bool wb) {
-    int i;
-    int nqubits;
-    int qubit_t;
+    uint_t nqubits;
+    uint_t qubit_t;
     nqubits = qubits.size();
 
     if (qubits[nqubits - 2] < qubits[nqubits - 1]) {
@@ -2078,10 +2076,8 @@ public:
     thrust::complex<data_t> q, r;
     thrust::complex<double> m;
     uint_t mat_size, irow;
-    thrust::complex<data_t> *vec;
     thrust::complex<double> *pMat;
 
-    vec = this->data_;
     pMat = this->matrix_;
 
     mat_size = 1ull << this->nqubits_;
@@ -2492,7 +2488,7 @@ public:
   operator()(const uint_t &i) const {
     thrust::complex<data_t> q;
     thrust::complex<data_t> *vec;
-    double d, dv;
+    double d, dv = 0.0;
 
     vec = this->data_;
     q = vec[i];
@@ -2529,7 +2525,7 @@ public:
   operator()(const uint_t &i) const {
     thrust::complex<data_t> *vec;
     thrust::complex<data_t> q0;
-    double d, dv;
+    double d, dv = 0.0;
 
     vec = this->data_;
 
@@ -2585,7 +2581,7 @@ public:
     thrust::complex<data_t> q1;
     thrust::complex<data_t> q0p;
     thrust::complex<data_t> q1p;
-    double d0, d1, ret, ret_v;
+    double d0, d1, ret, ret_v = 0.0;
     uint_t idx0, idx1;
 
     vec = this->data_;

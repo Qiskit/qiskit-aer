@@ -130,8 +130,8 @@ void bind_aer_state(MODULE m) {
                   size_t mat_len = (1UL << qubits.size());
                   auto ptr = values.unchecked<2>();
                   cmatrix_t mat(mat_len, mat_len);
-                  for (auto i = 0; i < mat_len; ++i)
-                    for (auto j = 0; j < mat_len; ++j)
+                  for (uint_t i = 0; i < mat_len; ++i)
+                    for (uint_t j = 0; j < mat_len; ++j)
                       mat(i, j) = ptr(i, j);
                   state.apply_unitary(qubits, mat);
                 });
@@ -144,10 +144,10 @@ void bind_aer_state(MODULE m) {
                   size_t mat_size = (1UL << control_qubits.size());
                   auto ptr = values.unchecked<3>();
                   std::vector<cmatrix_t> mats;
-                  for (auto i = 0; i < mat_size; ++i) {
+                  for (uint_t i = 0; i < mat_size; ++i) {
                     cmatrix_t mat(mat_len, mat_len);
-                    for (auto j = 0; j < mat_len; ++j)
-                      for (auto k = 0; k < mat_len; ++k)
+                    for (uint_t j = 0; j < mat_len; ++j)
+                      for (uint_t k = 0; k < mat_len; ++k)
                         mat(j, k) = ptr(i, j, k);
                     mats.push_back(mat);
                   }

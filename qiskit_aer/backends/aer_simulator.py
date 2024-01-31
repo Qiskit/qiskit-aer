@@ -448,6 +448,9 @@ class AerSimulator(AerBackend):
 
     * ``mps_omp_threads`` (int): This option sets the number of OMP threads (Default: 1).
 
+    * ``mps_lapack`` (bool): This option indicates to compute the SVD function
+      using OpenBLAS/Lapack interface (Default: False).
+
     These backend options only apply when using the ``tensor_network``
     simulation method:
 
@@ -702,12 +705,10 @@ class AerSimulator(AerBackend):
 
         # Update available methods and devices for class
         if AerSimulator._AVAILABLE_DEVICES is None:
-            AerSimulator._AVAILABLE_DEVICES = available_devices(
-                self._controller, AerSimulator._SIMULATION_DEVICES
-            )
+            AerSimulator._AVAILABLE_DEVICES = available_devices(self._controller)
         if AerSimulator._AVAILABLE_METHODS is None:
             AerSimulator._AVAILABLE_METHODS = available_methods(
-                self._controller, AerSimulator._SIMULATION_METHODS, AerSimulator._AVAILABLE_DEVICES
+                AerSimulator._SIMULATION_METHODS, AerSimulator._AVAILABLE_DEVICES
             )
 
         # Default configuration
@@ -787,6 +788,7 @@ class AerSimulator(AerBackend):
             chop_threshold=1e-8,
             mps_parallel_threshold=14,
             mps_omp_threads=1,
+            mps_lapack=False,
             # tensor network options
             tensor_network_num_sampling_qubits=10,
             use_cuTensorNet_autotuning=False,

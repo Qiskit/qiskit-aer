@@ -52,11 +52,13 @@ enum class BinaryOp {
   GreaterEqual
 };
 
+bool isBoolBinaryOp(const BinaryOp binary_op);
 bool isBoolBinaryOp(const BinaryOp binary_op) {
   return binary_op != BinaryOp::BitAnd && binary_op != BinaryOp::BitOr &&
          binary_op != BinaryOp::BitXor;
 }
 
+uint_t truncate(const uint_t val, const size_t width);
 uint_t truncate(const uint_t val, const size_t width) {
   size_t shift = 64 - width;
   return (val << shift) >> shift;
@@ -68,8 +70,8 @@ enum class ValueType { Bool, Uint };
 
 class ScalarType {
 public:
-  ScalarType(const ValueType type_, const size_t width_)
-      : type(type_), width(width_) {}
+  ScalarType(const ValueType _type, const size_t width_)
+      : type(_type), width(width_) {}
 
 public:
   const ValueType type;
@@ -97,8 +99,8 @@ public:
 
 class CExpr {
 public:
-  CExpr(const CExprType expr_type_, const std::shared_ptr<ScalarType> type_)
-      : expr_type(expr_type_), type(type_) {}
+  CExpr(const CExprType _expr_type, const std::shared_ptr<ScalarType> _type)
+      : expr_type(_expr_type), type(_type) {}
   virtual bool eval_bool(const std::string &memory) { return false; };
   virtual uint_t eval_uint(const std::string &memory) { return 0ul; };
 
@@ -109,9 +111,9 @@ public:
 
 class CastExpr : public CExpr {
 public:
-  CastExpr(std::shared_ptr<ScalarType> type,
+  CastExpr(std::shared_ptr<ScalarType> _type,
            const std::shared_ptr<CExpr> operand_)
-      : CExpr(CExprType::Cast, type), operand(operand_) {}
+      : CExpr(CExprType::Cast, _type), operand(operand_) {}
 
   virtual bool eval_bool(const std::string &memory) {
     if (type->type != ValueType::Bool)
@@ -143,9 +145,9 @@ public:
 
 class VarExpr : public CExpr {
 public:
-  VarExpr(std::shared_ptr<ScalarType> type,
-          const std::vector<uint_t> &cbit_idxs)
-      : CExpr(CExprType::Var, type), cbit_idxs(cbit_idxs) {}
+  VarExpr(std::shared_ptr<ScalarType> _type,
+          const std::vector<uint_t> &_cbit_idxs)
+      : CExpr(CExprType::Var, _type), cbit_idxs(_cbit_idxs) {}
 
   virtual bool eval_bool(const std::string &memory) {
     if (type->type != ValueType::Bool)
@@ -164,7 +166,6 @@ public:
 private:
   uint_t eval_uint_(const std::string &memory) {
     uint_t val = 0ul;
-    const uint_t memory_size = memory.size();
     uint_t shift = 0;
     for (const uint_t cbit_idx : cbit_idxs) {
       if (memory.size() <= cbit_idx)
@@ -182,7 +183,8 @@ public:
 
 class ValueExpr : public CExpr {
 public:
-  ValueExpr(std::shared_ptr<ScalarType> type) : CExpr(CExprType::Value, type) {}
+  ValueExpr(std::shared_ptr<ScalarType> _type)
+      : CExpr(CExprType::Value, _type) {}
 };
 
 class UintValue : public ValueExpr {
@@ -268,9 +270,6 @@ public:
     case BinaryOp::BitAnd:
     case BinaryOp::BitOr:
     case BinaryOp::BitXor:
-      if (left->type->type != ValueType::Uint)
-        throw std::invalid_argument(
-            R"(bit operation allows only for uint expressions.)");
       break;
     case BinaryOp::LogicAnd:
     case BinaryOp::LogicOr:
@@ -297,10 +296,20 @@ public:
   virtual bool eval_bool(const std::string &memory) {
     switch (op) {
     case BinaryOp::BitAnd:
+      if (left->type->type == ValueType::Uint)
+        return eval_uint(memory) != 0;
+      else
+        return left->eval_bool(memory) && right->eval_bool(memory);
     case BinaryOp::BitOr:
+      if (left->type->type == ValueType::Uint)
+        return eval_uint(memory) != 0;
+      else
+        return left->eval_bool(memory) || right->eval_bool(memory);
     case BinaryOp::BitXor:
-      throw std::invalid_argument(
-          R"(eval_bool is called for Bit* binary expression.)");
+      if (left->type->type == ValueType::Uint)
+        return eval_uint(memory) != 0;
+      else
+        return left->eval_bool(memory) ^ right->eval_bool(memory);
     case BinaryOp::LogicAnd:
       return left->eval_bool(memory) && right->eval_bool(memory);
     case BinaryOp::LogicOr:
@@ -947,6 +956,11 @@ Op make_gate(const std::string &name, const reg_t &qubits,
              const std::vector<complex_t> &params,
              const std::vector<std::string> &string_params,
              const int_t conditional, const std::shared_ptr<CExpr> expr,
+             const std::string &label);
+Op make_gate(const std::string &name, const reg_t &qubits,
+             const std::vector<complex_t> &params,
+             const std::vector<std::string> &string_params,
+             const int_t conditional, const std::shared_ptr<CExpr> expr,
              const std::string &label) {
   Op op;
   op.type = OpType::gate;
@@ -1313,12 +1327,12 @@ inline Op bind_parameter(const Op &src, const uint_t iparam,
   if (src.params.size() > 0) {
     uint_t stride = src.params.size() / num_params;
     op.params.resize(stride);
-    for (int_t i = 0; i < stride; i++)
+    for (uint_t i = 0; i < stride; i++)
       op.params[i] = src.params[iparam * stride + i];
   } else if (src.mats.size() > 0) {
     uint_t stride = src.mats.size() / num_params;
     op.mats.resize(stride);
-    for (int_t i = 0; i < stride; i++)
+    for (uint_t i = 0; i < stride; i++)
       op.mats[i] = src.mats[iparam * stride + i];
   }
   return op;
@@ -1528,6 +1542,7 @@ json_t op_to_json(const Op &op) {
   return ret;
 }
 
+void to_json(json_t &js, const OpType &type);
 void to_json(json_t &js, const OpType &type) {
   std::stringstream ss;
   ss << type;

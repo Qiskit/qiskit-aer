@@ -44,6 +44,7 @@ enum MPS_swap_direction MPS::mps_swap_direction_ =
 double MPS::json_chop_threshold_ = 1E-8;
 std::stringstream MPS::logging_str_;
 bool MPS::mps_log_data_ = 0;
+bool MPS::mps_lapack_ = false;
 
 //------------------------------------------------------------------------
 // local function declarations
@@ -662,8 +663,9 @@ void MPS::common_apply_2_qubit_gate(
 
   MPS_Tensor left_gamma, right_gamma;
   rvector_t lambda;
-  double discarded_value =
-      MPS_Tensor::Decompose(temp, left_gamma, lambda, right_gamma);
+  double discarded_value = MPS_Tensor::Decompose(temp, left_gamma, lambda,
+                                                 right_gamma, MPS::mps_lapack_);
+
   if (discarded_value > json_chop_threshold_)
     MPS::print_to_log("discarded_value=", discarded_value, ", ");
 
@@ -1640,8 +1642,11 @@ reg_t MPS::sample_measure(uint_t shots, RngEngine &rng) const {
   reg_t current_measure(num_qubits_);
   cmatrix_t mat;
   rvector_t rnds(num_qubits_);
-  for (uint_t i = 0; i < num_qubits_; ++i) {
-    rnds[i] = rng.rand(0., 1.);
+#pragma omp critical
+  {
+    for (uint_t i = 0; i < num_qubits_; ++i) {
+      rnds[i] = rng.rand(0., 1.);
+    }
   }
   for (uint_t i = 0; i < num_qubits_; i++) {
     current_measure[i] = sample_measure_single_qubit(i, prob, rnds[i], mat);
@@ -1786,16 +1791,21 @@ void MPS::initialize_from_matrix(uint_t num_qubits, const cmatrix_t &mat) {
     if (first_iter) {
       remaining_matrix = mat;
     } else {
-      cmatrix_t temp = mul_matrix_by_lambda(V, S);
+      cmatrix_t temp;
+      if (MPS::mps_lapack_) { // When using Lapack, V is V dagger
+        temp = mul_matrix_by_lambda(AER::Utils::dagger(V), S);
+      } else {
+        temp = mul_matrix_by_lambda(V, S);
+      }
       remaining_matrix = AER::Utils::dagger(temp);
     }
     reshaped_matrix = reshape_matrix(remaining_matrix);
     // step 2 - SVD
     S.clear();
     S.resize(std::min(reshaped_matrix.GetRows(), reshaped_matrix.GetColumns()));
-    csvd_wrapper(reshaped_matrix, U, S, V);
+    csvd_wrapper(reshaped_matrix, U, S, V, MPS::mps_lapack_);
     reduce_zeros(U, S, V, MPS_Tensor::get_max_bond_dimension(),
-                 MPS_Tensor::get_truncation_threshold());
+                 MPS_Tensor::get_truncation_threshold(), MPS::mps_lapack_);
 
     // step 3 - update q_reg_ with new gamma and new lambda
     //          increment number of qubits in the MPS structure
@@ -1811,7 +1821,12 @@ void MPS::initialize_from_matrix(uint_t num_qubits, const cmatrix_t &mat) {
     first_iter = false;
   }
   // step 4 - create the rightmost gamma and update q_reg_
-  std::vector<cmatrix_t> right_data = reshape_V_after_SVD(V);
+  std::vector<cmatrix_t> right_data;
+  if (MPS::mps_lapack_) {
+    right_data = reshape_VH_after_SVD(V);
+  } else {
+    right_data = reshape_V_after_SVD(V);
+  }
 
   MPS_Tensor right_gamma(right_data[0], right_data[1]);
   q_reg_.push_back(right_gamma);

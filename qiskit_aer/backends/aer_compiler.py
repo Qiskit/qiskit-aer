@@ -24,7 +24,7 @@ import numpy as np
 from qiskit.circuit import QuantumCircuit, Clbit, ClassicalRegister, ParameterExpression
 from qiskit.circuit.classical.expr import Expr, Unary, Binary, Var, Value, ExprVisitor, iter_vars
 from qiskit.circuit.classical.types import Bool, Uint
-from qiskit.extensions import Initialize
+from qiskit.circuit.library import Initialize
 from qiskit.providers.options import Options
 from qiskit.pulse import Schedule, ScheduleBlock
 from qiskit.circuit.controlflow import (
@@ -537,6 +537,7 @@ BACKEND_RUN_ARG_TYPES = {
     "chop_threshold": (float, np.floating),
     "mps_parallel_threshold": (int, np.integer),
     "mps_omp_threads": (int, np.integer),
+    "mps_lapack": (bool, np.bool_),
     "tensor_network_num_sampling_qubits": (int, np.integer),
     "use_cuTensorNet_autotuning": (bool, np.bool_),
     "parameterizations": (list),

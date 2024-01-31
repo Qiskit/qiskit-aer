@@ -177,7 +177,7 @@ void Tensor<data_t>::set_conj(const reg_t &qubits,
                               std::vector<std::complex<data_t>> &mat) {
   set(qubits, mat);
 
-  for (int i = 0; i < tensor_.size(); i++)
+  for (uint_t i = 0; i < tensor_.size(); i++)
     tensor_[i] = std::conj(tensor_[i]);
   sp_tensor_ = true;
 }

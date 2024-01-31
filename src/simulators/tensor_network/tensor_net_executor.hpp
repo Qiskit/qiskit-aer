@@ -37,6 +37,7 @@ using ResultItr = std::vector<ExperimentResult>::iterator;
 template <class state_t>
 class Executor : public CircuitExecutor::MultiStateExecutor<state_t> {
   using Base = CircuitExecutor::MultiStateExecutor<state_t>;
+  using Base::sample_measure;
 
 protected:
 public:
@@ -148,7 +149,7 @@ Executor<state_t>::sample_measure_with_prob(CircuitExecutor::Branch &root,
   uint_t nshots = root.num_shots();
   reg_t shot_branch(nshots);
 
-  for (int_t i = 0; i < nshots; i++) {
+  for (uint_t i = 0; i < nshots; i++) {
     shot_branch[i] = root.rng_shots()[i].rand_int(probs);
   }
 
@@ -182,11 +183,11 @@ void Executor<state_t>::measure_reset_update(CircuitExecutor::Branch &root,
       root.branches()[i]->add_op_after_branch(op);
 
       if (final_state >= 0 && final_state != i) {
-        Operations::Op op;
-        op.type = OpType::gate;
-        op.name = "mcx";
-        op.qubits = qubits;
-        root.branches()[i]->add_op_after_branch(op);
+        Operations::Op op2;
+        op2.type = OpType::gate;
+        op2.name = "mcx";
+        op2.qubits = qubits;
+        root.branches()[i]->add_op_after_branch(op2);
       }
     }
   }
@@ -194,7 +195,7 @@ void Executor<state_t>::measure_reset_update(CircuitExecutor::Branch &root,
   else {
     // Diagonal matrix for projecting and renormalizing to measurement outcome
     const size_t dim = 1ULL << qubits.size();
-    for (int_t i = 0; i < dim; i++) {
+    for (uint_t i = 0; i < dim; i++) {
       cvector_t<double> mdiag(dim, 0.);
       mdiag[i] = 1. / std::sqrt(meas_probs[i]);
 
@@ -204,20 +205,20 @@ void Executor<state_t>::measure_reset_update(CircuitExecutor::Branch &root,
       op.params = mdiag;
       root.branches()[i]->add_op_after_branch(op);
 
-      if (final_state >= 0 && final_state != i) {
+      if (final_state >= 0 && final_state != (int_t)i) {
         // build vectorized permutation matrix
         cvector_t<double> perm(dim * dim, 0.);
         perm[final_state * dim + i] = 1.;
         perm[i * dim + final_state] = 1.;
         for (size_t j = 0; j < dim; j++) {
-          if (j != final_state && j != i)
+          if (j != (size_t)final_state && j != i)
             perm[j * dim + j] = 1.;
         }
-        Operations::Op op;
-        op.type = OpType::matrix;
-        op.qubits = qubits;
-        op.mats.push_back(Utils::devectorize_matrix(perm));
-        root.branches()[i]->add_op_after_branch(op);
+        Operations::Op op2;
+        op2.type = OpType::matrix;
+        op2.qubits = qubits;
+        op2.mats.push_back(Utils::devectorize_matrix(perm));
+        root.branches()[i]->add_op_after_branch(op2);
       }
     }
   }
@@ -230,7 +231,7 @@ void Executor<state_t>::apply_measure(CircuitExecutor::Branch &root,
   rvector_t probs = sample_measure_with_prob(root, qubits);
 
   // save result to cregs
-  for (int_t i = 0; i < probs.size(); i++) {
+  for (uint_t i = 0; i < probs.size(); i++) {
     const reg_t outcome = Utils::int2reg(i, 2, qubits.size());
     root.branches()[i]->creg().store_measure(outcome, cmemory, cregister);
   }
@@ -259,9 +260,9 @@ void Executor<state_t>::apply_initialize(CircuitExecutor::Branch &root,
     auto apply_global_phase = [&tmp, params_in, global_phase](int_t i) {
       tmp[i] = params_in[i] * global_phase;
     };
-    Utils::apply_omp_parallel_for((qubits.size() > Base::omp_qubit_threshold_),
-                                  0, params_in.size(), apply_global_phase,
-                                  Base::parallel_state_update_);
+    Utils::apply_omp_parallel_for(
+        (qubits.size() > (uint_t)Base::omp_qubit_threshold_), 0,
+        params_in.size(), apply_global_phase, Base::parallel_state_update_);
   }
   const cvector_t<double> &params = tmp.empty() ? params_in : tmp;
   if (qubits.size() == Base::num_qubits_) {
@@ -283,7 +284,7 @@ void Executor<state_t>::apply_initialize(CircuitExecutor::Branch &root,
     op.name = "initialize";
     op.qubits = qubits;
     op.params = params;
-    for (int_t i = 0; i < root.num_branches(); i++) {
+    for (uint_t i = 0; i < root.num_branches(); i++) {
       root.branches()[i]->add_op_after_branch(op);
     }
     return; // initialization will be done in next call because of shot
@@ -307,10 +308,8 @@ void Executor<state_t>::apply_kraus(CircuitExecutor::Branch &root,
   // So we only compute probabilities for the first N-1 kraus operators
   // and infer the probability of the last one from 1 - sum of the previous
 
-  double r;
   double accum = 0.;
   double p;
-  bool complete = false;
 
   reg_t shot_branch;
   uint_t nshots;
@@ -320,7 +319,7 @@ void Executor<state_t>::apply_kraus(CircuitExecutor::Branch &root,
   nshots = root.num_shots();
   shot_branch.resize(nshots);
   rshots.resize(nshots);
-  for (int_t i = 0; i < nshots; i++) {
+  for (uint_t i = 0; i < nshots; i++) {
     shot_branch[i] = kmats.size() - 1;
     rshots[i] = root.rng_shots()[i].rand(0., 1.);
   }
@@ -336,7 +335,7 @@ void Executor<state_t>::apply_kraus(CircuitExecutor::Branch &root,
 
     // check if we need to apply this operator
     pmats[j] = p;
-    for (int_t i = 0; i < nshots; i++) {
+    for (uint_t i = 0; i < nshots; i++) {
       if (shot_branch[i] >= kmats.size() - 1) {
         if (accum > rshots[i]) {
           shot_branch[i] = j;
@@ -345,7 +344,6 @@ void Executor<state_t>::apply_kraus(CircuitExecutor::Branch &root,
       }
     }
     if (nshots_multiplied >= nshots) {
-      complete = true;
       break;
     }
   }
@@ -355,13 +353,13 @@ void Executor<state_t>::apply_kraus(CircuitExecutor::Branch &root,
 
   root.creg() = Base::states_[root.state_index()].creg();
   root.branch_shots(shot_branch, kmats.size());
-  for (int_t i = 0; i < kmats.size(); i++) {
+  for (uint_t i = 0; i < kmats.size(); i++) {
     Operations::Op op;
     op.type = OpType::matrix;
     op.qubits = qubits;
     op.mats.push_back(kmats[i]);
     p = 1 / std::sqrt(pmats[i]);
-    for (int_t j = 0; j < op.mats[0].size(); j++)
+    for (uint_t j = 0; j < op.mats[0].size(); j++)
       op.mats[0][j] *= p;
     root.branches()[i]->add_op_after_branch(op);
   }
@@ -385,7 +383,7 @@ void Executor<state_t>::apply_save_density_matrix(CircuitExecutor::Branch &root,
   }
 
   std::vector<bool> copied(Base::num_bind_params_, false);
-  for (int_t i = 0; i < root.num_shots(); i++) {
+  for (uint_t i = 0; i < root.num_shots(); i++) {
     uint_t ip = root.param_index(i);
     if (!copied[ip]) {
       (result + ip)
@@ -408,7 +406,7 @@ void Executor<state_t>::apply_save_probs(CircuitExecutor::Branch &root,
   std::vector<bool> copied(Base::num_bind_params_, false);
   if (op.type == Operations::OpType::save_probs_ket) {
     // Convert to ket dict
-    for (int_t i = 0; i < root.num_shots(); i++) {
+    for (uint_t i = 0; i < root.num_shots(); i++) {
       uint_t ip = root.param_index(i);
       if (!copied[ip]) {
         (result + ip)
@@ -420,7 +418,7 @@ void Executor<state_t>::apply_save_probs(CircuitExecutor::Branch &root,
       }
     }
   } else {
-    for (int_t i = 0; i < root.num_shots(); i++) {
+    for (uint_t i = 0; i < root.num_shots(); i++) {
       uint_t ip = root.param_index(i);
       if (!copied[ip]) {
         (result + ip)
@@ -447,7 +445,7 @@ void Executor<state_t>::apply_save_statevector(CircuitExecutor::Branch &root,
 
   if (last_op) {
     const auto v = Base::states_[root.state_index()].move_to_vector();
-    for (int_t i = 0; i < root.num_shots(); i++) {
+    for (uint_t i = 0; i < root.num_shots(); i++) {
       uint_t ip = root.param_index(i);
       (result + ip)
           ->save_data_pershot(Base::states_[root.state_index()].creg(), key, v,
@@ -455,7 +453,7 @@ void Executor<state_t>::apply_save_statevector(CircuitExecutor::Branch &root,
     }
   } else {
     const auto v = Base::states_[root.state_index()].copy_to_vector();
-    for (int_t i = 0; i < root.num_shots(); i++) {
+    for (uint_t i = 0; i < root.num_shots(); i++) {
       uint_t ip = root.param_index(i);
       (result + ip)
           ->save_data_pershot(Base::states_[root.state_index()].creg(), key, v,
@@ -478,7 +476,7 @@ void Executor<state_t>::apply_save_statevector_dict(
   for (auto const &it : state_ket) {
     result_state_ket[it.first] = it.second;
   }
-  for (int_t i = 0; i < root.num_shots(); i++) {
+  for (uint_t i = 0; i < root.num_shots(); i++) {
     uint_t ip = root.param_index(i);
     (result + ip)
         ->save_data_pershot(
@@ -496,14 +494,14 @@ void Executor<state_t>::apply_save_amplitudes(CircuitExecutor::Branch &root,
     throw std::invalid_argument(
         "Invalid save_amplitudes instructions (empty params).");
   }
-  const int_t size = op.int_params.size();
+  const uint_t size = op.int_params.size();
   if (op.type == Operations::OpType::save_amps) {
     Vector<complex_t> amps(size, false);
-    for (int_t i = 0; i < size; ++i) {
+    for (uint_t i = 0; i < size; ++i) {
       amps[i] =
           Base::states_[root.state_index()].qreg().get_state(op.int_params[i]);
     }
-    for (int_t i = 0; i < root.num_shots(); i++) {
+    for (uint_t i = 0; i < root.num_shots(); i++) {
       uint_t ip = root.param_index(i);
       (result + ip)
           ->save_data_pershot(
@@ -512,12 +510,12 @@ void Executor<state_t>::apply_save_amplitudes(CircuitExecutor::Branch &root,
     }
   } else {
     rvector_t amps_sq(size, 0);
-    for (int_t i = 0; i < size; ++i) {
+    for (uint_t i = 0; i < size; ++i) {
       amps_sq[i] = Base::states_[root.state_index()].qreg().probability(
           op.int_params[i]);
     }
     std::vector<bool> copied(Base::num_bind_params_, false);
-    for (int_t i = 0; i < root.num_shots(); i++) {
+    for (uint_t i = 0; i < root.num_shots(); i++) {
       uint_t ip = root.param_index(i);
       if (!copied[ip]) {
         (result + ip)
@@ -539,23 +537,23 @@ Executor<state_t>::sample_measure(state_t &state, const reg_t &qubits,
   std::vector<double> rnds;
   rnds.reserve(shots);
 
-  for (i = 0; i < shots; ++i)
+  for (i = 0; i < (int_t)shots; ++i)
     rnds.push_back(rng[i].rand(0, 1));
 
   std::vector<reg_t> samples = state.qreg().sample_measure(rnds);
   std::vector<reg_t> ret(shots);
 
   if (omp_get_num_threads() > 1) {
-    for (i = 0; i < shots; ++i) {
+    for (i = 0; i < (int_t)shots; ++i) {
       ret[i].resize(qubits.size());
-      for (j = 0; j < qubits.size(); j++)
+      for (j = 0; j < (int_t)qubits.size(); j++)
         ret[i][j] = samples[i][qubits[j]];
     }
   } else {
 #pragma omp parallel for private(j)
-    for (i = 0; i < shots; ++i) {
+    for (i = 0; i < (int_t)shots; ++i) {
       ret[i].resize(qubits.size());
-      for (j = 0; j < qubits.size(); j++)
+      for (j = 0; j < (int_t)qubits.size(); j++)
         ret[i][j] = samples[i][qubits[j]];
     }
   }
