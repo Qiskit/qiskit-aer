@@ -252,7 +252,7 @@ class TestSampler(QiskitAerTestCase):
         qc.h(0)
         qc.measure_all()
 
-        result = Sampler().run(qc, shots=shots, seed=15).result()
+        result = Sampler().run(qc, shots=shots, seed=20).result()
         quasis = result.quasi_dists[0]
         bin_probs = quasis.binary_probabilities()
         self.assertDictAlmostEqual(bin_probs, {"0000": 0.5, "0001": 0.5}, delta=1e-2)

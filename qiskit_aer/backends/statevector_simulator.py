@@ -10,13 +10,14 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 """
-Qiskit Aer statevector simulator backend.
+Aer statevector simulator backend.
 """
 
 import copy
 import logging
 from warnings import warn
-from qiskit.utils import local_hardware_info
+
+import psutil
 from qiskit.providers.options import Options
 from qiskit.providers.models import QasmBackendConfiguration
 
@@ -35,7 +36,7 @@ from .backend_utils import (
     add_final_save_op,
 )
 
-# pylint: disable=import-error, no-name-in-module
+# pylint: disable=import-error, no-name-in-module, abstract-method
 from .controller_wrappers import aer_controller_execute
 
 # Logger
@@ -230,6 +231,7 @@ class StatevectorSimulator(AerBackend):
                 "save_amplitudes_sq",
                 "save_state",
                 "set_statevector",
+                "reset",
             ]
         ),
         "gates": [],
@@ -252,9 +254,7 @@ class StatevectorSimulator(AerBackend):
         self._controller = aer_controller_execute()
 
         if StatevectorSimulator._AVAILABLE_DEVICES is None:
-            StatevectorSimulator._AVAILABLE_DEVICES = available_devices(
-                self._controller, StatevectorSimulator._SIMULATION_DEVICES
-            )
+            StatevectorSimulator._AVAILABLE_DEVICES = available_devices(self._controller)
 
         if configuration is None:
             configuration = QasmBackendConfiguration.from_dict(
@@ -354,7 +354,7 @@ class StatevectorSimulator(AerBackend):
         1. Set shots=1.
         2. Check number of qubits will fit in local memory.
         """
-        name = self.name()
+        name = self.name
         if getattr(qobj.config, "noise_model", None) is not None:
             raise AerError(f"{name} does not support noise.")
 
@@ -363,7 +363,7 @@ class StatevectorSimulator(AerBackend):
         if n_qubits > max_qubits:
             raise AerError(
                 f"Number of qubits ({n_qubits}) is greater than max ({max_qubits}) "
-                f'for "{name}" with {int(local_hardware_info()["memory"])} GB system memory.'
+                f'for "{name}" with {int(psutil.virtual_memory().total / (1024**3))} GB system memory.'
             )
 
         if qobj.config.shots != 1:

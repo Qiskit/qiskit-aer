@@ -48,7 +48,7 @@ class TestSimulationMethod(SimulatorTestCase):
     # ---------------------------------------------------------------------
 
     def test_auto_method_clifford_circuits(self):
-        """Test statevector method is used for Clifford circuit"""
+        """Test stabilizer method is used for Clifford circuit"""
         # Test circuits
         backend = self.backend()
         shots = 100
@@ -59,7 +59,7 @@ class TestSimulationMethod(SimulatorTestCase):
         self.compare_result_metadata(result, circuits, "method", "stabilizer")
 
     def test_auto_method_clifford_circuits_and_reset_noise(self):
-        """Test statevector method is used for Clifford circuit"""
+        """Test stabilizer method is used for Clifford circuit"""
         # Test noise model
         noise_circs = [Reset(), IGate()]
         noise_probs = [0.5, 0.5]
@@ -69,7 +69,7 @@ class TestSimulationMethod(SimulatorTestCase):
         backend = self.backend(noise_model=noise_model)
 
         # Test circuits
-        shots = 100
+        shots = 4
         circuits = ref_2q_clifford.cz_gate_circuits_deterministic(final_measure=True)
         result = backend.run(circuits, shots=shots).result()
         success = getattr(result, "success", False)
@@ -77,7 +77,7 @@ class TestSimulationMethod(SimulatorTestCase):
         self.compare_result_metadata(result, circuits, "method", "stabilizer")
 
     def test_auto_method_clifford_circuits_and_pauli_noise(self):
-        """Test statevector method is used for Clifford circuit"""
+        """Test stabilizer method is used for Clifford circuit"""
         # Noise Model
         error = pauli_error([["XX", 0.5], ["II", 0.5]])
         noise_model = NoiseModel()
@@ -85,15 +85,31 @@ class TestSimulationMethod(SimulatorTestCase):
         backend = self.backend(noise_model=noise_model)
 
         # Test circuits
-        shots = 100
+        shots = 4
         circuits = ref_2q_clifford.cz_gate_circuits_deterministic(final_measure=True)
         result = backend.run(circuits, shots=shots).result()
         success = getattr(result, "success", False)
         self.assertTrue(success)
         self.compare_result_metadata(result, circuits, "method", "stabilizer")
 
+    def test_auto_method_clifford_circuits_and_pauli_noise_with_many_shots(self):
+        """Test density_matrix method is used for Clifford circuit"""
+        # Noise Model
+        error = pauli_error([["XX", 0.5], ["II", 0.5]])
+        noise_model = NoiseModel()
+        noise_model.add_all_qubit_quantum_error(error, ["cz", "cx"])
+        backend = self.backend(noise_model=noise_model)
+
+        # Test circuits
+        shots = 1000
+        circuits = ref_2q_clifford.cz_gate_circuits_deterministic(final_measure=True)
+        result = backend.run(circuits, shots=shots).result()
+        success = getattr(result, "success", False)
+        self.assertTrue(success)
+        self.compare_result_metadata(result, circuits, "method", "density_matrix")
+
     def test_auto_method_clifford_circuits_and_unitary_noise(self):
-        """Test statevector method is used for Clifford circuit"""
+        """Test density_matrix method is used for Clifford circuit"""
         # Noise Model
         error = mixed_unitary_error(
             [(Pauli("XX").to_matrix(), 0.5), (Pauli("II").to_matrix(), 0.5)]
@@ -110,7 +126,7 @@ class TestSimulationMethod(SimulatorTestCase):
         self.compare_result_metadata(result, circuits, "method", "density_matrix")
 
     def test_auto_method_clifford_circuits_and_kraus_noise(self):
-        """Test statevector method is used for Clifford circuit"""
+        """Test density_matrix method is used for Clifford circuit"""
         # Noise Model
         error = amplitude_damping_error(0.5)
         noise_model = NoiseModel()

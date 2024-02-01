@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    Added CMake option ``USE_BUNDLED_BLAS_WIN`` which allows CMake to search
+    for a BLAS library against which to link instead of using the OpenBLAS
+    library bundled into the repo.

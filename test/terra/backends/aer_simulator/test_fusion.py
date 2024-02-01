@@ -485,7 +485,7 @@ class TestGateFusion(SimulatorTestCase):
         for param in circuit.parameters:
             param_binds[param] = np.random.random()
 
-        circuit = transpile(circuit.bind_parameters(param_binds), backend, optimization_level=0)
+        circuit = transpile(circuit.assign_parameters(param_binds), backend, optimization_level=0)
 
         backend_options = self.fusion_options(enabled=True, threshold=1)
         backend_options["fusion_verbose"] = True

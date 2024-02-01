@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 """
-Standard quantum computing error channels for Qiskit Aer.
+Standard quantum computing error channels for Aer.
 """
 
 import itertools as it
@@ -19,8 +19,8 @@ import numpy as np
 
 from qiskit.circuit import Reset
 from qiskit.circuit.library.standard_gates import IGate, XGate, ZGate
+from qiskit.circuit.library.generalized_gates import UnitaryGate
 from qiskit.exceptions import QiskitError
-from qiskit.extensions import UnitaryGate
 from qiskit.quantum_info.operators import Pauli
 from qiskit.quantum_info.operators.channel import Choi, Kraus
 from qiskit.quantum_info.operators.predicates import is_identity_matrix

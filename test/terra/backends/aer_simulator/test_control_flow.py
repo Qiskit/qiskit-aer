@@ -21,6 +21,7 @@ from qiskit_aer import AerSimulator
 from qiskit import QuantumCircuit, transpile
 from qiskit.circuit import Parameter, Qubit, Clbit, QuantumRegister, ClassicalRegister
 from qiskit.circuit.controlflow import *
+from qiskit.circuit.classical import expr, types
 from qiskit_aer.library.default_qubits import default_qubits
 from qiskit_aer.library.control_flow_instructions import AerMark, AerJump
 
@@ -53,7 +54,7 @@ class TestControlFlow(SimulatorTestCase):
             instr.c_if(clbit, value)
         return circ.append(instr, qubits)
 
-    @data("statevector", "density_matrix", "matrix_product_state")
+    @data("statevector", "density_matrix", "matrix_product_state", "stabilizer")
     def test_jump_always(self, method):
         backend = self.backend(method=method)
 
@@ -75,7 +76,7 @@ class TestControlFlow(SimulatorTestCase):
         self.assertEqual(len(counts), 1)
         self.assertIn("0000", counts)
 
-    @data("statevector", "density_matrix", "matrix_product_state")
+    @data("statevector", "density_matrix", "matrix_product_state", "stabilizer")
     def test_jump_conditional(self, method):
         backend = self.backend(method=method)
 
@@ -97,7 +98,7 @@ class TestControlFlow(SimulatorTestCase):
         self.assertEqual(len(counts), 1)
         self.assertIn("0000 0", counts)
 
-    @data("statevector", "density_matrix", "matrix_product_state")
+    @data("statevector", "density_matrix", "matrix_product_state", "stabilizer")
     def test_no_jump_conditional(self, method):
         backend = self.backend(method=method)
 
@@ -118,7 +119,7 @@ class TestControlFlow(SimulatorTestCase):
         counts = result.get_counts()
         self.assertNotEqual(len(counts), 1)
 
-    @data("statevector", "density_matrix", "matrix_product_state")
+    @data("statevector", "density_matrix", "matrix_product_state", "stabilizer")
     def test_invalid_jump(self, method):
         logging.disable(level=logging.WARN)
 
@@ -141,7 +142,7 @@ class TestControlFlow(SimulatorTestCase):
 
         logging.disable(level=logging.NOTSET)
 
-    @data("statevector", "density_matrix", "matrix_product_state")
+    @data("statevector", "density_matrix", "matrix_product_state", "stabilizer")
     def test_duplicated_mark(self, method):
         logging.disable(level=logging.WARN)
 
@@ -164,7 +165,7 @@ class TestControlFlow(SimulatorTestCase):
 
         logging.disable(level=logging.NOTSET)
 
-    @data("statevector", "density_matrix", "matrix_product_state")
+    @data("statevector", "density_matrix", "matrix_product_state", "stabilizer")
     def test_if_true_body_builder(self, method):
         backend = self.backend(method=method)
 
@@ -188,7 +189,7 @@ class TestControlFlow(SimulatorTestCase):
         self.assertEqual(len(counts), 1)
         self.assertIn("0001 1", counts)
 
-    @data("statevector", "density_matrix", "matrix_product_state")
+    @data("statevector", "density_matrix", "matrix_product_state", "stabilizer")
     def test_if_else_body_builder(self, method):
         backend = self.backend(method=method)
 
@@ -213,7 +214,7 @@ class TestControlFlow(SimulatorTestCase):
         self.assertEqual(len(counts), 1)
         self.assertIn("0000 0", counts)
 
-    @data("statevector", "density_matrix", "matrix_product_state")
+    @data("statevector", "density_matrix", "matrix_product_state", "stabilizer")
     def test_for_loop_builder(self, method):
         backend = self.backend(method=method)
 
@@ -239,7 +240,7 @@ class TestControlFlow(SimulatorTestCase):
         self.assertEqual(len(counts), 1)
         self.assertIn("01100", counts)
 
-    @data("statevector", "density_matrix", "matrix_product_state")
+    @data("statevector", "density_matrix", "matrix_product_state", "stabilizer")
     def test_for_loop_builder_no_loop_variable(self, method):
         backend = self.backend(method=method)
 
@@ -265,7 +266,7 @@ class TestControlFlow(SimulatorTestCase):
         self.assertEqual(len(counts), 1)
         self.assertIn("01010", counts)
 
-    @data("statevector", "density_matrix", "matrix_product_state")
+    @data("statevector", "density_matrix", "matrix_product_state", "stabilizer")
     def test_for_loop_break_builder(self, method):
         backend = self.backend(method=method)
 
@@ -308,7 +309,7 @@ class TestControlFlow(SimulatorTestCase):
         self.assertEqual(len(counts), 1)
         self.assertIn("11100 1", counts)
 
-    @data("statevector", "density_matrix", "matrix_product_state")
+    @data("statevector", "density_matrix", "matrix_product_state", "stabilizer")
     def test_for_loop_continue_builder(self, method):
         backend = self.backend(method=method)
 
@@ -370,7 +371,7 @@ class TestControlFlow(SimulatorTestCase):
         self.assertEqual(len(counts), 1)
         self.assertIn("11110 0 1 0 0 0", counts)
 
-    @data("statevector", "density_matrix", "matrix_product_state")
+    @data("statevector", "density_matrix", "matrix_product_state", "stabilizer")
     def test_while_loop_no_iteration(self, method):
         backend = self.backend(method=method)
 
@@ -389,7 +390,7 @@ class TestControlFlow(SimulatorTestCase):
         self.assertEqual(len(counts), 1)
         self.assertIn("0 0", counts)
 
-    @data("statevector", "density_matrix", "matrix_product_state")
+    @data("statevector", "density_matrix", "matrix_product_state", "stabilizer")
     def test_while_loop_single_iteration(self, method):
         backend = self.backend(method=method)
 
@@ -420,7 +421,7 @@ class TestControlFlow(SimulatorTestCase):
         self.assertEqual(len(counts), 1)
         self.assertIn("10 0", counts)
 
-    @data("statevector", "density_matrix", "matrix_product_state")
+    @data("statevector", "density_matrix", "matrix_product_state", "stabilizer")
     def test_while_loop_double_iterations(self, method):
         backend = self.backend(method=method)
 
@@ -451,7 +452,7 @@ class TestControlFlow(SimulatorTestCase):
         self.assertEqual(len(counts), 1)
         self.assertIn("01 0", counts)
 
-    @data("statevector", "density_matrix", "matrix_product_state")
+    @data("statevector", "density_matrix", "matrix_product_state", "stabilizer")
     def test_while_loop_continue(self, method):
         backend = self.backend(method=method)
 
@@ -485,7 +486,7 @@ class TestControlFlow(SimulatorTestCase):
         self.assertEqual(len(counts), 1)
         self.assertIn("0 0", counts)
 
-    @data("statevector", "density_matrix", "matrix_product_state")
+    @data("statevector", "density_matrix", "matrix_product_state", "stabilizer")
     def test_nested_loop(self, method):
         backend = self.backend(method=method)
 
@@ -512,7 +513,7 @@ class TestControlFlow(SimulatorTestCase):
         self.assertEqual(len(counts), 1)
         self.assertIn("011", counts)
 
-    @data("statevector", "density_matrix", "matrix_product_state")
+    @data("statevector", "density_matrix", "matrix_product_state", "stabilizer")
     def test_while_loop_last(self, method):
         backend = self.backend(method=method)
 
@@ -526,7 +527,7 @@ class TestControlFlow(SimulatorTestCase):
         result = backend.run(circ, method=method).result()
         self.assertSuccess(result)
 
-    @data("statevector", "density_matrix", "matrix_product_state")
+    @data("statevector", "density_matrix", "matrix_product_state", "stabilizer")
     def test_no_invalid_nested_reordering(self, method):
         """Test that the jump/mark system doesn't allow nested conditional marks to jump incorrectly
         relative to their outer marks.  Regression test of gh-1665."""
@@ -548,7 +549,7 @@ class TestControlFlow(SimulatorTestCase):
         self.assertSuccess(result)
         self.assertEqual(result.get_counts(), {"110": 100})
 
-    @data("statevector", "density_matrix", "matrix_product_state")
+    @data("statevector", "density_matrix", "matrix_product_state", "stabilizer")
     def test_no_invalid_reordering_if(self, method):
         """Test that the jump/mark system doesn't allow an unrelated operation to jump inside a
         conditional statement."""
@@ -574,7 +575,7 @@ class TestControlFlow(SimulatorTestCase):
         self.assertSuccess(result)
         self.assertEqual(result.get_counts(), {"010": 100})
 
-    @data("statevector", "density_matrix", "matrix_product_state")
+    @data("statevector", "density_matrix", "matrix_product_state", "stabilizer")
     def test_no_invalid_reordering_while(self, method):
         """Test that the jump/mark system doesn't allow an unrelated operation to jump inside a
         conditional statement."""
@@ -600,7 +601,7 @@ class TestControlFlow(SimulatorTestCase):
         self.assertSuccess(result)
         self.assertEqual(result.get_counts(), {"010": 100})
 
-    @data("statevector", "density_matrix", "matrix_product_state")
+    @data("statevector", "density_matrix", "matrix_product_state", "stabilizer")
     def test_transpile_break_and_continue_loop(self, method):
         """Test that transpiler can transpile break_loop and continue_loop with AerSimulator"""
 
@@ -631,7 +632,7 @@ class TestControlFlow(SimulatorTestCase):
         result = backend.run(transpiled, method=method, shots=100).result()
         self.assertEqual(result.get_counts(), {"1": 100})
 
-    @data("statevector", "density_matrix", "matrix_product_state")
+    @data("statevector", "density_matrix", "matrix_product_state", "stabilizer")
     def test_switch_clbit(self, method):
         """Test that a switch statement can be constructed with a bit as a condition."""
 
@@ -680,7 +681,7 @@ class TestControlFlow(SimulatorTestCase):
         self.assertSuccess(ret1)
         self.assertEqual(ret1.get_counts(), ret1_expected.get_counts())
 
-    @data("statevector", "density_matrix", "matrix_product_state")
+    @data("statevector", "density_matrix", "matrix_product_state", "stabilizer")
     def test_switch_register(self, method):
         """Test that a switch statement can be constructed with a register as a condition."""
 
@@ -741,7 +742,7 @@ class TestControlFlow(SimulatorTestCase):
         self.assertSuccess(ret3)
         self.assertEqual(ret3.get_counts(), {"011 11": 100})
 
-    @data("statevector", "density_matrix", "matrix_product_state")
+    @data("statevector", "density_matrix", "matrix_product_state", "stabilizer")
     def test_switch_with_default(self, method):
         """Test that a switch statement can be constructed with a default case at the end."""
 
@@ -802,7 +803,7 @@ class TestControlFlow(SimulatorTestCase):
         self.assertSuccess(ret3)
         self.assertEqual(ret3.get_counts(), {"111 11": 100})
 
-    @data("statevector", "density_matrix", "matrix_product_state")
+    @data("statevector", "density_matrix", "matrix_product_state", "stabilizer")
     def test_switch_multiple_cases_to_same_block(self, method):
         """Test that it is possible to add multiple cases that apply to the same block, if they are
         given as a compound value.  This is an allowed special case of block fall-through."""
@@ -863,3 +864,326 @@ class TestControlFlow(SimulatorTestCase):
         ret3 = backend.run(qc3, shots=100).result()
         self.assertSuccess(ret3)
         self.assertEqual(ret3.get_counts(), {"011 11": 100})
+
+    @data("statevector", "density_matrix", "matrix_product_state", "stabilizer")
+    def test_switch_transpilation(self, method):
+        """Test swtich test cases can be transpiled"""
+
+        backend = self.backend(method=method, seed_simulator=1)
+
+        qubit0 = Qubit()
+        qubit1 = Qubit()
+        qubit2 = Qubit()
+
+        creg = ClassicalRegister(2)
+        qc = QuantumCircuit([qubit0, qubit1, qubit2], creg)
+
+        with qc.switch(creg) as case:
+            with case(0):
+                qc.x(0)
+            with case(1):
+                qc.x(1)
+            with case(case.DEFAULT):
+                qc.x(2)
+
+        qc.measure_all()
+
+        transpiled = transpile(qc, backend)
+
+        ret0 = backend.run(transpiled, shots=100).result()
+        self.assertSuccess(ret0)
+        self.assertEqual(ret0.get_counts(), {"001 00": 100})
+
+    @data("statevector", "density_matrix", "matrix_product_state", "stabilizer")
+    def test_switch_register_with_classical_expression(self, method):
+        """Test that a switch statement can be constructed with a register as a condition."""
+
+        backend = self.backend(method=method, seed_simulator=1)
+
+        qubit0 = Qubit()
+        qubit1 = Qubit()
+        qubit2 = Qubit()
+        creg = ClassicalRegister(2)
+        case1 = QuantumCircuit([qubit0, qubit1, qubit2], creg)
+        case1.x(0)
+        case2 = QuantumCircuit([qubit0, qubit1, qubit2], creg)
+        case2.x(1)
+        case3 = QuantumCircuit([qubit0, qubit1, qubit2], creg)
+        case3.x(2)
+
+        op = SwitchCaseOp(expr.lift(creg), [(0, case1), (1, case2), (2, case3)])
+
+        qc0 = QuantumCircuit([qubit0, qubit1, qubit2], creg)
+        qc0.measure(0, creg[0])
+        qc0.append(op, [qubit0, qubit1, qubit2], creg)
+        qc0.measure_all()
+
+        ret0 = backend.run(qc0, shots=100).result()
+        self.assertSuccess(ret0)
+        self.assertEqual(ret0.get_counts(), {"001 00": 100})
+
+        qc1 = QuantumCircuit([qubit0, qubit1, qubit2], creg)
+        qc1.x(0)
+        qc1.measure(0, creg[0])
+        qc1.append(op, [qubit0, qubit1, qubit2], creg)
+        qc1.measure_all()
+
+        ret1 = backend.run(qc1, shots=1).result()
+        self.assertSuccess(ret1)
+        self.assertEqual(ret1.get_counts(), {"011 01": 1})
+
+        qc2 = QuantumCircuit([qubit0, qubit1, qubit2], creg)
+        qc2.x(1)
+        qc2.measure(0, creg[0])
+        qc2.measure(1, creg[1])
+        qc2.append(op, [qubit0, qubit1, qubit2], creg)
+        qc2.measure_all()
+
+        ret2 = backend.run(qc2, shots=100).result()
+        self.assertSuccess(ret2)
+        self.assertEqual(ret2.get_counts(), {"110 10": 100})
+
+        qc3 = QuantumCircuit([qubit0, qubit1, qubit2], creg)
+        qc3.x(0)
+        qc3.x(1)
+        qc3.measure(0, creg[0])
+        qc3.measure(1, creg[1])
+        qc3.append(op, [qubit0, qubit1, qubit2], creg)
+        qc3.measure_all()
+
+        ret3 = backend.run(qc3, shots=100).result()
+        self.assertSuccess(ret3)
+        self.assertEqual(ret3.get_counts(), {"011 11": 100})
+
+    @data("statevector", "density_matrix", "matrix_product_state", "stabilizer")
+    def test_if_expr_true_body_builder(self, method):
+        """test expression with branch operation"""
+        backend = self.backend(method=method)
+
+        # case creg==1
+        qreg = QuantumRegister(4)
+        creg = ClassicalRegister(3, "test")
+        circ = QuantumCircuit(qreg, creg)
+        circ.y(0)
+        circ.h(circ.qubits[1:4])
+        circ.barrier()
+        circ.measure(0, 0)  # 001
+
+        with circ.if_test(expr.equal(ClassicalRegister(3, "test"), 1)):
+            circ.h(circ.qubits[1:4])
+
+        circ.measure_all()
+
+        result = backend.run(circ, method=method).result()
+        self.assertSuccess(result)
+
+        counts = result.get_counts()
+        self.assertEqual(len(counts), 1)
+        self.assertIn("0001 001", counts)
+
+        # case creg==3
+        qreg = QuantumRegister(4)
+        creg = ClassicalRegister(3, "test")
+        circ = QuantumCircuit(qreg, creg)
+        circ.y(0)
+        circ.h(circ.qubits[1:4])
+        circ.barrier()
+        circ.measure(0, 0)
+        circ.measure(0, 1)  # 011
+
+        with circ.if_test(expr.equal(ClassicalRegister(3, "test"), 3)):
+            circ.h(circ.qubits[1:4])
+
+        circ.measure_all()
+
+        result = backend.run(circ, method=method).result()
+        self.assertSuccess(result)
+
+        counts = result.get_counts()
+        self.assertEqual(len(counts), 1)
+        self.assertIn("0001 011", counts)
+
+    @data("statevector", "density_matrix", "matrix_product_state", "stabilizer")
+    def test_if_expr_false_body_builder(self, method):
+        """test expression with branch operation"""
+        backend = self.backend(method=method)
+
+        # case creg==1
+        qreg = QuantumRegister(4)
+        creg = ClassicalRegister(3, "test")
+        circ = QuantumCircuit(qreg, creg)
+        circ.y(0)
+        circ.h(circ.qubits[1:4])
+        circ.barrier()
+        circ.measure(0, 0)  # 001
+
+        with circ.if_test(expr.equal(ClassicalRegister(3, "test"), 2)) as else_:
+            circ.y(0)
+        with else_:
+            circ.h(circ.qubits[1:4])
+
+        circ.measure_all()
+
+        result = backend.run(circ, method=method).result()
+        self.assertSuccess(result)
+
+        counts = result.get_counts()
+        self.assertEqual(len(counts), 1)
+        self.assertIn("0001 001", counts)
+
+        # case creg==3
+        qreg = QuantumRegister(4)
+        creg = ClassicalRegister(3, "test")
+        circ = QuantumCircuit(qreg, creg)
+        circ.y(0)
+        circ.h(circ.qubits[1:4])
+        circ.barrier()
+        circ.measure(0, 0)
+        circ.measure(0, 1)  # 011
+
+        with circ.if_test(expr.equal(ClassicalRegister(3, "test"), 1)) as else_:
+            circ.y(0)
+        with else_:
+            circ.h(circ.qubits[1:4])
+
+        circ.measure_all()
+
+        result = backend.run(circ, method=method).result()
+        self.assertSuccess(result)
+
+        counts = result.get_counts()
+        self.assertEqual(len(counts), 1)
+        self.assertIn("0001 011", counts)
+
+    @data("statevector", "density_matrix", "matrix_product_state", "stabilizer")
+    def test_while_expr_loop_break(self, method):
+        backend = self.backend(method=method)
+
+        qreg = QuantumRegister(1)
+        creg = ClassicalRegister(1)
+        circ = QuantumCircuit(qreg, creg)
+        circ.y(0)
+        circ.measure(0, 0)
+
+        circ_while = QuantumCircuit(qreg, creg)
+        circ_while.y(0)
+        circ_while.measure(0, 0)
+        circ_while.break_loop()
+        circ.while_loop(expr.Value(True, types.Bool()), circ_while, [0], [0])
+
+        circ.measure_all()
+
+        result = backend.run(circ, method=method).result()
+        self.assertSuccess(result)
+
+        counts = result.get_counts()
+        self.assertEqual(len(counts), 1)
+        self.assertIn("0 0", counts)
+
+        qreg = QuantumRegister(1)
+        creg = ClassicalRegister(1)
+        circ = QuantumCircuit(qreg, creg)
+        circ.y(0)
+        circ.measure(0, 0)
+
+        circ_while = QuantumCircuit(qreg, creg)
+        circ_while.y(0)
+        circ_while.measure(0, 0)
+        circ_while.break_loop()
+        circ.while_loop(expr.Value(False, types.Bool()), circ_while, [0], [0])
+
+        circ.measure_all()
+
+        result = backend.run(circ, method=method).result()
+        self.assertSuccess(result)
+
+        counts = result.get_counts()
+        self.assertEqual(len(counts), 1)
+        self.assertIn("1 1", counts)
+
+    @data("statevector", "density_matrix", "matrix_product_state", "stabilizer")
+    def test_bit_and_operation(self, method):
+        """test bit-and operation"""
+        qr = QuantumRegister(7)
+        cr = ClassicalRegister(7)
+        qc = QuantumCircuit(qr, cr)
+        qc.x(0)
+        qc.x(2)
+        qc.measure(range(4), range(4))  # 0101
+        qc.barrier()
+        b01 = expr.bit_and(cr[0], cr[1])  # 1 & 0 -> 0
+        with qc.if_test(b01):
+            qc.x(4)  # q4 -> 0
+
+        b02 = expr.bit_and(cr[0], cr[2])  # 1 & 1 -> 1
+        with qc.if_test(b02):
+            qc.x(5)  # q5 -> 0
+
+        b13 = expr.bit_and(cr[1], cr[3])  # 0 & 0 -> 0
+        with qc.if_test(b13):
+            qc.x(6)  # q6 -> 0
+
+        qc.measure(range(7), range(7))  # 0100101
+
+        backend = self.backend(method=method)
+        counts = backend.run(qc).result().get_counts()
+        self.assertEqual(len(counts), 1)
+        self.assertIn("0100101", counts)
+
+    @data("statevector", "density_matrix", "matrix_product_state", "stabilizer")
+    def test_bit_or_operation(self, method):
+        """test bit-or operation"""
+        qr = QuantumRegister(7)
+        cr = ClassicalRegister(7)
+        qc = QuantumCircuit(qr, cr)
+        qc.x(0)
+        qc.x(2)
+        qc.measure(range(4), range(4))  # 0101
+        qc.barrier()
+        b01 = expr.bit_or(cr[0], cr[1])  # 1 & 0 -> 1
+        with qc.if_test(b01):
+            qc.x(4)  # q4 -> 1
+
+        b02 = expr.bit_or(cr[0], cr[2])  # 1 & 1 -> 1
+        with qc.if_test(b02):
+            qc.x(5)  # q5 -> 0
+
+        b13 = expr.bit_or(cr[1], cr[3])  # 0 & 0 -> 0
+        with qc.if_test(b13):
+            qc.x(6)  # q6 -> 0
+
+        qc.measure(range(7), range(7))  # 0110101
+
+        backend = self.backend(method=method)
+        counts = backend.run(qc).result().get_counts()
+        self.assertEqual(len(counts), 1)
+        self.assertIn("0110101", counts)
+
+    @data("statevector", "density_matrix", "matrix_product_state", "stabilizer")
+    def test_bit_xor_operation(self, method):
+        """test bit-or operation"""
+        qr = QuantumRegister(7)
+        cr = ClassicalRegister(7)
+        qc = QuantumCircuit(qr, cr)
+        qc.x(0)
+        qc.x(2)
+        qc.measure(range(4), range(4))  # 0101
+        qc.barrier()
+        b01 = expr.bit_xor(cr[0], cr[1])  # 1 & 0 -> 1
+        with qc.if_test(b01):
+            qc.x(4)  # q4 -> 1
+
+        b02 = expr.bit_xor(cr[0], cr[2])  # 1 & 1 -> 0
+        with qc.if_test(b02):
+            qc.x(5)  # q5 -> 0
+
+        b13 = expr.bit_xor(cr[1], cr[3])  # 0 & 0 -> 0
+        with qc.if_test(b13):
+            qc.x(6)  # q6 -> 0
+
+        qc.measure(range(7), range(7))  # 0010101
+
+        backend = self.backend(method=method)
+        counts = backend.run(qc).result().get_counts()
+        self.assertEqual(len(counts), 1)
+        self.assertIn("0010101", counts)

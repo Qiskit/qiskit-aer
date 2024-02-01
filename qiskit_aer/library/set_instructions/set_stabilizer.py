@@ -14,7 +14,6 @@ Instruction to set the simulator state to a stabilizer state.
 """
 
 from qiskit.circuit import QuantumCircuit, Instruction
-from qiskit.extensions.exceptions import ExtensionError
 from qiskit.quantum_info import StabilizerState, Clifford
 from ..default_qubits import default_qubits
 
@@ -53,8 +52,8 @@ def set_stabilizer(self, state):
         QuantumCircuit: with attached instruction.
 
     Raises:
-        ExtensionError: If the state is the incorrect size for the
-                        current circuit.
+        ValueError: If the state is the incorrect size for the
+            current circuit.
 
     .. note:
 
@@ -66,7 +65,7 @@ def set_stabilizer(self, state):
     if not isinstance(state, Clifford):
         state = Clifford(state)
     if state.num_qubits != len(qubits):
-        raise ExtensionError(
+        raise ValueError(
             "The size of the Clifford for the set_stabilizer"
             " instruction must be equal to the number of qubits"
             f" in the circuit (state.num_qubits ({state.num_qubits})"

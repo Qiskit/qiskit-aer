@@ -12,10 +12,12 @@
 """
 AerSimulator Integration Tests
 """
-
 from ddt import ddt
 from test.terra.reference import ref_conditionals
 from test.terra.backends.simulator_test_case import SimulatorTestCase, supported_methods
+
+from qiskit import QuantumCircuit
+from qiskit.circuit.library import DiagonalGate
 
 
 @ddt
@@ -310,3 +312,71 @@ class TestConditionalSuperOp(SimulatorTestCase):
         result = backend.run(circuits, shots=shots).result()
         self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, hex_counts=False, delta=0)
+
+
+@ddt
+class TestConditionalReset(SimulatorTestCase):
+    """AerSimulator conditional reset tests."""
+
+    SUPPORTED_METHODS = [
+        "automatic",
+        "statevector",
+        "density_matrix",
+        "matrix_product_state",
+        "tensor_network",
+    ]
+
+    # ---------------------------------------------------------------------
+    # Test conditional
+    # ---------------------------------------------------------------------
+    @supported_methods(SUPPORTED_METHODS)
+    def test_conditional_reset_1bit(self, method, device):
+        """Test conditional reset on 1-bit conditional register."""
+        shots = 100
+        backend = self.backend(method=method, device=device)
+        backend.set_options(max_parallel_experiments=0)
+
+        circuits = ref_conditionals.conditional_circuits_1bit(
+            final_measure=True, conditional_type="reset"
+        )
+        targets = ref_conditionals.conditional_counts_1bit_with_reset(shots)
+        result = backend.run(circuits, shots=shots).result()
+        self.assertSuccess(result)
+        self.compare_counts(result, circuits, targets, delta=0)
+
+
+@ddt
+class TestConditionalDiagonal(SimulatorTestCase):
+    """AerSimulator conditional diagonal tests."""
+
+    # ---------------------------------------------------------------------
+    # Test conditional
+    # ---------------------------------------------------------------------
+    def test_conditional_diagonal(self):
+        """Test conditional diagonal with statevector."""
+        shots = 100
+        backend = self.backend(method="statevector", device="CPU")
+        backend.set_options(max_parallel_experiments=0)
+
+        circuit = QuantumCircuit(4, 4)
+        for i in range(1, 4):
+            circuit.h(i)
+        circuit.save_statevector(label="base")
+
+        circuit0 = QuantumCircuit(4, 4)
+        for i in range(1, 4):
+            circuit0.h(i)
+        circuit0.append(DiagonalGate([-1, -1]), [1]).c_if(circuit0.clbits[0], 0)
+        circuit0.save_statevector(label="diff")
+
+        circuit1 = QuantumCircuit(4, 4)
+        for i in range(1, 4):
+            circuit1.h(i)
+        circuit1.append(DiagonalGate([-1, -1]), [1]).c_if(circuit1.clbits[0], 1)
+        circuit1.save_statevector(label="equal")
+
+        result = backend.run([circuit, circuit0, circuit1], shots=1).result()
+        self.assertSuccess(result)
+
+        self.assertNotEqual(result.data(circuit)["base"], result.data(circuit0)["diff"])
+        self.assertEqual(result.data(circuit)["base"], result.data(circuit1)["equal"])

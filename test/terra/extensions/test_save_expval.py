@@ -13,7 +13,6 @@
 import unittest
 
 
-from qiskit.extensions.exceptions import ExtensionError
 from qiskit_aer.library import SaveExpectationValue, SaveExpectationValueVariance
 from qiskit.quantum_info.operators import Pauli
 
@@ -25,12 +24,12 @@ class TestSaveExpectationValue(QiskitAerTestCase):
 
     def test_invalid_key_raises(self):
         """Test save instruction key is str"""
-        self.assertRaises(ExtensionError, lambda: SaveExpectationValue(Pauli("Z"), 1))
+        self.assertRaises(TypeError, lambda: SaveExpectationValue(Pauli("Z"), 1))
 
     def test_nonhermitian_raises(self):
         """Test non-Hermitian op raises exception."""
         op = [[0, 1j], [1j, 0]]
-        self.assertRaises(ExtensionError, lambda: SaveExpectationValue(op, "expval"))
+        self.assertRaises(ValueError, lambda: SaveExpectationValue(op, "expval"))
 
     def test_default_kwarg(self):
         """Test default kwargs"""
@@ -86,12 +85,12 @@ class TestSaveExpectationValueVariance(QiskitAerTestCase):
 
     def test_invalid_key_raises(self):
         """Test save instruction key is str"""
-        self.assertRaises(ExtensionError, lambda: SaveExpectationValueVariance(Pauli("Z"), 1))
+        self.assertRaises(TypeError, lambda: SaveExpectationValueVariance(Pauli("Z"), 1))
 
     def test_nonhermitian_raises(self):
         """Test non-Hermitian op raises exception."""
         op = [[0, 1j], [1j, 0]]
-        self.assertRaises(ExtensionError, lambda: SaveExpectationValueVariance(op, "expval"))
+        self.assertRaises(ValueError, lambda: SaveExpectationValueVariance(op, "expval"))
 
     def test_default_kwarg(self):
         """Test default kwargs"""

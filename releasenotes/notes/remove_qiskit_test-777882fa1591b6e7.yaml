@@ -1,0 +1,4 @@
+---
+deprecations:
+  - |
+    Removed importing qiskit.test from test and include some classes in Aer

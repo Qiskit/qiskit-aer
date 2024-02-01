@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 """
-Noise model class for Qiskit Aer simulators.
+Noise model class for Aer simulators.
 """
 import copy
 import json
@@ -23,8 +23,7 @@ import numpy as np
 from qiskit.circuit import Instruction, Delay
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import Reset
-from qiskit.circuit.library.generalized_gates import PauliGate
-from qiskit.extensions import UnitaryGate
+from qiskit.circuit.library.generalized_gates import PauliGate, UnitaryGate
 from qiskit.providers import QubitProperties
 from qiskit.providers.exceptions import BackendPropertyError
 from qiskit.providers.models import BackendProperties
@@ -78,7 +77,7 @@ class QuantumErrorLocation(Instruction):
 
 
 class NoiseModel:
-    """Noise model class for Qiskit Aer simulators.
+    """Noise model class for Aer simulators.
 
     This class is used to represent noise model for the
     :class:`~qiskit_aer.QasmSimulator`. It can be used to construct

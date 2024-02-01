@@ -1,0 +1,13 @@
+---
+fixes:
+  - |
+    Fixes AerBackend issues caused by upgading to BackendV2 in 0.13.0 release
+    and fix test failures for Qiskit 0.45 release.
+
+    For issue #1987, added description if backend given by from_backend does not
+    have description.
+
+    For issue #1988, added building coupling map from option.
+
+    For issue #1982, added custome pass maneger to rebuild basis gates from
+    input circuits to prevent unnecessary gate changes

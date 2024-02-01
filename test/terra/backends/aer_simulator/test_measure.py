@@ -25,6 +25,8 @@ from qiskit.quantum_info.random import random_unitary
 from test.terra.backends.simulator_test_case import SimulatorTestCase, supported_methods
 import numpy as np
 
+import os
+
 SUPPORTED_METHODS = [
     "automatic",
     "stabilizer",
@@ -142,7 +144,8 @@ class TestMeasure(SimulatorTestCase):
         targets = ref_measure.measure_counts_deterministic(shots)
         result = backend.run(circuits, shots=shots).result()
         self.assertSuccess(result)
-        sampling = method == "density_matrix" or method == "tensor_network"
+        method_used = result.results[0].metadata.get("method")
+        sampling = method_used == "density_matrix" or method_used == "tensor_network"
         self.compare_result_metadata(result, circuits, "measure_sampling", sampling)
 
     # ---------------------------------------------------------------------
@@ -319,6 +322,22 @@ class TestMeasure(SimulatorTestCase):
 
             self.assertDictAlmostEqual(
                 result1.get_counts(circuit), result2.get_counts(circuit), delta=0.1 * shots
+            )
+
+            # Test also parallel version
+            os.environ["PRL_PROB_MEAS"] = "1"
+            result2_prl = backend.run(
+                circuit, shots=shots, mps_sample_measure_algorithm="mps_probabilities"
+            ).result()
+            self.assertTrue(getattr(result2_prl, "success", "True"))
+            del os.environ["PRL_PROB_MEAS"]  # Python 3.8 in Windows
+            # os.unsetenv("PRL_PROB_MEAS")  # SInce Python 3.9
+
+            self.assertDictAlmostEqual(
+                result1.get_counts(circuit), result2_prl.get_counts(circuit), delta=0.1 * shots
+            )
+            self.assertDictAlmostEqual(
+                result2.get_counts(circuit), result2_prl.get_counts(circuit), delta=0.1 * shots
             )
 
     def test_mps_measure_with_limited_bond_dimension(self):

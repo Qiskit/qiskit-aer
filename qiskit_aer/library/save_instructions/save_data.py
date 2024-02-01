@@ -16,7 +16,6 @@ Simulator instruction to save custom internal data to results.
 import copy
 
 from qiskit.circuit import Instruction
-from qiskit.extensions.exceptions import ExtensionError
 
 
 class SaveData(Instruction):
@@ -39,19 +38,17 @@ class SaveData(Instruction):
                                    [Default: None].
 
         Raises:
-            ExtensionError: if the subtype string is invalid.
+            TypeError: if the subtype string is invalid.
 
         Additional Information:
             The supported subtypes are 'single', 'list', 'c_list', 'average',
             'c_average', 'accum', 'c_accum'.
         """
         if subtype not in self._allowed_subtypes:
-            raise ExtensionError("Invalid data subtype for SaveData instruction.")
+            raise TypeError("Invalid data subtype for SaveData instruction.")
 
         if not isinstance(label, str):
-            raise ExtensionError(
-                f"Invalid label for save data instruction, {label} must be a string."
-            )
+            raise TypeError(f"Invalid label for save data instruction, {label} must be a string.")
 
         if params is None:
             params = {}
