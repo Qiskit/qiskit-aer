@@ -48,6 +48,7 @@ if qiskit.__version__.startswith("0."):
     def fake_7q_v2():
         """Generate a dummy 7q V2 backend."""
         return FakeLagosV2()
+
 else:
     from qiskit.providers.fake_provider import (
         FakeBackend,
@@ -59,6 +60,7 @@ else:
     def fake_7q_v2():
         """Generate a dummy 7q V2 backend."""
         return GenericBackendV2(num_qubits=7, coupling_map=CouplingMap.from_ring(7), seed=0)
+
 
 from test.terra.common import QiskitAerTestCase
 
@@ -333,8 +335,10 @@ class TestNoiseModel(QiskitAerTestCase):
     def test_create_noise_model_without_user_warnings(self):
         """Test if never issue user warnings when creating a noise model from backend.
         See issue#1631 for the details."""
+
         class BadlyCalibratedBackendV2(BackendV2):
             """A backend with `t2 > 2*t1` due to awkward calibration statistics."""
+
             @property
             def target(self):
                 return Target(

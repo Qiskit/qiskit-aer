@@ -34,7 +34,7 @@ def target_7q():
     """Build an arbitrary 7q ``Target`` with noisy instructions."""
     num_qubits = 7
     qubit_properties = [
-        QubitProperties(t1=1.5e-4, t2=1.5e-4, frequency=4_700_000_000.0 + q*50_000_000.0)
+        QubitProperties(t1=1.5e-4, t2=1.5e-4, frequency=4_700_000_000.0 + q * 50_000_000.0)
         for q in range(num_qubits)
     ]
     target = Target(num_qubits=7, qubit_properties=qubit_properties)
@@ -42,8 +42,7 @@ def target_7q():
         target.add_instruction(
             gate,
             properties={
-                (q,): InstructionProperties(duration=50e-9, error=2e-4)
-                for q in range(num_qubits)
+                (q,): InstructionProperties(duration=50e-9, error=2e-4) for q in range(num_qubits)
             },
         )
     target.add_instruction(
@@ -56,19 +55,16 @@ def target_7q():
     target.add_instruction(
         Reset(),
         properties={
-            (q,): InstructionProperties(duration=4e-6, error=None)
-            for q in range(num_qubits)
+            (q,): InstructionProperties(duration=4e-6, error=None) for q in range(num_qubits)
         },
     )
     target.add_instruction(
         Measure(),
         properties={
-            (q,): InstructionProperties(duration=3e-6, error=1.5e-2)
-            for q in range(num_qubits)
+            (q,): InstructionProperties(duration=3e-6, error=1.5e-2) for q in range(num_qubits)
         },
     )
     return target
-
 
 
 class TestDeviceNoiseModel(QiskitAerTestCase):

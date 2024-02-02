@@ -12,6 +12,7 @@ from ddt import ddt
 
 import qiskit
 from qiskit import transpile, QuantumCircuit
+
 if qiskit.__version__.startswith("0."):
     from qiskit.providers.fake_provider import FakeQuito as Fake5QV1
 else:
