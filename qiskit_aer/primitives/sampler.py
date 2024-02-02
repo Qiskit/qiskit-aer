@@ -162,7 +162,8 @@ class Sampler(BaseSampler):
                 self._circuits.append(circuit)
                 self._parameters.append(circuit.parameters)
         job = PrimitiveJob(self._call, circuit_indices, parameter_values, **run_options)
-        job._submit()
+        # The public submit method was removed in Qiskit 0.46
+        (job.submit if hasattr(job, "submit") else job._submit)()
         return job
 
     @staticmethod

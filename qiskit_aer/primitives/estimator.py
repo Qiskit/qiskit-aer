@@ -209,7 +209,8 @@ class Estimator(BaseEstimator):
             parameter_values,
             **run_options,
         )
-        job._submit()
+        # The public submit method was removed in Qiskit 0.46
+        (job.submit if hasattr(job, "submit") else job._submit)()
         return job
 
     def _compute(self, circuits, observables, parameter_values, run_options):
