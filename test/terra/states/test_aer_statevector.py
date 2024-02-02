@@ -14,17 +14,16 @@ Integration Tests for AerStatevector
 """
 
 import unittest
-from math import pi
-import numpy as np
 import logging
 from itertools import permutations
 from ddt import ddt, data
+
+import numpy as np
 from numpy.testing import assert_allclose
 
 from qiskit import transpile
 from qiskit.exceptions import QiskitError
 from qiskit.circuit import QuantumCircuit, QuantumRegister
-from qiskit.providers.basicaer import QasmSimulatorPy
 from qiskit.quantum_info.random import random_unitary, random_statevector, random_pauli
 from qiskit.quantum_info.states import Statevector
 from qiskit.circuit.library import QuantumVolume
@@ -35,13 +34,12 @@ from qiskit.quantum_info.operators.predicates import matrix_equal
 from qiskit.visualization.state_visualization import state_to_latex
 from qiskit.circuit.library import QFT, HGate
 from qiskit.circuit.library import DiagonalGate
+from qiskit.quantum_info.operators.predicates import ATOL_DEFAULT, RTOL_DEFAULT
+
+from qiskit_aer.noise import pauli_error
+from qiskit_aer.quantum_info.states import AerStatevector
 
 from test.terra import common
-from qiskit_aer import AerSimulator
-from qiskit_aer.aererror import AerError
-from qiskit_aer.noise import pauli_error, QuantumError
-from qiskit_aer.quantum_info.states import AerStatevector
-from qiskit.quantum_info.operators.predicates import ATOL_DEFAULT, RTOL_DEFAULT
 
 
 logger = logging.getLogger(__name__)
@@ -1311,18 +1309,9 @@ class TestAerStatevector(common.QiskitAerTestCase):
         probs = state.probabilities(qargs)
 
         # Estimate target probs from simulator measurement
-        sim = QasmSimulatorPy()
-        shots = 5000
-        seed = 100
-        circ = transpile(state_circ, sim)
-        circ.measure(qargs, range(nc))
-        result = sim.run(circ, shots=shots, seed_simulator=seed).result()
-        target = np.zeros(2**nc, dtype=float)
-        for i, p in result.get_counts(0).int_outcomes().items():
-            target[i] = p / shots
-        # Compare
-        delta = np.linalg.norm(probs - target)
-        self.assertLess(delta, 0.05)
+        terra_state = Statevector(state_circ)
+        terra_probs = terra_state.probabilities(qargs)
+        assert_allclose(probs, terra_probs)
 
     def test_global_phase(self):
         """Test global phase is handled correctly when evolving statevector."""
