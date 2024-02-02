@@ -34,7 +34,10 @@ jobs:
       - name: Install Deps
         run: |
           python -m pip install -U -c constraints.txt -r requirements-dev.txt wheel
-          pip install -U git+https://github.com/Qiskit/qiskit.git
+          # Uninstall `qiskit` and `qiskit-terra`.
+          python -m pip uninstall --yes qiskit qiskit-terra
+          # Install the new version of Qiskit
+          python -m pip install 'git+https://github.com/Qiskit/qiskit.git@main'
       - name: Install openblas
         run: |
           set -e
