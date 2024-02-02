@@ -98,7 +98,7 @@ class Estimator(BaseEstimator):
         """
         super().__init__(options=run_options)
         # These three private attributes used to be created by super, but were deprecated in Qiskit
-        # 0.46. See https://github.com/Qiskit/qiskit/pull/11051/files
+        # 0.46. See https://github.com/Qiskit/qiskit/pull/11051
         self._circuits = []
         self._parameters = []
         self._observables = []
