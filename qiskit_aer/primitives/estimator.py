@@ -209,7 +209,7 @@ class Estimator(BaseEstimator):
             parameter_values,
             **run_options,
         )
-        job.submit()
+        job._submit()
         return job
 
     def _compute(self, circuits, observables, parameter_values, run_options):

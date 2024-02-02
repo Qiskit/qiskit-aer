@@ -162,7 +162,7 @@ class Sampler(BaseSampler):
                 self._circuits.append(circuit)
                 self._parameters.append(circuit.parameters)
         job = PrimitiveJob(self._call, circuit_indices, parameter_values, **run_options)
-        job.submit()
+        job._submit()
         return job
 
     @staticmethod
