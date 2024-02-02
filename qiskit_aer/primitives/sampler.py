@@ -67,6 +67,11 @@ class Sampler(BaseSampler):
             skip_transpilation: if True, transpilation is skipped.
         """
         super().__init__(options=run_options)
+        # these two private attributes were deprecated in Qiskit 0.46
+        # https://github.com/Qiskit/qiskit/pull/11051/files
+        self._circuits = []
+        self._parameters = []
+
         self._backend = AerSimulator()
         backend_options = {} if backend_options is None else backend_options
         self._backend.set_options(**backend_options)
