@@ -87,16 +87,16 @@ jobs:
           aer-test/bin/pip check
         shell: bash
   tests_linux:
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-latest
+    name: Linux Python ${{ matrix.python-version }}${{ matrix.qiskit-extra && format(' ({0})', matrix.qiskit-extra) }}
     needs: [sdist, lint]
     timeout-minutes: 60
     strategy:
       matrix:
         python-version: [3.8, 3.9, "3.10", "3.11", "3.12.0"]
-        os: ["ubuntu-latest"]
+        qiskit-extra: ""
         include:
           - python-version: "3.10"
-            os: "ubuntu-latest"
             qiskit-extra: "'qiskit>=1.0.0rc1'"
 
     env:
@@ -192,13 +192,13 @@ jobs:
           stestr run --slowest
         shell: bash
   tests_macos:
-    runs-on: ${{ matrix.os }}
+    runs-on: macOS-latest
+    name: macOS Python ${{ matrix.python-version }}
     needs: [sdist, lint]
     timeout-minutes: 60
     strategy:
       matrix:
         python-version: [3.8, 3.9, "3.10", '3.11', "3.12.0"]
-        os: ["macOS-latest"]
     env:
       AER_THRUST_BACKEND: OMP
       QISKIT_TEST_CAPTURE_STREAMS: 1
@@ -236,13 +236,13 @@ jobs:
           stestr run --slowest
         shell: bash
   tests_windows:
-    runs-on: ${{ matrix.os }}
+    runs-on: windows-2019
+    name: Windows Python ${{ matrix.python-version }}
     needs: ["lint", "sdist"]
     timeout-minutes: 60
     strategy:
       matrix:
         python-version: [3.8, 3.9, "3.10", "3.11", "3.12.0"]
-        os: ["windows-2019"]
     env:
       AER_THRUST_BACKEND: OMP
       QISKIT_TEST_CAPTURE_STREAMS: 1
@@ -272,6 +272,7 @@ jobs:
           CMAKE_GENERATOR: "Visual Studio 16 2019"
         run: |
           set -e
+          pip install build
           python -I -m build --wheel
         shell: bash
       - name: Install Aer and dependencies
