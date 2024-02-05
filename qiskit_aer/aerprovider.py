@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 
 # pylint: disable=invalid-name
-"""Provider for Aer backends."""
+"""Provider for Qiskit Aer backends."""
 
 
 from qiskit.providers import ProviderV1 as Provider
@@ -24,7 +24,7 @@ from .backends.unitary_simulator import UnitarySimulator
 
 
 class AerProvider(Provider):
-    """Provider for Aer backends."""
+    """Provider for Qiskit Aer backends."""
 
     _BACKENDS = None
 

@@ -14,6 +14,7 @@ Instruction to set the state simulator state to a matrix.
 """
 
 from qiskit.circuit import QuantumCircuit, Instruction
+from qiskit.extensions.exceptions import ExtensionError
 from qiskit.quantum_info import Operator
 from ..default_qubits import default_qubits
 
@@ -30,7 +31,7 @@ class SetUnitary(Instruction):
             state (Operator): A unitary matrix.
 
         Raises:
-            ValueError: if the input matrix is not state.
+            ExtensionError: if the input matrix is not state.
 
         .. note::
 
@@ -41,7 +42,7 @@ class SetUnitary(Instruction):
         if not isinstance(state, Operator):
             state = Operator(state)
         if not state.num_qubits or not state.is_unitary():
-            raise ValueError("The input matrix is not unitary")
+            raise ExtensionError("The input matrix is not unitary")
         super().__init__("set_unitary", state.num_qubits, 0, [state.data])
 
 
@@ -55,8 +56,9 @@ def set_unitary(self, state):
         QuantumCircuit: with attached instruction.
 
     Raises:
-        ValueError: If the state is the incorrect size for the current circuit.
-        ValueError: if the input matrix is not unitary.
+        ExtensionError: If the state is the incorrect size for the
+                        current circuit.
+        ExtensionError: if the input matrix is not unitary.
 
     .. note:
 
@@ -66,7 +68,7 @@ def set_unitary(self, state):
     if not isinstance(state, Operator):
         state = Operator(state)
     if not state.num_qubits or state.num_qubits != len(qubits):
-        raise ValueError(
+        raise ExtensionError(
             "The size of the unitary matrix for the set_unitary"
             " instruction must be equal to the number of qubits"
             f" in the circuit (state.num_qubits ({state.num_qubits})"

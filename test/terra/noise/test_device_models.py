@@ -13,7 +13,7 @@
 """
 Tests for utility functions to create device noise model.
 """
-import numpy as np
+
 from test.terra.common import QiskitAerTestCase
 
 import qiskit
@@ -27,7 +27,6 @@ else:
     from qiskit.providers.fake_provider import Fake5QV1
 
 from qiskit_aer.noise.device.models import basic_device_gate_errors
-from qiskit_aer.noise.errors.standard_errors import thermal_relaxation_error
 
 
 def target_7q():
@@ -108,9 +107,7 @@ class TestDeviceNoiseModel(QiskitAerTestCase):
         errors_from_properties = basic_device_gate_errors(properties=backend.properties())
         errors_from_target = basic_device_gate_errors(target=target)
         self.assertEqual(len(errors_from_properties), len(errors_from_target))
-        errors_from_properties_s = sorted(errors_from_properties)
-        errors_from_target_s = sorted(errors_from_target)
-        for err_properties, err_target in zip(errors_from_properties_s, errors_from_target_s):
+        for err_properties, err_target in zip(errors_from_properties, errors_from_target):
             name1, qargs1, err1 = err_properties
             name2, qargs2, err2 = err_target
             self.assertEqual(name1, name2)

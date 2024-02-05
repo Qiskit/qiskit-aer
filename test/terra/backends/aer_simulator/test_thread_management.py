@@ -147,9 +147,7 @@ class TestThreadManagement(SimulatorTestCase):
     def test_parallel_defaults_single_noise(self):
         """Test parallel thread assignment defaults"""
         backend = self.backend(
-            method="statevector",
-            noise_model=self.dummy_noise_model(),
-            **self.backend_options_parallel(),
+            noise_model=self.dummy_noise_model(), **self.backend_options_parallel()
         )
         max_threads = self.available_threads()
 
@@ -211,9 +209,7 @@ class TestThreadManagement(SimulatorTestCase):
     def test_parallel_defaults_multi_noise(self):
         """Test parallel thread assignment defaults"""
         backend = self.backend(
-            method="statevector",
-            noise_model=self.dummy_noise_model(),
-            **self.backend_options_parallel(),
+            noise_model=self.dummy_noise_model(), **self.backend_options_parallel()
         )
         max_threads = self.available_threads()
 
@@ -299,9 +295,7 @@ class TestThreadManagement(SimulatorTestCase):
             # Test single circuit, with noise
             # Parallel experiments should always be 1
             # parallel shots should be greater than 1
-            backend = self.backend(
-                method="statevector", noise_model=self.dummy_noise_model(), **parallel_opts
-            )
+            backend = self.backend(noise_model=self.dummy_noise_model(), **parallel_opts)
             circuits = self.dummy_circuit(1)
             result = backend.run(circuits, shots=shots).result()
             for threads in self.threads_used(result):
@@ -537,7 +531,6 @@ class TestThreadManagement(SimulatorTestCase):
 
         max_threads = self.available_threads()
         backend = self.backend(
-            method="statevector",
             noise_model=self.dummy_noise_model(),
             **self.backend_options_parallel(shot_threads=max_threads),
         )

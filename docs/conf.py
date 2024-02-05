@@ -45,9 +45,9 @@ copyright = f"2017-{datetime.date.today().year}, Qiskit Development Team"  # pyl
 author = 'Qiskit Development Team'
 
 # The short X.Y version
-version = '0.14.0'
+version = '0.13.0'
 # The full version, including alpha/beta/rc tags
-release = '0.14.0'
+release = '0.13.0'
 
 templates_path = ['_templates']
 
@@ -74,7 +74,7 @@ extensions = [
     'sphinx.ext.intersphinx',
     'nbsphinx',
     "sphinx_design",
-    'qiskit_sphinx_theme',
+    'qiskit_sphinx_theme'
 ]
 
 # -----------------------------------------------------------------------------
@@ -138,10 +138,18 @@ modindex_common_prefix = ['qiskit_aer.']
 # a list of builtin themes.
 #
 
-html_theme = "qiskit-ecosystem"
-html_title = f"{project} {release}"
+html_theme = "qiskit_sphinx_theme"
 
+html_logo = 'images/logo.png'
+#html_sidebars = {'**': ['globaltoc.html']}
 html_last_updated_fmt = '%Y/%m/%d'
+
+html_theme_options = {
+    'logo_only': True,
+    'display_version': True,
+    'prev_next_buttons_location': 'bottom',
+    'style_external_links': True,
+}
 
 autoclass_content = 'both'
 intersphinx_mapping = {

@@ -25,7 +25,7 @@ LOGGER = logging.getLogger(__name__)
 
 
 class AerJob(Job):
-    """AerJob class for Aer Simulators."""
+    """AerJob class for Qiskit Aer Simulators."""
 
     def __init__(
         self,

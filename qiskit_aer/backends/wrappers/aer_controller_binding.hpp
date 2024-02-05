@@ -56,11 +56,6 @@ public:
     return AerToPy::to_python(
         controller_execute<T>(circuits, noise_model, config));
   }
-
-  py::object available_devices() {
-    T controller;
-    return AerToPy::to_python(controller.available_devices());
-  }
 };
 
 template <typename T>
@@ -103,11 +98,6 @@ void bind_aer_controller(MODULE m) {
                    noise_model_native.load_from_json(noise_model);
 
                  return self.execute(circuits, noise_model_native, config);
-               });
-
-  aer_ctrl.def("available_devices",
-               [aer_ctrl](ControllerExecutor<Controller> &self) {
-                 return self.available_devices();
                });
 
   py::class_<Config> aer_config(m, "AerConfig");
@@ -242,7 +232,6 @@ void bind_aer_controller(MODULE m) {
   aer_config.def_readwrite("mps_parallel_threshold",
                            &Config::mps_parallel_threshold);
   aer_config.def_readwrite("mps_omp_threads", &Config::mps_omp_threads);
-  aer_config.def_readwrite("mps_lapack", &Config::mps_lapack);
   // # tensor network options
   aer_config.def_readwrite("tensor_network_num_sampling_qubits",
                            &Config::tensor_network_num_sampling_qubits);
@@ -423,14 +412,6 @@ void bind_aer_controller(MODULE m) {
       "target_gpus",
       [](const Config &config) { return config.target_gpus.val; },
       [](Config &config, reg_t val) { config.target_gpus.value(val); });
-  aer_config.def_property(
-      "runtime_parameter_bind_enable",
-      [](const Config &config) {
-        return config.runtime_parameter_bind_enable.val;
-      },
-      [](Config &config, bool val) {
-        config.runtime_parameter_bind_enable.value(val);
-      });
 
   aer_config.def(py::pickle(
       [](const AER::Config &config) {
@@ -478,7 +459,6 @@ void bind_aer_controller(MODULE m) {
             write_value(30, config.chop_threshold),
             write_value(41, config.mps_parallel_threshold),
             write_value(42, config.mps_omp_threads),
-            write_value(101, config.mps_lapack),
             write_value(43, config.tensor_network_num_sampling_qubits),
             write_value(44, config.use_cuTensorNet_autotuning),
             write_value(45, config.library_dir),
@@ -520,12 +500,11 @@ void bind_aer_controller(MODULE m) {
                 79, config.extended_stabilizer_norm_estimation_default_samples),
             write_value(80, config.shot_branching_enable),
             write_value(81, config.shot_branching_sampling_enable),
-            write_value(82, config.target_gpus),
-            write_value(83, config.runtime_parameter_bind_enable));
+            write_value(82, config.target_gpus));
       },
       [](py::tuple t) {
         AER::Config config;
-        if (t.size() != 84)
+        if (t.size() != 82)
           throw std::runtime_error("Invalid serialization format.");
 
         read_value(t, 0, config.shots);
@@ -573,7 +552,6 @@ void bind_aer_controller(MODULE m) {
         read_value(t, 30, config.chop_threshold);
         read_value(t, 41, config.mps_parallel_threshold);
         read_value(t, 42, config.mps_omp_threads);
-        read_value(t, 101, config.mps_lapack);
         read_value(t, 43, config.tensor_network_num_sampling_qubits);
         read_value(t, 44, config.use_cuTensorNet_autotuning);
         read_value(t, 45, config.library_dir);
@@ -616,7 +594,6 @@ void bind_aer_controller(MODULE m) {
         read_value(t, 80, config.shot_branching_enable);
         read_value(t, 81, config.shot_branching_sampling_enable);
         read_value(t, 82, config.target_gpus);
-        read_value(t, 83, config.runtime_parameter_bind_enable);
         return config;
       }));
 }

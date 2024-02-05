@@ -15,7 +15,6 @@ https://github.com/Qiskit/qiskit-aer
 .. toctree:: 
     :hidden: 
  
-    Home <self>
     Getting Started <getting_started>
     API Documentation <apidocs/aer>
     Tutorials <tutorials/index>

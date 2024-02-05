@@ -32,7 +32,7 @@ jobs:
         run: |
           set -e
           pip install -U pip wheel
-          pip install -U -c constraints.txt -r requirements-dev.txt qiskit numpy scipy
+          pip install -U -c constraints.txt -r requirements-dev.txt qiskit-terra numpy scipy
         shell: bash
       - name: Run clang-format
         run: |
@@ -49,7 +49,7 @@ jobs:
     needs: ["lint"]
     strategy:
       matrix:
-        python-version: [3.8, 3.9, "3.10", '3.11', "3.12.0"]
+        python-version: [3.8, 3.9, "3.10", '3.11']
         platform: [
           { os: "ubuntu-latest", python-architecture: "x64" },
         ]
@@ -182,8 +182,8 @@ jobs:
       - name: Install Aer
         run: |
           set -e
-          python -I -m build --wheel --config-setting=--build-option=-DTEST_JSON=1
-          pip install -U dist/*.whl
+          python -I -m build --wheel --config-setting=--build-option=-- --config-setting=--build-option=-DTEST_JSON=1
+          pip install --find-links=dist qiskit-aer
       - name: Run Tests
         run: |
           set -e

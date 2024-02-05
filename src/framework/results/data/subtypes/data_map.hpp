@@ -43,9 +43,6 @@ public:
   // Combine with another data object
   void combine(DataMap<Data, T, N> &&other);
 
-  // copy from another data onject
-  void copy(DataMap<Data, T, N> &other);
-
   // Clear all stored data
   void clear();
 
@@ -77,9 +74,6 @@ public:
 
   // Combine with another data object
   void combine(DataMap<Data, T, 1> &&other);
-
-  // copy from another data onject
-  void copy(DataMap<Data, T, 1> &other);
 
   // Clear all stored data
   void clear();
@@ -129,22 +123,6 @@ void DataMap<Data, T, N>::combine(DataMap<Data, T, N> &&other) {
         data_[key] = std::move(pair.second);
       } else {
         data_[key].combine(std::move(pair.second));
-      }
-    }
-  }
-}
-
-template <template <class> class Data, class T, size_t N>
-void DataMap<Data, T, N>::copy(DataMap<Data, T, N> &other) {
-  if (enabled) {
-    for (auto &pair : other.data_) {
-      const auto &key = pair.first;
-      // If empty we copy data without accumulating
-      if (data_.find(key) == data_.end()) {
-        data_[key] = pair.second;
-      } else {
-        auto t = pair.second;
-        data_[key].combine(std::move(t));
       }
     }
   }
@@ -203,22 +181,6 @@ void DataMap<Data, T, 1>::combine(DataMap<Data, T, 1> &&other) {
         data_[key] = std::move(pair.second);
       } else {
         data_[key].combine(std::move(pair.second));
-      }
-    }
-  }
-}
-
-template <template <class> class Data, class T>
-void DataMap<Data, T, 1>::copy(DataMap<Data, T, 1> &other) {
-  if (enabled) {
-    for (auto &pair : other.data_) {
-      const auto &key = pair.first;
-      // If empty we copy data without accumulating
-      if (data_.find(key) == data_.end()) {
-        data_[key] = pair.second;
-      } else {
-        auto t = pair.second;
-        data_[key].combine(std::move(t));
       }
     }
   }

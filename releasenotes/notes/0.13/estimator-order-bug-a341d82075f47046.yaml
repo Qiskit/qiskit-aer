@@ -1,5 +1,0 @@
----
-upgrade:
-  - |
-    Fixed a bug that caused results to be incorrectly ordered or errors in
-    :class:`~.Estimator` with ``approximation=True``.

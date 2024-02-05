@@ -133,9 +133,6 @@ public:
   std::vector<reg_t> sample_measure(const reg_t &qubits, uint_t shots,
                                     RngEngine &rng) override;
 
-  // Helper function for computing expectation value
-  double expval_pauli(const reg_t &qubits, const std::string &pauli) override;
-
   //-----------------------------------------------------------------------
   // Additional methods
   //-----------------------------------------------------------------------
@@ -148,9 +145,6 @@ public:
 
   auto move_to_matrix();
   auto copy_to_matrix();
-
-  // Return the reduced density matrix for the simulator
-  cmatrix_t reduced_density_matrix(const reg_t &qubits, bool last_op = false);
 
   template <typename list_t>
   void initialize_from_vector(const list_t &vec);
@@ -216,7 +210,12 @@ protected:
   void apply_save_amplitudes_sq(const Operations::Op &op,
                                 ExperimentResult &result);
 
+  // Helper function for computing expectation value
+  virtual double expval_pauli(const reg_t &qubits,
+                              const std::string &pauli) override;
+
   // Return the reduced density matrix for the simulator
+  cmatrix_t reduced_density_matrix(const reg_t &qubits, bool last_op = false);
   cmatrix_t reduced_density_matrix_helper(const reg_t &qubits,
                                           const reg_t &qubits_sorted);
 
@@ -340,8 +339,6 @@ bool State<densmat_t>::allocate(uint_t num_qubits, uint_t block_bits,
                                 uint_t num_parallel_shots) {
   if (BaseState::max_matrix_qubits_ > 0)
     BaseState::qreg_.set_max_matrix_bits(BaseState::max_matrix_qubits_);
-  if (BaseState::max_sampling_shots_ > 0)
-    BaseState::qreg_.set_max_sampling_shots(BaseState::max_sampling_shots_);
 
   BaseState::qreg_.set_target_gpus(BaseState::target_gpus_);
   BaseState::qreg_.chunk_setup(block_bits * 2, block_bits * 2, 0, 1);
@@ -362,6 +359,7 @@ void State<densmat_t>::initialize_qreg(uint_t num_qubits, densmat_t &&state) {
 
 template <class densmat_t>
 void State<densmat_t>::initialize_omp() {
+  uint_t i;
   BaseState::qreg_.set_omp_threshold(omp_qubit_threshold_);
   if (BaseState::threads_ > 0)
     BaseState::qreg_.set_omp_threads(
@@ -403,6 +401,7 @@ void State<densmat_t>::set_config(const Config &config) {
 
   // Set threshold for truncating snapshots
   json_chop_threshold_ = config.chop_threshold;
+  uint_t i;
   BaseState::qreg_.set_json_chop_threshold(json_chop_threshold_);
 
   // Set OMP threshold for state update functions
@@ -648,7 +647,7 @@ void State<densmat_t>::apply_gate(const Operations::Op &op) {
     }
     if (qubits_out.size() > 0) {
       uint_t mask = 0;
-      for (uint_t i = 0; i < qubits_out.size(); i++) {
+      for (int i = 0; i < qubits_out.size(); i++) {
         mask |= (1ull << (qubits_out[i] - BaseState::qreg_.num_qubits()));
       }
       if ((BaseState::qreg_.chunk_index() & mask) != mask) {
@@ -668,7 +667,7 @@ void State<densmat_t>::apply_gate(const Operations::Op &op) {
         else if (ctrl_chunk)
           apply_gate_statevector(new_op);
         else {
-          for (uint_t i = 0; i < new_op.qubits.size(); i++)
+          for (int i = 0; i < new_op.qubits.size(); i++)
             new_op.qubits[i] += BaseState::qreg_.num_qubits();
           apply_gate_statevector(new_op);
         }
@@ -859,7 +858,7 @@ void State<densmat_t>::apply_diagonal_unitary_matrix(const reg_t &qubits,
     if (qubits_in.size() == qubits.size()) {
       BaseState::qreg_.apply_diagonal_unitary_matrix(qubits, diag);
     } else {
-      for (uint_t i = 0; i < qubits.size(); i++) {
+      for (int_t i = 0; i < qubits.size(); i++) {
         if (qubits[i] >= BaseState::qreg_.num_qubits())
           qubits_row[i] = qubits[i] + BaseState::num_global_qubits_ -
                           BaseState::qreg_.num_qubits();
@@ -869,7 +868,7 @@ void State<densmat_t>::apply_diagonal_unitary_matrix(const reg_t &qubits,
                                    diag_row);
 
       reg_t qubits_chunk(qubits_in.size() * 2);
-      for (uint_t i = 0; i < qubits_in.size(); i++) {
+      for (int_t i = 0; i < qubits_in.size(); i++) {
         qubits_chunk[i] = qubits_in[i];
         qubits_chunk[i + qubits_in.size()] =
             qubits_in[i] + BaseState::qreg_.num_qubits();

@@ -263,15 +263,9 @@ template <typename Lambda>
 inline void apply_lambda(const size_t start, const size_t stop,
                          const uint_t omp_threads, Lambda &&func) {
 
-  if (omp_threads > 1) {
-#pragma omp parallel num_threads(omp_threads)
-    {
+#pragma omp parallel if (omp_threads > 1) num_threads(omp_threads)
+  {
 #pragma omp for
-      for (int_t k = int_t(start); k < int_t(stop); k++) {
-        std::forward<Lambda>(func)(k);
-      }
-    }
-  } else {
     for (int_t k = int_t(start); k < int_t(stop); k++) {
       std::forward<Lambda>(func)(k);
     }
@@ -287,15 +281,9 @@ inline void apply_lambda(const size_t start, const size_t stop,
   const int_t END = stop >> NUM_QUBITS;
   auto qubits_sorted = qubits;
   std::sort(qubits_sorted.begin(), qubits_sorted.end());
-
-  if (omp_threads > 1) {
-#pragma omp parallel for num_threads(omp_threads)
-    for (int_t k = int_t(start); k < END; k++) {
-      // store entries touched by U
-      const auto inds = indexes(qubits, qubits_sorted, k);
-      std::forward<Lambda>(func)(inds);
-    }
-  } else {
+#pragma omp parallel if (omp_threads > 1) num_threads(omp_threads)
+  {
+#pragma omp for
     for (int_t k = int_t(start); k < END; k++) {
       // store entries touched by U
       const auto inds = indexes(qubits, qubits_sorted, k);
@@ -315,16 +303,9 @@ inline void apply_lambda(const size_t start, const size_t stop,
   auto qubits_sorted = qubits;
   std::sort(qubits_sorted.begin(), qubits_sorted.end());
 
-  if (omp_threads > 1) {
-#pragma omp parallel num_threads(omp_threads)
-    {
+#pragma omp parallel if (omp_threads > 1) num_threads(omp_threads)
+  {
 #pragma omp for
-      for (int_t k = int_t(start); k < END; k += gap) {
-        const auto inds = indexes(qubits, qubits_sorted, k);
-        std::forward<Lambda>(func)(inds, params);
-      }
-    }
-  } else {
     for (int_t k = int_t(start); k < END; k += gap) {
       const auto inds = indexes(qubits, qubits_sorted, k);
       std::forward<Lambda>(func)(inds, params);
@@ -350,19 +331,13 @@ apply_reduction_lambda(const size_t start, const size_t stop,
   // Reduction variables
   double val_re = 0.;
   double val_im = 0.;
-  if (omp_threads > 1) {
-#pragma omp parallel reduction(+ : val_re, val_im) num_threads(omp_threads)
-    {
+#pragma omp parallel reduction(+:val_re, val_im) if (omp_threads > 1) num_threads(omp_threads)
+  {
 #pragma omp for
-      for (int_t k = int_t(start); k < int_t(stop); k++) {
-        std::forward<Lambda>(func)(k, val_re, val_im);
-      }
-    } // end omp parallel
-  } else {
     for (int_t k = int_t(start); k < int_t(stop); k++) {
       std::forward<Lambda>(func)(k, val_re, val_im);
     }
-  }
+  } // end omp parallel
   return std::complex<double>(val_re, val_im);
 }
 
@@ -380,21 +355,14 @@ apply_reduction_lambda(const size_t start, const size_t stop,
   // Reduction variables
   double val_re = 0.;
   double val_im = 0.;
-  if (omp_threads > 1) {
-#pragma omp parallel reduction(+ : val_re, val_im) num_threads(omp_threads)
-    {
+#pragma omp parallel reduction(+:val_re, val_im) if (omp_threads > 1) num_threads(omp_threads)
+  {
 #pragma omp for
-      for (int_t k = int_t(start); k < END; k++) {
-        const auto inds = indexes(qubits, qubits_sorted, k);
-        std::forward<Lambda>(func)(inds, val_re, val_im);
-      }
-    } // end omp parallel
-  } else {
     for (int_t k = int_t(start); k < END; k++) {
       const auto inds = indexes(qubits, qubits_sorted, k);
       std::forward<Lambda>(func)(inds, val_re, val_im);
     }
-  }
+  } // end omp parallel
   return std::complex<double>(val_re, val_im);
 }
 
@@ -413,21 +381,14 @@ apply_reduction_lambda(const size_t start, const size_t stop,
   // Reduction variables
   double val_re = 0.;
   double val_im = 0.;
-  if (omp_threads > 1) {
-#pragma omp parallel reduction(+ : val_re, val_im) num_threads(omp_threads)
-    {
+#pragma omp parallel reduction(+:val_re, val_im) if (omp_threads > 1) num_threads(omp_threads)
+  {
 #pragma omp for
-      for (int_t k = int_t(start); k < END; k++) {
-        const auto inds = indexes(qubits, qubits_sorted, k);
-        std::forward<Lambda>(func)(inds, params, val_re, val_im);
-      }
-    } // end omp parallel
-  } else {
     for (int_t k = int_t(start); k < END; k++) {
       const auto inds = indexes(qubits, qubits_sorted, k);
       std::forward<Lambda>(func)(inds, params, val_re, val_im);
     }
-  }
+  } // end omp parallel
   return std::complex<double>(val_re, val_im);
 }
 

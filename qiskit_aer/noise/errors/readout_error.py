@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 """
-Readout error class for Aer noise model.
+Readout error class for Qiskit Aer noise model.
 """
 
 import copy
@@ -25,7 +25,7 @@ from ..noiseerror import NoiseError
 
 class ReadoutError:
     """
-    Readout error class for Aer noise model.
+    Readout error class for Qiskit Aer noise model.
     """
 
     # pylint: disable=invalid-name
@@ -348,8 +348,3 @@ class ReadoutError:
 
     def __neg__(self):
         raise NotImplementedError("'ReadoutError' does not support negation.")
-
-    @property
-    def num_qubits(self):
-        """Return the number of qubits."""
-        return self._number_of_qubits

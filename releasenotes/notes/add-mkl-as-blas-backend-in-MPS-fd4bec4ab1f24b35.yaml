@@ -1,0 +1,5 @@
+---
+features:
+  - |
+    Support compile using Intel MKL as BLAS backend, and using its functions
+    in the MPS simulation method.

@@ -52,7 +52,7 @@ class TestOptions(SimulatorTestCase):
         qc.h([0, 1])
         qc.reset(0)
         qc.measure_all()
-        qc = transpile(qc, backend, optimization_level=0)
+        qc = transpile(qc, backend)
 
         counts1 = backend.run(qc).result().get_counts(0)
         counts2 = backend.run(qc).result().get_counts(0)
@@ -77,7 +77,7 @@ class TestOptions(SimulatorTestCase):
         qc.h([0, 1])
         qc.reset(0)
         qc.measure_all()
-        qc = transpile(qc, backend, optimization_level=0)
+        qc = transpile(qc, backend)
         seed = 1234
         counts1 = backend.run(qc, seed_simulator=seed).result().get_counts(0)
         counts2 = backend.run(qc, seed_simulator=seed).result().get_counts(0)
@@ -316,12 +316,10 @@ class TestOptions(SimulatorTestCase):
 
         shots = 4000
         method = "matrix_product_state"
-        backend_og = self.backend(method=method)
-        backend_lapack = self.backend(method=method)
+        backend_swap = self.backend(method=method)
 
         n = 10
         circuit = QuantumCircuit(n)
-
         for times in range(2):
             for i in range(0, n, 2):
                 circuit.unitary(random_unitary(4), [i, i + 1])
@@ -329,17 +327,24 @@ class TestOptions(SimulatorTestCase):
                 circuit.cx(0, i)
         circuit.save_statevector("sv")
 
-        result_og = backend_og.run(circuit, shots=shots).result()
-        original_sv = result_og.data(0)["sv"]
+        result_swap = backend_swap.run(circuit, shots=shots).result()
+        original_sv = result_swap.data(0)["sv"]
 
         # run with lapack svd method
-        result_lapack = backend_lapack.run(circuit, shots=shots, mps_lapack=True).result()
-        lapack_sv = result_lapack.data(0)["sv"]
+        os.environ["QISKIT_LAPACK_SVD"] = "1"
+        result_swap = backend_swap.run(circuit, shots=shots).result()
+        lapack_sv = result_swap.data(0)["sv"]
 
-        # result_lapack should have the metadata indicating that it used LAPACK
-        # for the SVD
-        self.assertTrue("matrix_product_state_lapack" in result_lapack._get_experiment().metadata)
-        self.assertTrue(result_lapack._get_experiment().metadata["matrix_product_state_lapack"])
+        # run with lapack svd D&C approach
+        os.environ["QISKIT_LAPACK_SVD"] = "DC"
+        result_swap = backend_swap.run(circuit, shots=shots).result()
+        lapack_dc_sv = result_swap.data(0)["sv"]
+
+        del os.environ["QISKIT_LAPACK_SVD"]  # Python 3.8 in Windows
+        # os.unsetenv("QISKIT_LAPACK_SVD")  # Since Python 3.9
 
         # should give the same state vector
         self.assertAlmostEqual(state_fidelity(original_sv, lapack_sv), 1.0)
+
+        # should give the same state vector
+        self.assertAlmostEqual(state_fidelity(original_sv, lapack_dc_sv), 1.0)

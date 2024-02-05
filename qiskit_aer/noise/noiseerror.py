@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 
 """
-Exception for errors raised by Aer noise module.
+Exception for errors raised by Qiskit Aer noise module.
 """
 
 from qiskit import QiskitError

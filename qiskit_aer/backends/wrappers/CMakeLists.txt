@@ -38,20 +38,6 @@ if(AER_THRUST_BACKEND STREQUAL "CUDA")
     nvcc_add_compiler_options(${AER_COMPILER_FLAGS_STRIPPED} AER_COMPILER_FLAGS_OUT)
     set_target_properties(controller_wrappers PROPERTIES COMPILE_FLAGS "${AER_COMPILER_FLAGS_OUT}")
     enable_language(CUDA)
-elseif(AER_THRUST_BACKEND STREQUAL "ROCM")
-
-    if(NOT DEFINED SIMD_SOURCE_FILE)
-      message(FATAL_ERROR "ROCm supported target machines are expected to be SIMD-enabled.") 
-    endif()
-    
-    set_source_files_properties(
-      bindings.cc 
-      ${SIMD_SOURCE_FILE} 
-      PROPERTIES LANGUAGE CXX)
-    
-    target_compile_options(controller_wrappers PRIVATE ${ROCM_EXTRA_FLAGS} ${SIMD_FLAGS_LIST})
-    target_compile_definitions(controller_wrappers PRIVATE ${ROCM_EXTRA_DEFS} ${AER_COMPILER_DEFINITIONS})
-    set_target_properties(controller_wrappers PROPERTIES COMPILE_FLAGS "${AER_COMPILER_FLAGS}")
 else()
     if(DEFINED SIMD_SOURCE_FILE)
        string(REPLACE ";" " " SIMD_FLAGS "${SIMD_FLAGS_LIST}")

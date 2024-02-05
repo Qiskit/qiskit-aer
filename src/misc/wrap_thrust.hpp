@@ -43,12 +43,7 @@ DISABLE_WARNING_PUSH
 #endif
 #include <thrust/host_vector.h>
 
-// We can't mix OpenMP and in device-side builds when ROCm is enabled.
-#if defined(AER_THRUST_ROCM) && defined(__HIP_DEVICE_COMPILE__)
-#define AER_THRUST_ROCM_DISABLE_THRUST_OMP
-#else
 #include <thrust/system/omp/execution_policy.h>
-#endif
 DISABLE_WARNING_POP
 
 #endif // inclusion guard

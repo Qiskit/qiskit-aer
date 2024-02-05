@@ -77,7 +77,7 @@ class TestNoiseModel(QiskitAerTestCase):
         for _ in range(30):
             # Add noisy identities
             circuit.barrier(qr)
-            circuit.id(qr)
+            circuit.i(qr)
         circuit.barrier(qr)
         circuit.measure(qr, cr)
         shots = 4000

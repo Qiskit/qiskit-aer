@@ -463,12 +463,6 @@ template <typename InputIterator>
 void State::apply_ops_parallel(InputIterator first, InputIterator last,
                                ExperimentResult &result, RngEngine &rng) {
   const int_t NUM_STATES = BaseState::qreg_.get_num_states();
-
-  std::vector<size_t> rng_seeds(NUM_STATES);
-  for (int_t i = 0; i < NUM_STATES; i++) {
-    rng_seeds[i] = rng.rand_int<size_t>(0, SIZE_MAX);
-  }
-
 #pragma omp parallel for if (BaseState::qreg_.check_omp_threshold() &&         \
                              BaseState::threads_ > 1)                          \
     num_threads(BaseState::threads_)
@@ -476,11 +470,10 @@ void State::apply_ops_parallel(InputIterator first, InputIterator last,
     if (!BaseState::qreg_.check_eps(i)) {
       continue;
     }
-    RngEngine local_rng(rng_seeds[i]);
     for (auto it = first; it != last; it++) {
       switch (it->type) {
       case Operations::OpType::gate:
-        apply_gate(*it, local_rng, i);
+        apply_gate(*it, rng, i);
         break;
       case Operations::OpType::barrier:
       case Operations::OpType::qerror_loc:

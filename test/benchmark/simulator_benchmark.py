@@ -179,7 +179,7 @@ class SimulatorBenchmarkSuite(CircuitLibraryCircuits):
             param_binds = {}
             for param in circuit.parameters:
                 param_binds[param] = np.random.random()
-            circuit = circuit.assign_parameters(param_binds)
+            circuit = circuit.bind_parameters(param_binds)
 
         simulator = self.simulators[runtime]
         if measure == self.MEASUREMENT_SAMPLING:

@@ -13,18 +13,13 @@
 AerSimualtor options tests
 """
 import logging
-import json
 from math import ceil
 import concurrent.futures
-import pickle
-import tempfile
 
 from ddt import ddt
 from qiskit import QuantumCircuit, transpile
 from qiskit.circuit.random import random_circuit
-from qiskit.circuit.library import QuantumVolume
 from qiskit.quantum_info import Statevector
-from qiskit_aer.noise.noise_model import AerJSONEncoder
 from test.terra.reference import ref_kraus_noise
 from qiskit_aer.jobs import AerJob, AerJobSet
 from test.terra.backends.simulator_test_case import SimulatorTestCase, supported_methods
@@ -59,32 +54,6 @@ def run_random_circuits(backend, shots=None, **run_options):
     job = backend.run(circuits, shots=shots, **run_options)
     result = job.result()
     return result, circuits, targets
-
-
-class TestResultSerialization(SimulatorTestCase):
-    """Test seriallization of AerJob"""
-
-    def test_aer_job_json_dump(self):
-        circuit = QuantumVolume(4, seed=111)
-        circuit.measure_all()
-        backend = self.backend(method="statevector")
-        result = backend.run(transpile(circuit, backend)).result()
-        data = json.dumps(result, cls=AerJSONEncoder)
-        result_copy = json.loads(data)
-        self.compare_counts(result, [circuit], [result_copy["results"][0]["data"]["counts"]])
-
-    def test_aer_job_picklable(self):
-        circuit = QuantumVolume(4, seed=111)
-        circuit.measure_all()
-        backend = self.backend(method="statevector")
-        result = backend.run(transpile(circuit, backend)).result()
-
-        with tempfile.TemporaryFile() as f:
-            pickle.dump(result, f)
-            f.seek(0)
-            result_copy = pickle.load(f)
-
-        self.assertEqual(result.get_counts(), result_copy.get_counts())
 
 
 class CBFixture(SimulatorTestCase):

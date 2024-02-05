@@ -68,16 +68,16 @@ public:
   void set_num_processes(int np) { num_processes_ = np; }
 
 protected:
-  mutable uint_t block_bits_; // qubits less than this will be blocked
-  mutable uint_t qubits_;
+  mutable int block_bits_; // qubits less than this will be blocked
+  mutable int qubits_;
   mutable reg_t qubitMap_;
   mutable reg_t qubitSwapped_;
   mutable bool blocking_enabled_;
   mutable bool sample_measure_ = false;
   mutable bool restore_qubit_map_ = false;
-  uint_t memory_blocking_bits_ = 0;
+  int memory_blocking_bits_ = 0;
   bool density_matrix_ = false;
-  uint_t num_processes_ = 1;
+  int num_processes_ = 1;
 
   bool block_circuit(Circuit &circ, bool doSwap) const;
 
@@ -98,9 +98,8 @@ protected:
 
   void insert_swap(std::vector<Operations::Op> &ops, uint_t bit0, uint_t bit1,
                    bool chunk) const;
-  void insert_sim_op(std::vector<Operations::Op> &ops, const char *name,
+  void insert_sim_op(std::vector<Operations::Op> &ops, char *name,
                      const reg_t &qubits) const;
-
   void insert_pauli(std::vector<Operations::Op> &ops, reg_t &qubits,
                     std::string &pauli) const;
 
@@ -150,6 +149,7 @@ void CacheBlocking::set_blocking(int bits, size_t min_memory, uint_t n_place,
                                  size_t complex_size, bool is_matrix) {
   int chunk_bits = bits;
   uint_t scale = is_matrix ? 2 : 1;
+  size_t size;
 
   // get largest possible chunk bits
   while ((complex_size << (scale * chunk_bits)) > min_memory) {
@@ -192,8 +192,8 @@ void CacheBlocking::insert_swap(std::vector<Operations::Op> &ops, uint_t bit0,
   ops.push_back(sgate);
 }
 
-void CacheBlocking::insert_sim_op(std::vector<Operations::Op> &ops,
-                                  const char *name, const reg_t &qubits) const {
+void CacheBlocking::insert_sim_op(std::vector<Operations::Op> &ops, char *name,
+                                  const reg_t &qubits) const {
   Operations::Op op;
   op.type = Operations::OpType::sim_op;
   op.name = name;
@@ -214,7 +214,7 @@ void CacheBlocking::optimize_circuit(Circuit &circ, Noise::NoiseModel &noise,
 
     // loop over operations to find max number of parameters for cross-qubits
     // operations
-    uint_t max_params = 1;
+    int_t max_params = 1;
     for (uint_t i = 0; i < circ.ops.size(); i++) {
       if (is_blockable_operation(circ.ops[i]) &&
           is_cross_qubits_op(circ.ops[i])) {
@@ -301,7 +301,7 @@ void CacheBlocking::define_blocked_qubits(std::vector<Operations::Op> &ops,
                                           reg_t &blockedQubits,
                                           bool crossQubitOnly) const {
   uint_t i, j, iq;
-  uint_t nq;
+  int nq, nb;
   bool exist;
   for (i = 0; i < ops.size(); i++) {
     if (blockedQubits.size() >= block_bits_)
@@ -383,7 +383,7 @@ bool CacheBlocking::can_reorder(
 }
 
 bool CacheBlocking::block_circuit(Circuit &circ, bool doSwap) const {
-  uint_t n;
+  uint_t i, n;
   std::vector<Operations::Op> out;
   std::vector<Operations::Op> queue;
   std::vector<Operations::Op> queue_next;
@@ -522,8 +522,11 @@ uint_t CacheBlocking::add_ops(std::vector<Operations::Op> &ops,
                               std::vector<Operations::Op> &queue, bool doSwap,
                               bool first, bool crossQubitOnly) const {
   uint_t i, j, iq;
+
+  int nqubitUsed = 0;
   reg_t blockedQubits;
-  uint_t nq;
+  int nq;
+  bool exist;
   uint_t pos_begin, num_gates_added;
   bool end_block_inserted;
 
@@ -803,7 +806,7 @@ bool CacheBlocking::split_pauli(const Operations::Op &op,
   reg_t qubits_out_chunk;
   std::string pauli_in_chunk;
   std::string pauli_out_chunk;
-  uint_t i, j, n;
+  int_t i, j, n;
   bool inside;
 
   // get inner/outer chunk pauli string
@@ -853,7 +856,7 @@ bool CacheBlocking::split_op(const Operations::Op &op,
                              std::vector<Operations::Op> &queue) const {
   reg_t qubits_in_chunk;
   reg_t qubits_out_chunk;
-  uint_t i, j, n;
+  int_t i, j, n;
   bool inside;
 
   n = op.qubits.size();

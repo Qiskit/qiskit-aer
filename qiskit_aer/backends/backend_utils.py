@@ -12,21 +12,20 @@
 
 # pylint: disable=invalid-name
 """
-Aer simulator backend utils
+Qiskit Aer simulator backend utils
 """
 import os
 from math import log2
-
-import psutil
+from qiskit.utils import local_hardware_info
 from qiskit.circuit import QuantumCircuit
+from qiskit.compiler import assemble
 from qiskit.qobj import QasmQobjInstruction
 from qiskit.result import ProbDistribution
 from qiskit.quantum_info import Clifford
-
 from .compatibility import Statevector, DensityMatrix, StabilizerState, Operator, SuperOp
 
 # Available system memory
-SYSTEM_MEMORY_GB = psutil.virtual_memory().total / (1024**3)
+SYSTEM_MEMORY_GB = local_hardware_info()["memory"]
 
 # Max number of qubits for complex double statevector
 # given available system memory
@@ -212,9 +211,6 @@ BASIS_GATES = {
             "delay",
             "pauli",
             "ecr",
-            "rx",
-            "ry",
-            "rz",
         ]
     ),
     "extended_stabilizer": sorted(
@@ -440,23 +436,40 @@ def cpp_execute_circuits(controller, aer_circuits, noise_model, config):
     return controller.execute(aer_circuits, noise_model, config)
 
 
-def available_methods(methods, devices):
-    """Check available simulation methods"""
+def available_methods(controller, methods, devices):
+    """Check available simulation methods by running a dummy circuit."""
+    # Test methods are available using the controller
+    dummy_circ = QuantumCircuit(1)
+    dummy_circ.i(0)
 
     valid_methods = []
-    for method in methods:
-        if method == "tensor_network":
-            if "GPU" in devices:
-                valid_methods.append(method)
-        else:
-            valid_methods.append(method)
+    for device in devices:
+        for method in methods:
+            if method not in valid_methods:
+                qobj = assemble(
+                    dummy_circ, optimization_level=0, shots=1, method=method, device=device
+                )
+                result = cpp_execute_qobj(controller, qobj)
+                if result.get("success", False):
+                    valid_methods.append(method)
     return tuple(valid_methods)
 
 
-def available_devices(controller):
-    """return available simulation devices"""
-    dev = controller.available_devices()
-    return tuple(dev)
+def available_devices(controller, devices):
+    """Check available simulation devices by running a dummy circuit."""
+    # Test methods are available using the controller
+    dummy_circ = QuantumCircuit(1)
+    dummy_circ.i(0)
+
+    valid_devices = []
+    for device in devices:
+        qobj = assemble(
+            dummy_circ, optimization_level=0, shots=1, method="statevector", device=device
+        )
+        result = cpp_execute_qobj(controller, qobj)
+        if result.get("success", False):
+            valid_devices.append(device)
+    return tuple(valid_devices)
 
 
 def add_final_save_instruction(qobj, state):

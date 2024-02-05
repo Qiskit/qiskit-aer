@@ -1,4 +1,0 @@
----
-features:
-  - |
-    Added support for running qiskit-aer with Python 3.12.

@@ -44,7 +44,6 @@ enum MPS_swap_direction MPS::mps_swap_direction_ =
 double MPS::json_chop_threshold_ = 1E-8;
 std::stringstream MPS::logging_str_;
 bool MPS::mps_log_data_ = 0;
-bool MPS::mps_lapack_ = false;
 
 //------------------------------------------------------------------------
 // local function declarations
@@ -543,7 +542,9 @@ void MPS::apply_swap_internal(uint_t index_A, uint_t index_B, bool swap_gate) {
     // to the left
     std::swap(qubit_ordering_.order_[index_A], qubit_ordering_.order_[index_B]);
     // For logging purposes:
+#ifdef DEBUG
     print_to_log_internal_swap(index_A, index_B);
+#endif
 
     // update qubit locations after all the swaps
     for (uint_t i = 0; i < num_qubits_; i++)
@@ -663,11 +664,12 @@ void MPS::common_apply_2_qubit_gate(
 
   MPS_Tensor left_gamma, right_gamma;
   rvector_t lambda;
-  double discarded_value = MPS_Tensor::Decompose(temp, left_gamma, lambda,
-                                                 right_gamma, MPS::mps_lapack_);
-
+  double discarded_value =
+      MPS_Tensor::Decompose(temp, left_gamma, lambda, right_gamma);
+#ifdef DEBUG
   if (discarded_value > json_chop_threshold_)
     MPS::print_to_log("discarded_value=", discarded_value, ", ");
+#endif
 
   if (A != 0)
     left_gamma.div_Gamma_by_left_Lambda(lambda_reg_[A - 1]);
@@ -1642,11 +1644,8 @@ reg_t MPS::sample_measure(uint_t shots, RngEngine &rng) const {
   reg_t current_measure(num_qubits_);
   cmatrix_t mat;
   rvector_t rnds(num_qubits_);
-#pragma omp critical
-  {
-    for (uint_t i = 0; i < num_qubits_; ++i) {
-      rnds[i] = rng.rand(0., 1.);
-    }
+  for (uint_t i = 0; i < num_qubits_; ++i) {
+    rnds[i] = rng.rand(0., 1.);
   }
   for (uint_t i = 0; i < num_qubits_; i++) {
     current_measure[i] = sample_measure_single_qubit(i, prob, rnds[i], mat);
@@ -1792,7 +1791,7 @@ void MPS::initialize_from_matrix(uint_t num_qubits, const cmatrix_t &mat) {
       remaining_matrix = mat;
     } else {
       cmatrix_t temp;
-      if (MPS::mps_lapack_) { // When using Lapack, V is V dagger
+      if (getenv("QISKIT_LAPACK_SVD")) {
         temp = mul_matrix_by_lambda(AER::Utils::dagger(V), S);
       } else {
         temp = mul_matrix_by_lambda(V, S);
@@ -1803,9 +1802,9 @@ void MPS::initialize_from_matrix(uint_t num_qubits, const cmatrix_t &mat) {
     // step 2 - SVD
     S.clear();
     S.resize(std::min(reshaped_matrix.GetRows(), reshaped_matrix.GetColumns()));
-    csvd_wrapper(reshaped_matrix, U, S, V, MPS::mps_lapack_);
+    csvd_wrapper(reshaped_matrix, U, S, V);
     reduce_zeros(U, S, V, MPS_Tensor::get_max_bond_dimension(),
-                 MPS_Tensor::get_truncation_threshold(), MPS::mps_lapack_);
+                 MPS_Tensor::get_truncation_threshold());
 
     // step 3 - update q_reg_ with new gamma and new lambda
     //          increment number of qubits in the MPS structure
@@ -1822,7 +1821,7 @@ void MPS::initialize_from_matrix(uint_t num_qubits, const cmatrix_t &mat) {
   }
   // step 4 - create the rightmost gamma and update q_reg_
   std::vector<cmatrix_t> right_data;
-  if (MPS::mps_lapack_) {
+  if (getenv("QISKIT_LAPACK_SVD")) {
     right_data = reshape_VH_after_SVD(V);
   } else {
     right_data = reshape_V_after_SVD(V);

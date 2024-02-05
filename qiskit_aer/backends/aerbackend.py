@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 """
-Aer qasm simulator backend.
+Qiskit Aer qasm simulator backend.
 """
 
 import copy
@@ -23,22 +23,19 @@ from abc import ABC, abstractmethod
 
 from qiskit.circuit import QuantumCircuit, ParameterExpression, Delay
 from qiskit.compiler import assemble
-from qiskit.providers import BackendV2 as Backend
-from qiskit.providers import convert_to_target
+from qiskit.providers import BackendV1 as Backend
 from qiskit.providers.models import BackendStatus
 from qiskit.pulse import Schedule, ScheduleBlock
 from qiskit.qobj import QasmQobj, PulseQobj
 from qiskit.result import Result
-from qiskit.transpiler import CouplingMap
 from ..aererror import AerError
 from ..jobs import AerJob, AerJobSet, split_qobj
 from ..noise.noise_model import NoiseModel, QuantumErrorLocation
 from ..noise.errors.quantum_error import QuantumChannelInstruction
 from .aer_compiler import compile_circuit, assemble_circuits, generate_aer_config
 from .backend_utils import format_save_type, circuit_optypes
-from .name_mapping import NAME_MAPPING
 
-# pylint: disable=import-error, no-name-in-module, abstract-method
+# pylint: disable=import-error, no-name-in-module
 from .controller_wrappers import AerConfig
 
 # Logger
@@ -46,10 +43,10 @@ logger = logging.getLogger(__name__)
 
 
 class AerBackend(Backend, ABC):
-    """Aer Backend class."""
+    """Qiskit Aer Backend class."""
 
     def __init__(
-        self, configuration, properties=None, provider=None, target=None, backend_options=None
+        self, configuration, properties=None, defaults=None, backend_options=None, provider=None
     ):
         """Aer class for backends.
 
@@ -60,8 +57,8 @@ class AerBackend(Backend, ABC):
         Args:
             configuration (BackendConfiguration): backend configuration.
             properties (BackendProperties or None): Optional, backend properties.
+            defaults (PulseDefaults or None): Optional, backend pulse defaults.
             provider (Provider): Optional, provider responsible for this backend.
-            target (Target):  initial target for backend
             backend_options (dict or None): Optional set custom backend options.
 
         Raises:
@@ -70,30 +67,20 @@ class AerBackend(Backend, ABC):
         # Init configuration and provider in Backend
         configuration.simulator = True
         configuration.local = True
-        super().__init__(
-            provider=provider,
-            name=configuration.backend_name,
-            description=configuration.description,
-            backend_version=configuration.backend_version,
-        )
+        super().__init__(configuration, provider=provider)
 
-        # Initialize backend properties
+        # Initialize backend properties and pulse defaults.
         self._properties = properties
-        self._configuration = configuration
+        self._defaults = defaults
 
-        # Custom option values for config, properties
+        # Custom option values for config, properties, and defaults
         self._options_configuration = {}
+        self._options_defaults = {}
         self._options_properties = {}
-        self._target = target
-        self._mapping = NAME_MAPPING
 
         # Set options from backend_options dictionary
         if backend_options is not None:
             self.set_options(**backend_options)
-
-        # build coupling map
-        if self.configuration().coupling_map is not None:
-            self._coupling_map = CouplingMap(self.configuration().coupling_map)
 
     def _convert_circuit_binds(self, circuit, binds, idx_map):
         parameterizations = []
@@ -316,7 +303,7 @@ class AerBackend(Backend, ABC):
         for key, val in self._options_configuration.items():
             setattr(config, key, val)
         # If config has custom instructions add them to
-        # basis gates to include them for the qiskit transpiler
+        # basis gates to include them for the terra transpiler
         if hasattr(config, "custom_instructions"):
             config.basis_gates = config.basis_gates + config.custom_instructions
         return config
@@ -333,25 +320,28 @@ class AerBackend(Backend, ABC):
             setattr(properties, key, val)
         return properties
 
-    @property
-    def max_circuits(self):
-        if hasattr(self.configuration(), "max_experiments"):
-            return self.configuration().max_experiments
-        else:
-            return None
+    def defaults(self):
+        """Return the simulator backend pulse defaults.
 
-    @property
-    def target(self):
-        if self._target is not None:
-            return self._target
+        Returns:
+            PulseDefaults: The backend pulse defaults or ``None`` if the
+                           backend does not support pulse.
+        """
+        defaults = copy.copy(self._defaults)
+        for key, val in self._options_defaults.items():
+            setattr(defaults, key, val)
+        return defaults
 
-        return convert_to_target(self.configuration(), self.properties(), None, NAME_MAPPING)
+    @classmethod
+    def _default_options(cls):
+        pass
 
     def clear_options(self):
         """Reset the simulator options to default values."""
         self._options = self._default_options()
         self._options_configuration = {}
         self._options_properties = {}
+        self._options_defaults = {}
 
     def status(self):
         """Return backend status.
@@ -360,7 +350,7 @@ class AerBackend(Backend, ABC):
             BackendStatus: the status of the backend.
         """
         return BackendStatus(
-            backend_name=self.name,
+            backend_name=self.name(),
             backend_version=self.configuration().backend_version,
             operational=True,
             pending_jobs=0,
@@ -398,7 +388,7 @@ class AerBackend(Backend, ABC):
 
         # Validate output
         if not isinstance(output, dict):
-            logger.error("%s: simulation failed.", self.name)
+            logger.error("%s: simulation failed.", self.name())
             if output:
                 logger.error("Output: %s", output)
             raise AerError("simulation terminated without returning valid output.")
@@ -406,7 +396,7 @@ class AerBackend(Backend, ABC):
         # Format results
         output["job_id"] = job_id
         output["date"] = datetime.datetime.now().isoformat()
-        output["backend_name"] = self.name
+        output["backend_name"] = self.name()
         output["backend_version"] = self.configuration().backend_version
 
         # Push metadata to experiment headers
@@ -464,7 +454,7 @@ class AerBackend(Backend, ABC):
 
         # Validate output
         if not isinstance(output, dict):
-            logger.error("%s: simulation failed.", self.name)
+            logger.error("%s: simulation failed.", self.name())
             if output:
                 logger.error("Output: %s", output)
             raise AerError("simulation terminated without returning valid output.")
@@ -472,7 +462,7 @@ class AerBackend(Backend, ABC):
         # Format results
         output["job_id"] = job_id
         output["date"] = datetime.datetime.now().isoformat()
-        output["backend_name"] = self.name
+        output["backend_name"] = self.name()
         output["backend_version"] = self.configuration().backend_version
 
         # Push metadata to experiment headers
@@ -692,6 +682,8 @@ class AerBackend(Backend, ABC):
             self._set_configuration_option(key, value)
         elif hasattr(self._properties, key):
             self._set_properties_option(key, value)
+        elif hasattr(self._defaults, key):
+            self._set_defaults_option(key, value)
         else:
             if not hasattr(self._options, key):
                 raise AerError(f"Invalid option {key}")
@@ -723,15 +715,15 @@ class AerBackend(Backend, ABC):
         elif key in self._options_properties:
             self._options_properties.pop(key)
 
+    def _set_defaults_option(self, key, value):
+        """Special handling for setting backend defaults options."""
+        if value is not None:
+            self._options_defaults[key] = value
+        elif key in self._options_defaults:
+            self._options_defaults.pop(key)
+
     def __repr__(self):
         """String representation of an AerBackend."""
         name = self.__class__.__name__
-        display = f"'{self.name}'"
+        display = f"'{self.name()}'"
         return f"{name}({display})"
-
-    def get_translation_stage_plugin(self):
-        """use custom translation method to avoid gate exchange"""
-        if self._target is None:
-            return "aer_backend_plugin"
-        else:
-            return None

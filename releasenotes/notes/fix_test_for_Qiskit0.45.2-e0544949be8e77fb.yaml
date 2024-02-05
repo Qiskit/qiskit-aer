@@ -1,8 +1,0 @@
----
-fixes:
-  - |
-    Fixes test cases failed due to upgrade of Qiskit.
-
-    Removed importing Aer from qiskit.
-
-    QuantumCircuit.diagonal was deprecated, using circuit.library.Diagonal instead

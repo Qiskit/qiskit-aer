@@ -1,19 +1,17 @@
-# Aer - high performance quantum circuit simulation for Qiskit
+# Qiskit Aer
 
-[![License](https://img.shields.io/github/license/Qiskit/qiskit-aer.svg?style=popout-square)](https://opensource.org/licenses/Apache-2.0)
-[![Build](https://github.com/Qiskit/qiskit-aer/actions/workflows/build.yml/badge.svg?branch=main)](https://github.com/Qiskit/qiskit-aer/actions/workflows/build.yml)
-[![Tests](https://github.com/Qiskit/qiskit-aer/actions/workflows/tests.yml/badge.svg?branch=main)](https://github.com/Qiskit/qiskit-aer/actions/workflows/tests.yml)
-[![](https://img.shields.io/github/release/Qiskit/qiskit-aer.svg?style=popout-square)](https://github.com/Qiskit/qiskit-aer/releases)
-[![](https://img.shields.io/pypi/dm/qiskit-aer.svg?style=popout-square)](https://pypi.org/project/qiskit-aer/)
+[![License](https://img.shields.io/github/license/Qiskit/qiskit-aer.svg?style=popout-square)](https://opensource.org/licenses/Apache-2.0)[![Build Status](https://img.shields.io/travis/com/Qiskit/qiskit-aer/master.svg?style=popout-square)](https://travis-ci.com/Qiskit/qiskit-aer)[![](https://img.shields.io/github/release/Qiskit/qiskit-aer.svg?style=popout-square)](https://github.com/Qiskit/qiskit-aer/releases)[![](https://img.shields.io/pypi/dm/qiskit-aer.svg?style=popout-square)](https://pypi.org/project/qiskit-aer/)
 
-**Aer** is a high performance simulator for quantum circuits written in Qiskit, that includes realistic noise models.
+**Qiskit** is an open-source framework for working with noisy quantum computers at the level of pulses, circuits, and algorithms.
+
+Qiskit is made up of elements that work together to enable quantum computing. This element is **Aer**, which provides high-performance quantum computing simulators with realistic noise models.
 
 ## Installation
 
-We encourage installing Aer via the pip tool (a python package manager):
+We encourage installing Qiskit via the pip tool (a python package manager). The following command installs the core Qiskit components, including Aer.
 
 ```bash
-pip install qiskit-aer
+pip install qiskit qiskit-aer
 ```
 
 Pip will handle all dependencies automatically for us, and you will always install the latest (and well-tested) version.
@@ -45,8 +43,8 @@ that have CUDA support, you will have to build from source. You can refer to
 the [contributing guide](CONTRIBUTING.md#building-with-gpu-support)
 for instructions on doing this.
 
-## Simulating your first Qiskit circuit with Aer
-Now that you have Aer installed, you can start simulating quantum circuits with noise. Here is a basic example:
+## Simulating your first quantum program with Qiskit Aer
+Now that you have Qiskit Aer installed, you can start simulating quantum circuits with noise. Here is a basic example:
 
 ```
 $ python
@@ -89,19 +87,20 @@ print('Counts(noise):', counts_noise)
 
 ## Contribution Guidelines
 
-If you'd like to contribute to Aer, please take a look at our
+If you'd like to contribute to Qiskit, please take a look at our
 [contribution guidelines](CONTRIBUTING.md). This project adheres to Qiskit's [code of conduct](CODE_OF_CONDUCT.md). By participating, you are expected to uphold this code.
 
 We use [GitHub issues](https://github.com/Qiskit/qiskit-aer/issues) for tracking requests and bugs. Please use our [slack](https://qiskit.slack.com) for discussion and simple questions. To join our Slack community use the [link](https://qiskit.slack.com/join/shared_invite/zt-fybmq791-hYRopcSH6YetxycNPXgv~A#/). For questions that are more suited for a forum, we use the Qiskit tag in the [Stack Exchange](https://quantumcomputing.stackexchange.com/questions/tagged/qiskit).
 
 ## Next Steps
 
-Now you're set up and ready to check out some of the other examples from the [Aer documentation](https://qiskit.org/ecosystem/aer/).
+Now you're set up and ready to check out some of the other examples from our
+[Qiskit IQX Tutorials](https://github.com/Qiskit/qiskit-tutorials/tree/master/tutorials/simulators) or [Qiskit Community Tutorials](https://github.com/Qiskit/qiskit-community-tutorials/tree/master/aer) repositories.
 
 ## Authors and Citation
 
-Aer is the work of [many people](https://github.com/Qiskit/qiskit-aer/graphs/contributors) who contribute to the project at different levels.
-If you use Qiskit, please cite as per the included [BibTeX file](https://github.com/Qiskit/qiskit/blob/main/CITATION.bib).
+Qiskit Aer is the work of [many people](https://github.com/Qiskit/qiskit-aer/graphs/contributors) who contribute
+to the project at different levels. If you use Qiskit, please cite as per the included [BibTeX file](https://github.com/Qiskit/qiskit-terra/blob/main/CITATION.bib).
 
 ## License
 
