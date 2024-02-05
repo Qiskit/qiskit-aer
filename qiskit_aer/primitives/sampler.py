@@ -66,6 +66,11 @@ class Sampler(BaseSampler):
             skip_transpilation: if True, transpilation is skipped.
         """
         super().__init__(options=run_options)
+        # These two private attributes used to be created by super, but were deprecated in Qiskit
+        # 0.46. See https://github.com/Qiskit/qiskit/pull/11051
+        self._circuits = []
+        self._parameters = []
+
         self._backend = AerSimulator()
         backend_options = {} if backend_options is None else backend_options
         self._backend.set_options(**backend_options)
@@ -151,7 +156,8 @@ class Sampler(BaseSampler):
                 self._circuits.append(circuit)
                 self._parameters.append(circuit.parameters)
         job = PrimitiveJob(self._call, circuit_indices, parameter_values, **run_options)
-        job.submit()
+        # The public submit method was removed in Qiskit 0.46
+        (job.submit if hasattr(job, "submit") else job._submit)()  # pylint: disable=no-member
         return job
 
     @staticmethod

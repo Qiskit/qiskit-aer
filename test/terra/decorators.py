@@ -17,7 +17,8 @@
 import multiprocessing
 import unittest
 
-from qiskit import QuantumCircuit, execute
+from qiskit import QuantumCircuit
+from qiskit.utils import wrap_method
 
 from qiskit_aer import AerProvider, AerSimulator
 
