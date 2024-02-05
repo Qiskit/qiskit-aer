@@ -19,6 +19,7 @@ from test.terra.backends.simulator_test_case import SimulatorTestCase, supported
 from qiskit import QuantumCircuit
 from qiskit.circuit.library import DiagonalGate
 
+
 @ddt
 class TestConditionalGates(SimulatorTestCase):
     """AerSimulator conditional tests."""
@@ -311,6 +312,7 @@ class TestConditionalSuperOp(SimulatorTestCase):
         result = backend.run(circuits, shots=shots).result()
         self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, hex_counts=False, delta=0)
+
 
 @ddt
 class TestConditionalReset(SimulatorTestCase):
