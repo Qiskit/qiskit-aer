@@ -827,7 +827,7 @@ void MultiStateExecutor<state_t>::measure_sampler(InputIterator first_meas,
                     meas_qubits.end());
 
   // Generate the samples
-  std::vector<reg_t> all_samples;
+  std::vector<BitVector> all_samples;
   all_samples = this->sample_measure(state, meas_qubits, shots, rng);
 
   // Make qubit map of position in vector of measured qubits
@@ -855,12 +855,12 @@ void MultiStateExecutor<state_t>::measure_sampler(InputIterator first_meas,
 
     // process memory bit measurements
     for (const auto &pair : memory_map) {
-      creg.store_measure(reg_t({all_samples[i][pair.second]}),
+      creg.store_measure(reg_t({(uint_t)all_samples[i][pair.second]}),
                          reg_t({pair.first}), reg_t());
     }
     // process register bit measurements
     for (const auto &pair : register_map) {
-      creg.store_measure(reg_t({all_samples[i][pair.second]}), reg_t(),
+      creg.store_measure(reg_t({(uint_t)all_samples[i][pair.second]}), reg_t(),
                          reg_t({pair.first}));
     }
 

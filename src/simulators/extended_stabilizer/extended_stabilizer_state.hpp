@@ -86,8 +86,8 @@ public:
 
   void set_config(const Config &config) override;
 
-  std::vector<reg_t> sample_measure(const reg_t &qubits, uint_t shots,
-                                    RngEngine &rng) override;
+  std::vector<BitVector> sample_measure(const reg_t &qubits, uint_t shots,
+                                        RngEngine &rng) override;
 
 protected:
   // Alongside the sample measure optimisaiton, we can parallelise
@@ -415,8 +415,8 @@ void State::apply_ops(InputIterator first, InputIterator last,
   }
 }
 
-std::vector<reg_t> State::sample_measure(const reg_t &qubits, uint_t shots,
-                                         RngEngine &rng) {
+std::vector<BitVector> State::sample_measure(const reg_t &qubits, uint_t shots,
+                                             RngEngine &rng) {
   std::vector<uint_t> output_samples;
   if (BaseState::qreg_.get_num_states() == 1) {
     output_samples = BaseState::qreg_.stabilizer_sampler(shots, rng);
@@ -439,13 +439,13 @@ std::vector<reg_t> State::sample_measure(const reg_t &qubits, uint_t shots,
       }
     }
   }
-  std::vector<reg_t> all_samples;
+  std::vector<BitVector> all_samples;
   all_samples.reserve(shots);
   for (uint_t sample : output_samples) {
-    reg_t sample_bits(qubits.size(), 0ULL);
+    BitVector sample_bits(qubits.size());
     for (size_t i = 0; i < qubits.size(); i++) {
       if ((sample >> qubits[i]) & 1ULL) {
-        sample_bits[i] = 1ULL;
+        sample_bits.set(i, true);
       }
     }
     all_samples.push_back(sample_bits);

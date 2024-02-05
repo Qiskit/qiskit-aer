@@ -130,8 +130,8 @@ public:
 
   // Sample n-measurement outcomes without applying the measure operation
   // to the system state
-  std::vector<reg_t> sample_measure(const reg_t &qubits, uint_t shots,
-                                    RngEngine &rng) override;
+  std::vector<BitVector> sample_measure(const reg_t &qubits, uint_t shots,
+                                        RngEngine &rng) override;
 
   // Helper function for computing expectation value
   double expval_pauli(const reg_t &qubits, const std::string &pauli) override;
@@ -987,9 +987,9 @@ void State<densmat_t>::measure_reset_update(const reg_t &qubits,
 }
 
 template <class densmat_t>
-std::vector<reg_t> State<densmat_t>::sample_measure(const reg_t &qubits,
-                                                    uint_t shots,
-                                                    RngEngine &rng) {
+std::vector<BitVector> State<densmat_t>::sample_measure(const reg_t &qubits,
+                                                        uint_t shots,
+                                                        RngEngine &rng) {
   // Generate flat register for storing
   std::vector<double> rnds;
   rnds.reserve(shots);
@@ -999,18 +999,26 @@ std::vector<reg_t> State<densmat_t>::sample_measure(const reg_t &qubits,
 
   allbit_samples = BaseState::qreg_.sample_measure(rnds);
 
-  // Convert to reg_t format
-  std::vector<reg_t> all_samples;
-  all_samples.reserve(shots);
-  for (int_t val : allbit_samples) {
-    reg_t allbit_sample = Utils::int2reg(val, 2, BaseState::qreg_.num_qubits());
-    reg_t sample;
-    sample.reserve(qubits.size());
-    for (uint_t qubit : qubits) {
-      sample.push_back(allbit_sample[qubit]);
+  // Convert to bit format
+  int_t npar = BaseState::threads_;
+  if (npar > shots)
+    npar = shots;
+  std::vector<BitVector> all_samples(shots, BitVector(qubits.size()));
+
+  auto convert_to_bit_lambda = [this, &allbit_samples, &all_samples, shots,
+                                qubits, npar](int_t i) {
+    uint_t ishot, iend;
+    ishot = shots * i / npar;
+    iend = shots * (i + 1) / npar;
+    for (; ishot < iend; ishot++) {
+      BitVector allbit_sample;
+      allbit_sample.from_uint(qubits.size(), allbit_samples[ishot]);
+      all_samples[ishot].map(allbit_sample, qubits);
     }
-    all_samples.push_back(sample);
-  }
+  };
+  Utils::apply_omp_parallel_for((npar > 1), 0, npar, convert_to_bit_lambda,
+                                npar);
+
   return all_samples;
 }
 

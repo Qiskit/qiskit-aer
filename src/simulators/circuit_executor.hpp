@@ -209,7 +209,7 @@ protected:
   template <typename InputIterator>
   void measure_sampler(InputIterator first_meas, InputIterator last_meas,
                        uint_t shots, state_t &state, ExperimentResult &result,
-                       RngEngine &rng, bool save_creg_to_state = false) const;
+                       RngEngine &rng) const;
 
 #ifdef AER_MPI
   void gather_creg_memory(std::vector<ClassicalRegister> &cregs,
@@ -218,14 +218,14 @@ protected:
 
   // Sample n-measurement outcomes without applying the measure operation
   // to the system state
-  virtual std::vector<reg_t> sample_measure(const reg_t &qubits, uint_t shots,
-                                            RngEngine &rng) const {
-    std::vector<reg_t> ret;
+  virtual std::vector<BitVector>
+  sample_measure(const reg_t &qubits, uint_t shots, RngEngine &rng) const {
+    std::vector<BitVector> ret;
     return ret;
   };
-  virtual std::vector<reg_t> sample_measure(state_t &state, const reg_t &qubits,
-                                            uint_t shots,
-                                            std::vector<RngEngine> &rng) const {
+  virtual std::vector<BitVector>
+  sample_measure(state_t &state, const reg_t &qubits, uint_t shots,
+                 std::vector<RngEngine> &rng) const {
     // this is for single rng, impement in sub-class for multi-shots case
     return state.sample_measure(qubits, shots, rng[0]);
   }
@@ -1024,8 +1024,7 @@ void Executor<state_t>::measure_sampler(InputIterator first_meas,
                                         InputIterator last_meas, uint_t shots,
                                         state_t &state,
                                         ExperimentResult &result,
-                                        RngEngine &rng,
-                                        bool save_creg_to_state) const {
+                                        RngEngine &rng) const {
   // Check if meas_circ is empty, and if so return initial creg
   if (first_meas == last_meas) {
     while (shots-- > 0) {
@@ -1056,7 +1055,7 @@ void Executor<state_t>::measure_sampler(InputIterator first_meas,
 
   // Generate the samples
   auto timer_start = myclock_t::now();
-  std::vector<reg_t> all_samples;
+  std::vector<BitVector> all_samples;
   all_samples = state.sample_measure(meas_qubits, shots, rng);
   auto time_taken =
       std::chrono::duration<double>(myclock_t::now() - timer_start).count();
@@ -1086,30 +1085,70 @@ void Executor<state_t>::measure_sampler(InputIterator first_meas,
       (memory_map.empty()) ? 0ULL : 1 + memory_map.rbegin()->first;
   uint_t num_registers =
       (register_map.empty()) ? 0ULL : 1 + register_map.rbegin()->first;
-  ClassicalRegister creg;
-  for (int_t i = all_samples.size() - 1; i >= 0; i--) {
-    creg.initialize(num_memory, num_registers);
 
-    // process memory bit measurements
-    for (const auto &pair : memory_map) {
-      creg.store_measure(reg_t({all_samples[i][pair.second]}),
-                         reg_t({pair.first}), reg_t());
-    }
-    // process register bit measurements
-    for (const auto &pair : register_map) {
-      creg.store_measure(reg_t({all_samples[i][pair.second]}), reg_t(),
-                         reg_t({pair.first}));
-    }
+  if (roerror_ops.size() > 0) {
+    // can not parallelize for read out error because of rng
+    ClassicalRegister creg;
+    for (uint_t is = 0; is < all_samples.size(); is++) {
+      uint_t i = all_samples.size() - is - 1;
+      creg.initialize(num_memory, num_registers);
 
-    // process read out errors for memory and registers
-    for (const Operations::Op &roerror : roerror_ops)
-      creg.apply_roerror(roerror, rng);
+      // process memory bit measurements
+      for (const auto &pair : memory_map) {
+        creg.store_measure(reg_t({(uint_t)all_samples[i][pair.second]}),
+                           reg_t({pair.first}), reg_t());
+      }
+      // process register bit measurements
+      for (const auto &pair : register_map) {
+        creg.store_measure(reg_t({(uint_t)all_samples[i][pair.second]}),
+                           reg_t(), reg_t({pair.first}));
+      }
 
-    // Save count data
-    if (save_creg_to_state)
-      state.creg() = creg;
-    else
+      // process read out errors for memory and registers
+      for (const Operations::Op &roerror : roerror_ops)
+        creg.apply_roerror(roerror, rng);
+
+      // Save count data
       result.save_count_data(creg, save_creg_memory_);
+    }
+  } else {
+    uint_t npar = parallel_state_update_;
+    if (npar > all_samples.size())
+      npar = all_samples.size();
+
+    std::vector<ExperimentResult> par_results(npar);
+    auto copy_samples_lambda = [this, &par_results, num_memory, num_registers,
+                                memory_map, register_map, npar,
+                                &all_samples](int_t ip) {
+      ClassicalRegister creg;
+      uint_t is, ie;
+      is = all_samples.size() * ip / npar;
+      ie = all_samples.size() * (ip + 1) / npar;
+      for (; is < ie; is++) {
+        uint_t i = all_samples.size() - is - 1;
+        creg.initialize(num_memory, num_registers);
+
+        // process memory bit measurements
+        for (const auto &pair : memory_map) {
+          creg.store_measure(reg_t({(uint_t)all_samples[i][pair.second]}),
+                             reg_t({pair.first}), reg_t());
+        }
+        // process register bit measurements
+        for (const auto &pair : register_map) {
+          creg.store_measure(reg_t({(uint_t)all_samples[i][pair.second]}),
+                             reg_t(), reg_t({pair.first}));
+        }
+
+        // Save count data
+        par_results[ip].save_count_data(creg, save_creg_memory_);
+      }
+    };
+    Utils::apply_omp_parallel_for((npar > 1), 0, npar, copy_samples_lambda,
+                                  npar);
+
+    for (int_t i = 0; i < npar; i++) {
+      result.combine(std::move(par_results[i]));
+    }
   }
 }
 
