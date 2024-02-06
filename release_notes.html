@@ -6,7 +6,7 @@
 <link rel="index" title="Index" href="genindex.html" /><link rel="search" title="Search" href="search.html" /><link rel="prev" title="Running with multiple-GPUs and/or multiple nodes" href="howtos/running_gpu.html" />
 
     <!-- Generated with Sphinx 7.1.2 and Furo 2023.08.19 -->
-        <title>Release Notes - Qiskit Aer 0.13.1</title>
+        <title>Release Notes - Qiskit Aer 0.13.3</title>
       <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?v=135e06be" />
     <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=82a976d7" />
     <link rel="stylesheet" type="text/css" href="_static/styles/qiskit-sphinx-theme.css?v=fe84956c" />
@@ -145,7 +145,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="index.html"><div class="brand">Qiskit Aer 0.13.1</div></a>
+      <a href="index.html"><div class="brand">Qiskit Aer 0.13.3</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -172,7 +172,7 @@
     </div>
   </a>
   
-  <span class="sidebar-brand-text">Qiskit Aer 0.13.1</span>
+  <span class="sidebar-brand-text">Qiskit Aer 0.13.3</span>
 </div><form class="sidebar-search-container" method="get" action="search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
   <input type="hidden" name="check_keywords" value="yes">
@@ -339,8 +339,32 @@
         <article role="main">
           <section id="release-notes">
 <h1>Release Notes<a class="headerlink" href="#release-notes" title="Permalink to this heading">#</a></h1>
+<section id="release-notes-0-13-3">
+<span id="id1"></span><h2>0.13.3<a class="headerlink" href="#release-notes-0-13-3" title="Permalink to this heading">#</a></h2>
+<section id="prelude">
+<span id="release-notes-0-13-3-prelude"></span><h3>Prelude<a class="headerlink" href="#prelude" title="Permalink to this heading">#</a></h3>
+<p>Aer 0.13.3 is a minor release to support Qiskit 0.46 and 1.0.</p>
+</section>
+<section id="bug-fixes">
+<span id="release-notes-0-13-3-bug-fixes"></span><h3>Bug Fixes<a class="headerlink" href="#bug-fixes" title="Permalink to this heading">#</a></h3>
+<ul>
+<li><p>Removed deprecate function test in
+test.terra.states.test_aer_statevector.TestAerStatevector.test_number_to_latex_terms</p>
+<p>Sorted the output properties in
+test.terra.noise.test_device_models.test_basic_device_gate_errors_from_target_and_properties
+to compare correctly.</p>
+</li>
+</ul>
+<ul>
+<li><p>Fixes test cases failed due to upgrade of Qiskit.</p>
+<p>Removed importing Aer from qiskit.</p>
+<p>QuantumCircuit.diagonal was deprecated, using circuit.library.Diagonal instead</p>
+</li>
+</ul>
+</section>
+</section>
 <section id="release-notes-0-13-2">
-<span id="id1"></span><h2>0.13.2<a class="headerlink" href="#release-notes-0-13-2" title="Permalink to this heading">#</a></h2>
+<span id="id2"></span><h2>0.13.2<a class="headerlink" href="#release-notes-0-13-2" title="Permalink to this heading">#</a></h2>
 <section id="new-features">
 <span id="release-notes-0-13-2-new-features"></span><h3>New Features<a class="headerlink" href="#new-features" title="Permalink to this heading">#</a></h3>
 <ul class="simple">
@@ -353,8 +377,8 @@
 <li><p>Removed importing qiskit.test from test and include some classes in Aer</p></li>
 </ul>
 </section>
-<section id="bug-fixes">
-<span id="release-notes-0-13-2-bug-fixes"></span><h3>Bug Fixes<a class="headerlink" href="#bug-fixes" title="Permalink to this heading">#</a></h3>
+<section id="release-notes-0-13-2-bug-fixes">
+<span id="id3"></span><h3>Bug Fixes<a class="headerlink" href="#release-notes-0-13-2-bug-fixes" title="Permalink to this heading">#</a></h3>
 <ul class="simple">
 <li><p>Fixed GPU batched shots optimization and GPU runtime parameter binding
 failures caused by wrong checking of return condition</p></li>
@@ -369,9 +393,9 @@ And only initialize and access GPUs defined in <cite>target_gpus</cite> option.<
 </section>
 </section>
 <section id="release-notes-0-13-1">
-<span id="id2"></span><h2>0.13.1<a class="headerlink" href="#release-notes-0-13-1" title="Permalink to this heading">#</a></h2>
-<section id="prelude">
-<span id="release-notes-0-13-1-prelude"></span><h3>Prelude<a class="headerlink" href="#prelude" title="Permalink to this heading">#</a></h3>
+<span id="id4"></span><h2>0.13.1<a class="headerlink" href="#release-notes-0-13-1" title="Permalink to this heading">#</a></h2>
+<section id="release-notes-0-13-1-prelude">
+<span id="id5"></span><h3>Prelude<a class="headerlink" href="#release-notes-0-13-1-prelude" title="Permalink to this heading">#</a></h3>
 <p>Aer Release 0.13.1 is bug fix release for 0.13.0. The most important fixes are for issues caused by upgrading AerBackend to BackendV2 interface. Aer 0.13.1 is now ready for Qiskit 0.45.</p>
 </section>
 <section id="upgrade-notes">
@@ -393,7 +417,7 @@ Alternative types that you can use instead of <code class="docutils literal notr
 </ul>
 </section>
 <section id="release-notes-0-13-1-bug-fixes">
-<span id="id3"></span><h3>Bug Fixes<a class="headerlink" href="#release-notes-0-13-1-bug-fixes" title="Permalink to this heading">#</a></h3>
+<span id="id6"></span><h3>Bug Fixes<a class="headerlink" href="#release-notes-0-13-1-bug-fixes" title="Permalink to this heading">#</a></h3>
 <ul>
 <li><p>Fixes AerBackend issues caused by upgading to BackendV2 in 0.13.0 release
 and fix test failures for Qiskit 0.45 release.</p>
@@ -446,9 +470,9 @@ id gates of dynamic circuits</p></li>
 </section>
 </section>
 <section id="release-notes-0-13-0">
-<span id="id4"></span><h2>0.13.0<a class="headerlink" href="#release-notes-0-13-0" title="Permalink to this heading">#</a></h2>
+<span id="id7"></span><h2>0.13.0<a class="headerlink" href="#release-notes-0-13-0" title="Permalink to this heading">#</a></h2>
 <section id="release-notes-0-13-0-prelude">
-<span id="id5"></span><h3>Prelude<a class="headerlink" href="#release-notes-0-13-0-prelude" title="Permalink to this heading">#</a></h3>
+<span id="id8"></span><h3>Prelude<a class="headerlink" href="#release-notes-0-13-0-prelude" title="Permalink to this heading">#</a></h3>
 <p>Here are highlights of the Aer 0.13.0 release:
 Aer’s backend is now backendV2.
 Introducing shot-branching optimization that accelerates dynamic circuits simulations. By using <cite>shot_branching_enable=True</cite>, multi-shots simulation starts with single state and state will be branched with attached shots dynamically. This option is available for <cite>statevector</cite>, <cite>density_matrix</cite> and <cite>tensor_network</cite> methods.
@@ -459,7 +483,7 @@ Now Aer supports AMD’s GPUs based on ROCm (building from source code only)</p>
 <p>Build environment variable was added to enable building Qiskit-Aer without the CUDA  requirements. The new variable is <code class="docutils literal notranslate"><span class="pre">QISKIT_ADD_CUDA_REQUIREMENTS</span></code> and can be set to  False/No/Off or True/Yes/On. By default, it is assumed True.</p>
 </section>
 <section id="release-notes-0-13-0-new-features">
-<span id="id6"></span><h3>New Features<a class="headerlink" href="#release-notes-0-13-0-new-features" title="Permalink to this heading">#</a></h3>
+<span id="id9"></span><h3>New Features<a class="headerlink" href="#release-notes-0-13-0-new-features" title="Permalink to this heading">#</a></h3>
 <ul>
 <li><p>ROCm support has been added matching the existing CUDA implementation based
 on the <code class="docutils literal notranslate"><span class="pre">thrust</span></code> library. This enables Qiskit-Aer to run on AMD GPUs,
@@ -639,7 +663,7 @@ This commit enables such transpilation by adding <code class="docutils literal n
 </ul>
 </section>
 <section id="release-notes-0-13-0-upgrade-notes">
-<span id="id7"></span><h3>Upgrade Notes<a class="headerlink" href="#release-notes-0-13-0-upgrade-notes" title="Permalink to this heading">#</a></h3>
+<span id="id10"></span><h3>Upgrade Notes<a class="headerlink" href="#release-notes-0-13-0-upgrade-notes" title="Permalink to this heading">#</a></h3>
 <ul class="simple">
 <li><p>Fixed a bug that caused results to be incorrectly ordered or errors in
 <a class="reference internal" href="stubs/qiskit_aer.primitives.Estimator.html#qiskit_aer.primitives.Estimator" title="qiskit_aer.primitives.Estimator"><code class="xref py py-class docutils literal notranslate"><span class="pre">Estimator</span></code></a> with <code class="docutils literal notranslate"><span class="pre">approximation=True</span></code>.</p></li>
@@ -686,13 +710,13 @@ is not multiple of pi/2, Aer raises an exception.</p></li>
 </ul>
 </section>
 <section id="release-notes-0-13-0-deprecation-notes">
-<span id="id8"></span><h3>Deprecation Notes<a class="headerlink" href="#release-notes-0-13-0-deprecation-notes" title="Permalink to this heading">#</a></h3>
+<span id="id11"></span><h3>Deprecation Notes<a class="headerlink" href="#release-notes-0-13-0-deprecation-notes" title="Permalink to this heading">#</a></h3>
 <ul class="simple">
 <li><p>Options of meth:<cite>~.AerSimulator.run</cite> need to use correct types.</p></li>
 </ul>
 </section>
 <section id="release-notes-0-13-0-bug-fixes">
-<span id="id9"></span><h3>Bug Fixes<a class="headerlink" href="#release-notes-0-13-0-bug-fixes" title="Permalink to this heading">#</a></h3>
+<span id="id12"></span><h3>Bug Fixes<a class="headerlink" href="#release-notes-0-13-0-bug-fixes" title="Permalink to this heading">#</a></h3>
 <ul class="simple">
 <li><p>Aer runtime api (from contrib) exposed the wrong sx operation,
 implemented with a rx. The implementation is changed now by
@@ -917,9 +941,9 @@ resolve issues related to <a class="reference external" href="https://github.com
 </section>
 </section>
 <section id="release-notes-0-12-0">
-<span id="id10"></span><h2>0.12.0<a class="headerlink" href="#release-notes-0-12-0" title="Permalink to this heading">#</a></h2>
+<span id="id13"></span><h2>0.12.0<a class="headerlink" href="#release-notes-0-12-0" title="Permalink to this heading">#</a></h2>
 <section id="release-notes-0-12-0-prelude">
-<span id="id11"></span><h3>Prelude<a class="headerlink" href="#release-notes-0-12-0-prelude" title="Permalink to this heading">#</a></h3>
+<span id="id14"></span><h3>Prelude<a class="headerlink" href="#release-notes-0-12-0-prelude" title="Permalink to this heading">#</a></h3>
 <p>The Qiskit Aer 0.12.0 release highlights are:</p>
 <blockquote>
 <div><ul class="simple">
@@ -936,7 +960,7 @@ circuits using the <code class="docutils literal notranslate"><span class="pre">
 </div></blockquote>
 </section>
 <section id="release-notes-0-12-0-new-features">
-<span id="id12"></span><h3>New Features<a class="headerlink" href="#release-notes-0-12-0-new-features" title="Permalink to this heading">#</a></h3>
+<span id="id15"></span><h3>New Features<a class="headerlink" href="#release-notes-0-12-0-new-features" title="Permalink to this heading">#</a></h3>
 <ul class="simple">
 <li><p>Added a new class method <a class="reference internal" href="stubs/qiskit_aer.noise.NoiseModel.html#qiskit_aer.noise.NoiseModel.from_backend_properties" title="qiskit_aer.noise.NoiseModel.from_backend_properties"><code class="xref py py-meth docutils literal notranslate"><span class="pre">from_backend_properties()</span></code></a> to
 the <code class="xref py py-class docutils literal notranslate"><span class="pre">NoiseModel</span></code>. This enables constructing a new <a class="reference internal" href="stubs/qiskit_aer.noise.NoiseModel.html#qiskit_aer.noise.NoiseModel" title="qiskit_aer.noise.NoiseModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">NoiseModel</span></code></a>
@@ -1024,7 +1048,7 @@ Cmake build process will stop.</p></li>
 </ul>
 </section>
 <section id="release-notes-0-12-0-known-issues">
-<span id="id13"></span><h3>Known Issues<a class="headerlink" href="#release-notes-0-12-0-known-issues" title="Permalink to this heading">#</a></h3>
+<span id="id16"></span><h3>Known Issues<a class="headerlink" href="#release-notes-0-12-0-known-issues" title="Permalink to this heading">#</a></h3>
 <ul class="simple">
 <li><p>This release of Qiskit Aer is not compatible with the Conan 2.X release
 series. If you are building Qiskit Aer from source manually ensure that
@@ -1035,7 +1059,7 @@ more details.</p></li>
 </ul>
 </section>
 <section id="release-notes-0-12-0-upgrade-notes">
-<span id="id14"></span><h3>Upgrade Notes<a class="headerlink" href="#release-notes-0-12-0-upgrade-notes" title="Permalink to this heading">#</a></h3>
+<span id="id17"></span><h3>Upgrade Notes<a class="headerlink" href="#release-notes-0-12-0-upgrade-notes" title="Permalink to this heading">#</a></h3>
 <ul class="simple">
 <li><p>The default behavior of the <a class="reference internal" href="stubs/qiskit_aer.primitives.Estimator.html#qiskit_aer.primitives.Estimator" title="qiskit_aer.primitives.Estimator"><code class="xref py py-class docutils literal notranslate"><span class="pre">Estimator</span></code></a> primitive will now
 group the input observable into qubit-wise commutable observables.
@@ -1161,7 +1185,7 @@ guidelines.</p>
 </ul>
 </section>
 <section id="release-notes-0-12-0-deprecation-notes">
-<span id="id15"></span><h3>Deprecation Notes<a class="headerlink" href="#release-notes-0-12-0-deprecation-notes" title="Permalink to this heading">#</a></h3>
+<span id="id18"></span><h3>Deprecation Notes<a class="headerlink" href="#release-notes-0-12-0-deprecation-notes" title="Permalink to this heading">#</a></h3>
 <ul class="simple">
 <li><p>Support for running Qiskit Aer with Python 3.7 support has been deprecated
 and will be removed in a future release. This means
@@ -1194,7 +1218,7 @@ the use of filtering functions in Python’s standard <code class="docutils lite
 </ul>
 </section>
 <section id="release-notes-0-12-0-bug-fixes">
-<span id="id16"></span><h3>Bug Fixes<a class="headerlink" href="#release-notes-0-12-0-bug-fixes" title="Permalink to this heading">#</a></h3>
+<span id="id19"></span><h3>Bug Fixes<a class="headerlink" href="#release-notes-0-12-0-bug-fixes" title="Permalink to this heading">#</a></h3>
 <ul class="simple">
 <li><p>Fixed an issue when creating a new <a class="reference internal" href="stubs/qiskit_aer.quantum_info.AerStatevector.html#qiskit_aer.quantum_info.AerStatevector" title="qiskit_aer.quantum_info.AerStatevector"><code class="xref py py-class docutils literal notranslate"><span class="pre">AerStatevector</span></code></a> instance
 from a <code class="docutils literal notranslate"><span class="pre">numpy.ndarray</span></code> that had non-contiguous memory. Previously,
@@ -1246,9 +1270,9 @@ already did support these, but had just not been reporting it.</p>
 </section>
 </section>
 <section id="release-notes-0-11-0">
-<span id="id17"></span><h2>0.11.0<a class="headerlink" href="#release-notes-0-11-0" title="Permalink to this heading">#</a></h2>
+<span id="id20"></span><h2>0.11.0<a class="headerlink" href="#release-notes-0-11-0" title="Permalink to this heading">#</a></h2>
 <section id="release-notes-0-11-0-prelude">
-<span id="id18"></span><h3>Prelude<a class="headerlink" href="#release-notes-0-11-0-prelude" title="Permalink to this heading">#</a></h3>
+<span id="id21"></span><h3>Prelude<a class="headerlink" href="#release-notes-0-11-0-prelude" title="Permalink to this heading">#</a></h3>
 <p>The Qiskit Aer 0.11.0 release highlights are:</p>
 <ul class="simple">
 <li><p>The migration to a new self-contained Python namespace <code class="docutils literal notranslate"><span class="pre">qiskit_aer</span></code></p></li>
@@ -1259,7 +1283,7 @@ already did support these, but had just not been reporting it.</p>
 </ul>
 </section>
 <section id="release-notes-0-11-0-new-features">
-<span id="id19"></span><h3>New Features<a class="headerlink" href="#release-notes-0-11-0-new-features" title="Permalink to this heading">#</a></h3>
+<span id="id22"></span><h3>New Features<a class="headerlink" href="#release-notes-0-11-0-new-features" title="Permalink to this heading">#</a></h3>
 <ul class="simple">
 <li><p>Added support for <code class="xref py py-class docutils literal notranslate"><span class="pre">BackendV2</span></code> to
 <a class="reference internal" href="stubs/qiskit_aer.noise.NoiseModel.html#qiskit_aer.noise.NoiseModel.from_backend" title="qiskit_aer.noise.NoiseModel.from_backend"><code class="xref py py-meth docutils literal notranslate"><span class="pre">from_backend()</span></code></a>.
@@ -1328,7 +1352,7 @@ code works:</p>
 </ul>
 </section>
 <section id="release-notes-0-11-0-known-issues">
-<span id="id20"></span><h3>Known Issues<a class="headerlink" href="#release-notes-0-11-0-known-issues" title="Permalink to this heading">#</a></h3>
+<span id="id23"></span><h3>Known Issues<a class="headerlink" href="#release-notes-0-11-0-known-issues" title="Permalink to this heading">#</a></h3>
 <ul class="simple">
 <li><p>When running on Linux s390x platforms (or other big endian platforms)
 running circuits that contain <code class="xref py py-class docutils literal notranslate"><span class="pre">UnitaryGate</span></code> operations will not
@@ -1338,7 +1362,7 @@ details.</p></li>
 </ul>
 </section>
 <section id="release-notes-0-11-0-upgrade-notes">
-<span id="id21"></span><h3>Upgrade Notes<a class="headerlink" href="#release-notes-0-11-0-upgrade-notes" title="Permalink to this heading">#</a></h3>
+<span id="id24"></span><h3>Upgrade Notes<a class="headerlink" href="#release-notes-0-11-0-upgrade-notes" title="Permalink to this heading">#</a></h3>
 <ul class="simple">
 <li><p>MPI parallelization for large number of qubits is optimized to apply
 multiple chunk-swaps as all-to-all communication that can decrease
@@ -1396,7 +1420,7 @@ a purpose.</p></li>
 </ul>
 </section>
 <section id="release-notes-0-11-0-bug-fixes">
-<span id="id22"></span><h3>Bug Fixes<a class="headerlink" href="#release-notes-0-11-0-bug-fixes" title="Permalink to this heading">#</a></h3>
+<span id="id25"></span><h3>Bug Fixes<a class="headerlink" href="#release-notes-0-11-0-bug-fixes" title="Permalink to this heading">#</a></h3>
 <ul class="simple">
 <li><p>Fixes for MPI chunk distribution. Including fix for global indexing
 for Thrust implementations, fix for cache blocking of non-gate operations.
@@ -1504,9 +1528,9 @@ from cuQuantum version 0.40.</p></li>
 </section>
 </section>
 <section id="release-notes-0-10-0">
-<span id="id23"></span><h2>0.10.0<a class="headerlink" href="#release-notes-0-10-0" title="Permalink to this heading">#</a></h2>
+<span id="id26"></span><h2>0.10.0<a class="headerlink" href="#release-notes-0-10-0" title="Permalink to this heading">#</a></h2>
 <section id="release-notes-0-10-0-prelude">
-<span id="id24"></span><h3>Prelude<a class="headerlink" href="#release-notes-0-10-0-prelude" title="Permalink to this heading">#</a></h3>
+<span id="id27"></span><h3>Prelude<a class="headerlink" href="#release-notes-0-10-0-prelude" title="Permalink to this heading">#</a></h3>
 <p>The Qiskit Aer 0.10 release includes several performance and noise model
 improvements. Some highlights are:</p>
 <ul class="simple">
@@ -1518,7 +1542,7 @@ noise models, and inserting them into circuits.</p></li>
 </ul>
 </section>
 <section id="release-notes-0-10-0-new-features">
-<span id="id25"></span><h3>New Features<a class="headerlink" href="#release-notes-0-10-0-new-features" title="Permalink to this heading">#</a></h3>
+<span id="id28"></span><h3>New Features<a class="headerlink" href="#release-notes-0-10-0-new-features" title="Permalink to this heading">#</a></h3>
 <ul class="simple">
 <li><p>Added support of QASM 3.0 control-flow instructions introduced in Qiskit-Terra
 0.19.0. Supported instructions are <a class="reference external" href="https://qiskit.org/documentation/stubs/qiskit.circuit.ForLoopOp.html#qiskit.circuit.ForLoopOp" title="(in Qiskit v0.45)"><code class="xref py py-class docutils literal notranslate"><span class="pre">ForLoopOp</span></code></a>,
@@ -1733,7 +1757,7 @@ the <a class="reference external" href="https://qiskit.org/documentation/apidoc/
 </ul>
 </section>
 <section id="release-notes-0-10-0-upgrade-notes">
-<span id="id26"></span><h3>Upgrade Notes<a class="headerlink" href="#release-notes-0-10-0-upgrade-notes" title="Permalink to this heading">#</a></h3>
+<span id="id29"></span><h3>Upgrade Notes<a class="headerlink" href="#release-notes-0-10-0-upgrade-notes" title="Permalink to this heading">#</a></h3>
 <ul class="simple">
 <li><p>The return type of several save instructions have been changed to be the
 corresponding Qiskit Terra classes rather than raw NumPy arrays or
@@ -1765,7 +1789,7 @@ it will now raise a <code class="xref py py-class docutils literal notranslate">
 </ul>
 </section>
 <section id="release-notes-0-10-0-deprecation-notes">
-<span id="id27"></span><h3>Deprecation Notes<a class="headerlink" href="#release-notes-0-10-0-deprecation-notes" title="Permalink to this heading">#</a></h3>
+<span id="id30"></span><h3>Deprecation Notes<a class="headerlink" href="#release-notes-0-10-0-deprecation-notes" title="Permalink to this heading">#</a></h3>
 <ul class="simple">
 <li><p>Using NumPy <code class="docutils literal notranslate"><span class="pre">ndarray</span></code> methods and attributes on the return type of
 <a class="reference internal" href="stubs/qiskit_aer.library.save_statevector.html#qiskit_aer.library.save_statevector" title="qiskit_aer.library.save_statevector"><code class="xref py py-func docutils literal notranslate"><span class="pre">save_statevector()</span></code></a>, <a class="reference internal" href="stubs/qiskit_aer.library.save_density_matrix.html#qiskit_aer.library.save_density_matrix" title="qiskit_aer.library.save_density_matrix"><code class="xref py py-func docutils literal notranslate"><span class="pre">save_density_matrix()</span></code></a>,
@@ -1833,15 +1857,15 @@ may change the resulting approximate error compared to Qiskit Aer 0.9.</p></li>
 </section>
 </section>
 <section id="release-notes-0-9-0">
-<span id="id28"></span><h2>0.9.0<a class="headerlink" href="#release-notes-0-9-0" title="Permalink to this heading">#</a></h2>
+<span id="id31"></span><h2>0.9.0<a class="headerlink" href="#release-notes-0-9-0" title="Permalink to this heading">#</a></h2>
 <section id="release-notes-0-9-0-prelude">
-<span id="id29"></span><h3>Prelude<a class="headerlink" href="#release-notes-0-9-0-prelude" title="Permalink to this heading">#</a></h3>
+<span id="id32"></span><h3>Prelude<a class="headerlink" href="#release-notes-0-9-0-prelude" title="Permalink to this heading">#</a></h3>
 <p>The 0.9 release includes new backend options for parallel exeuction
 of large numbers of circuits on a HPC cluster using a Dask distributed,
 along with other general performance improvements and bug fixes.</p>
 </section>
 <section id="release-notes-0-9-0-new-features">
-<span id="id30"></span><h3>New Features<a class="headerlink" href="#release-notes-0-9-0-new-features" title="Permalink to this heading">#</a></h3>
+<span id="id33"></span><h3>New Features<a class="headerlink" href="#release-notes-0-9-0-new-features" title="Permalink to this heading">#</a></h3>
 <ul class="simple">
 <li><p>Add qiskit library <a class="reference external" href="https://qiskit.org/documentation/stubs/qiskit.circuit.library.SXdgGate.html#qiskit.circuit.library.SXdgGate" title="(in Qiskit v0.45)"><code class="xref py py-class docutils literal notranslate"><span class="pre">SXdgGate</span></code></a>
 and <a class="reference external" href="https://qiskit.org/documentation/stubs/qiskit.circuit.library.CUGate.html#qiskit.circuit.library.CUGate" title="(in Qiskit v0.45)"><code class="xref py py-class docutils literal notranslate"><span class="pre">CUGate</span></code></a> to the supported basis gates for
@@ -1885,7 +1909,7 @@ on using Dask executors for HPC simulation.</p>
 </ul>
 </section>
 <section id="release-notes-0-9-0-upgrade-notes">
-<span id="id31"></span><h3>Upgrade Notes<a class="headerlink" href="#release-notes-0-9-0-upgrade-notes" title="Permalink to this heading">#</a></h3>
+<span id="id34"></span><h3>Upgrade Notes<a class="headerlink" href="#release-notes-0-9-0-upgrade-notes" title="Permalink to this heading">#</a></h3>
 <ul class="simple">
 <li><p>The default basis for the <code class="xref py py-class docutils literal notranslate"><span class="pre">NoiseModel</span></code>
 class has been changed from <code class="docutils literal notranslate"><span class="pre">[&quot;id&quot;,</span> <span class="pre">&quot;u3&quot;,</span> <span class="pre">&quot;cx&quot;]</span></code> to
@@ -1905,7 +1929,7 @@ separate kwargs.</p></li>
 </ul>
 </section>
 <section id="release-notes-0-9-0-deprecation-notes">
-<span id="id32"></span><h3>Deprecation Notes<a class="headerlink" href="#release-notes-0-9-0-deprecation-notes" title="Permalink to this heading">#</a></h3>
+<span id="id35"></span><h3>Deprecation Notes<a class="headerlink" href="#release-notes-0-9-0-deprecation-notes" title="Permalink to this heading">#</a></h3>
 <ul class="simple">
 <li><p>Passing an assembled qobj directly to the
 <code class="xref py py-meth docutils literal notranslate"><span class="pre">run()</span></code> method of the Aer simulator
@@ -1933,7 +1957,7 @@ use the option <code class="docutils literal notranslate"><span class="pre">devi
 </ul>
 </section>
 <section id="release-notes-0-9-0-bug-fixes">
-<span id="id33"></span><h3>Bug Fixes<a class="headerlink" href="#release-notes-0-9-0-bug-fixes" title="Permalink to this heading">#</a></h3>
+<span id="id36"></span><h3>Bug Fixes<a class="headerlink" href="#release-notes-0-9-0-bug-fixes" title="Permalink to this heading">#</a></h3>
 <ul class="simple">
 <li><p>Fixes bug where the if the required memory is smaller than the system memory the
 multi-chunk simulation method was enabled and simulation was still started.
@@ -1989,7 +2013,7 @@ unsupported.</p></li>
             
             <a href="https://github.com/pradyunsg/furo">Furo</a>
             <div class="last-updated">
-              Last updated on 2024/01/17</div>
+              Last updated on 2024/02/06</div>
           </div>
           <div class="right-details">
             
@@ -2011,14 +2035,19 @@ unsupported.</p></li>
           <div class="toc-tree">
             <ul>
 <li><a class="reference internal" href="#">Release Notes</a><ul>
-<li><a class="reference internal" href="#release-notes-0-13-2">0.13.2</a><ul>
-<li><a class="reference internal" href="#new-features">New Features</a></li>
-<li><a class="reference internal" href="#deprecation-notes">Deprecation Notes</a></li>
+<li><a class="reference internal" href="#release-notes-0-13-3">0.13.3</a><ul>
+<li><a class="reference internal" href="#prelude">Prelude</a></li>
 <li><a class="reference internal" href="#bug-fixes">Bug Fixes</a></li>
 </ul>
 </li>
+<li><a class="reference internal" href="#release-notes-0-13-2">0.13.2</a><ul>
+<li><a class="reference internal" href="#new-features">New Features</a></li>
+<li><a class="reference internal" href="#deprecation-notes">Deprecation Notes</a></li>
+<li><a class="reference internal" href="#release-notes-0-13-2-bug-fixes">Bug Fixes</a></li>
+</ul>
+</li>
 <li><a class="reference internal" href="#release-notes-0-13-1">0.13.1</a><ul>
-<li><a class="reference internal" href="#prelude">Prelude</a></li>
+<li><a class="reference internal" href="#release-notes-0-13-1-prelude">Prelude</a></li>
 <li><a class="reference internal" href="#upgrade-notes">Upgrade Notes</a></li>
 <li><a class="reference internal" href="#release-notes-0-13-1-bug-fixes">Bug Fixes</a></li>
 </ul>
@@ -2078,7 +2107,7 @@ unsupported.</p></li>
   </div>
 </div><script src="_static/jquery.js?v=5d32c60e"></script>
     <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-    <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js?v=cc44ccc5"></script>
+    <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js?v=5fc4c2b6"></script>
     <script src="_static/doctools.js?v=888ff710"></script>
     <script src="_static/sphinx_highlight.js?v=4825356b"></script>
     <script src="_static/scripts/qiskit-sphinx-theme.js?v=4d77b8ca"></script>

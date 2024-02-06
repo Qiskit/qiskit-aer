@@ -5,7 +5,7 @@
     <meta name="color-scheme" content="light dark"><link rel="index" title="Index" href="../../../../genindex.html" /><link rel="search" title="Search" href="../../../../search.html" />
 
     <!-- Generated with Sphinx 7.1.2 and Furo 2023.08.19 -->
-        <title>qiskit.primitives.base.base_estimator - Qiskit Aer 0.13.1</title>
+        <title>qiskit.primitives.base.base_estimator - Qiskit Aer 0.13.3</title>
       <link rel="stylesheet" type="text/css" href="../../../../_static/styles/furo.css?v=135e06be" />
     <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=82a976d7" />
     <link rel="stylesheet" type="text/css" href="../../../../_static/styles/qiskit-sphinx-theme.css?v=fe84956c" />
@@ -145,7 +145,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../../../index.html"><div class="brand">Qiskit Aer 0.13.1</div></a>
+      <a href="../../../../index.html"><div class="brand">Qiskit Aer 0.13.3</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -172,7 +172,7 @@
     </div>
   </a>
   
-  <span class="sidebar-brand-text">Qiskit Aer 0.13.1</span>
+  <span class="sidebar-brand-text">Qiskit Aer 0.13.3</span>
 </div><form class="sidebar-search-container" method="get" action="../../../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
   <input type="hidden" name="check_keywords" value="yes">
@@ -430,9 +430,10 @@
 <span class="kn">from</span> <span class="nn">qiskit.providers</span> <span class="kn">import</span> <span class="n">JobV1</span> <span class="k">as</span> <span class="n">Job</span>
 <span class="kn">from</span> <span class="nn">qiskit.quantum_info.operators</span> <span class="kn">import</span> <span class="n">SparsePauliOp</span>
 <span class="kn">from</span> <span class="nn">qiskit.quantum_info.operators.base_operator</span> <span class="kn">import</span> <span class="n">BaseOperator</span>
+<span class="kn">from</span> <span class="nn">qiskit.utils.deprecation</span> <span class="kn">import</span> <span class="n">deprecate_func</span>
 
-<span class="kn">from</span> <span class="nn">..utils</span> <span class="kn">import</span> <span class="n">init_observable</span>
 <span class="kn">from</span> <span class="nn">.base_primitive</span> <span class="kn">import</span> <span class="n">BasePrimitive</span>
+<span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">validation</span>
 
 <span class="k">if</span> <span class="n">typing</span><span class="o">.</span><span class="n">TYPE_CHECKING</span><span class="p">:</span>
     <span class="kn">from</span> <span class="nn">qiskit.opflow</span> <span class="kn">import</span> <span class="n">PauliSumOp</span>
@@ -493,6 +494,12 @@
 
 <span class="sd">            values = parameter_values[i].</span>
 
+<span class="sd">        .. deprecated:: 0.46.0</span>
+<span class="sd">           Implicit conversion from a ``PauliList`` to a ``SparsePauliOp`` with ``coeffs=1`` in</span>
+<span class="sd">           the ``observables`` arguments is deprecated as of Qiskit 0.46 and will be removed</span>
+<span class="sd">           in Qiskit 1.0. You should explicitly convert to a ``SparsePauli`` using</span>
+<span class="sd">           ``SparsePauliOp(pauli_list)`` to avoid this warning.</span>
+
 <span class="sd">        Args:</span>
 <span class="sd">            circuits: one or more circuit objects.</span>
 <span class="sd">            observables: one or more observable objects. Several formats are allowed;</span>
@@ -508,17 +515,10 @@
 <span class="sd">            TypeError: Invalid argument type given.</span>
 <span class="sd">            ValueError: Invalid argument values given.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="c1"># Singular validation</span>
-        <span class="n">circuits</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_validate_circuits</span><span class="p">(</span><span class="n">circuits</span><span class="p">)</span>
-        <span class="n">observables</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_validate_observables</span><span class="p">(</span><span class="n">observables</span><span class="p">)</span>
-        <span class="n">parameter_values</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_validate_parameter_values</span><span class="p">(</span>
-            <span class="n">parameter_values</span><span class="p">,</span>
-            <span class="n">default</span><span class="o">=</span><span class="p">[()]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">circuits</span><span class="p">),</span>
+        <span class="c1"># Validation</span>
+        <span class="n">circuits</span><span class="p">,</span> <span class="n">observables</span><span class="p">,</span> <span class="n">parameter_values</span> <span class="o">=</span> <span class="n">validation</span><span class="o">.</span><span class="n">_validate_estimator_args</span><span class="p">(</span>
+            <span class="n">circuits</span><span class="p">,</span> <span class="n">observables</span><span class="p">,</span> <span class="n">parameter_values</span>
         <span class="p">)</span>
-
-        <span class="c1"># Cross-validation</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_cross_validate_circuits_parameter_values</span><span class="p">(</span><span class="n">circuits</span><span class="p">,</span> <span class="n">parameter_values</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_cross_validate_circuits_observables</span><span class="p">(</span><span class="n">circuits</span><span class="p">,</span> <span class="n">observables</span><span class="p">)</span>
 
         <span class="c1"># Options</span>
         <span class="n">run_opts</span> <span class="o">=</span> <span class="n">copy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">options</span><span class="p">)</span>
@@ -539,34 +539,21 @@
         <span class="n">parameter_values</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="o">...</span><span class="p">],</span>
         <span class="o">**</span><span class="n">run_options</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">T</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;The subclass of BaseEstimator must implment `_run` method.&quot;</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;The subclass of BaseEstimator must implement `_run` method.&quot;</span><span class="p">)</span>
 
     <span class="nd">@staticmethod</span>
+    <span class="nd">@deprecate_func</span><span class="p">(</span><span class="n">since</span><span class="o">=</span><span class="s2">&quot;0.46.0&quot;</span><span class="p">)</span>
     <span class="k">def</span> <span class="nf">_validate_observables</span><span class="p">(</span>
         <span class="n">observables</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">BaseOperator</span> <span class="o">|</span> <span class="n">PauliSumOp</span> <span class="o">|</span> <span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="n">BaseOperator</span> <span class="o">|</span> <span class="n">PauliSumOp</span> <span class="o">|</span> <span class="nb">str</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">SparsePauliOp</span><span class="p">,</span> <span class="o">...</span><span class="p">]:</span>
-        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">observables</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">or</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">observables</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">):</span>
-            <span class="n">observables</span> <span class="o">=</span> <span class="p">(</span><span class="n">observables</span><span class="p">,)</span>
-        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">observables</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;No observables were provided.&quot;</span><span class="p">)</span>
-        <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">init_observable</span><span class="p">(</span><span class="n">obs</span><span class="p">)</span> <span class="k">for</span> <span class="n">obs</span> <span class="ow">in</span> <span class="n">observables</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">validation</span><span class="o">.</span><span class="n">_validate_observables</span><span class="p">(</span><span class="n">observables</span><span class="p">)</span>
 
     <span class="nd">@staticmethod</span>
+    <span class="nd">@deprecate_func</span><span class="p">(</span><span class="n">since</span><span class="o">=</span><span class="s2">&quot;0.46.0&quot;</span><span class="p">)</span>
     <span class="k">def</span> <span class="nf">_cross_validate_circuits_observables</span><span class="p">(</span>
         <span class="n">circuits</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">QuantumCircuit</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">observables</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">BaseOperator</span> <span class="o">|</span> <span class="n">PauliSumOp</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">circuits</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">observables</span><span class="p">):</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="sa">f</span><span class="s2">&quot;The number of circuits (</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">circuits</span><span class="p">)</span><span class="si">}</span><span class="s2">) does not match &quot;</span>
-                <span class="sa">f</span><span class="s2">&quot;the number of observables (</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">observables</span><span class="p">)</span><span class="si">}</span><span class="s2">).&quot;</span>
-            <span class="p">)</span>
-        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="p">(</span><span class="n">circuit</span><span class="p">,</span> <span class="n">observable</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">circuits</span><span class="p">,</span> <span class="n">observables</span><span class="p">)):</span>
-            <span class="k">if</span> <span class="n">circuit</span><span class="o">.</span><span class="n">num_qubits</span> <span class="o">!=</span> <span class="n">observable</span><span class="o">.</span><span class="n">num_qubits</span><span class="p">:</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                    <span class="sa">f</span><span class="s2">&quot;The number of qubits of the </span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">-th circuit (</span><span class="si">{</span><span class="n">circuit</span><span class="o">.</span><span class="n">num_qubits</span><span class="si">}</span><span class="s2">) does &quot;</span>
-                    <span class="sa">f</span><span class="s2">&quot;not match the number of qubits of the </span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">-th observable &quot;</span>
-                    <span class="sa">f</span><span class="s2">&quot;(</span><span class="si">{</span><span class="n">observable</span><span class="o">.</span><span class="n">num_qubits</span><span class="si">}</span><span class="s2">).&quot;</span>
-                <span class="p">)</span>
+        <span class="k">return</span> <span class="n">validation</span><span class="o">.</span><span class="n">_cross_validate_circuits_observables</span><span class="p">(</span><span class="n">circuits</span><span class="p">,</span> <span class="n">observables</span><span class="p">)</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">circuits</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">QuantumCircuit</span><span class="p">,</span> <span class="o">...</span><span class="p">]:</span>
@@ -611,7 +598,7 @@
             
             <a href="https://github.com/pradyunsg/furo">Furo</a>
             <div class="last-updated">
-              Last updated on 2024/01/17</div>
+              Last updated on 2024/02/06</div>
           </div>
           <div class="right-details">
             
@@ -628,7 +615,7 @@
   </div>
 </div><script src="../../../../_static/jquery.js?v=5d32c60e"></script>
     <script src="../../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-    <script data-url_root="../../../../" id="documentation_options" src="../../../../_static/documentation_options.js?v=cc44ccc5"></script>
+    <script data-url_root="../../../../" id="documentation_options" src="../../../../_static/documentation_options.js?v=5fc4c2b6"></script>
     <script src="../../../../_static/doctools.js?v=888ff710"></script>
     <script src="../../../../_static/sphinx_highlight.js?v=4825356b"></script>
     <script src="../../../../_static/thebelab-helper.js"></script>

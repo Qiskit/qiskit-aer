@@ -5,7 +5,7 @@
     <meta name="color-scheme" content="light dark"><link rel="index" title="Index" href="../../../../genindex.html" /><link rel="search" title="Search" href="../../../../search.html" />
 
     <!-- Generated with Sphinx 7.1.2 and Furo 2023.08.19 -->
-        <title>qiskit.primitives.base.base_sampler - Qiskit Aer 0.13.1</title>
+        <title>qiskit.primitives.base.base_sampler - Qiskit Aer 0.13.3</title>
       <link rel="stylesheet" type="text/css" href="../../../../_static/styles/furo.css?v=135e06be" />
     <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=82a976d7" />
     <link rel="stylesheet" type="text/css" href="../../../../_static/styles/qiskit-sphinx-theme.css?v=fe84956c" />
@@ -145,7 +145,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../../../index.html"><div class="brand">Qiskit Aer 0.13.1</div></a>
+      <a href="../../../../index.html"><div class="brand">Qiskit Aer 0.13.3</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -172,7 +172,7 @@
     </div>
   </a>
   
-  <span class="sidebar-brand-text">Qiskit Aer 0.13.1</span>
+  <span class="sidebar-brand-text">Qiskit Aer 0.13.3</span>
 </div><form class="sidebar-search-container" method="get" action="../../../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
   <input type="hidden" name="check_keywords" value="yes">
@@ -419,11 +419,13 @@
 <span class="kn">from</span> <span class="nn">copy</span> <span class="kn">import</span> <span class="n">copy</span>
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Generic</span><span class="p">,</span> <span class="n">TypeVar</span>
 
-<span class="kn">from</span> <span class="nn">qiskit.circuit</span> <span class="kn">import</span> <span class="n">ControlFlowOp</span><span class="p">,</span> <span class="n">Measure</span><span class="p">,</span> <span class="n">QuantumCircuit</span>
+<span class="kn">from</span> <span class="nn">qiskit.utils.deprecation</span> <span class="kn">import</span> <span class="n">deprecate_func</span>
+<span class="kn">from</span> <span class="nn">qiskit.circuit</span> <span class="kn">import</span> <span class="n">QuantumCircuit</span>
 <span class="kn">from</span> <span class="nn">qiskit.circuit.parametertable</span> <span class="kn">import</span> <span class="n">ParameterView</span>
 <span class="kn">from</span> <span class="nn">qiskit.providers</span> <span class="kn">import</span> <span class="n">JobV1</span> <span class="k">as</span> <span class="n">Job</span>
 
 <span class="kn">from</span> <span class="nn">.base_primitive</span> <span class="kn">import</span> <span class="n">BasePrimitive</span>
+<span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">validation</span>
 
 <span class="n">T</span> <span class="o">=</span> <span class="n">TypeVar</span><span class="p">(</span><span class="s2">&quot;T&quot;</span><span class="p">,</span> <span class="n">bound</span><span class="o">=</span><span class="n">Job</span><span class="p">)</span>
 
@@ -469,15 +471,8 @@
 <span class="sd">        Raises:</span>
 <span class="sd">            ValueError: Invalid arguments are given.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="c1"># Singular validation</span>
-        <span class="n">circuits</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_validate_circuits</span><span class="p">(</span><span class="n">circuits</span><span class="p">)</span>
-        <span class="n">parameter_values</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_validate_parameter_values</span><span class="p">(</span>
-            <span class="n">parameter_values</span><span class="p">,</span>
-            <span class="n">default</span><span class="o">=</span><span class="p">[()]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">circuits</span><span class="p">),</span>
-        <span class="p">)</span>
-
-        <span class="c1"># Cross-validation</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_cross_validate_circuits_parameter_values</span><span class="p">(</span><span class="n">circuits</span><span class="p">,</span> <span class="n">parameter_values</span><span class="p">)</span>
+        <span class="c1"># Validation</span>
+        <span class="n">circuits</span><span class="p">,</span> <span class="n">parameter_values</span> <span class="o">=</span> <span class="n">validation</span><span class="o">.</span><span class="n">_validate_sampler_args</span><span class="p">(</span><span class="n">circuits</span><span class="p">,</span> <span class="n">parameter_values</span><span class="p">)</span>
 
         <span class="c1"># Options</span>
         <span class="n">run_opts</span> <span class="o">=</span> <span class="n">copy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">options</span><span class="p">)</span>
@@ -496,27 +491,15 @@
         <span class="n">parameter_values</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="o">...</span><span class="p">],</span>
         <span class="o">**</span><span class="n">run_options</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">T</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;The subclass of BaseSampler must implment `_run` method.&quot;</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;The subclass of BaseSampler must implement `_run` method.&quot;</span><span class="p">)</span>
 
     <span class="nd">@classmethod</span>
+    <span class="nd">@deprecate_func</span><span class="p">(</span><span class="n">since</span><span class="o">=</span><span class="s2">&quot;0.46.0&quot;</span><span class="p">)</span>
     <span class="k">def</span> <span class="nf">_validate_circuits</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">,</span>
         <span class="n">circuits</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">QuantumCircuit</span><span class="p">]</span> <span class="o">|</span> <span class="n">QuantumCircuit</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">QuantumCircuit</span><span class="p">,</span> <span class="o">...</span><span class="p">]:</span>
-        <span class="n">circuits</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_validate_circuits</span><span class="p">(</span><span class="n">circuits</span><span class="p">)</span>
-        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">circuit</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">circuits</span><span class="p">):</span>
-            <span class="k">if</span> <span class="n">circuit</span><span class="o">.</span><span class="n">num_clbits</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                    <span class="sa">f</span><span class="s2">&quot;The </span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">-th circuit does not have any classical bit. &quot;</span>
-                    <span class="s2">&quot;Sampler requires classical bits, plus measurements &quot;</span>
-                    <span class="s2">&quot;on the desired qubits.&quot;</span>
-                <span class="p">)</span>
-            <span class="k">if</span> <span class="ow">not</span> <span class="n">_has_measure</span><span class="p">(</span><span class="n">circuit</span><span class="p">):</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                    <span class="sa">f</span><span class="s2">&quot;The </span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">-th circuit does not have Measure instruction. &quot;</span>
-                    <span class="s2">&quot;Without measurements, the circuit cannot be sampled from.&quot;</span>
-                <span class="p">)</span>
-        <span class="k">return</span> <span class="n">circuits</span>
+        <span class="k">return</span> <span class="n">validation</span><span class="o">.</span><span class="n">_validate_circuits</span><span class="p">(</span><span class="n">circuits</span><span class="p">,</span> <span class="n">requires_measure</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">circuits</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">QuantumCircuit</span><span class="p">,</span> <span class="o">...</span><span class="p">]:</span>
@@ -535,17 +518,6 @@
 <span class="sd">            List of the parameters in each quantum circuit.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_parameters</span><span class="p">)</span>
-
-
-<span class="k">def</span> <span class="nf">_has_measure</span><span class="p">(</span><span class="n">circuit</span><span class="p">:</span> <span class="n">QuantumCircuit</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-    <span class="k">for</span> <span class="n">instruction</span> <span class="ow">in</span> <span class="nb">reversed</span><span class="p">(</span><span class="n">circuit</span><span class="p">):</span>
-        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">instruction</span><span class="o">.</span><span class="n">operation</span><span class="p">,</span> <span class="n">Measure</span><span class="p">):</span>
-            <span class="k">return</span> <span class="kc">True</span>
-        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">instruction</span><span class="o">.</span><span class="n">operation</span><span class="p">,</span> <span class="n">ControlFlowOp</span><span class="p">):</span>
-            <span class="k">for</span> <span class="n">block</span> <span class="ow">in</span> <span class="n">instruction</span><span class="o">.</span><span class="n">operation</span><span class="o">.</span><span class="n">blocks</span><span class="p">:</span>
-                <span class="k">if</span> <span class="n">_has_measure</span><span class="p">(</span><span class="n">block</span><span class="p">):</span>
-                    <span class="k">return</span> <span class="kc">True</span>
-    <span class="k">return</span> <span class="kc">False</span>
 </pre></div>
         </article>
       </div>
@@ -563,7 +535,7 @@
             
             <a href="https://github.com/pradyunsg/furo">Furo</a>
             <div class="last-updated">
-              Last updated on 2024/01/17</div>
+              Last updated on 2024/02/06</div>
           </div>
           <div class="right-details">
             
@@ -580,7 +552,7 @@
   </div>
 </div><script src="../../../../_static/jquery.js?v=5d32c60e"></script>
     <script src="../../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-    <script data-url_root="../../../../" id="documentation_options" src="../../../../_static/documentation_options.js?v=cc44ccc5"></script>
+    <script data-url_root="../../../../" id="documentation_options" src="../../../../_static/documentation_options.js?v=5fc4c2b6"></script>
     <script src="../../../../_static/doctools.js?v=888ff710"></script>
     <script src="../../../../_static/sphinx_highlight.js?v=4825356b"></script>
     <script src="../../../../_static/thebelab-helper.js"></script>
