@@ -14,12 +14,18 @@ AerSimualtor options tests
 """
 
 from ddt import ddt, data
-from qiskit import QuantumCircuit, transpile
 from qiskit_aer.noise import NoiseModel
 from test.terra.backends.simulator_test_case import SimulatorTestCase, supported_methods
+
+import qiskit
+from qiskit import QuantumCircuit, transpile
 from qiskit.quantum_info.random import random_unitary
 from qiskit.quantum_info import state_fidelity
-from qiskit.providers.fake_provider import FakeMontreal
+
+if qiskit.__version__.startswith("0."):
+    from qiskit.providers.fake_provider import FakeAlmaden as Fake20QV1
+else:
+    from qiskit.providers.fake_provider import Fake20QV1
 
 from qiskit_aer import AerSimulator
 
@@ -299,6 +305,6 @@ class TestOptions(SimulatorTestCase):
     def test_num_qubits(self, method):
         """Test number of qubits is correctly checked"""
 
-        num_qubits = FakeMontreal().configuration().num_qubits
-        backend = AerSimulator.from_backend(FakeMontreal(), method=method)
+        num_qubits = Fake20QV1().configuration().num_qubits
+        backend = AerSimulator.from_backend(Fake20QV1(), method=method)
         self.assertGreaterEqual(backend.configuration().num_qubits, num_qubits)
