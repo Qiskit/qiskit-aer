@@ -103,7 +103,7 @@ setup(
     long_description_content_type="text/markdown",
     url="https://github.com/Qiskit/qiskit-aer",
     author="AER Development Team",
-    author_email="hello@qiskit.org",
+    author_email="qiskit@us.ibm.com",
     license="Apache 2.0",
     classifiers=classifiers,
     python_requires=">=3.7",

@@ -96,7 +96,7 @@ We use [GitHub issues](https://github.com/Qiskit/qiskit-aer/issues) for tracking
 
 ## Next Steps
 
-Now you're set up and ready to check out some of the other examples from the [Aer documentation](https://qiskit.org/ecosystem/aer/).
+Now you're set up and ready to check out some of the other examples from the [Aer documentation](https://qiskit.github.io/qiskit-aer/).
 
 ## Authors and Citation
 
