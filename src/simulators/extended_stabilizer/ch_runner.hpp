@@ -37,6 +37,7 @@
 #include <omp.h>
 #endif
 
+namespace AER {
 namespace CHSimulator {
 
 using chstabilizer_t = StabilizerState;
@@ -62,7 +63,7 @@ private:
 
   bool accept_;
   complex_t old_ampsum_;
-  uint_t x_string_;
+  BitVector x_string_;
   uint_t last_proposal_;
 
   void init_metropolis(AER::RngEngine &rng);
@@ -135,23 +136,24 @@ public:
                          std::vector<pauli_t> generators, AER::RngEngine &rng);
 
   // Metropolis Estimation for sampling from the output distribution
-  uint_t metropolis_estimation(uint_t n_steps, AER::RngEngine &rng);
-  std::vector<uint_t> metropolis_estimation(uint_t n_steps, uint_t n_shots,
-                                            AER::RngEngine &rng);
+  BitVector metropolis_estimation(uint_t n_steps, AER::RngEngine &rng);
+  std::vector<BitVector> metropolis_estimation(uint_t n_steps, uint_t n_shots,
+                                               AER::RngEngine &rng);
   // NE Sampling Routines
-  uint_t ne_single_sample(uint_t default_samples, uint_t repetitions,
-                          bool preserve_states, const AER::reg_t &qubits,
-                          AER::RngEngine &rng);
+  BitVector ne_single_sample(uint_t default_samples, uint_t repetitions,
+                             bool preserve_states, const AER::reg_t &qubits,
+                             AER::RngEngine &rng);
 
   std::vector<double> ne_probabilities(uint_t default_samples,
                                        uint_t repetitions,
                                        const AER::reg_t &qubits,
                                        AER::RngEngine &rng);
   // Efficient Sampler for the output distribution of a stabilizer state
-  uint_t stabilizer_sampler(AER::RngEngine &rng);
-  std::vector<uint_t> stabilizer_sampler(uint_t n_shots, AER::RngEngine &rng);
+  BitVector stabilizer_sampler(AER::RngEngine &rng);
+  std::vector<BitVector> stabilizer_sampler(uint_t n_shots,
+                                            AER::RngEngine &rng);
   // Utilities for the state-vector snapshot.
-  complex_t amplitude(uint_t x_measure);
+  complex_t amplitude(BitVector &x_measure);
   AER::Vector<complex_t> statevector();
 };
 
@@ -169,6 +171,7 @@ void Runner::initialize(uint_t num_qubits) {
   num_threads_ = 1;
   states_ = std::vector<chstabilizer_t>(1, chstabilizer_t(num_qubits));
   coefficients_.push_back(complex_t(1., 0.));
+  x_string_.allocate(n_qubits_, true);
 }
 
 void Runner::initialize_decomposition(uint_t n_states, double delta) {
@@ -407,10 +410,11 @@ double Runner::norm_estimation(uint_t n_samples, uint_t repetitions,
   const int_t NQUBITS = n_qubits_;
   std::vector<double> xi_samples(repetitions, 0.);
   for (uint_t m = 0; m < repetitions; m++) {
-    std::vector<uint_t> adiag_1(n_samples, 0ULL);
-    std::vector<uint_t> adiag_2(n_samples, 0ULL);
-    std::vector<std::vector<uint_t>> a(n_samples,
-                                       std::vector<uint_t>(n_qubits_, 0ULL));
+    std::vector<BitVector> adiag_1(n_samples, BitVector(n_qubits_, true));
+    std::vector<BitVector> adiag_2(n_samples, BitVector(n_qubits_, true));
+    std::vector<std::vector<BitVector>> a(
+        n_samples,
+        std::vector<BitVector>(n_qubits_, BitVector(n_qubits_, true)));
 #pragma omp parallel if (num_threads_ > 1) num_threads(num_threads_)
     {
 #ifdef _WIN32
@@ -422,13 +426,13 @@ double Runner::norm_estimation(uint_t n_samples, uint_t repetitions,
         for (int_t i = 0; i < NQUBITS; i++) {
           for (int_t j = i; j < NQUBITS; j++) {
             if (rng.rand() < 0.5) {
-              a[l][i] |= (1ULL << j);
-              a[l][j] |= (1ULL << i);
+              a[l][i].set_or(j, true);
+              a[l][j].set_or(i, true);
             }
           }
-          adiag_1[l] |= (a[l][i] & (1ULL << i));
+          adiag_1[l].set_or(i, a[l][i][i]);
           if (rng.rand() < 0.5) {
-            adiag_2[l] |= (1ULL << i);
+            adiag_2[l].set_or(i, true);
           }
         }
       }
@@ -452,9 +456,10 @@ double Runner::norm_estimation(uint_t n_samples, uint_t repetitions,
   return norm_estimation(n_samples, repetitions, rng);
 }
 
-uint_t Runner::ne_single_sample(uint_t default_samples, uint_t repetitions,
-                                bool preserve_states, const AER::reg_t &qubits,
-                                AER::RngEngine &rng) {
+BitVector Runner::ne_single_sample(uint_t default_samples, uint_t repetitions,
+                                   bool preserve_states,
+                                   const AER::reg_t &qubits,
+                                   AER::RngEngine &rng) {
   uint_t n_samples = std::llrint(4 * std::pow(qubits.size(), 2));
   if (default_samples > n_samples) {
     n_samples = default_samples;
@@ -462,10 +467,10 @@ uint_t Runner::ne_single_sample(uint_t default_samples, uint_t repetitions,
   double denominator = norm_estimation(n_samples, repetitions, rng);
   std::vector<pauli_t> generators;
   std::vector<chstabilizer_t> states_cache(states_);
-  uint_t out_string = ZERO;
+  BitVector out_string(n_qubits_, true);
   for (uint_t i = 0; i < qubits.size(); i++) {
-    pauli_t generator;
-    generator.Z = (1ULL << qubits[i]);
+    pauli_t generator(n_qubits_);
+    generator.Z.set(qubits[i], true);
     apply_pauli(generator);
     // Compute probability this bit is 0, given the previous assignemnts
     double numerator = norm_estimation(n_samples, repetitions, rng);
@@ -480,7 +485,7 @@ uint_t Runner::ne_single_sample(uint_t default_samples, uint_t repetitions,
       generators.push_back(generator);
       states_ = states_cache;
       apply_pauli_projector(generators);
-      out_string ^= (1ULL << qubits[i]);
+      out_string.set_xor(qubits[i], one);
       denominator = (1 - p_zero_given_observations) * denominator;
     }
   }
@@ -499,8 +504,8 @@ std::vector<double> Runner::ne_probabilities(uint_t default_samples,
   std::vector<chstabilizer_t> states_cache(states_);
   std::vector<pauli_t> generators;
   for (uint_t i = 0; i < qubits.size(); i++) {
-    pauli_t generator;
-    generator.Z = 1ULL << qubits[i];
+    pauli_t generator(n_qubits_);
+    generator.Z.set(qubits[i], true);
     generators.push_back(generator);
   }
   double norm = norm_estimation(default_samples, repetitions, rng);
@@ -521,7 +526,7 @@ std::vector<double> Runner::ne_probabilities(uint_t default_samples,
   return probs;
 }
 
-uint_t Runner::metropolis_estimation(uint_t n_steps, AER::RngEngine &rng) {
+BitVector Runner::metropolis_estimation(uint_t n_steps, AER::RngEngine &rng) {
   init_metropolis(rng);
   for (uint_t i = 0; i < n_steps; i++) {
     metropolis_step(rng);
@@ -529,10 +534,10 @@ uint_t Runner::metropolis_estimation(uint_t n_steps, AER::RngEngine &rng) {
   return x_string_;
 }
 
-std::vector<uint_t> Runner::metropolis_estimation(uint_t n_steps,
-                                                  uint_t n_shots,
-                                                  AER::RngEngine &rng) {
-  std::vector<uint_t> shots(n_shots, zer);
+std::vector<BitVector> Runner::metropolis_estimation(uint_t n_steps,
+                                                     uint_t n_shots,
+                                                     AER::RngEngine &rng) {
+  std::vector<BitVector> shots(n_shots, zer);
   shots[0] = metropolis_estimation(n_steps, rng);
   for (uint_t i = 1; i < n_shots; i++) {
     metropolis_step(rng);
@@ -544,8 +549,7 @@ std::vector<uint_t> Runner::metropolis_estimation(uint_t n_steps,
 void Runner::init_metropolis(AER::RngEngine &rng) {
   accept_ = false;
   // Random initial x_string from RngEngine
-  uint_t max = (1ULL << n_qubits_) - 1;
-  x_string_ = rng.rand_int(ZERO, max);
+  x_string_.rand(rng); // = rng.rand_int(ZERO, max);
   last_proposal_ = 0;
   double local_real = 0., local_imag = 0.;
   const int_t END = num_states_;
@@ -564,7 +568,7 @@ void Runner::init_metropolis(AER::RngEngine &rng) {
 void Runner::metropolis_step(AER::RngEngine &rng) {
   uint_t proposal = rng.rand(0ULL, n_qubits_);
   if (accept_) {
-    x_string_ ^= (one << last_proposal_);
+    x_string_.set_xor(last_proposal_, one);
   }
   double real_part = 0., imag_part = 0.;
   if (accept_ == 0) {
@@ -610,19 +614,20 @@ void Runner::metropolis_step(AER::RngEngine &rng) {
   }
 }
 
-uint_t Runner::stabilizer_sampler(AER::RngEngine &rng) {
-  uint_t max = (1ULL << n_qubits_) - 1;
-  return states_[0].Sample(rng.rand_int(ZERO, max));
+BitVector Runner::stabilizer_sampler(AER::RngEngine &rng) {
+  BitVector t(n_qubits_);
+  t.rand(rng);
+  return states_[0].Sample(t);
 }
 
-std::vector<uint_t> Runner::stabilizer_sampler(uint_t n_shots,
-                                               AER::RngEngine &rng) {
+std::vector<BitVector> Runner::stabilizer_sampler(uint_t n_shots,
+                                                  AER::RngEngine &rng) {
   if (num_states_ > 1) {
     throw std::invalid_argument(
         "CH::Runner::stabilizer_sampler: This method can only be used for a "
         "single Stabilizer state.\n");
   }
-  std::vector<uint_t> shots;
+  std::vector<BitVector> shots;
   shots.reserve(n_shots);
   for (uint_t i = 0; i < n_shots; i++) {
     shots.push_back(stabilizer_sampler(rng));
@@ -630,7 +635,7 @@ std::vector<uint_t> Runner::stabilizer_sampler(uint_t n_shots,
   return shots;
 }
 
-complex_t Runner::amplitude(uint_t x_measure) {
+complex_t Runner::amplitude(BitVector &x_measure) {
   double real_part = 0., imag_part = 0.;
   // Splitting the reduction guarantees support on more OMP versions.
   const int_t END = num_states_;
@@ -645,13 +650,18 @@ complex_t Runner::amplitude(uint_t x_measure) {
 }
 
 AER::Vector<complex_t> Runner::statevector() {
+  if (n_qubits_ > 63) {
+    throw std::runtime_error("savestatevector is not supported > 63 qubits");
+  }
   uint_t ceil = 1ULL << n_qubits_;
   AER::Vector<complex_t> svector(ceil, false);
 
   double norm_squared = 0;
 
   for (uint_t i = 0; i < ceil; i++) {
-    svector[i] = amplitude(i);
+    BitVector t(n_qubits_);
+    t(0) = i;
+    svector[i] = amplitude(t);
     norm_squared += svector[i].real() * svector[i].real() +
                     svector[i].imag() * svector[i].imag();
   }
@@ -687,26 +697,39 @@ std::vector<std::string> Runner::serialize_decomposition() const {
 json_t Runner::serialize_state(uint_t rank) const {
   json_t js = json_t::object();
   std::vector<unsigned> gamma;
-  std::vector<uint_t> M;
-  std::vector<uint_t> F;
-  std::vector<uint_t> G;
+  std::vector<BitVector> M;
+  std::vector<BitVector> F;
+  std::vector<BitVector> G;
   gamma.reserve(n_qubits_);
   M = states_[rank].MMatrix();
   F = states_[rank].FMatrix();
   G = states_[rank].GMatrix();
-  uint_t gamma1 = states_[rank].Gamma1();
-  uint_t gamma2 = states_[rank].Gamma2();
+  BitVector gamma1 = states_[rank].Gamma1();
+  BitVector gamma2 = states_[rank].Gamma2();
   for (uint_t i = 0; i < n_qubits_; i++) {
-    gamma.push_back(((gamma1 >> i) & 1ULL) + 2 * ((gamma2 >> i) & 1ULL));
+    gamma.push_back((unsigned)gamma1[i] + 2 * (unsigned)gamma2[i]);
   }
   js["gamma"] = gamma;
-  js["M"] = M;
-  js["F"] = F;
-  js["G"] = G;
+  std::vector<std::string> s(n_qubits_);
+  for (uint_t i = 0; i < n_qubits_; i++) {
+    s[i] = M[i].to_string();
+  }
+  js["M"] = s;
+  for (uint_t i = 0; i < n_qubits_; i++) {
+    s[i] = F[i].to_string();
+  }
+  js["F"] = s;
+  for (uint_t i = 0; i < n_qubits_; i++) {
+    s[i] = G[i].to_string();
+  }
+  js["G"] = s;
   js["internal_cofficient"] = states_[rank].Omega().to_complex();
   js["coefficient"] = coefficients_[rank];
   return js;
 }
 
 } // namespace CHSimulator
+//------------------------------------------------------------------------------
+} // end namespace AER
+//------------------------------------------------------------------------------
 #endif

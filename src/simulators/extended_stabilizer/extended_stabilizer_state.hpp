@@ -417,7 +417,7 @@ void State::apply_ops(InputIterator first, InputIterator last,
 
 std::vector<reg_t> State::sample_measure(const reg_t &qubits, uint_t shots,
                                          RngEngine &rng) {
-  std::vector<uint_t> output_samples;
+  std::vector<BitVector> output_samples;
   if (BaseState::qreg_.get_num_states() == 1) {
     output_samples = BaseState::qreg_.stabilizer_sampler(shots, rng);
   } else {
@@ -441,10 +441,10 @@ std::vector<reg_t> State::sample_measure(const reg_t &qubits, uint_t shots,
   }
   std::vector<reg_t> all_samples;
   all_samples.reserve(shots);
-  for (uint_t sample : output_samples) {
+  for (BitVector &sample : output_samples) {
     reg_t sample_bits(qubits.size(), 0ULL);
     for (size_t i = 0; i < qubits.size(); i++) {
-      if ((sample >> qubits[i]) & 1ULL) {
+      if (sample[qubits[i]]) {
         sample_bits[i] = 1ULL;
       }
     }
@@ -539,7 +539,7 @@ void State::apply_stabilizer_circuit(InputIterator first, InputIterator last,
 
 void State::apply_measure(const reg_t &qubits, const reg_t &cmemory,
                           const reg_t &cregister, RngEngine &rng) {
-  uint_t out_string;
+  BitVector out_string;
   // Flag if the Pauli projector is applied already as part of the sampling
   bool do_projector_correction = true;
   // Prepare an output register for the qubits we are measurig
@@ -565,11 +565,12 @@ void State::apply_measure(const reg_t &qubits, const reg_t &cmemory,
   }
   if (do_projector_correction) {
     // We prepare the Pauli projector corresponding to the measurement result
-    std::vector<chpauli_t> paulis(qubits.size(), chpauli_t());
+    std::vector<chpauli_t> paulis(qubits.size(),
+                                  chpauli_t(BaseState::qreg_.get_n_qubits()));
     for (uint_t i = 0; i < qubits.size(); i++) {
       // Create a Pauli projector onto 1+-Z_{i} on qubit i
-      paulis[i].Z = (1ULL << qubits[i]);
-      if ((out_string >> qubits[i]) & 1ULL) {
+      paulis[i].Z.set(qubits[i], true);
+      if (out_string[qubits[i]]) {
         // Additionally, store the output bit for this qubit
         paulis[i].e = 2;
       }
@@ -579,7 +580,7 @@ void State::apply_measure(const reg_t &qubits, const reg_t &cmemory,
   }
   for (uint_t i = 0; i < qubits.size(); i++) {
     // Create a Pauli projector onto 1+-Z_{i} on qubit i
-    if ((out_string >> qubits[i]) & 1ULL) {
+    if (out_string[qubits[i]]) {
       // Additionally, store the output bit for this qubit
       outcome[i] = 1ULL;
     }
@@ -589,7 +590,7 @@ void State::apply_measure(const reg_t &qubits, const reg_t &cmemory,
 }
 
 void State::apply_reset(const reg_t &qubits, AER::RngEngine &rng) {
-  uint_t measure_string;
+  BitVector measure_string;
   const int_t NUM_STATES = BaseState::qreg_.get_num_states();
   if (BaseState::qreg_.get_num_states() == 1) {
     measure_string = BaseState::qreg_.stabilizer_sampler(rng);
@@ -598,12 +599,12 @@ void State::apply_reset(const reg_t &qubits, AER::RngEngine &rng) {
         BaseState::qreg_.metropolis_estimation(metropolis_mixing_steps_, rng);
   }
 
-  std::vector<chpauli_t> paulis(qubits.size(), chpauli_t());
+  std::vector<chpauli_t> paulis(qubits.size(),
+                                chpauli_t(BaseState::qreg_.get_n_qubits()));
   for (size_t i = 0; i < qubits.size(); i++) {
     uint_t qubit = qubits[i];
-    uint_t shift = 1ULL << qubit;
-    paulis[i].Z = shift;
-    if (!!(measure_string & shift)) {
+    paulis[i].Z.set(qubits[i], true);
+    if (!!(measure_string[qubits[i]])) {
       paulis[i].e = 2;
     }
   }
@@ -613,7 +614,7 @@ void State::apply_reset(const reg_t &qubits, AER::RngEngine &rng) {
     num_threads(BaseState::threads_)
   for (int_t i = 0; i < NUM_STATES; i++) {
     for (auto qubit : qubits) {
-      if ((measure_string >> qubit) & 1ULL) {
+      if (measure_string[qubit]) {
         BaseState::qreg_.apply_x(qubit, i);
       }
     }
@@ -777,20 +778,20 @@ double State::expval_pauli(const reg_t &qubits, const std::string &pauli,
   auto state_cpy = BaseState::qreg_;
   auto phi_norm = state_cpy.norm_estimation(norm_estimation_samples_,
                                             norm_estimation_repetitions_, rng);
-  std::vector<chpauli_t> paulis(1, chpauli_t());
+  std::vector<chpauli_t> paulis(1, chpauli_t(BaseState::qreg_.get_n_qubits()));
   for (uint_t pos = 0; pos < qubits.size(); ++pos) {
     switch (pauli[pauli.size() - 1 - pos]) {
     case 'I':
       break;
     case 'X':
-      paulis[0].X += (1ULL << qubits[pos]);
+      paulis[0].X.set(qubits[pos], true);
       break;
     case 'Y':
-      paulis[0].X += (1ULL << qubits[pos]);
-      paulis[0].Z += (1ULL << qubits[pos]);
+      paulis[0].X.set(qubits[pos], true);
+      paulis[0].Z.set(qubits[pos], true);
       break;
     case 'Z':
-      paulis[0].Z += (1ULL << qubits[pos]);
+      paulis[0].Z.set(qubits[pos], true);
       break;
     default: {
       std::stringstream msg;
