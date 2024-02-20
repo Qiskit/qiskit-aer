@@ -1,0 +1,11 @@
+---
+upgrade:
+  - |
+    Add option to ignore checking system memory availability against
+    required memory if `max_memory_mb=-1` is set
+fixes:
+  - |
+    Fixed required memory size for MPS method. Required memory was wrongly
+    estimated because all the 2-qubits gates increased required memory,
+    but only rxx, ryy and rzx gates (when theta is not multiple of pi/2)
+    and unitary increase memory.

@@ -328,7 +328,7 @@ size_t State::required_memory_mb(uint_t num_qubits,
                                  const std::vector<Operations::Op> &ops) const {
   if (num_qubits > 1) {
     MPSSizeEstimator est(num_qubits);
-    uint_t size = est.estimate(ops);
+    uint_t size = est.estimate(ops, gateset_);
     return (size >> 20);
   }
   return 0;
