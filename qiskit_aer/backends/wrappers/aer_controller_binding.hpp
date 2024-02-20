@@ -139,7 +139,7 @@ void bind_aer_controller(MODULE m) {
   aer_config.def_property(
       "max_memory_mb",
       [](const Config &config) { return config.max_memory_mb.val; },
-      [](Config &config, uint_t val) { config.max_memory_mb.value(val); });
+      [](Config &config, int_t val) { config.max_memory_mb.value(val); });
   aer_config.def_readwrite("fusion_enable", &Config::fusion_enable);
   aer_config.def_readwrite("fusion_verbose", &Config::fusion_verbose);
   aer_config.def_property(
