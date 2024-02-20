@@ -4,4 +4,4 @@ features:
     Update Aer Backend to BackendV2. Refer to `#1681<https://github.com/Qiskit/qiskit-aer/issues/1681>`. 
     BackendV2 is differs from BackendV1 in the following points: backend.name() changes to backend.name string attribute, 
     the configuration attribute no longer exists, and the options attribute is added. For more information about BackendV2 is
-    `here<https://qiskit.org/documentation/stubs/qiskit.providers.BackendV2.html>`.
+    `here<https://docs.quantum.ibm.com/api/qiskit/qiskit.providers.BackendV2>`.
