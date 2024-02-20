@@ -15,9 +15,9 @@
 #ifndef _aer_framework_bitvector_hpp_
 #define _aer_framework_bitvector_hpp_
 
+#include "framework/rng.hpp"
 #include "framework/types.hpp"
 #include "framework/utils.hpp"
-#include "framework/rng.hpp"
 
 namespace AER {
 
@@ -48,7 +48,7 @@ public:
     uint_t size = n >> REG_BITS;
     if (size == 0)
       size = 1;
-    if(init)
+    if (init)
       bits_.resize(size, 0ull);
     else
       bits_.resize(size);
@@ -107,32 +107,28 @@ public:
   friend BitVector operator^(const BitVector &v0, const BitVector &v1);
   friend BitVector operator~(const BitVector &v);
 
-  void set_or(const uint_t idx, const bool b)
-  {
+  void set_or(const uint_t idx, const bool b) {
     uint_t pos = idx >> REG_BITS;
     uint_t bit = idx & REG_MASK;
     uint_t val = (uint_t)b << bit;
     bits_[pos] |= val;
   }
 
-  void set_and(const uint_t idx, const bool b)
-  {
+  void set_and(const uint_t idx, const bool b) {
     uint_t pos = idx >> REG_BITS;
     uint_t bit = idx & REG_MASK;
     uint_t val = (~(1ull << bit)) | ((uint_t)b << bit);
     bits_[pos] &= val;
   }
 
-  void set_xor(const uint_t idx, const bool b)
-  {
+  void set_xor(const uint_t idx, const bool b) {
     uint_t pos = idx >> REG_BITS;
     uint_t bit = idx & REG_MASK;
     uint_t val = (uint_t)b << bit;
     bits_[pos] ^= val;
   }
 
-  void set_not(const uint_t idx)
-  {
+  void set_not(const uint_t idx) {
     uint_t pos = idx >> REG_BITS;
     uint_t bit = idx & REG_MASK;
     uint_t val = 1ull << bit;
@@ -258,111 +254,97 @@ reg_t BitVector::to_vector(void) {
   return ret;
 }
 
-void BitVector::zero(void)
-{
+void BitVector::zero(void) {
   for (uint_t i = 0; i < bits_.size(); i++) {
     bits_[i] = 0;
   }
 }
 
-void BitVector::rand(RngEngine &rng)
-{
-  if(bits_.size() == 1){
+void BitVector::rand(RngEngine &rng) {
+  if (bits_.size() == 1) {
     bits_[0] = rng.rand_int(0ull, (1ull << num_bits_) - 1ull);
-  }
-  else{
+  } else {
     double r = rng.rand();
     double c = 0.5;
 
-    for(int_t i=num_bits_-1;i>=0;i--){
-      if(r >= c){
+    for (int_t i = num_bits_ - 1; i >= 0; i--) {
+      if (r >= c) {
         set(i, true);
         r -= c;
-      }
-      else
+      } else
         set(i, false);
       c /= 2.0;
     }
   }
 }
 
-bool BitVector::operator==(const BitVector &src) const
-{
-  if(num_bits_ != src.num_bits_)
+bool BitVector::operator==(const BitVector &src) const {
+  if (num_bits_ != src.num_bits_)
     return false;
-  for(uint_t i=0;i<bits_.size();i++){
-    if(bits_[i] != src.bits_[i])
+  for (uint_t i = 0; i < bits_.size(); i++) {
+    if (bits_[i] != src.bits_[i])
       return false;
   }
   return true;
 }
 
-bool BitVector::operator!=(const BitVector &src) const
-{
-  if(num_bits_ != src.num_bits_)
+bool BitVector::operator!=(const BitVector &src) const {
+  if (num_bits_ != src.num_bits_)
     return true;
-  for(uint_t i=0;i<bits_.size();i++){
-    if(bits_[i] != src.bits_[i])
+  for (uint_t i = 0; i < bits_.size(); i++) {
+    if (bits_[i] != src.bits_[i])
       return true;
   }
   return false;
 }
 
-bool BitVector::is_zero(void)
-{
-  if(num_bits_ == 0)
+bool BitVector::is_zero(void) {
+  if (num_bits_ == 0)
     return true;
-  for(uint_t i=0;i<bits_.size();i++){
-    if(bits_[i] != 0)
+  for (uint_t i = 0; i < bits_.size(); i++) {
+    if (bits_[i] != 0)
       return false;
   }
   return true;
 }
 
-BitVector &BitVector::operator|=(const BitVector &src)
-{
+BitVector &BitVector::operator|=(const BitVector &src) {
   uint_t size = std::min(src.bits_.size(), bits_.size());
-  for(uint_t i=0;i<size;i++)
+  for (uint_t i = 0; i < size; i++)
     bits_[i] |= src.bits_[i];
   return *this;
 }
 
-BitVector &BitVector::operator&=(const BitVector &src)
-{
+BitVector &BitVector::operator&=(const BitVector &src) {
   uint_t size = std::min(src.bits_.size(), bits_.size());
-  for(uint_t i=0;i<size;i++)
+  for (uint_t i = 0; i < size; i++)
     bits_[i] &= src.bits_[i];
   return *this;
 }
 
-BitVector &BitVector::operator^=(const BitVector &src)
-{
+BitVector &BitVector::operator^=(const BitVector &src) {
   uint_t size = std::min(src.bits_.size(), bits_.size());
-  for(uint_t i=0;i<size;i++)
+  for (uint_t i = 0; i < size; i++)
     bits_[i] ^= src.bits_[i];
   return *this;
 }
 
-BitVector operator|(const BitVector &v0, const BitVector &v1)
-{
+BitVector operator|(const BitVector &v0, const BitVector &v1) {
   BitVector ret(v0);
   return ret |= v1;
 }
 
-BitVector operator&(const BitVector &v0, const BitVector &v1)
-{
+BitVector operator&(const BitVector &v0, const BitVector &v1) {
   BitVector ret(v0);
   return ret &= v1;
 }
 
-BitVector operator^(const BitVector &v0, const BitVector &v1)
-{
+BitVector operator^(const BitVector &v0, const BitVector &v1) {
   BitVector ret(v0);
   return ret ^= v1;
 }
 
-BitVector operator~(const BitVector &v)
-{
+BitVector operator~(const BitVector &v) {
   BitVector ret(v);
   for (uint_t i = 0; i < ret.bits_.size(); i++) {
     ret.bits_[i] = ~ret.bits_[i];
@@ -370,8 +352,7 @@ BitVector operator~(const BitVector &v)
   return ret;
 }
 
-bool BitVector::parity(void)
-{
+bool BitVector::parity(void) {
   uint_t ret = 0;
   for (uint_t i = 0; i < bits_.size(); i++) {
     ret ^= AER::Utils::hamming_parity(bits_[i]);
@@ -379,8 +360,7 @@ bool BitVector::parity(void)
   return ret != 0;
 }
 
-uint_t BitVector::popcount(void)
-{
+uint_t BitVector::popcount(void) {
   uint_t ret = 0;
   for (uint_t i = 0; i < bits_.size(); i++) {
     ret += AER::Utils::popcount(bits_[i]);
