@@ -81,7 +81,7 @@ struct Config {
   optional<uint_t> max_parallel_threads;
   optional<uint_t> max_parallel_experiments;
   optional<uint_t> max_parallel_shots;
-  optional<uint_t> max_memory_mb;
+  optional<int_t> max_memory_mb;
   bool fusion_enable = true;
   bool fusion_verbose = false;
   optional<uint_t> fusion_max_qubit;
