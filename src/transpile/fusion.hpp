@@ -1038,7 +1038,8 @@ bool CostBasedFusion::aggregate_operations(oplist_t &ops,
         double estimated_cost =
             estimate_cost(ops, (uint_t)j,
                           i) // fusion gate from j-th to i-th, and
-            + (j == 0 ? 0.0 : costs[j - 1 - fusion_start]); // cost of (j-1)-th
+            + (j <= fusion_start ? 0.0 : costs[j - 1 - fusion_start]);
+                             // cost of (j-1)-th
 
         // update cost
         if (estimated_cost <= costs[i - fusion_start]) {
