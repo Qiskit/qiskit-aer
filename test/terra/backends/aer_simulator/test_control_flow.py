@@ -1187,3 +1187,46 @@ class TestControlFlow(SimulatorTestCase):
         counts = backend.run(qc).result().get_counts()
         self.assertEqual(len(counts), 1)
         self.assertIn("0010101", counts)
+
+    @data("statevector", "density_matrix", "matrix_product_state", "stabilizer")
+    def test_bit_not_operation(self, method):
+        """test bit-not operation"""
+        qr = QuantumRegister(7)
+        cr = ClassicalRegister(7)
+        qc = QuantumCircuit(qr, cr)
+        qc.x(0)
+        qc.x(2)
+        qc.measure(range(4), range(4))  # 0101
+        qc.barrier()
+        b01 = expr.bit_not(cr[0])  # !1 -> 0
+        with qc.if_test(b01):
+            qc.x(4)  # q4 -> 0
+
+        b02 = expr.bit_not(cr[1])  # !0 -> 1
+        with qc.if_test(b02):
+            qc.x(5)  # q5 -> 1
+
+        qc.measure(range(7), range(7))  # 0100101
+
+        backend = self.backend(method=method)
+        counts = backend.run(qc).result().get_counts()
+        self.assertEqual(len(counts), 1)
+        self.assertIn("0100101", counts)
+
+        qr = QuantumRegister(7)
+        cr = ClassicalRegister(7)
+        qc = QuantumCircuit(qr, cr)
+        qc.x(0)
+        qc.x(2)
+        qc.measure(range(4), range(4))  # 0101
+        qc.barrier()
+        b01 = expr.bit_not(expr.Var(cr, types.Uint(cr.size)))  # 0b0000101 -> 0b1111010
+        with qc.if_test(expr.equal(b01, 0b1111010)):
+            qc.x(4)  # q4 -> 1
+
+        qc.measure(range(7), range(7))  # 0010101
+
+        backend = self.backend(method=method)
+        counts = backend.run(qc).result().get_counts()
+        self.assertEqual(len(counts), 1)
+        self.assertIn("0010101", counts)
