@@ -24,7 +24,7 @@ test-command = "python {project}/tools/verify_wheels.py"
 before-test = "pip install --only-binary=numpy,scipy numpy scipy"
 
 [tool.cibuildwheel.linux]
-before-all = "yum install -y openblas-devel"
+before-build = "yum install -y openblas-devel"
 
 [tool.cibuildwheel.windows]
 environment = { CMAKE_GENERATOR = "Visual Studio 16 2019"}
