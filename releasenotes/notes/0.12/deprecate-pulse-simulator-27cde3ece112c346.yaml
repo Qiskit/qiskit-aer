@@ -4,7 +4,7 @@ deprecations:
     The :class:`~.PulseSimulator` backend has been deprecated and will be
     removed in a future release. If you're using the :class:`~.PulseSimulator`
     backend to perform pulse level simulation, instead you should use the
-    `Qiskit Dynamics <https://qiskit.org/documentation/dynamics/>`__ library
+    `Qiskit Dynamics <https://qiskit-extensions.github.io/qiskit-dynamics>`__ library
     instead to perform the simulation. Qiskit Dynamics provides a more
     flexible and robust pulse level simulation framework than the
     :class:`~.PulseSimulator` backend.

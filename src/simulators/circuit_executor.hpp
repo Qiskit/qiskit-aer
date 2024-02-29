@@ -92,6 +92,7 @@ protected:
   size_t min_gpu_memory_mb_; // minimum size per GPU
   int num_gpus_;             // max number of GPU per process
   reg_t target_gpus_;        // GPUs to be used
+  bool check_required_memory_;
 
   // use explicit parallelization
   bool explicit_parallelization_;
@@ -234,6 +235,7 @@ protected:
 template <class state_t>
 Executor<state_t>::Executor() {
   max_memory_mb_ = 0;
+  check_required_memory_ = true;
   max_gpu_memory_mb_ = 0;
   max_parallel_threads_ = 0;
   max_parallel_shots_ = 0;
@@ -290,8 +292,15 @@ void Executor<state_t>::set_config(const Config &config) {
 
   // Load configurations for parallelization
 
-  if (config.max_memory_mb.has_value())
-    max_memory_mb_ = config.max_memory_mb.value();
+  if (config.max_memory_mb.has_value()) {
+    int_t mem = config.max_memory_mb.value();
+    if (mem < 0) {
+      check_required_memory_ = false;
+      max_memory_mb_ = 0;
+    } else {
+      max_memory_mb_ = (size_t)mem;
+    }
+  }
 
   // for debugging
   if (config._parallel_shots.has_value()) {
@@ -1149,7 +1158,7 @@ bool Executor<state_t>::validate_state(const Config &config,
 
   // Validate memory requirements
   bool memory_valid = true;
-  if (max_memory_mb_ > 0) {
+  if (max_memory_mb_ > 0 && check_required_memory_) {
     size_t required_mb = state.required_memory_mb(circ.num_qubits, circ.ops) /
                          num_process_per_experiment_;
     size_t mem_size = (sim_device_ == Device::GPU)
