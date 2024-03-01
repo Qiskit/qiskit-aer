@@ -130,8 +130,8 @@ public:
 
   // Sample n-measurement outcomes without applying the measure operation
   // to the system state
-  std::vector<BitVector> sample_measure(const reg_t &qubits, uint_t shots,
-                                        RngEngine &rng) override;
+  std::vector<SampleVector> sample_measure(const reg_t &qubits, uint_t shots,
+                                           RngEngine &rng) override;
 
   // Helper function for computing expectation value
   double expval_pauli(const reg_t &qubits, const std::string &pauli) override;
@@ -987,9 +987,9 @@ void State<densmat_t>::measure_reset_update(const reg_t &qubits,
 }
 
 template <class densmat_t>
-std::vector<BitVector> State<densmat_t>::sample_measure(const reg_t &qubits,
-                                                        uint_t shots,
-                                                        RngEngine &rng) {
+std::vector<SampleVector> State<densmat_t>::sample_measure(const reg_t &qubits,
+                                                           uint_t shots,
+                                                           RngEngine &rng) {
   // Generate flat register for storing
   std::vector<double> rnds;
   rnds.reserve(shots);
@@ -1003,7 +1003,7 @@ std::vector<BitVector> State<densmat_t>::sample_measure(const reg_t &qubits,
   int_t npar = BaseState::threads_;
   if (npar > shots)
     npar = shots;
-  std::vector<BitVector> all_samples(shots, BitVector(qubits.size()));
+  std::vector<SampleVector> all_samples(shots, SampleVector(qubits.size()));
 
   auto convert_to_bit_lambda = [this, &allbit_samples, &all_samples, shots,
                                 qubits, npar](int_t i) {
@@ -1011,8 +1011,8 @@ std::vector<BitVector> State<densmat_t>::sample_measure(const reg_t &qubits,
     ishot = shots * i / npar;
     iend = shots * (i + 1) / npar;
     for (; ishot < iend; ishot++) {
-      BitVector allbit_sample;
-      allbit_sample.from_uint(qubits.size(), allbit_samples[ishot]);
+      SampleVector allbit_sample;
+      allbit_sample.from_uint(allbit_samples[ishot], qubits.size());
       all_samples[ishot].map(allbit_sample, qubits);
     }
   };

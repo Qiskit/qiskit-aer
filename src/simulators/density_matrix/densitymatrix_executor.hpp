@@ -168,8 +168,8 @@ protected:
 
   // Sample n-measurement outcomes without applying the measure operation
   // to the system state
-  std::vector<BitVector> sample_measure(const reg_t &qubits, uint_t shots,
-                                        RngEngine &rng) const override;
+  std::vector<SampleVector> sample_measure(const reg_t &qubits, uint_t shots,
+                                           RngEngine &rng) const override;
 
   rvector_t sample_measure_with_prob(CircuitExecutor::Branch &root,
                                      const reg_t &qubits);
@@ -180,7 +180,7 @@ protected:
   void apply_measure(CircuitExecutor::Branch &root, const reg_t &qubits,
                      const reg_t &cmemory, const reg_t &cregister);
 
-  std::vector<BitVector>
+  std::vector<SampleVector>
   sample_measure(state_t &state, const reg_t &qubits, uint_t shots,
                  std::vector<RngEngine> &rng) const override;
 
@@ -1215,7 +1215,7 @@ void Executor<densmat_t>::measure_reset_update(const reg_t &qubits,
 }
 
 template <class densmat_t>
-std::vector<BitVector>
+std::vector<SampleVector>
 Executor<densmat_t>::sample_measure(const reg_t &qubits, uint_t shots,
                                     RngEngine &rng) const {
   // Generate flat register for storing
@@ -1322,11 +1322,11 @@ Executor<densmat_t>::sample_measure(const reg_t &qubits, uint_t shots,
   BasePar::reduce_sum(local_samples);
 #endif
 
-  // Convert to BitVector format
+  // Convert to SampleVector format
   int_t npar = Base::parallel_state_update_;
   if (npar > local_samples.size())
     npar = local_samples.size();
-  std::vector<BitVector> all_samples(shots, BitVector(qubits.size()));
+  std::vector<SampleVector> all_samples(shots, SampleVector(qubits.size()));
 
   auto convert_to_bit_lambda = [this, &local_samples, &all_samples, shots,
                                 qubits, npar](int_t i) {
@@ -1334,8 +1334,8 @@ Executor<densmat_t>::sample_measure(const reg_t &qubits, uint_t shots,
     ishot = local_samples.size() * i / npar;
     iend = local_samples.size() * (i + 1) / npar;
     for (; ishot < iend; ishot++) {
-      BitVector allbit_sample;
-      allbit_sample.from_uint(qubits.size(), local_samples[ishot]);
+      SampleVector allbit_sample;
+      allbit_sample.from_uint(local_samples[ishot], qubits.size());
       all_samples[ishot].map(allbit_sample, qubits);
     }
   };
@@ -1445,7 +1445,7 @@ void Executor<state_t>::apply_measure(CircuitExecutor::Branch &root,
 }
 
 template <class state_t>
-std::vector<BitVector>
+std::vector<SampleVector>
 Executor<state_t>::sample_measure(state_t &state, const reg_t &qubits,
                                   uint_t shots,
                                   std::vector<RngEngine> &rng) const {
@@ -1461,11 +1461,11 @@ Executor<state_t>::sample_measure(state_t &state, const reg_t &qubits,
   state.qreg().enable_batch(flg);
 
   // Convert to bit format
-  std::vector<BitVector> all_samples(shots, BitVector(qubits.size()));
+  std::vector<SampleVector> all_samples(shots, SampleVector(qubits.size()));
   i = 0;
   for (int_t val : allbit_samples) {
-    BitVector allbit_sample;
-    allbit_sample.from_uint(qubits.size(), val);
+    SampleVector allbit_sample;
+    allbit_sample.from_uint(val, qubits.size());
     all_samples[i++].map(allbit_sample, qubits);
   }
   return all_samples;

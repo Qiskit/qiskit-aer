@@ -153,8 +153,8 @@ public:
 
   // Sample n-measurement outcomes without applying the measure operation
   // to the system state
-  std::vector<BitVector> sample_measure(const reg_t &qubits, uint_t shots,
-                                        RngEngine &rng) override;
+  std::vector<SampleVector> sample_measure(const reg_t &qubits, uint_t shots,
+                                           RngEngine &rng) override;
 
   // Helper function for computing expectation value
   virtual double expval_pauli(const reg_t &qubits,
@@ -1020,9 +1020,9 @@ void State<statevec_t>::measure_reset_update(const std::vector<uint_t> &qubits,
 }
 
 template <class statevec_t>
-std::vector<BitVector> State<statevec_t>::sample_measure(const reg_t &qubits,
-                                                         uint_t shots,
-                                                         RngEngine &rng) {
+std::vector<SampleVector> State<statevec_t>::sample_measure(const reg_t &qubits,
+                                                            uint_t shots,
+                                                            RngEngine &rng) {
   uint_t i;
   // Generate flat register for storing
   std::vector<double> rnds;
@@ -1034,11 +1034,11 @@ std::vector<BitVector> State<statevec_t>::sample_measure(const reg_t &qubits,
 
   allbit_samples = BaseState::qreg_.sample_measure(rnds);
 
-  // Convert to BitVector format
+  // Convert to SampleVector format
   int_t npar = BaseState::threads_;
   if (npar > shots)
     npar = shots;
-  std::vector<BitVector> all_samples(shots, BitVector(qubits.size()));
+  std::vector<SampleVector> all_samples(shots, SampleVector(qubits.size()));
 
   auto convert_to_bit_lambda = [this, &allbit_samples, &all_samples, shots,
                                 qubits, npar](int_t i) {
@@ -1046,8 +1046,8 @@ std::vector<BitVector> State<statevec_t>::sample_measure(const reg_t &qubits,
     ishot = shots * i / npar;
     iend = shots * (i + 1) / npar;
     for (; ishot < iend; ishot++) {
-      BitVector allbit_sample;
-      allbit_sample.from_uint(qubits.size(), allbit_samples[ishot]);
+      SampleVector allbit_sample;
+      allbit_sample.from_uint(allbit_samples[ishot], qubits.size());
       all_samples[ishot].map(allbit_sample, qubits);
     }
   };

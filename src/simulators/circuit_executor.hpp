@@ -219,12 +219,12 @@ protected:
 
   // Sample n-measurement outcomes without applying the measure operation
   // to the system state
-  virtual std::vector<BitVector>
+  virtual std::vector<SampleVector>
   sample_measure(const reg_t &qubits, uint_t shots, RngEngine &rng) const {
-    std::vector<BitVector> ret;
+    std::vector<SampleVector> ret;
     return ret;
   };
-  virtual std::vector<BitVector>
+  virtual std::vector<SampleVector>
   sample_measure(state_t &state, const reg_t &qubits, uint_t shots,
                  std::vector<RngEngine> &rng) const {
     // this is for single rng, impement in sub-class for multi-shots case
@@ -1064,7 +1064,7 @@ void Executor<state_t>::measure_sampler(InputIterator first_meas,
 
   // Generate the samples
   auto timer_start = myclock_t::now();
-  std::vector<BitVector> all_samples;
+  std::vector<SampleVector> all_samples;
   all_samples = state.sample_measure(meas_qubits, shots, rng);
   auto time_taken =
       std::chrono::duration<double>(myclock_t::now() - timer_start).count();

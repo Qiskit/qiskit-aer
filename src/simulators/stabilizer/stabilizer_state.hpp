@@ -101,7 +101,7 @@ public:
 
   // Sample n-measurement outcomes without applying the measure operation
   // to the system state
-  virtual std::vector<BitVector>
+  virtual std::vector<SampleVector>
   sample_measure(const reg_t &qubits, uint_t shots, RngEngine &rng) override;
 
   bool
@@ -512,12 +512,12 @@ reg_t State::apply_measure_and_update(const reg_t &qubits, RngEngine &rng) {
   return outcome;
 }
 
-std::vector<BitVector> State::sample_measure(const reg_t &qubits, uint_t shots,
-                                             RngEngine &rng) {
+std::vector<SampleVector> State::sample_measure(const reg_t &qubits,
+                                                uint_t shots, RngEngine &rng) {
   // TODO: see if we can improve efficiency by directly sampling from Clifford
   // table
   auto qreg_cache = BaseState::qreg_;
-  std::vector<BitVector> samples(shots);
+  std::vector<SampleVector> samples(shots);
   for (int_t ishot = 0; ishot < shots; ishot++) {
     samples[ishot] = apply_measure_and_update(qubits, rng);
     BaseState::qreg_ = qreg_cache; // restore pre-measurement data from cache

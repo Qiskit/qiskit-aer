@@ -827,7 +827,7 @@ void MultiStateExecutor<state_t>::measure_sampler(InputIterator first_meas,
                     meas_qubits.end());
 
   // Generate the samples
-  std::vector<BitVector> all_samples;
+  std::vector<SampleVector> all_samples;
   all_samples = this->sample_measure(state, meas_qubits, shots, rng);
 
   // Make qubit map of position in vector of measured qubits

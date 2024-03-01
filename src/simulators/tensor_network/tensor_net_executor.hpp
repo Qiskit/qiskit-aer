@@ -67,7 +67,7 @@ protected:
   void apply_kraus(CircuitExecutor::Branch &root, const reg_t &qubits,
                    const std::vector<cmatrix_t> &kmats);
 
-  std::vector<BitVector>
+  std::vector<SampleVector>
   sample_measure(state_t &state, const reg_t &qubits, uint_t shots,
                  std::vector<RngEngine> &rng) const override;
 
@@ -529,7 +529,7 @@ void Executor<state_t>::apply_save_amplitudes(CircuitExecutor::Branch &root,
 }
 
 template <class state_t>
-std::vector<BitVector>
+std::vector<SampleVector>
 Executor<state_t>::sample_measure(state_t &state, const reg_t &qubits,
                                   uint_t shots,
                                   std::vector<RngEngine> &rng) const {
@@ -540,8 +540,8 @@ Executor<state_t>::sample_measure(state_t &state, const reg_t &qubits,
   for (i = 0; i < (int_t)shots; ++i)
     rnds.push_back(rng[i].rand(0, 1));
 
-  std::vector<BitVector> samples = state.qreg().sample_measure(rnds);
-  std::vector<BitVector> ret(shots, BitVector(qubits.size()));
+  std::vector<SampleVector> samples = state.qreg().sample_measure(rnds);
+  std::vector<SampleVector> ret(shots, SampleVector(qubits.size()));
 
   if (omp_get_num_threads() > 1) {
     for (i = 0; i < (int_t)shots; ++i) {

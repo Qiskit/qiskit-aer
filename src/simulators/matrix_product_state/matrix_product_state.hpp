@@ -131,16 +131,16 @@ public:
 
   // Sample n-measurement outcomes without applying the measure operation
   // to the system state
-  virtual std::vector<BitVector>
+  virtual std::vector<SampleVector>
   sample_measure(const reg_t &qubits, uint_t shots, RngEngine &rng) override;
 
   // Computes sample_measure by copying the MPS to a temporary structure, and
   // applying a measurement on the temporary MPS. This is done for every shot,
   // so is not efficient for a large number of shots
-  std::vector<BitVector> sample_measure_using_apply_measure(const reg_t &qubits,
-                                                            uint_t shots,
-                                                            RngEngine &rng);
-  std::vector<BitVector> sample_measure_all(uint_t shots, RngEngine &rng);
+  std::vector<SampleVector>
+  sample_measure_using_apply_measure(const reg_t &qubits, uint_t shots,
+                                     RngEngine &rng);
+  std::vector<SampleVector> sample_measure_all(uint_t shots, RngEngine &rng);
   //-----------------------------------------------------------------------
   // Additional methods
   //-----------------------------------------------------------------------
@@ -759,8 +759,8 @@ rvector_t State::measure_probs(const reg_t &qubits) const {
   return probvector;
 }
 
-std::vector<BitVector> State::sample_measure(const reg_t &qubits, uint_t shots,
-                                             RngEngine &rng) {
+std::vector<SampleVector> State::sample_measure(const reg_t &qubits,
+                                                uint_t shots, RngEngine &rng) {
   // There are two alternative algorithms for sample measure
   // We choose the one that is optimal relative to the total number
   // of qubits,and the number of shots.
@@ -774,10 +774,10 @@ std::vector<BitVector> State::sample_measure(const reg_t &qubits, uint_t shots,
   return sample_measure_using_apply_measure(qubits, shots, rng);
 }
 
-std::vector<BitVector>
+std::vector<SampleVector>
 State::sample_measure_using_apply_measure(const reg_t &qubits, uint_t shots,
                                           RngEngine &rng) {
-  std::vector<BitVector> all_samples;
+  std::vector<SampleVector> all_samples;
   all_samples.resize(shots);
   std::vector<rvector_t> rnds_list;
   rnds_list.reserve(shots);
@@ -803,8 +803,9 @@ State::sample_measure_using_apply_measure(const reg_t &qubits, uint_t shots,
   return all_samples;
 }
 
-std::vector<BitVector> State::sample_measure_all(uint_t shots, RngEngine &rng) {
-  std::vector<BitVector> all_samples;
+std::vector<SampleVector> State::sample_measure_all(uint_t shots,
+                                                    RngEngine &rng) {
+  std::vector<SampleVector> all_samples;
   all_samples.resize(shots);
 
 #pragma omp parallel for if (getenv("PRL_PROB_MEAS"))

@@ -15,7 +15,6 @@
 #ifndef _aer_base_state_hpp_
 #define _aer_base_state_hpp_
 
-#include "framework/bitvector.hpp"
 #include "framework/config.hpp"
 #include "framework/creg.hpp"
 #include "framework/json.hpp"
@@ -24,6 +23,8 @@
 #include "framework/types.hpp"
 
 #include "noise/noise_model.hpp"
+
+#include "simulators/sample_vector.hpp"
 
 namespace AER {
 
@@ -195,8 +196,8 @@ public:
   // to the system state. Even though this method is not marked as const
   // at the end of sample the system should be left in the same state
   // as before sampling
-  virtual std::vector<BitVector> sample_measure(const reg_t &qubits,
-                                                uint_t shots, RngEngine &rng);
+  virtual std::vector<SampleVector>
+  sample_measure(const reg_t &qubits, uint_t shots, RngEngine &rng);
 
   //-----------------------------------------------------------------------
   // Config Settings
@@ -284,11 +285,11 @@ void Base::set_config(const Config &config) {
   }
 }
 
-std::vector<BitVector> Base::sample_measure(const reg_t &qubits, uint_t shots,
-                                            RngEngine &rng) {
+std::vector<SampleVector> Base::sample_measure(const reg_t &qubits,
+                                               uint_t shots, RngEngine &rng) {
   (ignore_argument) qubits;
   (ignore_argument) shots;
-  return std::vector<BitVector>();
+  return std::vector<SampleVector>();
 }
 
 void Base::apply_ops(const OpItr first, const OpItr last,
