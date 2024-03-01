@@ -1458,7 +1458,8 @@ std::vector<std::string> AerState::sample_memory(const reg_t &qubits,
 
   std::vector<std::string> ret;
   ret.reserve(shots);
-  std::vector<SampleVector> samples = state_->sample_measure(qubits, shots, rng_);
+  std::vector<SampleVector> samples =
+      state_->sample_measure(qubits, shots, rng_);
   for (auto &sample : samples) {
     ret.push_back(sample.to_string());
   }
@@ -1471,7 +1472,8 @@ std::unordered_map<uint_t, uint_t> AerState::sample_counts(const reg_t &qubits,
 
   flush_ops();
 
-  std::vector<SampleVector> samples = state_->sample_measure(qubits, shots, rng_);
+  std::vector<SampleVector> samples =
+      state_->sample_measure(qubits, shots, rng_);
   std::unordered_map<uint_t, uint_t> ret;
   for (const auto &sample : samples) {
     uint_t sample_u = sample(0); // only the first 64bits is used
