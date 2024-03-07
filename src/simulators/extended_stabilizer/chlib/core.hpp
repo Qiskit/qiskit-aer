@@ -22,8 +22,10 @@
 #include <iostream>
 #include <vector>
 
+#include "framework/bitvector.hpp"
 #include "framework/utils.hpp"
 
+namespace AER {
 namespace CHSimulator {
 
 static const std::array<int, 8> RE_PHASE = {1, 1, 0, -1, -1, -1, 0, 1};
@@ -125,12 +127,13 @@ struct scalar_t {
 // Below we represent n-bit strings by uint64_t integers
 struct pauli_t {
   // n-qubit Pauli operators: i^e * X(x) * Z(z)
-  uint_fast64_t X; // n-bit string
-  uint_fast64_t Z; // n-bit string
-  unsigned e = 0;  // takes values 0,1,2,3
+  BitVector X;    // n-bit string
+  BitVector Z;    // n-bit string
+  unsigned e = 0; // takes values 0,1,2,3
 
   // constructor makes the identity Pauli operator
   pauli_t();
+  pauli_t(uint_t n);
   pauli_t(const pauli_t &p) = default;
 
   // multiplication of Pauli operators
@@ -140,9 +143,9 @@ struct pauli_t {
 struct QuadraticForm {
   unsigned int n;
   int Q;
-  uint_fast64_t D1;
-  uint_fast64_t D2;
-  std::vector<uint_fast64_t> J;
+  BitVector D1;
+  BitVector D2;
+  std::vector<BitVector> J;
   scalar_t ExponentialSum();
   QuadraticForm(unsigned n_qubits);
   QuadraticForm(const QuadraticForm &rhs);
@@ -179,11 +182,14 @@ scalar_t scalar_t::operator*(const scalar_t &rhs) const {
   return out;
 }
 
-pauli_t::pauli_t() : X(zer), Z(zer) {}
+pauli_t::pauli_t() {}
+pauli_t::pauli_t(uint_t n) : X(n, true), Z(n, true) {}
 
 pauli_t &pauli_t::operator*=(const pauli_t &rhs) {
-  unsigned overlap =
-      AER::Utils::popcount(Z & rhs.X); // commute rhs.X to the left
+  BitVector pc = Z;
+  pc &= rhs.X;
+  unsigned overlap = pc.popcount();
+  //      AER::Utils::popcount(Z & rhs.X); // commute rhs.X to the left
   X ^= rhs.X;
   Z ^= rhs.Z;
   e = (e + rhs.e + 2 * overlap) % 4;
@@ -198,11 +204,8 @@ class QubitException : public std::exception {
 } qubex;
 
 QuadraticForm::QuadraticForm(unsigned int n_qubits)
-    : n(n_qubits), Q(0), D1(zer), D2(zer), J(n_qubits, zer) {
-  if (n > 63) {
-    throw qubex;
-  }
-}
+    : n(n_qubits), Q(0), D1(n_qubits, true), D2(n_qubits, true),
+      J(n_qubits, BitVector(n_qubits, true)) {}
 
 QuadraticForm::QuadraticForm(const QuadraticForm &rhs) : J(rhs.n, zer) {
   n = rhs.n;
@@ -246,13 +249,13 @@ std::ostream &operator<<(std::ostream &os, const QuadraticForm &q) {
   os << "Q: " << q.Q << std::endl;
   os << "D:";
   for (size_t i = 0; i < q.n; i++) {
-    os << " " << (2 * (2 * ((q.D2 >> i) & one) + ((q.D1 >> i) & one)));
+    os << " " << (2 * (2 * q.D2[i] + q.D1[i]));
   }
   os << std::endl;
   os << "J:\n";
   for (size_t i = 0; i < q.n; i++) {
     for (size_t j = 0; j < q.n; j++) {
-      os << ((q.J[i] >> j) & one) << " ";
+      os << (q.J[i][j]) << " ";
     }
     os << "\n";
   }
@@ -302,28 +305,29 @@ scalar_t QuadraticForm::ExponentialSum() {
   // Lreal, Limag define the linear part of the Z2-valued forms
   // M defines the quadratic part of the Z2-valued forms
   // each column of M is represented by long integer
-  uint_fast64_t Lreal, c = zer;
-  std::vector<uint_fast64_t> M(n + 1, zer);
-  Lreal = D2;
+  BitVector Lreal(m, true), c(m, true);
+  std::vector<BitVector> M(n + 1, BitVector(m, true));
+  for (size_t i = 0; i < D2.length(); i++)
+    Lreal(i) = D2(i);
   for (size_t i = 0; i < n; i++) {
-    if ((D1 >> i) & one) {
-      c |= (one << i);
-      M[n] |= (one << i);
+    if (D1[i]) {
+      c.set_or(i, true);
+      M[n].set_or(i, true);
     }
   }
-  uint_fast64_t Limag = Lreal;
-  Limag ^= (one << n);
+  BitVector Limag = Lreal;
+  Limag.set_xor(n, true);
   for (size_t i = 0; i < n; i++) {
     for (size_t j = (i + 1); j < n; j++) {
-      bool x = !!((J[i] >> j) & one);
-      bool c1 = !!((c >> i) & one);
-      bool c2 = !!((c >> j) & one);
+      bool x = !!(J[i][j]);
+      bool c1 = !!(c[j]);
+      bool c2 = !!(c[j]);
       if (x ^ (c1 & c2)) {
-        M[j] ^= (one << i);
+        M[j].set_xor(i, true);
       }
     }
   }
-  uint_fast64_t active = zer;
+  BitVector active(m, true);
   active = ~(active);
   int nActive = m;
   int firstActive = 0;
@@ -331,7 +335,7 @@ scalar_t QuadraticForm::ExponentialSum() {
     // find the first active variable
     int i1;
     for (i1 = firstActive; i1 < m; i1++) {
-      if ((active >> i1) & one) {
+      if (active[i1]) {
         break;
       }
     }
@@ -340,13 +344,13 @@ scalar_t QuadraticForm::ExponentialSum() {
     int i2;
     bool isFound = false;
     for (i2 = 0; i2 < m; i2++) {
-      isFound = (((M[i1] >> i2) & one) != ((M[i2] >> i1) & one));
+      isFound = (M[i1][i2] != M[i2][i1]);
       if (isFound) {
         break;
       }
     }
-    bool L1real = !!(((Lreal >> i1) & one) ^ ((M[i1] >> i1) & one));
-    bool L1imag = !!(((Limag >> i1) & one) ^ ((M[i1] >> i1) & one));
+    bool L1real = !!(Lreal[i1] ^ M[i1][i1]);
+    bool L1imag = !!(Limag[i1] ^ M[i1][i1]);
     // take care of the trivial cases
     if (!isFound) {
       // the form is linear in the variable i1
@@ -361,17 +365,15 @@ scalar_t QuadraticForm::ExponentialSum() {
       pow2_imag++;
 
       nActive--;
-      uint_fast64_t not_shift;
-      not_shift = ~(one << i1);
-      active &= not_shift;
+      active.set(i1, false);
       // set column i1 to zero
-      M[i1] = zer;
+      M[i1].zero();
       // set row i1 to zero
       for (int j = 0; j < m; j++) {
-        M[j] &= not_shift;
+        M[j].set(i1, false);
       }
-      Lreal &= not_shift;
-      Limag &= not_shift;
+      Lreal.set(i1, false);
+      Limag.set(i1, false);
 
       if (isZero_real && isZero_imag) {
         amp.eps = 0;
@@ -379,32 +381,32 @@ scalar_t QuadraticForm::ExponentialSum() {
       }
       continue;
     } // trivial cases
-    bool L2real = !!(((Lreal >> i2) & one) ^ ((M[i2] >> i2) & one));
-    bool L2imag = !!(((Limag >> i2) & one) ^ ((M[i2] >> i2) & one));
-    Lreal &= ~(one << i1);
-    Lreal &= ~(one << i2);
-    Limag &= ~(one << i1);
-    Limag &= ~(one << i2);
+    bool L2real = !!(Lreal[i2] ^ M[i2][i2]);
+    bool L2imag = !!(Limag[i2] ^ M[i2][i2]);
+    Lreal.set(i1, false);
+    Lreal.set(i2, false);
+    Limag.set(i1, false);
+    Limag.set(i2, false);
     // Extract rows i1 and i2 of M
-    uint_fast64_t m1 = zer;
-    uint_fast64_t m2 = zer;
+    BitVector m1(m);
+    BitVector m2(m);
     for (int j = 0; j < m; j++) {
-      m1 ^= ((M[j] >> i1) & one) << j;
-      m2 ^= ((M[j] >> i2) & one) << j;
+      m1.set_xor(j, M[j][i1]);
+      m2.set_xor(j, M[j][i2]);
     }
     m1 ^= M[i1];
     m2 ^= M[i2];
-    m1 &= ~(one << i1);
-    m1 &= ~(one << i2);
-    m2 &= ~(one << i1);
-    m2 &= ~(one << i2);
+    m1.set(i1, false);
+    m1.set(i2, false);
+    m2.set(i1, false);
+    m2.set(i2, false);
     // set columns i1, i2 to zero
-    M[i1] = zer;
-    M[i2] = zer;
+    M[i1].zero();
+    M[i2].zero();
     // set rows i1,i2 to zero
     for (int j = 0; j < m; j++) {
-      M[j] &= ~(one << i1);
-      M[j] &= ~(one << i2);
+      M[j].set(i1, false);
+      M[j].set(i2, false);
     }
 
     // update the std::vectors Lreal, Limag
@@ -430,12 +432,12 @@ scalar_t QuadraticForm::ExponentialSum() {
     }
     // update matrix M
     for (int j = 0; j < m; j++) {
-      if ((m2 >> j) & one) {
+      if (m2[j]) {
         M[j] ^= m1;
       }
     }
-    active &= ~(one << i1);
-    active &= ~(one << i2);
+    active.set(i1, false);
+    active.set(i2, false);
     nActive -= 2;
   }
   // int J0 = Q;
@@ -490,4 +492,7 @@ void Print(std::vector<uint_fast64_t> A, unsigned n) {
 }
 
 } // namespace CHSimulator
+//------------------------------------------------------------------------------
+} // end namespace AER
+//------------------------------------------------------------------------------
 #endif

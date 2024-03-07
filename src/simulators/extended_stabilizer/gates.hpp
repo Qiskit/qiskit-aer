@@ -35,6 +35,7 @@ constexpr double pow(double x, int y) { return std::pow<double, int>(x, y); }
 } // namespace std
 #endif
 
+namespace AER {
 namespace CHSimulator {
 using uint_t = uint_fast64_t;
 using complex_t = std::complex<double>;
@@ -229,5 +230,8 @@ inline double u1_extent(double lambda) {
 }
 
 } // namespace CHSimulator
+//------------------------------------------------------------------------------
+} // end namespace AER
+//------------------------------------------------------------------------------
 
 #endif
