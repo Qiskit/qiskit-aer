@@ -36,7 +36,8 @@ public:
 
   void initialize(uint_t nq);
 
-  uint_t estimate(const std::vector<Operations::Op> &ops);
+  uint_t estimate(const std::vector<Operations::Op> &ops,
+                  const stringmap_t<Gates> &gateset);
 
 protected:
   void apply_qubits(const reg_t &qubits);
@@ -64,13 +65,30 @@ void MPSSizeEstimator::initialize(uint_t nq) {
   }
 }
 
-uint_t MPSSizeEstimator::estimate(const std::vector<Operations::Op> &ops) {
+uint_t MPSSizeEstimator::estimate(const std::vector<Operations::Op> &ops,
+                                  const stringmap_t<Gates> &gateset) {
   uint_t n = ops.size();
   for (uint_t i = 0; i < n; i++) {
+    double pi2, pi2_int;
     switch (ops[i].type) {
     case Operations::OpType::gate:
+      if (ops[i].qubits.size() > 1) {
+        auto it = gateset.find(ops[i].name);
+        switch (it->second) {
+        case Gates::rxx:
+        case Gates::ryy:
+        case Gates::rzx:
+          pi2 = std::real(ops[i].params[0]) / M_PI;
+          pi2_int = (double)std::round(pi2);
+          if (!AER::Linalg::almost_equal(pi2, pi2_int))
+            apply_qubits(ops[i].qubits);
+          break;
+        default:
+          break;
+        }
+      }
+      break;
     case Operations::OpType::matrix:
-    case Operations::OpType::diagonal_matrix:
       if (ops[i].qubits.size() > 1)
         apply_qubits(ops[i].qubits);
       break;

@@ -178,6 +178,7 @@ protected:
   int max_parallel_experiments_ = 1;
   size_t max_memory_mb_ = 0;
   size_t max_gpu_memory_mb_ = 0;
+  bool check_required_memory_ = true;
 
   // use explicit parallelization
   bool explicit_parallelization_ = false;
@@ -228,9 +229,14 @@ void Controller::set_config(const Config &config) {
 
   // Load configurations for parallelization
 
-  if (config.max_memory_mb.has_value())
-    max_memory_mb_ = config.max_memory_mb.value();
-  else
+  if (config.max_memory_mb.has_value()) {
+    int_t mem = config.max_memory_mb.value();
+    if (mem < 0) {
+      check_required_memory_ = false;
+      max_memory_mb_ = get_system_memory_mb();
+    } else
+      max_memory_mb_ = (size_t)mem;
+  } else
     max_memory_mb_ = get_system_memory_mb();
 
   // for debugging
@@ -390,9 +396,13 @@ void Controller::set_parallelization_experiments(
     ++parallel_experiments;
   }
 
-  if (parallel_experiments <= 0)
-    throw std::runtime_error(
-        "a circuit requires more memory than max_memory_mb.");
+  if (parallel_experiments <= 0) {
+    if (check_required_memory_)
+      throw std::runtime_error(
+          "a circuit requires more memory than max_memory_mb.");
+    else
+      parallel_experiments = 1;
+  }
   parallel_experiments_ = std::min<int>(
       {parallel_experiments, max_experiments, max_parallel_threads_,
        static_cast<int>(required_memory_mb_list.size())});
@@ -549,6 +559,8 @@ Result Controller::execute(std::vector<std::shared_ptr<Circuit>> &circuits,
     result.metadata.add(parallel_experiments_, "parallel_experiments");
     result.metadata.add(max_memory_mb_, "max_memory_mb");
     result.metadata.add(max_gpu_memory_mb_, "max_gpu_memory_mb");
+    if (!check_required_memory_)
+      result.metadata.add(true, "ignore_required_memory_error");
 
 #ifdef _OPENMP
     result.metadata.add(true, "omp_enabled");
