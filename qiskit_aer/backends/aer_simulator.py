@@ -237,10 +237,11 @@ class AerSimulator(AerBackend):
       experiment execution (Default: 0).
 
     * ``max_memory_mb`` (int): Sets the maximum size of memory
-      to store a state vector. If a state vector needs more, an error
-      is thrown. In general, a state vector of n-qubits uses 2^n complex
-      values (16 Bytes). If set to 0, the maximum will be automatically
-      set to the system memory size (Default: 0).
+      to store quantum states. If quantum states need more, an error
+      is thrown unless -1 is set. In general, a state vector of n-qubits
+      uses 2^n complex values (16 Bytes).
+      If set to 0, the maximum will be automatically set to
+      the system memory size (Default: 0).
 
     * ``cuStateVec_enable`` (bool): This option enables accelerating by
       cuStateVec library of cuQuantum from NVIDIA, that has highly optimized

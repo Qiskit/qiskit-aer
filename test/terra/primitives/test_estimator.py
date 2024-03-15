@@ -20,6 +20,7 @@ from test.terra.common import QiskitAerTestCase
 
 import numpy as np
 from ddt import data, ddt
+import qiskit
 from qiskit.circuit import Parameter, QuantumCircuit
 from qiskit.circuit.library import RealAmplitudes
 from qiskit.exceptions import QiskitError
@@ -84,6 +85,10 @@ class TestEstimator(QiskitAerTestCase):
             np.testing.assert_allclose(result.values, [-0.4], rtol=0.02)
 
     @data(True, False)
+    @unittest.skipUnless(
+        qiskit.__version__.startswith("0."),
+        reason="Operator support in primitives was removed following Qiskit 0.46",
+    )
     def test_init_observable_from_operator(self, abelian_grouping):
         """test for evaluate without parameters"""
         circuit = self.ansatz.assign_parameters([0, 1, 1, 2, 3, 5])

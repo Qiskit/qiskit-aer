@@ -16,13 +16,13 @@ import sys
 import numpy as np
 import multiprocessing
 from time import time
-from qiskit import Aer
 from qiskit.aqua.algorithms import VQE
 from qiskit.aqua.components.optimizers import SLSQP
 from qiskit.chemistry.applications import MolecularGroundStateEnergy
 from qiskit.chemistry.components.initial_states import HartreeFock
 from qiskit.chemistry.components.variational_forms import UCCSD
 from qiskit.chemistry.drivers import PySCFDriver, UnitsType
+from qiskit_aer import AerProvider
 
 
 class UCCSDBenchmarkSuite:
@@ -67,7 +67,7 @@ class UCCSDBenchmarkSuite:
                 optimizer=SLSQP(maxiter=5000),
                 max_evals_grouped=256,
             )
-            vqe.quantum_instance = Aer.get_backend("qasm_simulator")
+            vqe.quantum_instance = AerProvider.get_backend("qasm_simulator")
             vqe.quantum_instance.backend_options["backend_options"] = {
                 "max_parallel_experiments": threads,
                 "method": method,
