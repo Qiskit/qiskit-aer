@@ -14,9 +14,7 @@ Aer controll wrappers
 """
 import importlib
 
-""" get wrapper with suffix """
-
-
+"""get wrapper with suffix"""
 def try_import_backend(backend_module_suffix):
     module_name = f".controller_wrappers_{backend_module_suffix}"
     try:
