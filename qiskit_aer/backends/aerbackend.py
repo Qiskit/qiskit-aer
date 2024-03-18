@@ -146,7 +146,7 @@ class AerBackend(Backend, ABC):
 
     # pylint: disable=arguments-differ
     def run(self, circuits, validate=False, parameter_binds=None, **run_options):
-        """Run a qobj on the backend.
+        """Run circuits on the backend.
 
         Args:
             circuits (QuantumCircuit or list): The QuantumCircuit (or list
@@ -187,7 +187,7 @@ class AerBackend(Backend, ABC):
 
         if isinstance(circuits, (QasmQobj, PulseQobj)):
             warnings.warn(
-                "Using a qobj for run() is deprecated as of qiskit-aer 0.9.0"
+                "Using a qobj for run() is deprecated as of qiskit-aer 0.14"
                 " and will be removed no sooner than 3 months from that release"
                 " date. Transpiled circuits should now be passed directly using"
                 " `backend.run(circuits, **run_options).",
