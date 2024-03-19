@@ -248,7 +248,8 @@ public:
   // Return M sampled outcomes for Z-basis measurement of all qubits
   // The input is a length M list of random reals between [0, 1) used for
   // generating samples.
-  std::vector<reg_t> sample_measure(const std::vector<double> &rnds) const;
+  std::vector<SampleVector>
+  sample_measure(const std::vector<double> &rnds) const;
 
   void apply_reset(const reg_t &qubits);
 
@@ -320,7 +321,7 @@ protected:
 
   void buffer_statevector(void) const;
 
-  void sample_measure_branch(std::vector<reg_t> &samples,
+  void sample_measure_branch(std::vector<SampleVector> &samples,
                              const std::vector<double> &rnds,
                              const reg_t &input_sample_index,
                              const reg_t &input_shot_index,
@@ -1175,10 +1176,10 @@ void TensorNet<data_t>::apply_reset(const reg_t &qubits) {
 // Sample measure outcomes
 //------------------------------------------------------------------------------
 template <typename data_t>
-std::vector<reg_t>
+std::vector<SampleVector>
 TensorNet<data_t>::sample_measure(const std::vector<double> &rnds) const {
   const int_t SHOTS = rnds.size();
-  std::vector<reg_t> samples(SHOTS);
+  std::vector<SampleVector> samples(SHOTS);
   reg_t sample_index(SHOTS);
   reg_t shot_index(SHOTS);
   reg_t probs(num_qubits_, 0);
@@ -1193,12 +1194,10 @@ TensorNet<data_t>::sample_measure(const std::vector<double> &rnds) const {
 }
 
 template <typename data_t>
-void TensorNet<data_t>::sample_measure_branch(std::vector<reg_t> &samples,
-                                              const std::vector<double> &rnds,
-                                              const reg_t &input_sample_index,
-                                              const reg_t &input_shot_index,
-                                              const reg_t &input_measured_probs,
-                                              const uint_t pos_measured) const {
+void TensorNet<data_t>::sample_measure_branch(
+    std::vector<SampleVector> &samples, const std::vector<double> &rnds,
+    const reg_t &input_sample_index, const reg_t &input_shot_index,
+    const reg_t &input_measured_probs, const uint_t pos_measured) const {
   const uint_t SHOTS = rnds.size();
 
   /*---------------------------------------------------------------------------
@@ -1350,9 +1349,9 @@ void TensorNet<data_t>::sample_measure_branch(std::vector<reg_t> &samples,
           sample[pos_measured + i] = ((ib >> i) & 1);
         for (uint_t i = 0; i < shots[ib].size(); i++) {
           uint_t shot_id = shot_index[ib][i];
-          samples[shot_id] = sample;
+          samples[shot_id].from_vector(sample);
           for (uint_t j = 0; j < nqubits; j++) {
-            samples[shot_id][j] = ((sample_index[ib][i] >> j) & 1);
+            samples[shot_id].set(j, ((sample_index[ib][i] >> j) & 1) != 0);
           }
         }
       }
