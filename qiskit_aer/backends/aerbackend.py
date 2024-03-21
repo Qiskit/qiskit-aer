@@ -345,7 +345,10 @@ class AerBackend(Backend, ABC):
         if self._target is not None:
             return self._target
 
-        return convert_to_target(self.configuration(), self.properties(), None, NAME_MAPPING)
+        tgt = convert_to_target(self.configuration(), self.properties(), None, NAME_MAPPING)
+        if self._coupling_map is not None:
+            tgt._coupling_graph = self._coupling_map.graph.copy()
+        return tgt
 
     def clear_options(self):
         """Reset the simulator options to default values."""

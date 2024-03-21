@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    Fixed backend name in backend.configuration when method and device is
+    specified from AerProvider, this issue is caused by upgrading
+    AerBackend to V2 backend.
+
+    Also fixed issue AerProvider did not enumerate tensor_network method
+    when GPU device is available

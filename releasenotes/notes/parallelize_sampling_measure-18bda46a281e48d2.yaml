@@ -1,0 +1,9 @@
+---
+features:
+  - |
+    Added BitVector class to store classical bits instead of using reg_t
+    to save memory usage and memory bandwidth.
+upgrade:
+  - |
+    Parallelize un-parallelized loops in sampling measure to speed up
+    for simulation with large number of shots.
