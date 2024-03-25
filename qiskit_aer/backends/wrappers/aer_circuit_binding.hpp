@@ -193,6 +193,7 @@ void bind_aer_circuit(MODULE m) {
   aer_circuit.def("measure", &Circuit::measure);
   aer_circuit.def("reset", &Circuit::reset);
   aer_circuit.def("set_qerror_loc", &Circuit::set_qerror_loc);
+  aer_circuit.def("store", &Circuit::store);
 }
 
 #endif

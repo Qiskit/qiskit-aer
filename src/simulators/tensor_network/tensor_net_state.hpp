@@ -34,37 +34,20 @@ namespace TensorNetwork {
 
 using OpType = Operations::OpType;
 
+// clang-format off
 // OpSet of supported instructions
 const Operations::OpSet StateOpSet(
     // Op types
-    {OpType::gate,
-     OpType::measure,
-     OpType::reset,
-     OpType::initialize,
-     OpType::barrier,
-     OpType::bfunc,
-     OpType::roerror,
-     OpType::matrix,
-     OpType::diagonal_matrix,
-     OpType::multiplexer,
-     OpType::kraus,
-     OpType::superop,
-     OpType::qerror_loc,
-     OpType::sim_op,
-     OpType::set_statevec,
-     OpType::set_densmat,
-     OpType::save_expval,
-     OpType::save_expval_var,
-     OpType::save_probs,
-     OpType::save_probs_ket,
-     OpType::save_amps,
-     OpType::save_amps_sq,
-     OpType::save_state,
-     OpType::save_statevec,
-     OpType::save_statevec_dict,
-     OpType::save_densmat,
-     OpType::jump,
-     OpType::mark},
+    { OpType::gate,               OpType::measure,        OpType::reset,
+      OpType::initialize,         OpType::barrier,        OpType::bfunc,
+      OpType::roerror,            OpType::matrix,         OpType::diagonal_matrix,
+      OpType::multiplexer,        OpType::kraus,          OpType::superop,
+      OpType::qerror_loc,         OpType::sim_op,         OpType::set_statevec,
+      OpType::set_densmat,        OpType::save_expval,    OpType::save_expval_var,
+      OpType::save_probs,         OpType::save_probs_ket, OpType::save_amps,
+      OpType::save_amps_sq,       OpType::save_state,     OpType::save_statevec,
+      OpType::save_statevec_dict, OpType::save_densmat,   OpType::jump,
+      OpType::mark, OpType::store},
     // Gates
     {"u1",   "u2",    "u3",     "u",     "U",     "CX",       "cx",
      "cz",   "cy",    "cp",     "cu1",   "cu2",   "cu3",      "swap",
@@ -75,6 +58,7 @@ const Operations::OpSet StateOpSet(
      "mcr",  "mcrx",  "mcry",   "mcry",  "sx",    "sxdg",     "csx",
      "mcsx", "csxdg", "mcsxdg", "delay", "pauli", "mcx_gray", "cu",
      "mcu",  "mcp",   "ecr"});
+// clang-format on
 
 // Allowed gates enum class
 enum class Gates {

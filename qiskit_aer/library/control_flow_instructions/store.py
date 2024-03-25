@@ -9,8 +9,21 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-"""Instructions to support control-flow for the Aer simulator"""
+"""
+Simulator instruction to set a program counter
+"""
 
-from .jump import AerJump
-from .mark import AerMark
-from .store import AerStore
+from qiskit.circuit import Instruction
+
+
+class AerStore(Instruction):
+    """
+    Store instruction for Aer to work wround transpilation issue
+    of qiskit.circuit.Store
+    """
+
+    _directive = True
+
+    def __init__(self, num_qubits, num_clbits, store):
+        super().__init__("aer_store", num_qubits, num_clbits, [store.lvalue, store.rvalue])
+        self.store = store

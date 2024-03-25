@@ -328,6 +328,10 @@ void Base::apply_ops(const OpItr first, const OpItr last,
       }
       break;
     }
+    case Operations::OpType::store: {
+      creg().apply_store(*it);
+      break;
+    }
     default: {
       apply_op(*it, result, rng, final_ops && (it + 1 == last));
     }

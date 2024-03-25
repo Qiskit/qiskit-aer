@@ -76,6 +76,9 @@ public:
   // Apply readout error instruction to classical registers
   void apply_roerror(const Operations::Op &op, RngEngine &rng);
 
+  // Apply store instruction to classical registers
+  void apply_store(const Operations::Op &op);
+
   // Store a measurement outcome in the specified memory and register bit
   // locations
   void store_measure(const reg_t &outcome, const reg_t &memory,
@@ -256,6 +259,36 @@ void ClassicalRegister::apply_roerror(const Operations::Op &op,
     creg_register_[creg_register_.size() - 1 - bit] =
         noise_str[noise_str.size() - 1 - pos];
   }
+}
+
+// Apply store instruction to classical registers
+void ClassicalRegister::apply_store(const Operations::Op &op) {
+  const auto &registers = op.registers;
+  const auto &expr = op.expr;
+
+  uint_t outcome = 0ULL;
+  if (expr->type->type == Operations::ValueType::Bool) {
+    outcome = op.expr->eval_bool(creg_memory_) ? 1ULL : 0ULL;
+  } else if (expr->type->type == Operations::ValueType::Uint) {
+    outcome = op.expr->eval_uint(creg_memory_);
+  }
+
+  reg_t memory;
+  reg_t memory_output;
+
+  for (size_t i = 0; i < registers.size(); i++) {
+    uint_t val = (outcome & 1ULL); // 0 or 1
+    char val_char = val ? '1' : '0';
+    outcome >>= 1;
+    if (registers[i] < creg_memory_.size()) {
+      memory.push_back(registers[i]);
+      memory_output.push_back(val);
+    }
+    const size_t pos = creg_register_.size() - registers[i] - 1;
+    creg_register_[pos] = val_char; // int->string->char
+  }
+
+  store_measure(memory_output, memory, reg_t());
 }
 
 //------------------------------------------------------------------------------

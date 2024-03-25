@@ -1324,7 +1324,8 @@ bool Executor<state_t>::check_measure_sampling_opt(const Circuit &circ) const {
       circ.opset().contains(Operations::OpType::kraus) ||
       circ.opset().contains(Operations::OpType::superop) ||
       circ.opset().contains(Operations::OpType::jump) ||
-      circ.opset().contains(Operations::OpType::mark)) {
+      circ.opset().contains(Operations::OpType::mark) ||
+      circ.opset().contains(Operations::OpType::store)) {
     return false;
   }
   // Otherwise true
