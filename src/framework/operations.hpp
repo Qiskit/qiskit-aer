@@ -222,30 +222,28 @@ public:
 class UnaryExpr : public CExpr {
 public:
   UnaryExpr(const UnaryOp op_, const std::shared_ptr<CExpr> operand_)
-      : CExpr(CExprType::Unary, operand_->type), op(op_), operand(operand_) {
-    if (op == UnaryOp::LogicNot && operand_->type->type != ValueType::Bool)
-      throw std::invalid_argument(
-          R"(LogicNot unary expression must has Bool expression as its operand.)");
-
-    if (op == UnaryOp::BitNot && operand_->type->type != ValueType::Uint)
-      throw std::invalid_argument(
-          R"(BitNot unary expression must has Uint expression as its operand.)");
-  }
+      : CExpr(CExprType::Unary, operand_->type), op(op_), operand(operand_) {}
 
   virtual bool eval_bool(const std::string &memory) {
-    if (op == UnaryOp::BitNot)
-      throw std::invalid_argument(
-          R"(eval_bool is called for BitNot unary expression.)");
-    else // LogicNot
-      return !operand->eval_bool(memory);
+    if (op == UnaryOp::LogicNot || op == UnaryOp::BitNot) {
+      if (operand->type->type == ValueType::Bool) {
+        return !operand->eval_bool(memory);
+      } else if (operand->type->type == ValueType::Uint) {
+        return truncate(~operand->eval_uint(memory), type->width) != 0Ul;
+      }
+    }
+    throw std::invalid_argument(R"(should not reach here.)");
   }
 
   virtual uint_t eval_uint(const std::string &memory) {
-    if (op == UnaryOp::BitNot)
-      return truncate(~operand->eval_uint(memory), type->width);
-    else // LogicNot
-      throw std::invalid_argument(
-          R"(eval_uint is called for LogicNot unary expression.)");
+    if (op == UnaryOp::LogicNot || op == UnaryOp::BitNot) {
+      if (operand->type->type == ValueType::Bool) {
+        return operand->eval_bool(memory) ? 1UL : 0UL;
+      } else if (operand->type->type == ValueType::Uint) {
+        return truncate(~operand->eval_uint(memory), type->width);
+      }
+    }
+    throw std::invalid_argument(R"(should not reach here.)");
   }
 
 public:
@@ -725,26 +723,27 @@ inline void check_duplicate_qubits(const Op &op) {
 
 inline void check_gate_params(const Op &op) {
   const stringmap_t<std::tuple<int_t, int_t>> param_tables(
-      {{"u1", {1, 1}},      {"u2", {1, 2}},       {"u3", {1, 3}},
-       {"u", {1, 3}},       {"U", {1, 3}},        {"CX", {2, 0}},
-       {"cx", {2, 0}},      {"cz", {2, 0}},       {"cy", {2, 0}},
-       {"cp", {2, 1}},      {"cu1", {2, 1}},      {"cu2", {2, 2}},
-       {"cu3", {2, 3}},     {"swap", {2, 0}},     {"id", {0, 0}},
-       {"p", {1, 1}},       {"x", {1, 0}},        {"y", {1, 0}},
-       {"z", {1, 0}},       {"h", {1, 0}},        {"s", {1, 0}},
-       {"sdg", {1, 0}},     {"t", {1, 0}},        {"tdg", {1, 0}},
-       {"r", {1, 2}},       {"rx", {1, 1}},       {"ry", {1, 1}},
-       {"rz", {1, 1}},      {"rxx", {2, 1}},      {"ryy", {2, 1}},
-       {"rzz", {2, 1}},     {"rzx", {2, 1}},      {"ccx", {3, 0}},
-       {"ccz", {3, 0}},     {"cswap", {3, 0}},    {"mcx", {1, 0}},
-       {"mcy", {1, 0}},     {"mcz", {1, 0}},      {"mcu1", {1, 1}},
-       {"mcu2", {1, 2}},    {"mcu3", {1, 3}},     {"mcswap", {2, 0}},
-       {"mcphase", {1, 1}}, {"mcr", {1, 1}},      {"mcrx", {1, 1}},
-       {"mcry", {1, 1}},    {"mcrz", {1, 1}},     {"sx", {1, 0}},
-       {"sxdg", {1, 0}},    {"csx", {2, 0}},      {"mcsx", {1, 0}},
-       {"csxdg", {2, 0}},   {"mcsxdg", {1, 0}},   {"delay", {1, 0}},
-       {"pauli", {1, 0}},   {"mcx_gray", {1, 0}}, {"cu", {2, 4}},
-       {"mcu", {1, 4}},     {"mcp", {1, 1}},      {"ecr", {2, 0}}});
+      {{"u1", {1, 1}},       {"u2", {1, 2}},     {"u3", {1, 3}},
+       {"u", {1, 3}},        {"U", {1, 3}},      {"CX", {2, 0}},
+       {"cx", {2, 0}},       {"cz", {2, 0}},     {"cy", {2, 0}},
+       {"cp", {2, 1}},       {"cu1", {2, 1}},    {"cu2", {2, 2}},
+       {"cu3", {2, 3}},      {"swap", {2, 0}},   {"id", {0, 0}},
+       {"p", {1, 1}},        {"x", {1, 0}},      {"y", {1, 0}},
+       {"z", {1, 0}},        {"h", {1, 0}},      {"s", {1, 0}},
+       {"sdg", {1, 0}},      {"t", {1, 0}},      {"tdg", {1, 0}},
+       {"r", {1, 2}},        {"rx", {1, 1}},     {"ry", {1, 1}},
+       {"rz", {1, 1}},       {"rxx", {2, 1}},    {"ryy", {2, 1}},
+       {"rzz", {2, 1}},      {"rzx", {2, 1}},    {"ccx", {3, 0}},
+       {"ccz", {3, 0}},
+       {"cswap", {3, 0}},    {"mcx", {1, 0}},    {"mcy", {1, 0}},
+       {"mcz", {1, 0}},      {"mcu1", {1, 1}},   {"mcu2", {1, 2}},
+       {"mcu3", {1, 3}},     {"mcswap", {2, 0}}, {"mcphase", {1, 1}},
+       {"mcr", {1, 1}},      {"mcrx", {1, 1}},   {"mcry", {1, 1}},
+       {"mcrz", {1, 1}},     {"sx", {1, 0}},     {"sxdg", {1, 0}},
+       {"csx", {2, 0}},      {"mcsx", {1, 0}},   {"csxdg", {2, 0}},
+       {"mcsxdg", {1, 0}},   {"delay", {1, 0}},  {"pauli", {1, 0}},
+       {"mcx_gray", {1, 0}}, {"cu", {2, 4}},     {"mcu", {1, 4}},
+       {"mcp", {1, 1}},      {"ecr", {2, 0}}});
 
   auto it = param_tables.find(op.name);
   if (it == param_tables.end()) {
