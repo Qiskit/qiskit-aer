@@ -45,10 +45,10 @@ const Operations::OpSet StateOpSet(
      "cy",     "cp",      "cu1",   "cu2",    "cu3",   "swap",  "id",   "p",
      "x",      "y",       "z",     "h",      "s",     "sdg",   "t",    "tdg",
      "r",      "rx",      "ry",    "rz",     "rxx",   "ryy",   "rzz",  "rzx",
-     "ccx",    "cswap",   "mcx",   "mcy",    "mcz",   "mcu1",  "mcu2", "mcu3",
-     "mcswap", "mcphase", "mcr",   "mcrx",   "mcry",  "mcry",  "sx",   "sxdg",
+     "ccx",    "ccz",     "cswap", "mcx",    "mcy",   "mcz",   "mcu1", "mcu2",
+     "mcu3",   "mcswap",  "mcr",   "mcrx",   "mcry",  "mcry",  "sx",   "sxdg",
      "csx",    "mcsx",    "csxdg", "mcsxdg", "delay", "pauli", "cu",   "mcu",
-     "mcp",    "ecr"});
+     "mcp",    "ecr",     "mcphase"});
 
 // Allowed gates enum class
 enum class Gates {
@@ -255,6 +255,7 @@ const stringmap_t<Gates> State<unitary_matrix_t>::gateset_({
     {"ecr", Gates::ecr},      // ECR Gate
     // Three-qubit gates
     {"ccx", Gates::mcx},      // Controlled-CX gate (Toffoli)
+    {"ccz", Gates::mcz},      // Controlled-CZ gate
     {"cswap", Gates::mcswap}, // Controlled-SWAP gate (Fredkin)
     // Multi-qubit controlled gates
     {"mcx", Gates::mcx},       // Multi-controlled-X gate
