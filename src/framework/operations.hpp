@@ -222,30 +222,28 @@ public:
 class UnaryExpr : public CExpr {
 public:
   UnaryExpr(const UnaryOp op_, const std::shared_ptr<CExpr> operand_)
-      : CExpr(CExprType::Unary, operand_->type), op(op_), operand(operand_) {
-    if (op == UnaryOp::LogicNot && operand_->type->type != ValueType::Bool)
-      throw std::invalid_argument(
-          R"(LogicNot unary expression must has Bool expression as its operand.)");
-
-    if (op == UnaryOp::BitNot && operand_->type->type != ValueType::Uint)
-      throw std::invalid_argument(
-          R"(BitNot unary expression must has Uint expression as its operand.)");
-  }
+      : CExpr(CExprType::Unary, operand_->type), op(op_), operand(operand_) {}
 
   virtual bool eval_bool(const std::string &memory) {
-    if (op == UnaryOp::BitNot)
-      throw std::invalid_argument(
-          R"(eval_bool is called for BitNot unary expression.)");
-    else // LogicNot
-      return !operand->eval_bool(memory);
+    if (op == UnaryOp::LogicNot || op == UnaryOp::BitNot) {
+      if (operand->type->type == ValueType::Bool) {
+        return !operand->eval_bool(memory);
+      } else if (operand->type->type == ValueType::Uint) {
+        return truncate(~operand->eval_uint(memory), type->width) != 0Ul;
+      }
+    }
+    throw std::invalid_argument(R"(should not reach here.)");
   }
 
   virtual uint_t eval_uint(const std::string &memory) {
-    if (op == UnaryOp::BitNot)
-      return truncate(~operand->eval_uint(memory), type->width);
-    else // LogicNot
-      throw std::invalid_argument(
-          R"(eval_uint is called for LogicNot unary expression.)");
+    if (op == UnaryOp::LogicNot || op == UnaryOp::BitNot) {
+      if (operand->type->type == ValueType::Bool) {
+        return operand->eval_bool(memory) ? 1UL : 0UL;
+      } else if (operand->type->type == ValueType::Uint) {
+        return truncate(~operand->eval_uint(memory), type->width);
+      }
+    }
+    throw std::invalid_argument(R"(should not reach here.)");
   }
 
 public:
