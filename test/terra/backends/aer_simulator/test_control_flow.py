@@ -1162,6 +1162,38 @@ class TestControlFlow(SimulatorTestCase):
     @data("statevector", "density_matrix", "matrix_product_state", "stabilizer")
     def test_bit_xor_operation(self, method):
         """test bit-or operation"""
+        qr = QuantumRegister(8)
+        cr = ClassicalRegister(8)
+        qc = QuantumCircuit(qr, cr)
+        qc.x(0)
+        qc.x(2)
+        qc.measure(range(4), range(4))  # 0101
+        qc.barrier()
+        b01 = expr.bit_xor(cr[0], cr[1])  # (bool) 1 & (bool) 0 -> (bool) 1
+        with qc.if_test(b01):
+            qc.x(4)  # q4 -> 1
+
+        b02 = expr.bit_xor(cr[0], cr[2])  # (bool) 1 & (bool) 1 -> (bool) 0
+        with qc.if_test(b02):
+            qc.x(5)  # q5 -> 0
+
+        b03 = expr.bit_xor(cr[1], cr[3])  # (bool) 0 & (bool) 0 -> (bool) 0
+        with qc.if_test(b03):
+            qc.x(6)  # q6 -> 0
+
+        b04 = expr.bit_xor(
+            expr.Value(True, types.Bool()), expr.Value(False, types.Bool())
+        )  # (bool) 1 & (bool) 0 -> (bool) 1
+        with qc.if_test(b04):
+            qc.x(7)  # q7 -> 1
+
+        qc.measure(range(8), range(8))  # 10010101
+
+        backend = self.backend(method=method)
+        counts = backend.run(qc).result().get_counts()
+        self.assertEqual(len(counts), 1)
+        self.assertIn("10010101", counts)
+
         qr = QuantumRegister(7)
         cr = ClassicalRegister(7)
         qc = QuantumCircuit(qr, cr)
@@ -1169,17 +1201,77 @@ class TestControlFlow(SimulatorTestCase):
         qc.x(2)
         qc.measure(range(4), range(4))  # 0101
         qc.barrier()
-        b01 = expr.bit_xor(cr[0], cr[1])  # 1 & 0 -> 1
-        with qc.if_test(b01):
+        try:
+            b04 = expr.bit_xor(
+                expr.Var(cr, types.Uint(cr.size)), expr.Var(cr, types.Uint(cr.size))
+            )  # (bool) 1 ^ (uint) 0101 -> error
+            self.fail("do not reach here")
+        except Exception:
+            pass
+
+        qr = QuantumRegister(7)
+        cr = ClassicalRegister(7)
+        cr0 = ClassicalRegister(7)
+        qc = QuantumCircuit(qr, cr, cr0)
+        qc.x(0)
+        qc.x(1)
+        qc.x(2)
+        qc.x(3)
+        qc.measure(range(4), range(4))  # 1111
+        qc.barrier()
+        b05 = expr.bit_xor(
+            expr.Var(cr, types.Uint(cr.size)), expr.Var(cr, types.Uint(cr.size))
+        )  # (uint) 1111 ^ (uint) 1111 -> (uint) 0000
+        with qc.if_test(expr.equal(b05, 0b0000000)):
             qc.x(4)  # q4 -> 1
+        b06 = expr.bit_xor(
+            expr.Var(cr0, types.Uint(cr0.size)), expr.Var(cr, types.Uint(cr.size))
+        )  # (uint) 0000 ^ (uint) 0101 -> (uint) 1111
+        with qc.if_test(expr.equal(b06, 0b0001111)):
+            qc.x(5)  # q5 -> 1
 
-        b02 = expr.bit_xor(cr[0], cr[2])  # 1 & 1 -> 0
+        qc.measure(range(7), range(7))  # 111111
+
+        backend = self.backend(method=method)
+        counts = backend.run(qc).result().get_counts()
+        self.assertEqual(len(counts), 1)
+        self.assertIn("0000000 0111111", counts)
+
+    @data("statevector", "density_matrix", "matrix_product_state", "stabilizer")
+    def test_bit_not_operation(self, method):
+        """test bit-not operation"""
+        qr = QuantumRegister(7)
+        cr = ClassicalRegister(7)
+        qc = QuantumCircuit(qr, cr)
+        qc.x(0)
+        qc.x(2)
+        qc.measure(range(4), range(4))  # 0101
+        qc.barrier()
+        b01 = expr.bit_not(cr[0])  # !1 -> 0
+        with qc.if_test(b01):
+            qc.x(4)  # q4 -> 0
+
+        b02 = expr.bit_not(cr[1])  # !0 -> 1
         with qc.if_test(b02):
-            qc.x(5)  # q5 -> 0
+            qc.x(5)  # q5 -> 1
 
-        b13 = expr.bit_xor(cr[1], cr[3])  # 0 & 0 -> 0
-        with qc.if_test(b13):
-            qc.x(6)  # q6 -> 0
+        qc.measure(range(7), range(7))  # 0100101
+
+        backend = self.backend(method=method)
+        counts = backend.run(qc).result().get_counts()
+        self.assertEqual(len(counts), 1)
+        self.assertIn("0100101", counts)
+
+        qr = QuantumRegister(7)
+        cr = ClassicalRegister(7)
+        qc = QuantumCircuit(qr, cr)
+        qc.x(0)
+        qc.x(2)
+        qc.measure(range(4), range(4))  # 0101
+        qc.barrier()
+        b01 = expr.bit_not(expr.Var(cr, types.Uint(cr.size)))  # 0b0000101 -> 0b1111010
+        with qc.if_test(expr.equal(b01, 0b1111010)):
+            qc.x(4)  # q4 -> 1
 
         qc.measure(range(7), range(7))  # 0010101
 
