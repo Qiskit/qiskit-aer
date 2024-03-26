@@ -136,4 +136,7 @@ class EstimatorV2(BaseEstimatorV2):
                 evs[index] += rng.normal(expval, precision) * coeff
         data_bin_cls = self._make_data_bin(pub)
         data_bin = data_bin_cls(evs=evs, stds=stds)
-        return PubResult(data_bin, metadata={"target_precision": precision})
+        return PubResult(
+            data_bin,
+            metadata={"target_precision": precision, "simulator_metadata": result.metadata},
+        )
