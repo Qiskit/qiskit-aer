@@ -70,8 +70,8 @@ class EstimatorV2(BaseEstimatorV2):
                 the runtime options (``run_options``).
         """
         self._options = Options(**options) if options else Options()
-        method = "density_matrix" if "noise_model" in self._options.backend_options else "automatic"
-        self._backend = AerSimulator(method=method)
+        method = "density_matrix" if "noise_model" in self.options.backend_options else "automatic"
+        self._backend = AerSimulator(method=method, **self.options.backend_options)
 
     @property
     def options(self) -> Options:
@@ -121,7 +121,9 @@ class EstimatorV2(BaseEstimatorV2):
             circuit.save_expectation_value(
                 Pauli(pauli), qubits=range(circuit.num_qubits), label=pauli
             )
-        result = self._backend.run(circuit, parameter_binds=[parameter_binds]).result()
+        result = self._backend.run(
+            circuit, parameter_binds=[parameter_binds], **self.options.run_options
+        ).result()
 
         # calculate expectation values (evs) and standard errors (stds)
         rng = np.random.default_rng(self.options.run_options.get("seed_simulator"))
