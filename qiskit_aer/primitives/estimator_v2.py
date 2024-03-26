@@ -127,14 +127,13 @@ class EstimatorV2(BaseEstimatorV2):
         rng = np.random.default_rng(self.options.run_options.get("seed_simulator"))
         flat_indices = list(param_indices.ravel())
         evs = np.zeros_like(bc_param_ind, dtype=float)
-        stds = np.zeros_like(bc_param_ind, dtype=float)
+        stds = np.full(bc_param_ind.shape, precision)
         for index in np.ndindex(*bc_param_ind.shape):
             param_index = bc_param_ind[index]
             flat_index = flat_indices.index(param_index)
             for pauli, coeff in bc_obs[index].items():
                 expval = result.data(flat_index)[pauli]
                 evs[index] += rng.normal(expval, precision) * coeff
-        # stds = np.sqrt(variances / shots)
         data_bin_cls = self._make_data_bin(pub)
         data_bin = data_bin_cls(evs=evs, stds=stds)
-        return PubResult(data_bin, metadata={"target_precision": pub.precision})
+        return PubResult(data_bin, metadata={"target_precision": precision})
