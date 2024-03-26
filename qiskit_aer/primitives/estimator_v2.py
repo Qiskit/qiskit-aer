@@ -133,7 +133,9 @@ class EstimatorV2(BaseEstimatorV2):
             flat_index = flat_indices.index(param_index)
             for pauli, coeff in bc_obs[index].items():
                 expval = result.data(flat_index)[pauli]
-                evs[index] += rng.normal(expval, precision) * coeff
+                evs[index] += expval * coeff
+        if precision > 0:
+            evs = rng.normal(evs, precision)
         data_bin_cls = self._make_data_bin(pub)
         data_bin = data_bin_cls(evs=evs, stds=stds)
         return PubResult(
