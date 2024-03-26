@@ -14,21 +14,15 @@
 
 from __future__ import annotations
 
-from collections import defaultdict
 from collections.abc import Iterable
 from dataclasses import dataclass, field
 
 import numpy as np
-from qiskit.circuit import ClassicalRegister, QuantumCircuit, QuantumRegister
-from qiskit.exceptions import QiskitError
 from qiskit.primitives.base import BaseEstimatorV2
 from qiskit.primitives.containers import EstimatorPubLike, PrimitiveResult, PubResult
-from qiskit.primitives.containers.bindings_array import BindingsArray
 from qiskit.primitives.containers.estimator_pub import EstimatorPub
 from qiskit.primitives.primitive_job import PrimitiveJob
-from qiskit.quantum_info import Pauli, PauliList
-from qiskit.transpiler import PassManager, PassManagerConfig
-from qiskit.transpiler.passes import Optimize1qGatesDecomposition
+from qiskit.quantum_info import Pauli
 
 from qiskit_aer import AerSimulator
 
