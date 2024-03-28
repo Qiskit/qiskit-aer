@@ -196,6 +196,7 @@ class UnitarySimulator(AerBackend):
                 "rzz",
                 "rzx",
                 "ccx",
+                "ccz",
                 "cswap",
                 "mcx",
                 "mcy",
