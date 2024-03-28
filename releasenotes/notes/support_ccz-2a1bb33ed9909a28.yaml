@@ -1,0 +1,5 @@
+---
+features:
+  - |
+    Adding native support for ccz gate for statevector, unitary and tensornet methods.
+    ccz gate is implemented by using mcz gate

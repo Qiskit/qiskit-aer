@@ -66,15 +66,14 @@ const Operations::OpSet StateOpSet(
      OpType::jump,
      OpType::mark},
     // Gates
-    {"u1",   "u2",    "u3",     "u",     "U",     "CX",       "cx",
-     "cz",   "cy",    "cp",     "cu1",   "cu2",   "cu3",      "swap",
-     "id",   "p",     "x",      "y",     "z",     "h",        "s",
-     "sdg",  "t",     "tdg",    "r",     "rx",    "ry",       "rz",
-     "rxx",  "ryy",   "rzz",    "rzx",   "ccx",   "cswap",    "mcx",
-     "mcy",  "mcz",   "mcu1",   "mcu2",  "mcu3",  "mcswap",   "mcphase",
-     "mcr",  "mcrx",  "mcry",   "mcrz",  "sx",    "sxdg",     "csx",
-     "mcsx", "csxdg", "mcsxdg", "delay", "pauli", "mcx_gray", "cu",
-     "mcu",  "mcp",   "ecr"});
+    {"u1",   "u2",     "u3",    "u",      "U",     "CX",    "cx",       "cz",
+     "cy",   "cp",     "cu1",   "cu2",    "cu3",   "swap",  "id",       "p",
+     "x",    "y",      "z",     "h",      "s",     "sdg",   "t",        "tdg",
+     "r",    "rx",     "ry",    "rz",     "rxx",   "ryy",   "rzz",      "rzx",
+     "ccx",  "ccz",    "cswap", "mcx",    "mcy",   "mcz",   "mcu1",     "mcu2",
+     "mcu3", "mcswap", "mcr",   "mcrx",   "mcry",  "mcrz",  "sx",       "sxdg",
+     "csx",  "mcsx",   "csxdg", "mcsxdg", "delay", "pauli", "mcx_gray", "cu",
+     "mcu",  "mcp",    "ecr",   "mcphase"});
 
 // Allowed gates enum class
 enum class Gates {
@@ -153,8 +152,8 @@ public:
 
   // Sample n-measurement outcomes without applying the measure operation
   // to the system state
-  virtual std::vector<reg_t> sample_measure(const reg_t &qubits, uint_t shots,
-                                            RngEngine &rng) override;
+  std::vector<SampleVector> sample_measure(const reg_t &qubits, uint_t shots,
+                                           RngEngine &rng) override;
 
   // Helper function for computing expectation value
   virtual double expval_pauli(const reg_t &qubits,
@@ -371,6 +370,7 @@ const stringmap_t<Gates> State<statevec_t>::gateset_(
      {"ecr", Gates::ecr},      // ECR Gate
      /* 3-qubit gates */
      {"ccx", Gates::mcx},      // Controlled-CX gate (Toffoli)
+     {"ccz", Gates::mcz},      // Controlled-CZ gate
      {"cswap", Gates::mcswap}, // Controlled SWAP gate (Fredkin)
      /* Multi-qubit controlled gates */
      {"mcx", Gates::mcx},       // Multi-controlled-X gate
@@ -1020,9 +1020,9 @@ void State<statevec_t>::measure_reset_update(const std::vector<uint_t> &qubits,
 }
 
 template <class statevec_t>
-std::vector<reg_t> State<statevec_t>::sample_measure(const reg_t &qubits,
-                                                     uint_t shots,
-                                                     RngEngine &rng) {
+std::vector<SampleVector> State<statevec_t>::sample_measure(const reg_t &qubits,
+                                                            uint_t shots,
+                                                            RngEngine &rng) {
   uint_t i;
   // Generate flat register for storing
   std::vector<double> rnds;
@@ -1034,18 +1034,25 @@ std::vector<reg_t> State<statevec_t>::sample_measure(const reg_t &qubits,
 
   allbit_samples = BaseState::qreg_.sample_measure(rnds);
 
-  // Convert to reg_t format
-  std::vector<reg_t> all_samples;
-  all_samples.reserve(shots);
-  for (int_t val : allbit_samples) {
-    reg_t allbit_sample = Utils::int2reg(val, 2, BaseState::qreg_.num_qubits());
-    reg_t sample;
-    sample.reserve(qubits.size());
-    for (uint_t qubit : qubits) {
-      sample.push_back(allbit_sample[qubit]);
+  // Convert to SampleVector format
+  int_t npar = BaseState::threads_;
+  if (npar > shots)
+    npar = shots;
+  std::vector<SampleVector> all_samples(shots, SampleVector(qubits.size()));
+
+  auto convert_to_bit_lambda = [this, &allbit_samples, &all_samples, shots,
+                                qubits, npar](int_t i) {
+    uint_t ishot, iend;
+    ishot = shots * i / npar;
+    iend = shots * (i + 1) / npar;
+    for (; ishot < iend; ishot++) {
+      SampleVector allbit_sample;
+      allbit_sample.from_uint(allbit_samples[ishot], qubits.size());
+      all_samples[ishot].map(allbit_sample, qubits);
     }
-    all_samples.push_back(sample);
-  }
+  };
+  Utils::apply_omp_parallel_for((npar > 1), 0, npar, convert_to_bit_lambda,
+                                npar);
 
   return all_samples;
 }
