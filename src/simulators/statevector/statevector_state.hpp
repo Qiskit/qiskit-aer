@@ -66,15 +66,14 @@ const Operations::OpSet StateOpSet(
      OpType::jump,
      OpType::mark},
     // Gates
-    {"u1",   "u2",    "u3",     "u",     "U",     "CX",       "cx",
-     "cz",   "cy",    "cp",     "cu1",   "cu2",   "cu3",      "swap",
-     "id",   "p",     "x",      "y",     "z",     "h",        "s",
-     "sdg",  "t",     "tdg",    "r",     "rx",    "ry",       "rz",
-     "rxx",  "ryy",   "rzz",    "rzx",   "ccx",   "cswap",    "mcx",
-     "mcy",  "mcz",   "mcu1",   "mcu2",  "mcu3",  "mcswap",   "mcphase",
-     "mcr",  "mcrx",  "mcry",   "mcrz",  "sx",    "sxdg",     "csx",
-     "mcsx", "csxdg", "mcsxdg", "delay", "pauli", "mcx_gray", "cu",
-     "mcu",  "mcp",   "ecr"});
+    {"u1",   "u2",     "u3",    "u",      "U",     "CX",    "cx",       "cz",
+     "cy",   "cp",     "cu1",   "cu2",    "cu3",   "swap",  "id",       "p",
+     "x",    "y",      "z",     "h",      "s",     "sdg",   "t",        "tdg",
+     "r",    "rx",     "ry",    "rz",     "rxx",   "ryy",   "rzz",      "rzx",
+     "ccx",  "ccz",    "cswap", "mcx",    "mcy",   "mcz",   "mcu1",     "mcu2",
+     "mcu3", "mcswap", "mcr",   "mcrx",   "mcry",  "mcrz",  "sx",       "sxdg",
+     "csx",  "mcsx",   "csxdg", "mcsxdg", "delay", "pauli", "mcx_gray", "cu",
+     "mcu",  "mcp",    "ecr",   "mcphase"});
 
 // Allowed gates enum class
 enum class Gates {
@@ -371,6 +370,7 @@ const stringmap_t<Gates> State<statevec_t>::gateset_(
      {"ecr", Gates::ecr},      // ECR Gate
      /* 3-qubit gates */
      {"ccx", Gates::mcx},      // Controlled-CX gate (Toffoli)
+     {"ccz", Gates::mcz},      // Controlled-CZ gate
      {"cswap", Gates::mcswap}, // Controlled SWAP gate (Fredkin)
      /* Multi-qubit controlled gates */
      {"mcx", Gates::mcx},       // Multi-controlled-X gate
