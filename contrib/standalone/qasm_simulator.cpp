@@ -92,6 +92,14 @@ int main(int argc, char **argv) {
   json_t config;
   int myrank = 0;
 
+  std::cerr << "The standalone simulator is deprecated as of Qiskit 0.14"
+            << std::endl;
+  std::cerr << "and will be removed no sooner than 3 months from that release."
+            << std::endl;
+  std::cerr << "Please run the simulator from Python using AerSimulator.run()"
+            << std::endl;
+  std::cerr << "with qiskit.circuit" << std::endl;
+
 #ifdef AER_MPI
   int prov;
   int nprocs = 1;

@@ -155,8 +155,8 @@ class AerJob(Job):
             Qobj: the Qobj submitted for this job.
         """
         warnings.warn(
-            "`AerJob.qobj() is deprecated as of qiskit-aer 0.12.0`. "
-            "Using a qobj for `backend.run()` is deprecated as of qiskit-aer 0.9.0"
+            "`AerJob.qobj() is deprecated as of qiskit-aer 0.14`. "
+            "Using a qobj for `backend.run()` is deprecated as of qiskit-aer 0.14"
             " and will be removed no sooner than 3 months from that release"
             " date. Once it is removed, this `qobj()` returns always `None`.",
             DeprecationWarning,
