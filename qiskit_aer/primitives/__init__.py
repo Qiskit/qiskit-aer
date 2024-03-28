@@ -32,4 +32,5 @@ Classes
 """
 
 from .estimator import Estimator
+from .estimator_v2 import EstimatorV2
 from .sampler import Sampler
