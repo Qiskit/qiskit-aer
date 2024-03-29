@@ -33,3 +33,4 @@ Classes
 
 from .estimator import Estimator
 from .sampler import Sampler
+from .sampler_v2 import SamplerV2
