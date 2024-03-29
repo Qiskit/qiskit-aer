@@ -16,8 +16,6 @@ Sampler V2 class.
 
 from __future__ import annotations
 
-from collections.abc import Sequence
-
 from dataclasses import dataclass
 from typing import Iterable
 import warnings
@@ -40,7 +38,6 @@ from qiskit.primitives.containers import (
 from qiskit.primitives.containers.sampler_pub import SamplerPub
 from qiskit.primitives.containers.bit_array import _min_num_bytes
 from qiskit.primitives.primitive_job import PrimitiveJob
-from qiskit.primitives.utils import bound_circuit_to_instruction
 
 from qiskit_aer import AerSimulator
 
@@ -148,7 +145,7 @@ class SamplerV2(BaseSamplerV2):
                     kk = ""
                     for q in qargs:
                         kk = k[circuit.num_qubits - 1 - q] + kk
-                    for iv in range(0, v):
+                    for _ in range(0, v):
                         samples.append(kk)
 
                 samples_array = np.array(
