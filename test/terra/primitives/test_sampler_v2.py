@@ -292,7 +292,7 @@ class TestSamplerV2(QiskitAerTestCase):
             qc3.h(0)
 
         pm = generate_preset_pass_manager(optimization_level=0, backend=self._backend)
-        qc2 = pm.run(qc2)
+        qc1, qc2, qc3 = pm.run([qc1, qc2, qc3])
 
         sampler = SamplerV2()
         with self.subTest("set parameter values to a non-parameterized circuit"):
