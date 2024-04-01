@@ -73,6 +73,10 @@ class EstimatorV2(BaseEstimatorV2):
         method = "density_matrix" if "noise_model" in self.options.backend_options else "automatic"
         self._backend = AerSimulator(method=method, **self.options.backend_options)
 
+    def from_backend(self, backend, **options):
+        """use external backend"""
+        self._backend.from_backend(backend, **options)
+
     @property
     def options(self) -> Options:
         """Return the options"""
