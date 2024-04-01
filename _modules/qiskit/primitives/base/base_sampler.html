@@ -4,8 +4,8 @@
     <meta name="viewport" content="width=device-width,initial-scale=1"/>
     <meta name="color-scheme" content="light dark"><link rel="index" title="Index" href="../../../../genindex.html" /><link rel="search" title="Search" href="../../../../search.html" />
 
-    <!-- Generated with Sphinx 7.1.2 and Furo 2023.08.19 -->
-        <title>qiskit.primitives.base.base_sampler - Qiskit Aer 0.13.3</title>
+    <!-- Generated with Sphinx 7.1.2 and Furo 2024.01.29 -->
+        <title>qiskit.primitives.base.base_sampler - Qiskit Aer 0.14.0.1</title>
       <link rel="stylesheet" type="text/css" href="../../../../_static/styles/furo.css?v=135e06be" />
     <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=82a976d7" />
     <link rel="stylesheet" type="text/css" href="../../../../_static/styles/qiskit-sphinx-theme.css?v=fe84956c" />
@@ -145,7 +145,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../../../index.html"><div class="brand">Qiskit Aer 0.13.3</div></a>
+      <a href="../../../../index.html"><div class="brand">Qiskit Aer 0.14.0.1</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -172,7 +172,7 @@
     </div>
   </a>
   
-  <span class="sidebar-brand-text">Qiskit Aer 0.13.3</span>
+  <span class="sidebar-brand-text">Qiskit Aer 0.14.0.1</span>
 </div><form class="sidebar-search-container" method="get" action="../../../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
   <input type="hidden" name="check_keywords" value="yes">
@@ -290,7 +290,7 @@
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../../../../tutorials/index.html">Tutorials</a><input class="toctree-checkbox" id="toctree-checkbox-9" name="toctree-checkbox-9" role="switch" type="checkbox"/><label for="toctree-checkbox-9"><div class="visually-hidden">Toggle navigation of Tutorials</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
-<li class="toctree-l2"><a class="reference internal" href="../../../../tutorials/1_aer_provider.html">Simulators</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../tutorials/1_aersimulator.html">Simulators</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../tutorials/2_device_noise_simulation.html">Device backend noise model simulations</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../tutorials/3_building_noise_models.html">Building Noise Models</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../tutorials/4_custom_gate_noise.html">Applying noise to custom unitary gates</a></li>
@@ -349,91 +349,88 @@
 <span class="c1"># copyright notice, and modified files need to carry a notice indicating</span>
 <span class="c1"># that they have been altered from the originals.</span>
 
-<span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">===================</span>
-<span class="sd">Overview of Sampler</span>
-<span class="sd">===================</span>
-
-<span class="sd">Sampler class calculates probabilities or quasi-probabilities of bitstrings from quantum circuits.</span>
-
-<span class="sd">A sampler is initialized with an empty parameter set. The sampler is used to</span>
-<span class="sd">create a :class:`~qiskit.providers.JobV1`, via the :meth:`qiskit.primitives.Sampler.run()`</span>
-<span class="sd">method. This method is called with the following parameters</span>
-
-<span class="sd">* quantum circuits (:math:`\psi_i(\theta)`): list of (parameterized) quantum circuits.</span>
-<span class="sd">  (a list of :class:`~qiskit.circuit.QuantumCircuit` objects)</span>
-
-<span class="sd">* parameter values (:math:`\theta_k`): list of sets of parameter values</span>
-<span class="sd">  to be bound to the parameters of the quantum circuits.</span>
-<span class="sd">  (list of list of float)</span>
-
-<span class="sd">The method returns a :class:`~qiskit.providers.JobV1` object, calling</span>
-<span class="sd">:meth:`qiskit.providers.JobV1.result()` yields a :class:`~qiskit.primitives.SamplerResult`</span>
-<span class="sd">object, which contains probabilities or quasi-probabilities of bitstrings,</span>
-<span class="sd">plus optional metadata like error bars in the samples.</span>
-
-<span class="sd">Here is an example of how sampler is used.</span>
-
-<span class="sd">.. code-block:: python</span>
-
-<span class="sd">    from qiskit.primitives import Sampler</span>
-<span class="sd">    from qiskit import QuantumCircuit</span>
-<span class="sd">    from qiskit.circuit.library import RealAmplitudes</span>
-
-<span class="sd">    # a Bell circuit</span>
-<span class="sd">    bell = QuantumCircuit(2)</span>
-<span class="sd">    bell.h(0)</span>
-<span class="sd">    bell.cx(0, 1)</span>
-<span class="sd">    bell.measure_all()</span>
-
-<span class="sd">    # two parameterized circuits</span>
-<span class="sd">    pqc = RealAmplitudes(num_qubits=2, reps=2)</span>
-<span class="sd">    pqc.measure_all()</span>
-<span class="sd">    pqc2 = RealAmplitudes(num_qubits=2, reps=3)</span>
-<span class="sd">    pqc2.measure_all()</span>
-
-<span class="sd">    theta1 = [0, 1, 1, 2, 3, 5]</span>
-<span class="sd">    theta2 = [0, 1, 2, 3, 4, 5, 6, 7]</span>
-
-<span class="sd">    # initialization of the sampler</span>
-<span class="sd">    sampler = Sampler()</span>
-
-<span class="sd">    # Sampler runs a job on the Bell circuit</span>
-<span class="sd">    job = sampler.run(circuits=[bell], parameter_values=[[]], parameters=[[]])</span>
-<span class="sd">    job_result = job.result()</span>
-<span class="sd">    print([q.binary_probabilities() for q in job_result.quasi_dists])</span>
-
-<span class="sd">    # Sampler runs a job on the parameterized circuits</span>
-<span class="sd">    job2 = sampler.run(</span>
-<span class="sd">        circuits=[pqc, pqc2],</span>
-<span class="sd">        parameter_values=[theta1, theta2],</span>
-<span class="sd">        parameters=[pqc.parameters, pqc2.parameters])</span>
-<span class="sd">    job_result = job2.result()</span>
-<span class="sd">    print([q.binary_probabilities() for q in job_result.quasi_dists])</span>
-<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">&quot;&quot;&quot;Base Sampler Classes&quot;&quot;&quot;</span>
 
 <span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">annotations</span>
 
-<span class="kn">from</span> <span class="nn">abc</span> <span class="kn">import</span> <span class="n">abstractmethod</span>
-<span class="kn">from</span> <span class="nn">collections.abc</span> <span class="kn">import</span> <span class="n">Sequence</span>
+<span class="kn">from</span> <span class="nn">abc</span> <span class="kn">import</span> <span class="n">ABC</span><span class="p">,</span> <span class="n">abstractmethod</span>
+<span class="kn">from</span> <span class="nn">collections.abc</span> <span class="kn">import</span> <span class="n">Iterable</span><span class="p">,</span> <span class="n">Sequence</span>
 <span class="kn">from</span> <span class="nn">copy</span> <span class="kn">import</span> <span class="n">copy</span>
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Generic</span><span class="p">,</span> <span class="n">TypeVar</span>
 
-<span class="kn">from</span> <span class="nn">qiskit.utils.deprecation</span> <span class="kn">import</span> <span class="n">deprecate_func</span>
 <span class="kn">from</span> <span class="nn">qiskit.circuit</span> <span class="kn">import</span> <span class="n">QuantumCircuit</span>
-<span class="kn">from</span> <span class="nn">qiskit.circuit.parametertable</span> <span class="kn">import</span> <span class="n">ParameterView</span>
 <span class="kn">from</span> <span class="nn">qiskit.providers</span> <span class="kn">import</span> <span class="n">JobV1</span> <span class="k">as</span> <span class="n">Job</span>
 
-<span class="kn">from</span> <span class="nn">.base_primitive</span> <span class="kn">import</span> <span class="n">BasePrimitive</span>
+<span class="kn">from</span> <span class="nn">..containers.primitive_result</span> <span class="kn">import</span> <span class="n">PrimitiveResult</span>
+<span class="kn">from</span> <span class="nn">..containers.pub_result</span> <span class="kn">import</span> <span class="n">PubResult</span>
+<span class="kn">from</span> <span class="nn">..containers.sampler_pub</span> <span class="kn">import</span> <span class="n">SamplerPubLike</span>
 <span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">validation</span>
+<span class="kn">from</span> <span class="nn">.base_primitive</span> <span class="kn">import</span> <span class="n">BasePrimitive</span>
+<span class="kn">from</span> <span class="nn">.base_primitive_job</span> <span class="kn">import</span> <span class="n">BasePrimitiveJob</span>
 
 <span class="n">T</span> <span class="o">=</span> <span class="n">TypeVar</span><span class="p">(</span><span class="s2">&quot;T&quot;</span><span class="p">,</span> <span class="n">bound</span><span class="o">=</span><span class="n">Job</span><span class="p">)</span>
 
 
-<span class="k">class</span> <span class="nc">BaseSampler</span><span class="p">(</span><span class="n">BasePrimitive</span><span class="p">,</span> <span class="n">Generic</span><span class="p">[</span><span class="n">T</span><span class="p">]):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Sampler base class</span>
+<span class="k">class</span> <span class="nc">BaseSamplerV1</span><span class="p">(</span><span class="n">BasePrimitive</span><span class="p">,</span> <span class="n">Generic</span><span class="p">[</span><span class="n">T</span><span class="p">]):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Sampler V1 base class</span>
 
 <span class="sd">    Base class of Sampler that calculates quasi-probabilities of bitstrings from quantum circuits.</span>
+
+<span class="sd">    A sampler is initialized with an empty parameter set. The sampler is used to</span>
+<span class="sd">    create a :class:`~qiskit.providers.JobV1`, via the :meth:`qiskit.primitives.Sampler.run()`</span>
+<span class="sd">    method. This method is called with the following parameters</span>
+
+<span class="sd">    * quantum circuits (:math:`\psi_i(\theta)`): list of (parameterized) quantum circuits.</span>
+<span class="sd">      (a list of :class:`~qiskit.circuit.QuantumCircuit` objects)</span>
+
+<span class="sd">    * parameter values (:math:`\theta_k`): list of sets of parameter values</span>
+<span class="sd">      to be bound to the parameters of the quantum circuits.</span>
+<span class="sd">      (list of list of float)</span>
+
+<span class="sd">    The method returns a :class:`~qiskit.providers.JobV1` object, calling</span>
+<span class="sd">    :meth:`qiskit.providers.JobV1.result()` yields a :class:`~qiskit.primitives.SamplerResult`</span>
+<span class="sd">    object, which contains probabilities or quasi-probabilities of bitstrings,</span>
+<span class="sd">    plus optional metadata like error bars in the samples.</span>
+
+<span class="sd">    Here is an example of how sampler is used.</span>
+
+<span class="sd">    .. code-block:: python</span>
+
+<span class="sd">        from qiskit.primitives import Sampler</span>
+<span class="sd">        from qiskit import QuantumCircuit</span>
+<span class="sd">        from qiskit.circuit.library import RealAmplitudes</span>
+
+<span class="sd">        # a Bell circuit</span>
+<span class="sd">        bell = QuantumCircuit(2)</span>
+<span class="sd">        bell.h(0)</span>
+<span class="sd">        bell.cx(0, 1)</span>
+<span class="sd">        bell.measure_all()</span>
+
+<span class="sd">        # two parameterized circuits</span>
+<span class="sd">        pqc = RealAmplitudes(num_qubits=2, reps=2)</span>
+<span class="sd">        pqc.measure_all()</span>
+<span class="sd">        pqc2 = RealAmplitudes(num_qubits=2, reps=3)</span>
+<span class="sd">        pqc2.measure_all()</span>
+
+<span class="sd">        theta1 = [0, 1, 1, 2, 3, 5]</span>
+<span class="sd">        theta2 = [0, 1, 2, 3, 4, 5, 6, 7]</span>
+
+<span class="sd">        # initialization of the sampler</span>
+<span class="sd">        sampler = Sampler()</span>
+
+<span class="sd">        # Sampler runs a job on the Bell circuit</span>
+<span class="sd">        job = sampler.run(circuits=[bell], parameter_values=[[]], parameters=[[]])</span>
+<span class="sd">        job_result = job.result()</span>
+<span class="sd">        print([q.binary_probabilities() for q in job_result.quasi_dists])</span>
+
+<span class="sd">        # Sampler runs a job on the parameterized circuits</span>
+<span class="sd">        job2 = sampler.run(</span>
+<span class="sd">            circuits=[pqc, pqc2],</span>
+<span class="sd">            parameter_values=[theta1, theta2],</span>
+<span class="sd">            parameters=[pqc.parameters, pqc2.parameters])</span>
+<span class="sd">        job_result = job2.result()</span>
+<span class="sd">        print([q.binary_probabilities() for q in job_result.quasi_dists])</span>
+
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="fm">__hash__</span> <span class="o">=</span> <span class="kc">None</span>
@@ -447,8 +444,6 @@
 <span class="sd">        Args:</span>
 <span class="sd">            options: Default options.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_circuits</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_parameters</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">options</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">run</span><span class="p">(</span>
@@ -493,31 +488,35 @@
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">T</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;The subclass of BaseSampler must implement `_run` method.&quot;</span><span class="p">)</span>
 
-    <span class="nd">@classmethod</span>
-    <span class="nd">@deprecate_func</span><span class="p">(</span><span class="n">since</span><span class="o">=</span><span class="s2">&quot;0.46.0&quot;</span><span class="p">)</span>
-    <span class="k">def</span> <span class="nf">_validate_circuits</span><span class="p">(</span>
-        <span class="bp">cls</span><span class="p">,</span>
-        <span class="n">circuits</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">QuantumCircuit</span><span class="p">]</span> <span class="o">|</span> <span class="n">QuantumCircuit</span><span class="p">,</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">QuantumCircuit</span><span class="p">,</span> <span class="o">...</span><span class="p">]:</span>
-        <span class="k">return</span> <span class="n">validation</span><span class="o">.</span><span class="n">_validate_circuits</span><span class="p">(</span><span class="n">circuits</span><span class="p">,</span> <span class="n">requires_measure</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
-    <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">circuits</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">QuantumCircuit</span><span class="p">,</span> <span class="o">...</span><span class="p">]:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Quantum circuits to be sampled.</span>
+<span class="n">BaseSampler</span> <span class="o">=</span> <span class="n">BaseSamplerV1</span>
+
+
+<span class="k">class</span> <span class="nc">BaseSamplerV2</span><span class="p">(</span><span class="n">ABC</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Sampler V2 base class.</span>
+
+<span class="sd">    A Sampler returns samples of quantum circuit outputs.</span>
+
+<span class="sd">    All sampler implementations must implement default value for the ``shots`` in the</span>
+<span class="sd">    :meth:`.run` method if ``None`` is given both as a ``kwarg`` and in all of the pubs.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span> <span class="nf">run</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">pubs</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="n">SamplerPubLike</span><span class="p">],</span> <span class="o">*</span><span class="p">,</span> <span class="n">shots</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">BasePrimitiveJob</span><span class="p">[</span><span class="n">PrimitiveResult</span><span class="p">[</span><span class="n">PubResult</span><span class="p">]]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Run and collect samples from each pub.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            pubs: An iterable of pub-like objects. For example, a list of circuits</span>
+<span class="sd">                  or tuples ``(circuit, parameter_values)``.</span>
+<span class="sd">            shots: The total number of shots to sample for each sampler pub that does</span>
+<span class="sd">                   not specify its own shots. If ``None``, the primitive&#39;s default</span>
+<span class="sd">                   shots value will be used, which can vary by implementation.</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            The quantum circuits to be sampled.</span>
+<span class="sd">            The job object of Sampler&#39;s result.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_circuits</span><span class="p">)</span>
-
-    <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">parameters</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">ParameterView</span><span class="p">,</span> <span class="o">...</span><span class="p">]:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Parameters of quantum circuits.</span>
-
-<span class="sd">        Returns:</span>
-<span class="sd">            List of the parameters in each quantum circuit.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_parameters</span><span class="p">)</span>
 </pre></div>
         </article>
       </div>
@@ -535,7 +534,7 @@
             
             <a href="https://github.com/pradyunsg/furo">Furo</a>
             <div class="last-updated">
-              Last updated on 2024/02/06</div>
+              Last updated on 2024/04/01</div>
           </div>
           <div class="right-details">
             
@@ -552,7 +551,7 @@
   </div>
 </div><script src="../../../../_static/jquery.js?v=5d32c60e"></script>
     <script src="../../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-    <script data-url_root="../../../../" id="documentation_options" src="../../../../_static/documentation_options.js?v=5fc4c2b6"></script>
+    <script data-url_root="../../../../" id="documentation_options" src="../../../../_static/documentation_options.js?v=ebab30a7"></script>
     <script src="../../../../_static/doctools.js?v=888ff710"></script>
     <script src="../../../../_static/sphinx_highlight.js?v=4825356b"></script>
     <script src="../../../../_static/thebelab-helper.js"></script>

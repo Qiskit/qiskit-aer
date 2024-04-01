@@ -42,7 +42,6 @@ SaveMatrixProductState
    .. automethod:: SaveMatrixProductState.copy
    .. automethod:: SaveMatrixProductState.inverse
    .. automethod:: SaveMatrixProductState.is_parameterized
-   .. automethod:: SaveMatrixProductState.qasm
    .. automethod:: SaveMatrixProductState.repeat
    .. automethod:: SaveMatrixProductState.reverse_ops
    .. automethod:: SaveMatrixProductState.soft_compare

@@ -42,7 +42,6 @@ SaveDensityMatrix
    .. automethod:: SaveDensityMatrix.copy
    .. automethod:: SaveDensityMatrix.inverse
    .. automethod:: SaveDensityMatrix.is_parameterized
-   .. automethod:: SaveDensityMatrix.qasm
    .. automethod:: SaveDensityMatrix.repeat
    .. automethod:: SaveDensityMatrix.reverse_ops
    .. automethod:: SaveDensityMatrix.soft_compare

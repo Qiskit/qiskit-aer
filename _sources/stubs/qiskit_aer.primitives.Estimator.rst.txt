@@ -16,10 +16,7 @@ Estimator
    .. rubric:: Attributes
       
    .. autoattribute:: Estimator.approximation
-   .. autoattribute:: Estimator.circuits
-   .. autoattribute:: Estimator.observables
    .. autoattribute:: Estimator.options
-   .. autoattribute:: Estimator.parameters
    
 
 

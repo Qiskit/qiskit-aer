@@ -42,7 +42,6 @@ SetUnitary
    .. automethod:: SetUnitary.copy
    .. automethod:: SetUnitary.inverse
    .. automethod:: SetUnitary.is_parameterized
-   .. automethod:: SetUnitary.qasm
    .. automethod:: SetUnitary.repeat
    .. automethod:: SetUnitary.reverse_ops
    .. automethod:: SetUnitary.soft_compare

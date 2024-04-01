@@ -42,7 +42,6 @@ SaveStabilizer
    .. automethod:: SaveStabilizer.copy
    .. automethod:: SaveStabilizer.inverse
    .. automethod:: SaveStabilizer.is_parameterized
-   .. automethod:: SaveStabilizer.qasm
    .. automethod:: SaveStabilizer.repeat
    .. automethod:: SaveStabilizer.reverse_ops
    .. automethod:: SaveStabilizer.soft_compare

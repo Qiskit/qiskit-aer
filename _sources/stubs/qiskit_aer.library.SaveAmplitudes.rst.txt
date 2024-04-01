@@ -42,7 +42,6 @@ SaveAmplitudes
    .. automethod:: SaveAmplitudes.copy
    .. automethod:: SaveAmplitudes.inverse
    .. automethod:: SaveAmplitudes.is_parameterized
-   .. automethod:: SaveAmplitudes.qasm
    .. automethod:: SaveAmplitudes.repeat
    .. automethod:: SaveAmplitudes.reverse_ops
    .. automethod:: SaveAmplitudes.soft_compare

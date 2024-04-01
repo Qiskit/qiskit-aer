@@ -5,8 +5,8 @@
     <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
 <link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" /><link rel="next" title="Utilities (qiskit_aer.utils)" href="../apidocs/aer_utils.html" /><link rel="prev" title="Sampler" href="qiskit_aer.primitives.Sampler.html" />
 
-    <!-- Generated with Sphinx 7.1.2 and Furo 2023.08.19 -->
-        <title>Estimator - Qiskit Aer 0.13.3</title>
+    <!-- Generated with Sphinx 7.1.2 and Furo 2024.01.29 -->
+        <title>Estimator - Qiskit Aer 0.14.0.1</title>
       <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=135e06be" />
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=82a976d7" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/qiskit-sphinx-theme.css?v=fe84956c" />
@@ -145,7 +145,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../index.html"><div class="brand">Qiskit Aer 0.13.3</div></a>
+      <a href="../index.html"><div class="brand">Qiskit Aer 0.14.0.1</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -172,7 +172,7 @@
     </div>
   </a>
   
-  <span class="sidebar-brand-text">Qiskit Aer 0.13.3</span>
+  <span class="sidebar-brand-text">Qiskit Aer 0.14.0.1</span>
 </div><form class="sidebar-search-container" method="get" action="../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
   <input type="hidden" name="check_keywords" value="yes">
@@ -290,7 +290,7 @@
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../tutorials/index.html">Tutorials</a><input class="toctree-checkbox" id="toctree-checkbox-9" name="toctree-checkbox-9" role="switch" type="checkbox"/><label for="toctree-checkbox-9"><div class="visually-hidden">Toggle navigation of Tutorials</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
-<li class="toctree-l2"><a class="reference internal" href="../tutorials/1_aer_provider.html">Simulators</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../tutorials/1_aersimulator.html">Simulators</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../tutorials/2_device_noise_simulation.html">Device backend noise model simulations</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../tutorials/3_building_noise_models.html">Building Noise Models</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../tutorials/4_custom_gate_noise.html">Applying noise to custom unitary gates</a></li>
@@ -342,7 +342,7 @@
 <dl class="py class">
 <dt class="sig sig-object py" id="qiskit_aer.primitives.Estimator">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">Estimator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">backend_options</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">transpile_options</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">run_options</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">approximation</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">skip_transpilation</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">abelian_grouping</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/qiskit_aer/primitives/estimator.html#Estimator"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_aer.primitives.Estimator" title="Permalink to this definition">#</a></dt>
-<dd><p>Bases: <a class="reference external" href="https://qiskit.org/documentation/stubs/qiskit.primitives.BaseEstimator.html#qiskit.primitives.BaseEstimator" title="(in Qiskit v0.45)"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseEstimator</span></code></a></p>
+<dd><p>Bases: <a class="reference external" href="https://docs.quantum.ibm.com/api/qiskit/qiskit.primitives.BaseEstimatorV1" title="(in Qiskit v1.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseEstimatorV1</span></code></a></p>
 <p>Aer implmentation of Estimator.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Run Options<span class="colon">:</span></dt>
@@ -400,28 +400,6 @@ If approximation is True, this parameter is ignored and assumed to be False.</p>
 </dd></dl>
 
 <dl class="py attribute">
-<dt class="sig sig-object py" id="qiskit_aer.primitives.Estimator.circuits">
-<span class="sig-name descname"><span class="pre">circuits</span></span><a class="headerlink" href="#qiskit_aer.primitives.Estimator.circuits" title="Permalink to this definition">#</a></dt>
-<dd><p>Quantum circuits that represents quantum states.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Returns<span class="colon">:</span></dt>
-<dd class="field-odd"><p>The quantum circuits.</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="qiskit_aer.primitives.Estimator.observables">
-<span class="sig-name descname"><span class="pre">observables</span></span><a class="headerlink" href="#qiskit_aer.primitives.Estimator.observables" title="Permalink to this definition">#</a></dt>
-<dd><p>Observables to be estimated.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Returns<span class="colon">:</span></dt>
-<dd class="field-odd"><p>The observables.</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py attribute">
 <dt class="sig sig-object py" id="qiskit_aer.primitives.Estimator.options">
 <span class="sig-name descname"><span class="pre">options</span></span><a class="headerlink" href="#qiskit_aer.primitives.Estimator.options" title="Permalink to this definition">#</a></dt>
 <dd><p>Return options values for the estimator.</p>
@@ -432,21 +410,10 @@ If approximation is True, this parameter is ignored and assumed to be False.</p>
 </dl>
 </dd></dl>
 
-<dl class="py attribute">
-<dt class="sig sig-object py" id="qiskit_aer.primitives.Estimator.parameters">
-<span class="sig-name descname"><span class="pre">parameters</span></span><a class="headerlink" href="#qiskit_aer.primitives.Estimator.parameters" title="Permalink to this definition">#</a></dt>
-<dd><p>Parameters of the quantum circuits.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Returns<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Parameters, where <code class="docutils literal notranslate"><span class="pre">parameters[i][j]</span></code> is the j-th parameter of the i-th circuit.</p>
-</dd>
-</dl>
-</dd></dl>
-
 <p class="rubric">Methods</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="qiskit_aer.primitives.Estimator.run">
-<span class="sig-name descname"><span class="pre">run</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">circuits</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">QuantumCircuit</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">QuantumCircuit</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">observables</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">BaseOperator</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">PauliSumOp</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">BaseOperator</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">PauliSumOp</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parameter_values</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">run_options</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">T</span></span></span><a class="headerlink" href="#qiskit_aer.primitives.Estimator.run" title="Permalink to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">run</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">circuits</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">QuantumCircuit</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">QuantumCircuit</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">observables</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">BaseOperator</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">BaseOperator</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parameter_values</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">run_options</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">T</span></span></span><a class="headerlink" href="#qiskit_aer.primitives.Estimator.run" title="Permalink to this definition">#</a></dt>
 <dd><p>Run the job of the estimation of expectation value(s).</p>
 <p><code class="docutils literal notranslate"><span class="pre">circuits</span></code>, <code class="docutils literal notranslate"><span class="pre">observables</span></code>, and <code class="docutils literal notranslate"><span class="pre">parameter_values</span></code> should have the same
 length. The i-th element of the result is the expectation of observable</p>
@@ -461,19 +428,13 @@ length. The i-th element of the result is the expectation of observable</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">values</span> <span class="o">=</span> <span class="n">parameter_values</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span>
 </pre></div>
 </div>
-<div class="deprecated">
-<p><span class="versionmodified deprecated">Deprecated since version 0.46.0: </span>Implicit conversion from a <code class="docutils literal notranslate"><span class="pre">PauliList</span></code> to a <code class="docutils literal notranslate"><span class="pre">SparsePauliOp</span></code> with <code class="docutils literal notranslate"><span class="pre">coeffs=1</span></code> in
-the <code class="docutils literal notranslate"><span class="pre">observables</span></code> arguments is deprecated as of Qiskit 0.46 and will be removed
-in Qiskit 1.0. You should explicitly convert to a <code class="docutils literal notranslate"><span class="pre">SparsePauli</span></code> using
-<code class="docutils literal notranslate"><span class="pre">SparsePauliOp(pauli_list)</span></code> to avoid this warning.</p>
-</div>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>circuits</strong> – one or more circuit objects.</p></li>
 <li><p><strong>observables</strong> – one or more observable objects. Several formats are allowed;
 importantly, <code class="docutils literal notranslate"><span class="pre">str</span></code> should follow the string representation format for
-<a class="reference external" href="https://qiskit.org/documentation/stubs/qiskit.quantum_info.Pauli.html#qiskit.quantum_info.Pauli" title="(in Qiskit v0.45)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Pauli</span></code></a> objects.</p></li>
+<a class="reference external" href="https://docs.quantum.ibm.com/api/qiskit/qiskit.quantum_info.Pauli" title="(in Qiskit v1.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Pauli</span></code></a> objects.</p></li>
 <li><p><strong>parameter_values</strong> – concrete parameters to be bound.</p></li>
 <li><p><strong>run_options</strong> – runtime options used for circuit execution.</p></li>
 </ul>
@@ -539,7 +500,7 @@ importantly, <code class="docutils literal notranslate"><span class="pre">str</s
             
             <a href="https://github.com/pradyunsg/furo">Furo</a>
             <div class="last-updated">
-              Last updated on 2024/02/06</div>
+              Last updated on 2024/04/01</div>
           </div>
           <div class="right-details">
             
@@ -563,10 +524,7 @@ importantly, <code class="docutils literal notranslate"><span class="pre">str</s
 <li><a class="reference internal" href="#">Estimator</a><ul>
 <li><a class="reference internal" href="#qiskit_aer.primitives.Estimator"><code class="docutils literal notranslate"><span class="pre">Estimator</span></code></a><ul>
 <li><a class="reference internal" href="#qiskit_aer.primitives.Estimator.approximation"><code class="docutils literal notranslate"><span class="pre">Estimator.approximation</span></code></a></li>
-<li><a class="reference internal" href="#qiskit_aer.primitives.Estimator.circuits"><code class="docutils literal notranslate"><span class="pre">Estimator.circuits</span></code></a></li>
-<li><a class="reference internal" href="#qiskit_aer.primitives.Estimator.observables"><code class="docutils literal notranslate"><span class="pre">Estimator.observables</span></code></a></li>
 <li><a class="reference internal" href="#qiskit_aer.primitives.Estimator.options"><code class="docutils literal notranslate"><span class="pre">Estimator.options</span></code></a></li>
-<li><a class="reference internal" href="#qiskit_aer.primitives.Estimator.parameters"><code class="docutils literal notranslate"><span class="pre">Estimator.parameters</span></code></a></li>
 <li><a class="reference internal" href="#qiskit_aer.primitives.Estimator.run"><code class="docutils literal notranslate"><span class="pre">Estimator.run()</span></code></a></li>
 <li><a class="reference internal" href="#qiskit_aer.primitives.Estimator.set_options"><code class="docutils literal notranslate"><span class="pre">Estimator.set_options()</span></code></a></li>
 </ul>
@@ -584,7 +542,7 @@ importantly, <code class="docutils literal notranslate"><span class="pre">str</s
   </div>
 </div><script src="../_static/jquery.js?v=5d32c60e"></script>
     <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-    <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js?v=5fc4c2b6"></script>
+    <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js?v=ebab30a7"></script>
     <script src="../_static/doctools.js?v=888ff710"></script>
     <script src="../_static/sphinx_highlight.js?v=4825356b"></script>
     <script src="../_static/scripts/qiskit-sphinx-theme.js?v=4d77b8ca"></script>

@@ -42,7 +42,6 @@ SaveExpectationValue
    .. automethod:: SaveExpectationValue.copy
    .. automethod:: SaveExpectationValue.inverse
    .. automethod:: SaveExpectationValue.is_parameterized
-   .. automethod:: SaveExpectationValue.qasm
    .. automethod:: SaveExpectationValue.repeat
    .. automethod:: SaveExpectationValue.reverse_ops
    .. automethod:: SaveExpectationValue.soft_compare

@@ -15,9 +15,7 @@ Sampler
    
    .. rubric:: Attributes
       
-   .. autoattribute:: Sampler.circuits
    .. autoattribute:: Sampler.options
-   .. autoattribute:: Sampler.parameters
    
 
 

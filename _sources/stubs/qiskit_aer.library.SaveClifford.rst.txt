@@ -42,7 +42,6 @@ SaveClifford
    .. automethod:: SaveClifford.copy
    .. automethod:: SaveClifford.inverse
    .. automethod:: SaveClifford.is_parameterized
-   .. automethod:: SaveClifford.qasm
    .. automethod:: SaveClifford.repeat
    .. automethod:: SaveClifford.reverse_ops
    .. automethod:: SaveClifford.soft_compare

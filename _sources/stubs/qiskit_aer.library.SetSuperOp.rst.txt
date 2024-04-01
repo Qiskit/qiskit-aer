@@ -42,7 +42,6 @@ SetSuperOp
    .. automethod:: SetSuperOp.copy
    .. automethod:: SetSuperOp.inverse
    .. automethod:: SetSuperOp.is_parameterized
-   .. automethod:: SetSuperOp.qasm
    .. automethod:: SetSuperOp.repeat
    .. automethod:: SetSuperOp.reverse_ops
    .. automethod:: SetSuperOp.soft_compare

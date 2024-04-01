@@ -5,8 +5,8 @@
     <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
 <link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" /><link rel="next" title="AerDensityMatrix" href="qiskit_aer.quantum_info.AerDensityMatrix.html" /><link rel="prev" title="Aer Quantum Info (qiskit_aer.quantum_info)" href="../apidocs/aer_quantum_info.html" />
 
-    <!-- Generated with Sphinx 7.1.2 and Furo 2023.08.19 -->
-        <title>AerStatevector - Qiskit Aer 0.13.3</title>
+    <!-- Generated with Sphinx 7.1.2 and Furo 2024.01.29 -->
+        <title>AerStatevector - Qiskit Aer 0.14.0.1</title>
       <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=135e06be" />
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=82a976d7" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/qiskit-sphinx-theme.css?v=fe84956c" />
@@ -145,7 +145,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../index.html"><div class="brand">Qiskit Aer 0.13.3</div></a>
+      <a href="../index.html"><div class="brand">Qiskit Aer 0.14.0.1</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -172,7 +172,7 @@
     </div>
   </a>
   
-  <span class="sidebar-brand-text">Qiskit Aer 0.13.3</span>
+  <span class="sidebar-brand-text">Qiskit Aer 0.14.0.1</span>
 </div><form class="sidebar-search-container" method="get" action="../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
   <input type="hidden" name="check_keywords" value="yes">
@@ -290,7 +290,7 @@
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../tutorials/index.html">Tutorials</a><input class="toctree-checkbox" id="toctree-checkbox-9" name="toctree-checkbox-9" role="switch" type="checkbox"/><label for="toctree-checkbox-9"><div class="visually-hidden">Toggle navigation of Tutorials</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
-<li class="toctree-l2"><a class="reference internal" href="../tutorials/1_aer_provider.html">Simulators</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../tutorials/1_aersimulator.html">Simulators</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../tutorials/2_device_noise_simulation.html">Device backend noise model simulations</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../tutorials/3_building_noise_models.html">Building Noise Models</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../tutorials/4_custom_gate_noise.html">Applying noise to custom unitary gates</a></li>
@@ -342,7 +342,7 @@
 <dl class="py class">
 <dt class="sig sig-object py" id="qiskit_aer.quantum_info.AerStatevector">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">AerStatevector</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dims</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">configs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/qiskit_aer/quantum_info/states/aer_statevector.html#AerStatevector"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_aer.quantum_info.AerStatevector" title="Permalink to this definition">#</a></dt>
-<dd><p>Bases: <a class="reference external" href="https://qiskit.org/documentation/stubs/qiskit.quantum_info.Statevector.html#qiskit.quantum_info.Statevector" title="(in Qiskit v0.45)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Statevector</span></code></a></p>
+<dd><p>Bases: <a class="reference external" href="https://docs.quantum.ibm.com/api/qiskit/qiskit.quantum_info.Statevector" title="(in Qiskit v1.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Statevector</span></code></a></p>
 <p>AerStatevector class</p>
 <p>This class inherits <code class="xref py py-class docutils literal notranslate"><span class="pre">Statevector</span></code>, which stores probability amplitudes
 in its <cite>ndarray</cite>. class:<cite>AerStatevector</cite> generates this <cite>ndarray</cite> by using the
@@ -558,7 +558,7 @@ the operator on.</p></li>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="qiskit_aer.quantum_info.AerStatevector.expand">
-<span class="sig-name descname"><span class="pre">expand</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">other</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://qiskit.org/documentation/stubs/qiskit.quantum_info.Statevector.html#qiskit.quantum_info.Statevector" title="(in Qiskit v0.45)"><span class="pre">Statevector</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://qiskit.org/documentation/stubs/qiskit.quantum_info.Statevector.html#qiskit.quantum_info.Statevector" title="(in Qiskit v0.45)"><span class="pre">Statevector</span></a></span></span><a class="headerlink" href="#qiskit_aer.quantum_info.AerStatevector.expand" title="Permalink to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">expand</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">other</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.quantum.ibm.com/api/qiskit/qiskit.quantum_info.Statevector" title="(in Qiskit v1.0)"><span class="pre">Statevector</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.quantum.ibm.com/api/qiskit/qiskit.quantum_info.Statevector" title="(in Qiskit v1.0)"><span class="pre">Statevector</span></a></span></span><a class="headerlink" href="#qiskit_aer.quantum_info.AerStatevector.expand" title="Permalink to this definition">#</a></dt>
 <dd><p>Return the tensor product state other ⊗ self.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -605,7 +605,7 @@ same number of qubits as the input instruction or circuit, evolved
 by the input instruction, and the output statevector returned.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>instruction</strong> (<a class="reference external" href="https://qiskit.org/documentation/stubs/qiskit.circuit.Instruction.html#qiskit.circuit.Instruction" title="(in Qiskit v0.45)"><em>qiskit.circuit.Instruction</em></a><em> or </em><em>QuantumCircuit</em>) – instruction or circuit</p>
+<dd class="field-odd"><p><strong>instruction</strong> (<a class="reference external" href="https://docs.quantum.ibm.com/api/qiskit/qiskit.circuit.Instruction" title="(in Qiskit v1.0)"><em>qiskit.circuit.Instruction</em></a><em> or </em><em>QuantumCircuit</em>) – instruction or circuit</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>The final statevector.</p>
@@ -708,7 +708,7 @@ allowed values).</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="qiskit_aer.quantum_info.AerStatevector.inner">
-<span class="sig-name descname"><span class="pre">inner</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">other</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://qiskit.org/documentation/stubs/qiskit.quantum_info.Statevector.html#qiskit.quantum_info.Statevector" title="(in Qiskit v0.45)"><span class="pre">Statevector</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">complex128</span></span></span><a class="headerlink" href="#qiskit_aer.quantum_info.AerStatevector.inner" title="Permalink to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">inner</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">other</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.quantum.ibm.com/api/qiskit/qiskit.quantum_info.Statevector" title="(in Qiskit v1.0)"><span class="pre">Statevector</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">complex128</span></span></span><a class="headerlink" href="#qiskit_aer.quantum_info.AerStatevector.inner" title="Permalink to this definition">#</a></dt>
 <dd><p>Return the inner product of self and other as
 <span class="math notranslate nohighlight">\(\langle self| other \rangle\)</span>.</p>
 <dl class="field-list simple">
@@ -900,7 +900,7 @@ sampling can be set using the <a class="reference internal" href="#qiskit_aer.qu
 
 <dl class="py method">
 <dt class="sig sig-object py" id="qiskit_aer.quantum_info.AerStatevector.reverse_qargs">
-<span class="sig-name descname"><span class="pre">reverse_qargs</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://qiskit.org/documentation/stubs/qiskit.quantum_info.Statevector.html#qiskit.quantum_info.Statevector" title="(in Qiskit v0.45)"><span class="pre">Statevector</span></a></span></span><a class="headerlink" href="#qiskit_aer.quantum_info.AerStatevector.reverse_qargs" title="Permalink to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">reverse_qargs</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.quantum.ibm.com/api/qiskit/qiskit.quantum_info.Statevector" title="(in Qiskit v1.0)"><span class="pre">Statevector</span></a></span></span><a class="headerlink" href="#qiskit_aer.quantum_info.AerStatevector.reverse_qargs" title="Permalink to this definition">#</a></dt>
 <dd><p>Return a Statevector with reversed subsystem ordering.</p>
 <p>For a tensor product state this is equivalent to reversing the order
 of tensor product subsystems. For a statevector
@@ -987,7 +987,7 @@ set to a fixed value by using the stats <a class="reference internal" href="#qis
 
 <dl class="py method">
 <dt class="sig sig-object py" id="qiskit_aer.quantum_info.AerStatevector.tensor">
-<span class="sig-name descname"><span class="pre">tensor</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">other</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://qiskit.org/documentation/stubs/qiskit.quantum_info.Statevector.html#qiskit.quantum_info.Statevector" title="(in Qiskit v0.45)"><span class="pre">Statevector</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://qiskit.org/documentation/stubs/qiskit.quantum_info.Statevector.html#qiskit.quantum_info.Statevector" title="(in Qiskit v0.45)"><span class="pre">Statevector</span></a></span></span><a class="headerlink" href="#qiskit_aer.quantum_info.AerStatevector.tensor" title="Permalink to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">tensor</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">other</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.quantum.ibm.com/api/qiskit/qiskit.quantum_info.Statevector" title="(in Qiskit v1.0)"><span class="pre">Statevector</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.quantum.ibm.com/api/qiskit/qiskit.quantum_info.Statevector" title="(in Qiskit v1.0)"><span class="pre">Statevector</span></a></span></span><a class="headerlink" href="#qiskit_aer.quantum_info.AerStatevector.tensor" title="Permalink to this definition">#</a></dt>
 <dd><p>Return the tensor product state self ⊗ other.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -1073,7 +1073,7 @@ a qubit and 10-dimensional qudit.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="qiskit_aer.quantum_info.AerStatevector.to_operator">
-<span class="sig-name descname"><span class="pre">to_operator</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://qiskit.org/documentation/stubs/qiskit.quantum_info.Operator.html#qiskit.quantum_info.Operator" title="(in Qiskit v0.45)"><span class="pre">Operator</span></a></span></span><a class="headerlink" href="#qiskit_aer.quantum_info.AerStatevector.to_operator" title="Permalink to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">to_operator</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.quantum.ibm.com/api/qiskit/qiskit.quantum_info.Operator" title="(in Qiskit v1.0)"><span class="pre">Operator</span></a></span></span><a class="headerlink" href="#qiskit_aer.quantum_info.AerStatevector.to_operator" title="Permalink to this definition">#</a></dt>
 <dd><p>Convert state to a rank-1 projector operator</p>
 </dd></dl>
 
@@ -1121,7 +1121,7 @@ a qubit and 10-dimensional qudit.</p>
             
             <a href="https://github.com/pradyunsg/furo">Furo</a>
             <div class="last-updated">
-              Last updated on 2024/02/06</div>
+              Last updated on 2024/04/01</div>
           </div>
           <div class="right-details">
             
@@ -1195,7 +1195,7 @@ a qubit and 10-dimensional qudit.</p>
   </div>
 </div><script src="../_static/jquery.js?v=5d32c60e"></script>
     <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-    <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js?v=5fc4c2b6"></script>
+    <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js?v=ebab30a7"></script>
     <script src="../_static/doctools.js?v=888ff710"></script>
     <script src="../_static/sphinx_highlight.js?v=4825356b"></script>
     <script src="../_static/scripts/qiskit-sphinx-theme.js?v=4d77b8ca"></script>

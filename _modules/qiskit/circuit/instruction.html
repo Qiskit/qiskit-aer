@@ -4,8 +4,8 @@
     <meta name="viewport" content="width=device-width,initial-scale=1"/>
     <meta name="color-scheme" content="light dark"><link rel="index" title="Index" href="../../../genindex.html" /><link rel="search" title="Search" href="../../../search.html" />
 
-    <!-- Generated with Sphinx 7.1.2 and Furo 2023.08.19 -->
-        <title>qiskit.circuit.instruction - Qiskit Aer 0.13.3</title>
+    <!-- Generated with Sphinx 7.1.2 and Furo 2024.01.29 -->
+        <title>qiskit.circuit.instruction - Qiskit Aer 0.14.0.1</title>
       <link rel="stylesheet" type="text/css" href="../../../_static/styles/furo.css?v=135e06be" />
     <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=82a976d7" />
     <link rel="stylesheet" type="text/css" href="../../../_static/styles/qiskit-sphinx-theme.css?v=fe84956c" />
@@ -145,7 +145,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../../index.html"><div class="brand">Qiskit Aer 0.13.3</div></a>
+      <a href="../../../index.html"><div class="brand">Qiskit Aer 0.14.0.1</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -172,7 +172,7 @@
     </div>
   </a>
   
-  <span class="sidebar-brand-text">Qiskit Aer 0.13.3</span>
+  <span class="sidebar-brand-text">Qiskit Aer 0.14.0.1</span>
 </div><form class="sidebar-search-container" method="get" action="../../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
   <input type="hidden" name="check_keywords" value="yes">
@@ -290,7 +290,7 @@
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../../../tutorials/index.html">Tutorials</a><input class="toctree-checkbox" id="toctree-checkbox-9" name="toctree-checkbox-9" role="switch" type="checkbox"/><label for="toctree-checkbox-9"><div class="visually-hidden">Toggle navigation of Tutorials</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
-<li class="toctree-l2"><a class="reference internal" href="../../../tutorials/1_aer_provider.html">Simulators</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../tutorials/1_aersimulator.html">Simulators</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../tutorials/2_device_noise_simulation.html">Device backend noise model simulations</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../tutorials/3_building_noise_models.html">Building Noise Models</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../tutorials/4_custom_gate_noise.html">Applying noise to custom unitary gates</a></li>
@@ -374,6 +374,7 @@
 
 <span class="kn">import</span> <span class="nn">copy</span>
 <span class="kn">from</span> <span class="nn">itertools</span> <span class="kn">import</span> <span class="n">zip_longest</span>
+<span class="kn">import</span> <span class="nn">math</span>
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Type</span>
 
 <span class="kn">import</span> <span class="nn">numpy</span>
@@ -384,8 +385,9 @@
 <span class="kn">from</span> <span class="nn">qiskit.qobj.qasm_qobj</span> <span class="kn">import</span> <span class="n">QasmQobjInstruction</span>
 <span class="kn">from</span> <span class="nn">qiskit.circuit.parameter</span> <span class="kn">import</span> <span class="n">ParameterExpression</span>
 <span class="kn">from</span> <span class="nn">qiskit.circuit.operation</span> <span class="kn">import</span> <span class="n">Operation</span>
-<span class="kn">from</span> <span class="nn">qiskit.utils.deprecation</span> <span class="kn">import</span> <span class="n">deprecate_func</span>
-<span class="kn">from</span> <span class="nn">.tools</span> <span class="kn">import</span> <span class="n">pi_check</span>
+
+<span class="kn">from</span> <span class="nn">qiskit.circuit.annotated_operation</span> <span class="kn">import</span> <span class="n">AnnotatedOperation</span><span class="p">,</span> <span class="n">InverseModifier</span>
+
 
 <span class="n">_CUTOFF_PRECISION</span> <span class="o">=</span> <span class="mf">1e-10</span>
 
@@ -756,22 +758,36 @@
         <span class="n">reverse_inst</span><span class="o">.</span><span class="n">definition</span> <span class="o">=</span> <span class="n">reversed_definition</span>
         <span class="k">return</span> <span class="n">reverse_inst</span>
 
-    <span class="k">def</span> <span class="nf">inverse</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">inverse</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">annotated</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Invert this instruction.</span>
 
-<span class="sd">        If the instruction is composite (i.e. has a definition),</span>
-<span class="sd">        then its definition will be recursively inverted.</span>
+<span class="sd">        If `annotated` is `False`, the inverse instruction is implemented as</span>
+<span class="sd">        a fresh instruction with the recursively inverted definition.</span>
+
+<span class="sd">        If `annotated` is `True`, the inverse instruction is implemented as</span>
+<span class="sd">        :class:`.AnnotatedOperation`, and corresponds to the given instruction</span>
+<span class="sd">        annotated with the &quot;inverse modifier&quot;.</span>
 
 <span class="sd">        Special instructions inheriting from Instruction can</span>
 <span class="sd">        implement their own inverse (e.g. T and Tdg, Barrier, etc.)</span>
+<span class="sd">        In particular, they can choose how to handle the argument ``annotated``</span>
+<span class="sd">        which may include ignoring it and always returning a concrete gate class</span>
+<span class="sd">        if the inverse is defined as a standard gate.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            annotated: if set to `True` the output inverse gate will be returned</span>
+<span class="sd">                as :class:`.AnnotatedOperation`.</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            qiskit.circuit.Instruction: a fresh instruction for the inverse</span>
+<span class="sd">            The inverse operation.</span>
 
 <span class="sd">        Raises:</span>
 <span class="sd">            CircuitError: if the instruction is not composite</span>
 <span class="sd">                and an inverse has not been implemented for it.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">annotated</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">AnnotatedOperation</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">InverseModifier</span><span class="p">())</span>
+
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">definition</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">raise</span> <span class="n">CircuitError</span><span class="p">(</span><span class="s2">&quot;inverse() not implemented for </span><span class="si">%s</span><span class="s2">.&quot;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
 
@@ -854,31 +870,6 @@
                 <span class="s2">&quot;OpenQASM 2 can only condition on registers, but got &#39;</span><span class="si">{self.condition[0]}</span><span class="s2">&#39;&quot;</span>
             <span class="p">)</span>
         <span class="k">return</span> <span class="s2">&quot;if(</span><span class="si">%s</span><span class="s2">==</span><span class="si">%d</span><span class="s2">) &quot;</span> <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">condition</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">condition</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="o">+</span> <span class="n">string</span>
-
-    <span class="nd">@deprecate_func</span><span class="p">(</span>
-        <span class="n">additional_msg</span><span class="o">=</span><span class="p">(</span>
-            <span class="s2">&quot;Correct exporting to OpenQASM 2 is the responsibility of a larger exporter; it cannot &quot;</span>
-            <span class="s2">&quot;safely be done on an object-by-object basis without context. No replacement will be &quot;</span>
-            <span class="s2">&quot;provided, because the premise is wrong.&quot;</span>
-        <span class="p">),</span>
-        <span class="n">since</span><span class="o">=</span><span class="s2">&quot;0.25.0&quot;</span><span class="p">,</span>
-        <span class="n">package_name</span><span class="o">=</span><span class="s2">&quot;qiskit-terra&quot;</span><span class="p">,</span>
-        <span class="n">removal_timeline</span><span class="o">=</span><span class="s2">&quot;in the Qiskit 1.0 release&quot;</span><span class="p">,</span>
-    <span class="p">)</span>
-    <span class="k">def</span> <span class="nf">qasm</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return a default OpenQASM string for the instruction.</span>
-
-<span class="sd">        Derived instructions may override this to print in a</span>
-<span class="sd">        different format (e.g. ``measure q[0] -&gt; c[0];``).</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">name_param</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">:</span>
-            <span class="n">name_param</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">(</span><span class="si">{}</span><span class="s2">)&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
-                <span class="n">name_param</span><span class="p">,</span>
-                <span class="s2">&quot;,&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">pi_check</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">output</span><span class="o">=</span><span class="s2">&quot;qasm&quot;</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="mf">1e-12</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">]),</span>
-            <span class="p">)</span>
-
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_qasmif</span><span class="p">(</span><span class="n">name_param</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">broadcast_arguments</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">qargs</span><span class="p">,</span> <span class="n">cargs</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
@@ -993,6 +984,16 @@
     <span class="k">def</span> <span class="nf">num_clbits</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">num_clbits</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Set num_clbits.&quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_num_clbits</span> <span class="o">=</span> <span class="n">num_clbits</span>
+
+    <span class="k">def</span> <span class="nf">_compare_parameters</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">,</span> <span class="n">other</span><span class="o">.</span><span class="n">params</span><span class="p">):</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">math</span><span class="o">.</span><span class="n">isclose</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">rel_tol</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">abs_tol</span><span class="o">=</span><span class="mf">1e-10</span><span class="p">):</span>
+                    <span class="k">return</span> <span class="kc">False</span>
+            <span class="k">except</span> <span class="ne">TypeError</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">x</span> <span class="o">!=</span> <span class="n">y</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="kc">False</span>
+        <span class="k">return</span> <span class="kc">True</span>
 </pre></div>
         </article>
       </div>
@@ -1010,7 +1011,7 @@
             
             <a href="https://github.com/pradyunsg/furo">Furo</a>
             <div class="last-updated">
-              Last updated on 2024/02/06</div>
+              Last updated on 2024/04/01</div>
           </div>
           <div class="right-details">
             
@@ -1027,7 +1028,7 @@
   </div>
 </div><script src="../../../_static/jquery.js?v=5d32c60e"></script>
     <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-    <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js?v=5fc4c2b6"></script>
+    <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js?v=ebab30a7"></script>
     <script src="../../../_static/doctools.js?v=888ff710"></script>
     <script src="../../../_static/sphinx_highlight.js?v=4825356b"></script>
     <script src="../../../_static/thebelab-helper.js"></script>

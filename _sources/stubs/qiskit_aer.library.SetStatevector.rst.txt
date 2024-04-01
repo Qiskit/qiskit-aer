@@ -42,7 +42,6 @@ SetStatevector
    .. automethod:: SetStatevector.copy
    .. automethod:: SetStatevector.inverse
    .. automethod:: SetStatevector.is_parameterized
-   .. automethod:: SetStatevector.qasm
    .. automethod:: SetStatevector.repeat
    .. automethod:: SetStatevector.reverse_ops
    .. automethod:: SetStatevector.soft_compare

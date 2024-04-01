@@ -42,7 +42,6 @@ SaveAmplitudesSquared
    .. automethod:: SaveAmplitudesSquared.copy
    .. automethod:: SaveAmplitudesSquared.inverse
    .. automethod:: SaveAmplitudesSquared.is_parameterized
-   .. automethod:: SaveAmplitudesSquared.qasm
    .. automethod:: SaveAmplitudesSquared.repeat
    .. automethod:: SaveAmplitudesSquared.reverse_ops
    .. automethod:: SaveAmplitudesSquared.soft_compare

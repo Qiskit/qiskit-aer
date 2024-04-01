@@ -42,7 +42,6 @@ SaveState
    .. automethod:: SaveState.copy
    .. automethod:: SaveState.inverse
    .. automethod:: SaveState.is_parameterized
-   .. automethod:: SaveState.qasm
    .. automethod:: SaveState.repeat
    .. automethod:: SaveState.reverse_ops
    .. automethod:: SaveState.soft_compare

@@ -5,8 +5,8 @@
     <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
 <link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" /><link rel="next" title="RelaxationNoisePass" href="qiskit_aer.noise.RelaxationNoisePass.html" /><link rel="prev" title="kraus_error" href="qiskit_aer.noise.kraus_error.html" />
 
-    <!-- Generated with Sphinx 7.1.2 and Furo 2023.08.19 -->
-        <title>LocalNoisePass - Qiskit Aer 0.13.3</title>
+    <!-- Generated with Sphinx 7.1.2 and Furo 2024.01.29 -->
+        <title>LocalNoisePass - Qiskit Aer 0.14.0.1</title>
       <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=135e06be" />
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=82a976d7" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/qiskit-sphinx-theme.css?v=fe84956c" />
@@ -145,7 +145,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../index.html"><div class="brand">Qiskit Aer 0.13.3</div></a>
+      <a href="../index.html"><div class="brand">Qiskit Aer 0.14.0.1</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -172,7 +172,7 @@
     </div>
   </a>
   
-  <span class="sidebar-brand-text">Qiskit Aer 0.13.3</span>
+  <span class="sidebar-brand-text">Qiskit Aer 0.14.0.1</span>
 </div><form class="sidebar-search-container" method="get" action="../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
   <input type="hidden" name="check_keywords" value="yes">
@@ -290,7 +290,7 @@
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../tutorials/index.html">Tutorials</a><input class="toctree-checkbox" id="toctree-checkbox-9" name="toctree-checkbox-9" role="switch" type="checkbox"/><label for="toctree-checkbox-9"><div class="visually-hidden">Toggle navigation of Tutorials</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
-<li class="toctree-l2"><a class="reference internal" href="../tutorials/1_aer_provider.html">Simulators</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../tutorials/1_aersimulator.html">Simulators</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../tutorials/2_device_noise_simulation.html">Device backend noise model simulations</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../tutorials/3_building_noise_models.html">Building Noise Models</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../tutorials/4_custom_gate_noise.html">Applying noise to custom unitary gates</a></li>
@@ -342,7 +342,7 @@
 <dl class="py class">
 <dt class="sig sig-object py" id="qiskit_aer.noise.LocalNoisePass">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">LocalNoisePass</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/qiskit_aer/noise/passes/local_noise_pass.html#LocalNoisePass"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_aer.noise.LocalNoisePass" title="Permalink to this definition">#</a></dt>
-<dd><p>Bases: <a class="reference external" href="https://qiskit.org/documentation/stubs/qiskit.transpiler.TransformationPass.html#qiskit.transpiler.TransformationPass" title="(in Qiskit v0.45)"><code class="xref py py-class docutils literal notranslate"><span class="pre">TransformationPass</span></code></a></p>
+<dd><p>Bases: <a class="reference external" href="https://docs.quantum.ibm.com/api/qiskit/qiskit.transpiler.TransformationPass" title="(in Qiskit v1.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">TransformationPass</span></code></a></p>
 <p>Transpiler pass to insert noise into a circuit.</p>
 <p>The noise in this pass is defined by a noise function or callable with signature</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">func</span><span class="p">(</span>
@@ -447,7 +447,7 @@ If analysis pass, the input circuit.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="qiskit_aer.noise.LocalNoisePass.run">
-<span class="sig-name descname"><span class="pre">run</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dag</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://qiskit.org/documentation/stubs/qiskit.dagcircuit.DAGCircuit.html#qiskit.dagcircuit.DAGCircuit" title="(in Qiskit v0.45)"><span class="pre">DAGCircuit</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://qiskit.org/documentation/stubs/qiskit.dagcircuit.DAGCircuit.html#qiskit.dagcircuit.DAGCircuit" title="(in Qiskit v0.45)"><span class="pre">DAGCircuit</span></a></span></span><a class="reference internal" href="../_modules/qiskit_aer/noise/passes/local_noise_pass.html#LocalNoisePass.run"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_aer.noise.LocalNoisePass.run" title="Permalink to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">run</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dag</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.quantum.ibm.com/api/qiskit/qiskit.dagcircuit.DAGCircuit" title="(in Qiskit v1.0)"><span class="pre">DAGCircuit</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.quantum.ibm.com/api/qiskit/qiskit.dagcircuit.DAGCircuit" title="(in Qiskit v1.0)"><span class="pre">DAGCircuit</span></a></span></span><a class="reference internal" href="../_modules/qiskit_aer/noise/passes/local_noise_pass.html#LocalNoisePass.run"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_aer.noise.LocalNoisePass.run" title="Permalink to this definition">#</a></dt>
 <dd><p>Run the LocalNoisePass pass on <cite>dag</cite>.
 :param dag: DAG to be changed.</p>
 <dl class="field-list simple">
@@ -462,7 +462,7 @@ If analysis pass, the input circuit.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="qiskit_aer.noise.LocalNoisePass.update_status">
-<span class="sig-name descname"><span class="pre">update_status</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">state</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://qiskit.org/documentation/stubs/qiskit.passmanager.PassManagerState.html#qiskit.passmanager.PassManagerState" title="(in Qiskit v0.45)"><span class="pre">PassManagerState</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">run_state</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">RunState</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://qiskit.org/documentation/stubs/qiskit.passmanager.PassManagerState.html#qiskit.passmanager.PassManagerState" title="(in Qiskit v0.45)"><span class="pre">PassManagerState</span></a></span></span><a class="headerlink" href="#qiskit_aer.noise.LocalNoisePass.update_status" title="Permalink to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">update_status</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">state</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.quantum.ibm.com/api/qiskit/qiskit.passmanager.PassManagerState" title="(in Qiskit v1.0)"><span class="pre">PassManagerState</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">run_state</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">RunState</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.quantum.ibm.com/api/qiskit/qiskit.passmanager.PassManagerState" title="(in Qiskit v1.0)"><span class="pre">PassManagerState</span></a></span></span><a class="headerlink" href="#qiskit_aer.noise.LocalNoisePass.update_status" title="Permalink to this definition">#</a></dt>
 <dd><p>Update workflow status.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -515,7 +515,7 @@ If analysis pass, the input circuit.</p>
             
             <a href="https://github.com/pradyunsg/furo">Furo</a>
             <div class="last-updated">
-              Last updated on 2024/02/06</div>
+              Last updated on 2024/04/01</div>
           </div>
           <div class="right-details">
             
@@ -560,7 +560,7 @@ If analysis pass, the input circuit.</p>
   </div>
 </div><script src="../_static/jquery.js?v=5d32c60e"></script>
     <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-    <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js?v=5fc4c2b6"></script>
+    <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js?v=ebab30a7"></script>
     <script src="../_static/doctools.js?v=888ff710"></script>
     <script src="../_static/sphinx_highlight.js?v=4825356b"></script>
     <script src="../_static/scripts/qiskit-sphinx-theme.js?v=4d77b8ca"></script>

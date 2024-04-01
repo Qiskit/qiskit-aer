@@ -42,7 +42,6 @@ SaveStatevectorDict
    .. automethod:: SaveStatevectorDict.copy
    .. automethod:: SaveStatevectorDict.inverse
    .. automethod:: SaveStatevectorDict.is_parameterized
-   .. automethod:: SaveStatevectorDict.qasm
    .. automethod:: SaveStatevectorDict.repeat
    .. automethod:: SaveStatevectorDict.reverse_ops
    .. automethod:: SaveStatevectorDict.soft_compare

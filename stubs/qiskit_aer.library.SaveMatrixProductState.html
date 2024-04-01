@@ -5,8 +5,8 @@
     <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
 <link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" /><link rel="next" title="SaveClifford" href="qiskit_aer.library.SaveClifford.html" /><link rel="prev" title="SaveDensityMatrix" href="qiskit_aer.library.SaveDensityMatrix.html" />
 
-    <!-- Generated with Sphinx 7.1.2 and Furo 2023.08.19 -->
-        <title>SaveMatrixProductState - Qiskit Aer 0.13.3</title>
+    <!-- Generated with Sphinx 7.1.2 and Furo 2024.01.29 -->
+        <title>SaveMatrixProductState - Qiskit Aer 0.14.0.1</title>
       <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=135e06be" />
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=82a976d7" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/qiskit-sphinx-theme.css?v=fe84956c" />
@@ -145,7 +145,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../index.html"><div class="brand">Qiskit Aer 0.13.3</div></a>
+      <a href="../index.html"><div class="brand">Qiskit Aer 0.14.0.1</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -172,7 +172,7 @@
     </div>
   </a>
   
-  <span class="sidebar-brand-text">Qiskit Aer 0.13.3</span>
+  <span class="sidebar-brand-text">Qiskit Aer 0.14.0.1</span>
 </div><form class="sidebar-search-container" method="get" action="../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
   <input type="hidden" name="check_keywords" value="yes">
@@ -290,7 +290,7 @@
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../tutorials/index.html">Tutorials</a><input class="toctree-checkbox" id="toctree-checkbox-9" name="toctree-checkbox-9" role="switch" type="checkbox"/><label for="toctree-checkbox-9"><div class="visually-hidden">Toggle navigation of Tutorials</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
-<li class="toctree-l2"><a class="reference internal" href="../tutorials/1_aer_provider.html">Simulators</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../tutorials/1_aersimulator.html">Simulators</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../tutorials/2_device_noise_simulation.html">Device backend noise model simulations</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../tutorials/3_building_noise_models.html">Building Noise Models</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../tutorials/4_custom_gate_noise.html">Applying noise to custom unitary gates</a></li>
@@ -527,14 +527,14 @@ override any previously set condition; it does not stack.</p>
 was provided</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference external" href="https://qiskit.org/documentation/stubs/qiskit.circuit.Instruction.html#qiskit.circuit.Instruction" title="(in Qiskit v0.45)">qiskit.circuit.Instruction</a></p>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.quantum.ibm.com/api/qiskit/qiskit.circuit.Instruction" title="(in Qiskit v1.0)">qiskit.circuit.Instruction</a></p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="qiskit_aer.library.SaveMatrixProductState.inverse">
-<span class="sig-name descname"><span class="pre">inverse</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#qiskit_aer.library.SaveMatrixProductState.inverse" title="Permalink to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">inverse</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">annotated</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#qiskit_aer.library.SaveMatrixProductState.inverse" title="Permalink to this definition">#</a></dt>
 <dd><p>Special case. Return self.</p>
 </dd></dl>
 
@@ -542,17 +542,6 @@ was provided</p>
 <dt class="sig sig-object py" id="qiskit_aer.library.SaveMatrixProductState.is_parameterized">
 <span class="sig-name descname"><span class="pre">is_parameterized</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#qiskit_aer.library.SaveMatrixProductState.is_parameterized" title="Permalink to this definition">#</a></dt>
 <dd><p>Return True .IFF. instruction is parameterized else False</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="qiskit_aer.library.SaveMatrixProductState.qasm">
-<span class="sig-name descname"><span class="pre">qasm</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#qiskit_aer.library.SaveMatrixProductState.qasm" title="Permalink to this definition">#</a></dt>
-<dd><p>Return a default OpenQASM string for the instruction.</p>
-<p>Derived instructions may override this to print in a
-different format (e.g. <code class="docutils literal notranslate"><span class="pre">measure</span> <span class="pre">q[0]</span> <span class="pre">-&gt;</span> <span class="pre">c[0];</span></code>).</p>
-<div class="deprecated">
-<p><span class="versionmodified deprecated">Deprecated since version 0.25.0: </span>The method <code class="docutils literal notranslate"><span class="pre">qiskit.circuit.instruction.Instruction.qasm()</span></code> is deprecated as of qiskit-terra 0.25.0. It will be removed in the Qiskit 1.0 release. Correct exporting to OpenQASM 2 is the responsibility of a larger exporter; it cannot safely be done on an object-by-object basis without context. No replacement will be provided, because the premise is wrong.</p>
-</div>
 </dd></dl>
 
 <dl class="py method">
@@ -567,7 +556,7 @@ different format (e.g. <code class="docutils literal notranslate"><span class="p
 <dd class="field-even"><p>Containing the definition.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference external" href="https://qiskit.org/documentation/stubs/qiskit.circuit.Instruction.html#qiskit.circuit.Instruction" title="(in Qiskit v0.45)">qiskit.circuit.Instruction</a></p>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.quantum.ibm.com/api/qiskit/qiskit.circuit.Instruction" title="(in Qiskit v1.0)">qiskit.circuit.Instruction</a></p>
 </dd>
 <dt class="field-even">Raises<span class="colon">:</span></dt>
 <dd class="field-even"><p><strong>CircuitError</strong> – If n &lt; 1.</p>
@@ -590,7 +579,7 @@ It does not invert any gate.</p>
 </p>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p><a class="reference external" href="https://qiskit.org/documentation/stubs/qiskit.circuit.Instruction.html#qiskit.circuit.Instruction" title="(in Qiskit v0.45)">qiskit.circuit.Instruction</a></p>
+<dd class="field-even"><p><a class="reference external" href="https://docs.quantum.ibm.com/api/qiskit/qiskit.circuit.Instruction" title="(in Qiskit v1.0)">qiskit.circuit.Instruction</a></p>
 </dd>
 </dl>
 </dd></dl>
@@ -669,7 +658,7 @@ will be a deepcopy of that instance.</p>
             
             <a href="https://github.com/pradyunsg/furo">Furo</a>
             <div class="last-updated">
-              Last updated on 2024/02/06</div>
+              Last updated on 2024/04/01</div>
           </div>
           <div class="right-details">
             
@@ -712,7 +701,6 @@ will be a deepcopy of that instance.</p>
 <li><a class="reference internal" href="#qiskit_aer.library.SaveMatrixProductState.copy"><code class="docutils literal notranslate"><span class="pre">SaveMatrixProductState.copy()</span></code></a></li>
 <li><a class="reference internal" href="#qiskit_aer.library.SaveMatrixProductState.inverse"><code class="docutils literal notranslate"><span class="pre">SaveMatrixProductState.inverse()</span></code></a></li>
 <li><a class="reference internal" href="#qiskit_aer.library.SaveMatrixProductState.is_parameterized"><code class="docutils literal notranslate"><span class="pre">SaveMatrixProductState.is_parameterized()</span></code></a></li>
-<li><a class="reference internal" href="#qiskit_aer.library.SaveMatrixProductState.qasm"><code class="docutils literal notranslate"><span class="pre">SaveMatrixProductState.qasm()</span></code></a></li>
 <li><a class="reference internal" href="#qiskit_aer.library.SaveMatrixProductState.repeat"><code class="docutils literal notranslate"><span class="pre">SaveMatrixProductState.repeat()</span></code></a></li>
 <li><a class="reference internal" href="#qiskit_aer.library.SaveMatrixProductState.reverse_ops"><code class="docutils literal notranslate"><span class="pre">SaveMatrixProductState.reverse_ops()</span></code></a></li>
 <li><a class="reference internal" href="#qiskit_aer.library.SaveMatrixProductState.soft_compare"><code class="docutils literal notranslate"><span class="pre">SaveMatrixProductState.soft_compare()</span></code></a></li>
@@ -733,7 +721,7 @@ will be a deepcopy of that instance.</p>
   </div>
 </div><script src="../_static/jquery.js?v=5d32c60e"></script>
     <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-    <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js?v=5fc4c2b6"></script>
+    <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js?v=ebab30a7"></script>
     <script src="../_static/doctools.js?v=888ff710"></script>
     <script src="../_static/sphinx_highlight.js?v=4825356b"></script>
     <script src="../_static/scripts/qiskit-sphinx-theme.js?v=4d77b8ca"></script>

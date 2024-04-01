@@ -42,7 +42,6 @@ SaveUnitary
    .. automethod:: SaveUnitary.copy
    .. automethod:: SaveUnitary.inverse
    .. automethod:: SaveUnitary.is_parameterized
-   .. automethod:: SaveUnitary.qasm
    .. automethod:: SaveUnitary.repeat
    .. automethod:: SaveUnitary.reverse_ops
    .. automethod:: SaveUnitary.soft_compare

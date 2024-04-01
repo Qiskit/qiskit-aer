@@ -42,7 +42,6 @@ SaveProbabilities
    .. automethod:: SaveProbabilities.copy
    .. automethod:: SaveProbabilities.inverse
    .. automethod:: SaveProbabilities.is_parameterized
-   .. automethod:: SaveProbabilities.qasm
    .. automethod:: SaveProbabilities.repeat
    .. automethod:: SaveProbabilities.reverse_ops
    .. automethod:: SaveProbabilities.soft_compare

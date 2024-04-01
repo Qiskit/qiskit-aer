@@ -42,7 +42,6 @@ SetStabilizer
    .. automethod:: SetStabilizer.copy
    .. automethod:: SetStabilizer.inverse
    .. automethod:: SetStabilizer.is_parameterized
-   .. automethod:: SetStabilizer.qasm
    .. automethod:: SetStabilizer.repeat
    .. automethod:: SetStabilizer.reverse_ops
    .. automethod:: SetStabilizer.soft_compare

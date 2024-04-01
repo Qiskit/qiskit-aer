@@ -42,7 +42,6 @@ SetMatrixProductState
    .. automethod:: SetMatrixProductState.copy
    .. automethod:: SetMatrixProductState.inverse
    .. automethod:: SetMatrixProductState.is_parameterized
-   .. automethod:: SetMatrixProductState.qasm
    .. automethod:: SetMatrixProductState.repeat
    .. automethod:: SetMatrixProductState.reverse_ops
    .. automethod:: SetMatrixProductState.soft_compare
