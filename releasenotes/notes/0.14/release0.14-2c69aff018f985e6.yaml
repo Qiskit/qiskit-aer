@@ -1,0 +1,7 @@
+---
+prelude: >
+    Aer release 0.14 supports Qiskit 1.0 and based on BackendV2.
+    These are summary of features included in this release:
+    - Optimization of MPS method by using BLAS/LAPACK
+    - Implementing V2 primitives EstimatorV2/SamplerV2
+    - Deprecation of standalone/qobj (will be removed in the next release)
