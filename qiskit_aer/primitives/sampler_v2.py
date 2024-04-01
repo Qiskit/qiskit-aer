@@ -22,6 +22,7 @@ import warnings
 
 import numpy as np
 from numpy.typing import NDArray
+from dataclasses import dataclass, field
 
 from qiskit import ClassicalRegister, QiskitError, QuantumCircuit
 from qiskit.circuit import ControlFlowOp
@@ -50,6 +51,17 @@ class _MeasureInfo:
     qreg_indices: list[int]
 
 
+@dataclass
+class Options:
+    """Options for :class:`~.SamplerV2`."""
+
+    backend_options: dict = field(default_factory=dict)
+    """backend_options: Options passed to AerSimulator."""
+
+    run_options: dict = field(default_factory=dict)
+    """run_options: Options passed to run."""
+
+
 class SamplerV2(BaseSamplerV2):
     """
     Aer implementation of SamplerV2 class.
@@ -57,29 +69,40 @@ class SamplerV2(BaseSamplerV2):
     Each tuple of ``(circuit, <optional> parameter values, <optional> shots)``, called a sampler
     primitive unified bloc (PUB), produces its own array-valued result. The :meth:`~run` method can
     be given many pubs at once.
+
+    * ``backend_options``: Options passed to AerSimulator.
+      Default: {}.
+
+    * ``run_options``: Options passed to :meth:`AerSimulator.run`.
+      Default: {}.
+
     """
 
     def __init__(
         self,
         *,
-        backend: AerSimulator = None,
         default_shots: int = 1024,
         seed: np.random.Generator | int | None = None,
+        options: dict | None = None,
     ):
         """
         Args:
-            backend: AerSimulator object to be used for sampler
             default_shots: The default shots for the sampler if not specified during run.
             seed: The seed or Generator object for random number generation.
                 If None, a random seeded default RNG will be used.
+            options:
+                the backend options (``backend_options``), and
+                the runtime options (``run_options``).
+
         """
         self._default_shots = default_shots
         self._seed = seed
 
-        if backend is None:
-            self._backend = AerSimulator()
-        else:
-            self._backend = backend
+        self._options = Options(**options) if options else Options()
+        self._backend = AerSimulator(**self.options.backend_options)
+
+    def from_backend(self, backend, **options):
+        self._backend.from_backend(backend, **options)
 
     @property
     def default_shots(self) -> int:
@@ -90,6 +113,11 @@ class SamplerV2(BaseSamplerV2):
     def seed(self) -> np.random.Generator | int | None:
         """Return the seed or Generator object for random number generation."""
         return self._seed
+
+    @property
+    def options(self) -> Options:
+        """Return the options"""
+        return self._options
 
     def run(
         self, pubs: Iterable[SamplerPubLike], *, shots: int | None = None
@@ -145,12 +173,11 @@ class SamplerV2(BaseSamplerV2):
                     kk = ""
                     for q in qargs:
                         kk = k[circuit.num_qubits - 1 - q] + kk
-                    for _ in range(0, v):
-                        samples.append(kk)
 
-                samples_array = np.array(
-                    [np.fromiter(sample, dtype=np.uint8) for sample in samples]
-                )
+                    samples.append((np.fromiter(kk, dtype=np.uint8), v))
+
+                samples_array = np.array([sample for sample, v in samples for _ in range(0, v)])
+
                 for item in meas_info:
                     ary = _samples_to_packed_array(samples_array, item.num_bits, item.qreg_indices)
                     arrays[item.creg_name][index] = ary
