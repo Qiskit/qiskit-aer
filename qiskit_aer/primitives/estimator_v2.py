@@ -74,6 +74,7 @@ class EstimatorV2(BaseEstimatorV2):
         self._backend = AerSimulator(method=method, **self.options.backend_options)
 
     def from_backend(self, backend, **options):
+        """use external backend"""
         self._backend.from_backend(backend, **options)
 
     @property

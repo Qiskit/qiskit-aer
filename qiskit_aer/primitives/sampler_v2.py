@@ -16,13 +16,12 @@ Sampler V2 class.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 from typing import Iterable
+from dataclasses import dataclass, field
 import warnings
 
 import numpy as np
 from numpy.typing import NDArray
-from dataclasses import dataclass, field
 
 from qiskit import ClassicalRegister, QiskitError, QuantumCircuit
 from qiskit.circuit import ControlFlowOp
@@ -102,6 +101,7 @@ class SamplerV2(BaseSamplerV2):
         self._backend = AerSimulator(**self.options.backend_options)
 
     def from_backend(self, backend, **options):
+        """use external backend"""
         self._backend.from_backend(backend, **options)
 
     @property
