@@ -1,122 +1,7 @@
 name: Deploy
-on:
-  push:
-    tags:
-      - '*'
+on: push
+
 jobs:
-  wheel-build:
-    name: Build qiskit-aer wheels
-    strategy:
-      matrix:
-        os: ["macOS-latest", "ubuntu-latest", "windows-2019"]
-    runs-on: ${{ matrix.os }}
-    environment: release
-    steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
-        name: Install Python
-        with:
-          python-version: '3.8'
-      - name: Install cibuildwheel
-        run: |
-          python -m pip install cibuildwheel==2.16.2
-      - name: Build wheels
-        env:
-          AER_CMAKE_OPENMP_BUILD: 1
-        run: python -m cibuildwheel --output-dir wheelhouse
-      - uses: actions/upload-artifact@v3
-        with:
-          path: ./wheelhouse/*.whl
-          name: publish-shared-wheels
-  build_wheels_aarch64:
-    name: Build wheels on ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
-    environment: release
-    permissions:
-      id-token: write
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest]
-    steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
-        name: Install Python
-        with:
-          python-version: '3.8'
-      - uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v1
-        with:
-          platforms: all
-      - name: Install cibuildwheel
-        run: |
-          python -m pip install cibuildwheel==2.16.2
-      - name: Build wheels
-        run: |
-          python -m cibuildwheel --output-dir wheelhouse
-        env:
-          CIBW_BEFORE_ALL_LINUX: "yum install -y https://dl.fedoraproject.org/pub/epel/7/aarch64/Packages/e/epel-release-7-12.noarch.rpm && yum install -y openblas-devel"
-          CIBW_ARCHS_LINUX: aarch64
-          CIBW_TEST_SKIP: "cp38* cp39* cp310* cp311*"
-      - uses: actions/upload-artifact@v3
-        with:
-          path: ./wheelhouse/*.whl
-      - name: Publish package distributions to PyPI
-        uses: pypa/gh-action-pypi-publish@release/v1
-        with:
-          packages-dir: wheelhouse
-  wheel-arm64-macos:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: ["macOS-latest"]
-    environment: release
-    steps:
-      - uses: actions/checkout@v3
-      - name: Set up Python Python 3.8
-        uses: actions/setup-python@v4
-        with:
-          python-version: 3.8
-      - name: Install deps
-        run: python -m pip install -U cibuildwheel==2.16.2
-      - name: Build Wheels
-        env:
-          CIBW_ARCHS_MACOS: arm64
-        run: cibuildwheel --output-dir wheelhouse
-      - uses: actions/upload-artifact@v3
-        with:
-          path: ./wheelhouse/*.whl
-          name: publish-shared-wheels
-  sdist:
-    name: Publish qiskit-aer sdist
-    runs-on: ubuntu-latest
-    needs: [publish-shared-wheels]
-    environment: release
-    permissions:
-      id-token: write
-    steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
-        name: Install Python
-        with:
-          python-version: '3.8'
-      - name: Install Deps
-        run: pip install -U scikit-build wheel
-      - name: Build Artifacts
-        run: |
-          python setup.py sdist
-        shell: bash
-      - uses: actions/upload-artifact@v3
-        with:
-          path: ./dist/qiskit*
-      - name: Publish package distributions to PyPI
-        uses: pypa/gh-action-pypi-publish@release/v1
-        with:
-          packages-dir: dist
   gpu-build-cuda11:
     name: Build qiskit-aer-gpu-cu11 wheels
     strategy:
@@ -130,7 +15,7 @@ jobs:
       - name: Maximize build space
         uses: easimon/maximize-build-space@master
         with:
-          root-reserve-mb: 30000
+          root-reserve-mb: 32000
           swap-size-mb: 1024
           remove-dotnet: 'true'
           remove-android: 'true'
@@ -146,8 +31,8 @@ jobs:
           python -m pip install cibuildwheel==2.16.2
       - name: Build wheels
         env:
-          CIBW_BEFORE_ALL: "yum install -y yum-utils wget && wget -q https://developer.download.nvidia.com/compute/cuda/11.8.0/local_installers/cuda-repo-rhel7-11-8-local-11.8.0_520.61.05-1.x86_64.rpm && rpm -i cuda-repo-rhel7-11-8-local-11.8.0_520.61.05-1.x86_64.rpm && yum clean all && yum -y install cuda && yum -y install openblas-devel && yum-config-manager --add-repo https://developer.download.nvidia.com/compute/cuda/repos/rhel7/x86_64/cuda-rhel7.repo && yum clean all"
-          CIBW_BEFORE_BUILD : "pip cache purge && pip install nvidia-cuda-runtime-cu11 nvidia-cublas-cu11 nvidia-cusolver-cu11 nvidia-cusparse-cu11 cuquantum-cu11"
+          CIBW_BEFORE_ALL: "pip cache purge && yum install -y yum-utils wget && wget -q https://developer.download.nvidia.com/compute/cuda/11.8.0/local_installers/cuda-repo-rhel7-11-8-local-11.8.0_520.61.05-1.x86_64.rpm && rpm -i cuda-repo-rhel7-11-8-local-11.8.0_520.61.05-1.x86_64.rpm && yum clean all && yum -y install cuda && yum -y install openblas-devel && yum-config-manager --add-repo https://developer.download.nvidia.com/compute/cuda/repos/rhel7/x86_64/cuda-rhel7.repo && yum clean all"
+          CIBW_BEFORE_BUILD : "pip install nvidia-cuda-runtime-cu11 nvidia-cublas-cu11 nvidia-cusolver-cu11 nvidia-cusparse-cu11 cuquantum-cu11"
           CIBW_SKIP: "*-manylinux_i686 pp* cp36* cp37* *musllinux*"
           CIBW_ENVIRONMENT: QISKIT_AER_PACKAGE_NAME=qiskit-aer-gpu-cu11 QISKIT_AER_CUDA_MAJOR=11 CMAKE_VERBOSE_MAKEFILE=true AER_THRUST_BACKEND=CUDA CUDACXX=/usr/local/cuda/bin/nvcc AER_CUDA_ARCH="7.0 7.2 7.5 8.0 8.6 8.7" AER_PYTHON_CUDA_ROOT=/opt/_internal AER_CIBUILD=true
           CIBW_REPAIR_WHEEL_COMMAND: 'auditwheel repair --exclude libcudart.so.11.0 --exclude libcustatevec.so.1 --exclude libcutensornet.so.2 --exclude libcutensor.so.1 --exclude libcutensorMg.so.1 --exclude libcusolver.so.11 --exclude libcusolverMg.so.11 --exclude libcusparse.so.11 --exclude libcublas.so.11 --exclude libcublasLt.so.11 -w {dest_dir} {wheel}'
@@ -173,7 +58,7 @@ jobs:
       - name: Maximize build space
         uses: easimon/maximize-build-space@master
         with:
-          root-reserve-mb: 30000
+          root-reserve-mb: 32000
           swap-size-mb: 1024
           remove-dotnet: 'true'
           remove-android: 'true'
@@ -189,8 +74,8 @@ jobs:
           python -m pip install cibuildwheel==2.16.2
       - name: Build wheels
         env:
-          CIBW_BEFORE_ALL: "yum install -y yum-utils wget && wget -q https://developer.download.nvidia.com/compute/cuda/12.4.0/local_installers/cuda-repo-rhel7-12-4-local-12.4.0_550.54.14-1.x86_64.rpm && rpm -i cuda-repo-rhel7-12-4-local-12.4.0_550.54.14-1.x86_64.rpm && yum clean all && yum -y install nvidia-driver-latest-dkms && yum -y install cuda-toolkit-12-4 && yum -y install openblas-devel && yum clean all"
-          CIBW_BEFORE_BUILD : "pip cache purge && pip install nvidia-cuda-runtime-cu12 nvidia-nvjitlink-cu12 nvidia-cublas-cu12 nvidia-cusolver-cu12 nvidia-cusparse-cu12 cuquantum-cu12"
+          CIBW_BEFORE_ALL: "pip cache purge && yum install -y yum-utils wget && wget -q https://developer.download.nvidia.com/compute/cuda/12.4.0/local_installers/cuda-repo-rhel7-12-4-local-12.4.0_550.54.14-1.x86_64.rpm && rpm -i cuda-repo-rhel7-12-4-local-12.4.0_550.54.14-1.x86_64.rpm && yum clean all && yum -y install nvidia-driver-latest-dkms && yum -y install cuda-toolkit-12-4 && yum -y install openblas-devel && yum clean all"
+          CIBW_BEFORE_BUILD : "pip install nvidia-cuda-runtime-cu12 nvidia-nvjitlink-cu12 nvidia-cublas-cu12 nvidia-cusolver-cu12 nvidia-cusparse-cu12 cuquantum-cu12"
           CIBW_SKIP: "*-manylinux_i686 pp* cp36* cp37* *musllinux*"
           CIBW_ENVIRONMENT: QISKIT_AER_PACKAGE_NAME=qiskit-aer-gpu QISKIT_AER_CUDA_MAJOR=12 CMAKE_VERBOSE_MAKEFILE=true AER_THRUST_BACKEND=CUDA CUDACXX=/usr/local/cuda/bin/nvcc AER_CUDA_ARCH="7.0 7.2 7.5 8.0 8.6 8.7 9.0" AER_PYTHON_CUDA_ROOT=/opt/_internal AER_CIBUILD=true
           CIBW_REPAIR_WHEEL_COMMAND: 'auditwheel repair --exclude libcudart.so.12 --exclude libcustatevec.so.1 --exclude libcutensornet.so.2 --exclude libcutensor.so.1 --exclude libcutensorMg.so.1 --exclude libcusolver.so.11 --exclude libcusolverMg.so.11 --exclude libcusolver.so.12 --exclude libcusolverMg.so.12 --exclude libcusparse.so.12 --exclude libcublas.so.12 --exclude libcublasLt.so.12 --exclude libnvJitLink.so.12 -w {dest_dir} {wheel}'
@@ -203,91 +88,3 @@ jobs:
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           packages-dir: wheelhouse
-  build_wheels_s390x:
-    name: Build wheels on s390x
-    runs-on: ${{ matrix.os }}
-    environment: release
-    permissions:
-      id-token: write
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest]
-    steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
-        name: Install Python
-        with:
-          python-version: '3.8'
-      - uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v1
-        with:
-          platforms: all
-      - name: Build wheels
-        uses: pypa/cibuildwheel@v2.16.2
-        env:
-          CIBW_ARCHS_LINUX: s390x
-          CIBW_TEST_SKIP: "cp*"
-          CIBW_BEFORE_ALL: "yum install -y epel-release && yum install -y openblas-devel"
-      - uses: actions/upload-artifact@v3
-        with:
-          path: ./wheelhouse/*.whl
-      - name: Publish package distributions to PyPI
-        uses: pypa/gh-action-pypi-publish@release/v1
-        with:
-          packages-dir: wheelhouse
-  build_wheels_ppc64le:
-    name: Build wheels on ppc64le
-    runs-on: ${{ matrix.os }}
-    environment: release
-    permissions:
-      id-token: write
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest]
-    steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
-        name: Install Python
-        with:
-          python-version: '3.8'
-      - uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v1
-        with:
-          platforms: all
-      - name: Build wheels
-        uses: pypa/cibuildwheel@v2.16.2
-        env:
-          CIBW_ARCHS_LINUX: ppc64le
-          CIBW_TEST_SKIP: "cp*"
-          CIBW_BEFORE_ALL: "yum install -y epel-release && yum install -y openblas-devel"
-      - uses: actions/upload-artifact@v3
-        with:
-          path: ./wheelhouse/*.whl
-      - name: Publish package distributions to PyPI
-        uses: pypa/gh-action-pypi-publish@release/v1
-        with:
-          packages-dir: wheelhouse
-  publish-shared-wheels:
-    name: Publish shared wheels
-    runs-on: ubuntu-latest
-    needs: [wheel-build, wheel-arm64-macos]
-    environment: release
-    permissions:
-      id-token: write
-    steps:
-      - uses: actions/download-artifact@v3
-        with:
-          path: deploy
-          name: publish-shared-wheels
-      - name: Publish package distributions to PyPI
-        uses: pypa/gh-action-pypi-publish@release/v1
-        with:
-          packages-dir: deploy
