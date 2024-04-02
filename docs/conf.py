@@ -43,9 +43,9 @@ copyright = f"2017-{datetime.date.today().year}, Qiskit Development Team"  # pyl
 author = 'Qiskit Development Team'
 
 # The short X.Y version
-version = '0.14.0'
+version = '0.15.0'
 # The full version, including alpha/beta/rc tags
-release = '0.14.0.1'
+release = '0.15.0'
 
 templates_path = ['_templates']
 
