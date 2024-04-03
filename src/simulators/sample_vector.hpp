@@ -123,9 +123,7 @@ void SampleVector::allocate(uint_t n, uint_t base) {
   elem_mask_ = (1ull << (elem_shift_bits_ + 1)) - 1;
   vec_mask_ = (1ull << vec_shift_bits_) - 1;
 
-  uint_t size = n >> vec_shift_bits_;
-  if (size == 0)
-    size = 1;
+  uint_t size = (n + (REG_SIZE >> elem_shift_bits_) - 1) >> vec_shift_bits_;
   bits_.resize(size, 0ull);
   size_ = n;
 }

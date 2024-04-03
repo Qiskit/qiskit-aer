@@ -1,0 +1,14 @@
+---
+fixes:
+  - |
+    Fixes for dependency issues caused by release 0.14.
+
+    - fixed sampling measure > 63 qubits
+    Fix for samplingVector.allocate() has issue for > 63 qubits
+
+    - ccz was accepted when input backend does not have ccz
+    Use basis_gates in AerCompiler when AerBackend is made by from_backend
+
+    - fixed smaller coupling map was generated in Primitives V1
+    Setting number of qubits before transpile for Primitives V1
+

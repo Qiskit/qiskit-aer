@@ -609,7 +609,7 @@ def generate_aer_config(
     return config
 
 
-def assemble_circuit(circuit: QuantumCircuit):
+def assemble_circuit(circuit: QuantumCircuit, basis_gates=None):
     """assemble circuit object mapped to AER::Circuit"""
 
     num_qubits = circuit.num_qubits
@@ -691,6 +691,7 @@ def assemble_circuit(circuit: QuantumCircuit):
             is_conditional,
             conditional_reg,
             conditional_expr,
+            basis_gates,
         )
         index_map.append(num_of_aer_ops - 1)
 
@@ -796,6 +797,7 @@ def _assemble_op(
     is_conditional,
     conditional_reg,
     conditional_expr,
+    basis_gates,
 ):
     operation = inst.operation
     qubits = [qubit_indices[qubit] for qubit in inst.qubits]
@@ -816,13 +818,16 @@ def _assemble_op(
 
     num_of_aer_ops = 1
     # fmt: off
-    if name in {
+    if basis_gates is None and name in {
         "ccx", "ccz", "cp", "cswap", "csx", "cx", "cy", "cz", "delay", "ecr", "h",
         "id", "mcp", "mcphase", "mcr", "mcrx", "mcry", "mcrz", "mcswap", "mcsx",
         "mcu", "mcu1", "mcu2", "mcu3", "mcx", "mcx_gray", "mcy", "mcz", "p", "r",
         "rx", "rxx", "ry", "ryy", "rz", "rzx", "rzz", "s", "sdg", "swap", "sx", "sxdg",
         "t", "tdg", "u", "x", "y", "z", "u1", "u2", "u3", "cu", "cu1", "cu2", "cu3",
     }:
+        aer_circ.gate(name, qubits, params, [], conditional_reg, aer_cond_expr,
+                      label if label else name)
+    elif basis_gates is not None and name in basis_gates:
         aer_circ.gate(name, qubits, params, [], conditional_reg, aer_cond_expr,
                       label if label else name)
     elif name == "measure":
@@ -927,7 +932,7 @@ def _assemble_op(
     return num_of_aer_ops
 
 
-def assemble_circuits(circuits: List[QuantumCircuit]) -> List[AerCircuit]:
+def assemble_circuits(circuits: List[QuantumCircuit], basis_gates=None) -> List[AerCircuit]:
     """converts a list of Qiskit circuits into circuits mapped AER::Circuit
 
     Args:
@@ -951,5 +956,5 @@ def assemble_circuits(circuits: List[QuantumCircuit]) -> List[AerCircuit]:
             # Generate AerCircuit from the input circuit
             aer_qc_list, idx_maps = assemble_circuits(circuits=[qc])
     """
-    aer_circuits, idx_maps = zip(*[assemble_circuit(circuit) for circuit in circuits])
+    aer_circuits, idx_maps = zip(*[assemble_circuit(circuit, basis_gates) for circuit in circuits])
     return list(aer_circuits), list(idx_maps)

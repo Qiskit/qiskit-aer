@@ -532,6 +532,7 @@ class Estimator(BaseEstimator):
                 circuit = self._circuits[i].copy()
                 circuit.measure_all()
                 num_qubits = circuit.num_qubits
+                self._backend.set_max_qubits(num_qubits)
                 circuit = self._transpile(circuit)
                 bit_map = {bit: index for index, bit in enumerate(circuit.qubits)}
                 layout = [bit_map[qr[0]] for _, qr, _ in circuit[-num_qubits:]]
