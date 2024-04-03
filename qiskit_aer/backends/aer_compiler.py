@@ -937,6 +937,7 @@ def assemble_circuits(circuits: List[QuantumCircuit], basis_gates=None) -> List[
 
     Args:
         circuits: circuit(s) to be converted
+        basis_gates: supported gates to be converted
 
     Returns:
         a list of circuits to be run on the Aer backends and
