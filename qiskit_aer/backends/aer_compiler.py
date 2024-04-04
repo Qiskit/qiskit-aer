@@ -932,7 +932,7 @@ def _assemble_op(
     return num_of_aer_ops
 
 
-def assemble_circuits(circuits: List[QuantumCircuit], basis_gates: list=None) -> List[AerCircuit]:
+def assemble_circuits(circuits: List[QuantumCircuit], basis_gates: list = None) -> List[AerCircuit]:
     """converts a list of Qiskit circuits into circuits mapped AER::Circuit
 
     Args:
