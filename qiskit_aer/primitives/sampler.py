@@ -200,7 +200,7 @@ class Sampler(BaseSampler):
             if is_shots_none:
                 circuits = (self._preprocess_circuit(circ) for circ in circuits)
             if not self._skip_transpilation:
-                circuits = (self_._transpile_circuit(circ) for circ in circuits)
+                circuits = (self._transpile_circuit(circ) for circ in circuits)
             for i, circuit in zip(to_handle, circuits):
                 self._transpiled_circuits[(i, is_shots_none)] = circuit
 
