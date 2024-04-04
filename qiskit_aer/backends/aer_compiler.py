@@ -92,12 +92,16 @@ class AerCompiler:
             # Make a shallow copy incase we modify it
             compiled_optypes = list(optypes)
         if isinstance(circuits, list):
-            basis_gates = basis_gates + ["mark", "jump"]
             compiled_circuits = []
             for idx, circuit in enumerate(circuits):
                 # Resolve initialize
                 circuit = self._inline_initialize(circuit, compiled_optypes[idx])
                 if self._is_dynamic(circuit, compiled_optypes[idx]):
+                    if basis_gates is None:
+                        basis_gates = ["mark", "jump"]
+                        self._add_basis_gates(circuit, basis_gates)
+                    else:
+                        basis_gates = basis_gates + ["mark", "jump"]
                     compiled_circ = transpile(
                         self._inline_circuit(circuit, None, None),
                         basis_gates=basis_gates,
@@ -168,6 +172,24 @@ class AerCompiler:
 
         return False
 
+    def _add_basis_gates(self, circuit, basis_gates):
+        controlflow_types = (
+            WhileLoopOp,
+            ForLoopOp,
+            IfElseOp,
+            BreakLoopOp,
+            ContinueLoopOp,
+            SwitchCaseOp,
+        )
+
+        for inst in circuit.data:
+            if inst.operation.name not in basis_gates:
+                basis_gates.append(inst.operation.name)
+            if isinstance(inst.operation, controlflow_types):
+                for circ in inst.operation.params:
+                    if circ is not None:
+                        self._add_basis_gates(circ, basis_gates)
+
     def _inline_circuit(self, circ, continue_label, break_label, bit_map=None):
         """convert control-flow instructions to mark and jump instructions
 
@@ -214,7 +236,6 @@ class AerCompiler:
                 )
             else:
                 ret._append(instruction)
-
         return ret
 
     def _convert_jump_conditional(self, cond_tuple, bit_map):

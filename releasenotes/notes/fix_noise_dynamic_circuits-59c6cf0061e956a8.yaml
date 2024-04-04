@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    When the circuit is a dynamic circuit, the input circuit was not correctly
+    transpiled in AerCompiler that causes wrong noise simulation result,
+    because some gates noise to be applied were transpiled to other gates.
+
+    Fixes AerCompiler to build basis_gates with input circuit, not to be transpiled
