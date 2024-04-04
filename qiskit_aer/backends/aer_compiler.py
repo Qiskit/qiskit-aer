@@ -827,9 +827,6 @@ def _assemble_op(
     }:
         aer_circ.gate(name, qubits, params, [], conditional_reg, aer_cond_expr,
                       label if label else name)
-    elif basis_gates is not None and name in basis_gates:
-        aer_circ.gate(name, qubits, params, [], conditional_reg, aer_cond_expr,
-                      label if label else name)
     elif name == "measure":
         if is_conditional:
             aer_circ.measure(qubits, clbits, clbits)
@@ -921,6 +918,9 @@ def _assemble_op(
         aer_circ.mark(qubits, params)
     elif name == "qerror_loc":
         aer_circ.set_qerror_loc(qubits, label if label else name, conditional_reg, aer_cond_expr)
+    elif basis_gates is not None and name in basis_gates:
+        aer_circ.gate(name, qubits, params, [], conditional_reg, aer_cond_expr,
+                      label if label else name)
     elif name in ("for_loop", "while_loop", "if_else"):
         raise AerError(
             "control-flow instructions must be converted " f"to jump and mark instructions: {name}"

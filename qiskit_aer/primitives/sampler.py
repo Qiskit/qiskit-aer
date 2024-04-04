@@ -182,6 +182,15 @@ class Sampler(BaseSampler):
         circuit.save_probabilities_dict(qargs)
         return circuit
 
+    def _transpile_circuit(self, circuit):
+        self._backend.set_max_qubits(circuit.num_qubits)
+        transpiled = transpile(
+            circuit,
+            self._backend,
+            **self._transpile_options,
+        )
+        return transpiled
+
     def _transpile(self, circuit_indices: Sequence[int], is_shots_none: bool):
         to_handle = [
             i for i in set(circuit_indices) if (i, is_shots_none) not in self._transpiled_circuits
@@ -191,13 +200,7 @@ class Sampler(BaseSampler):
             if is_shots_none:
                 circuits = (self._preprocess_circuit(circ) for circ in circuits)
             if not self._skip_transpilation:
-                for i in len(circuits):
-                    self._backend.set_max_qubits(circuits[i].num_qubits)
-                    circuits[i] = transpile(
-                        circuits[i],
-                        self._backend,
-                        **self._transpile_options,
-                    )
+                circuits = (self_._transpile_circuit(circ) for circ in circuits)
             for i, circuit in zip(to_handle, circuits):
                 self._transpiled_circuits[(i, is_shots_none)] = circuit
 
