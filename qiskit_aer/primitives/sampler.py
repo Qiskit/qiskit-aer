@@ -191,10 +191,10 @@ class Sampler(BaseSampler):
             if is_shots_none:
                 circuits = (self._preprocess_circuit(circ) for circ in circuits)
             if not self._skip_transpilation:
-                for circuit in circuits:
+                for i in len(circuits):
                     self._backend.set_max_qubits(circuit.num_qubits)
-                    circuit = transpile(
-                        circuit,
+                    circuits[i] = transpile(
+                        circuits[i],
                         self._backend,
                         **self._transpile_options,
                     )
