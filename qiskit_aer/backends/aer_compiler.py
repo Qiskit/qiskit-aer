@@ -37,6 +37,10 @@ from qiskit.circuit.controlflow import (
     CASE_DEFAULT,
 )
 from qiskit.compiler import transpile
+from qiskit.transpiler import PassManager
+from qiskit.transpiler.passes import Decompose
+
+
 from qiskit.qobj import QobjExperimentHeader
 from qiskit_aer.aererror import AerError
 from qiskit_aer.noise import NoiseModel
@@ -67,13 +71,11 @@ class AerCompiler:
     def __init__(self):
         self._last_flow_id = -1
 
-    def compile(self, circuits, basis_gates=None, optypes=None):
+    def compile(self, circuits, optypes=None):
         """compile a circuit that have control-flow instructions.
 
         Args:
             circuits (QuantumCircuit or list): The QuantumCircuits to be compiled
-            basis_gates (list): basis gates to decompose sub-circuits
-                                (default: None).
             optypes (list): list of instruction type sets for each circuit
                             (default: None).
 
@@ -97,16 +99,9 @@ class AerCompiler:
                 # Resolve initialize
                 circuit = self._inline_initialize(circuit, compiled_optypes[idx])
                 if self._is_dynamic(circuit, compiled_optypes[idx]):
-                    if basis_gates is None:
-                        basis_gates = ["mark", "jump"]
-                        self._add_basis_gates(circuit, basis_gates)
-                    else:
-                        basis_gates = basis_gates + ["mark", "jump"]
-                    compiled_circ = transpile(
-                        self._inline_circuit(circuit, None, None),
-                        basis_gates=basis_gates,
-                        optimization_level=0,
-                    )
+                    pm = PassManager([Decompose(["mark", "jump"])])
+                    compiled_circ = pm.run(self._inline_circuit(circuit, None, None))
+
                     compiled_circuits.append(compiled_circ)
                     # Recompute optype for compiled circuit
                     compiled_optypes[idx] = circuit_optypes(compiled_circ)
@@ -171,24 +166,6 @@ class AerCompiler:
                 return True
 
         return False
-
-    def _add_basis_gates(self, circuit, basis_gates):
-        controlflow_types = (
-            WhileLoopOp,
-            ForLoopOp,
-            IfElseOp,
-            BreakLoopOp,
-            ContinueLoopOp,
-            SwitchCaseOp,
-        )
-
-        for inst in circuit.data:
-            if inst.operation.name not in basis_gates:
-                basis_gates.append(inst.operation.name)
-            if isinstance(inst.operation, controlflow_types):
-                for circ in inst.operation.params:
-                    if circ is not None:
-                        self._add_basis_gates(circ, basis_gates)
 
     def _inline_circuit(self, circ, continue_label, break_label, bit_map=None):
         """convert control-flow instructions to mark and jump instructions
@@ -293,7 +270,9 @@ class AerCompiler:
             inlined_body = self._inline_circuit(body, continue_label, break_label, inner_bit_map)
             if loop_parameter is not None:
                 inlined_body = inlined_body.assign_parameters({loop_parameter: index})
-            parent.append(inlined_body, qargs, cargs)
+            #            parent.append(inlined_body, qargs, cargs)
+            for inst in inlined_body:
+                parent.append(inst, qargs, cargs)
             parent.append(AerMark(continue_label, len(qargs), len(cargs)), qargs, cargs)
 
         if inlined_body is not None:
@@ -344,7 +323,8 @@ class AerCompiler:
         )
         parent.append(AerJump(break_label, len(qargs), len(mark_cargs)), qargs, mark_cargs)
         parent.append(AerMark(loop_start_label, len(qargs), len(mark_cargs)), qargs, mark_cargs)
-        parent.append(inlined_body, qargs, cargs)
+        for inst in inlined_body:
+            parent.append(inst, qargs, cargs)
         parent.append(AerJump(continue_label, len(qargs), len(mark_cargs)), qargs, mark_cargs)
         parent.append(AerMark(break_label, len(qargs), len(mark_cargs)), qargs, mark_cargs)
 
@@ -392,9 +372,9 @@ class AerCompiler:
         )
         parent.append(AerJump(if_else_label, len(qargs), len(mark_cargs)), qargs, mark_cargs)
         parent.append(AerMark(if_true_label, len(qargs), len(mark_cargs)), qargs, mark_cargs)
-        parent.append(
-            self._inline_circuit(true_body, continue_label, break_label, true_bit_map), qargs, cargs
-        )
+        child = self._inline_circuit(true_body, continue_label, break_label, true_bit_map)
+        for inst in child.data:
+            parent.append(inst, qargs, cargs)
 
         if false_body:
             false_bit_map = {
@@ -406,11 +386,9 @@ class AerCompiler:
             }
             parent.append(AerJump(if_end_label, len(qargs), len(mark_cargs)), qargs, mark_cargs)
             parent.append(AerMark(if_else_label, len(qargs), len(mark_cargs)), qargs, mark_cargs)
-            parent.append(
-                self._inline_circuit(false_body, continue_label, break_label, false_bit_map),
-                qargs,
-                cargs,
-            )
+            child = self._inline_circuit(false_body, continue_label, break_label, false_bit_map)
+            for inst in child.data:
+                parent.append(inst, qargs, cargs)
 
         parent.append(AerMark(if_end_label, len(qargs), len(mark_cargs)), qargs, mark_cargs)
 
@@ -489,23 +467,21 @@ class AerCompiler:
 
         for case_data in case_data_list:
             parent.append(AerMark(case_data.label, len(qargs), len(mark_cargs)), qargs, mark_cargs)
-            parent.append(
-                self._inline_circuit(
-                    case_data.body, continue_label, break_label, case_data.bit_map
-                ),
-                qargs,
-                cargs,
+            child = self._inline_circuit(
+                case_data.body, continue_label, break_label, case_data.bit_map
             )
+            for inst in child.data:
+                parent.append(inst, qargs, cargs)
             parent.append(AerJump(switch_end_label, len(qargs), len(mark_cargs)), qargs, mark_cargs)
 
         parent.append(AerMark(switch_end_label, len(qargs), len(mark_cargs)), qargs, mark_cargs)
 
 
-def compile_circuit(circuits, basis_gates=None, optypes=None):
+def compile_circuit(circuits, optypes=None):
     """
     compile a circuit that have control-flow instructions
     """
-    return AerCompiler().compile(circuits, basis_gates, optypes)
+    return AerCompiler().compile(circuits, optypes)
 
 
 BACKEND_RUN_ARG_TYPES = {

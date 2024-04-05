@@ -517,12 +517,7 @@ class AerBackend(Backend, ABC):
         optypes = [circuit_optypes(circ) for circ in circuits]
 
         # Compile Qasm3 instructions
-        if self._target is not None:
-            circuits, optypes = compile_circuit(
-                circuits, basis_gates=self.configuration().basis_gates, optypes=optypes
-            )
-        else:
-            circuits, optypes = compile_circuit(circuits, optypes=optypes)
+        circuits, optypes = compile_circuit(circuits, optypes=optypes)
 
         # run option noise model
         circuits, noise_model, run_options = self._assemble_noise_model(
