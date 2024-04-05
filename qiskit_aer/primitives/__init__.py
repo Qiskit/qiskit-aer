@@ -31,6 +31,8 @@ Classes
     Estimator
 """
 
+import qiskit
+
 from .estimator import Estimator
 from .sampler import Sampler
 
