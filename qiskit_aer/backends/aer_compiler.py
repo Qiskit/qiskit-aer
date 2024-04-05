@@ -36,7 +36,6 @@ from qiskit.circuit.controlflow import (
     SwitchCaseOp,
     CASE_DEFAULT,
 )
-from qiskit.compiler import transpile
 from qiskit.transpiler import PassManager
 from qiskit.transpiler.passes import Decompose
 
