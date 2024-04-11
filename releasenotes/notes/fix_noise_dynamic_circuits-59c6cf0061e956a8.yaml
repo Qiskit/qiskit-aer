@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    When the circuit is a dynamic circuit, the input circuit was not correctly
+    transpiled in AerCompiler that causes wrong noise simulation result,
+    because some gates noise to be applied were transpiled to other gates.
+
+    This fix uses custom pass manager to decompose only jump and mark ops
+    Aer uses internally.
