@@ -226,5 +226,5 @@ def linkcode_resolve(domain, info):
         ending_lineno = lineno + len(source) - 1
         linespec = f"#L{lineno}-L{ending_lineno}"
 
-    repo_name = "qiskit" if "qiskit/" in file_name else "qiskit-aer"
+    repo_name = "qiskit" if "qiskit/" in str(file_name) else "qiskit-aer"
     return f"https://github.com/Qiskit/{repo_name}/tree/{GITHUB_BRANCH}/{file_name}{linespec}"
