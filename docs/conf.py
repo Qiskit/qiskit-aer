@@ -37,7 +37,6 @@ import inspect
 import os
 import re
 from pathlib import Path
-
 # Set env flag so that we can doc functions that may otherwise not be loaded
 # see for example interactive visualizations in qiskit.visualization.
 os.environ['QISKIT_DOCS'] = 'TRUE'
