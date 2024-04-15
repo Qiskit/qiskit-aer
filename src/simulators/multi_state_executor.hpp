@@ -531,11 +531,21 @@ void MultiStateExecutor<state_t>::run_circuit_with_shot_branching(
               int_t iadd = 0;
               int_t num_add = branches[istate]->additional_ops().size();
               while (iadd < num_add) {
-                if (apply_branching_op(*branches[istate],
+                bool branch_op = false;
+                if (branches[istate]->additional_ops()[iadd].sample_noise) {
+                  branch_op = branches[istate]->apply_runtime_noise_sampling(
+                                     state.creg(),
+                                     branches[istate]->additional_ops()[iadd],
+                                     noise);
+                }
+                else{
+                  branch_op = apply_branching_op(*branches[istate],
                                        branches[istate]->additional_ops()[iadd],
-                                       par_results[i].begin(), false)) {
-                  // check if there are new branches
-                  if (branches[istate]->num_branches() > 0) {
+                                       par_results[i].begin(), false);
+                }
+                // check if there are new branches
+                if (branch_op){
+                  if(branches[istate]->num_branches() > 0) {
                     // if there are additional ops remaining, queue them on new
                     // branches
                     for (uint_t k = iadd + 1;
@@ -581,14 +591,13 @@ void MultiStateExecutor<state_t>::run_circuit_with_shot_branching(
             if (branches[istate]->apply_control_flow(state.creg(), measure_seq))
               continue;
 
-            // runtime noise sampling
-            if (op->type == Operations::OpType::sample_noise) {
+            if (op->has_bind_params) {
+              // runtime parameterizaion
+              apply_runtime_parameterization(*branches[istate], *op);
+            } else if (op->sample_noise) {
+              // runtime noise sampling
               branches[istate]->apply_runtime_noise_sampling(state.creg(), *op,
                                                              noise);
-            }
-            // runtime parameterizaion
-            else if (op->has_bind_params) {
-              apply_runtime_parameterization(*branches[istate], *op);
             } else {
               if (!apply_branching_op(*branches[istate], *op,
                                       par_results[i].begin(),

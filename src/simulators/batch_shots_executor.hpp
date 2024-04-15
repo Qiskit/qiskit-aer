@@ -506,13 +506,13 @@ void BatchShotsExecutor<state_t>::apply_ops_batched_shots_for_group(
 #endif
 
   for (auto op = first; op != last; ++op) {
-    if (op->type == Operations::OpType::sample_noise) {
+    if (op->sample_noise) {
       if (op->expr) {
         for (uint_t j = Base::top_state_of_group_[i_group];
              j < Base::top_state_of_group_[i_group + 1]; j++) {
           Base::states_[j].qreg().enable_batch(false);
           Base::states_[j].qreg().read_measured_data(Base::states_[j].creg());
-          std::vector<Operations::Op> nops = noise.sample_noise_loc(
+          std::vector<Operations::Op> nops = noise.sample_noise_at_runtime(
               *op, rng[j - Base::top_state_of_group_[i_group]]);
           for (uint_t k = 0; k < nops.size(); k++) {
             Base::states_[j].apply_op(
@@ -533,7 +533,7 @@ void BatchShotsExecutor<state_t>::apply_ops_batched_shots_for_group(
       if (num_inner_threads > 1) {
 #pragma omp parallel for reduction(+: count_ops,non_pauli_gate_count) num_threads(num_inner_threads)
         for (int_t j = 0; j < (int_t)count; j++) {
-          noise_ops[j] = noise.sample_noise_loc(*op, rng[j]);
+          noise_ops[j] = noise.sample_noise_at_runtime(*op, rng[j]);
 
           if (!(noise_ops[j].size() == 0 ||
                 (noise_ops[j].size() == 1 && noise_ops[j][0].name == "id"))) {
@@ -550,7 +550,7 @@ void BatchShotsExecutor<state_t>::apply_ops_batched_shots_for_group(
         }
       } else {
         for (uint_t j = 0; j < count; j++) {
-          noise_ops[j] = noise.sample_noise_loc(*op, rng[j]);
+          noise_ops[j] = noise.sample_noise_at_runtime(*op, rng[j]);
 
           if (!(noise_ops[j].size() == 0 ||
                 (noise_ops[j].size() == 1 && noise_ops[j][0].name == "id"))) {

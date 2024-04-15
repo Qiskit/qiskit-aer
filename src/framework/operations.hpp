@@ -383,7 +383,6 @@ enum class OpType {
   superop,
   roerror,
   noise_switch,
-  sample_noise,
   // Save instructions
   save_state,
   save_expval,
@@ -532,9 +531,6 @@ inline std::ostream &operator<<(std::ostream &stream, const OpType &type) {
   case OpType::qerror_loc:
     stream << "qerror_loc";
     break;
-  case OpType::sample_noise:
-    stream << "sample_noise";
-    break;
   case OpType::noise_switch:
     stream << "noise_switch";
     break;
@@ -639,6 +635,9 @@ struct Op {
 
   // Save
   DataSubType save_type = DataSubType::single;
+
+  // runtime noise sampling 
+  bool sample_noise = false;
 
   // runtime parameter bind
   bool has_bind_params = false;
@@ -1319,8 +1318,14 @@ inline Op bind_parameter(const Op &src, const uint_t iparam,
   op.type = src.type;
   op.name = src.name;
   op.qubits = src.qubits;
+  op.regs = src.regs;
+  op.int_params = src.int_params;
+  op.string_params = src.string_params;
   op.conditional = src.conditional;
   op.conditional_reg = src.conditional_reg;
+  op.sample_noise = src.sample_noise;
+  op.binary_op = src.binary_op;
+  op.expr = src.expr;
 
   if (src.params.size() > 0) {
     uint_t stride = src.params.size() / num_params;

@@ -246,16 +246,16 @@ void Branch::advance_iterator(void) {
 bool Branch::apply_runtime_noise_sampling(const ClassicalRegister &creg,
                                           const Operations::Op &op,
                                           const Noise::NoiseModel &noise) {
-  if (op.type != Operations::OpType::sample_noise)
-    return false;
-
   uint_t nshots = num_shots();
   reg_t shot_map(nshots);
   std::vector<std::vector<Operations::Op>> noises;
 
+  if (!op.sample_noise)
+    return false;
+
   for (uint_t i = 0; i < nshots; i++) {
     std::vector<Operations::Op> noise_ops =
-        noise.sample_noise_loc(op, shots_[i]);
+        noise.sample_noise_at_runtime(op, shots_[i]);
 
     // search same noise ops
     int_t pos = -1;
@@ -264,6 +264,11 @@ bool Branch::apply_runtime_noise_sampling(const ClassicalRegister &creg,
         continue;
       bool same = true;
       for (uint_t k = 0; k < noise_ops.size(); k++) {
+        if (noise_ops[k].sample_noise){
+          noise_ops[k].sample_noise = false;
+          continue;   //skip original op
+        }
+
         if (noise_ops[k].type != noises[j][k].type ||
             noise_ops[k].name != noises[j][k].name)
           same = false;
@@ -320,6 +325,14 @@ bool Branch::apply_runtime_noise_sampling(const ClassicalRegister &creg,
       if (same) {
         pos = j;
         break;
+      }
+    }
+
+    if(noises.size() == 0){
+      for (uint_t k = 0; k < noise_ops.size(); k++) {
+        if (noise_ops[k].sample_noise){
+          noise_ops[k].sample_noise = false;
+        }
       }
     }
 
