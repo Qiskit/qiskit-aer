@@ -183,7 +183,6 @@ void SampleVector::from_vector_with_map(const reg_t &src, const reg_t &map,
   uint_t pos = 0;
   uint_t n = REG_SIZE >> elem_shift_bits_;
   for (uint_t i = 0; i < bits_.size(); i++) {
-    uint_t n = REG_SIZE;
     uint_t val = 0;
     if (n > size_ - pos)
       n = size_ - pos;
