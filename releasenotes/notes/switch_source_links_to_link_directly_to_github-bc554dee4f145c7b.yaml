@@ -1,0 +1,5 @@
+
+features:
+  - |
+    Source links in the API documentation will now link to the exact lines in the GitHub repository.
+
