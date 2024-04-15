@@ -636,7 +636,7 @@ struct Op {
   // Save
   DataSubType save_type = DataSubType::single;
 
-  // runtime noise sampling 
+  // runtime noise sampling
   bool sample_noise = false;
 
   // runtime parameter bind

@@ -534,18 +534,17 @@ void MultiStateExecutor<state_t>::run_circuit_with_shot_branching(
                 bool branch_op = false;
                 if (branches[istate]->additional_ops()[iadd].sample_noise) {
                   branch_op = branches[istate]->apply_runtime_noise_sampling(
-                                     state.creg(),
-                                     branches[istate]->additional_ops()[iadd],
-                                     noise);
-                }
-                else{
-                  branch_op = apply_branching_op(*branches[istate],
-                                       branches[istate]->additional_ops()[iadd],
-                                       par_results[i].begin(), false);
+                      state.creg(), branches[istate]->additional_ops()[iadd],
+                      noise);
+                } else {
+                  branch_op = apply_branching_op(
+                      *branches[istate],
+                      branches[istate]->additional_ops()[iadd],
+                      par_results[i].begin(), false);
                 }
                 // check if there are new branches
-                if (branch_op){
-                  if(branches[istate]->num_branches() > 0) {
+                if (branch_op) {
+                  if (branches[istate]->num_branches() > 0) {
                     // if there are additional ops remaining, queue them on new
                     // branches
                     for (uint_t k = iadd + 1;

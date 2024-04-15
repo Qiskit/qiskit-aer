@@ -264,9 +264,9 @@ bool Branch::apply_runtime_noise_sampling(const ClassicalRegister &creg,
         continue;
       bool same = true;
       for (uint_t k = 0; k < noise_ops.size(); k++) {
-        if (noise_ops[k].sample_noise){
+        if (noise_ops[k].sample_noise) {
           noise_ops[k].sample_noise = false;
-          continue;   //skip original op
+          continue; // skip original op
         }
 
         if (noise_ops[k].type != noises[j][k].type ||
@@ -328,9 +328,9 @@ bool Branch::apply_runtime_noise_sampling(const ClassicalRegister &creg,
       }
     }
 
-    if(noises.size() == 0){
+    if (noises.size() == 0) {
       for (uint_t k = 0; k < noise_ops.size(); k++) {
-        if (noise_ops[k].sample_noise){
+        if (noise_ops[k].sample_noise) {
           noise_ops[k].sample_noise = false;
         }
       }
