@@ -227,9 +227,8 @@ def linkcode_resolve(domain, info):
         ending_lineno = lineno + len(source) - 1
         linespec = f"#L{lineno}-L{ending_lineno}"
 
-    github_branch = determine_github_branch()
     if "qiskit/" in file_name:
-        base_url = "https://github.com/Qiskit/qiskit-aer/tree/"
-    else:
         base_url = "https://github.com/Qiskit/qiskit/tree/"
-    return f"{base_url}{github_branch}/{file_name}{linespec}"
+    else:
+        base_url = "https://github.com/Qiskit/qiskit-aer/tree/"
+    return f"{base_url}{GITHUB_BRANCH}/{file_name}{linespec}"
