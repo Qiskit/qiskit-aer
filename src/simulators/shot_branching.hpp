@@ -231,7 +231,7 @@ void Branch::branch_shots_by_params(void) {
   branches_.resize(param_index_.size());
 
   for (uint_t i = 0; i < param_index_.size(); i++) {
-    branches_[i] = std::make_shared<Branch>(*this);
+    branches_[i] = std::make_shared<Branch>();
     branches_[i]->creg_ = creg_;
     branches_[i]->iter_ = iter_;
     branches_[i]->flow_marks_ = flow_marks_;
