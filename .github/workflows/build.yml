@@ -140,6 +140,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           path: ./wheelhouse/*.whl
+          name: artifact-${{ matrix.runs-on }}
   wheel-arm64:
     runs-on: ${{ matrix.os }}
     strategy:
@@ -160,6 +161,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           path: ./wheelhouse/*.whl
+          name: artifact-${{ matrix.runs-on }}
   wheel-gpu-cu11:
     runs-on: "ubuntu-latest"
     steps:
@@ -192,6 +194,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           path: ./wheelhouse/*.whl
+          name: artifact-${{ matrix.runs-on }}
   wheel-gpu:
     runs-on: "ubuntu-latest"
     steps:
@@ -224,3 +227,4 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           path: ./wheelhouse/*.whl
+          name: artifact-${{ matrix.runs-on }}
