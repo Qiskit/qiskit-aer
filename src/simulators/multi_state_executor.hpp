@@ -468,7 +468,7 @@ void MultiStateExecutor<state_t>::run_circuit_with_shot_branching(
   // initial state
   waiting_branches.push_back(std::make_shared<Branch>());
   waiting_branches[0]->set_shots(shots_storage);
-  waiting_branches[0]->op_iterator() = first;
+  waiting_branches[0]->set_iterator(first);
   if (Base::num_bind_params_ > 1) {
     waiting_branches[0]->set_param_index(global_state_index_ + ishot,
                                          Base::num_shots_per_bind_param_);
@@ -494,7 +494,7 @@ void MultiStateExecutor<state_t>::run_circuit_with_shot_branching(
         break;
       uint_t sid = top_state + i;
       waiting_branches[i]->state_index() = sid;
-      waiting_branches[i]->op_iterator() = first;
+      waiting_branches[i]->set_iterator(first);
       branches.push_back(waiting_branches[i]);
 
       // initialize state
@@ -514,7 +514,7 @@ void MultiStateExecutor<state_t>::run_circuit_with_shot_branching(
     while (num_active_states > 0) { // loop until all branches execute all ops
       // functor for ops execution
       auto apply_ops_func = [this, &branches, &noise, &par_results, measure_seq,
-                             last, par_shots, num_active_states](int_t i) {
+                             last, par_shots](int_t i) {
         uint_t istate, state_end;
         istate = branches.size() * i / par_shots;
         state_end = branches.size() * (i + 1) / par_shots;
@@ -524,65 +524,9 @@ void MultiStateExecutor<state_t>::run_circuit_with_shot_branching(
         for (; istate < state_end; istate++) {
           state_t &state = states_[branches[istate]->state_index()];
 
-          while (branches[istate]->op_iterator() != measure_seq ||
-                 branches[istate]->additional_ops().size() > 0) {
-            // execute additional ops first if avaiable
-            if (branches[istate]->additional_ops().size() > 0) {
-              int_t iadd = 0;
-              int_t num_add = branches[istate]->additional_ops().size();
-              while (iadd < num_add) {
-                bool branch_op = false;
-                if (branches[istate]->additional_ops()[iadd].sample_noise) {
-                  branch_op = branches[istate]->apply_runtime_noise_sampling(
-                      state.creg(), branches[istate]->additional_ops()[iadd],
-                      noise);
-                } else {
-                  branch_op = apply_branching_op(
-                      *branches[istate],
-                      branches[istate]->additional_ops()[iadd],
-                      par_results[i].begin(), false);
-                }
-                // check if there are new branches
-                if (branch_op) {
-                  if (branches[istate]->num_branches() > 0) {
-                    // if there are additional ops remaining, queue them on new
-                    // branches
-                    for (uint_t k = iadd + 1;
-                         k < branches[istate]->additional_ops().size(); k++) {
-                      for (uint_t l = 0; l < branches[istate]->num_branches();
-                           l++)
-                        branches[istate]->branches()[l]->add_op_after_branch(
-                            branches[istate]->additional_ops()[k]);
-                    }
-                    branches[istate]->remove_empty_branches();
-                    state.creg() = branches[istate]->creg();
-
-                    // if there are some branches still remaining
-                    if (branches[istate]->num_branches() > 0) {
-                      nbranch += branches[istate]->num_branches();
-                      break;
-                    }
-                    iadd = 0;
-                    num_add = branches[istate]->additional_ops().size();
-                  }
-                } else {
-                  state.apply_op(branches[istate]->additional_ops()[iadd],
-                                 par_results[i][0], dummy_rng, false);
-                }
-                iadd++;
-              }
-              branches[istate]->clear_additional_ops();
-              // if there are some branches still remaining
-              if (branches[istate]->num_branches() > 0) {
-                nbranch += branches[istate]->num_branches();
-                break;
-              }
-            }
+          while (branches[istate]->op_iterator() != measure_seq) {
             OpItr op = branches[istate]->op_iterator();
-            if (op == measure_seq)
-              break;
 
-            // then execute ops
             if (!state.creg().check_conditional(*op)) {
               branches[istate]->advance_iterator();
               continue;
@@ -590,13 +534,14 @@ void MultiStateExecutor<state_t>::run_circuit_with_shot_branching(
             if (branches[istate]->apply_control_flow(state.creg(), measure_seq))
               continue;
 
-            if (op->has_bind_params) {
-              // runtime parameterizaion
-              apply_runtime_parameterization(*branches[istate], *op);
-            } else if (op->sample_noise) {
+            branches[istate]->advance_iterator();
+            if (op->sample_noise) {
               // runtime noise sampling
               branches[istate]->apply_runtime_noise_sampling(state.creg(), *op,
                                                              noise);
+            } else if (op->has_bind_params) {
+              // runtime parameterizaion
+              apply_runtime_parameterization(*branches[istate], *op);
             } else {
               if (!apply_branching_op(*branches[istate], *op,
                                       par_results[i].begin(),
@@ -606,7 +551,6 @@ void MultiStateExecutor<state_t>::run_circuit_with_shot_branching(
               }
             }
 
-            branches[istate]->advance_iterator();
             if (branches[istate]->num_branches() > 0) {
               branches[istate]->remove_empty_branches();
               state.creg() = branches[istate]->creg();
@@ -680,8 +624,7 @@ void MultiStateExecutor<state_t>::run_circuit_with_shot_branching(
       // check if there are remaining ops
       num_active_states = 0;
       for (uint_t i = 0; i < branches.size(); i++) {
-        if (branches[i]->op_iterator() != measure_seq ||
-            branches[i]->additional_ops().size() > 0)
+        if (branches[i]->op_iterator() != measure_seq)
           num_active_states++;
       }
     }

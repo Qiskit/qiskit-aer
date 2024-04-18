@@ -68,6 +68,11 @@ public:
   NoiseOps sample_noise_at_runtime(const Operations::Op &op,
                                    RngEngine &rng) const;
 
+  void sample_noise_at_runtime(const Operations::Op &op,
+                               NoiseModel::NoiseOps &noise_before,
+                               NoiseModel::NoiseOps &noise_after,
+                               RngEngine &rng) const;
+
   // Enable superop sampling method
   // This will cause all QuantumErrors stored in the noise model
   // to calculate their superoperator representations and raise
@@ -281,12 +286,29 @@ Circuit NoiseModel::sample_noise(const Circuit &circ, RngEngine &rng,
 NoiseModel::NoiseOps
 NoiseModel::sample_noise_at_runtime(const Operations::Op &op,
                                     RngEngine &rng) const {
-  //  auto noise_ops =
-  //      sample_noise_op(op, rng, Method::circuit, circ_mapping_, false);
-
   // Return operator set
   NoiseOps noise_before;
   NoiseOps noise_after;
+
+  sample_noise_at_runtime(op, noise_before, noise_after, rng);
+
+  // Combine errors
+  auto &noise_ops = noise_before;
+  noise_ops.reserve(noise_before.size() + noise_after.size() + 1);
+  Operations::Op op_sampled = op;
+  op_sampled.sample_noise = false;
+  noise_ops.push_back(op_sampled);
+  noise_ops.insert(noise_ops.end(),
+                   std::make_move_iterator(noise_after.begin()),
+                   std::make_move_iterator(noise_after.end()));
+
+  return noise_ops;
+}
+
+void NoiseModel::sample_noise_at_runtime(const Operations::Op &op,
+                                         NoiseModel::NoiseOps &noise_before,
+                                         NoiseModel::NoiseOps &noise_after,
+                                         RngEngine &rng) const {
   // Apply local errors first
   sample_local_quantum_noise(op, noise_before, noise_after, rng, circ_method_,
                              circ_mapping_);
@@ -298,24 +320,20 @@ NoiseModel::sample_noise_at_runtime(const Operations::Op &op,
     sample_readout_noise(op, noise_after, rng, circ_mapping_);
   }
 
-  // Combine errors
-  auto &noise_ops = noise_before;
-  noise_ops.reserve(noise_before.size() + noise_after.size() + 1);
-  noise_ops.push_back(op);
-  noise_ops.insert(noise_ops.end(),
-                   std::make_move_iterator(noise_after.begin()),
-                   std::make_move_iterator(noise_after.end()));
-
   // If original op is conditional, make all the noise operations also
   // conditional
   if (op.conditional) {
-    for (auto &noise_op : noise_ops) {
+    for (auto &noise_op : noise_before) {
+      noise_op.conditional = op.conditional;
+      noise_op.conditional_reg = op.conditional_reg;
+      noise_op.binary_op = op.binary_op;
+    }
+    for (auto &noise_op : noise_after) {
       noise_op.conditional = op.conditional;
       noise_op.conditional_reg = op.conditional_reg;
       noise_op.binary_op = op.binary_op;
     }
   }
-  return noise_ops;
 }
 
 Circuit NoiseModel::sample_noise_circuit(const Circuit &circ, RngEngine &rng,

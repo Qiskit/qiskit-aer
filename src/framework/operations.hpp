@@ -1326,6 +1326,7 @@ inline Op bind_parameter(const Op &src, const uint_t iparam,
   op.sample_noise = src.sample_noise;
   op.binary_op = src.binary_op;
   op.expr = src.expr;
+  op.has_bind_params = false;
 
   if (src.params.size() > 0) {
     uint_t stride = src.params.size() / num_params;

@@ -99,6 +99,9 @@ protected:
                                InputIterator last_meas, uint_t shots,
                                uint_t i_group, ResultItr result,
                                std::vector<RngEngine> &rng);
+
+  // check if ops contains pauli ops
+  bool check_pauli_only(std::vector<Operations::Op> &ops);
 };
 
 template <class state_t>
@@ -526,55 +529,87 @@ void BatchShotsExecutor<state_t>::apply_ops_batched_shots_for_group(
 
       // sample error here
       uint_t count = Base::num_states_in_group_[i_group];
-      std::vector<std::vector<Operations::Op>> noise_ops(count);
+      std::vector<std::vector<Operations::Op>> noise_ops_before(count);
+      std::vector<std::vector<Operations::Op>> noise_ops_after(count);
 
-      uint_t count_ops = 0;
-      uint_t non_pauli_gate_count = 0;
+      uint_t count_ops_before = 0;
+      uint_t count_ops_after = 0;
+      bool pauli_only_before = true;
+      bool pauli_only_after = true;
       if (num_inner_threads > 1) {
-#pragma omp parallel for reduction(+: count_ops,non_pauli_gate_count) num_threads(num_inner_threads)
+#pragma omp parallel for reduction(+: count_ops_before, count_ops_after) reduction(&: pauli_only_before, pauli_only_after) num_threads(num_inner_threads)
         for (int_t j = 0; j < (int_t)count; j++) {
-          noise_ops[j] = noise.sample_noise_at_runtime(*op, rng[j]);
+          noise.sample_noise_at_runtime(*op, noise_ops_before[j],
+                                        noise_ops_after[j], rng[j]);
 
-          if (!(noise_ops[j].size() == 0 ||
-                (noise_ops[j].size() == 1 && noise_ops[j][0].name == "id"))) {
-            count_ops++;
-            for (uint_t k = 0; k < noise_ops[j].size(); k++) {
-              if (noise_ops[j][k].name != "id" && noise_ops[j][k].name != "x" &&
-                  noise_ops[j][k].name != "y" && noise_ops[j][k].name != "z" &&
-                  noise_ops[j][k].name != "pauli") {
-                non_pauli_gate_count++;
-                break;
-              }
-            }
+          pauli_only_before &= check_pauli_only(noise_ops_before[j]);
+          pauli_only_after &= check_pauli_only(noise_ops_after[j]);
+
+          if (!(noise_ops_before[j].size() == 0 ||
+                (noise_ops_before[j].size() == 1 &&
+                 noise_ops_before[j][0].name == "id"))) {
+            count_ops_before++;
+          }
+          if (!(noise_ops_after[j].size() == 0 ||
+                (noise_ops_after[j].size() == 1 &&
+                 noise_ops_after[j][0].name == "id"))) {
+            count_ops_after++;
           }
         }
       } else {
         for (uint_t j = 0; j < count; j++) {
-          noise_ops[j] = noise.sample_noise_at_runtime(*op, rng[j]);
+          noise.sample_noise_at_runtime(*op, noise_ops_before[j],
+                                        noise_ops_after[j], rng[j]);
 
-          if (!(noise_ops[j].size() == 0 ||
-                (noise_ops[j].size() == 1 && noise_ops[j][0].name == "id"))) {
-            count_ops++;
-            for (uint_t k = 0; k < noise_ops[j].size(); k++) {
-              if (noise_ops[j][k].name != "id" && noise_ops[j][k].name != "x" &&
-                  noise_ops[j][k].name != "y" && noise_ops[j][k].name != "z" &&
-                  noise_ops[j][k].name != "pauli") {
-                non_pauli_gate_count++;
-                break;
-              }
-            }
+          pauli_only_before &= check_pauli_only(noise_ops_before[j]);
+          pauli_only_after &= check_pauli_only(noise_ops_after[j]);
+
+          if (!(noise_ops_before[j].size() == 0 ||
+                (noise_ops_before[j].size() == 1 &&
+                 noise_ops_before[j][0].name == "id"))) {
+            count_ops_before++;
+          }
+          if (!(noise_ops_after[j].size() == 0 ||
+                (noise_ops_after[j].size() == 1 &&
+                 noise_ops_after[j][0].name == "id"))) {
+            count_ops_after++;
           }
         }
       }
 
-      if (count_ops == 0) {
-        continue; // do nothing
+      // noise before op
+      if (count_ops_before > 0) {
+        if (pauli_only_before) { // optimization for Pauli error
+          Base::states_[istate].qreg().apply_batched_pauli_ops(
+              noise_ops_before);
+        } else {
+          // otherwise execute each circuit
+          apply_batched_noise_ops(i_group, noise_ops_before, result_it, rng);
+        }
       }
-      if (non_pauli_gate_count == 0) { // optimization for Pauli error
-        Base::states_[istate].qreg().apply_batched_pauli_ops(noise_ops);
-      } else {
-        // otherwise execute each circuit
-        apply_batched_noise_ops(i_group, noise_ops, result_it, rng);
+      // apply base op
+      if (!apply_batched_op(istate, *op, result_it, rng,
+                            final_ops && (op + 1 == last))) {
+        // call apply_op for each state
+        for (uint_t j = 0; j < Base::num_states_in_group_[i_group]; j++) {
+          uint_t is = Base::top_state_of_group_[i_group] + j;
+          uint_t ip = (Base::global_state_index_ + is) /
+                      Base::num_shots_per_bind_param_;
+          Base::states_[is].qreg().enable_batch(false);
+          Base::states_[is].qreg().read_measured_data(Base::states_[is].creg());
+          Base::states_[is].apply_op(*op, *(result_it + ip), rng[j],
+                                     final_ops && (op + 1 == last));
+          Base::states_[is].qreg().enable_batch(true);
+        }
+      }
+      // noise after op
+      if (count_ops_after > 0) {
+        if (pauli_only_after) { // optimization for Pauli error
+          Base::states_[istate].qreg().apply_batched_pauli_ops(noise_ops_after);
+        } else {
+          // otherwise execute each circuit
+          apply_batched_noise_ops(i_group, noise_ops_after, result_it, rng);
+        }
       }
     } else {
       if (!op->expr && apply_batched_op(istate, *op, result_it, rng,
@@ -594,6 +629,18 @@ void BatchShotsExecutor<state_t>::apply_ops_batched_shots_for_group(
       }
     }
   }
+}
+
+template <class state_t>
+bool BatchShotsExecutor<state_t>::check_pauli_only(
+    std::vector<Operations::Op> &ops) {
+  for (uint_t k = 0; k < ops.size(); k++) {
+    if (ops[k].name != "id" && ops[k].name != "x" && ops[k].name != "y" &&
+        ops[k].name != "z" && ops[k].name != "pauli") {
+      return false;
+    }
+  }
+  return true;
 }
 
 template <class state_t>
