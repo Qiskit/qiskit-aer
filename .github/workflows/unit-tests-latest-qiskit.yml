@@ -17,13 +17,13 @@ jobs:
       # This variable should become redundant on release of jupyter-core 6.
       JUPYTER_PLATFORM_DIRS: 1
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - name: Set up Python 3.11
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v5
         with:
           python-version: 3.11
       - name: Pip cache
-        uses: actions/cache@v2
+        uses: actions/cache@v4
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-${{ matrix.python-version}}-pip-test-${{ hashFiles('setup.py','requirements-dev.txt','constraints.txt') }}

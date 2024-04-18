@@ -14,13 +14,13 @@ jobs:
       matrix:
         python-version: [3.8]
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
       - name: Pip cache
-        uses: actions/cache@v2
+        uses: actions/cache@v4
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-${{ matrix.python-version}}-pip-lint-${{ hashFiles('setup.py','requirements-dev.txt','constraints.txt') }}
@@ -54,13 +54,13 @@ jobs:
           { os: "ubuntu-latest", python-architecture: "x64" },
         ]
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
       - name: Pip cache
-        uses: actions/cache@v2
+        uses: actions/cache@v4
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-${{ matrix.python-version}}-pip-sdist-${{ hashFiles('setup.py','requirements-dev.txt','constraints.txt') }}
@@ -107,13 +107,13 @@ jobs:
       # This variable should become redundant on release of jupyter-core 6.
       JUPYTER_PLATFORM_DIRS: 1
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
       - name: Pip cache
-        uses: actions/cache@v2
+        uses: actions/cache@v4
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-${{ matrix.python-version}}-pip-test-${{ hashFiles('setup.py','requirements-dev.txt','constraints.txt') }}
@@ -157,13 +157,13 @@ jobs:
       # This variable should become redundant on release of jupyter-core 6.
       JUPYTER_PLATFORM_DIRS: 1
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
       - name: Pip cache
-        uses: actions/cache@v2
+        uses: actions/cache@v4
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-${{ matrix.python-version}}-pip-test-${{ hashFiles('setup.py','requirements-dev.txt','constraints.txt') }}
@@ -207,13 +207,13 @@ jobs:
       # This variable should become redundant on release of jupyter-core 6.
       JUPYTER_PLATFORM_DIRS: 1
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
       - name: Pip cache
-        uses: actions/cache@v2
+        uses: actions/cache@v4
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-${{ matrix.python-version}}-pip-test-${{ hashFiles('setup.py','requirements-dev.txt','constraints.txt') }}
@@ -251,13 +251,13 @@ jobs:
       # This variable should become redundant on release of jupyter-core 6.
       JUPYTER_PLATFORM_DIRS: 1
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
       - name: Pip cache
-        uses: actions/cache@v2
+        uses: actions/cache@v4
         with:
           path: ~\AppData\Local\pip\Cache
           key: ${{ runner.os }}-${{ matrix.python-version}}-pip-test-${{ hashFiles('setup.py','requirements-dev.txt','constraints.txt') }}
@@ -266,7 +266,7 @@ jobs:
             ${{ runner.os }}-${{ matrix.python-version}}-pip-
             ${{ runner.os }}-${{ matrix.python-version}}-
       - name: Add msbuild to PATH
-        uses: microsoft/setup-msbuild@v1.0.2
+        uses: microsoft/setup-msbuild@v2
       - name: Build Aer Windows
         env:
           CMAKE_GENERATOR: "Visual Studio 16 2019"
