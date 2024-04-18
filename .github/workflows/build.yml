@@ -161,7 +161,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           path: ./wheelhouse/*.whl
-          name: artifact-${{ wheel.runs-on }}
+          name: artifact-${{ wheel-arm64.runs-on }}
   wheel-gpu-cu11:
     runs-on: "ubuntu-latest"
     steps:
