@@ -394,6 +394,7 @@ void Branch::remove_empty_branches(void) {
   param_index_ = branches_[iroot]->param_index_;
   param_shots_ = branches_[iroot]->param_shots_;
   creg_ = branches_[iroot]->creg();
+  initialize_after_reset_ = branches_[iroot]->initialize_after_reset_;
 
   std::vector<std::shared_ptr<Branch>> new_branches;
   for (uint_t j = iroot; j < branches_.size(); j++) {
