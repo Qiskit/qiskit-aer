@@ -610,10 +610,10 @@ struct Op {
       string_params; // used for label, control-flow, and boolean functions
 
   // Conditional Operations
-  bool conditional = false; // is gate conditional gate
+  bool conditional = false;   // is gate conditional gate
   uint_t conditional_reg = 0; // (opt) the (single) register location to look
                               //  up for conditional
-  BinaryOp binary_op;     // (opt) boolean function relation
+  BinaryOp binary_op;         // (opt) boolean function relation
   std::shared_ptr<CExpr> expr = nullptr; // (opt) classical expression
 
   // Measurement
