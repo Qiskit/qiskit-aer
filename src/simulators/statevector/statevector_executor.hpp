@@ -1647,19 +1647,22 @@ void Executor<state_t>::apply_initialize(CircuitExecutor::Branch &root,
     }
   }
 
-  if (root.additional_ops().size() == 0) {
+  if (!root.initialize_after_reset()) {
     apply_reset(root, qubits);
 
-    Operations::Op op;
-    op.type = OpType::initialize;
-    op.name = "initialize";
-    op.qubits = qubits;
-    op.params = params;
-    for (uint_t i = 0; i < root.num_branches(); i++) {
-      root.branches()[i]->add_op_after_branch(op);
+    if (root.num_branches().size() > 0) {
+      Operations::Op op;
+      op.type = OpType::initialize;
+      op.name = "initialize";
+      op.qubits = qubits;
+      op.params = params;
+      for (uint_t i = 0; i < root.num_branches(); i++) {
+        root.branches()[i]->add_op_after_branch(op);
+        root.branches()[i]->initialize_after_reset() = true;
+      }
+      return; // initialization will be done in next call because of shot
+              // branching in reset
     }
-    return; // initialization will be done in next call because of shot
-            // branching in reset
   }
 
   Base::states_[root.state_index()].qreg().initialize_component(qubits, params);
