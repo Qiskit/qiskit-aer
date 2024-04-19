@@ -1326,7 +1326,6 @@ inline Op bind_parameter(const Op &src, const uint_t iparam,
   op.string_params = src.string_params;
   op.conditional = src.conditional;
   op.conditional_reg = src.conditional_reg;
-  op.sample_noise = src.sample_noise;
   op.binary_op = src.binary_op;
   op.expr = src.expr;
   op.has_bind_params = false;
