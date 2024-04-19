@@ -484,7 +484,7 @@ void MultiStateExecutor<state_t>::run_circuit_with_shot_branching(
 
   reg_t num_shots_saved(Base::num_bind_params_, 0);
 
-      shot_omp_parallel_ = false;
+  shot_omp_parallel_ = false;
   // loop until all local shots are simulated
   while (waiting_branches.size() > 0) {
     uint_t num_active_states = 1;
