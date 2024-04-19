@@ -568,8 +568,7 @@ void MultiStateExecutor<state_t>::run_circuit_with_shot_branching(
 
       // apply ops until some branch operations are executed in some branches
       uint_t nbranch = Utils::apply_omp_parallel_for_reduction_int(
-          false, 0,
-          par_shots, apply_ops_func, par_shots);
+          false, 0, par_shots, apply_ops_func, par_shots);
 
       // repeat until new branch is available
       if (nbranch > 0) {
