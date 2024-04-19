@@ -589,7 +589,7 @@ void BatchShotsExecutor<state_t>::apply_ops_batched_shots_for_group(
       }
       // apply original op
       if (op->expr || !apply_batched_op(istate, *op, result_it, rng,
-                            final_ops && (op + 1 == last))) {
+                                        final_ops && (op + 1 == last))) {
         // call apply_op for each state
         for (uint_t j = 0; j < Base::num_states_in_group_[i_group]; j++) {
           uint_t is = Base::top_state_of_group_[i_group] + j;
