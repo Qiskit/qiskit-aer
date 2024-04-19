@@ -104,12 +104,6 @@ public:
   void add_ops_after_branch(std::vector<Operations::Op> &ops) {
     additional_ops_.insert(additional_ops_.end(), ops.begin(), ops.end());
   }
-  void clear_additional_ops(void) {
-    additional_ops_.clear();
-    additional_op_pos_ = 0;
-  }
-
-  std::vector<Operations::Op> &additional_ops(void) { return additional_ops_; }
 
   void branch_shots(reg_t &shots, int_t nbranch);
 
