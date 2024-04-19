@@ -611,10 +611,10 @@ struct Op {
 
   // Conditional Operations
   bool conditional = false; // is gate conditional gate
-  uint_t conditional_reg; // (opt) the (single) register location to look up for
-                          // conditional
+  uint_t conditional_reg = 0; // (opt) the (single) register location to look
+                              //  up for conditional
   BinaryOp binary_op;     // (opt) boolean function relation
-  std::shared_ptr<CExpr> expr; // (opt) classical expression
+  std::shared_ptr<CExpr> expr = nullptr; // (opt) classical expression
 
   // Measurement
   reg_t memory;    // (opt) register operation it acts on (measure)
