@@ -415,6 +415,7 @@ void Branch::remove_empty_branches(void) {
   additional_ops_ = branches_[iroot]->additional_ops_;
   additional_op_pos_ = 0;
   branches_[iroot].reset();
+  branches_.clear();
 
   branches_ = new_branches;
 }
