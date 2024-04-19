@@ -1650,7 +1650,7 @@ void Executor<state_t>::apply_initialize(CircuitExecutor::Branch &root,
   if (!root.initialize_after_reset()) {
     apply_reset(root, qubits);
 
-    if (root.num_branches().size() > 0) {
+    if (root.num_branches() > 0) {
       Operations::Op op;
       op.type = OpType::initialize;
       op.name = "initialize";

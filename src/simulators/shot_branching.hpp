@@ -52,6 +52,7 @@ protected:
 
   // this flag is used for initialize op
   bool initialize_after_reset_ = false;
+
 public:
   Branch(void) { additional_op_pos_ = 0; }
   ~Branch() {
@@ -75,7 +76,7 @@ public:
   std::unordered_map<std::string, OpItr> &marks(void) { return flow_marks_; }
   uint_t num_branches(void) { return branches_.size(); }
   std::vector<std::shared_ptr<Branch>> &branches(void) { return branches_; }
-  bool& initialize_after_reset(void) { return initialize_after_reset_; }
+  bool &initialize_after_reset(void) { return initialize_after_reset_; }
 
   void set_iterator(OpItr &iter) { iter_ = iter; }
   OpItr op_iterator(void);
