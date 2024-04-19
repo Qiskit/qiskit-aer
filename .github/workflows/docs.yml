@@ -15,15 +15,15 @@ jobs:
       matrix:
         python-version: [3.8]
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
       - name: Pip cache
-        uses: actions/cache@v2
+        uses: actions/cache@v4
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-${{ matrix.python-version}}-pip-docs-${{ hashFiles('setup.py','requirements-dev.txt','constraints.txt') }}
@@ -41,7 +41,7 @@ jobs:
         shell: bash
       - name: Run Docs Build
         run: tox -edocs
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v4
         with:
           name: html_docs
           path: docs/_build/html
@@ -52,13 +52,13 @@ jobs:
       matrix:
         python-version: [3.8]
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
       - name: Pip cache
-        uses: actions/cache@v2
+        uses: actions/cache@v4
         with:
           path: ~\AppData\Local\pip\Cache
           key: ${{ runner.os }}-${{ matrix.python-version}}-pip-tutorials-${{ hashFiles('setup.py','requirements-dev.txt','constraints.txt') }}
@@ -84,7 +84,7 @@ jobs:
           cd qiskit-tutorials
           rm -rf tutorials/chemistry tutorials/circuits tutorials/circuits_advanced tutorials/finance tutorials/optimization tutorials/algorithms tutorials/operators tutorials/noise tutorials/machine_learning
           sphinx-build -b html . _build/html
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v4
         with:
           name: tutorials_html
           path: qiskit-tutorials/_build/html
