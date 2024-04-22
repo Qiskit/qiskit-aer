@@ -280,8 +280,8 @@ class TestMeasure(SimulatorTestCase):
         result = backend.run(qc, shots=shots).result()
         counts = result.get_counts()
         targets = {}
-        targets['0'*num_qubits] = shots/2
-        targets['1'*num_qubits] = shots/2
+        targets['0'*num_qubits] = shots / 2
+        targets['1'*num_qubits] = shots / 2
         self.assertDictAlmostEqual(counts, targets, delta=delta * shots)
 
     # ---------------------------------------------------------------------
