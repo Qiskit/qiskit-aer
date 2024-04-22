@@ -953,5 +953,8 @@ def assemble_circuits(circuits: List[QuantumCircuit], basis_gates: list = None) 
             # Generate AerCircuit from the input circuit
             aer_qc_list, idx_maps = assemble_circuits(circuits=[qc])
     """
-    aer_circuits, idx_maps = zip(*[assemble_circuit(circuit, basis_gates) for circuit in circuits])
+    basis_gates_set = set(basis_gates)
+    aer_circuits, idx_maps = zip(
+        *[assemble_circuit(circuit, basis_gates_set) for circuit in circuits]
+    )
     return list(aer_circuits), list(idx_maps)
