@@ -65,7 +65,13 @@ public:
                        const Method method = Method::circuit,
                        bool sample_at_runtime = false) const;
 
-  NoiseOps sample_noise_loc(const Operations::Op &op, RngEngine &rng) const;
+  NoiseOps sample_noise_at_runtime(const Operations::Op &op,
+                                   RngEngine &rng) const;
+
+  void sample_noise_at_runtime(const Operations::Op &op,
+                               NoiseModel::NoiseOps &noise_before,
+                               NoiseModel::NoiseOps &noise_after,
+                               RngEngine &rng) const;
 
   // Enable superop sampling method
   // This will cause all QuantumErrors stored in the noise model
@@ -151,14 +157,12 @@ private:
   void sample_local_quantum_noise(const Operations::Op &op,
                                   NoiseOps &noise_before, NoiseOps &noise_after,
                                   RngEngine &rng, const Method method,
-                                  const reg_t &mapping,
-                                  bool sample_at_runtime) const;
+                                  const reg_t &mapping) const;
 
   void sample_nonlocal_quantum_noise(const Operations::Op &op,
                                      NoiseOps &noise_ops, NoiseOps &noise_after,
                                      RngEngine &rng, const Method method,
-                                     const reg_t &mapping,
-                                     bool sample_at_runtime) const;
+                                     const reg_t &mapping) const;
 
   // Sample noise for the current operation
   NoiseOps sample_noise_helper(const Operations::Op &op, RngEngine &rng,
@@ -175,9 +179,6 @@ private:
                                   const stringset_t &op_labels,
                                   const std::vector<reg_t> &op_qubits,
                                   const std::vector<reg_t> &noise_qubits);
-
-  // create loc noise
-  NoiseOps create_noise_loc(const Operations::Op &op) const;
 
   // Flags which say whether the local or nonlocal error tables are used
   bool local_quantum_errors_ = false;
@@ -245,7 +246,8 @@ private:
   std::unordered_set<Method> enabled_methods_ =
       std::unordered_set<Method>({Method::circuit});
 
-  // saved qubit mapping for runtime loc
+  // saved qubit mapping and method for runtime noise sampling
+  mutable Method circ_method_;
   mutable reg_t circ_mapping_;
 };
 
@@ -281,21 +283,57 @@ Circuit NoiseModel::sample_noise(const Circuit &circ, RngEngine &rng,
   return sample_noise_circuit(circ, rng, method, sample_at_runtime);
 }
 
-NoiseModel::NoiseOps NoiseModel::sample_noise_loc(const Operations::Op &op,
-                                                  RngEngine &rng) const {
-  auto noise_ops =
-      sample_noise_op(op, rng, Method::circuit, circ_mapping_, false);
+NoiseModel::NoiseOps
+NoiseModel::sample_noise_at_runtime(const Operations::Op &op,
+                                    RngEngine &rng) const {
+  // Return operator set
+  NoiseOps noise_before;
+  NoiseOps noise_after;
+
+  sample_noise_at_runtime(op, noise_before, noise_after, rng);
+
+  // Combine errors
+  auto &noise_ops = noise_before;
+  noise_ops.reserve(noise_before.size() + noise_after.size() + 1);
+  Operations::Op op_sampled = op;
+  op_sampled.sample_noise = false;
+  noise_ops.push_back(op_sampled);
+  noise_ops.insert(noise_ops.end(),
+                   std::make_move_iterator(noise_after.begin()),
+                   std::make_move_iterator(noise_after.end()));
+
+  return noise_ops;
+}
+
+void NoiseModel::sample_noise_at_runtime(const Operations::Op &op,
+                                         NoiseModel::NoiseOps &noise_before,
+                                         NoiseModel::NoiseOps &noise_after,
+                                         RngEngine &rng) const {
+  // Apply local errors first
+  sample_local_quantum_noise(op, noise_before, noise_after, rng, circ_method_,
+                             circ_mapping_);
+  // Apply nonlocal errors second
+  sample_nonlocal_quantum_noise(op, noise_before, noise_after, rng,
+                                circ_method_, circ_mapping_);
+  // Apply readout error to measure ops
+  if (op.type == Operations::OpType::measure) {
+    sample_readout_noise(op, noise_after, rng, circ_mapping_);
+  }
 
   // If original op is conditional, make all the noise operations also
   // conditional
   if (op.conditional) {
-    for (auto &noise_op : noise_ops) {
+    for (auto &noise_op : noise_before) {
+      noise_op.conditional = op.conditional;
+      noise_op.conditional_reg = op.conditional_reg;
+      noise_op.binary_op = op.binary_op;
+    }
+    for (auto &noise_op : noise_after) {
       noise_op.conditional = op.conditional;
       noise_op.conditional_reg = op.conditional_reg;
       noise_op.binary_op = op.binary_op;
     }
   }
-  return noise_ops;
 }
 
 Circuit NoiseModel::sample_noise_circuit(const Circuit &circ, RngEngine &rng,
@@ -355,6 +393,7 @@ Circuit NoiseModel::sample_noise_circuit(const Circuit &circ, RngEngine &rng,
   noisy_circ.set_params();
   if (sample_at_runtime) {
     noisy_circ.can_sample = false;
+    circ_method_ = method;
     circ_mapping_ = mapping;
   }
   return noisy_circ;
@@ -518,21 +557,27 @@ NoiseModel::sample_noise_helper(const Operations::Op &op, RngEngine &rng,
   NoiseOps noise_after;
   // Apply local errors first
   sample_local_quantum_noise(op, noise_before, noise_after, rng, method,
-                             mapping, sample_at_runtime);
+                             mapping);
   // Apply nonlocal errors second
   sample_nonlocal_quantum_noise(op, noise_before, noise_after, rng, method,
-                                mapping, sample_at_runtime);
+                                mapping);
   // Apply readout error to measure ops
   if (op.type == Operations::OpType::measure) {
     sample_readout_noise(op, noise_after, rng, mapping);
   }
 
+  if (sample_at_runtime &&
+      (noise_before.size() > 0 || noise_after.size() > 0)) {
+    NoiseOps ret(1);
+    ret[0] = op;
+    ret[0].sample_noise = true;
+    return ret;
+  }
+
   // Combine errors
   auto &noise_ops = noise_before;
   noise_ops.reserve(noise_before.size() + noise_after.size() + 1);
-  if (op.type != Operations::OpType::sample_noise) {
-    noise_ops.push_back(op);
-  }
+  noise_ops.push_back(op);
   noise_ops.insert(noise_ops.end(),
                    std::make_move_iterator(noise_after.begin()),
                    std::make_move_iterator(noise_after.end()));
@@ -655,8 +700,7 @@ void NoiseModel::sample_local_quantum_noise(const Operations::Op &op,
                                             NoiseOps &noise_before,
                                             NoiseOps &noise_after,
                                             RngEngine &rng, const Method method,
-                                            const reg_t &mapping,
-                                            bool sample_at_runtime) const {
+                                            const reg_t &mapping) const {
   // If no errors are defined pass
   if (local_quantum_errors_ == false)
     return;
@@ -714,11 +758,7 @@ void NoiseModel::sample_local_quantum_noise(const Operations::Op &op,
                                     : iter_default->second;
         for (auto &pos : error_positions) {
           NoiseOps noise_ops;
-          if (sample_at_runtime)
-            noise_ops = create_noise_loc(op);
-          else
-            noise_ops =
-                quantum_errors_[pos].sample_noise(op_qubits, rng, method);
+          noise_ops = quantum_errors_[pos].sample_noise(op_qubits, rng, method);
           // Duplicate same sampled error operations
           if (quantum_errors_[pos].errors_after())
             noise_after.insert(noise_after.end(), noise_ops.begin(),
@@ -734,8 +774,7 @@ void NoiseModel::sample_local_quantum_noise(const Operations::Op &op,
 
 void NoiseModel::sample_nonlocal_quantum_noise(
     const Operations::Op &op, NoiseOps &noise_before, NoiseOps &noise_after,
-    RngEngine &rng, const Method method, const reg_t &mapping,
-    bool sample_at_runtime) const {
+    RngEngine &rng, const Method method, const reg_t &mapping) const {
   // If no errors are defined pass
   if (nonlocal_quantum_errors_ == false)
     return;
@@ -783,12 +822,8 @@ void NoiseModel::sample_nonlocal_quantum_noise(
           auto &error_positions = target_pair.second;
           for (auto &pos : error_positions) {
             NoiseOps ops;
-            if (sample_at_runtime)
-              ops = create_noise_loc(op);
-            else {
-              ops = quantum_errors_[pos].sample_noise(string2reg(target_qubits),
-                                                      rng, method);
-            }
+            ops = quantum_errors_[pos].sample_noise(string2reg(target_qubits),
+                                                    rng, method);
             if (quantum_errors_[pos].errors_after())
               noise_after.insert(noise_after.end(), ops.begin(), ops.end());
             else
@@ -798,14 +833,6 @@ void NoiseModel::sample_nonlocal_quantum_noise(
       }
     }
   }
-}
-
-NoiseModel::NoiseOps
-NoiseModel::create_noise_loc(const Operations::Op &op) const {
-  NoiseOps ops(1);
-  ops[0] = op;
-  ops[0].type = Operations::OpType::sample_noise;
-  return ops;
 }
 
 cmatrix_t NoiseModel::op2superop(const Operations::Op &op) const {

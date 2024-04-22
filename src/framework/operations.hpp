@@ -383,7 +383,6 @@ enum class OpType {
   superop,
   roerror,
   noise_switch,
-  sample_noise,
   // Save instructions
   save_state,
   save_expval,
@@ -532,9 +531,6 @@ inline std::ostream &operator<<(std::ostream &stream, const OpType &type) {
   case OpType::qerror_loc:
     stream << "qerror_loc";
     break;
-  case OpType::sample_noise:
-    stream << "sample_noise";
-    break;
   case OpType::noise_switch:
     stream << "noise_switch";
     break;
@@ -614,11 +610,14 @@ struct Op {
       string_params; // used for label, control-flow, and boolean functions
 
   // Conditional Operations
-  bool conditional = false; // is gate conditional gate
-  uint_t conditional_reg; // (opt) the (single) register location to look up for
-                          // conditional
-  BinaryOp binary_op;     // (opt) boolean function relation
-  std::shared_ptr<CExpr> expr; // (opt) classical expression
+  // is gate conditional gate
+  bool conditional = false;
+  // (opt) the (single) register location to look up for conditional
+  uint_t conditional_reg = 0;
+  // (opt) boolean function relation
+  BinaryOp binary_op;
+  // (opt) classical expression
+  std::shared_ptr<CExpr> expr = nullptr;
 
   // Measurement
   reg_t memory;    // (opt) register operation it acts on (measure)
@@ -639,6 +638,9 @@ struct Op {
 
   // Save
   DataSubType save_type = DataSubType::single;
+
+  // runtime noise sampling
+  bool sample_noise = false;
 
   // runtime parameter bind
   bool has_bind_params = false;
@@ -1319,8 +1321,14 @@ inline Op bind_parameter(const Op &src, const uint_t iparam,
   op.type = src.type;
   op.name = src.name;
   op.qubits = src.qubits;
+  op.regs = src.regs;
+  op.int_params = src.int_params;
+  op.string_params = src.string_params;
   op.conditional = src.conditional;
   op.conditional_reg = src.conditional_reg;
+  op.binary_op = src.binary_op;
+  op.expr = src.expr;
+  op.has_bind_params = false;
 
   if (src.params.size() > 0) {
     uint_t stride = src.params.size() / num_params;
