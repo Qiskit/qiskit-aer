@@ -174,7 +174,7 @@ public:
   };
 
   virtual bool can_apply(const op_t &op, uint_t max_fused_qubits) const {
-    if (op.conditional)
+    if (op.conditional || op.sample_noise)
       return false;
     switch (op.type) {
     case optype_t::matrix:
@@ -221,7 +221,7 @@ public:
   };
 
   virtual bool can_apply(const op_t &op, uint_t max_fused_qubits) const {
-    if (op.conditional)
+    if (op.conditional || op.sample_noise)
       return false;
     switch (op.type) {
     case optype_t::kraus:
@@ -271,7 +271,7 @@ public:
   };
 
   virtual bool can_apply(const op_t &op, uint_t max_fused_qubits) const {
-    if (op.conditional)
+    if (op.conditional || op.sample_noise)
       return false;
     switch (op.type) {
     case optype_t::kraus:
