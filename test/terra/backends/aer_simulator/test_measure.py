@@ -273,15 +273,15 @@ class TestMeasure(SimulatorTestCase):
         delta = 0.05
         qc = QuantumCircuit(num_qubits)
         qc.h(0)
-        for q in range(1,num_qubits):
-            qc.cx(q-1,q)
+        for q in range(1, num_qubits):
+            qc.cx(q - 1, q)
         qc.measure_all()
         backend = self.backend(method=method)
         result = backend.run(qc, shots=shots).result()
         counts = result.get_counts()
         targets = {}
-        targets['0'*num_qubits] = shots / 2
-        targets['1'*num_qubits] = shots / 2
+        targets["0" * num_qubits] = shots / 2
+        targets["1" * num_qubits] = shots / 2
         self.assertDictAlmostEqual(counts, targets, delta=delta * shots)
 
     # ---------------------------------------------------------------------
