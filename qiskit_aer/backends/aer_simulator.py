@@ -15,6 +15,7 @@ Aer qasm simulator backend.
 
 import copy
 import logging
+from qiskit.providers import convert_to_target
 from qiskit.providers.options import Options
 from qiskit.providers.models import QasmBackendConfiguration
 from qiskit.providers.backend import BackendV2, BackendV1
@@ -33,6 +34,7 @@ from .backend_utils import (
 
 # pylint: disable=import-error, no-name-in-module, abstract-method
 from .controller_wrappers import aer_controller_execute
+from .name_mapping import NAME_MAPPING
 
 logger = logging.getLogger(__name__)
 
@@ -856,7 +858,7 @@ class AerSimulator(AerBackend):
             name = configuration.backend_name
             configuration.backend_name = f"aer_simulator_from({name})"
 
-            target = None
+            target = convert_to_target(configuration, properties, None, NAME_MAPPING)
         else:
             raise TypeError(
                 "The backend argument requires a BackendV2 or BackendV1 object, "
