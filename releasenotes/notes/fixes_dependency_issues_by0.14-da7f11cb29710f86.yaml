@@ -1,0 +1,11 @@
+---
+fixes:
+  - |
+    Fixes for dependency issues caused by release 0.14.
+
+    Fix for issue in samplingVector.allocate() when > 63 qubits
+
+    Use basis_gates in AerCompiler when AerBackend is made by from_backend
+
+    Setting number of qubits before transpile for Primitives V1 (issue #2084)
+

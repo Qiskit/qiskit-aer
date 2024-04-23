@@ -17,6 +17,7 @@ from ddt import ddt
 from test.terra.reference import ref_measure
 from qiskit import QuantumCircuit
 from qiskit import transpile
+import qiskit.quantum_info as qi
 from qiskit_aer import AerSimulator
 from qiskit_aer.noise import NoiseModel
 from qiskit_aer.noise.errors import ReadoutError, depolarizing_error
@@ -264,6 +265,24 @@ class TestMeasure(SimulatorTestCase):
         targets[hex(31)] = shots / 2
 
         self.assertDictAlmostEqual(output, targets, delta=delta * shots)
+
+    @supported_methods(["stabilizer"], [65, 127, 433])
+    def test_measure_sampling_large_ghz_stabilizer(self, method, device, num_qubits):
+        """Test sampling measure for large stabilizer circuit"""
+        shots = 1000
+        delta = 0.05
+        qc = QuantumCircuit(num_qubits)
+        qc.h(0)
+        for q in range(1, num_qubits):
+            qc.cx(q - 1, q)
+        qc.measure_all()
+        backend = self.backend(method=method)
+        result = backend.run(qc, shots=shots).result()
+        counts = result.get_counts()
+        targets = {}
+        targets["0" * num_qubits] = shots / 2
+        targets["1" * num_qubits] = shots / 2
+        self.assertDictAlmostEqual(counts, targets, delta=delta * shots)
 
     # ---------------------------------------------------------------------
     # Test MPS algorithms for measure

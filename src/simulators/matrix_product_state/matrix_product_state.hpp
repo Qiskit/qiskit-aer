@@ -797,7 +797,7 @@ State::sample_measure_using_apply_measure(const reg_t &qubits, uint_t shots,
     for (int_t i = 0; i < static_cast<int_t>(shots); i++) {
       temp.initialize(qreg_);
       auto single_result = temp.apply_measure_internal(qubits, rnds_list[i]);
-      all_samples[i] = single_result;
+      all_samples[i].from_vector(single_result);
     }
   }
   return all_samples;
@@ -811,7 +811,7 @@ std::vector<SampleVector> State::sample_measure_all(uint_t shots,
 #pragma omp parallel for if (getenv("PRL_PROB_MEAS"))
   for (int_t i = 0; i < static_cast<int_t>(shots); i++) {
     auto single_result = qreg_.sample_measure(shots, rng);
-    all_samples[i] = single_result;
+    all_samples[i].from_vector(single_result);
   }
   return all_samples;
 }

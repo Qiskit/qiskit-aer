@@ -123,9 +123,7 @@ void SampleVector::allocate(uint_t n, uint_t base) {
   elem_mask_ = (1ull << (elem_shift_bits_ + 1)) - 1;
   vec_mask_ = (1ull << vec_shift_bits_) - 1;
 
-  uint_t size = n >> vec_shift_bits_;
-  if (size == 0)
-    size = 1;
+  uint_t size = (n + (REG_SIZE >> elem_shift_bits_) - 1) >> vec_shift_bits_;
   bits_.resize(size, 0ull);
   size_ = n;
 }
@@ -185,7 +183,6 @@ void SampleVector::from_vector_with_map(const reg_t &src, const reg_t &map,
   uint_t pos = 0;
   uint_t n = REG_SIZE >> elem_shift_bits_;
   for (uint_t i = 0; i < bits_.size(); i++) {
-    uint_t n = REG_SIZE;
     uint_t val = 0;
     if (n > size_ - pos)
       n = size_ - pos;
