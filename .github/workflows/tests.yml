@@ -147,7 +147,7 @@ jobs:
     timeout-minutes: 60
     strategy:
       matrix:
-        python-version: [3.9]
+        python-version: ['3.10']
         os: ["ubuntu-latest"]
     env:
       AER_THRUST_BACKEND: OMP
