@@ -8,7 +8,7 @@ jobs:
     name: Build qiskit-aer wheels
     strategy:
       matrix:
-        os: ["macOS-latest", "ubuntu-latest", "windows-2019"]
+        os: ["macos-13", "ubuntu-latest", "windows-2019"]
     runs-on: ${{ matrix.os }}
     environment: release
     steps:
@@ -74,7 +74,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: ["macOS-latest"]
+        os: ["macos-13"]
     environment: release
     steps:
       - uses: actions/checkout@v4
