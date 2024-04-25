@@ -136,7 +136,6 @@ jobs:
       - name: Build Wheels
         env:
           AER_CMAKE_OPENMP_BUILD: 1
-          CIBW_TEST_SKIP: "cp38-macosx_arm64 cp39-macosx_arm64"
         run: cibuildwheel --output-dir wheelhouse
       - uses: actions/upload-artifact@v4
         with:
