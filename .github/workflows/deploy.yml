@@ -8,7 +8,7 @@ jobs:
     name: Build qiskit-aer wheels
     strategy:
       matrix:
-        os: ["macOS-latest", "ubuntu-latest", "windows-2019"]
+        os: ["macos-13", "ubuntu-latest", "windows-2019"]
     runs-on: ${{ matrix.os }}
     environment: release
     steps:
@@ -16,7 +16,7 @@ jobs:
       - uses: actions/setup-python@v4
         name: Install Python
         with:
-          python-version: '3.8'
+          python-version: '3.10'
       - name: Install cibuildwheel
         run: |
           python -m pip install cibuildwheel==2.16.2
@@ -43,7 +43,7 @@ jobs:
       - uses: actions/setup-python@v4
         name: Install Python
         with:
-          python-version: '3.8'
+          python-version: '3.10'
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
@@ -73,19 +73,21 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: ["macOS-latest"]
+        os: ["macos-latest"]
     environment: release
     steps:
-      - uses: actions/checkout@v3
-      - name: Set up Python Python 3.8
-        uses: actions/setup-python@v4
+      - uses: actions/checkout@v4
+      - name: Set up Python Python '3.10'
+        uses: actions/setup-python@v5
         with:
-          python-version: 3.8
+          python-version: '3.10'
+          architecture: arm64
       - name: Install deps
         run: python -m pip install -U cibuildwheel==2.16.2
       - name: Build Wheels
         env:
           CIBW_ARCHS_MACOS: arm64
+          CIBW_SKIP: "pp* cp38* cp39*"
         run: cibuildwheel --output-dir wheelhouse
       - uses: actions/upload-artifact@v3
         with:
@@ -103,7 +105,7 @@ jobs:
       - uses: actions/setup-python@v4
         name: Install Python
         with:
-          python-version: '3.8'
+          python-version: '3.10'
       - name: Install Deps
         run: pip install -U scikit-build wheel
       - name: Build Artifacts
@@ -140,7 +142,7 @@ jobs:
       - uses: actions/setup-python@v4
         name: Install Python
         with:
-          python-version: '3.8'
+          python-version: '3.10'
       - name: Install cibuildwheel
         run: |
           python -m pip install cibuildwheel==2.16.2
@@ -183,7 +185,7 @@ jobs:
       - uses: actions/setup-python@v4
         name: Install Python
         with:
-          python-version: '3.8'
+          python-version: '3.10'
       - name: Install cibuildwheel
         run: |
           python -m pip install cibuildwheel==2.16.2
@@ -218,7 +220,7 @@ jobs:
       - uses: actions/setup-python@v4
         name: Install Python
         with:
-          python-version: '3.8'
+          python-version: '3.10'
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
@@ -254,7 +256,7 @@ jobs:
       - uses: actions/setup-python@v4
         name: Install Python
         with:
-          python-version: '3.8'
+          python-version: '3.10'
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
