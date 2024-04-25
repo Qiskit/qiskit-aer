@@ -121,7 +121,7 @@ jobs:
     needs: ["standalone"]
     strategy:
       matrix:
-        os: ["macos-13", "ubuntu-latest", "windows-latest"]
+        os: ["macos-13", "ubuntu-latest", "windows-2019"]
     steps:
       - uses: actions/checkout@v4
       - name: Set up Python Python '3.10'
