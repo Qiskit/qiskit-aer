@@ -46,7 +46,7 @@ the [contributing guide](CONTRIBUTING.md#building-with-gpu-support)
 for instructions on doing this.
 
 ## Simulating your first Qiskit circuit with Aer
-Now that you have Aer installed, you can start simulating quantum circuits using primitives. Here is a basic example:
+Now that you have Aer installed, you can start simulating quantum circuits using primitives and noise models. Here is a basic example:
 
 ```
 $ python
@@ -125,6 +125,23 @@ print(f"counts for Bell circuit : {job_result[0].data.meas.get_counts()}")
 job2 = sampler.run([(pqc, theta1), (pqc2, theta2)])
 job_result = job2.result()
 print(f"counts for parameterized circuit : {job_result[0].data.meas.get_counts()}")
+
+# --------------------------------------------------
+# Simulating with noise model from actual hardware
+# --------------------------------------------------
+from qiskit_ibm_runtime import QiskitRuntimeService
+provider = QiskitRuntimeService(channel='ibm_quantum', token="set your own token here")
+backend = provider.get_backend("ibm_kyoto")
+
+# create sampler from the actual backend
+sampler.from_backend(backend)
+
+# run a sampler job on the parameterized circuits with noise model of the actual hardware
+job3 = sampler.run([(pqc, theta1), (pqc2, theta2)])
+job_result = job3.result()
+print(job_result)
+print(f"Parameterized for Bell circuit w/noise: {job_result[0].data.meas.get_counts()}")
+
 ```
 
 ## Contribution Guidelines
