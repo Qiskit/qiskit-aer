@@ -139,7 +139,6 @@ sampler.from_backend(backend)
 # run a sampler job on the parameterized circuits with noise model of the actual hardware
 job3 = sampler.run([(pqc, theta1), (pqc2, theta2)])
 job_result = job3.result()
-print(job_result)
 print(f"Parameterized for Bell circuit w/noise: {job_result[0].data.meas.get_counts()}")
 
 ```
