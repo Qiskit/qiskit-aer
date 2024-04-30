@@ -54,6 +54,7 @@ QasmSimulator
    .. automethod:: QasmSimulator.properties
    .. automethod:: QasmSimulator.qubit_properties
    .. automethod:: QasmSimulator.run
+   .. automethod:: QasmSimulator.set_max_qubits
    .. automethod:: QasmSimulator.set_option
    .. automethod:: QasmSimulator.set_options
    .. automethod:: QasmSimulator.status

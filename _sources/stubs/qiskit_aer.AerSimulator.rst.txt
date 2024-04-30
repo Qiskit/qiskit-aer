@@ -54,6 +54,7 @@ AerSimulator
    .. automethod:: AerSimulator.properties
    .. automethod:: AerSimulator.qubit_properties
    .. automethod:: AerSimulator.run
+   .. automethod:: AerSimulator.set_max_qubits
    .. automethod:: AerSimulator.set_option
    .. automethod:: AerSimulator.set_options
    .. automethod:: AerSimulator.status
