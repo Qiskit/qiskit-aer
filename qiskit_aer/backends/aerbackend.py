@@ -350,6 +350,11 @@ class AerBackend(Backend, ABC):
             tgt._coupling_graph = self._coupling_map.graph.copy()
         return tgt
 
+    def set_max_qubits(self, max_qubits):
+        """Set maximun number of qubits to be used for this backend."""
+        if self._target is not None:
+            self._configuration.n_qubits = max_qubits
+
     def clear_options(self):
         """Reset the simulator options to default values."""
         self._options = self._default_options()
@@ -445,7 +450,10 @@ class AerBackend(Backend, ABC):
         # Compile circuits
         circuits, noise_model = self._compile(circuits, **run_options)
 
-        aer_circuits, idx_maps = assemble_circuits(circuits)
+        if self._target is not None:
+            aer_circuits, idx_maps = assemble_circuits(circuits, self.configuration().basis_gates)
+        else:
+            aer_circuits, idx_maps = assemble_circuits(circuits)
         if parameter_binds:
             run_options["parameterizations"] = self._convert_binds(
                 circuits, parameter_binds, idx_maps
@@ -517,9 +525,7 @@ class AerBackend(Backend, ABC):
         optypes = [circuit_optypes(circ) for circ in circuits]
 
         # Compile Qasm3 instructions
-        circuits, optypes = compile_circuit(
-            circuits, basis_gates=self.configuration().basis_gates, optypes=optypes
-        )
+        circuits, optypes = compile_circuit(circuits, optypes=optypes)
 
         # run option noise model
         circuits, noise_model, run_options = self._assemble_noise_model(

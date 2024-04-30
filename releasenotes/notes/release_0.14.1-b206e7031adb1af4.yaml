@@ -1,0 +1,9 @@
+---
+prelude: >
+    Qiskit Aer release 0.14.1 is a bugfix release caused by release 0.14.0.1
+    Major fixes are:
+    - Fix sampling measure for > 64 qubits simulation
+    - Fix for noise simulation with dynamic circuits
+    - Fix for shot-branching optimizaiton
+    - Fix for runtime noise sampling on shot-branching
+
