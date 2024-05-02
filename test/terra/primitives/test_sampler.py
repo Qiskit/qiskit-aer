@@ -280,5 +280,6 @@ class TestSampler(QiskitAerTestCase):
         result = sampler.run(qc).result()
         assertNotSuccess(result)
 
+
 if __name__ == "__main__":
     unittest.main()
