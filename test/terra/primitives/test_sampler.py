@@ -270,6 +270,15 @@ class TestSampler(QiskitAerTestCase):
         result = Sampler().run(qc, shots=100).result()
         self.assertDictAlmostEqual(result.quasi_dists[0], {0: 1})
 
+    def test_truncate_large_circuit(self):
+        """Test trancate large circuit in transplier"""
+        sampler = Sampler()
+        qc = QuantumCircuit(100, 2)
+        qc.h(98)
+        qc.cx(98, 99)
+        qc.measure([98, 99], [0, 1])
+        result = sampler.run(qc).result()
+        assertNotSuccess(result)
 
 if __name__ == "__main__":
     unittest.main()
