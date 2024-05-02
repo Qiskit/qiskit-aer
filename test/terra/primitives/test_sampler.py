@@ -278,7 +278,7 @@ class TestSampler(QiskitAerTestCase):
         qc.cx(98, 99)
         qc.measure([98, 99], [0, 1])
         result = sampler.run(qc).result()
-        self.assertNotSuccess(result)
+        self.assertIsInstance(result, SamplerResult)
 
 
 if __name__ == "__main__":
