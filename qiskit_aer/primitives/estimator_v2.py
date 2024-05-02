@@ -70,8 +70,13 @@ class EstimatorV2(BaseEstimatorV2):
                 the runtime options (``run_options``).
         """
         self._options = Options(**options) if options else Options()
-        method = "density_matrix" if "noise_model" in self.options.backend_options else "automatic"
-        self._backend = AerSimulator(method=method, **self.options.backend_options)
+        if "method" not in self.options.backend_options:
+            method = (
+                "density_matrix" if "noise_model" in self.options.backend_options else "automatic"
+            )
+            ops = dict(method=method)
+            self.options.backend_options.update(ops)
+        self._backend = AerSimulator(**self.options.backend_options)
 
     def from_backend(self, backend, **options):
         """use external backend"""

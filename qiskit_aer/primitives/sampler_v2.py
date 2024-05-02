@@ -98,6 +98,12 @@ class SamplerV2(BaseSamplerV2):
         self._seed = seed
 
         self._options = Options(**options) if options else Options()
+        if "method" not in self.options.backend_options:
+            method = (
+                "density_matrix" if "noise_model" in self.options.backend_options else "automatic"
+            )
+            ops = dict(method=method)
+            self.options.backend_options.update(ops)
         self._backend = AerSimulator(**self.options.backend_options)
 
     def from_backend(self, backend, **options):
