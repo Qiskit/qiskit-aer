@@ -384,8 +384,9 @@ status csvd(cmatrix_t &A, cmatrix_t &U, rvector_t &S, cmatrix_t &V) {
         long double large_f = 0;
         if (Linalg::almost_equal(f, 0.0, zero_threshold)) {
 #ifdef DEBUG
-          std::cout << "f == 0 because " << "x = " << x << ", cs = " << cs
-                    << ", g = " << g << ", sn = " << sn << std::endl;
+          std::cout << "f == 0 because "
+                    << "x = " << x << ", cs = " << cs << ", g = " << g
+                    << ", sn = " << sn << std::endl;
 #endif
           long double large_x = x * tiny_factor;
           long double large_g = g * tiny_factor;

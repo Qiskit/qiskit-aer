@@ -552,10 +552,10 @@ void MPS_Tensor::contract_2_dimensions(const MPS_Tensor &left_gamma,
 
 #ifdef _WIN32
 #pragma omp parallel for if ((omp_limit > MATRIX_OMP_THRESHOLD) &&             \
-                                 (omp_threads > 1)) num_threads(omp_threads)
+                             (omp_threads > 1)) num_threads(omp_threads)
 #else
 #pragma omp parallel for collapse(2) if ((omp_limit > MATRIX_OMP_THRESHOLD) && \
-                                             (omp_threads > 1))                \
+                                         (omp_threads > 1))                    \
     num_threads(omp_threads)
 #endif
   for (int_t l_row = 0; l_row < left_rows; l_row++) {
@@ -566,10 +566,10 @@ void MPS_Tensor::contract_2_dimensions(const MPS_Tensor &left_gamma,
 
 #ifdef _WIN32
 #pragma omp parallel for if ((omp_limit > MATRIX_OMP_THRESHOLD) &&             \
-                                 (omp_threads > 1)) num_threads(omp_threads)
+                             (omp_threads > 1)) num_threads(omp_threads)
 #else
 #pragma omp parallel for collapse(2) if ((omp_limit > MATRIX_OMP_THRESHOLD) && \
-                                             (omp_threads > 1))                \
+                                         (omp_threads > 1))                    \
     num_threads(omp_threads)
 #endif
   for (int_t l_row = 0; l_row < left_rows; l_row++) {
