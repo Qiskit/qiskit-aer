@@ -139,7 +139,7 @@ std::vector<uint_t> calc_new_indices(const reg_t &indices);
 
 // The following two functions are helper functions used by
 // initialize_from_statevector
-cmatrix_t reshape_matrix(cmatrix_t input_matrix);
+cmatrix_t reshape_matrix(const cmatrix_t &input_matrix);
 cmatrix_t mul_matrix_by_lambda(const cmatrix_t &mat, const rvector_t &lambda);
 
 std::string sort_paulis_by_qubits(const std::string &paulis,
@@ -281,7 +281,7 @@ vec_t reverse_all_bits(const vec_t &statevector, uint_t num_qubits) {
   output_vector.resize(length);
 
 #pragma omp parallel for if (length > MPS::get_omp_threshold() &&              \
-                             MPS::get_omp_threads() > 1)                       \
+                                 MPS::get_omp_threads() > 1)                   \
     num_threads(MPS::get_omp_threads())
   for (int_t i = 0; i < static_cast<int_t>(length); i++) {
     output_vector[i] = statevector[reverse_bits(i, num_qubits)];
@@ -308,13 +308,14 @@ cmatrix_t mul_matrix_by_lambda(const cmatrix_t &mat, const rvector_t &lambda) {
 
 #ifdef _WIN32
 #pragma omp parallel for if (num_rows * num_cols >                             \
-                                 MPS_Tensor::MATRIX_OMP_THRESHOLD &&           \
-                             MPS::get_omp_threads() > 1)                       \
+                                     MPS_Tensor::MATRIX_OMP_THRESHOLD &&       \
+                                 MPS::get_omp_threads() > 1)                   \
     num_threads(MPS::get_omp_threads())
 #else
 #pragma omp parallel for collapse(                                             \
-    2) if (num_rows * num_cols > MPS_Tensor::MATRIX_OMP_THRESHOLD &&           \
-           MPS::get_omp_threads() > 1) num_threads(MPS::get_omp_threads())
+        2) if (num_rows * num_cols > MPS_Tensor::MATRIX_OMP_THRESHOLD &&       \
+                   MPS::get_omp_threads() > 1)                                 \
+    num_threads(MPS::get_omp_threads())
 #endif
   for (int_t row = 0; row < static_cast<int_t>(num_rows); row++) {
     for (int_t col = 0; col < static_cast<int_t>(num_cols); col++) {
@@ -324,7 +325,7 @@ cmatrix_t mul_matrix_by_lambda(const cmatrix_t &mat, const rvector_t &lambda) {
   return res_mat;
 }
 
-cmatrix_t reshape_matrix(cmatrix_t input_matrix) {
+cmatrix_t reshape_matrix(const cmatrix_t &input_matrix) {
   std::vector<cmatrix_t> res(2);
   AER::Utils::split(input_matrix, res[0], res[1], 1);
   cmatrix_t reshaped_matrix = AER::Utils::concatenate(res[0], res[1], 0);
@@ -1021,7 +1022,7 @@ cmatrix_t MPS::density_matrix_internal(const reg_t &qubits) const {
     num_threads(omp_threads_)
 #else
 #pragma omp parallel for collapse(2) if (size > omp_threshold_ &&              \
-                                         omp_threads_ > 1)                     \
+                                             omp_threads_ > 1)                 \
     num_threads(omp_threads_)
 #endif
 
@@ -1743,7 +1744,7 @@ void MPS::initialize_from_statevector_internal(const reg_t &qubits,
   cmatrix_t statevector_as_matrix(1, statevector.size());
 
 #pragma omp parallel for if (num_qubits_ > MPS::get_omp_threshold() &&         \
-                             MPS::get_omp_threads() > 1)                       \
+                                 MPS::get_omp_threads() > 1)                   \
     num_threads(MPS::get_omp_threads())
   for (int_t i = 0; i < static_cast<int_t>(statevector.size()); i++) {
     statevector_as_matrix(0, i) = statevector[i];

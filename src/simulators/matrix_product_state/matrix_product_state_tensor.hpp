@@ -74,7 +74,7 @@ public:
       data_.push_back(data[i]);
   }
 
-  MPS_Tensor(MPS_Tensor &&rhs) { data_ = std::move(rhs.data_); }
+  MPS_Tensor(MPS_Tensor &&rhs) noexcept { data_ = std::move(rhs.data_); }
 
   MPS_Tensor &operator=(MPS_Tensor &&rhs) {
     if (this != &rhs) {
@@ -160,8 +160,9 @@ public:
   static double Decompose(MPS_Tensor &temp, MPS_Tensor &left_gamma,
                           rvector_t &lambda, MPS_Tensor &right_gamma,
                           bool mps_lapack);
-  static void reshape_for_3_qubits_before_SVD(const std::vector<cmatrix_t> data,
-                                              MPS_Tensor &reshaped_tensor);
+  static void
+  reshape_for_3_qubits_before_SVD(const std::vector<cmatrix_t> &data,
+                                  MPS_Tensor &reshaped_tensor);
   static void contract_2_dimensions(const MPS_Tensor &left_gamma,
                                     const MPS_Tensor &right_gamma,
                                     uint_t omp_threads, cmatrix_t &result);
@@ -551,10 +552,10 @@ void MPS_Tensor::contract_2_dimensions(const MPS_Tensor &left_gamma,
 
 #ifdef _WIN32
 #pragma omp parallel for if ((omp_limit > MATRIX_OMP_THRESHOLD) &&             \
-                             (omp_threads > 1)) num_threads(omp_threads)
+                                 (omp_threads > 1)) num_threads(omp_threads)
 #else
 #pragma omp parallel for collapse(2) if ((omp_limit > MATRIX_OMP_THRESHOLD) && \
-                                         (omp_threads > 1))                    \
+                                             (omp_threads > 1))                \
     num_threads(omp_threads)
 #endif
   for (int_t l_row = 0; l_row < left_rows; l_row++) {
@@ -565,10 +566,10 @@ void MPS_Tensor::contract_2_dimensions(const MPS_Tensor &left_gamma,
 
 #ifdef _WIN32
 #pragma omp parallel for if ((omp_limit > MATRIX_OMP_THRESHOLD) &&             \
-                             (omp_threads > 1)) num_threads(omp_threads)
+                                 (omp_threads > 1)) num_threads(omp_threads)
 #else
 #pragma omp parallel for collapse(2) if ((omp_limit > MATRIX_OMP_THRESHOLD) && \
-                                         (omp_threads > 1))                    \
+                                             (omp_threads > 1))                \
     num_threads(omp_threads)
 #endif
   for (int_t l_row = 0; l_row < left_rows; l_row++) {
@@ -614,7 +615,7 @@ double MPS_Tensor::Decompose(MPS_Tensor &temp, MPS_Tensor &left_gamma,
 }
 
 void MPS_Tensor::reshape_for_3_qubits_before_SVD(
-    const std::vector<cmatrix_t> data, MPS_Tensor &reshaped_tensor) {
+    const std::vector<cmatrix_t> &data, MPS_Tensor &reshaped_tensor) {
   // Turns 4 matrices A0,A1,A2,A3,A4,A5,A6,A7 to big matrix:
   //  A0 A1 A2 A3
   //  A4 A5 A6 A7

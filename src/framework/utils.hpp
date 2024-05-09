@@ -603,7 +603,6 @@ void split(const matrix<T> &A, matrix<T> &B, matrix<T> &C, uint_t axis) {
     throw std::invalid_argument("Utils::split: axis must be 0 or 1");
   }
   size_t rows = A.GetRows(), cols = A.GetColumns();
-  matrix<T> temp = A;
   if (axis == 0) {
     if (rows % 2 != 0) {
       throw std::invalid_argument("Utils::split: can't split matrix A by rows");
@@ -1033,7 +1032,7 @@ std::string &format_hex_inplace(std::string &hex) {
   if (prefix != "0x")
     hex = "0x" + hex;
   // delete leading zeros Eg 0x001 -> 0x1
-  hex.erase(2, std::min(hex.find_first_not_of("0", 2) - 2, hex.size() - 3));
+  hex.erase(2, std::min(hex.find_first_not_of('0', 2) - 2, hex.size() - 3));
   return hex;
 }
 
