@@ -244,8 +244,8 @@ template <typename data_t>
 void DensityMatrix<data_t>::transpose() {
   const uint_t rows = BaseMatrix::num_rows();
 #pragma omp parallel for if (BaseVector::num_qubits_ >                         \
-                                     BaseVector::omp_threshold_ &&             \
-                                 BaseVector::omp_threads_ > 1)                 \
+                                 BaseVector::omp_threshold_ &&                 \
+                             BaseVector::omp_threads_ > 1)                     \
     num_threads(BaseVector::omp_threads_)
   for (uint_t i = 0; i < rows; i++) {
     for (uint_t j = i + 1; j < rows; j++) {
