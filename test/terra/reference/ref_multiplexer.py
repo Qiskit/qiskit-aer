@@ -25,6 +25,7 @@ from test.terra.reference.ref_non_clifford import (
     ccx_gate_counts_deterministic,
 )
 from qiskit.quantum_info.states import Statevector
+from qiskit.circuit.library import Isometry, UCGate
 
 
 def multiplexer_cx_gate_circuits_deterministic(final_measure=True):
@@ -289,14 +290,14 @@ def multiplexer_no_control_qubits(final_measure=True):
     qc = QuantumCircuit(1, 1)
     vector = [0.2, 0.1]
     vector_circuit = QuantumCircuit(1)
-    vector_circuit.isometry(vector / np.linalg.norm(vector), [0], None)
+    vector_circuit.append(Isometry(vector / np.linalg.norm(vector), 0, 0), [0])
     vector_circuit = vector_circuit.inverse()
     qc.append(vector_circuit, [0])
 
     sv = Statevector(qc)
     gate_list = [np.array([[sv[0], -sv[1]], [sv[1], sv[0]]])]
     qc = QuantumCircuit(1, 1)
-    qc.uc(gate_list, [], [0])
+    qc.append(UCGate(gate_list), [0])
 
     if final_measure:
         qc.measure(0, 0)

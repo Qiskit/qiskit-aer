@@ -15,6 +15,7 @@ Aer qasm simulator backend.
 
 import copy
 import logging
+from qiskit.providers import convert_to_target
 from qiskit.providers.options import Options
 from qiskit.providers.models import QasmBackendConfiguration
 from qiskit.providers.backend import BackendV2, BackendV1
@@ -33,6 +34,7 @@ from .backend_utils import (
 
 # pylint: disable=import-error, no-name-in-module, abstract-method
 from .controller_wrappers import aer_controller_execute
+from .name_mapping import NAME_MAPPING
 
 logger = logging.getLogger(__name__)
 
@@ -237,10 +239,11 @@ class AerSimulator(AerBackend):
       experiment execution (Default: 0).
 
     * ``max_memory_mb`` (int): Sets the maximum size of memory
-      to store a state vector. If a state vector needs more, an error
-      is thrown. In general, a state vector of n-qubits uses 2^n complex
-      values (16 Bytes). If set to 0, the maximum will be automatically
-      set to the system memory size (Default: 0).
+      to store quantum states. If quantum states need more, an error
+      is thrown unless -1 is set. In general, a state vector of n-qubits
+      uses 2^n complex values (16 Bytes).
+      If set to 0, the maximum will be automatically set to
+      the system memory size (Default: 0).
 
     * ``cuStateVec_enable`` (bool): This option enables accelerating by
       cuStateVec library of cuQuantum from NVIDIA, that has highly optimized
@@ -447,6 +450,9 @@ class AerSimulator(AerBackend):
     * ``mps_parallel_threshold`` (int): This option sets OMP number threshold (Default: 14).
 
     * ``mps_omp_threads`` (int): This option sets the number of OMP threads (Default: 1).
+
+    * ``mps_lapack`` (bool): This option indicates to compute the SVD function
+      using OpenBLAS/Lapack interface (Default: False).
 
     These backend options only apply when using the ``tensor_network``
     simulation method:
@@ -712,6 +718,20 @@ class AerSimulator(AerBackend):
         if configuration is None:
             configuration = QasmBackendConfiguration.from_dict(AerSimulator._DEFAULT_CONFIGURATION)
 
+        # set backend name from method and device in option
+        if "from" not in configuration.backend_name:
+            method = "automatic"
+            device = "CPU"
+            for key, value in backend_options.items():
+                if key == "method":
+                    method = value
+                if key == "device":
+                    device = value
+            if method not in [None, "automatic"]:
+                configuration.backend_name += f"_{method}"
+            if device not in [None, "CPU"]:
+                configuration.backend_name += f"_{device}".lower()
+
         # Cache basis gates since computing the intersection
         # of noise model, method, and config gates is expensive.
         self._cached_basis_gates = self._BASIS_GATES["automatic"]
@@ -785,6 +805,7 @@ class AerSimulator(AerBackend):
             chop_threshold=1e-8,
             mps_parallel_threshold=14,
             mps_omp_threads=1,
+            mps_lapack=False,
             # tensor network options
             tensor_network_num_sampling_qubits=10,
             use_cuTensorNet_autotuning=False,
@@ -801,17 +822,6 @@ class AerSimulator(AerBackend):
         pad = " " * (len(self.__class__.__name__) + 1)
         return f"{display[:-1]}\n{pad}noise_model={repr(noise_model)})"
 
-    def _name(self):
-        """Format backend name string for simulator"""
-        name = self._configuration.backend_name
-        method = getattr(self.options, "method", None)
-        if method not in [None, "automatic"]:
-            name += f"_{method}"
-        device = getattr(self.options, "device", None)
-        if device not in [None, "CPU"]:
-            name += f"_{device}".lower()
-        return name
-
     @classmethod
     def from_backend(cls, backend, **options):
         """Initialize simulator from backend."""
@@ -822,7 +832,7 @@ class AerSimulator(AerBackend):
                 description = backend.description
 
             configuration = QasmBackendConfiguration(
-                backend_name=f"'aer_simulator({backend.name})",
+                backend_name=f"aer_simulator_from({backend.name})",
                 backend_version=backend.backend_version,
                 n_qubits=backend.num_qubits,
                 basis_gates=backend.operation_names,
@@ -846,9 +856,9 @@ class AerSimulator(AerBackend):
 
             # Customize configuration name
             name = configuration.backend_name
-            configuration.backend_name = f"aer_simulator({name})"
+            configuration.backend_name = f"aer_simulator_from({name})"
 
-            target = None
+            target = convert_to_target(configuration, properties, None, NAME_MAPPING)
         else:
             raise TypeError(
                 "The backend argument requires a BackendV2 or BackendV1 object, "
@@ -874,6 +884,8 @@ class AerSimulator(AerBackend):
 
     def available_devices(self):
         """Return the available simulation methods."""
+        if "_gpu" in self.name:
+            return ["GPU"]
         return copy.copy(self._AVAILABLE_DEVICES)
 
     def configuration(self):
@@ -891,8 +903,6 @@ class AerSimulator(AerBackend):
             getattr(self.options, "method", "automatic")
         ]
         config.basis_gates = self._cached_basis_gates + config.custom_instructions
-        # Update simulator name
-        config.backend_name = self._name()
         return config
 
     def _execute_circuits(self, aer_circuits, noise_model, config):
@@ -925,6 +935,24 @@ class AerSimulator(AerBackend):
         super().set_option(key, value)
         if key in ["method", "noise_model", "basis_gates"]:
             self._cached_basis_gates = self._basis_gates()
+
+        # update backend name
+        if key in ["method", "device"]:
+            if "from" not in self.name:
+                if key == "method":
+                    self.name = "aer_simulator"
+                    if value != "automatic":
+                        self.name += f"_{value}"
+                        device = getattr(self.options, "device", "CPU")
+                        if device != "CPU":
+                            self.name += f"_{device}".lower()
+                if key == "device":
+                    method = getattr(self.options, "method", "auto")
+                    self.name = "aer_simulator"
+                    if method != "automatic":
+                        self.name += f"_{method}"
+                        if value != "CPU":
+                            self.name += f"_{value}".lower()
 
     def _validate(self, qobj):
         """Semantic validations of the qobj which cannot be done via schemas.

@@ -1,0 +1,7 @@
+---
+features:
+  - |
+    ``bit_not`` is defined for ``Uint`` values. However, in other language,
+    depending hardware, ``Bool`` values can be applied as ``logical_not``
+    (``False`` is ``0`` and ``True`` is ``1``). This PR supports such implicit
+    operations for only "``bit_not``". 

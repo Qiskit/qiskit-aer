@@ -14,12 +14,18 @@ AerSimualtor options tests
 """
 
 from ddt import ddt, data
-from qiskit import QuantumCircuit, transpile
 from qiskit_aer.noise import NoiseModel
 from test.terra.backends.simulator_test_case import SimulatorTestCase, supported_methods
+
+import qiskit
+from qiskit import QuantumCircuit, transpile
 from qiskit.quantum_info.random import random_unitary
 from qiskit.quantum_info import state_fidelity
-from qiskit.providers.fake_provider import FakeMontreal
+
+if qiskit.__version__.startswith("0."):
+    from qiskit.providers.fake_provider import FakeAlmaden as Fake20QV1
+else:
+    from qiskit.providers.fake_provider import Fake20QV1
 
 from qiskit_aer import AerSimulator
 
@@ -299,6 +305,41 @@ class TestOptions(SimulatorTestCase):
     def test_num_qubits(self, method):
         """Test number of qubits is correctly checked"""
 
-        num_qubits = FakeMontreal().configuration().num_qubits
-        backend = AerSimulator.from_backend(FakeMontreal(), method=method)
+        num_qubits = Fake20QV1().configuration().num_qubits
+        backend = AerSimulator.from_backend(Fake20QV1(), method=method)
         self.assertGreaterEqual(backend.configuration().num_qubits, num_qubits)
+
+    def test_mps_svd_method(self):
+        """Test env. variabe to change MPS SVD method"""
+        # based on test_mps_options test
+        import os
+
+        shots = 4000
+        method = "matrix_product_state"
+        backend_og = self.backend(method=method)
+        backend_lapack = self.backend(method=method)
+
+        n = 10
+        circuit = QuantumCircuit(n)
+
+        for times in range(2):
+            for i in range(0, n, 2):
+                circuit.unitary(random_unitary(4), [i, i + 1])
+            for i in range(1, n - 1):
+                circuit.cx(0, i)
+        circuit.save_statevector("sv")
+
+        result_og = backend_og.run(circuit, shots=shots).result()
+        original_sv = result_og.data(0)["sv"]
+
+        # run with lapack svd method
+        result_lapack = backend_lapack.run(circuit, shots=shots, mps_lapack=True).result()
+        lapack_sv = result_lapack.data(0)["sv"]
+
+        # result_lapack should have the metadata indicating that it used LAPACK
+        # for the SVD
+        self.assertTrue("matrix_product_state_lapack" in result_lapack._get_experiment().metadata)
+        self.assertTrue(result_lapack._get_experiment().metadata["matrix_product_state_lapack"])
+
+        # should give the same state vector
+        self.assertAlmostEqual(state_fidelity(original_sv, lapack_sv), 1.0)

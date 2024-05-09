@@ -174,7 +174,7 @@ public:
   };
 
   virtual bool can_apply(const op_t &op, uint_t max_fused_qubits) const {
-    if (op.conditional)
+    if (op.conditional || op.sample_noise)
       return false;
     switch (op.type) {
     case optype_t::matrix:
@@ -221,7 +221,7 @@ public:
   };
 
   virtual bool can_apply(const op_t &op, uint_t max_fused_qubits) const {
-    if (op.conditional)
+    if (op.conditional || op.sample_noise)
       return false;
     switch (op.type) {
     case optype_t::kraus:
@@ -271,7 +271,7 @@ public:
   };
 
   virtual bool can_apply(const op_t &op, uint_t max_fused_qubits) const {
-    if (op.conditional)
+    if (op.conditional || op.sample_noise)
       return false;
     switch (op.type) {
     case optype_t::kraus:
@@ -1038,7 +1038,8 @@ bool CostBasedFusion::aggregate_operations(oplist_t &ops,
         double estimated_cost =
             estimate_cost(ops, (uint_t)j,
                           i) // fusion gate from j-th to i-th, and
-            + (j == 0 ? 0.0 : costs[j - 1 - fusion_start]); // cost of (j-1)-th
+            + (j <= fusion_start ? 0.0 : costs[j - 1 - fusion_start]);
+        // cost of (j-1)-th
 
         // update cost
         if (estimated_cost <= costs[i - fusion_start]) {

@@ -17,6 +17,7 @@ from ddt import ddt
 from test.terra.reference import ref_measure
 from qiskit import QuantumCircuit
 from qiskit import transpile
+import qiskit.quantum_info as qi
 from qiskit_aer import AerSimulator
 from qiskit_aer.noise import NoiseModel
 from qiskit_aer.noise.errors import ReadoutError, depolarizing_error
@@ -24,6 +25,8 @@ from qiskit.circuit.library import QuantumVolume
 from qiskit.quantum_info.random import random_unitary
 from test.terra.backends.simulator_test_case import SimulatorTestCase, supported_methods
 import numpy as np
+
+import os
 
 SUPPORTED_METHODS = [
     "automatic",
@@ -263,6 +266,24 @@ class TestMeasure(SimulatorTestCase):
 
         self.assertDictAlmostEqual(output, targets, delta=delta * shots)
 
+    @supported_methods(["stabilizer"], [65, 127, 433])
+    def test_measure_sampling_large_ghz_stabilizer(self, method, device, num_qubits):
+        """Test sampling measure for large stabilizer circuit"""
+        shots = 1000
+        delta = 0.05
+        qc = QuantumCircuit(num_qubits)
+        qc.h(0)
+        for q in range(1, num_qubits):
+            qc.cx(q - 1, q)
+        qc.measure_all()
+        backend = self.backend(method=method)
+        result = backend.run(qc, shots=shots).result()
+        counts = result.get_counts()
+        targets = {}
+        targets["0" * num_qubits] = shots / 2
+        targets["1" * num_qubits] = shots / 2
+        self.assertDictAlmostEqual(counts, targets, delta=delta * shots)
+
     # ---------------------------------------------------------------------
     # Test MPS algorithms for measure
     # ---------------------------------------------------------------------
@@ -320,6 +341,22 @@ class TestMeasure(SimulatorTestCase):
 
             self.assertDictAlmostEqual(
                 result1.get_counts(circuit), result2.get_counts(circuit), delta=0.1 * shots
+            )
+
+            # Test also parallel version
+            os.environ["PRL_PROB_MEAS"] = "1"
+            result2_prl = backend.run(
+                circuit, shots=shots, mps_sample_measure_algorithm="mps_probabilities"
+            ).result()
+            self.assertTrue(getattr(result2_prl, "success", "True"))
+            del os.environ["PRL_PROB_MEAS"]  # Python 3.8 in Windows
+            # os.unsetenv("PRL_PROB_MEAS")  # SInce Python 3.9
+
+            self.assertDictAlmostEqual(
+                result1.get_counts(circuit), result2_prl.get_counts(circuit), delta=0.1 * shots
+            )
+            self.assertDictAlmostEqual(
+                result2.get_counts(circuit), result2_prl.get_counts(circuit), delta=0.1 * shots
             )
 
     def test_mps_measure_with_limited_bond_dimension(self):

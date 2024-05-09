@@ -194,17 +194,17 @@ protected:
   void apply_measure(CircuitExecutor::Branch &root, const reg_t &qubits,
                      const reg_t &cmemory, const reg_t &cregister);
 
-  std::vector<reg_t> sample_measure(state_t &state, const reg_t &qubits,
-                                    uint_t shots,
-                                    std::vector<RngEngine> &rng) const override;
+  std::vector<SampleVector>
+  sample_measure(state_t &state, const reg_t &qubits, uint_t shots,
+                 std::vector<RngEngine> &rng) const override;
 
   // Return the reduced density matrix for the simulator
   cmatrix_t density_matrix(const reg_t &qubits);
 
   // Sample n-measurement outcomes without applying the measure operation
   // to the system state
-  std::vector<reg_t> sample_measure(const reg_t &qubits, uint_t shots,
-                                    RngEngine &rng) const override;
+  std::vector<SampleVector> sample_measure(const reg_t &qubits, uint_t shots,
+                                           RngEngine &rng) const override;
 };
 
 template <class state_t>
@@ -1145,14 +1145,13 @@ void Executor<state_t>::measure_reset_update(const std::vector<uint_t> &qubits,
 }
 
 template <class state_t>
-std::vector<reg_t> Executor<state_t>::sample_measure(const reg_t &qubits,
-                                                     uint_t shots,
-                                                     RngEngine &rng) const {
+std::vector<SampleVector>
+Executor<state_t>::sample_measure(const reg_t &qubits, uint_t shots,
+                                  RngEngine &rng) const {
   uint_t i, j;
   // Generate flat register for storing
   std::vector<double> rnds;
   rnds.reserve(shots);
-  reg_t allbit_samples(shots, 0);
 
   for (i = 0; i < shots; ++i)
     rnds.push_back(rng.rand(0, 1));
@@ -1240,21 +1239,27 @@ std::vector<reg_t> Executor<state_t>::sample_measure(const reg_t &qubits,
 #ifdef AER_MPI
   BasePar::reduce_sum(local_samples);
 #endif
-  allbit_samples = local_samples;
 
-  // Convert to reg_t format
-  std::vector<reg_t> all_samples;
-  all_samples.reserve(shots);
-  for (int_t val : allbit_samples) {
-    reg_t allbit_sample = Utils::int2reg(val, 2, Base::num_qubits_);
-    reg_t sample;
-    sample.reserve(qubits.size());
-    for (uint_t qubit : qubits) {
-      sample.push_back(allbit_sample[qubit]);
+  // Convert to SampleVector format
+  int_t npar = Base::parallel_state_update_;
+  if (npar > local_samples.size())
+    npar = local_samples.size();
+  std::vector<SampleVector> all_samples(shots, SampleVector(qubits.size()));
+
+  auto convert_to_bit_lambda = [this, &local_samples, &all_samples, shots,
+                                qubits, npar](int_t i) {
+    uint_t ishot, iend;
+    ishot = local_samples.size() * i / npar;
+    iend = local_samples.size() * (i + 1) / npar;
+    for (; ishot < iend; ishot++) {
+      SampleVector allbit_sample;
+      allbit_sample.from_uint(local_samples[ishot], qubits.size());
+      all_samples[ishot].map(allbit_sample, qubits);
     }
-    all_samples.push_back(sample);
-  }
-
+  };
+  Utils::apply_omp_parallel_for(
+      (npar > 1 && BasePar::chunk_omp_parallel_ && Base::num_groups_ > 1), 0,
+      npar, convert_to_bit_lambda, npar);
   return all_samples;
 }
 
@@ -1642,19 +1647,22 @@ void Executor<state_t>::apply_initialize(CircuitExecutor::Branch &root,
     }
   }
 
-  if (root.additional_ops().size() == 0) {
+  if (!root.initialize_after_reset()) {
     apply_reset(root, qubits);
 
-    Operations::Op op;
-    op.type = OpType::initialize;
-    op.name = "initialize";
-    op.qubits = qubits;
-    op.params = params;
-    for (uint_t i = 0; i < root.num_branches(); i++) {
-      root.branches()[i]->add_op_after_branch(op);
+    if (root.num_branches() > 0) {
+      Operations::Op op;
+      op.type = OpType::initialize;
+      op.name = "initialize";
+      op.qubits = qubits;
+      op.params = params;
+      for (uint_t i = 0; i < root.num_branches(); i++) {
+        root.branches()[i]->add_op_after_branch(op);
+        root.branches()[i]->initialize_after_reset() = true;
+      }
+      return; // initialization will be done in next call because of shot
+              // branching in reset
     }
-    return; // initialization will be done in next call because of shot
-            // branching in reset
   }
 
   Base::states_[root.state_index()].qreg().initialize_component(qubits, params);
@@ -1892,7 +1900,7 @@ void Executor<state_t>::apply_save_amplitudes(CircuitExecutor::Branch &root,
 }
 
 template <class state_t>
-std::vector<reg_t>
+std::vector<SampleVector>
 Executor<state_t>::sample_measure(state_t &state, const reg_t &qubits,
                                   uint_t shots,
                                   std::vector<RngEngine> &rng) const {
@@ -1907,17 +1915,13 @@ Executor<state_t>::sample_measure(state_t &state, const reg_t &qubits,
   auto allbit_samples = state.qreg().sample_measure(rnds);
   state.qreg().enable_batch(flg);
 
-  // Convert to reg_t format
-  std::vector<reg_t> all_samples;
-  all_samples.reserve(shots);
+  // Convert to bit format
+  std::vector<SampleVector> all_samples(shots, SampleVector(qubits.size()));
+  i = 0;
   for (int_t val : allbit_samples) {
-    reg_t allbit_sample = Utils::int2reg(val, 2, Base::num_qubits_);
-    reg_t sample;
-    sample.reserve(qubits.size());
-    for (uint_t qubit : qubits) {
-      sample.push_back(allbit_sample[qubit]);
-    }
-    all_samples.push_back(sample);
+    SampleVector allbit_sample;
+    allbit_sample.from_uint(val, qubits.size());
+    all_samples[i++].map(allbit_sample, qubits);
   }
   return all_samples;
 }

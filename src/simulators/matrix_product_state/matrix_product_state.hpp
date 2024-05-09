@@ -118,16 +118,16 @@ public:
 
   // Sample n-measurement outcomes without applying the measure operation
   // to the system state
-  virtual std::vector<reg_t> sample_measure(const reg_t &qubits, uint_t shots,
-                                            RngEngine &rng) override;
+  virtual std::vector<SampleVector>
+  sample_measure(const reg_t &qubits, uint_t shots, RngEngine &rng) override;
 
   // Computes sample_measure by copying the MPS to a temporary structure, and
   // applying a measurement on the temporary MPS. This is done for every shot,
   // so is not efficient for a large number of shots
-  std::vector<reg_t> sample_measure_using_apply_measure(const reg_t &qubits,
-                                                        uint_t shots,
-                                                        RngEngine &rng);
-  std::vector<reg_t> sample_measure_all(uint_t shots, RngEngine &rng);
+  std::vector<SampleVector>
+  sample_measure_using_apply_measure(const reg_t &qubits, uint_t shots,
+                                     RngEngine &rng);
+  std::vector<SampleVector> sample_measure_all(uint_t shots, RngEngine &rng);
   //-----------------------------------------------------------------------
   // Additional methods
   //-----------------------------------------------------------------------
@@ -315,7 +315,7 @@ size_t State::required_memory_mb(uint_t num_qubits,
                                  const std::vector<Operations::Op> &ops) const {
   if (num_qubits > 1) {
     MPSSizeEstimator est(num_qubits);
-    uint_t size = est.estimate(ops);
+    uint_t size = est.estimate(ops, gateset_);
     return (size >> 20);
   }
   return 0;
@@ -356,6 +356,9 @@ void State::set_config(const Config &config) {
     MPS::set_mps_swap_direction(MPS_swap_direction::SWAP_RIGHT);
   else
     MPS::set_mps_swap_direction(MPS_swap_direction::SWAP_LEFT);
+
+  // Set LAPACK SVD
+  MPS::set_mps_lapack_svd(config.mps_lapack);
 }
 
 void State::add_metadata(ExperimentResult &result) const {
@@ -367,6 +370,7 @@ void State::add_metadata(ExperimentResult &result) const {
                       "matrix_product_state_sample_measure_algorithm");
   if (MPS::get_mps_log_data())
     result.metadata.add("{" + MPS::output_log() + "}", "MPS_log_data");
+  result.metadata.add(MPS::get_mps_lapack_svd(), "matrix_product_state_lapack");
 }
 
 void State::output_bond_dimensions(const Operations::Op &op) const {
@@ -742,8 +746,8 @@ rvector_t State::measure_probs(const reg_t &qubits) const {
   return probvector;
 }
 
-std::vector<reg_t> State::sample_measure(const reg_t &qubits, uint_t shots,
-                                         RngEngine &rng) {
+std::vector<SampleVector> State::sample_measure(const reg_t &qubits,
+                                                uint_t shots, RngEngine &rng) {
   // There are two alternative algorithms for sample measure
   // We choose the one that is optimal relative to the total number
   // of qubits,and the number of shots.
@@ -757,10 +761,10 @@ std::vector<reg_t> State::sample_measure(const reg_t &qubits, uint_t shots,
   return sample_measure_using_apply_measure(qubits, shots, rng);
 }
 
-std::vector<reg_t>
+std::vector<SampleVector>
 State::sample_measure_using_apply_measure(const reg_t &qubits, uint_t shots,
                                           RngEngine &rng) {
-  std::vector<reg_t> all_samples;
+  std::vector<SampleVector> all_samples;
   all_samples.resize(shots);
   std::vector<rvector_t> rnds_list;
   rnds_list.reserve(shots);
@@ -780,19 +784,21 @@ State::sample_measure_using_apply_measure(const reg_t &qubits, uint_t shots,
     for (int_t i = 0; i < static_cast<int_t>(shots); i++) {
       temp.initialize(qreg_);
       auto single_result = temp.apply_measure_internal(qubits, rnds_list[i]);
-      all_samples[i] = single_result;
+      all_samples[i].from_vector(single_result);
     }
   }
   return all_samples;
 }
 
-std::vector<reg_t> State::sample_measure_all(uint_t shots, RngEngine &rng) {
-  std::vector<reg_t> all_samples;
+std::vector<SampleVector> State::sample_measure_all(uint_t shots,
+                                                    RngEngine &rng) {
+  std::vector<SampleVector> all_samples;
   all_samples.resize(shots);
 
-  for (uint_t i = 0; i < shots; i++) {
+#pragma omp parallel for if (getenv("PRL_PROB_MEAS"))
+  for (int_t i = 0; i < static_cast<int_t>(shots); i++) {
     auto single_result = qreg_.sample_measure(shots, rng);
-    all_samples[i] = single_result;
+    all_samples[i].from_vector(single_result);
   }
   return all_samples;
 }

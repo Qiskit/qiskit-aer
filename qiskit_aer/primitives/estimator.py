@@ -97,6 +97,11 @@ class Estimator(BaseEstimator):
                 If approximation is True, this parameter is ignored and assumed to be False.
         """
         super().__init__(options=run_options)
+        # These three private attributes used to be created by super, but were deprecated in Qiskit
+        # 0.46. See https://github.com/Qiskit/qiskit/pull/11051
+        self._circuits = []
+        self._parameters = []
+        self._observables = []
 
         backend_options = {} if backend_options is None else backend_options
         method = (
@@ -204,7 +209,8 @@ class Estimator(BaseEstimator):
             parameter_values,
             **run_options,
         )
-        job.submit()
+        # The public submit method was removed in Qiskit 0.46
+        (job.submit if hasattr(job, "submit") else job._submit)()  # pylint: disable=no-member
         return job
 
     def _compute(self, circuits, observables, parameter_values, run_options):
@@ -526,6 +532,7 @@ class Estimator(BaseEstimator):
                 circuit = self._circuits[i].copy()
                 circuit.measure_all()
                 num_qubits = circuit.num_qubits
+                self._backend.set_max_qubits(num_qubits)
                 circuit = self._transpile(circuit)
                 bit_map = {bit: index for index, bit in enumerate(circuit.qubits)}
                 layout = [bit_map[qr[0]] for _, qr, _ in circuit[-num_qubits:]]

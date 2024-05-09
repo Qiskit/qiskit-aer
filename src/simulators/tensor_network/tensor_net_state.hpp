@@ -53,11 +53,11 @@ const Operations::OpSet StateOpSet(
      "cz",   "cy",    "cp",     "cu1",   "cu2",   "cu3",      "swap",
      "id",   "p",     "x",      "y",     "z",     "h",        "s",
      "sdg",  "t",     "tdg",    "r",     "rx",    "ry",       "rz",
-     "rxx",  "ryy",   "rzz",    "rzx",   "ccx",   "cswap",    "mcx",
+     "rxx",  "ryy",   "rzz",    "rzx",   "ccx",   "ccz",      "mcx",
      "mcy",  "mcz",   "mcu1",   "mcu2",  "mcu3",  "mcswap",   "mcphase",
      "mcr",  "mcrx",  "mcry",   "mcry",  "sx",    "sxdg",     "csx",
      "mcsx", "csxdg", "mcsxdg", "delay", "pauli", "mcx_gray", "cu",
-     "mcu",  "mcp",   "ecr"});
+     "mcu",  "mcp",   "ecr",    "cswap"});
 // clang-format on
 
 // Allowed gates enum class
@@ -123,8 +123,8 @@ public:
 
   // Sample n-measurement outcomes without applying the measure operation
   // to the system state
-  virtual std::vector<reg_t> sample_measure(const reg_t &qubits, uint_t shots,
-                                            RngEngine &rng) override;
+  virtual std::vector<SampleVector>
+  sample_measure(const reg_t &qubits, uint_t shots, RngEngine &rng) override;
 
   // Load the threshold for applying OpenMP parallelization
   // if the controller/engine allows threads for it
@@ -347,6 +347,7 @@ const stringmap_t<Gates> State<tensor_net_t>::gateset_(
      {"ecr", Gates::ecr},      // ECR Gate
      /* 3-qubit gates */
      {"ccx", Gates::mcx},      // Controlled-CX gate (Toffoli)
+     {"ccz", Gates::mcz},      // Controlled-CZ gate
      {"cswap", Gates::mcswap}, // Controlled SWAP gate (Fredkin)
      /* Multi-qubit controlled gates */
      {"mcx", Gates::mcx},       // Multi-controlled-X gate
@@ -880,30 +881,28 @@ void State<tensor_net_t>::measure_reset_update(
 }
 
 template <class tensor_net_t>
-std::vector<reg_t> State<tensor_net_t>::sample_measure(const reg_t &qubits,
-                                                       uint_t shots,
-                                                       RngEngine &rng) {
+std::vector<SampleVector>
+State<tensor_net_t>::sample_measure(const reg_t &qubits, uint_t shots,
+                                    RngEngine &rng) {
   // Generate flat register for storing
   std::vector<double> rnds(shots);
 
   for (uint_t i = 0; i < shots; ++i)
     rnds[i] = rng.rand(0, 1);
 
-  std::vector<reg_t> samples = BaseState::qreg_.sample_measure(rnds);
-  std::vector<reg_t> ret(shots);
+  std::vector<SampleVector> samples = BaseState::qreg_.sample_measure(rnds);
+  std::vector<SampleVector> ret(shots, SampleVector(qubits.size()));
 
   if (omp_get_num_threads() > 1) {
     for (uint_t i = 0; i < shots; ++i) {
-      ret[i].resize(qubits.size());
       for (uint_t j = 0; j < qubits.size(); j++)
-        ret[i][j] = samples[i][qubits[j]];
+        ret[i].set(j, samples[i][qubits[j]]);
     }
   } else {
 #pragma omp parallel for
     for (int_t i = 0; i < (int_t)shots; ++i) {
-      ret[i].resize(qubits.size());
       for (uint_t j = 0; j < qubits.size(); j++)
-        ret[i][j] = samples[i][qubits[j]];
+        ret[i].set(j, samples[i][qubits[j]]);
     }
   }
   return ret;

@@ -67,6 +67,11 @@ class Sampler(BaseSampler):
             skip_transpilation: if True, transpilation is skipped.
         """
         super().__init__(options=run_options)
+        # These two private attributes used to be created by super, but were deprecated in Qiskit
+        # 0.46. See https://github.com/Qiskit/qiskit/pull/11051
+        self._circuits = []
+        self._parameters = []
+
         self._backend = AerSimulator()
         backend_options = {} if backend_options is None else backend_options
         self._backend.set_options(**backend_options)
@@ -157,7 +162,8 @@ class Sampler(BaseSampler):
                 self._circuits.append(circuit)
                 self._parameters.append(circuit.parameters)
         job = PrimitiveJob(self._call, circuit_indices, parameter_values, **run_options)
-        job.submit()
+        # The public submit method was removed in Qiskit 0.46
+        (job.submit if hasattr(job, "submit") else job._submit)()  # pylint: disable=no-member
         return job
 
     @staticmethod
@@ -176,6 +182,15 @@ class Sampler(BaseSampler):
         circuit.save_probabilities_dict(qargs)
         return circuit
 
+    def _transpile_circuit(self, circuit):
+        self._backend.set_max_qubits(circuit.num_qubits)
+        transpiled = transpile(
+            circuit,
+            self._backend,
+            **self._transpile_options,
+        )
+        return transpiled
+
     def _transpile(self, circuit_indices: Sequence[int], is_shots_none: bool):
         to_handle = [
             i for i in set(circuit_indices) if (i, is_shots_none) not in self._transpiled_circuits
@@ -185,11 +200,7 @@ class Sampler(BaseSampler):
             if is_shots_none:
                 circuits = (self._preprocess_circuit(circ) for circ in circuits)
             if not self._skip_transpilation:
-                circuits = transpile(
-                    list(circuits),
-                    self._backend,
-                    **self._transpile_options,
-                )
+                circuits = (self._transpile_circuit(circ) for circ in circuits)
             for i, circuit in zip(to_handle, circuits):
                 self._transpiled_circuits[(i, is_shots_none)] = circuit
 

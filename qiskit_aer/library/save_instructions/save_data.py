@@ -67,7 +67,7 @@ class SaveData(Instruction):
         instr.label = self._label
         return instr
 
-    def inverse(self):
+    def inverse(self, annotated=False):
         """Special case. Return self."""
         return copy.copy(self)
 
