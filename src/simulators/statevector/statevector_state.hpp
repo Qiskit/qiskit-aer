@@ -699,7 +699,7 @@ cmatrix_t State<statevec_t>::vec2density(const reg_t &qubits, const T &vec) {
   if ((N == BaseState::qreg_.num_qubits()) && (qubits == qubits_sorted)) {
     const int_t mask = QV::MASKS[N];
 #pragma omp parallel for if (2 * N > (size_t)omp_qubit_threshold_ &&           \
-                                 BaseState::threads_ > 1)                      \
+                             BaseState::threads_ > 1)                          \
     num_threads(BaseState::threads_)
     for (int_t rowcol = 0; rowcol < int_t(DIM * DIM); ++rowcol) {
       const int_t row = rowcol >> N;

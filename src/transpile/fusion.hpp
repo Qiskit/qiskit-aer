@@ -786,7 +786,8 @@ private:
     for (uint_t op_idx = 0; op_idx < ops.size(); ++op_idx) {
       std::cout << std::setw(3) << op_idx << ": ";
       if (ops[op_idx].type == optype_t::nop) {
-        std::cout << std::setw(15) << "nop" << ": ";
+        std::cout << std::setw(15) << "nop"
+                  << ": ";
       } else {
         std::cout << std::setw(15) << ops[op_idx].name << "-"
                   << ops[op_idx].qubits.size() << ": ";
