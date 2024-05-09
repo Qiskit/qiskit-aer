@@ -509,7 +509,7 @@ void State<densmat_t>::apply_save_amplitudes_sq(const Operations::Op &op,
   rvector_t amps_sq(size);
 
 #pragma omp parallel for if (size > pow(2, omp_qubit_threshold_) &&            \
-                             BaseState::threads_ > 1)                          \
+                                 BaseState::threads_ > 1)                      \
     num_threads(BaseState::threads_)
   for (int_t i = 0; i < size; ++i) {
     amps_sq[i] = BaseState::qreg_.probability(op.int_params[i]);
@@ -1000,7 +1000,7 @@ std::vector<SampleVector> State<densmat_t>::sample_measure(const reg_t &qubits,
   allbit_samples = BaseState::qreg_.sample_measure(rnds);
 
   // Convert to bit format
-  int_t npar = BaseState::threads_;
+  uint_t npar = BaseState::threads_;
   if (npar > shots)
     npar = shots;
   std::vector<SampleVector> all_samples(shots, SampleVector(qubits.size()));

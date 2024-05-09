@@ -1758,7 +1758,7 @@ Op input_to_op_bfunc(const inputdata_t &input) {
   auto it = comp_table.find(relation);
   if (it == comp_table.end()) {
     std::stringstream msg;
-    msg << "Invalid bfunc relation string :\"" << it->first << "\"."
+    msg << "Invalid bfunc relation string :\"" << relation << "\"."
         << std::endl;
     throw std::invalid_argument(msg.str());
   } else {

@@ -1241,7 +1241,7 @@ Executor<state_t>::sample_measure(const reg_t &qubits, uint_t shots,
 #endif
 
   // Convert to SampleVector format
-  int_t npar = Base::parallel_state_update_;
+  uint_t npar = Base::parallel_state_update_;
   if (npar > local_samples.size())
     npar = local_samples.size();
   std::vector<SampleVector> all_samples(shots, SampleVector(qubits.size()));
