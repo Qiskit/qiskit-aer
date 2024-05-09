@@ -374,7 +374,7 @@ bool Branch::apply_runtime_noise_sampling(const ClassicalRegister &creg,
 
 void Branch::remove_empty_branches(void) {
   // find first branch that has at least one shot
-  int_t iroot = -1;
+  uint_t iroot = 0;
   for (uint_t j = 0; j < branches_.size(); j++) {
     if (branches_[j]->num_shots() > 0) {
       iroot = j;

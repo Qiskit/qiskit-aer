@@ -246,7 +246,7 @@ void Clifford::append_cx(const uint64_t qcon, const uint64_t qtar) {
   const uint64_t mask = (~0ull);
 
   int nid = omp_get_num_threads();
-  auto cx_func = [this, qtar, qcon, mask](AER::int_t i) {
+  auto cx_func = [this, qtar, qcon](AER::int_t i) {
     destabilizer_phases_(i) =
         destabilizer_phases_(i) ^
         (destabilizer_table_[qcon].X(i) & destabilizer_table_[qtar].Z(i) &
@@ -575,8 +575,8 @@ bool Clifford::measure_and_update(const uint64_t qubit,
         uint_t exponent_h = 0;
 
         auto measure_determinisitic_func =
-            [this, &accum, &exponent_l, &exponent_lc, &exponent_h, blocks,
-             blockSize, destabilizer_mask, ii](AER::int_t qq) {
+            [this, &accum, &exponent_l, &exponent_lc, &exponent_h, blockSize,
+             destabilizer_mask, ii](AER::int_t qq) {
               uint_t qs = qq * blockSize;
               uint_t qe = qs + blockSize;
               if (qe > num_qubits_)

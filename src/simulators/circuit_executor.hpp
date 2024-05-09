@@ -871,9 +871,8 @@ void Executor<state_t>::run_circuit_shots(
 
   // run each shot
   auto run_circuit_lambda = [this, &par_results, circ, noise, config, par_shots,
-                             sample_noise, num_shots, shot_begin, &cregs,
-                             init_rng, max_matrix_qubits,
-                             num_local_shots](int_t i) {
+                             sample_noise, shot_begin, &cregs, init_rng,
+                             max_matrix_qubits, num_local_shots](int_t i) {
     state_t state;
     uint_t i_shot, e_shot;
     i_shot = num_local_shots * i / par_shots;
@@ -1155,7 +1154,7 @@ void Executor<state_t>::measure_sampler(InputIterator first_meas,
     Utils::apply_omp_parallel_for((npar > 1), 0, npar, copy_samples_lambda,
                                   npar);
 
-    for (int_t i = 0; i < npar; i++) {
+    for (uint_t i = 0; i < npar; i++) {
       result.combine(std::move(par_results[i]));
     }
   }
