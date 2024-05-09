@@ -1328,3 +1328,17 @@ class TestControlFlow(SimulatorTestCase):
         counts = backend.run(qc).result().get_counts()
         self.assertEqual(len(counts), 1)
         self.assertIn("0110", counts)
+
+        # Check stored values can be stored
+        qr = QuantumRegister(4)
+        cr0 = ClassicalRegister(4)
+        cr1 = ClassicalRegister(4)
+        qc = QuantumCircuit(qr, cr0, cr1)
+        qc.x(2)
+        qc.measure(range(4), range(4))
+        qc.store(cr0, 0b1000)  # measured classical registers are modified
+        qc.store(cr1, cr0)  # measured classical registers are modified
+
+        counts = backend.run(qc).result().get_counts()
+        self.assertEqual(len(counts), 1)
+        self.assertIn("1000 1000", counts)
