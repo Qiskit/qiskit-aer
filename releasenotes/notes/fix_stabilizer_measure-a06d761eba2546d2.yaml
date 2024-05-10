@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fix of deterministic measure of stabilizer and change of OpenMP
+    parallelization of loop
