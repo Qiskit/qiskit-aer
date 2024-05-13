@@ -545,10 +545,10 @@ bool Clifford::measure_and_update(const uint64_t qubit,
         accumZ ^= (accumZ << 16);
         accumX ^= (accumX << 32);
         accumZ ^= (accumZ << 32);
-        //store for next iteration
+        // store for next iteration
         accumX_prev = ((accumX >> 63) & 1) != 0;
         accumZ_prev = ((accumZ >> 63) & 1) != 0;
-        //correct for this iteration
+        // correct for this iteration
         accumX ^= sX;
         accumZ ^= sZ;
         accumX &= destabilizer_mask;
