@@ -456,9 +456,8 @@ bool Clifford::measure_and_update(const uint64_t qubit,
 
           t0 = rX & destabilizer_table_[q].Z(i);
           t1 = rZ ^ destabilizer_table_[q].X(i);
-          t1 ^= t0;
 
-          d1 ^= (t0 & d0);
+          d1 ^= (t0 & (~d0));
           d0 ^= t0;
           d1 ^= (t0 & t1);
 
@@ -475,9 +474,8 @@ bool Clifford::measure_and_update(const uint64_t qubit,
 
           t0 = rX & stabilizer_table_[q].Z(i);
           t1 = rZ ^ stabilizer_table_[q].X(i);
-          t1 ^= t0;
 
-          s1 ^= (t0 & s0);
+          s1 ^= (t0 & (~s0));
           s0 ^= t0;
           s1 ^= (t0 & t1);
 
@@ -522,6 +520,8 @@ bool Clifford::measure_and_update(const uint64_t qubit,
       uint_t accumZ = 0;
       uint_t exponent_l = 0ull;
       uint_t exponent_h = 0ull;
+      bool accumX_prev = false;
+      bool accumZ_prev = false;
 
       for (uint_t ib = 0; ib < blocks; ib++) {
         uint_t tl, th, add;
@@ -531,20 +531,28 @@ bool Clifford::measure_and_update(const uint64_t qubit,
         uint_t sZ = stabilizer_table_[q].Z(ib) & destabilizer_mask;
 
         // accumulate for 64 bits block
-        accumX = (0ull - ((accumX >> 63) & 1)) & destabilizer_mask;
-        accumZ = (0ull - ((accumZ >> 63) & 1)) & destabilizer_mask;
-        accumX ^= (sX << 1);
-        accumZ ^= (sZ << 1);
-        accumX ^= (sX << 2);
-        accumZ ^= (sZ << 2);
-        accumX ^= (sX << 4);
-        accumZ ^= (sZ << 4);
-        accumX ^= (sX << 8);
-        accumZ ^= (sZ << 8);
-        accumX ^= (sX << 16);
-        accumZ ^= (sZ << 16);
-        accumX ^= (sX << 32);
-        accumZ ^= (sZ << 32);
+        accumX = sX ^ (uint_t)accumX_prev;
+        accumZ = sZ ^ (uint_t)accumZ_prev;
+        accumX ^= (accumX << 1);
+        accumZ ^= (accumZ << 1);
+        accumX ^= (accumX << 2);
+        accumZ ^= (accumZ << 2);
+        accumX ^= (accumX << 4);
+        accumZ ^= (accumZ << 4);
+        accumX ^= (accumX << 8);
+        accumZ ^= (accumZ << 8);
+        accumX ^= (accumX << 16);
+        accumZ ^= (accumZ << 16);
+        accumX ^= (accumX << 32);
+        accumZ ^= (accumZ << 32);
+        //store for next iteration
+        accumX_prev = ((accumX >> 63) & 1) != 0;
+        accumZ_prev = ((accumZ >> 63) & 1) != 0;
+        //correct for this iteration
+        accumX ^= sX;
+        accumZ ^= sZ;
+        accumX &= destabilizer_mask;
+        accumZ &= destabilizer_mask;
 
         tl = accumX & sZ;
         th = accumZ ^ sX;
@@ -556,9 +564,8 @@ bool Clifford::measure_and_update(const uint64_t qubit,
 
         tl = sX & accumZ;
         th = sZ ^ accumX;
-        th ^= tl;
 
-        add = tl & exponent_l;
+        add = tl & (~exponent_l);
         exponent_l ^= tl;
         exponent_h ^= add;
         exponent_h ^= (tl & th);
@@ -574,8 +581,7 @@ bool Clifford::measure_and_update(const uint64_t qubit,
 
     uint_t stab_h = 0ull;
     for (uint_t ib = 0; ib < blocks; ib++) {
-      uint_t destabilizer_mask = destabilizer_table_[qubit].X(ib);
-      stab_h ^= destabilizer_mask & stabilizer_phases_(ib);
+      stab_h ^= (destabilizer_table_[qubit].X(ib) & stabilizer_phases_(ib));
     }
     outcome += AER::Utils::popcount(stab_h) * 2;
 
