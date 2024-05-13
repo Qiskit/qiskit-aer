@@ -1057,7 +1057,7 @@ class AerSimulator(AerBackend):
     def _check_basis_gates(self, basis_gates):
         method = getattr(self.options, "method", "automatic")
         # check if basis_gates contains non-supported gates
-        if method is not "automatic":
+        if method != "automatic":
             for gate in basis_gates:
                 if gate not in self._BASIS_GATES[method]:
                     raise AerError(f"Invalid gate {gate} for simulation method {method}.")
