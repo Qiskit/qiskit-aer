@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixed issue #2084 again. `backend.set_max_qubits` was not
+    properly implemented.
+    Also added test case to test this issue.
+

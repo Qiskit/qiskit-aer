@@ -352,7 +352,7 @@ class AerBackend(Backend, ABC):
 
     def set_max_qubits(self, max_qubits):
         """Set maximun number of qubits to be used for this backend."""
-        if self._target is not None:
+        if self._target is None:
             self._configuration.n_qubits = max_qubits
 
     def clear_options(self):
