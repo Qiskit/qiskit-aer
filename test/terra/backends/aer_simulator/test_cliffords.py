@@ -28,10 +28,6 @@ SUPPORTED_METHODS = [
     "tensor_network",
 ]
 
-SUPPORTED_ECR_METHODS = [
-    "stabilizer",
-]
-
 
 @ddt
 class TestCliffords(SimulatorTestCase):
@@ -249,11 +245,11 @@ class TestCliffords(SimulatorTestCase):
     # ---------------------------------------------------------------------
     # Test ecr gate
     # ---------------------------------------------------------------------
-    @supported_methods(SUPPORTED_ECR_METHODS)
+    @supported_methods(SUPPORTED_METHODS)
     def test_ecr_gate_nondeterministic(self, method, device):
         """Test ecr gate circuits"""
         backend = self.backend(method=method, device=device, seed_simulator=self.SEED)
-        shots = 100
+        shots = 1000
         circuits = ref_2q_clifford.ecr_gate_circuits_nondeterministic(final_measure=True)
         targets = ref_2q_clifford.ecr_gate_counts_nondeterministic(shots)
         result = backend.run(circuits, shots=shots).result()

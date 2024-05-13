@@ -58,7 +58,8 @@ enum class Gates {
   swap,
   ccx,
   ccz,
-  pauli
+  pauli,
+  ecr,
 };
 
 enum class Gatetypes { pauli, clifford, non_clifford };
@@ -85,6 +86,7 @@ const AER::stringmap_t<Gatetypes> gate_types_ = {
     {"cx", Gatetypes::clifford},   // Controlled-X gate (CNOT)
     {"cz", Gatetypes::clifford},   // Controlled-Z gate
     {"swap", Gatetypes::clifford}, // SWAP gate
+    {"ecr", Gatetypes::clifford},  // ECR Gate
     // Three-qubit gates
     {"ccx", Gatetypes::non_clifford}, // Controlled-CX gate (Toffoli)
     {"ccz", Gatetypes::non_clifford}, // Controlled-CZ gate (H3 Toff H3)

@@ -744,6 +744,9 @@ class AerSimulator(AerBackend):
             backend_options=backend_options,
         )
 
+        if "basis_gates" in backend_options.items():
+            self._check_basis_gates(backend_options["basis_gates"])
+
     @classmethod
     def _default_options(cls):
         return Options(
@@ -897,11 +900,12 @@ class AerSimulator(AerBackend):
         config = copy.copy(self._configuration)
         for key, val in self._options_configuration.items():
             setattr(config, key, val)
+
+        method = getattr(self.options, "method", "automatic")
+
         # Update basis gates based on custom options, config, method,
         # and noise model
-        config.custom_instructions = self._CUSTOM_INSTR[
-            getattr(self.options, "method", "automatic")
-        ]
+        config.custom_instructions = self._CUSTOM_INSTR[method]
         config.basis_gates = self._cached_basis_gates + config.custom_instructions
         return config
 
@@ -932,6 +936,9 @@ class AerSimulator(AerBackend):
                     f" are: {self.available_methods()}"
                 )
             self._set_method_config(value)
+        if key == "basis_gates":
+            self._check_basis_gates(value)
+
         super().set_option(key, value)
         if key in ["method", "noise_model", "basis_gates"]:
             self._cached_basis_gates = self._basis_gates()
@@ -1046,3 +1053,11 @@ class AerSimulator(AerBackend):
 
         self._set_configuration_option("description", description)
         self._set_configuration_option("n_qubits", n_qubits)
+
+    def _check_basis_gates(self, basis_gates):
+        method = getattr(self.options, "method", "automatic")
+        # check if basis_gates contains non-supported gates
+        if method is not "automatic":
+            for gate in basis_gates:
+                if gate not in self._BASIS_GATES[method]:
+                    raise AerError(f"Invalid gate {gate} for simulation method {method}.")
