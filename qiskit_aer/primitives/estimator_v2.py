@@ -78,9 +78,12 @@ class EstimatorV2(BaseEstimatorV2):
             self.options.backend_options.update(ops)
         self._backend = AerSimulator(**self.options.backend_options)
 
-    def from_backend(self, backend, **options):
-        """use external backend"""
-        self._backend.from_backend(backend, **options)
+    @classmethod
+    def from_backend(cls, backend, **options):
+        """make new sampler that uses external backend"""
+        estimator = cls(**options)
+        estimator._backend = AerSimulator.from_backend(backend)
+        return estimator
 
     @property
     def options(self) -> Options:

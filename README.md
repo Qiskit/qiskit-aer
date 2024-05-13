@@ -134,13 +134,13 @@ provider = QiskitRuntimeService(channel='ibm_quantum', token="set your own token
 backend = provider.get_backend("ibm_kyoto")
 
 # create sampler from the actual backend
-sampler.from_backend(backend)
+sampler = SamplerV2.from_backend(backend)
 
 # run a sampler job on the parameterized circuits with noise model of the actual hardware
-job3 = sampler.run([(pqc, theta1), (pqc2, theta2)])
+bell_t = transpile(bell, AerSimulator(basis_gates=["ecr", "id", "rz", "sx"]), optimization_level=0)
+job3 = sampler.run([bell_t], shots=128)
 job_result = job3.result()
-print(f"Parameterized for Bell circuit w/noise: {job_result[0].data.meas.get_counts()}")
-
+print(f"counts for Bell circuit w/noise: {job_result[0].data.meas.get_counts()}")
 ```
 
 ## Contribution Guidelines
