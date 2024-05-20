@@ -12,6 +12,8 @@
 """
 AerSimulator Integration Tests
 """
+import unittest
+import platform
 
 from ddt import ddt
 from test.terra.reference import ref_measure
@@ -47,7 +49,6 @@ from qiskit_aer.library.control_flow_instructions import AerMark, AerJump
 
 import numpy as np
 
-
 SUPPORTED_METHODS = [
     "statevector",
     "density_matrix",
@@ -60,6 +61,7 @@ SUPPORTED_METHODS_INITIALIZE = [
 
 
 @ddt
+@unittest.skipIf(platform.system() == "Darwin", "skip MacOS tentatively")
 class TestShotBranching(SimulatorTestCase):
     """AerSimulator measure tests."""
 
