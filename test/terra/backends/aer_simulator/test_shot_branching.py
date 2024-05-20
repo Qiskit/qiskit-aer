@@ -59,7 +59,7 @@ SUPPORTED_METHODS_INITIALIZE = [
 
 
 @ddt
-@unittest.skipIf(platform.system() == 'Darwin', "skip MacOS tentatively")
+@unittest.skipIf(platform.system() == "Darwin", "skip MacOS tentatively")
 class TestShotBranching(SimulatorTestCase):
     """AerSimulator measure tests."""
 
