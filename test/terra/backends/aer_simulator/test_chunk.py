@@ -32,6 +32,7 @@ class TestChunkSimulators(SimulatorTestCase):
     def test_chunk_QuantumVolume(self, method, device):
         """Test multi-chunk with quantum volume"""
         opts = {"blocking_enable": True, "blocking_qubits": 2}
+        opts["basis_gates"] = ["h", "cx", "u3"]
 
         backend = self.backend(method=method, device=device, **opts)
         backend_no_chunk = self.backend(method=method, device=device)
@@ -57,10 +58,12 @@ class TestChunkSimulators(SimulatorTestCase):
         opts_no_chunk = {
             "fusion_enable": True,
             "fusion_threshold": 5,
+            "fusion_max_qubit": 4,
         }
         opts_chunk = copy.copy(opts_no_chunk)
         opts_chunk["blocking_enable"] = True
-        opts_chunk["blocking_qubits"] = 4
+        opts_chunk["blocking_qubits"] = 5
+        opts_chunk["basis_gates"] = ["h", "cx", "u3"]
 
         backend = self.backend(method=method, device=device, **opts_chunk)
         backend_no_chunk = self.backend(method=method, device=device, **opts_no_chunk)

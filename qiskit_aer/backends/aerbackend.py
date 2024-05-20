@@ -352,7 +352,7 @@ class AerBackend(Backend, ABC):
 
     def set_max_qubits(self, max_qubits):
         """Set maximun number of qubits to be used for this backend."""
-        if self._target is not None:
+        if self._target is None:
             self._configuration.n_qubits = max_qubits
 
     def clear_options(self):
@@ -737,10 +737,3 @@ class AerBackend(Backend, ABC):
         name = self.__class__.__name__
         display = f"'{self.name}'"
         return f"{name}({display})"
-
-    def get_translation_stage_plugin(self):
-        """use custom translation method to avoid gate exchange"""
-        if self._target is None:
-            return "aer_backend_plugin"
-        else:
-            return None
