@@ -145,12 +145,12 @@ class TestAerDensityMatrix(common.QiskitAerTestCase):
         self.assertEqual(1, len(counts))
         self.assertTrue("0000" in counts)
 
-    def test_single_qubit_QV(self):
+    def test_two_qubit_QV(self):
         """Test single qubit QuantumVolume"""
-        state = AerDensityMatrix(QuantumVolume(1))
+        state = AerDensityMatrix(QuantumVolume(2))
         counts = state.sample_counts(shots=1024)
-        self.assertEqual(1, len(counts))
-        self.assertTrue("0" in counts)
+        self.assertEqual(4, len(counts))
+        self.assertTrue("00" in counts)
 
     def test_evolve(self):
         """Test evolve method for circuits"""

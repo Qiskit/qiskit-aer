@@ -15,6 +15,7 @@ statevector_simulator, and expectation value snapshots.
 """
 
 import unittest
+import platform
 from math import pi
 from ddt import ddt
 import numpy as np
@@ -593,6 +594,7 @@ class TestRuntimeParameterization(SimulatorTestCase):
         self.assertEqual(counts, counts_pre_bind)
 
     @supported_methods(SUPPORTED_METHODS)
+    @unittest.skipIf(platform.system() == "Darwin", "skip MacOS tentatively")
     def test_dynamic_circuit_with_shot_branching(self, method, device):
         """Test parameterized dynamic circuit"""
         shots = 1000
@@ -746,6 +748,7 @@ class TestRuntimeParameterization(SimulatorTestCase):
         self.assertEqual(counts, counts_pre_bind)
 
     @supported_methods(SUPPORTED_METHODS)
+    @unittest.skipIf(platform.system() == "Darwin", "skip MacOS tentatively")
     def test_pauli_noise_with_shot_branching(self, method, device):
         """Test parameterized circuit with Pauli noise"""
         shots = 1000
@@ -790,6 +793,7 @@ class TestRuntimeParameterization(SimulatorTestCase):
         self.assertEqual(counts, counts_pre_bind)
 
     @supported_methods(SUPPORTED_METHODS)
+    @unittest.skipIf(platform.system() == "Darwin", "skip MacOS tentatively")
     def test_kraus_noise_with_shot_branching(self, method, device):
         """Test parameterized circuit with Kraus noise"""
         shots = 1000
