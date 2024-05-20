@@ -46,7 +46,6 @@ from qiskit_aer.library.default_qubits import default_qubits
 from qiskit_aer.library.control_flow_instructions import AerMark, AerJump
 
 import numpy as np
-import sys
 
 SUPPORTED_METHODS = [
     "statevector",
@@ -60,7 +59,7 @@ SUPPORTED_METHODS_INITIALIZE = [
 
 
 @ddt
-@unittest.skipUnless(!sys.platform.startswith('darwin'), "mac is skipped")
+@unittest.skipIf(platform.system() == 'Darwin', "skip MacOS tentatively")
 class TestShotBranching(SimulatorTestCase):
     """AerSimulator measure tests."""
 
