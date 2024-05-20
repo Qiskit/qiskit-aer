@@ -304,6 +304,7 @@ class AerSimulator(AerBackend):
       than number of total shots.
       This option is available for ``"statevector"``, ``"density_matrix"``
       and ``"tensor_network"``.
+      WARNING: `shot_branching` option is unstable on MacOS currently
 
     * ``shot_branching_sampling_enable`` (bool): This option enables/disables
       applying sampling measure if the input circuit has all the measure
