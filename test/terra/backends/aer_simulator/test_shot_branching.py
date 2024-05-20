@@ -46,7 +46,7 @@ from qiskit_aer.library.default_qubits import default_qubits
 from qiskit_aer.library.control_flow_instructions import AerMark, AerJump
 
 import numpy as np
-
+import sys
 
 SUPPORTED_METHODS = [
     "statevector",
