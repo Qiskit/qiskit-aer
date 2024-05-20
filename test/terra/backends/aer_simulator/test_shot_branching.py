@@ -12,6 +12,8 @@
 """
 AerSimulator Integration Tests
 """
+import unittest
+import platform
 
 from ddt import ddt
 from test.terra.reference import ref_measure
