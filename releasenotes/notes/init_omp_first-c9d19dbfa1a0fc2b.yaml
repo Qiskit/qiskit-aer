@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    In Mac, to use OpenMP, setup of hooks to omp functions is necessary. However, this setup
+    works only for backend services and not for quantum_info classes of ``AerStatevector`` and
+    ``AerDensityMatrix``. This fix calls the setup in quantum_info also. 
