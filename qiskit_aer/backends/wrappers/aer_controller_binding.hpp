@@ -86,6 +86,8 @@ void read_value(const py::tuple &t, size_t index, T &v) {
 
 template <typename MODULE>
 void bind_aer_controller(MODULE m) {
+  m.def("aer_initialize_libraries", &initialize_libraries);
+
   py::class_<ControllerExecutor<Controller>> aer_ctrl(m,
                                                       "aer_controller_execute");
   aer_ctrl.def(py::init<>());
