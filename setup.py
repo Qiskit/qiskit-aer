@@ -22,7 +22,7 @@ ADD_CUDA_REQUIREMENTS = (
 extras_requirements = {"dask": ["dask", "distributed"]}
 
 requirements = [
-    "qiskit==1.1.0rc1",
+    "qiskit>=1.1",
     "numpy>=1.16.3",
     "scipy>=1.0",
     "psutil>=5",
@@ -114,9 +114,4 @@ setup(
     cmake_args=cmake_args,
     keywords="qiskit, simulator, quantum computing, backend",
     zip_safe=False,
-    entry_points={
-        "qiskit.transpiler.translation": [
-            "aer_backend_plugin = qiskit_aer.backends.plugin.aer_backend_plugin:AerBackendPlugin",
-        ]
-    },
 )

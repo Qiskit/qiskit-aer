@@ -25,6 +25,9 @@ from qiskit.quantum_info import Clifford
 
 from .compatibility import Statevector, DensityMatrix, StabilizerState, Operator, SuperOp
 
+# pylint: disable=import-error, no-name-in-module, abstract-method
+from .controller_wrappers import aer_initialize_libraries
+
 # Available system memory
 SYSTEM_MEMORY_GB = psutil.virtual_memory().total / (1024**3)
 
@@ -35,6 +38,7 @@ MAX_QUBITS_STATEVECTOR = int(log2(SYSTEM_MEMORY_GB * (1024**3) / 16))
 # Location where we put external libraries that will be
 # loaded at runtime by the simulator extension
 LIBRARY_DIR = os.path.dirname(__file__)
+aer_initialize_libraries(LIBRARY_DIR)
 
 LEGACY_METHOD_MAP = {
     "statevector_cpu": ("statevector", "CPU"),

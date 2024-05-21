@@ -737,10 +737,3 @@ class AerBackend(Backend, ABC):
         name = self.__class__.__name__
         display = f"'{self.name}'"
         return f"{name}({display})"
-
-    def get_translation_stage_plugin(self):
-        """use custom translation method to avoid gate exchange"""
-        if self._target is None:
-            return "aer_backend_plugin"
-        else:
-            return None
