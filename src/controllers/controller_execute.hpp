@@ -29,18 +29,15 @@
 
 namespace AER {
 
+void initialize_libraries(const std::string &lib_dir) {
+  // Fix for MacOS and OpenMP library double initialization crash.
+  // Issue: https://github.com/Qiskit/qiskit-aer/issues/1
+  Hacks::maybe_load_openmp(lib_dir);
+}
+
 template <class controller_t, typename inputdata_t>
 Result controller_execute(const inputdata_t &qobj) {
   controller_t controller;
-
-  // Fix for MacOS and OpenMP library double initialization crash.
-  // Issue: https://github.com/Qiskit/qiskit-aer/issues/1
-  if (Parser<inputdata_t>::check_key("config", qobj)) {
-    std::string path;
-    const auto &config = Parser<inputdata_t>::get_value("config", qobj);
-    Parser<inputdata_t>::get_value(path, "library_dir", config);
-    Hacks::maybe_load_openmp(path);
-  }
   return controller.execute(qobj);
 }
 
@@ -229,9 +226,6 @@ Result controller_execute(std::vector<std::shared_ptr<Circuit>> &input_circs,
   auto time_taken =
       std::chrono::duration<double>(myclock_t::now() - timer_start).count();
 
-  // Fix for MacOS and OpenMP library double initialization crash.
-  // Issue: https://github.com/Qiskit/qiskit-aer/issues/1
-  Hacks::maybe_load_openmp(config.library_dir);
   controller.set_config(config);
   auto ret = controller.execute(circs, noise_model, config);
 
