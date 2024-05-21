@@ -513,6 +513,12 @@ class TestSamplerV2(QiskitAerTestCase):
             self.assertEqual(len(result), 1)
             self._assert_allclose(result[0].data.meas, np.array({1: self._shots}))
 
+    def get_data_bin_len(self, data):
+        if "keys" in dir(data):  # qiskit 1.1 or later
+            return len(data.keys())
+        else:
+            return len(astuple(data))
+
     def test_circuit_with_multiple_cregs(self):
         """Test for circuit with multiple classical registers."""
         cases = []
@@ -581,7 +587,7 @@ class TestSamplerV2(QiskitAerTestCase):
                 result = sampler.run([qc], shots=self._shots).result()
                 self.assertEqual(len(result), 1)
                 data = result[0].data
-                self.assertEqual(len(astuple(data)), 3)
+                self.assertEqual(self.get_data_bin_len(data), 3)
                 for creg in qc.cregs:
                     self.assertTrue(hasattr(data, creg.name))
                     self._assert_allclose(getattr(data, creg.name), np.array(target[creg.name]))
@@ -614,7 +620,7 @@ class TestSamplerV2(QiskitAerTestCase):
         result = sampler.run([qc2], shots=self._shots).result()
         self.assertEqual(len(result), 1)
         data = result[0].data
-        self.assertEqual(len(astuple(data)), 3)
+        self.assertEqual(self.get_data_bin_len(data), 3)
         for creg_name in target:
             self.assertTrue(hasattr(data, creg_name))
             self._assert_allclose(getattr(data, creg_name), np.array(target[creg_name]))
