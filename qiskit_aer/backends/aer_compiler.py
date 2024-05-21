@@ -19,8 +19,8 @@ from copy import copy
 from typing import List
 from warnings import warn
 from concurrent.futures import Executor
-import numpy as np
 import uuid
+import numpy as np
 
 from qiskit.circuit import QuantumCircuit, Clbit, ClassicalRegister, ParameterExpression
 from qiskit.circuit.classical.expr import Expr, Unary, Binary, Var, Value, ExprVisitor, iter_vars
@@ -727,13 +727,13 @@ def _iter_var_recursive(circuit):
                 yield from _iter_var_recursive(param)
 
 
-def _find_var_clbits(circuit, uuid):
+def _find_var_clbits(circuit, var_uuid):
     clbit_index = circuit.num_clbits
     for var in _iter_var_recursive(circuit):
-        if var.var == uuid:
-            return [clbit for clbit in range(clbit_index, clbit_index + var.type.width)]
+        if var.var == var_uuid:
+            return list(range(clbit_index, clbit_index + var.type.width))
         clbit_index += var.type.width
-    raise AerError(f"Var is not registed in this circuit: uuid={uuid}")
+    raise AerError(f"Var is not registed in this circuit: uuid={var_uuid}")
 
 
 def _assemble_clbit_indices(circ, c):
@@ -959,12 +959,14 @@ def _assemble_op(
     elif name == "aer_store":
         if not isinstance(operation.store.lvalue, Var):
             raise AerError(f"unsupported lvalue : {operation.store.lvalue.__class__}")
-        aer_circ.store(qubits, _assemble_clbit_indices(circ, operation.store.lvalue.var), operation.store.rvalue.accept(_AssembleExprImpl(circ)))
+        aer_circ.store(qubits, _assemble_clbit_indices(circ, operation.store.lvalue.var),
+                       operation.store.rvalue.accept(_AssembleExprImpl(circ)))
         num_of_aer_ops = 1
     elif name == "store":
         if not isinstance(operation.lvalue, Var):
             raise AerError(f"unsupported lvalue : {operation.lvalue.__class__}")
-        aer_circ.store(qubits, _assemble_clbit_indices(circ, operation.lvalue.var), operation.rvalue.accept(_AssembleExprImpl(circ)))
+        aer_circ.store(qubits, _assemble_clbit_indices(circ, operation.lvalue.var),
+                       operation.rvalue.accept(_AssembleExprImpl(circ)))
         num_of_aer_ops = 1
     else:
         raise AerError(f"unknown instruction: {name}")
