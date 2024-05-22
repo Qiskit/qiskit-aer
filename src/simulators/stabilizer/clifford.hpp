@@ -246,7 +246,7 @@ void Clifford::append_cx(const uint64_t qcon, const uint64_t qtar) {
   const uint64_t mask = (~0ull);
 
   int nid = omp_get_num_threads();
-  auto cx_func = [this, qtar, qcon](AER::int_t i) {
+  auto cx_func = [this, qtar, qcon, mask](AER::int_t i) {
     destabilizer_phases_(i) =
         destabilizer_phases_(i) ^
         (destabilizer_table_[qcon].X(i) & destabilizer_table_[qtar].Z(i) &
