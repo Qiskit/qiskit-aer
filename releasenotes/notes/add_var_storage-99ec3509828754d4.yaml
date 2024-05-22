@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Enable new control flow introduced in Qiskit 1.1. ``store`` instructions are
+    newly available since Qiskit 1.1 and Aer failed if this instruction is in a circuit.
+    This PR enables ``store`` and its simulation.
