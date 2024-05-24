@@ -632,7 +632,7 @@ void lapack_csvd_wrapper(cmatrix_t &A, cmatrix_t &U, rvector_t &S,
     zgesdd_("A", &m, &n, lapackA, &m, lapackS, lapackU, &m, lapackV, &n, work_,
             &lwork, rwork, iwork, &info);
 
-    delete iwork;
+    delete[] iwork;
     free(rwork);
     free(work_);
   } else {
@@ -647,7 +647,7 @@ void lapack_csvd_wrapper(cmatrix_t &A, cmatrix_t &U, rvector_t &S,
   V = cmatrix_t::move_from_buffer(n, n, lapackV);
 
   S.clear();
-  for (int i = 0; i < min_dim; i++)
+  for (size_t i = 0; i < min_dim; i++)
     S.push_back(lapackS[i]);
 
   // Activated by default as requested in the PR
@@ -655,8 +655,8 @@ void lapack_csvd_wrapper(cmatrix_t &A, cmatrix_t &U, rvector_t &S,
   validate_SVdD_result(tempA, U, S, V);
   // #endif
 
-  delete lapackS;
-  delete work;
+  delete[] lapackS;
+  delete[] work;
 
   if (info == 0) {
     return;

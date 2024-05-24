@@ -575,8 +575,8 @@ bool Clifford::measure_and_update(const uint64_t qubit,
         uint_t exponent_h = 0;
 
         auto measure_determinisitic_func =
-            [this, &accum, &exponent_l, &exponent_lc, &exponent_h, blocks,
-             blockSize, destabilizer_mask, ii](AER::int_t qq) {
+            [this, &accum, &exponent_l, &exponent_lc, &exponent_h, blockSize,
+             destabilizer_mask, ii](AER::int_t qq) {
               uint_t qs = qq * blockSize;
               uint_t qe = qs + blockSize;
               if (qe > num_qubits_)

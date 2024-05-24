@@ -1008,8 +1008,8 @@ std::vector<SampleVector> State<densmat_t>::sample_measure(const reg_t &qubits,
     npar = shots;
   std::vector<SampleVector> all_samples(shots, SampleVector(qubits.size()));
 
-  auto convert_to_bit_lambda = [this, &allbit_samples, &all_samples, shots,
-                                qubits, npar](int_t i) {
+  auto convert_to_bit_lambda = [&allbit_samples, &all_samples, shots, qubits,
+                                npar](int_t i) {
     uint_t ishot, iend;
     ishot = shots * i / npar;
     iend = shots * (i + 1) / npar;

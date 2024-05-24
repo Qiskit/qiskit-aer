@@ -330,6 +330,8 @@ public:
                          const std::vector<uint_t> &fusioned_ops_idxs,
                          const FusionMethod &method,
                          const bool diagonal = false) const;
+
+  virtual ~Fuser() = default;
 };
 
 void Fuser::allocate_new_operation(oplist_t &ops, const uint_t idx,
@@ -360,6 +362,7 @@ public:
                                     const int fusion_end,
                                     const uint_t max_fused_qubits,
                                     const FusionMethod &method) const override;
+  virtual ~CostBasedFusion() = default;
 
 private:
   bool is_diagonal(const oplist_t &ops, const uint_t from,
@@ -392,6 +395,7 @@ public:
 
   bool exclude_escaped_qubits(std::vector<uint_t> &fusing_qubits,
                               const op_t &tgt_op) const;
+  virtual ~NQubitFusion() = default;
 
 private:
   bool active = true;
