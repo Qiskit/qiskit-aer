@@ -156,6 +156,7 @@ class SamplerV2(BaseSamplerV2):
             for item in meas_info
         }
 
+        metadata = {"shots": pub.shots}
         if qargs:
             circuit.measure_all()
             result = self._backend.run(
@@ -181,6 +182,7 @@ class SamplerV2(BaseSamplerV2):
                 for item in meas_info:
                     ary = _samples_to_packed_array(samples_array, item.num_bits, item.qreg_indices)
                     arrays[item.creg_name][index] = ary
+            metadata["simulator_metadata"] = result.metadata
         else:
             for index in np.ndenumerate(parameter_values.shape):
                 samples = [""] * pub.shots
@@ -199,7 +201,7 @@ class SamplerV2(BaseSamplerV2):
             item.creg_name: BitArray(arrays[item.creg_name], item.num_bits) for item in meas_info
         }
         data_bin = data_bin_cls(**meas)
-        return PubResult(data_bin, metadata={"shots": pub.shots})
+        return PubResult(data_bin, metadata=metadata)
 
 
 def _preprocess_circuit(circuit: QuantumCircuit):
