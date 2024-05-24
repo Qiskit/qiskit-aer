@@ -388,6 +388,9 @@ bool State<unitary_matrix_t>::allocate(uint_t num_qubits, uint_t block_bits,
     BaseState::qreg_.set_max_matrix_bits(BaseState::max_matrix_qubits_);
 
   BaseState::qreg_.set_target_gpus(BaseState::target_gpus_);
+#ifdef AER_CUSTATEVEC
+  BaseState::qreg_.cuStateVec_enable(BaseState::cuStateVec_enable_);
+#endif
   BaseState::qreg_.chunk_setup(block_bits * 2, num_qubits * 2, 0, 1);
 
   return true;
