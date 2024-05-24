@@ -44,9 +44,9 @@ const Operations::OpSet StateOpSet(
         Operations::OpType::save_statevec,
     }, // Operations::OpType::save_expval, Operations::OpType::save_expval_var},
     // Gates
-    {"CX", "u0",  "u1",  "p",   "cx",    "cz",   "swap", "id",
-     "x",  "y",   "z",   "h",   "s",     "sdg",  "sx",   "sxdg",
-     "t",  "tdg", "ccx", "ccz", "delay", "pauli"});
+    {"CX", "u0",  "u1",  "p",   "cx",    "cz",    "swap", "id",
+     "x",  "y",   "z",   "h",   "s",     "sdg",   "sx",   "sxdg",
+     "t",  "tdg", "ccx", "ccz", "delay", "pauli", "rz"});
 
 using chpauli_t = CHSimulator::pauli_t;
 using chstate_t = CHSimulator::Runner;
@@ -88,6 +88,9 @@ public:
 
   std::vector<SampleVector> sample_measure(const reg_t &qubits, uint_t shots,
                                            RngEngine &rng) override;
+
+  bool
+  validate_parameters(const std::vector<Operations::Op> &ops) const override;
 
 protected:
   // Alongside the sample measure optimisaiton, we can parallelise
@@ -211,6 +214,7 @@ const stringmap_t<Gates> State::gateset_({
     {"sxdg", Gates::sxdg}, // Inverse sqrt(X) gate
     {"t", Gates::t},       // T-gate (sqrt(S))
     {"tdg", Gates::tdg},   // Conjguate-transpose of T gate
+    {"rz", Gates::rz},     // RZ gate (only support k * pi/2 cases)
     // Waltz Gates
     {"u0", Gates::u0}, // idle gate in multiples of X90
     {"u1", Gates::u1}, // zero-X90 pulse waltz gate
@@ -331,6 +335,23 @@ bool State::check_measurement_opt(InputIterator first,
         op->type == Operations::OpType::save_statevec ||
         op->type == Operations::OpType::save_expval) {
       return false;
+    }
+  }
+  return true;
+}
+
+bool State::validate_parameters(const std::vector<Operations::Op> &ops) const {
+  for (uint_t i = 0; i < ops.size(); i++) {
+    if (ops[i].type == OpType::gate) {
+      // check parameter of RZ gates
+      if (ops[i].name == "rz") {
+        double pi2 = std::real(ops[i].params[0]) * 2.0 / M_PI;
+        double pi2_int = (double)std::round(pi2);
+
+        if (!AER::Linalg::almost_equal(pi2, pi2_int)) {
+          return false;
+        }
+      }
     }
   }
   return true;
@@ -633,6 +654,7 @@ void State::apply_gate(const Operations::Op &op, RngEngine &rng) {
 }
 
 void State::apply_gate(const Operations::Op &op, RngEngine &rng, uint_t rank) {
+  int_t pi2;
   auto it = gateset_.find(op.name);
   if (it == gateset_.end()) {
     throw std::invalid_argument("CH::State: Invalid gate operation \'" +
@@ -693,6 +715,19 @@ void State::apply_gate(const Operations::Op &op, RngEngine &rng, uint_t rank) {
     break;
   case Gates::pauli:
     apply_pauli(op.qubits, op.string_params[0], rank);
+    break;
+  case Gates::rz:
+    pi2 = (int_t)std::round(std::real(op.params[0]) * 2.0 / M_PI) & 3;
+    if (pi2 == 1) {
+      // S
+      BaseState::qreg_.apply_s(op.qubits[0], rank);
+    } else if (pi2 == 2) {
+      // Z
+      BaseState::qreg_.apply_z(op.qubits[0], rank);
+    } else if (pi2 == 3) {
+      // Sdg
+      BaseState::qreg_.apply_sdag(op.qubits[0], rank);
+    }
     break;
   default: // u0 or Identity
     break;

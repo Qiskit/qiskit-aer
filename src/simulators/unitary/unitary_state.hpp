@@ -41,14 +41,16 @@ const Operations::OpSet StateOpSet(
      Operations::OpType::save_state, Operations::OpType::set_unitary,
      Operations::OpType::jump, Operations::OpType::mark},
     // Gates
-    {"u1",   "u2",     "u3",     "u",      "U",     "CX",    "cx",   "cz",
-     "cy",   "cp",     "cu1",    "cu2",    "cu3",   "swap",  "id",   "p",
-     "x",    "y",      "z",      "h",      "s",     "sdg",   "t",    "tdg",
-     "r",    "rx",     "ry",     "rz",     "rxx",   "ryy",   "rzz",  "rzx",
-     "ccx",  "ccz",    "cswap",  "mcx",    "mcy",   "mcz",   "mcu1", "mcu2",
-     "mcu3", "mcswap", "mcr",    "mcrx",   "mcry",  "mcry",  "sx",   "sxdg",
-     "csx",  "mcsx",   "csxdg",  "mcsxdg", "delay", "pauli", "cu",   "mcu",
-     "mcp",  "ecr",    "mcphase"});
+    {
+        "u1",   "u2",     "u3",      "u",      "U",     "CX",    "cx",   "cz",
+        "cy",   "cp",     "cu1",     "cu2",    "cu3",   "swap",  "id",   "p",
+        "x",    "y",      "z",       "h",      "s",     "sdg",   "t",    "tdg",
+        "r",    "rx",     "ry",      "rz",     "rxx",   "ryy",   "rzz",  "rzx",
+        "ccx",  "ccz",    "cswap",   "mcx",    "mcy",   "mcz",   "mcu1", "mcu2",
+        "mcu3", "mcswap", "mcr",     "mcrx",   "mcry",  "mcrz",  "sx",   "sxdg",
+        "csx",  "mcsx",   "csxdg",   "mcsxdg", "delay", "pauli", "cu",   "mcu",
+        "mcp",  "ecr",    "mcphase", "crx",    "cry",   "crz",
+    });
 
 // Allowed gates enum class
 enum class Gates {
@@ -253,6 +255,9 @@ const stringmap_t<Gates> State<unitary_matrix_t>::gateset_({
     {"csx", Gates::mcsx},     // Controlled-Sqrt(X) gate
     {"csxdg", Gates::mcsxdg}, // Controlled-Sqrt(X)dg gate
     {"ecr", Gates::ecr},      // ECR Gate
+    {"crx", Gates::mcrx},     // Controlled X-rotation gate
+    {"cry", Gates::mcry},     // Controlled Y-rotation gate
+    {"crz", Gates::mcrz},     // Controlled Z-rotation gate
     // Three-qubit gates
     {"ccx", Gates::mcx},      // Controlled-CX gate (Toffoli)
     {"ccz", Gates::mcz},      // Controlled-CZ gate
