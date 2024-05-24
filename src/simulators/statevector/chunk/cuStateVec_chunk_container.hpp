@@ -131,7 +131,6 @@ uint_t cuStateVecChunkContainer<data_t>::Allocate(
   nc = BaseContainer::Allocate(idev, chunk_bits, num_qubits, chunks, buffers,
                                multi_shots, matrix_bit, max_shots,
                                density_matrix);
-
   // initialize custatevevtor handle
   custatevecStatus_t err;
 
