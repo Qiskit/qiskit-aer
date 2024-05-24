@@ -439,6 +439,9 @@ bool State<statevec_t>::allocate(uint_t num_qubits, uint_t block_bits,
     BaseState::qreg_.set_max_sampling_shots(BaseState::max_sampling_shots_);
 
   BaseState::qreg_.set_target_gpus(BaseState::target_gpus_);
+#ifdef AER_CUSTATEVEC
+  BaseState::qreg_.cuStateVec_enable(BaseState::cuStateVec_enable_);
+#endif
   BaseState::qreg_.chunk_setup(block_bits, num_qubits, 0, 1);
 
   return true;
