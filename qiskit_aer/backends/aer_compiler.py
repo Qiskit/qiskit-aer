@@ -823,6 +823,14 @@ def _assemble_op(
     }:
         aer_circ.gate(name, qubits, params, [], conditional_reg, aer_cond_expr,
                       label if label else name)
+    elif name == "cx_o0":
+        qubits_0 = [qubits[0]]
+        aer_circ.gate("x", qubits_0, params, [], conditional_reg, aer_cond_expr,
+                      label if label else "x")
+        aer_circ.gate("cx", qubits, params, [], conditional_reg, aer_cond_expr,
+                      label if label else "cx")
+        aer_circ.gate("x", qubits_0, params, [], conditional_reg, aer_cond_expr,
+                      label if label else "x")
     elif name == "measure":
         if is_conditional:
             aer_circ.measure(qubits, clbits, clbits)
