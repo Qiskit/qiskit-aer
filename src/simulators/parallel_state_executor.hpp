@@ -339,7 +339,7 @@ bool ParallelStateExecutor<state_t>::allocate_states(uint_t num_states,
         Base::num_threads_per_group_);
     Base::states_[0].set_num_global_qubits(Base::num_qubits_);
 #ifdef AER_CUSTATEVEC
-    Base::states_[0].cuStateVec_enable(Base::cuStateVec_enable_);
+    Base::states_[0].enable_cuStateVec(Base::cuStateVec_enable_);
     Base::states_[0].qreg().cuStateVec_enable(Base::cuStateVec_enable_);
 #endif
     Base::states_[0].qreg().set_target_gpus(Base::target_gpus_);
@@ -348,7 +348,7 @@ bool ParallelStateExecutor<state_t>::allocate_states(uint_t num_states,
     for (i = 1; i < num_states_allocated; i++) {
       Base::states_[i].set_config(config);
 #ifdef AER_CUSTATEVEC
-      Base::states_[i].cuStateVec_enable(Base::cuStateVec_enable_);
+      Base::states_[i].enable_cuStateVec(Base::cuStateVec_enable_);
 #endif
       Base::states_[i].qreg().chunk_setup(Base::states_[0].qreg(),
                                           Base::global_state_index_ + i);
