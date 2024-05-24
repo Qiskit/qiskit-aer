@@ -696,14 +696,12 @@ void State::apply_gate(const Operations::Op &op, RngEngine &rng, uint_t rank) {
     apply_pauli(op.qubits, op.string_params[0], rank);
     break;
   case Gates::ecr:
-    BaseState::qreg_.apply_h(op.qubits[1], rank);
     BaseState::qreg_.apply_s(op.qubits[0], rank);
-    BaseState::qreg_.apply_z(op.qubits[1], rank); // sdg(1)
-    BaseState::qreg_.apply_s(op.qubits[1], rank); // sdg(1)
+    BaseState::qreg_.apply_sdag(op.qubits[1], rank);
     BaseState::qreg_.apply_h(op.qubits[1], rank);
+    BaseState::qreg_.apply_sdag(op.qubits[1], rank);
     BaseState::qreg_.apply_cx(op.qubits[0], op.qubits[1], rank);
     BaseState::qreg_.apply_x(op.qubits[0], rank);
-    BaseState::qreg_.apply_x(op.qubits[1], rank);
     break;
   default: // u0 or Identity
     break;
