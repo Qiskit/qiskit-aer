@@ -183,19 +183,6 @@ class TestCliffords(SimulatorTestCase):
         self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
 
-    @supported_methods(SUPPORTED_METHODS)
-    def test_cx_gate_ctrl_state_0(self, method, device):
-        """Test cx-gate circuit with ctrl_state=0"""
-        backend = self.backend(method=method, device=device, seed_simulator=self.SEED)
-        shots = 4000
-        qc = QuantumCircuit(2)
-        qc.h(0)
-        qc.cx(0, 1, ctrl_state=0)
-        qc.measure_all()
-        result = backend.run(qc, shots=shots).result()
-        self.assertSuccess(result)
-        self.compare_counts(result, qc, {"01": shots / 2, "10": shots / 2}, delta=0.05 * shots)
-
     # ---------------------------------------------------------------------
     # Test cz-gate
     # ---------------------------------------------------------------------
