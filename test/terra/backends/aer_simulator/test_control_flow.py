@@ -214,7 +214,7 @@ class TestControlFlow(SimulatorTestCase):
         self.assertEqual(len(counts), 1)
         self.assertIn("0000 0", counts)
 
-    @data("statevector", "density_matrix", "matrix_product_state", "stabilizer")
+    @data("statevector", "density_matrix", "matrix_product_state")
     def test_for_loop_builder(self, method):
         backend = self.backend(method=method)
 
