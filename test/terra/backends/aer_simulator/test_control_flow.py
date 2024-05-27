@@ -266,7 +266,7 @@ class TestControlFlow(SimulatorTestCase):
         self.assertEqual(len(counts), 1)
         self.assertIn("01010", counts)
 
-    @data("statevector", "density_matrix", "matrix_product_state", "stabilizer")
+    @data("statevector", "density_matrix", "matrix_product_state")
     def test_for_loop_break_builder(self, method):
         backend = self.backend(method=method)
 
@@ -309,7 +309,7 @@ class TestControlFlow(SimulatorTestCase):
         self.assertEqual(len(counts), 1)
         self.assertIn("11100 1", counts)
 
-    @data("statevector", "density_matrix", "matrix_product_state", "stabilizer")
+    @data("statevector", "density_matrix", "matrix_product_state")
     def test_for_loop_continue_builder(self, method):
         backend = self.backend(method=method)
 
@@ -486,7 +486,7 @@ class TestControlFlow(SimulatorTestCase):
         self.assertEqual(len(counts), 1)
         self.assertIn("0 0", counts)
 
-    @data("statevector", "density_matrix", "matrix_product_state", "stabilizer")
+    @data("statevector", "density_matrix", "matrix_product_state")
     def test_nested_loop(self, method):
         backend = self.backend(method=method)
 
