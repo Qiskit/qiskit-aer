@@ -193,7 +193,7 @@ class TestCliffords(SimulatorTestCase):
         qc.measure_all()
         result = backend.run(qc, shots=shots).result()
         self.assertSuccess(result)
-        self.compare_counts(result, qc, {'01': shots/2, '10': shots/2}, delta=0.05 * shots)
+        self.compare_counts(result, qc, {"01": shots / 2, "10": shots / 2}, delta=0.05 * shots)
 
     # ---------------------------------------------------------------------
     # Test cz-gate
