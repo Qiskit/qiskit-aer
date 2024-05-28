@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fixed init function of EstimatorV2 and SamplerV2 to set `method` in
+    its option property if there is no `method` in input parameter
