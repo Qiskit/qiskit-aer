@@ -60,6 +60,7 @@ enum class Gates {
   ccz,
   pauli,
   ecr,
+  rz,
 };
 
 enum class Gatetypes { pauli, clifford, non_clifford };
@@ -81,6 +82,7 @@ const AER::stringmap_t<Gatetypes> gate_types_ = {
     {"tdg", Gatetypes::non_clifford}, // Conjguate-transpose of T gate
     {"u1", Gatetypes::non_clifford},  // zero-X90 pulse waltz gate
     {"p", Gatetypes::non_clifford},   // zero-X90 pulse waltz gate
+    {"rz", Gatetypes::clifford},      // RZ gate (only support k * pi/2 cases)
     // Two-qubit gates
     {"CX", Gatetypes::clifford},   // Controlled-X gate (CNOT)
     {"cx", Gatetypes::clifford},   // Controlled-X gate (CNOT)

@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    This fix adds `simulator_metadata` in the `metadata` of `PubResults`
+    for SamplerV2 primitive as similar to EstimatorV2 primitive
