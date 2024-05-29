@@ -22,7 +22,7 @@ from numpy.typing import NDArray
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
 from qiskit.circuit import Parameter
 from qiskit.circuit.library import RealAmplitudes, UnitaryGate
-from qiskit.primitives import PrimitiveResult, PubResult, StatevectorSampler
+from qiskit.primitives import PrimitiveResult, SamplerPubResult, StatevectorSampler
 from qiskit.primitives.containers import BitArray
 from qiskit.primitives.containers.data_bin import DataBin
 from qiskit.primitives.containers.sampler_pub import SamplerPub
@@ -93,10 +93,11 @@ class TestSamplerV2(QiskitAerTestCase):
             self.assertIsInstance(result, PrimitiveResult)
             self.assertIsInstance(result.metadata, dict)
             self.assertEqual(len(result), 1)
-            self.assertIsInstance(result[0], PubResult)
+            self.assertIsInstance(result[0], SamplerPubResult)
             self.assertIsInstance(result[0].data, DataBin)
             self.assertIsInstance(result[0].data.meas, BitArray)
             self._assert_allclose(result[0].data.meas, np.array(target))
+            self.assertIn("simulator_metadata", result[0].metadata)
 
         with self.subTest("single with param"):
             pqc, param_vals, target = self._cases[2]
@@ -108,10 +109,11 @@ class TestSamplerV2(QiskitAerTestCase):
             self.assertIsInstance(result, PrimitiveResult)
             self.assertIsInstance(result.metadata, dict)
             self.assertEqual(len(result), 1)
-            self.assertIsInstance(result[0], PubResult)
+            self.assertIsInstance(result[0], SamplerPubResult)
             self.assertIsInstance(result[0].data, DataBin)
             self.assertIsInstance(result[0].data.meas, BitArray)
             self._assert_allclose(result[0].data.meas, np.array(target))
+            self.assertIn("simulator_metadata", result[0].metadata)
 
         with self.subTest("multiple"):
             pqc, param_vals, target = self._cases[2]
@@ -125,10 +127,11 @@ class TestSamplerV2(QiskitAerTestCase):
             self.assertIsInstance(result, PrimitiveResult)
             self.assertIsInstance(result.metadata, dict)
             self.assertEqual(len(result), 1)
-            self.assertIsInstance(result[0], PubResult)
+            self.assertIsInstance(result[0], SamplerPubResult)
             self.assertIsInstance(result[0].data, DataBin)
             self.assertIsInstance(result[0].data.meas, BitArray)
             self._assert_allclose(result[0].data.meas, np.array([target, target, target]))
+            self.assertIn("simulator_metadata", result[0].metadata)
 
     def test_sampler_run_multiple_times(self):
         """Test run() returns the same results if the same input is given."""
@@ -649,8 +652,8 @@ class TestSamplerV2(QiskitAerTestCase):
         result = sampler.run(iter([qc, qc2]), shots=self._shots).result()
         self.assertIsInstance(result, PrimitiveResult)
         self.assertEqual(len(result), 2)
-        self.assertIsInstance(result[0], PubResult)
-        self.assertIsInstance(result[1], PubResult)
+        self.assertIsInstance(result[0], SamplerPubResult)
+        self.assertIsInstance(result[1], SamplerPubResult)
         self._assert_allclose(result[0].data.meas, np.array({0: self._shots}))
         self._assert_allclose(result[1].data.meas, np.array({1: self._shots}))
 

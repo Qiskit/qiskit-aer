@@ -184,7 +184,12 @@ class SamplerV2(BaseSamplerV2):
             end = start + p_v.size
             results.append(
                 self._postprocess_pub(
-                    result_memory[start:end], shots, p_v.shape, meas_info, max_num_bytes
+                    result_memory[start:end],
+                    shots,
+                    p_v.shape,
+                    meas_info,
+                    max_num_bytes,
+                    result.metadata,
                 )
             )
             start = end
@@ -198,6 +203,7 @@ class SamplerV2(BaseSamplerV2):
         shape: tuple[int, ...],
         meas_info: list[_MeasureInfo],
         max_num_bytes: int,
+        metadata: dict,
     ) -> SamplerPubResult:
         """Converts the memory data into an array of bit arrays with the shape of the pub."""
         arrays = {
@@ -214,7 +220,9 @@ class SamplerV2(BaseSamplerV2):
         meas = {
             item.creg_name: BitArray(arrays[item.creg_name], item.num_bits) for item in meas_info
         }
-        return SamplerPubResult(DataBin(**meas, shape=shape), metadata={})
+        return SamplerPubResult(
+            DataBin(**meas, shape=shape), metadata={"simulator_metadata": metadata}
+        )
 
 
 def _convert_parameter_bindings(pub: SamplerPub) -> dict:
