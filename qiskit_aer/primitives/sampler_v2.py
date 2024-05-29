@@ -155,6 +155,14 @@ class SamplerV2(BaseSamplerV2):
         circuits = [pub.circuit for pub in pubs]
         parameter_binds = [_convert_parameter_bindings(pub) for pub in pubs]
 
+        # adjust run_options not to overwrite existings options
+        run_options = self.options.run_options.copy()
+        for key in ["shots", "parameter_binds", "memory"]:
+            if key in run_options:
+                del run_options[key]
+        if self._seed is not None and "seed_simulator" in run_options:
+            del run_options["seed_simulator"]
+
         # run circuits
         result = self._backend.run(
             circuits,
@@ -162,6 +170,7 @@ class SamplerV2(BaseSamplerV2):
             seed_simulator=self._seed,
             parameter_binds=parameter_binds,
             memory=True,
+            **run_options,
         ).result()
 
         result_memory = _prepare_memory(result)

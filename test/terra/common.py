@@ -17,22 +17,20 @@ Shared functionality and helpers for the unit tests.
 import inspect
 import logging
 import os
-import unittest
 import warnings
+import unittest
 from enum import Enum
-from itertools import product, repeat
+from itertools import repeat
 from math import pi
 from random import choice, sample
 from unittest.util import safe_repr
 
+import fixtures
 import numpy as np
-from ddt import data, unpack
-from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
+from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
+from qiskit_aer import __path__ as main_path
 from qiskit.quantum_info import Operator, Statevector
 from qiskit.quantum_info.operators.predicates import matrix_equal
-
-from qiskit_aer import __path__ as main_path
-
 from .decorators import enforce_subclasses_call
 
 
@@ -558,20 +556,3 @@ def generate_random_circuit(n_qubits, n_gates, gate_types):
         operation(circuit, *angles, *qubits, *classical_regs)
 
     return circuit
-
-
-def combine(**kwargs):
-    """Decorator to create combinations and tests"""
-
-    def generate_cases(**kwargs):
-        ret = []
-        keys = kwargs.keys()
-        vals = kwargs.values()
-        for values in product(*vals):
-            ret.append(dict(zip(keys, values)))
-        return ret
-
-    def deco(func):
-        return data(*generate_cases(**kwargs))(unpack(func))
-
-    return deco

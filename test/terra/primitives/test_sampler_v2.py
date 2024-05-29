@@ -15,10 +15,9 @@
 from __future__ import annotations
 
 import unittest
-from test.terra.common import QiskitAerTestCase, combine
+from test.terra.common import QiskitAerTestCase
 
 import numpy as np
-from ddt import ddt
 from numpy.typing import NDArray
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
 from qiskit.circuit import Parameter
@@ -28,17 +27,12 @@ from qiskit.primitives.containers import BitArray
 from qiskit.primitives.containers.data_bin import DataBin
 from qiskit.primitives.containers.sampler_pub import SamplerPub
 from qiskit.providers import JobStatus
-from qiskit.providers.backend_compat import BackendV2Converter
-from qiskit.providers.basic_provider import BasicSimulator
-from qiskit.providers.fake_provider import Fake7QPulseV1
 from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
 
+from qiskit_aer import AerSimulator
 from qiskit_aer.primitives import SamplerV2
 
-BACKENDS = [BasicSimulator(), Fake7QPulseV1(), BackendV2Converter(Fake7QPulseV1())]
 
-
-@ddt
 class TestSamplerV2(QiskitAerTestCase):
     """Test for SamplerV2"""
 
@@ -47,6 +41,7 @@ class TestSamplerV2(QiskitAerTestCase):
         self._shots = 10000
         self._seed = 123
         self._options = {"default_shots": self._shots, "seed": self._seed}
+        self._pm = generate_preset_pass_manager(optimization_level=0, backend=AerSimulator())
 
         self._cases = []
         hadamard = QuantumCircuit(1, 1, name="Hadamard")
@@ -85,10 +80,9 @@ class TestSamplerV2(QiskitAerTestCase):
             tgt = np.array([target_counts.get(i, 0) for i in range(max_key + 1)])
             np.testing.assert_allclose(ary, tgt, rtol=rtol, atol=atol, err_msg=f"index: {idx}")
 
-    @combine(backend=BACKENDS)
-    def test_sampler_run(self, backend):
+    def test_sampler_run(self):
         """Test run()."""
-        pm = generate_preset_pass_manager(optimization_level=0, backend=backend)
+        pm = self._pm
 
         with self.subTest("single"):
             bell, _, target = self._cases[1]
@@ -136,40 +130,34 @@ class TestSamplerV2(QiskitAerTestCase):
             self.assertIsInstance(result[0].data.meas, BitArray)
             self._assert_allclose(result[0].data.meas, np.array([target, target, target]))
 
-    @combine(backend=BACKENDS)
-    def test_sampler_run_multiple_times(self, backend):
+    def test_sampler_run_multiple_times(self):
         """Test run() returns the same results if the same input is given."""
         bell, _, _ = self._cases[1]
         sampler = SamplerV2(**self._options)
-        pm = generate_preset_pass_manager(optimization_level=0, backend=backend)
-        bell = pm.run(bell)
+        bell = self._pm.run(bell)
         result1 = sampler.run([bell], shots=self._shots).result()
         meas1 = result1[0].data.meas
         result2 = sampler.run([bell], shots=self._shots).result()
         meas2 = result2[0].data.meas
         self._assert_allclose(meas1, meas2, rtol=0)
 
-    @combine(backend=BACKENDS)
-    def test_sample_run_multiple_circuits(self, backend):
+    def test_sample_run_multiple_circuits(self):
         """Test run() with multiple circuits."""
         bell, _, target = self._cases[1]
         sampler = SamplerV2(**self._options)
-        pm = generate_preset_pass_manager(optimization_level=0, backend=backend)
-        bell = pm.run(bell)
+        bell = self._pm.run(bell)
         result = sampler.run([bell, bell, bell], shots=self._shots).result()
         self.assertEqual(len(result), 3)
         self._assert_allclose(result[0].data.meas, np.array(target))
         self._assert_allclose(result[1].data.meas, np.array(target))
         self._assert_allclose(result[2].data.meas, np.array(target))
 
-    @combine(backend=BACKENDS)
-    def test_sampler_run_with_parameterized_circuits(self, backend):
+    def test_sampler_run_with_parameterized_circuits(self):
         """Test run() with parameterized circuits."""
         pqc1, param1, target1 = self._cases[4]
         pqc2, param2, target2 = self._cases[5]
         pqc3, param3, target3 = self._cases[6]
-        pm = generate_preset_pass_manager(optimization_level=0, backend=backend)
-        pqc1, pqc2, pqc3 = pm.run([pqc1, pqc2, pqc3])
+        pqc1, pqc2, pqc3 = self._pm.run([pqc1, pqc2, pqc3])
 
         sampler = SamplerV2(**self._options)
         result = sampler.run(
@@ -180,16 +168,14 @@ class TestSamplerV2(QiskitAerTestCase):
         self._assert_allclose(result[1].data.meas, np.array(target2))
         self._assert_allclose(result[2].data.meas, np.array(target3))
 
-    @combine(backend=BACKENDS)
-    def test_run_1qubit(self, backend):
+    def test_run_1qubit(self):
         """test for 1-qubit cases"""
         qc = QuantumCircuit(1)
         qc.measure_all()
         qc2 = QuantumCircuit(1)
         qc2.x(0)
         qc2.measure_all()
-        pm = generate_preset_pass_manager(optimization_level=0, backend=backend)
-        qc, qc2 = pm.run([qc, qc2])
+        qc, qc2 = self._pm.run([qc, qc2])
 
         sampler = SamplerV2(**self._options)
         result = sampler.run([qc, qc2], shots=self._shots).result()
@@ -197,8 +183,7 @@ class TestSamplerV2(QiskitAerTestCase):
         for i in range(2):
             self._assert_allclose(result[i].data.meas, np.array({i: self._shots}))
 
-    @combine(backend=BACKENDS)
-    def test_run_2qubit(self, backend):
+    def test_run_2qubit(self):
         """test for 2-qubit cases"""
         qc0 = QuantumCircuit(2)
         qc0.measure_all()
@@ -211,8 +196,7 @@ class TestSamplerV2(QiskitAerTestCase):
         qc3 = QuantumCircuit(2)
         qc3.x([0, 1])
         qc3.measure_all()
-        pm = generate_preset_pass_manager(optimization_level=0, backend=backend)
-        qc0, qc1, qc2, qc3 = pm.run([qc0, qc1, qc2, qc3])
+        qc0, qc1, qc2, qc3 = self._pm.run([qc0, qc1, qc2, qc3])
 
         sampler = SamplerV2(**self._options)
         result = sampler.run([qc0, qc1, qc2, qc3], shots=self._shots).result()
@@ -220,11 +204,10 @@ class TestSamplerV2(QiskitAerTestCase):
         for i in range(4):
             self._assert_allclose(result[i].data.meas, np.array({i: self._shots}))
 
-    @combine(backend=BACKENDS)
-    def test_run_single_circuit(self, backend):
+    def test_run_single_circuit(self):
         """Test for single circuit case."""
         sampler = SamplerV2(**self._options)
-        pm = generate_preset_pass_manager(optimization_level=0, backend=backend)
+        pm = self._pm
 
         with self.subTest("No parameter"):
             circuit, _, target = self._cases[1]
@@ -278,8 +261,7 @@ class TestSamplerV2(QiskitAerTestCase):
                     self.assertEqual(len(result), 1)
                     self._assert_allclose(result[0].data.meas, target)
 
-    @combine(backend=BACKENDS)
-    def test_run_reverse_meas_order(self, backend):
+    def test_run_reverse_meas_order(self):
         """test for sampler with reverse measurement order"""
         x = Parameter("x")
         y = Parameter("y")
@@ -291,8 +273,7 @@ class TestSamplerV2(QiskitAerTestCase):
         qc.measure(0, 2)
         qc.measure(1, 1)
         qc.measure(2, 0)
-        pm = generate_preset_pass_manager(optimization_level=0, backend=backend)
-        qc = pm.run(qc)
+        qc = self._pm.run(qc)
 
         sampler = SamplerV2(**self._options)
         sampler.options.seed_simulator = self._seed
@@ -305,15 +286,13 @@ class TestSamplerV2(QiskitAerTestCase):
         # qc({x: pi/2, y: 0})
         self._assert_allclose(result[1].data.c, np.array({1: self._shots / 2, 5: self._shots / 2}))
 
-    @combine(backend=BACKENDS)
-    def test_run_errors(self, backend):
+    def test_run_errors(self):
         """Test for errors with run method"""
         qc1 = QuantumCircuit(1)
         qc1.measure_all()
         qc2 = RealAmplitudes(num_qubits=1, reps=1)
         qc2.measure_all()
-        pm = generate_preset_pass_manager(optimization_level=0, backend=backend)
-        qc1, qc2 = pm.run([qc1, qc2])
+        qc1, qc2 = self._pm.run([qc1, qc2])
 
         sampler = SamplerV2(**self._options)
         with self.subTest("set parameter values to a non-parameterized circuit"):
@@ -357,14 +336,12 @@ class TestSamplerV2(QiskitAerTestCase):
             with self.assertRaisesRegex(ValueError, "Note that if you want to run a single pub,"):
                 _ = sampler.run((qc2, [0, 1])).result()
 
-    @combine(backend=BACKENDS)
-    def test_run_empty_parameter(self, backend):
+    def test_run_empty_parameter(self):
         """Test for empty parameter"""
         n = 5
         qc = QuantumCircuit(n, n - 1)
         qc.measure(range(n - 1), range(n - 1))
-        pm = generate_preset_pass_manager(optimization_level=0, backend=backend)
-        qc = pm.run(qc)
+        qc = self._pm.run(qc)
         sampler = SamplerV2(**self._options)
         with self.subTest("one circuit"):
             result = sampler.run([qc], shots=self._shots).result()
@@ -377,13 +354,11 @@ class TestSamplerV2(QiskitAerTestCase):
             for i in range(2):
                 self._assert_allclose(result[i].data.c, np.array({0: self._shots}))
 
-    @combine(backend=BACKENDS)
-    def test_run_numpy_params(self, backend):
+    def test_run_numpy_params(self):
         """Test for numpy array as parameter values"""
         qc = RealAmplitudes(num_qubits=2, reps=2)
         qc.measure_all()
-        pm = generate_preset_pass_manager(optimization_level=0, backend=backend)
-        qc = pm.run(qc)
+        qc = self._pm.run(qc)
         k = 5
         params_array = np.linspace(0, 1, k * qc.num_parameters).reshape((k, qc.num_parameters))
         params_list = params_array.tolist()
@@ -407,12 +382,10 @@ class TestSamplerV2(QiskitAerTestCase):
                     result[i].data.meas, np.array(target[0].data.meas.get_int_counts(i))
                 )
 
-    @combine(backend=BACKENDS)
-    def test_run_with_shots_option(self, backend):
+    def test_run_with_shots_option(self):
         """test with shots option."""
         bell, _, _ = self._cases[1]
-        pm = generate_preset_pass_manager(optimization_level=0, backend=backend)
-        bell = pm.run(bell)
+        bell = self._pm.run(bell)
         shots = 100
 
         with self.subTest("run arg"):
@@ -461,36 +434,31 @@ class TestSamplerV2(QiskitAerTestCase):
             self.assertEqual(result[1].data.meas.num_shots, shots2)
             self.assertEqual(sum(result[1].data.meas.get_counts().values()), shots2)
 
-    @combine(backend=BACKENDS)
-    def test_run_shots_result_size(self, backend):
+    def test_run_shots_result_size(self):
         """test with shots option to validate the result size"""
         n = 7  # should be less than or equal to the number of qubits of backend
         qc = QuantumCircuit(n)
         qc.h(range(n))
         qc.measure_all()
-        pm = generate_preset_pass_manager(optimization_level=0, backend=backend)
-        qc = pm.run(qc)
+        qc = self._pm.run(qc)
         sampler = SamplerV2(**self._options)
         result = sampler.run([qc], shots=self._shots).result()
         self.assertEqual(len(result), 1)
         self.assertLessEqual(result[0].data.meas.num_shots, self._shots)
         self.assertEqual(sum(result[0].data.meas.get_counts().values()), self._shots)
 
-    @combine(backend=BACKENDS)
-    def test_primitive_job_status_done(self, backend):
+    def test_primitive_job_status_done(self):
         """test primitive job's status"""
         bell, _, _ = self._cases[1]
-        pm = generate_preset_pass_manager(optimization_level=0, backend=backend)
-        bell = pm.run(bell)
+        bell = self._pm.run(bell)
         sampler = SamplerV2(**self._options)
         job = sampler.run([bell], shots=self._shots)
         _ = job.result()
         self.assertEqual(job.status(), JobStatus.DONE)
 
-    @combine(backend=BACKENDS)
-    def test_circuit_with_unitary(self, backend):
+    def test_circuit_with_unitary(self):
         """Test for circuit with unitary gate."""
-        pm = generate_preset_pass_manager(optimization_level=0, backend=backend)
+        pm = self._pm
 
         with self.subTest("identity"):
             gate = UnitaryGate(np.eye(2))
@@ -518,10 +486,9 @@ class TestSamplerV2(QiskitAerTestCase):
             self.assertEqual(len(result), 1)
             self._assert_allclose(result[0].data.meas, np.array({1: self._shots}))
 
-    @combine(backend=BACKENDS)
-    def test_circuit_with_multiple_cregs(self, backend):
+    def test_circuit_with_multiple_cregs(self):
         """Test for circuit with multiple classical registers."""
-        pm = generate_preset_pass_manager(optimization_level=0, backend=backend)
+        pm = self._pm
         cases = []
 
         # case 1
@@ -598,10 +565,8 @@ class TestSamplerV2(QiskitAerTestCase):
                     self.assertTrue(hasattr(data, creg.name))
                     self._assert_allclose(getattr(data, creg.name), np.array(target[creg.name]))
 
-    @combine(backend=BACKENDS)
-    def test_circuit_with_aliased_cregs(self, backend):
+    def test_circuit_with_aliased_cregs(self):
         """Test for circuit with aliased classical registers."""
-        print(backend, type(backend))
         q = QuantumRegister(3, "q")
         c1 = ClassicalRegister(1, "c1")
         c2 = ClassicalRegister(1, "c2")
@@ -625,8 +590,7 @@ class TestSamplerV2(QiskitAerTestCase):
         }
 
         sampler = SamplerV2(**self._options)
-        pm = generate_preset_pass_manager(optimization_level=0, backend=backend)
-        qc2 = pm.run(qc2)
+        qc2 = self._pm.run(qc2)
         result = sampler.run([qc2], shots=self._shots).result()
         self.assertEqual(len(result), 1)
         data = result[0].data
@@ -635,8 +599,7 @@ class TestSamplerV2(QiskitAerTestCase):
             self.assertTrue(hasattr(data, creg_name))
             self._assert_allclose(getattr(data, creg_name), np.array(creg))
 
-    @combine(backend=BACKENDS)
-    def test_no_cregs(self, backend):
+    def test_no_cregs(self):
         """Test that the sampler works when there are no classical register in the circuit."""
         qc = QuantumCircuit(2)
         sampler = SamplerV2(**self._options)
@@ -646,8 +609,7 @@ class TestSamplerV2(QiskitAerTestCase):
         self.assertEqual(len(result), 1)
         self.assertEqual(len(result[0].data), 0)
 
-    @combine(backend=BACKENDS)
-    def test_empty_creg(self, backend):
+    def test_empty_creg(self):
         """Test that the sampler works if provided a classical register with no bits."""
         # Test case for issue #12043
         q = QuantumRegister(1, "q")
@@ -661,13 +623,10 @@ class TestSamplerV2(QiskitAerTestCase):
         result = sampler.run([qc], shots=self._shots).result()
         self.assertEqual(result[0].data.c1.array.shape, (self._shots, 0))
 
-    @combine(backend=BACKENDS)
-    def test_diff_shots(self, backend):
+    def test_diff_shots(self):
         """Test of pubs with different shots"""
-        pm = generate_preset_pass_manager(optimization_level=0, backend=backend)
-
         bell, _, target = self._cases[1]
-        bell = pm.run(bell)
+        bell = self._pm.run(bell)
         sampler = SamplerV2(**self._options)
         shots2 = self._shots + 2
         target2 = {k: v + 1 for k, v in target.items()}
@@ -681,7 +640,6 @@ class TestSamplerV2(QiskitAerTestCase):
 
     def test_iter_pub(self):
         """Test of an iterable of pubs"""
-        backend = BasicSimulator()
         qc = QuantumCircuit(1)
         qc.measure_all()
         qc2 = QuantumCircuit(1)
@@ -695,6 +653,24 @@ class TestSamplerV2(QiskitAerTestCase):
         self.assertIsInstance(result[1], PubResult)
         self._assert_allclose(result[0].data.meas, np.array({0: self._shots}))
         self._assert_allclose(result[1].data.meas, np.array({1: self._shots}))
+
+    def test_seed(self):
+        """Test for seed options"""
+        with self.subTest("empty"):
+            sampler = SamplerV2()
+            self.assertIsNone(sampler.seed)
+        with self.subTest("set int"):
+            sampler = SamplerV2(seed=self._seed)
+            self.assertEqual(sampler.seed, self._seed)
+
+    def test_default_shots(self):
+        """Test for default_shots options"""
+        with self.subTest("empty"):
+            sampler = SamplerV2()
+            self.assertEqual(sampler.default_shots, 1024)
+        with self.subTest("set int"):
+            sampler = SamplerV2(seed=self._seed)
+            self.assertEqual(sampler.seed, self._seed)
 
 
 if __name__ == "__main__":
