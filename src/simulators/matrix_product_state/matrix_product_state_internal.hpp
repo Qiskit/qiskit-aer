@@ -58,7 +58,8 @@ enum Gates {
   csx, // two qubit
   ccx,
   cswap, // three qubit
-  pauli
+  pauli,
+  ecr,
 };
 
 // enum class Direction {RIGHT, LEFT};
