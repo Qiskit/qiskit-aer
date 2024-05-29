@@ -821,14 +821,14 @@ def _assemble_op(
 
     num_of_aer_ops = 1
     # fmt: off
-    if (basis_gates is None and gate_name in {
+    if (gate_name in {
         "ccx", "ccz", "cp", "cswap", "csx", "cx", "cy", "cz", "delay", "ecr", "h",
         "id", "mcp", "mcphase", "mcr", "mcrx", "mcry", "mcrz", "mcswap", "mcsx",
         "mcu", "mcu1", "mcu2", "mcu3", "mcx", "mcx_gray", "mcy", "mcz", "p", "r",
         "rx", "rxx", "ry", "ryy", "rz", "rzx", "rzz", "s", "sdg", "swap", "sx", "sxdg",
         "t", "tdg", "u", "x", "y", "z", "u1", "u2", "u3", "cu", "cu1", "cu2", "cu3",
         "crx", "cry", "crz",
-    }) or (basis_gates is not None and gate_name in basis_gates):
+    }) and (basis_gates is None or gate_name in basis_gates):
         if ctrl_state_pos > 0:
             # Add x gates for ctrl qubits which state=0
             ctrl_state = int(name[ctrl_state_pos+2:len(name)])
