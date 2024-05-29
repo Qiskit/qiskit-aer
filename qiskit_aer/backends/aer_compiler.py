@@ -827,6 +827,7 @@ def _assemble_op(
         "mcu", "mcu1", "mcu2", "mcu3", "mcx", "mcx_gray", "mcy", "mcz", "p", "r",
         "rx", "rxx", "ry", "ryy", "rz", "rzx", "rzz", "s", "sdg", "swap", "sx", "sxdg",
         "t", "tdg", "u", "x", "y", "z", "u1", "u2", "u3", "cu", "cu1", "cu2", "cu3",
+        "crx", "cry", "crz",
     }) or (basis_gates is not None and gate_name in basis_gates):
         if ctrl_state_pos > 0:
             # Add x gates for ctrl qubits which state=0

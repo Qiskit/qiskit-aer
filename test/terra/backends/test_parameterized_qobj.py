@@ -461,7 +461,7 @@ class TestParameterizedQobj(common.QiskitAerTestCase):
 
     def test_global_phase_parameters(self):
         """Test parameterized global phase"""
-        backend = AerSimulator(method="extended_stabilizer")
+        backend = AerSimulator(method="extended_stabilizer", basis_gates=["h", "x", "u1"])
 
         theta = Parameter("theta")
         circ = QuantumCircuit(2)

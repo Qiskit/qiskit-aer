@@ -1,0 +1,8 @@
+---
+features:
+  - |
+    Add `rz` gate with n*pi/2 cases to `extended_stabilizer` method
+    as well as `stabilizer` method.
+
+    Add `crx`, `cry` and `crz` gates to `statevector` and `tensor_netowork`
+    methods.
