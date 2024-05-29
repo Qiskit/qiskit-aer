@@ -239,6 +239,7 @@ parameters and error objects from device `BackendProperties`.
 # Noise and Error classes
 from .noise_model import NoiseModel
 from .errors import QuantumError
+from .errors import PauliError
 from .errors import ReadoutError
 
 # Error generating functions
