@@ -383,14 +383,14 @@ void State::apply_gate(const Operations::Op &op) {
     apply_pauli(op.qubits, op.string_params[0]);
     break;
   case Gates::ecr:
-    BaseState::qreg_.append_h(op.qubits[1]);
     BaseState::qreg_.append_s(op.qubits[0]);
-    BaseState::qreg_.append_z(op.qubits[1]); // sdg(1)
-    BaseState::qreg_.append_s(op.qubits[1]); // sdg(1)
+    BaseState::qreg_.append_z(op.qubits[1]);
+    BaseState::qreg_.append_s(op.qubits[1]);
     BaseState::qreg_.append_h(op.qubits[1]);
+    BaseState::qreg_.append_z(op.qubits[1]);
+    BaseState::qreg_.append_s(op.qubits[1]);
     BaseState::qreg_.append_cx(op.qubits[0], op.qubits[1]);
     BaseState::qreg_.append_x(op.qubits[0]);
-    BaseState::qreg_.append_x(op.qubits[1]);
     break;
   case Gates::rz:
     pi2 = (int_t)std::round(std::real(op.params[0]) * 2.0 / M_PI) & 3;

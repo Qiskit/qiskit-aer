@@ -1,0 +1,7 @@
+---
+features:
+  - |
+    `matrix_product_state`, `extended_stabilizer` and `tensor_network` methods
+    now support ecr gate.
+    Add check if `basis_gates` backend option has unsupported gate for
+    the `method`
