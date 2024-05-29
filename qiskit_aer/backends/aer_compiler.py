@@ -830,17 +830,18 @@ def _assemble_op(
     }) or (basis_gates is not None and gate_name in basis_gates):
         if ctrl_state_pos > 0:
             # Add x gates for ctrl qubits which state=0
-            for i in range(ctrl_state_pos+2,len(name)):
-                if name[i] == '0':
-                    qubits_i = [qubits[i-ctrl_state_pos-2]]
+            ctrl_state = int(name[ctrl_state_pos+2:len(name)])
+            for i in range(len(qubits)):
+                if (ctrl_state >> i) & 1 == 0:
+                    qubits_i = [qubits[len(qubits) - 1 - i]]
                     aer_circ.gate("x", qubits_i, params, [], conditional_reg, aer_cond_expr,
                                   label if label else "x")
                     num_of_aer_ops += 1
             aer_circ.gate(gate_name, qubits, params, [], conditional_reg, aer_cond_expr,
                           label if label else gate_name)
-            for i in range(ctrl_state_pos+2,len(name)):
-                if name[i] == '0':
-                    qubits_i = [qubits[i-ctrl_state_pos-2]]
+            for i in range(len(qubits)):
+                if (ctrl_state >> i) & 1 == 0:
+                    qubits_i = [qubits[len(qubits) - 1 - i]]
                     aer_circ.gate("x", qubits_i, params, [], conditional_reg, aer_cond_expr,
                                   label if label else "x")
                     num_of_aer_ops += 1
