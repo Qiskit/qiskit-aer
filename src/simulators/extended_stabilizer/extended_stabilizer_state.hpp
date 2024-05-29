@@ -46,7 +46,7 @@ const Operations::OpSet StateOpSet(
     // Gates
     {"CX", "u0",  "u1",  "p",   "cx",    "cz",    "swap", "id",
      "x",  "y",   "z",   "h",   "s",     "sdg",   "sx",   "sxdg",
-     "t",  "tdg", "ccx", "ccz", "delay", "pauli", "rz"});
+     "t",  "tdg", "ccx", "ccz", "delay", "pauli", "ecr",  "rz"});
 
 using chpauli_t = CHSimulator::pauli_t;
 using chstate_t = CHSimulator::Runner;
@@ -224,6 +224,7 @@ const stringmap_t<Gates> State::gateset_({
     {"cx", Gates::cx},     // Controlled-X gate (CNOT)
     {"cz", Gates::cz},     // Controlled-Z gate
     {"swap", Gates::swap}, // SWAP gate
+    {"ecr", Gates::ecr},   // ECR Gate
     // Three-qubit gates
     {"ccx", Gates::ccx}, // Controlled-CX gate (Toffoli)
     {"ccz", Gates::ccz}, // Constrolled-CZ gate (H3 Toff H3)
@@ -715,6 +716,14 @@ void State::apply_gate(const Operations::Op &op, RngEngine &rng, uint_t rank) {
     break;
   case Gates::pauli:
     apply_pauli(op.qubits, op.string_params[0], rank);
+    break;
+  case Gates::ecr:
+    BaseState::qreg_.apply_s(op.qubits[0], rank);
+    BaseState::qreg_.apply_sdag(op.qubits[1], rank);
+    BaseState::qreg_.apply_h(op.qubits[1], rank);
+    BaseState::qreg_.apply_sdag(op.qubits[1], rank);
+    BaseState::qreg_.apply_cx(op.qubits[0], op.qubits[1], rank);
+    BaseState::qreg_.apply_x(op.qubits[0], rank);
     break;
   case Gates::rz:
     pi2 = (int_t)std::round(std::real(op.params[0]) * 2.0 / M_PI) & 3;

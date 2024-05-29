@@ -200,6 +200,7 @@ BASIS_GATES = {
             "cswap",
             "diagonal",
             "initialize",
+            "ecr",
         ]
     ),
     "stabilizer": sorted(
@@ -246,6 +247,7 @@ BASIS_GATES = {
             "ccz",
             "delay",
             "pauli",
+            "ecr",
             "rz",
         ]
     ),
@@ -417,6 +419,7 @@ BASIS_GATES = {
             "delay",
             "pauli",
             "mcx_gray",
+            "ecr",
         ]
     ),
 }
