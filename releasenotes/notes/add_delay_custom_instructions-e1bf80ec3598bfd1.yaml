@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Add/move `delay` gate to default custom instructions for `AerSimulator.configulation`
+    to resolve error reported in issue #2152, `delay` was not in `basis_gates`
+    when AerSimulator is made by `from_backend`
