@@ -16,6 +16,7 @@ from ddt import ddt
 from test.terra.reference import ref_1q_clifford
 from test.terra.reference import ref_2q_clifford
 from qiskit import transpile
+from qiskit import QuantumCircuit
 from test.terra.backends.simulator_test_case import SimulatorTestCase, supported_methods
 
 SUPPORTED_METHODS = [
