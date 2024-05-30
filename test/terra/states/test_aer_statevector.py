@@ -157,7 +157,7 @@ class TestAerStatevector(common.QiskitAerTestCase):
         """Test two qubit QuantumVolume"""
         state = AerStatevector(QuantumVolume(2))
         counts = state.sample_counts(shots=1024)
-        self.assertEqual(sum(counts.values(), 1024))
+        self.assertEqual(sum(counts.values()), 1024)
 
     def test_evolve(self):
         """Test method and device properties"""
