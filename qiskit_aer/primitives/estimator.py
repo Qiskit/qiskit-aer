@@ -284,7 +284,7 @@ class Estimator(BaseEstimator):
         if experiments:
             results = (
                 self._backend.run(
-                    circuits=experiments,
+                    experiments,
                     parameter_binds=parameter_binds if any(parameter_binds) else None,
                     **run_options,
                 )
