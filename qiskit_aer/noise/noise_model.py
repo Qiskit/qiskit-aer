@@ -52,14 +52,14 @@ class AerJSONEncoder(json.JSONEncoder):
     """
 
     # pylint: disable=method-hidden,arguments-differ
-    def default(self, obj):
-        if isinstance(obj, np.ndarray):
-            return obj.tolist()
-        if isinstance(obj, complex):
-            return [obj.real, obj.imag]
-        if hasattr(obj, "to_dict"):
-            return obj.to_dict()
-        return super().default(obj)
+    def default(self, o):
+        if isinstance(o, np.ndarray):
+            return o.tolist()
+        if isinstance(o, complex):
+            return [o.real, o.imag]
+        if hasattr(o, "to_dict"):
+            return o.to_dict()
+        return super().default(o)
 
 
 class QuantumErrorLocation(Instruction):
@@ -638,7 +638,7 @@ class NoiseModel:
 
     def reset(self):
         """Reset the noise model."""
-        self.__init__()
+        self.__init__()  # pylint: disable = unnecessary-dunder-call
 
     def add_basis_gates(self, instructions):
         """Add additional gates to the noise model basis_gates.
@@ -975,7 +975,7 @@ class NoiseModel:
         )
 
         def inst_dic_list_to_circuit(dic_list):
-            num_qubits = max([max(dic["qubits"]) for dic in dic_list]) + 1
+            num_qubits = max(max(dic["qubits"]) for dic in dic_list) + 1
             circ = QuantumCircuit(num_qubits)
             for dic in dic_list:
                 if dic["name"] == "reset":
@@ -1113,8 +1113,8 @@ class NoiseModel:
         # Check local readout errors are equal
         if sorted(self._local_readout_errors.keys()) != sorted(other._local_readout_errors.keys()):
             return False
-        for key in self._local_readout_errors:
-            if self._local_readout_errors[key] != other._local_readout_errors[key]:
+        for key, value in self._local_readout_errors.items():
+            if value != other._local_readout_errors[key]:
                 return False
         return True
 
@@ -1124,8 +1124,8 @@ class NoiseModel:
             other._default_quantum_errors.keys()
         ):
             return False
-        for key in self._default_quantum_errors:
-            if self._default_quantum_errors[key] != other._default_quantum_errors[key]:
+        for key, value in self._default_quantum_errors.items():
+            if value != other._default_quantum_errors[key]:
                 return False
         return True
 
@@ -1133,15 +1133,14 @@ class NoiseModel:
         """Check two noise models have equal local quantum errors"""
         if sorted(self._local_quantum_errors.keys()) != sorted(other._local_quantum_errors.keys()):
             return False
-        for key in self._local_quantum_errors:
-            inner_dict1 = self._local_quantum_errors[key]
+        for key, value in self._local_quantum_errors.items():
             inner_dict2 = other._local_quantum_errors[key]
-            if sorted(inner_dict1.keys()) != sorted(inner_dict2.keys()):
+            if sorted(value.keys()) != sorted(inner_dict2.keys()):
                 return False
-            for inner_key in inner_dict1:
-                if inner_dict1[inner_key] != inner_dict2[inner_key]:
+            for inner_key, inner_value in value.items():
+                if inner_value != inner_dict2[inner_key]:
                     return False
-            if self._local_quantum_errors[key] != other._local_quantum_errors[key]:
+            if value != other._local_quantum_errors[key]:
                 return False
         return True
 

@@ -145,11 +145,11 @@ class AerBackend(Backend, ABC):
         return parameterizations
 
     # pylint: disable=arguments-differ
-    def run(self, circuits, validate=False, parameter_binds=None, **run_options):
+    def run(self, run_input, validate=False, parameter_binds=None, **run_options):
         """Run circuits on the backend.
 
         Args:
-            circuits (QuantumCircuit or list): The QuantumCircuit (or list
+            run_input (QuantumCircuit or list): The QuantumCircuit (or list
                 of QuantumCircuit objects) to run
             validate (bool): validate the Qobj before running (default: False).
             parameter_binds (list): A list of parameter binding dictionaries.
@@ -182,10 +182,10 @@ class AerBackend(Backend, ABC):
         Raises:
             ValueError: if run is not implemented
         """
-        if isinstance(circuits, (QuantumCircuit, Schedule, ScheduleBlock)):
-            circuits = [circuits]
+        if isinstance(run_input, (QuantumCircuit, Schedule, ScheduleBlock)):
+            run_input = [run_input]
 
-        if isinstance(circuits, (QasmQobj, PulseQobj)):
+        if isinstance(run_input, (QasmQobj, PulseQobj)):
             warnings.warn(
                 "Using a qobj for run() is deprecated as of qiskit-aer 0.14"
                 " and will be removed no sooner than 3 months from that release"
@@ -202,19 +202,19 @@ class AerBackend(Backend, ABC):
             # run_options fields will take precidence over the value for those
             # fields that are set via assemble.
             if not run_options:
-                run_options = circuits.config.__dict__
+                run_options = run_input.config.__dict__
             else:
                 run_options = copy.copy(run_options)
-                for key, value in circuits.config.__dict__.items():
+                for key, value in run_input.config.__dict__.items():
                     if key not in run_options and value is not None:
                         run_options[key] = value
             if "parameter_binds" in run_options:
                 parameter_binds = run_options.pop("parameter_binds")
-            return self._run_qobj(circuits, validate, parameter_binds, **run_options)
+            return self._run_qobj(run_input, validate, parameter_binds, **run_options)
 
         only_circuits = True
         only_pulse = True
-        for circ in circuits:
+        for circ in run_input:
             only_circuits &= isinstance(circ, QuantumCircuit)
             only_pulse &= isinstance(circ, (ScheduleBlock, Schedule))
 
@@ -232,11 +232,11 @@ class AerBackend(Backend, ABC):
                 # This path remains for DASK execution to split a qobj insttance
                 # into sub-qobj instances. This will be replaced with _run_circuits path
                 # in the near releases
-                return self._run_qobj(circuits, validate, parameter_binds, **run_options)
+                return self._run_qobj(run_input, validate, parameter_binds, **run_options)
             else:
-                return self._run_circuits(circuits, parameter_binds, **run_options)
+                return self._run_circuits(run_input, parameter_binds, **run_options)
         elif not only_circuits and only_pulse:
-            return self._run_qobj(circuits, validate, parameter_binds, **run_options)
+            return self._run_qobj(run_input, validate, parameter_binds, **run_options)
         elif not only_circuits and not only_pulse:
             raise TypeError(
                 "bad input to run() function;"
@@ -244,7 +244,7 @@ class AerBackend(Backend, ABC):
             )
         else:
             raise TypeError(
-                "bad input to run() function;" "circuits must be either circuits or schedules"
+                "bad input to run() function; circuits must be either circuits or schedules"
             )
 
     def _run_circuits(self, circuits, parameter_binds, **run_options):
@@ -458,7 +458,7 @@ class AerBackend(Backend, ABC):
             run_options["parameterizations"] = self._convert_binds(
                 circuits, parameter_binds, idx_maps
             )
-        elif not all([len(circuit.parameters) == 0 for circuit in circuits]):
+        elif not all(len(circuit.parameters) == 0 for circuit in circuits):
             raise AerError("circuits have parameters but parameter_binds is not specified.")
 
         for circ_id, aer_circuit in enumerate(aer_circuits):

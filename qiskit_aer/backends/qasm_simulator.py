@@ -634,7 +634,7 @@ class QasmSimulator(AerBackend):
                 # Print warning if clbits but no measure
                 if no_measure:
                     logger.warning(
-                        'No measurements in circuit "%s": ' "count data will return all zeros.",
+                        'No measurements in circuit "%s": count data will return all zeros.',
                         experiment.header.name,
                     )
 
