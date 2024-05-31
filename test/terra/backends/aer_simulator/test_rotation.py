@@ -19,11 +19,20 @@ from test.terra.backends.simulator_test_case import SimulatorTestCase, supported
 
 SUPPORTED_METHODS = [
     "automatic",
+    "statevector",
+    "density_matrix",
+    "matrix_product_state",
+    "tensor_network",
+]
+
+SUPPORTED_METHODS_RZ = [
+    "automatic",
     "stabilizer",
     "statevector",
     "density_matrix",
     "matrix_product_state",
     "tensor_network",
+    "extended_stabilizer",
 ]
 
 
@@ -50,7 +59,7 @@ class TestRotation(SimulatorTestCase):
     # ---------------------------------------------------------------------
     # Test rz-gate
     # ---------------------------------------------------------------------
-    @supported_methods(SUPPORTED_METHODS)
+    @supported_methods(SUPPORTED_METHODS_RZ)
     def test_rz_gate_deterministic(self, method, device):
         """Test rz-gate circuits"""
         backend = self.backend(method=method, device=device, seed_simulator=self.SEED)
