@@ -421,11 +421,13 @@ class AerCompiler:
             case_data = CaseData(
                 label=f"{switch_name}_{i}",
                 args_list=[
-                    self._convert_jump_conditional(
-                        (instruction.operation.target, switch_val), bit_map
+                    (
+                        self._convert_jump_conditional(
+                            (instruction.operation.target, switch_val), bit_map
+                        )
+                        if switch_val != CASE_DEFAULT
+                        else []
                     )
-                    if switch_val != CASE_DEFAULT
-                    else []
                     for switch_val in case[0]
                 ],
                 bit_map={

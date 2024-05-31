@@ -985,7 +985,7 @@ class AerSimulator(AerBackend):
                     break
             if no_data:
                 logger.warning(
-                    'No measure or save instruction in circuit "%s": ' "results will be empty.",
+                    'No measure or save instruction in circuit "%s": results will be empty.',
                     experiment.header.name,
                 )
 
