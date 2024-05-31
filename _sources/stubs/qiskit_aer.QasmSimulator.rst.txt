@@ -49,7 +49,6 @@ QasmSimulator
    .. automethod:: QasmSimulator.control_channel
    .. automethod:: QasmSimulator.drive_channel
    .. automethod:: QasmSimulator.from_backend
-   .. automethod:: QasmSimulator.get_translation_stage_plugin
    .. automethod:: QasmSimulator.measure_channel
    .. automethod:: QasmSimulator.properties
    .. automethod:: QasmSimulator.qubit_properties

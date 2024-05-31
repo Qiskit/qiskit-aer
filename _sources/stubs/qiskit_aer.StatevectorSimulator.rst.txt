@@ -48,7 +48,6 @@ StatevectorSimulator
    .. automethod:: StatevectorSimulator.configuration
    .. automethod:: StatevectorSimulator.control_channel
    .. automethod:: StatevectorSimulator.drive_channel
-   .. automethod:: StatevectorSimulator.get_translation_stage_plugin
    .. automethod:: StatevectorSimulator.measure_channel
    .. automethod:: StatevectorSimulator.properties
    .. automethod:: StatevectorSimulator.qubit_properties

@@ -49,7 +49,6 @@ AerSimulator
    .. automethod:: AerSimulator.control_channel
    .. automethod:: AerSimulator.drive_channel
    .. automethod:: AerSimulator.from_backend
-   .. automethod:: AerSimulator.get_translation_stage_plugin
    .. automethod:: AerSimulator.measure_channel
    .. automethod:: AerSimulator.properties
    .. automethod:: AerSimulator.qubit_properties

@@ -48,7 +48,6 @@ UnitarySimulator
    .. automethod:: UnitarySimulator.configuration
    .. automethod:: UnitarySimulator.control_channel
    .. automethod:: UnitarySimulator.drive_channel
-   .. automethod:: UnitarySimulator.get_translation_stage_plugin
    .. automethod:: UnitarySimulator.measure_channel
    .. automethod:: UnitarySimulator.properties
    .. automethod:: UnitarySimulator.qubit_properties
