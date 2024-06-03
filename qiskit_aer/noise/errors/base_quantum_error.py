@@ -35,13 +35,7 @@ class BaseQuantumError(BaseOperator):
 
     def __repr__(self):
         """Display QuantumError."""
-        return f"<{self._repr_name}>"
-
-    def __eq__(self, other):
-        """Test if two QuantumErrors are equal as SuperOps"""
-        if not isinstance(other, BaseQuantumError):
-            return False
-        return self.to_quantumchannel() == other.to_quantumchannel()
+        return f"<{self._repr_name()}>"
 
     def __hash__(self):
         return hash(self._id)

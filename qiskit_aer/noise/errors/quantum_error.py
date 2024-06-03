@@ -219,6 +219,12 @@ class QuantumError(BaseQuantumError, TolerancesMixin):
             output += f"\n  P({j}) = {pair[0]}, Circuit = \n{pair[1]}"
         return output
 
+    def __eq__(self, other):
+        """Test if two QuantumErrors are equal as SuperOps"""
+        if not isinstance(other, BaseQuantumError):
+            return False
+        return self.to_quantumchannel() == other.to_quantumchannel()
+
     @property
     def size(self):
         """Return the number of error circuit."""
