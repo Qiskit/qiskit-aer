@@ -100,9 +100,12 @@ class SamplerV2(BaseSamplerV2):
         self._options = Options(**options) if options else Options()
         self._backend = AerSimulator(**self.options.backend_options)
 
-    def from_backend(self, backend, **options):
-        """use external backend"""
-        self._backend.from_backend(backend, **options)
+    @classmethod
+    def from_backend(cls, backend, **options):
+        """make new sampler that uses external backend"""
+        sampler = cls(**options)
+        sampler._backend = AerSimulator.from_backend(backend)
+        return sampler
 
     @property
     def default_shots(self) -> int:

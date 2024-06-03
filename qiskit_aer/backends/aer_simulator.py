@@ -525,6 +525,7 @@ class AerSimulator(AerBackend):
                 "continue_loop",
                 "reset",
                 "switch_case",
+                "delay",
             ]
         ),
         "density_matrix": sorted(
@@ -549,6 +550,7 @@ class AerSimulator(AerBackend):
                 "continue_loop",
                 "reset",
                 "switch_case",
+                "delay",
             ]
         ),
         "matrix_product_state": sorted(
@@ -575,6 +577,7 @@ class AerSimulator(AerBackend):
                 "continue_loop",
                 "reset",
                 "switch_case",
+                "delay",
             ]
         ),
         "stabilizer": sorted(
@@ -598,6 +601,7 @@ class AerSimulator(AerBackend):
                 "continue_loop",
                 "reset",
                 "switch_case",
+                "delay",
             ]
         ),
         "extended_stabilizer": sorted(
@@ -609,6 +613,7 @@ class AerSimulator(AerBackend):
                 "reset",
                 "save_expval",
                 "save_expval_var",
+                "delay",
             ]
         ),
         "unitary": sorted(
@@ -617,6 +622,7 @@ class AerSimulator(AerBackend):
                 "save_unitary",
                 "set_unitary",
                 "reset",
+                "delay",
             ]
         ),
         "superop": sorted(
@@ -629,6 +635,7 @@ class AerSimulator(AerBackend):
                 "save_superop",
                 "set_superop",
                 "reset",
+                "delay",
             ]
         ),
         "tensor_network": sorted(
@@ -652,6 +659,7 @@ class AerSimulator(AerBackend):
                 "set_density_matrix",
                 "reset",
                 "switch_case",
+                "delay",
             ]
         ),
     }
@@ -746,6 +754,9 @@ class AerSimulator(AerBackend):
             target=target,
             backend_options=backend_options,
         )
+
+        if "basis_gates" in backend_options.items():
+            self._check_basis_gates(backend_options["basis_gates"])
 
     @classmethod
     def _default_options(cls):
@@ -900,11 +911,12 @@ class AerSimulator(AerBackend):
         config = copy.copy(self._configuration)
         for key, val in self._options_configuration.items():
             setattr(config, key, val)
+
+        method = getattr(self.options, "method", "automatic")
+
         # Update basis gates based on custom options, config, method,
         # and noise model
-        config.custom_instructions = self._CUSTOM_INSTR[
-            getattr(self.options, "method", "automatic")
-        ]
+        config.custom_instructions = self._CUSTOM_INSTR[method]
         config.basis_gates = self._cached_basis_gates + config.custom_instructions
         return config
 
@@ -935,6 +947,9 @@ class AerSimulator(AerBackend):
                     f" are: {self.available_methods()}"
                 )
             self._set_method_config(value)
+        if key == "basis_gates":
+            self._check_basis_gates(value)
+
         super().set_option(key, value)
         if key in ["method", "noise_model", "basis_gates"]:
             self._cached_basis_gates = self._basis_gates()
@@ -972,7 +987,7 @@ class AerSimulator(AerBackend):
                     break
             if no_data:
                 logger.warning(
-                    'No measure or save instruction in circuit "%s": ' "results will be empty.",
+                    'No measure or save instruction in circuit "%s": results will be empty.',
                     experiment.header.name,
                 )
 
@@ -1049,3 +1064,11 @@ class AerSimulator(AerBackend):
 
         self._set_configuration_option("description", description)
         self._set_configuration_option("n_qubits", n_qubits)
+
+    def _check_basis_gates(self, basis_gates):
+        method = getattr(self.options, "method", "automatic")
+        # check if basis_gates contains non-supported gates
+        if method != "automatic":
+            for gate in basis_gates:
+                if gate not in self._BASIS_GATES[method]:
+                    raise AerError(f"Invalid gate {gate} for simulation method {method}.")

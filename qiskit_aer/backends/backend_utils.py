@@ -91,6 +91,9 @@ BASIS_GATES = {
             "rzx",
             "ccx",
             "ccz",
+            "crx",
+            "cry",
+            "crz",
             "cswap",
             "mcx",
             "mcy",
@@ -111,7 +114,6 @@ BASIS_GATES = {
             "diagonal",
             "multiplexer",
             "initialize",
-            "delay",
             "pauli",
             "mcx_gray",
             "ecr",
@@ -152,7 +154,6 @@ BASIS_GATES = {
             "ccx",
             "unitary",
             "diagonal",
-            "delay",
             "pauli",
             "ecr",
         ]
@@ -183,7 +184,6 @@ BASIS_GATES = {
             "ccx",
             "unitary",
             "roerror",
-            "delay",
             "pauli",
             "r",
             "rx",
@@ -197,6 +197,7 @@ BASIS_GATES = {
             "cswap",
             "diagonal",
             "initialize",
+            "ecr",
         ]
     ),
     "stabilizer": sorted(
@@ -214,11 +215,8 @@ BASIS_GATES = {
             "cy",
             "cz",
             "swap",
-            "delay",
             "pauli",
             "ecr",
-            "rx",
-            "ry",
             "rz",
         ]
     ),
@@ -243,8 +241,9 @@ BASIS_GATES = {
             "p",
             "ccx",
             "ccz",
-            "delay",
             "pauli",
+            "ecr",
+            "rz",
         ]
     ),
     "unitary": sorted(
@@ -286,6 +285,9 @@ BASIS_GATES = {
             "ccx",
             "ccz",
             "cswap",
+            "crx",
+            "cry",
+            "crz",
             "mcx",
             "mcy",
             "mcz",
@@ -304,7 +306,6 @@ BASIS_GATES = {
             "unitary",
             "diagonal",
             "multiplexer",
-            "delay",
             "pauli",
             "ecr",
         ]
@@ -344,7 +345,6 @@ BASIS_GATES = {
             "ccx",
             "unitary",
             "diagonal",
-            "delay",
             "pauli",
         ]
     ),
@@ -387,6 +387,9 @@ BASIS_GATES = {
             "ccx",
             "ccz",
             "cswap",
+            "crx",
+            "cry",
+            "crz",
             "mcx",
             "mcy",
             "mcz",
@@ -406,9 +409,9 @@ BASIS_GATES = {
             "diagonal",
             "multiplexer",
             "initialize",
-            "delay",
             "pauli",
             "mcx_gray",
+            "ecr",
         ]
     ),
 }
