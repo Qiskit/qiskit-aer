@@ -55,13 +55,13 @@ class PauliError(BaseQuantumError, TolerancesMixin):
         # Use BaseOperator eq to check type and shape
         if not super().__eq__(other):
             return False
-        lhs = self.simplify()._sort()
-        rhs = other.simplify()._sort()
-        return (
-            lhs.size == rhs.size
-            and np.allclose(lhs.probabilities, rhs.probabilities)
-            and lhs.paulis == rhs.paulis
-        )
+        lhs = self.simplify()
+        rhs = other.simplify()
+        if lhs.size != rhs.size:
+            return False
+        lpaulis, lprobs = sort_paulis(lhs.paulis, lhs.probabilities)
+        rpaulis, rprobs = sort_paulis(rhs.paulis, rhs.probabilities)
+        return np.allclose(lprobs, rprobs) and lpaulis == rpaulis
 
     @property
     def size(self):
@@ -175,22 +175,6 @@ class PauliError(BaseQuantumError, TolerancesMixin):
         simplified = SparsePauliOp(self.paulis, self.probabilities).simplify(atol=atol, rtol=rtol)
         return PauliError(simplified.paulis, simplified.coeffs.real)
 
-    def _sort(self) -> PauliError:
-        """Sort terms in a way that can be used for equality checks between simplified error ops"""
-        # Get packed bigs tableau of Paulis
-        # Use numpy sorted and enumerate to implement an argsort of
-        # rows based on python tuple sorting
-        tableau = np.hstack([self.paulis.x, self.paulis.z])
-        packed = np.packbits(tableau, axis=1)
-        index = [
-            tup[-1]
-            for tup in sorted(
-                (*row.tolist(), prob, i)
-                for i, (row, prob) in enumerate(zip(packed, self.probabilities))
-            )
-        ]
-        return PauliError(self.paulis[index], self.probabilities[index])
-
     def to_quantum_error(self) -> "QuantumError":
         """Convert to a general QuantumError object."""
         if not self.is_cptp():
@@ -252,3 +236,24 @@ class PauliError(BaseQuantumError, TolerancesMixin):
             paulis.append(inst[0]["params"][0])
 
         return PauliError(paulis, probabilities)
+
+
+def sort_paulis(paulis: PauliList, coeffs: Sequence | None = None) -> tuple[PauliList, Sequence]:
+    """Sort terms in a way that can be used for equality checks between simplified error ops"""
+    if coeffs is not None and len(coeffs) != len(paulis):
+        raise ValueError("paulis and coefffs must have the same length.")
+
+    # Get packed bigs tableau of Paulis
+    # Use numpy sorted and enumerate to implement an argsort of
+    # rows based on python tuple sorting
+    tableau = np.hstack([paulis.x, paulis.z])
+    packed = np.packbits(tableau, axis=1)
+    if coeffs is None:
+        unsorted = ((*row.tolist(), i) for i, row in enumerate(packed))
+    else:
+        unsorted = ((*row.tolist(), coeff, i) for i, (row, coeff) in enumerate(zip(packed, coeffs)))
+    index = [tup[-1] for tup in sorted(unsorted)]
+
+    if coeffs is None:
+        return paulis[index]
+    return paulis[index], coeffs[index]
