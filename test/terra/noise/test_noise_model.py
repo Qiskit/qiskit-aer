@@ -21,7 +21,7 @@ import numpy as np
 from qiskit_aer.backends import AerSimulator
 from qiskit_aer.noise import NoiseModel
 from qiskit_aer.noise.device.models import _excited_population
-from qiskit_aer.noise.errors import QuantumError
+from qiskit_aer.noise.errors import PauliError
 from qiskit_aer.noise.errors.standard_errors import amplitude_damping_error
 from qiskit_aer.noise.errors.standard_errors import kraus_error
 from qiskit_aer.noise.errors.standard_errors import pauli_error
@@ -31,8 +31,6 @@ from qiskit_aer.utils.noise_transformation import transform_noise_model
 
 import qiskit
 from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit.circuit.library.generalized_gates import PauliGate
-from qiskit.circuit.library.standard_gates import IGate, XGate
 from qiskit.compiler import transpile
 from qiskit.transpiler import CouplingMap, Target
 from qiskit.providers import QubitProperties, BackendV2, Options
@@ -418,6 +416,38 @@ class TestNoiseModel(QiskitAerTestCase):
         qc = transpile(circ, backend)
         result = AerSimulator().run(qc, noise_model=noise_model).result()
         self.assertTrue(result.success)
+
+    def test_pauli_error_equiv(self):
+        circ = QuantumCircuit(2)
+        circ.h(0)
+        circ.cx(0, 1)
+        circ.measure_all()
+
+        perr1 = PauliError(["I", "X"], [0.9, 0.1])
+        perr2 = PauliError(["II", "XX"], [0.9, 0.1])
+
+        noise_model1 = NoiseModel()
+        noise_model1.add_all_qubit_quantum_error(perr1, ["h"])
+        noise_model1.add_all_qubit_quantum_error(perr2, ["cx"])
+
+        noise_model2 = NoiseModel()
+        noise_model2.add_all_qubit_quantum_error(perr1.to_quantum_error(), ["h"])
+        noise_model2.add_all_qubit_quantum_error(perr2.to_quantum_error(), ["cx"])
+
+        seed = 1234
+        result1 = (
+            AerSimulator()
+            .run(circ, shots=5000, noise_model=noise_model1, seed_simulator=seed)
+            .result()
+        )
+        result2 = (
+            AerSimulator()
+            .run(circ, shots=5000, noise_model=noise_model2, seed_simulator=seed)
+            .result()
+        )
+        self.assertTrue(result1.success)
+        self.assertTrue(result2.success)
+        self.assertEqual(result1.get_counts(), result2.get_counts())
 
 
 if __name__ == "__main__":
