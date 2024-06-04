@@ -163,7 +163,6 @@ Here is a basic example:
 .. code:: python
 
   import qiskit
-  from qiskit.primitives import BackendSampler
   from qiskit_aer import AerSimulator
 
   # Generate 3-qubit GHZ state
