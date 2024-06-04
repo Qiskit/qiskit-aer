@@ -163,6 +163,7 @@ Here is a basic example:
 .. code:: python
 
   import qiskit
+  from qiskit.primitives import BackendSampler
   from qiskit_aer import AerSimulator
 
   # Generate 3-qubit GHZ state
@@ -174,9 +175,10 @@ Here is a basic example:
 
   # Construct an ideal simulator
   aersim = AerSimulator()
+  job = aersim.run(circ)
 
   # Perform an ideal simulation
-  result_ideal = qiskit.execute(circ, aersim).result()
+  result_ideal = job.result()
   counts_ideal = result_ideal.get_counts(0)
   print('Counts(ideal):', counts_ideal)
   # Counts(ideal): {'000': 493, '111': 531}
