@@ -94,6 +94,14 @@ class PauliError(BaseQuantumError, TolerancesMixin):
         """Return the Pauli channel probabilities"""
         return self._probabilities
 
+    @property
+    def settings(self):
+        """Settings for IBM RuntimeEncoder JSON encoding"""
+        return {
+            "paulis": self.paulis,
+            "probabilities": self.probabilities,
+        }
+
     def ideal(self) -> bool:
         """Return True if this error object is composed only of identity operations.
         Note that the identity check is best effort and up to global phase."""
