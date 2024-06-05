@@ -354,6 +354,7 @@ class AerBackend(Backend, ABC):
         """Set maximun number of qubits to be used for this backend."""
         if self._target is None:
             self._configuration.n_qubits = max_qubits
+            self._set_configuration_option("n_qubits", max_qubits)
 
     def clear_options(self):
         """Reset the simulator options to default values."""
