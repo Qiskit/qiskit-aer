@@ -1050,10 +1050,10 @@ std::vector<SampleVector> State<statevec_t>::sample_measure(const reg_t &qubits,
   std::vector<SampleVector> all_samples(shots, SampleVector(qubits.size()));
 
   auto convert_to_bit_lambda = [this, &allbit_samples, &all_samples, shots,
-                                qubits, npar](int_t i) {
+                                qubits, npar](int_t k) {
     uint_t ishot, iend;
-    ishot = shots * i / npar;
-    iend = shots * (i + 1) / npar;
+    ishot = shots * k / npar;
+    iend = shots * (k + 1) / npar;
     for (; ishot < iend; ishot++) {
       SampleVector allbit_sample;
       allbit_sample.from_uint(allbit_samples[ishot], qubits.size());
