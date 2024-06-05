@@ -419,25 +419,6 @@ class TestNoiseModel(QiskitAerTestCase):
         result = AerSimulator().run(qc, noise_model=noise_model).result()
         self.assertTrue(result.success)
 
-    def test_from_dict(self):
-        noise_ops_1q = [((IGate(), [0]), 0.9), ((XGate(), [0]), 0.1)]
-
-        noise_ops_2q = [
-            ((PauliGate("II"), [0, 1]), 0.9),
-            ((PauliGate("IX"), [0, 1]), 0.045),
-            ((PauliGate("XI"), [0, 1]), 0.045),
-            ((PauliGate("XX"), [0, 1]), 0.01),
-        ]
-
-        noise_model = NoiseModel()
-        with self.assertWarns(DeprecationWarning):
-            noise_model.add_quantum_error(QuantumError(noise_ops_1q), "h", [0])
-            noise_model.add_quantum_error(QuantumError(noise_ops_1q), "h", [1])
-            noise_model.add_quantum_error(QuantumError(noise_ops_2q), "cx", [0, 1])
-            noise_model.add_quantum_error(QuantumError(noise_ops_2q), "cx", [1, 0])
-            deserialized = NoiseModel.from_dict(noise_model.to_dict())
-            self.assertEqual(noise_model, deserialized)
-
 
 if __name__ == "__main__":
     unittest.main()
