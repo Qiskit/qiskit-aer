@@ -39,17 +39,26 @@ namespace AER {
 #include <cassert>
 
 
-#define HANDLE_ERROR(x)                                           \
-{ const auto err = x;                                             \
-if( err != CUTENSORNET_STATUS_SUCCESS )                           \
-{ printf("Error: %s in line %d\n", cutensornetGetErrorString(err), __LINE__); return err; } \
-};
+#define HANDLE_ERROR(x)                                                        \
+  {                                                                            \
+    const auto err = x;                                                        \
+    if (err != CUTENSORNET_STATUS_SUCCESS) {                                   \
+      std::stringstream str;                                                   \
+      str << "ERROR TensorNet::contractor : "                                  \
+          << cutensornetGetErrorString(err);                                   \
+      throw std::runtime_error(str.str());                                     \
+    }                                                                          \
+  };
 
-#define HANDLE_CUDA_ERROR(x)                                      \
-{  const auto err = x;                                            \
-   if( err != cudaSuccess )                                       \
-   { printf("Error: %s in line %d\n", cudaGetErrorString(err), __LINE__); return err; } \
-};
+#define HANDLE_CUDA_ERROR(x)                                                   \
+  {                                                                            \
+    const auto err = x;                                                        \
+    if (err != cudaSuccess) {                                                  \
+      std::stringstream str;                                                   \
+      str << "ERROR TensorNet::contractor : " << cudaGetErrorString(err);      \
+      throw std::runtime_error(str.str());                                     \
+    }                                                                          \
+  };
 
 
 #endif // AER_THRUST_CUDA
@@ -712,7 +721,7 @@ void lapack_csvd_wrapper(cmatrix_t &A, cmatrix_t &U, rvector_t &S,
   }
 }
 
-#ifdef AER_THRUST_CUDA
+//#ifdef AER_THRUST_CUDA
 void cutensor_csvd_wrapper(cmatrix_t &A, cmatrix_t &U, rvector_t &S, cmatrix_t &V) 
 {
 
@@ -736,28 +745,22 @@ void cutensor_csvd_wrapper(cmatrix_t &A, cmatrix_t &U, rvector_t &S, cmatrix_t &
    size_t elementsS = 400;
    size_t elementsV = 160000;
 
-   size_t sizeT = sizeof(floatType) * elementsT;
-   size_t sizeU = sizeof(floatType) * elementsU;
-   size_t sizeS = sizeof(floatType) * elementsS;
-   size_t sizeV = sizeof(floatType) * elementsS;
-
-   floatType *T = (floatType*) malloc(sizeT);
-   floatType *U = (floatType*) malloc(sizeU);
-   floatType *S = (floatType*) malloc(sizeS);
-   floatType *V = (floatType*) malloc(sizeV);
-
+   size_t sizeA = sizeof(A);
+   size_t sizeU = sizeof(U);
+   size_t sizeS = sizeof(S);
+   size_t sizeV = sizeof(V);
 
    void* D_T;
    void* D_U;
    void* D_S;
    void* D_V;
 
-   HANDLE_CUDA_ERROR( cudaMalloc((void**) &D_T, sizeT) );
+   HANDLE_CUDA_ERROR( cudaMalloc((void**) &D_T, sizeA) );
    HANDLE_CUDA_ERROR( cudaMalloc((void**) &D_U, sizeU) );
    HANDLE_CUDA_ERROR( cudaMalloc((void**) &D_S, sizeS) );
    HANDLE_CUDA_ERROR( cudaMalloc((void**) &D_V, sizeV) );
 
-   HANDLE_CUDA_ERROR( cudaMemcpy(D_T, T, sizeT, cudaMemcpyHostToDevice) );
+   HANDLE_CUDA_ERROR( cudaMemcpy(D_T, A, sizeA, cudaMemcpyHostToDevice) );
 
    cudaStream_t stream;
    HANDLE_CUDA_ERROR( cudaStreamCreate(&stream) );
@@ -925,10 +928,6 @@ void cutensor_csvd_wrapper(cmatrix_t &A, cmatrix_t &U, rvector_t &S, cmatrix_t &
    HANDLE_ERROR( cutensornetDestroyWorkspaceDescriptor(workDesc) );
    HANDLE_ERROR( cutensornetDestroy(handle) );
 
-   if (T) free(T);
-   if (U) free(U);
-   if (S) free(S);
-   if (V) free(V);
    if (D_T) cudaFree(D_T);
    if (D_U) cudaFree(D_U);
    if (D_S) cudaFree(D_S);
@@ -937,7 +936,7 @@ void cutensor_csvd_wrapper(cmatrix_t &A, cmatrix_t &U, rvector_t &S, cmatrix_t &
    if (hostWork) free(hostWork);
 
 }
-#endif // AER_THRUST_CUDA
+//#endif // AER_THRUST_CUDA
 
 
 } // namespace AER
