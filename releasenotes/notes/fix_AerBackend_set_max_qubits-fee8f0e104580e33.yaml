@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    `AerBackend.set_max_qubits` did not update `n_qubits` in configuration
+    that was overwritten by setting backend option `method` at initialization.
+    This fix set `n_qubits` in configuration by calling `_set_configuration_option`
