@@ -55,9 +55,9 @@ const Operations::OpSet StateOpSet(
      "sdg",  "t",     "tdg",    "r",     "rx",    "ry",       "rz",
      "rxx",  "ryy",   "rzz",    "rzx",   "ccx",   "ccz",      "mcx",
      "mcy",  "mcz",   "mcu1",   "mcu2",  "mcu3",  "mcswap",   "mcphase",
-     "mcr",  "mcrx",  "mcry",   "mcry",  "sx",    "sxdg",     "csx",
+     "mcr",  "mcrx",  "mcry",   "mcrz",  "sx",    "sxdg",     "csx",
      "mcsx", "csxdg", "mcsxdg", "delay", "pauli", "mcx_gray", "cu",
-     "mcu",  "mcp",   "ecr",    "cswap"});
+     "mcu",  "mcp",   "ecr",    "cswap", "crx",   "cry",      "crz"});
 // clang-format on
 
 // Allowed gates enum class
@@ -345,6 +345,9 @@ const stringmap_t<Gates> State<tensor_net_t>::gateset_(
      {"csx", Gates::mcsx},     // Controlled-Sqrt(X) gate
      {"csxdg", Gates::mcsxdg}, // Controlled-Sqrt(X)dg gate
      {"ecr", Gates::ecr},      // ECR Gate
+     {"crx", Gates::mcrx},     // Controlled X-rotation gate
+     {"cry", Gates::mcry},     // Controlled Y-rotation gate
+     {"crz", Gates::mcrz},     // Controlled Z-rotation gate
      /* 3-qubit gates */
      {"ccx", Gates::mcx},      // Controlled-CX gate (Toffoli)
      {"ccz", Gates::mcz},      // Controlled-CZ gate

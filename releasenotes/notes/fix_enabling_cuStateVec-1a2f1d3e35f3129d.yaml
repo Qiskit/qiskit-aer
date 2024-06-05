@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    The option `cuStateVec_enable=True` was not set correctly.
+    This fix set this option to statevector, unitary and density_matrix
+    simulator states classes before allocating their memory

@@ -431,11 +431,13 @@ class AerCompiler:
             case_data = CaseData(
                 label=f"{switch_name}_{i}",
                 args_list=[
-                    self._convert_jump_conditional(
-                        (instruction.operation.target, switch_val), bit_map
+                    (
+                        self._convert_jump_conditional(
+                            (instruction.operation.target, switch_val), bit_map
+                        )
+                        if switch_val != CASE_DEFAULT
+                        else []
                     )
-                    if switch_val != CASE_DEFAULT
-                    else []
                     for switch_val in case[0]
                 ],
                 bit_map={
@@ -847,17 +849,43 @@ def _assemble_op(
 
     aer_cond_expr = conditional_expr.accept(_AssembleExprImpl(circ)) if conditional_expr else None
 
+    # check if there is ctrl_state option
+    ctrl_state_pos = name.find("_o")
+    if ctrl_state_pos > 0:
+        gate_name = name[0:ctrl_state_pos]
+    else:
+        gate_name = name
+
     num_of_aer_ops = 1
     # fmt: off
-    if basis_gates is None and name in {
+    if (gate_name in {
         "ccx", "ccz", "cp", "cswap", "csx", "cx", "cy", "cz", "delay", "ecr", "h",
         "id", "mcp", "mcphase", "mcr", "mcrx", "mcry", "mcrz", "mcswap", "mcsx",
         "mcu", "mcu1", "mcu2", "mcu3", "mcx", "mcx_gray", "mcy", "mcz", "p", "r",
         "rx", "rxx", "ry", "ryy", "rz", "rzx", "rzz", "s", "sdg", "swap", "sx", "sxdg",
         "t", "tdg", "u", "x", "y", "z", "u1", "u2", "u3", "cu", "cu1", "cu2", "cu3",
-    }:
-        aer_circ.gate(name, qubits, params, [], conditional_reg, aer_cond_expr,
-                      label if label else name)
+        "crx", "cry", "crz",
+    }) and (basis_gates is None or gate_name in basis_gates):
+        if ctrl_state_pos > 0:
+            # Add x gates for ctrl qubits which state=0
+            ctrl_state = int(name[ctrl_state_pos+2:len(name)])
+            for i in range(len(qubits)):
+                if (ctrl_state >> i) & 1 == 0:
+                    qubits_i = [qubits[len(qubits) - 1 - i]]
+                    aer_circ.gate("x", qubits_i, params, [], conditional_reg, aer_cond_expr,
+                                  label if label else "x")
+                    num_of_aer_ops += 1
+            aer_circ.gate(gate_name, qubits, params, [], conditional_reg, aer_cond_expr,
+                          label if label else gate_name)
+            for i in range(len(qubits)):
+                if (ctrl_state >> i) & 1 == 0:
+                    qubits_i = [qubits[len(qubits) - 1 - i]]
+                    aer_circ.gate("x", qubits_i, params, [], conditional_reg, aer_cond_expr,
+                                  label if label else "x")
+                    num_of_aer_ops += 1
+        else:
+            aer_circ.gate(name, qubits, params, [], conditional_reg, aer_cond_expr,
+                          label if label else name)
     elif name == "measure":
         if is_conditional:
             aer_circ.measure(qubits, clbits, clbits)
@@ -949,9 +977,6 @@ def _assemble_op(
         aer_circ.mark(qubits, params)
     elif name == "qerror_loc":
         aer_circ.set_qerror_loc(qubits, label if label else name, conditional_reg, aer_cond_expr)
-    elif basis_gates is not None and name in basis_gates:
-        aer_circ.gate(name, qubits, params, [], conditional_reg, aer_cond_expr,
-                      label if label else name)
     elif name in ("for_loop", "while_loop", "if_else"):
         raise AerError(
             "control-flow instructions must be converted " f"to jump and mark instructions: {name}"

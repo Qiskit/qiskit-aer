@@ -219,10 +219,10 @@ class AerJobSet(Job):
                     logger.warning("AerJobSet %s Error: %s", aer_job.name(), result.header)
                 else:
                     logger.warning("AerJobSet %s did not return a result", aer_job.name())
-        except JobError:
+        except JobError as ex:
             raise JobError(
                 "Timeout while waiting for the results of experiment {}".format(aer_job.name())
-            )
+            ) from ex
 
         if timeout:
             timeout = original_timeout - (time.time() - start_time)

@@ -42,14 +42,16 @@ const Operations::OpSet StateOpSet(
      Operations::OpType::jump, Operations::OpType::mark,
      Operations::OpType::store},
     // Gates
-    {"u1",   "u2",     "u3",     "u",      "U",     "CX",    "cx",   "cz",
-     "cy",   "cp",     "cu1",    "cu2",    "cu3",   "swap",  "id",   "p",
-     "x",    "y",      "z",      "h",      "s",     "sdg",   "t",    "tdg",
-     "r",    "rx",     "ry",     "rz",     "rxx",   "ryy",   "rzz",  "rzx",
-     "ccx",  "ccz",    "cswap",  "mcx",    "mcy",   "mcz",   "mcu1", "mcu2",
-     "mcu3", "mcswap", "mcr",    "mcrx",   "mcry",  "mcry",  "sx",   "sxdg",
-     "csx",  "mcsx",   "csxdg",  "mcsxdg", "delay", "pauli", "cu",   "mcu",
-     "mcp",  "ecr",    "mcphase"});
+    {
+        "u1",   "u2",     "u3",      "u",      "U",     "CX",    "cx",   "cz",
+        "cy",   "cp",     "cu1",     "cu2",    "cu3",   "swap",  "id",   "p",
+        "x",    "y",      "z",       "h",      "s",     "sdg",   "t",    "tdg",
+        "r",    "rx",     "ry",      "rz",     "rxx",   "ryy",   "rzz",  "rzx",
+        "ccx",  "ccz",    "cswap",   "mcx",    "mcy",   "mcz",   "mcu1", "mcu2",
+        "mcu3", "mcswap", "mcr",     "mcrx",   "mcry",  "mcrz",  "sx",   "sxdg",
+        "csx",  "mcsx",   "csxdg",   "mcsxdg", "delay", "pauli", "cu",   "mcu",
+        "mcp",  "ecr",    "mcphase", "crx",    "cry",   "crz",
+    });
 
 // Allowed gates enum class
 enum class Gates {
@@ -254,6 +256,9 @@ const stringmap_t<Gates> State<unitary_matrix_t>::gateset_({
     {"csx", Gates::mcsx},     // Controlled-Sqrt(X) gate
     {"csxdg", Gates::mcsxdg}, // Controlled-Sqrt(X)dg gate
     {"ecr", Gates::ecr},      // ECR Gate
+    {"crx", Gates::mcrx},     // Controlled X-rotation gate
+    {"cry", Gates::mcry},     // Controlled Y-rotation gate
+    {"crz", Gates::mcrz},     // Controlled Z-rotation gate
     // Three-qubit gates
     {"ccx", Gates::mcx},      // Controlled-CX gate (Toffoli)
     {"ccz", Gates::mcz},      // Controlled-CZ gate
@@ -384,6 +389,9 @@ bool State<unitary_matrix_t>::allocate(uint_t num_qubits, uint_t block_bits,
     BaseState::qreg_.set_max_matrix_bits(BaseState::max_matrix_qubits_);
 
   BaseState::qreg_.set_target_gpus(BaseState::target_gpus_);
+#ifdef AER_CUSTATEVEC
+  BaseState::qreg_.cuStateVec_enable(BaseState::cuStateVec_enable_);
+#endif
   BaseState::qreg_.chunk_setup(block_bits * 2, num_qubits * 2, 0, 1);
 
   return true;

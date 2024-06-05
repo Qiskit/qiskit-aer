@@ -144,7 +144,7 @@ class AerBackend(Backend, ABC):
         ]
         return parameterizations
 
-    # pylint: disable=arguments-differ
+    # pylint: disable=arguments-renamed
     def run(self, circuits, validate=False, parameter_binds=None, **run_options):
         """Run circuits on the backend.
 
@@ -244,7 +244,7 @@ class AerBackend(Backend, ABC):
             )
         else:
             raise TypeError(
-                "bad input to run() function;" "circuits must be either circuits or schedules"
+                "bad input to run() function; circuits must be either circuits or schedules"
             )
 
     def _run_circuits(self, circuits, parameter_binds, **run_options):
@@ -458,7 +458,7 @@ class AerBackend(Backend, ABC):
             run_options["parameterizations"] = self._convert_binds(
                 circuits, parameter_binds, idx_maps
             )
-        elif not all([len(circuit.parameters) == 0 for circuit in circuits]):
+        elif not all(len(circuit.parameters) == 0 for circuit in circuits):
             raise AerError("circuits have parameters but parameter_binds is not specified.")
 
         for circ_id, aer_circuit in enumerate(aer_circuits):

@@ -61,10 +61,10 @@ const Operations::OpSet StateOpSet(
      OpType::set_mps,         OpType::set_statevec,   OpType::jump,
      OpType::mark,            OpType::store},
     // Gates
-    {"id",  "x",    "y",   "z",   "s",     "sdg",   "h",    "t",  "tdg", "p",
-     "u1",  "u2",   "u3",  "u",   "U",     "CX",    "cx",   "cy", "cz",  "cp",
-     "cu1", "swap", "ccx", "sx",  "sxdg",  "r",     "rx",   "ry", "rz",  "rxx",
-     "ryy", "rzz",  "rzx", "csx", "delay", "cswap", "pauli"});
+    {"id",  "x",    "y",   "z",   "s",     "sdg",   "h",     "t",  "tdg", "p",
+     "u1",  "u2",   "u3",  "u",   "U",     "CX",    "cx",    "cy", "cz",  "cp",
+     "cu1", "swap", "ccx", "sx",  "sxdg",  "r",     "rx",    "ry", "rz",  "rxx",
+     "ryy", "rzz",  "rzx", "csx", "delay", "cswap", "pauli", "ecr"});
 // clang-format on
 
 //=========================================================================
@@ -283,6 +283,7 @@ const stringmap_t<Gates>
                      {"ryy", Gates::ryy},   // Pauli-YY rotation gate
                      {"rzz", Gates::rzz},   // Pauli-ZZ rotation gate
                      {"rzx", Gates::rzx},   // Pauli-ZX rotation gate
+                     {"ecr", Gates::ecr},   // ECR Gate
                      /* Three-qubit gates */
                      {"ccx", Gates::ccx}, // Controlled-CX gate (Toffoli)
                      {"cswap", Gates::cswap},
@@ -659,6 +660,9 @@ void State::apply_gate(const Operations::Op &op) {
     break;
   case Gates::pauli:
     apply_pauli(op.qubits, op.string_params[0]);
+    break;
+  case Gates::ecr:
+    qreg_.apply_matrix(op.qubits, Linalg::Matrix::ECR);
     break;
   default:
     // We shouldn't reach here unless there is a bug in gateset

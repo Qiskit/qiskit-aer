@@ -41,8 +41,8 @@ const Operations::OpSet StateOpSet(
       OpType::set_stabilizer,   OpType::jump, OpType::mark,
      OpType::store},
     // Gates
-    {"CX", "cx",  "cy", "cz",   "swap",  "id",    "x",   "y",  "z",  "h",
-     "s",  "sdg", "sx", "sxdg", "delay", "pauli", "ecr", "rx", "ry", "rz"});
+    {"CX", "cx", "cy", "cz", "swap", "id", "x", "y", "z", "h", "s", "sdg", "sx",
+     "sxdg", "delay", "pauli", "ecr", "rz"});
 // clang-format on
 
 enum class Gates {
@@ -61,8 +61,6 @@ enum class Gates {
   swap,
   pauli,
   ecr,
-  rx,
-  ry,
   rz
 };
 
@@ -206,6 +204,7 @@ const stringmap_t<Gates> State::gateset_({
     {"h", Gates::h},       // Hadamard gate (X + Z / sqrt(2))
     {"sx", Gates::sx},     // Sqrt X gate.
     {"sxdg", Gates::sxdg}, // Inverse Sqrt X gate.
+    {"rz", Gates::rz},     // RZ gate (only support k * pi/2 cases)
     // Two-qubit gates
     {"CX", Gates::cx},       // Controlled-X gate (CNOT)
     {"cx", Gates::cx},       // Controlled-X gate (CNOT),
@@ -214,9 +213,6 @@ const stringmap_t<Gates> State::gateset_({
     {"swap", Gates::swap},   // SWAP gate
     {"pauli", Gates::pauli}, // Pauli gate
     {"ecr", Gates::ecr},     // ECR gate
-    {"rx", Gates::rx},       // RX gate (only support k * pi/2 cases)
-    {"ry", Gates::ry},       // RY gate (only support k * pi/2 cases)
-    {"rz", Gates::rz}        // RZ gate (only support k * pi/2 cases)
 });
 
 //============================================================================
@@ -261,8 +257,8 @@ void State::set_config(const Config &config) {
 bool State::validate_parameters(const std::vector<Operations::Op> &ops) const {
   for (uint_t i = 0; i < ops.size(); i++) {
     if (ops[i].type == OpType::gate) {
-      // check parameter of R gates
-      if (ops[i].name == "rx" || ops[i].name == "ry" || ops[i].name == "rz") {
+      // check parameter of RZ gates
+      if (ops[i].name == "rz") {
         double pi2 = std::real(ops[i].params[0]) * 2.0 / M_PI;
         double pi2_int = (double)std::round(pi2);
 
@@ -391,45 +387,14 @@ void State::apply_gate(const Operations::Op &op) {
     apply_pauli(op.qubits, op.string_params[0]);
     break;
   case Gates::ecr:
-    BaseState::qreg_.append_h(op.qubits[1]);
     BaseState::qreg_.append_s(op.qubits[0]);
-    BaseState::qreg_.append_z(op.qubits[1]); // sdg(1)
-    BaseState::qreg_.append_s(op.qubits[1]); // sdg(1)
+    BaseState::qreg_.append_z(op.qubits[1]);
+    BaseState::qreg_.append_s(op.qubits[1]);
     BaseState::qreg_.append_h(op.qubits[1]);
+    BaseState::qreg_.append_z(op.qubits[1]);
+    BaseState::qreg_.append_s(op.qubits[1]);
     BaseState::qreg_.append_cx(op.qubits[0], op.qubits[1]);
     BaseState::qreg_.append_x(op.qubits[0]);
-    BaseState::qreg_.append_x(op.qubits[1]);
-    break;
-  case Gates::rx:
-    pi2 = (int_t)std::round(std::real(op.params[0]) * 2.0 / M_PI) & 3;
-    if (pi2 == 1) {
-      // HSH
-      BaseState::qreg_.append_h(op.qubits[0]);
-      BaseState::qreg_.append_s(op.qubits[0]);
-      BaseState::qreg_.append_h(op.qubits[0]);
-    } else if (pi2 == 2) {
-      // X
-      BaseState::qreg_.append_x(op.qubits[0]);
-    } else if (pi2 == 3) {
-      // HSdgH
-      BaseState::qreg_.append_h(op.qubits[0]);
-      BaseState::qreg_.append_z(op.qubits[0]);
-      BaseState::qreg_.append_s(op.qubits[0]);
-      BaseState::qreg_.append_h(op.qubits[0]);
-    }
-    break;
-  case Gates::ry:
-    pi2 = (int_t)std::round(std::real(op.params[0]) * 2.0 / M_PI) & 3;
-    if (pi2 == 1) {
-      BaseState::qreg_.append_h(op.qubits[0]);
-      BaseState::qreg_.append_x(op.qubits[0]);
-    } else if (pi2 == 2) {
-      // Y
-      BaseState::qreg_.append_y(op.qubits[0]);
-    } else if (pi2 == 3) {
-      BaseState::qreg_.append_x(op.qubits[0]);
-      BaseState::qreg_.append_h(op.qubits[0]);
-    }
     break;
   case Gates::rz:
     pi2 = (int_t)std::round(std::real(op.params[0]) * 2.0 / M_PI) & 3;

@@ -194,7 +194,7 @@ class QuantumError(BaseOperator, TolerancesMixin):
                 )
         if isinstance(op, list):
             if all(isinstance(aop, tuple) for aop in op):
-                num_qubits = max([max(qubits) for _, qubits in op]) + 1
+                num_qubits = max(max(qubits) for _, qubits in op) + 1
                 circ = QuantumCircuit(num_qubits)
                 for inst, qubits in op:
                     try:
