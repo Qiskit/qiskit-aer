@@ -26,7 +26,23 @@ from ..noiseerror import NoiseError
 
 
 class PauliError(BaseQuantumError, TolerancesMixin):
-    """A Pauli channel quantum error."""
+    r"""A Pauli channel quantum error.
+
+    This represents an N-qubit quantum error channel :math:`E(ρ) = \sum_j p_j P_j ρ P_j`
+    where :math:`P_j` are N-qubit :class:`~.Pauli` operators.
+
+    The list of Pauli terms are stored as a :class:`~.PauliList` and can be accessed
+    via the :attr:`paulis` attribute. The array of probabilities :math:`p_j` can be
+    accessed via the :attr:`probabilities` attribute.
+
+    .. note::
+
+        This operator can also represent a non-physical (non-CPTP) channel where some
+        probabilities are negative or don't sum to 1. Non-physical operators
+        cannot be converted to a :class:`~.QuantumError` or used in an
+        :class:`~.AerSimulator` simulation. You can check if an operator is physical
+        using the :meth:`is_cptp` method.
+    """
 
     def __init__(
         self,
