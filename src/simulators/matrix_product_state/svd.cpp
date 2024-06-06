@@ -782,15 +782,18 @@ void cutensor_csvd_wrapper(cmatrix_t &A, cmatrix_t &U, rvector_t &S, cmatrix_t &
    const int32_t numModesV = modesV.size();
 
    std::vector<int64_t> extentT{m, n}; // shape of T
-   std::vector<int64_t> extentU{m, m}; // shape of U
-   std::vector<int64_t> extentS{n}; // shape of S
-   std::vector<int64_t> extentV{n, n}; // shape of V
+   std::vector<int64_t> extentU{lda, lda}; // shape of U
+   std::vector<int64_t> extentS{lda}; // shape of S
+   std::vector<int64_t> extentV{min_dim, min_dim}; // shape of V
 
-   const int64_t* strides = NULL; // assuming fortran layout for all tensors
+   std::vector<int64_t> stridesT{n, 1};
+   std::vector<int64_t> stridesU{lda, 1};
+   std::vector<int64_t> stridesV{min_dim, 1};
 
-   HANDLE_ERROR( cutensornetCreateTensorDescriptor(handle, numModesIn, extentT.data(), strides, modesT.data(), typeData, &descTensorIn) );
-   HANDLE_ERROR( cutensornetCreateTensorDescriptor(handle, numModesU, extentU.data(), strides, modesU.data(), typeData, &descTensorU) );
-   HANDLE_ERROR( cutensornetCreateTensorDescriptor(handle, numModesV, extentV.data(), strides, modesV.data(), typeData, &descTensorV) );
+
+   HANDLE_ERROR( cutensornetCreateTensorDescriptor(handle, numModesIn, extentT.data(), stridesT.data(), modesT.data(), typeData, &descTensorIn) );
+   HANDLE_ERROR( cutensornetCreateTensorDescriptor(handle, numModesU, extentU.data(), stridesU.data(), modesU.data(), typeData, &descTensorU) );
+   HANDLE_ERROR( cutensornetCreateTensorDescriptor(handle, numModesV, extentV.data(), stridesV.data(), modesV.data(), typeData, &descTensorV) );
 
    cutensornetTensorSVDConfig_t svdConfig;
    HANDLE_ERROR( cutensornetCreateTensorSVDConfig(handle, &svdConfig) );
@@ -889,8 +892,8 @@ void cutensor_csvd_wrapper(cmatrix_t &A, cmatrix_t &U, rvector_t &S, cmatrix_t &
       // We here restore descTensorU/V to the original problem.
       HANDLE_ERROR( cutensornetDestroyTensorDescriptor(descTensorU) );
       HANDLE_ERROR( cutensornetDestroyTensorDescriptor(descTensorV) );
-      HANDLE_ERROR( cutensornetCreateTensorDescriptor(handle, numModesU, extentU.data(), strides, modesU.data(), typeData, &descTensorU) );
-      HANDLE_ERROR( cutensornetCreateTensorDescriptor(handle, numModesV, extentV.data(), strides, modesV.data(), typeData, &descTensorV) );
+      HANDLE_ERROR( cutensornetCreateTensorDescriptor(handle, numModesU, extentU.data(), stridesU.data(), modesU.data(), typeData, &descTensorU) );
+      HANDLE_ERROR( cutensornetCreateTensorDescriptor(handle, numModesV, extentV.data(), stridesV.data(), modesV.data(), typeData, &descTensorV) );
 
       HANDLE_ERROR( cutensornetTensorSVD(handle,
                         descTensorIn, D_T,
