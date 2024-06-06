@@ -51,7 +51,7 @@ class PauliLindbladError(BaseQuantumError, TolerancesMixin):
         e^{\sum_j r_j D_{P_j}} = \prod_j e^{r_j D_{P_j}}
         = prod_j \left( (1 - p_j) S_I + p_j S_{P_j} \right)
 
-    where :math:`p_j = \frac12 + \frac12 e^{-2 r_j}`.
+    where :math:`p_j = \frac12 - \frac12 e^{-2 r_j}`.
 
     .. note::
 
