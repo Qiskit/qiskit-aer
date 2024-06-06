@@ -742,11 +742,11 @@ void cutensor_csvd_wrapper(cmatrix_t &A, cmatrix_t &U, rvector_t &S, cmatrix_t &
    HANDLE_CUDA_ERROR( cudaGetDeviceProperties(&prop, deviceId) );
 
    typedef float floatType;
-   cudaDataType_t typeData = CUDA_R_32F;
+   cudaDataType_t typeData = CUDA_C_64F;
 
-   std::vector<int32_t> modesT{'m', 'n'}; // input
-   std::vector<int32_t> modesU{'m', 'm'};
-   std::vector<int32_t> modesV{'n', 'n'};  // SVD output
+   std::vector<int32_t> modesT{'a', 'b'}; // input
+   std::vector<int32_t> modesU{'c', 'd'};
+   std::vector<int32_t> modesV{'e', 'c'};  // SVD output
 
    size_t sizeA = sizeof(A);
    size_t sizeU = sizeof(U);
