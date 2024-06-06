@@ -724,8 +724,17 @@ void lapack_csvd_wrapper(cmatrix_t &A, cmatrix_t &U, rvector_t &S,
 //#ifdef AER_THRUST_CUDA
 void cutensor_csvd_wrapper(cmatrix_t &A, cmatrix_t &U, rvector_t &S, cmatrix_t &V) 
 {
+	const size_t m = A.GetRows(), n = A.GetColumns();
+      	const size_t min_dim = std::min(m, n);
+      	const size_t lda = std::max(m, n);
+      	size_t lwork = 2 * min_dim + lda;
+      
+	U.resize(m, m);
+      	V.resize(n, n);
 
-   const size_t cuTensornetVersion = cutensornetGetVersion();
+      	complex_t *cutensor_A = A.move_to_buffer(), *cutensor_U = U.move_to_buffer(), *cutensor_V = V.move_to_buffer();
+     
+	const size_t cuTensornetVersion = cutensornetGetVersion();
 
    cudaDeviceProp prop;
    int deviceId{-1};
@@ -750,6 +759,8 @@ void cutensor_csvd_wrapper(cmatrix_t &A, cmatrix_t &U, rvector_t &S, cmatrix_t &
    size_t sizeS = sizeof(S);
    size_t sizeV = sizeof(V);
 
+   double *cutensor_S = (double*)malloc(sizeof(S));
+
    void* D_T;
    void* D_U;
    void* D_S;
@@ -760,7 +771,7 @@ void cutensor_csvd_wrapper(cmatrix_t &A, cmatrix_t &U, rvector_t &S, cmatrix_t &
    HANDLE_CUDA_ERROR( cudaMalloc((void**) &D_S, sizeS) );
    HANDLE_CUDA_ERROR( cudaMalloc((void**) &D_V, sizeV) );
 
-   HANDLE_CUDA_ERROR( cudaMemcpy(D_T, A, sizeA, cudaMemcpyHostToDevice) );
+   HANDLE_CUDA_ERROR( cudaMemcpy(D_T, cutensor_A, sizeA, cudaMemcpyHostToDevice) );
 
    cudaStream_t stream;
    HANDLE_CUDA_ERROR( cudaStreamCreate(&stream) );
@@ -900,9 +911,17 @@ void cutensor_csvd_wrapper(cmatrix_t &A, cmatrix_t &U, rvector_t &S, cmatrix_t &
    }
 
 
-   HANDLE_CUDA_ERROR( cudaMemcpyAsync(U, D_U, sizeU, cudaMemcpyDeviceToHost) );
-   HANDLE_CUDA_ERROR( cudaMemcpyAsync(S, D_S, sizeS, cudaMemcpyDeviceToHost) );
-   HANDLE_CUDA_ERROR( cudaMemcpyAsync(V, D_V, sizeV, cudaMemcpyDeviceToHost) );
+   HANDLE_CUDA_ERROR( cudaMemcpyAsync(cutensor_U, D_U, sizeU, cudaMemcpyDeviceToHost) );
+   HANDLE_CUDA_ERROR( cudaMemcpyAsync(cutensor_S, D_S, sizeS, cudaMemcpyDeviceToHost) );
+   HANDLE_CUDA_ERROR( cudaMemcpyAsync(cutensor_V, D_V, sizeV, cudaMemcpyDeviceToHost) );
+
+   S.clear();
+   for (int i = 0; i < min_dim; i++)
+	   S.push_back(cutensor_S[i]);
+
+   A = cmatrix_t::move_from_buffer(m, n, cutensor_A);
+   U = cmatrix_t::move_from_buffer(m, m, cutensor_U);
+   V = cmatrix_t::move_from_buffer(n, n, cutensor_V);
 
    /*************************************
    * Query runtime truncation information

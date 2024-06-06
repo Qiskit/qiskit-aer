@@ -49,6 +49,9 @@ void qiskit_csvd_wrapper(cmatrix_t &C, cmatrix_t &U, rvector_t &S,
 // Lapack call
 void lapack_csvd_wrapper(cmatrix_t &C, cmatrix_t &U, rvector_t &S,
                          cmatrix_t &V);
+// cutensor call
+void cutensor_csvd_wrapper(cmatrix_t &C, cmatrix_t &U, rvector_t &S,
+			cmatrix_t &V);
 
 void validate_SVD_result(const cmatrix_t &A, const cmatrix_t &U,
                          const rvector_t &S, const cmatrix_t &V);
