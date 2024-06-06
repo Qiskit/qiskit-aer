@@ -713,7 +713,7 @@ void lapack_csvd_wrapper(cmatrix_t &A, cmatrix_t &U, rvector_t &S,
   }
 }
 
-// #ifdef AER_THRUST_CUDA
+#ifdef AER_THRUST_CUDA
 void cutensor_csvd_wrapper(cmatrix_t &A, cmatrix_t &U, rvector_t &S,
                            cmatrix_t &V) {
   const int64_t m = A.GetRows(), n = A.GetColumns();
@@ -906,6 +906,8 @@ void cutensor_csvd_wrapper(cmatrix_t &A, cmatrix_t &U, rvector_t &S,
   U = cmatrix_t::move_from_buffer(lda, lda, cutensor_U);
   V = cmatrix_t::move_from_buffer(min_dim, min_dim, cutensor_V);
 
+  validate_SVD_result(A, U, S, V);
+
   /*************************************
    * Query runtime truncation information
    **************************************/
@@ -949,6 +951,6 @@ void cutensor_csvd_wrapper(cmatrix_t &A, cmatrix_t &U, rvector_t &S,
   if (hostWork)
     free(hostWork);
 }
-// #endif // AER_THRUST_CUDA
+#endif // AER_THRUST_CUDA
 
 } // namespace AER
