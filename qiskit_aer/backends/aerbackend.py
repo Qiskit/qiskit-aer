@@ -33,7 +33,7 @@ from qiskit.transpiler import CouplingMap
 from ..aererror import AerError
 from ..jobs import AerJob, AerJobSet, split_qobj
 from ..noise.noise_model import NoiseModel, QuantumErrorLocation
-from ..noise.errors.quantum_error import QuantumChannelInstruction
+from ..noise.errors.base_quantum_error import QuantumChannelInstruction
 from .aer_compiler import compile_circuit, assemble_circuits, generate_aer_config
 from .backend_utils import format_save_type, circuit_optypes
 from .name_mapping import NAME_MAPPING
