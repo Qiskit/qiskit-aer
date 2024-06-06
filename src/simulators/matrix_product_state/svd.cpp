@@ -724,10 +724,10 @@ void lapack_csvd_wrapper(cmatrix_t &A, cmatrix_t &U, rvector_t &S,
 //#ifdef AER_THRUST_CUDA
 void cutensor_csvd_wrapper(cmatrix_t &A, cmatrix_t &U, rvector_t &S, cmatrix_t &V) 
 {
-	const size_t m = A.GetRows(), n = A.GetColumns();
-      	const size_t min_dim = std::min(m, n);
-      	const size_t lda = std::max(m, n);
-      	size_t lwork = 2 * min_dim + lda;
+	const int64_t m = A.GetRows(), n = A.GetColumns();
+      	const int64_t min_dim = std::min(m, n);
+      	const int64_t lda = std::max(m, n);
+      	int64_t lwork = 2 * min_dim + lda;
       
 	U.resize(m, m);
       	V.resize(n, n);
@@ -744,15 +744,9 @@ void cutensor_csvd_wrapper(cmatrix_t &A, cmatrix_t &U, rvector_t &S, cmatrix_t &
    typedef float floatType;
    cudaDataType_t typeData = CUDA_R_32F;
 
-   std::vector<int32_t> modesT{'i', 'j'}; // input
-   std::vector<int32_t> modesU{'i', 'm'};
-   std::vector<int32_t> modesV{'n', 'j'};  // SVD output
-
-
-   size_t elementsT  = 160000;
-   size_t elementsU = 160000;
-   size_t elementsS = 400;
-   size_t elementsV = 160000;
+   std::vector<int32_t> modesT{'m', 'n'}; // input
+   std::vector<int32_t> modesU{'m', 'm'};
+   std::vector<int32_t> modesV{'n', 'n'};  // SVD output
 
    size_t sizeA = sizeof(A);
    size_t sizeU = sizeof(U);
@@ -787,10 +781,10 @@ void cutensor_csvd_wrapper(cmatrix_t &A, cmatrix_t &U, rvector_t &S, cmatrix_t &
    const int32_t numModesU = modesU.size();
    const int32_t numModesV = modesV.size();
 
-   std::vector<int64_t> extentT{400, 400}; // shape of T
-   std::vector<int64_t> extentU{400, 400}; // shape of U
-   std::vector<int64_t> extentS{400}; // shape of S
-   std::vector<int64_t> extentV{400, 400}; // shape of V
+   std::vector<int64_t> extentT{m, n}; // shape of T
+   std::vector<int64_t> extentU{m, m}; // shape of U
+   std::vector<int64_t> extentS{n}; // shape of S
+   std::vector<int64_t> extentV{n, n}; // shape of V
 
    const int64_t* strides = NULL; // assuming fortran layout for all tensors
 
