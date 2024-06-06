@@ -770,7 +770,7 @@ void cutensor_csvd_wrapper(cmatrix_t &A, cmatrix_t &U, rvector_t &S,
   cutensornetHandle_t handle;
   HANDLE_ERROR(cutensornetCreate(&handle));
 
-  cutensornetTensorDescriptor_t descTensorIn;
+  cutensornetTensorDescriptor_t descTensorA;
   cutensornetTensorDescriptor_t descTensorU;
   cutensornetTensorDescriptor_t descTensorV;
 
@@ -778,7 +778,7 @@ void cutensor_csvd_wrapper(cmatrix_t &A, cmatrix_t &U, rvector_t &S,
   const int32_t numModesU = modesU.size();
   const int32_t numModesV = modesV.size();
 
-  std::vector<int64_t> extentA{lda, min_dim};             // shape of A
+  std::vector<int64_t> extentA{lda, min_dim};     // shape of A
   std::vector<int64_t> extentU{lda, lda};         // shape of U
   std::vector<int64_t> extentS{min_dim};          // shape of S
   std::vector<int64_t> extentV{min_dim, min_dim}; // shape of V
@@ -789,7 +789,7 @@ void cutensor_csvd_wrapper(cmatrix_t &A, cmatrix_t &U, rvector_t &S,
 
   HANDLE_ERROR(cutensornetCreateTensorDescriptor(
       handle, numModesA, extentA.data(), stridesA.data(), modesA.data(),
-      typeData, &descTensorIn));
+      typeData, &descTensorA));
   HANDLE_ERROR(cutensornetCreateTensorDescriptor(
       handle, numModesU, extentU.data(), stridesU.data(), modesU.data(),
       typeData, &descTensorU));
@@ -835,7 +835,7 @@ void cutensor_csvd_wrapper(cmatrix_t &A, cmatrix_t &U, rvector_t &S,
   cutensornetWorkspaceDescriptor_t workDesc;
   HANDLE_ERROR(cutensornetCreateWorkspaceDescriptor(handle, &workDesc));
   HANDLE_ERROR(cutensornetWorkspaceComputeSVDSizes(
-      handle, descTensorIn, descTensorU, descTensorV, svdConfig, workDesc));
+      handle, descTensorA, descTensorU, descTensorV, svdConfig, workDesc));
   int64_t hostWorkspaceSize, deviceWorkspaceSize;
   // for tensor SVD, it does not matter which cutensornetWorksizePref_t we pick
   HANDLE_ERROR(cutensornetWorkspaceGetMemorySize(
@@ -885,7 +885,7 @@ void cutensor_csvd_wrapper(cmatrix_t &A, cmatrix_t &U, rvector_t &S,
         handle, numModesV, extentV.data(), stridesV.data(), modesV.data(),
         typeData, &descTensorV));
 
-    HANDLE_ERROR(cutensornetTensorSVD(handle, descTensorIn, D_T, descTensorU,
+    HANDLE_ERROR(cutensornetTensorSVD(handle, descTensorA, D_T, descTensorU,
                                       D_U, D_S, descTensorV, D_V, svdConfig,
                                       svdInfo, workDesc, stream));
     // Synchronize and measure timing
@@ -902,9 +902,9 @@ void cutensor_csvd_wrapper(cmatrix_t &A, cmatrix_t &U, rvector_t &S,
   for (int i = 0; i < min_dim; i++)
     S.push_back(cutensor_S[i]);
 
-  A = cmatrix_t::move_from_buffer(m, n, cutensor_A);
-  U = cmatrix_t::move_from_buffer(m, m, cutensor_U);
-  V = cmatrix_t::move_from_buffer(n, n, cutensor_V);
+  A = cmatrix_t::move_from_buffer(lda, min_dim, cutensor_A);
+  U = cmatrix_t::move_from_buffer(lda, lda, cutensor_U);
+  V = cmatrix_t::move_from_buffer(min_dim, min_dim, cutensor_V);
 
   /*************************************
    * Query runtime truncation information
@@ -928,7 +928,7 @@ void cutensor_csvd_wrapper(cmatrix_t &A, cmatrix_t &U, rvector_t &S,
    * Free resources
    ****************/
 
-  HANDLE_ERROR(cutensornetDestroyTensorDescriptor(descTensorIn));
+  HANDLE_ERROR(cutensornetDestroyTensorDescriptor(descTensorA));
   HANDLE_ERROR(cutensornetDestroyTensorDescriptor(descTensorU));
   HANDLE_ERROR(cutensornetDestroyTensorDescriptor(descTensorV));
   HANDLE_ERROR(cutensornetDestroyTensorSVDConfig(svdConfig));
