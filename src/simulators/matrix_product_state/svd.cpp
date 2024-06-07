@@ -738,19 +738,19 @@ void cutensor_csvd_wrapper(cmatrix_t &A, cmatrix_t &U, rvector_t &S,
   HANDLE_CUDA_ERROR(cudaGetDevice(&deviceId));
   HANDLE_CUDA_ERROR(cudaGetDeviceProperties(&prop, deviceId));
 
-  typedef float floatType;
+  typedef double floatType;
   cudaDataType_t typeData = CUDA_C_64F;
 
-  std::vector<int32_t> modesA{'a', 'b'}; // input
-  std::vector<int32_t> modesU{'c', 'd'};
-  std::vector<int32_t> modesV{'e', 'c'}; // SVD output
+  std::vector<int32_t> modesA{'m', 'n'}; // input
+  std::vector<int32_t> modesU{'n', 'x'};
+  std::vector<int32_t> modesV{'x', 'n'}; // SVD output
 
   size_t sizeA = sizeof(A);
   size_t sizeU = sizeof(U);
   size_t sizeS = sizeof(S);
   size_t sizeV = sizeof(V);
 
-  double *cutensor_S = (double *)malloc(sizeof(S));
+  floatType *cutensor_S = (floatType *)malloc(sizeof(S));
 
   void *D_T;
   void *D_U;
@@ -779,12 +779,12 @@ void cutensor_csvd_wrapper(cmatrix_t &A, cmatrix_t &U, rvector_t &S,
   const int32_t numModesV = modesV.size();
 
   std::vector<int64_t> extentA{lda, min_dim};     // shape of A
-  std::vector<int64_t> extentU{lda, lda};         // shape of U
+  std::vector<int64_t> extentU{min_dim, min_dim}; // shape of U
   std::vector<int64_t> extentS{min_dim};          // shape of S
   std::vector<int64_t> extentV{min_dim, min_dim}; // shape of V
 
   std::vector<int64_t> stridesA{n, 1};
-  std::vector<int64_t> stridesU{lda, 1};
+  std::vector<int64_t> stridesU{min_dim, 1};
   std::vector<int64_t> stridesV{min_dim, 1};
 
   HANDLE_ERROR(cutensornetCreateTensorDescriptor(
@@ -888,7 +888,6 @@ void cutensor_csvd_wrapper(cmatrix_t &A, cmatrix_t &U, rvector_t &S,
     HANDLE_ERROR(cutensornetTensorSVD(handle, descTensorA, D_T, descTensorU,
                                       D_U, D_S, descTensorV, D_V, svdConfig,
                                       svdInfo, workDesc, stream));
-    // Synchronize and measure timing
   }
 
   HANDLE_CUDA_ERROR(
