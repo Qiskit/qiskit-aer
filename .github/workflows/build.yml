@@ -158,7 +158,6 @@ jobs:
       - name: Build Wheels
         env:
           CIBW_ARCHS_MACOS: arm64
-          CIBW_SKIP: "pp* cp38* cp39*"
         run: cibuildwheel --output-dir wheelhouse
       - uses: actions/upload-artifact@v4
         with:
