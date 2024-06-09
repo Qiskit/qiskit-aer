@@ -29,37 +29,6 @@
 
 namespace AER {
 
-#ifdef AER_THRUST_CUDA
-
-#include <cassert>
-#include <cuda.h>
-#include <cuda_runtime.h>
-#include <cutensornet.h>
-#include <vector>
-
-#define HANDLE_ERROR(x)                                                        \
-  {                                                                            \
-    const auto err = x;                                                        \
-    if (err != CUTENSORNET_STATUS_SUCCESS) {                                   \
-      std::stringstream str;                                                   \
-      str << "ERROR TensorNet::contractor : "                                  \
-          << cutensornetGetErrorString(err);                                   \
-      throw std::runtime_error(str.str());                                     \
-    }                                                                          \
-  };
-
-#define HANDLE_CUDA_ERROR(x)                                                   \
-  {                                                                            \
-    const auto err = x;                                                        \
-    if (err != cudaSuccess) {                                                  \
-      std::stringstream str;                                                   \
-      str << "ERROR TensorNet::contractor : " << cudaGetErrorString(err);      \
-      throw std::runtime_error(str.str());                                     \
-    }                                                                          \
-  };
-
-#endif // AER_THRUST_CUDA
-
 // default values
 constexpr auto mul_factor = 1e2;
 constexpr long double tiny_factor = 1e30;
@@ -714,6 +683,35 @@ void lapack_csvd_wrapper(cmatrix_t &A, cmatrix_t &U, rvector_t &S,
 }
 
 #ifdef AER_THRUST_CUDA
+
+#include <cassert>
+#include <cuda.h>
+#include <cuda_runtime.h>
+#include <cutensornet.h>
+#include <vector>
+
+#define HANDLE_ERROR(x)                                                        \
+  {                                                                            \
+    const auto err = x;                                                        \
+    if (err != CUTENSORNET_STATUS_SUCCESS) {                                   \
+      std::stringstream str;                                                   \
+      str << "ERROR TensorNet::contractor : "                                  \
+          << cutensornetGetErrorString(err);                                   \
+      throw std::runtime_error(str.str());                                     \
+    }                                                                          \
+  };
+
+#define HANDLE_CUDA_ERROR(x)                                                   \
+  {                                                                            \
+    const auto err = x;                                                        \
+    if (err != cudaSuccess) {                                                  \
+      std::stringstream str;                                                   \
+      str << "ERROR TensorNet::contractor : " << cudaGetErrorString(err);      \
+      throw std::runtime_error(str.str());                                     \
+    }                                                                          \
+  };
+
+namespace TensorNetwork {
 void cutensor_csvd_wrapper(cmatrix_t &A, cmatrix_t &U, rvector_t &S,
                            cmatrix_t &V) {
   const int64_t m = A.GetRows(), n = A.GetColumns();
@@ -750,7 +748,7 @@ void cutensor_csvd_wrapper(cmatrix_t &A, cmatrix_t &U, rvector_t &S,
   size_t sizeS = sizeof(S);
   size_t sizeV = sizeof(V);
 
-  floatType *cutensor_S = (floatType *)malloc(sizeof(S));
+  std::complex<double> *cutensor_S = (std::complex<double> *)malloc(sizeof(S));
 
   void *D_T;
   void *D_U;
@@ -899,7 +897,7 @@ void cutensor_csvd_wrapper(cmatrix_t &A, cmatrix_t &U, rvector_t &S,
 
   S.clear();
   for (int i = 0; i < min_dim; i++)
-    S.push_back(cutensor_S[i]);
+    S.push_back(cutensor_S[i].real());
 
   A = cmatrix_t::move_from_buffer(lda, min_dim, cutensor_A);
   U = cmatrix_t::move_from_buffer(lda, lda, cutensor_U);
@@ -950,6 +948,7 @@ void cutensor_csvd_wrapper(cmatrix_t &A, cmatrix_t &U, rvector_t &S,
   if (hostWork)
     free(hostWork);
 }
+} // namespace TensorNetwork
 #endif // AER_THRUST_CUDA
 
 } // namespace AER
