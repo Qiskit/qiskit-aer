@@ -21,7 +21,7 @@ import numpy as np
 from qiskit_aer.backends import AerSimulator
 from qiskit_aer.noise import NoiseModel
 from qiskit_aer.noise.device.models import _excited_population
-from qiskit_aer.noise.errors import QuantumError
+from qiskit_aer.noise.errors import PauliError, PauliLindbladError
 from qiskit_aer.noise.errors.standard_errors import amplitude_damping_error
 from qiskit_aer.noise.errors.standard_errors import kraus_error
 from qiskit_aer.noise.errors.standard_errors import pauli_error
@@ -31,8 +31,6 @@ from qiskit_aer.utils.noise_transformation import transform_noise_model
 
 import qiskit
 from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit.circuit.library.generalized_gates import PauliGate
-from qiskit.circuit.library.standard_gates import IGate, XGate
 from qiskit.compiler import transpile
 from qiskit.transpiler import CouplingMap, Target
 from qiskit.providers import QubitProperties, BackendV2, Options
@@ -418,6 +416,109 @@ class TestNoiseModel(QiskitAerTestCase):
         qc = transpile(circ, backend)
         result = AerSimulator().run(qc, noise_model=noise_model).result()
         self.assertTrue(result.success)
+
+    def test_pauli_error_equiv(self):
+        circ = QuantumCircuit(2)
+        circ.h(0)
+        circ.cx(0, 1)
+        circ.measure_all()
+
+        perr1 = PauliError(["I", "X"], [0.9, 0.1])
+        perr2 = PauliError(["II", "XX"], [0.9, 0.1])
+
+        noise_model1 = NoiseModel()
+        noise_model1.add_all_qubit_quantum_error(perr1, ["h"])
+        noise_model1.add_all_qubit_quantum_error(perr2, ["cx"])
+
+        noise_model2 = NoiseModel()
+        noise_model2.add_all_qubit_quantum_error(perr1.to_quantum_error(), ["h"])
+        noise_model2.add_all_qubit_quantum_error(perr2.to_quantum_error(), ["cx"])
+
+        seed = 1234
+        result1 = (
+            AerSimulator()
+            .run(circ, shots=5000, noise_model=noise_model1, seed_simulator=seed)
+            .result()
+        )
+        result2 = (
+            AerSimulator()
+            .run(circ, shots=5000, noise_model=noise_model2, seed_simulator=seed)
+            .result()
+        )
+        self.assertTrue(result1.success)
+        self.assertTrue(result2.success)
+        self.assertEqual(result1.get_counts(), result2.get_counts())
+
+    def test_pauli_lindblad_error_sampling(self):
+        num_qubits = 100
+        rate = 0.1
+        plerr = PauliLindbladError([num_qubits * "X"], [rate])
+        prob_err = 0.5 - 0.5 * np.exp(-2 * rate)
+
+        circ = QuantumCircuit(num_qubits)
+        circ.append(plerr, range(num_qubits))
+        circ.measure_all()
+
+        shots = 10000
+        backend = AerSimulator(method="stabilizer", seed_simulator=123)
+        result = backend.run(circ, shots=shots).result()
+        counts = result.get_counts()
+        self.assertEqual(len(counts), 2)
+        self.assertEqual(sum(counts.values()), shots)
+        self.assertIn(num_qubits * "0", counts)
+        self.assertIn(num_qubits * "1", counts)
+        np.testing.assert_allclose(counts[num_qubits * "1"] / shots, prob_err, atol=1e-3)
+
+    def test_pauli_lindblad_error_equiv(self):
+        circ = QuantumCircuit(2)
+        circ.h(0)
+        circ.cx(0, 1)
+        circ.measure_all()
+
+        perr1 = PauliLindbladError(["X", "Y", "Z"], [0.1, 0.2, 0.3])
+        perr2 = PauliLindbladError(["XX", "YY", "ZZ"], [0.1, 0.2, 0.3])
+
+        noise_model1 = NoiseModel()
+        noise_model1.add_all_qubit_quantum_error(perr1, ["h"])
+        noise_model1.add_all_qubit_quantum_error(perr2, ["cx"])
+
+        noise_model2 = NoiseModel()
+        noise_model2.add_all_qubit_quantum_error(perr1.to_quantum_error(), ["h"])
+        noise_model2.add_all_qubit_quantum_error(perr2.to_quantum_error(), ["cx"])
+
+        seed = 1234
+        result1 = (
+            AerSimulator()
+            .run(circ, shots=5000, noise_model=noise_model1, seed_simulator=seed)
+            .result()
+        )
+        result2 = (
+            AerSimulator()
+            .run(circ, shots=5000, noise_model=noise_model2, seed_simulator=seed)
+            .result()
+        )
+        self.assertTrue(result1.success)
+        self.assertTrue(result2.success)
+        self.assertEqual(result1.get_counts(), result2.get_counts())
+
+    def test_pauli_lindblad_error_sampling_equiv(self):
+        plerr = PauliLindbladError(["IX", "XI"], [0.5, 0.1])
+        circ1 = QuantumCircuit(2)
+        circ1.append(plerr, range(2))
+        circ1.measure_all()
+
+        circ2 = QuantumCircuit(2)
+        circ2.append(plerr.to_quantum_error(), range(2))
+        circ2.measure_all()
+
+        shots = 100000
+        backend = AerSimulator(seed_simulator=123)
+        result = backend.run([circ1, circ2], shots=shots).result()
+        counts1 = result.get_counts(0)
+        counts2 = result.get_counts(1)
+        probs1 = [counts1.get(i, 0) / shots for i in ["00", "01", "10", "11"]]
+        probs2 = [counts2.get(i, 0) / shots for i in ["00", "01", "10", "11"]]
+        np.testing.assert_allclose(probs1, probs2, atol=5e-2)
 
 
 if __name__ == "__main__":

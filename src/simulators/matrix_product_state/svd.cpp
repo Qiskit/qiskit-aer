@@ -647,7 +647,7 @@ void lapack_csvd_wrapper(cmatrix_t &A, cmatrix_t &U, rvector_t &S,
   V = cmatrix_t::move_from_buffer(n, n, lapackV);
 
   S.clear();
-  for (int i = 0; i < min_dim; i++)
+  for (size_t i = 0; i < min_dim; i++)
     S.push_back(lapackS[i]);
 
   // Activated by default as requested in the PR
