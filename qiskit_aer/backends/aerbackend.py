@@ -33,7 +33,7 @@ from qiskit.transpiler import CouplingMap
 from ..aererror import AerError
 from ..jobs import AerJob, AerJobSet, split_qobj
 from ..noise.noise_model import NoiseModel, QuantumErrorLocation
-from ..noise.errors.quantum_error import QuantumChannelInstruction
+from ..noise.errors.base_quantum_error import QuantumChannelInstruction
 from .aer_compiler import compile_circuit, assemble_circuits, generate_aer_config
 from .backend_utils import format_save_type, circuit_optypes
 from .name_mapping import NAME_MAPPING
@@ -354,6 +354,7 @@ class AerBackend(Backend, ABC):
         """Set maximun number of qubits to be used for this backend."""
         if self._target is None:
             self._configuration.n_qubits = max_qubits
+            self._set_configuration_option("n_qubits", max_qubits)
 
     def clear_options(self):
         """Reset the simulator options to default values."""

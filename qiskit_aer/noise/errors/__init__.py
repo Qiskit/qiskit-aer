@@ -16,6 +16,8 @@ Errors for qiskit-aer noise models.
 
 from .readout_error import ReadoutError
 from .quantum_error import QuantumError
+from .pauli_error import PauliError
+from .pauli_lindblad_error import PauliLindbladError
 from .standard_errors import kraus_error
 from .standard_errors import mixed_unitary_error
 from .standard_errors import coherent_unitary_error

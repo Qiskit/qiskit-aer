@@ -13,13 +13,12 @@
 """
 AerSimulator readout error NoiseModel integration tests
 """
-
+from math import log, inf
 from test.terra.utils.utils import list2dict
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit_aer.noise import NoiseModel
-from qiskit_aer.noise.errors import QuantumError, PauliError
-from qiskit_aer.noise.errors.standard_errors import pauli_error
+from qiskit_aer.noise.errors import PauliLindbladError
 
 
 # ==========================================================================
@@ -27,37 +26,26 @@ from qiskit_aer.noise.errors.standard_errors import pauli_error
 # ==========================================================================
 
 
-def _pauli_error(noise_ops, qerror_cls=QuantumError):
-    """For checking compatibility with `PauliError` or `pauli_error`"""
-    if qerror_cls == QuantumError:
-        return pauli_error(noise_ops)
-    if qerror_cls == PauliError:
-        return PauliError(*list(zip(*noise_ops)))
-    raise TypeError("Invalid Pauli channel quantum error type")
+def _pauli_rate(prob_error):
+    """Convert single error probability to generator rate"""
+    # NOTE: PauliLindbladError cannot produce a Pauli error with error prob > 50%
+    if prob_error > 0.5:
+        raise ValueError("Error probability cannot be > 50%")
+    if prob_error == 0.5:
+        return inf
+    if prob_error == 0:
+        return 0.0
+    return -0.5 * log(1 - 2 * prob_error)
 
 
-def pauli_gate_error_circuits():
-    """Local Pauli gate error noise model circuits"""
+def pauli_lindblad_gate_error_circuits():
+    """Local PauliLindbladError gate error noise model circuits"""
     circuits = []
 
     qr = QuantumRegister(2, "qr")
     cr = ClassicalRegister(2, "cr")
 
-    # 100% all-qubit Pauli error on "id" gate
-    circuit = QuantumCircuit(qr, cr)
-    circuit.id(qr)
-    circuit.barrier(qr)
-    circuit.measure(qr, cr)
-    circuits.append(circuit)
-
     # 25% all-qubit Pauli error on "id" gates
-    circuit = QuantumCircuit(qr, cr)
-    circuit.id(qr)
-    circuit.barrier(qr)
-    circuit.measure(qr, cr)
-    circuits.append(circuit)
-
-    # 100% Pauli error on "id" gates on qubit-1
     circuit = QuantumCircuit(qr, cr)
     circuit.id(qr)
     circuit.barrier(qr)
@@ -88,42 +76,30 @@ def pauli_gate_error_circuits():
     return circuits
 
 
-def pauli_gate_error_noise_models(qerror_cls=QuantumError):
+def pauli_lindblad_gate_error_noise_models():
     """Local Pauli gate error noise models"""
     noise_models = []
 
-    # 100% all-qubit Pauli error on "id" gates
-    error = _pauli_error([("X", 1)], qerror_cls=qerror_cls)
-    noise_model = NoiseModel()
-    noise_model.add_all_qubit_quantum_error(error, "id")
-    noise_models.append(noise_model)
-
     # 25% all-qubit Pauli error on "id" gates
-    error = _pauli_error([("X", 0.25), ("I", 0.75)], qerror_cls=qerror_cls)
+    error = PauliLindbladError(["X"], [_pauli_rate(0.25)])
     noise_model = NoiseModel()
     noise_model.add_all_qubit_quantum_error(error, "id")
-    noise_models.append(noise_model)
-
-    # 100% Pauli error on "id" gates on qubit-1
-    error = _pauli_error([("X", 1)], qerror_cls=qerror_cls)
-    noise_model = NoiseModel()
-    noise_model.add_quantum_error(error, "id", [1])
     noise_models.append(noise_model)
 
     # 25% all-qubit Pauli error on "id" gates on qubit-0
-    error = _pauli_error([("X", 0.25), ("I", 0.75)], qerror_cls=qerror_cls)
+    error = PauliLindbladError(["X"], [_pauli_rate(0.25)])
     noise_model = NoiseModel()
     noise_model.add_quantum_error(error, "id", [0])
     noise_models.append(noise_model)
 
     # 50% Pauli error on conditional gate that doesn't get applied
-    error = _pauli_error([("X", 0.5), ("I", 0.5)], qerror_cls=qerror_cls)
+    error = PauliLindbladError(["X"], [_pauli_rate(0.5)])
     noise_model = NoiseModel()
     noise_model.add_all_qubit_quantum_error(error, "x")
     noise_models.append(noise_model)
 
     # 50% Pauli error on conditional gate that does get applied
-    error = _pauli_error([("X", 0.5), ("I", 0.5)], qerror_cls=qerror_cls)
+    error = PauliLindbladError(["X"], [_pauli_rate(0.5)])
     noise_model = NoiseModel()
     noise_model.add_all_qubit_quantum_error(error, "x")
     noise_models.append(noise_model)
@@ -131,20 +107,12 @@ def pauli_gate_error_noise_models(qerror_cls=QuantumError):
     return noise_models
 
 
-def pauli_gate_error_counts(shots, hex_counts=True):
+def pauli_lindblad_gate_error_counts(shots, hex_counts=True):
     """Pauli gate error circuits reference counts"""
     counts_lists = []
 
-    # 100% all-qubit Pauli error on "id" gates
-    counts = [0, 0, 0, shots]
-    counts_lists.append(counts)
-
     # 25% all-qubit Pauli error on "id" gates
     counts = [9 * shots / 16, 3 * shots / 16, 3 * shots / 16, shots / 16]
-    counts_lists.append(counts)
-
-    # 100% Pauli error on "id" gates on qubit-1
-    counts = [0, 0, shots, 0]
     counts_lists.append(counts)
 
     # 25% all-qubit Pauli error on "id" gates on qubit-0
@@ -167,7 +135,7 @@ def pauli_gate_error_counts(shots, hex_counts=True):
 # ==========================================================================
 
 
-def pauli_measure_error_circuits():
+def pauli_lindblad_measure_error_circuits():
     """Local Pauli measure error noise model circuits"""
     circuits = []
 
@@ -187,18 +155,18 @@ def pauli_measure_error_circuits():
     return circuits
 
 
-def pauli_measure_error_noise_models(qerror_cls=QuantumError):
+def pauli_lindblad_measure_error_noise_models():
     """Local Pauli measure error noise models"""
     noise_models = []
 
     # 25% all-qubit Pauli error on measure
-    error = _pauli_error([("X", 0.25), ("I", 0.75)], qerror_cls=qerror_cls)
+    error = PauliLindbladError(["X"], [_pauli_rate(0.25)])
     noise_model = NoiseModel()
     noise_model.add_all_qubit_quantum_error(error, "measure")
     noise_models.append(noise_model)
 
     # 25% local Pauli error on measure of qubit 1
-    error = _pauli_error([("X", 0.25), ("I", 0.75)], qerror_cls=qerror_cls)
+    error = PauliLindbladError(["X"], [_pauli_rate(0.25)])
     noise_model = NoiseModel()
     noise_model.add_quantum_error(error, "measure", [1])
     noise_models.append(noise_model)
@@ -206,7 +174,7 @@ def pauli_measure_error_noise_models(qerror_cls=QuantumError):
     return noise_models
 
 
-def pauli_measure_error_counts(shots, hex_counts=True):
+def pauli_lindblad_measure_error_counts(shots, hex_counts=True):
     """Local Pauli measure error circuits reference counts"""
     counts_lists = []
 
@@ -227,7 +195,7 @@ def pauli_measure_error_counts(shots, hex_counts=True):
 # ==========================================================================
 
 
-def pauli_reset_error_circuits():
+def pauli_lindblad_reset_error_circuits():
     """Local Pauli reset error noise model circuits"""
     circuits = []
 
@@ -253,18 +221,18 @@ def pauli_reset_error_circuits():
     return circuits
 
 
-def pauli_reset_error_noise_models(qerror_cls=QuantumError):
+def pauli_lindblad_reset_error_noise_models():
     """Local Pauli reset error noise models"""
     noise_models = []
 
     # 25% all-qubit Pauli error on reset
-    error = _pauli_error([("X", 0.25), ("I", 0.75)], qerror_cls=qerror_cls)
+    error = PauliLindbladError(["X"], [_pauli_rate(0.25)])
     noise_model = NoiseModel()
     noise_model.add_all_qubit_quantum_error(error, "reset")
     noise_models.append(noise_model)
 
     # 25% local Pauli error on reset of qubit 1
-    error = _pauli_error([("X", 0.25), ("I", 0.75)], qerror_cls=qerror_cls)
+    error = PauliLindbladError(["X"], [_pauli_rate(0.25)])
     noise_model = NoiseModel()
     noise_model.add_quantum_error(error, "reset", [1])
     noise_models.append(noise_model)
@@ -272,7 +240,7 @@ def pauli_reset_error_noise_models(qerror_cls=QuantumError):
     return noise_models
 
 
-def pauli_reset_error_counts(shots, hex_counts=True):
+def pauli_lindblad_reset_error_counts(shots, hex_counts=True):
     """Local Pauli reset error circuits reference counts"""
     counts_lists = []
 

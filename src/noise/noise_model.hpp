@@ -1047,9 +1047,11 @@ void NoiseModel::load_from_json(const json_t &js) {
       throw std::invalid_argument(
           "Invalid noise_params JSON: \"error\" field is not a list");
     }
+    std::unordered_set<std::string> qerror_types = {"qerror", "plerror"};
     for (const auto &gate_js : JSON::get_value("errors", js)) {
       std::string type;
       JSON::get_value(type, "type", gate_js);
+      bool is_qerror = (qerror_types.find(type) != qerror_types.end());
       stringset_t
           ops; // want set so ops are unique, and we can pull out measure
       JSON::get_value(ops, "operations", gate_js);
@@ -1062,7 +1064,7 @@ void NoiseModel::load_from_json(const json_t &js) {
       // before the measure operation, rather than after like the other gates
       if (ops.find("measure") != ops.end() && type != "roerror") {
         ops.erase("measure"); // remove measure from set of ops
-        if (type != "qerror")
+        if (!is_qerror)
           throw std::invalid_argument("NoiseModel: Invalid noise type (" +
                                       type + ")");
         QuantumError error;
@@ -1071,7 +1073,7 @@ void NoiseModel::load_from_json(const json_t &js) {
         add_quantum_error(error, {"measure"}, gate_qubits, noise_qubits);
       }
       // Load the remaining ops as errors that come after op
-      if (type == "qerror") {
+      if (is_qerror) {
         QuantumError error;
         error.load_from_json(gate_js);
         add_quantum_error(error, ops, gate_qubits, noise_qubits);
