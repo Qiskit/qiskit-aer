@@ -181,6 +181,7 @@ The following are the classes used to represented noise and error terms.
 
     NoiseModel
     QuantumError
+    PauliLindbladError
     ReadoutError
 
 
@@ -239,6 +240,8 @@ parameters and error objects from device `BackendProperties`.
 # Noise and Error classes
 from .noise_model import NoiseModel
 from .errors import QuantumError
+from .errors import PauliError
+from .errors import PauliLindbladError
 from .errors import ReadoutError
 
 # Error generating functions

@@ -1,0 +1,9 @@
+---
+features:
+  - |
+    Adds a new :class:`.PauliError` quantum error subclass. This class is
+    interchangable with :class:`.QuantumError` objects that only contained
+    Pauli error terms for use with noise models and simulations, however it
+    has a more efficient implemention based on the ``quantum_info.PauliList``
+    operator for use in constructing larger number of qubit errors via
+    composing, tensor producting etc.

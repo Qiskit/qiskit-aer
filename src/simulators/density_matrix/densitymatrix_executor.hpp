@@ -1329,10 +1329,10 @@ Executor<densmat_t>::sample_measure(const reg_t &qubits, uint_t shots,
   std::vector<SampleVector> all_samples(shots, SampleVector(qubits.size()));
 
   auto convert_to_bit_lambda = [this, &local_samples, &all_samples, shots,
-                                qubits, npar](int_t i) {
+                                qubits, npar](int_t k) {
     uint_t ishot, iend;
-    ishot = local_samples.size() * i / npar;
-    iend = local_samples.size() * (i + 1) / npar;
+    ishot = local_samples.size() * k / npar;
+    iend = local_samples.size() * (k + 1) / npar;
     for (; ishot < iend; ishot++) {
       SampleVector allbit_sample;
       allbit_sample.from_uint(local_samples[ishot], qubits.size());
