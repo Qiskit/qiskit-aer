@@ -706,7 +706,7 @@ void ParallelStateExecutor<state_t>::measure_sampler(InputIterator first_meas,
     Utils::apply_omp_parallel_for((npar > 1), 0, npar, copy_samples_lambda,
                                   npar);
 
-    for (int_t i = 0; i < npar; i++) {
+    for (uint_t i = 0; i < npar; i++) {
       result.combine(std::move(par_results[i]));
     }
   }

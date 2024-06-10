@@ -487,7 +487,7 @@ std::vector<SampleVector> State::sample_measure(const reg_t &qubits,
   // table
   auto qreg_cache = BaseState::qreg_;
   std::vector<SampleVector> samples(shots);
-  for (int_t ishot = 0; ishot < shots; ishot++) {
+  for (uint_t ishot = 0; ishot < shots; ishot++) {
     samples[ishot].from_vector(apply_measure_and_update(qubits, rng));
     BaseState::qreg_ = qreg_cache; // restore pre-measurement data from cache
   }

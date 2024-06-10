@@ -136,5 +136,11 @@ inline std::ostream &operator<<(std::ostream &out,
   return out;
 }
 
+template <typename bv_type>
+inline bool operator==(const AER::Pauli::Pauli<bv_type> &lhs,
+                       const AER::Pauli::Pauli<bv_type> &rhs) {
+  return lhs.X == rhs.X && lhs.Z == rhs.Z;
+}
+
 //------------------------------------------------------------------------------
 #endif
