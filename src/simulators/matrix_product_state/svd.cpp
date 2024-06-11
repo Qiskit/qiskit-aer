@@ -710,19 +710,13 @@ void lapack_csvd_wrapper(cmatrix_t &A, cmatrix_t &U, rvector_t &S,
     }                                                                          \
   };
 
-namespace TensorNetwork {
 void cutensor_csvd_wrapper(cmatrix_t &A, cmatrix_t &U, rvector_t &S,
                            cmatrix_t &V) {
-  const int64_t m = A.GetRows(), n = A.GetColumns();
-  const int64_t min_dim = std::min(m, n);
-  const int64_t lda = std::max(m, n);
+  cmatrix_t A_cpy = A;
 
-  // Transpose when m < n
-  bool transposed = false;
-  if (m < n) {
-    transposed = true;
-    A = AER::Utils::dagger(A);
-  }
+  const int64_t m = A.GetRows(), n = A.GetColumns();
+  U.resize(n, n);
+  V.resize(n, n);
 
   complex_t *cutensor_A = A.move_to_buffer(), *cutensor_U = U.move_to_buffer(),
             *cutensor_V = V.move_to_buffer();
@@ -741,12 +735,12 @@ void cutensor_csvd_wrapper(cmatrix_t &A, cmatrix_t &U, rvector_t &S,
   std::vector<int32_t> modesU{'n', 'x'};
   std::vector<int32_t> modesV{'x', 'n'}; // SVD output
 
-  size_t sizeA = sizeof(A);
-  size_t sizeU = sizeof(U);
-  size_t sizeS = sizeof(S);
-  size_t sizeV = sizeof(V);
+  size_t sizeA = A.size() * sizeof(cmatrix_t);
+  size_t sizeU = U.size() * sizeof(cmatrix_t);
+  size_t sizeS = S.size() * sizeof(complex_t);
+  size_t sizeV = V.size() * sizeof(cmatrix_t);
 
-  complex_t *cutensor_S = (complex_t *)malloc(sizeof(S));
+  complex_t *cutensor_S = (complex_t *)malloc(sizeS);
 
   void *D_A;
   void *D_U;
@@ -774,10 +768,10 @@ void cutensor_csvd_wrapper(cmatrix_t &A, cmatrix_t &U, rvector_t &S,
   const int32_t numModesU = modesU.size();
   const int32_t numModesV = modesV.size();
 
-  std::vector<int64_t> extentA{lda, min_dim};     // shape of A
-  std::vector<int64_t> extentU{min_dim, min_dim}; // shape of U
-  std::vector<int64_t> extentS{min_dim};          // shape of S
-  std::vector<int64_t> extentV{min_dim, min_dim}; // shape of V
+  std::vector<int64_t> extentA{m, n}; // shape of A
+  std::vector<int64_t> extentU{n, n}; // shape of U :)
+  std::vector<int64_t> extentS{n};    // shape of S
+  std::vector<int64_t> extentV{n, n}; // shape of V
 
   const int64_t *strides =
       NULL; // matrices stores the entries in column-major-order.
@@ -893,19 +887,14 @@ void cutensor_csvd_wrapper(cmatrix_t &A, cmatrix_t &U, rvector_t &S,
       cudaMemcpyAsync(cutensor_V, D_V, sizeV, cudaMemcpyDeviceToHost));
 
   S.clear();
-  for (int i = 0; i < min_dim; i++)
+  for (int i = 0; i < n; i++)
     S.push_back(cutensor_S[i].real());
 
-  A = cmatrix_t::move_from_buffer(lda, min_dim, cutensor_A);
-  U = cmatrix_t::move_from_buffer(lda, lda, cutensor_U);
-  V = cmatrix_t::move_from_buffer(min_dim, min_dim, cutensor_V);
+  A = cmatrix_t::move_from_buffer(m, n, cutensor_A);
+  U = cmatrix_t::move_from_buffer(n, n, cutensor_U);
+  V = cmatrix_t::move_from_buffer(n, n, cutensor_V);
 
-  if (transposed) {
-    transposed = false;
-    A = AER::Utils::dagger(A);
-  }
-
-  validate_SVD_result(A, U, S, V);
+  validate_SVD_result(A_cpy, U, S, V);
 
   /***************
    * Free resources
@@ -917,8 +906,11 @@ void cutensor_csvd_wrapper(cmatrix_t &A, cmatrix_t &U, rvector_t &S,
   HANDLE_ERROR(cutensornetDestroyTensorSVDConfig(svdConfig));
   HANDLE_ERROR(cutensornetDestroyTensorSVDInfo(svdInfo));
   HANDLE_ERROR(cutensornetDestroyWorkspaceDescriptor(workDesc));
+  HANDLE_CUDA_ERROR(cudaStreamDestroy(stream));
   HANDLE_ERROR(cutensornetDestroy(handle));
 
+  if (cutensor_S)
+    free(cutensor_S);
   if (D_A)
     cudaFree(D_A);
   if (D_U)
@@ -932,7 +924,6 @@ void cutensor_csvd_wrapper(cmatrix_t &A, cmatrix_t &U, rvector_t &S,
   if (hostWork)
     free(hostWork);
 }
-} // namespace TensorNetwork
 #endif // AER_THRUST_CUDA
 
 } // namespace AER
