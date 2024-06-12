@@ -855,7 +855,9 @@ class AerSimulator(AerBackend):
                 open_pulse=False,
                 memory=False,
                 max_shots=int(1e6),
-                coupling_map=list(backend.coupling_map.get_edges()),
+                coupling_map=(
+                    None if backend.coupling_map == None else list(backend.coupling_map.get_edges())
+                ),
                 max_experiments=backend.max_circuits,
                 description=description,
             )

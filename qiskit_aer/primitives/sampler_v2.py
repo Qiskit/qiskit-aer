@@ -104,7 +104,10 @@ class SamplerV2(BaseSamplerV2):
     def from_backend(cls, backend, **options):
         """make new sampler that uses external backend"""
         sampler = cls(**options)
-        sampler._backend = AerSimulator.from_backend(backend)
+        if isinstance(backend, AerSimulator):
+            sampler._backend = backend
+        else:
+            sampler._backend = AerSimulator.from_backend(backend)
         return sampler
 
     @property
