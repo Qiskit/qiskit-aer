@@ -1280,7 +1280,6 @@ class TestControlFlow(SimulatorTestCase):
         self.assertEqual(len(counts), 1)
         self.assertIn("0010101", counts)
 
-
     def test_bit_mapping_in_compiler(self):
         """Test different bit mappings are correctly inlined"""
         parent = QuantumCircuit(5, 2)
