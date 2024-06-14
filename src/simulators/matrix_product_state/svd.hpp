@@ -42,7 +42,7 @@ double reduce_zeros(cmatrix_t &U, rvector_t &S, cmatrix_t &V,
 status csvd(cmatrix_t &C, cmatrix_t &U, rvector_t &S, cmatrix_t &V);
 // Entry point for the SVD calculation
 void csvd_wrapper(cmatrix_t &C, cmatrix_t &U, rvector_t &S, cmatrix_t &V,
-                  bool lapack);
+                  bool lapack, std::string mps_svd_device);
 // Original qiskit call
 void qiskit_csvd_wrapper(cmatrix_t &C, cmatrix_t &U, rvector_t &S,
                          cmatrix_t &V);

@@ -551,25 +551,15 @@ status csvd(cmatrix_t &A, cmatrix_t &U, rvector_t &S, cmatrix_t &V) {
 }
 
 void csvd_wrapper(cmatrix_t &A, cmatrix_t &U, rvector_t &S, cmatrix_t &V,
-                  bool lapack) {
-  if (lapack) {
-
-#ifdef AER_THRUST_CUDA
+                  bool lapack, std::string mps_svd_device) {
+  if (mps_svd_device.compare("GPU") == 0) {
     cutensor_csvd_wrapper(A, U, S, V);
-#endif // AER_THRUST_CUDA
-
-#ifndef AER_THRUST_CUDA
-    lapack_csvd_wrapper(A, U, S, V);
-#endif // AER_THRUST_CUDA
   } else {
-
-#ifdef AER_THRUST_CUDA
-    cutensor_csvd_wrapper(A, U, S, V);
-#endif // AER_THRUST_CUDA
-
-#ifndef AER_THRUST_CUDA
-    qiskit_csvd_wrapper(A, U, S, V);
-#endif // AER_THRUST_CUDA
+    if (lapack) {
+      lapack_csvd_wrapper(A, U, S, V);
+    } else {
+      qiskit_csvd_wrapper(A, U, S, V);
+    }
   }
 }
 
