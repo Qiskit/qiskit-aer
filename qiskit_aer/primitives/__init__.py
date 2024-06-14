@@ -29,6 +29,9 @@ Classes
 
     Sampler
     Estimator
+    SamplerV2
+    EstimatorV2
+   
 """
 
 import qiskit
