@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+     Fix an issue of inline of ``AerCompiler``. Mappings of qubits and clbits are broken
+     since cf510a2 and this fix correct them by coping `CircuitInstruction` with
+     correct qubits and clbits. This fix resolves https://github.com/Qiskit/qiskit-aer/issues/2171.

@@ -279,9 +279,15 @@ class AerCompiler:
             inlined_body = self._inline_circuit(body, continue_label, break_label, inner_bit_map)
             if loop_parameter is not None:
                 inlined_body = inlined_body.assign_parameters({loop_parameter: index})
-            #            parent.append(inlined_body, qargs, cargs)
             for inst in inlined_body:
-                parent.append(inst, qargs, cargs)
+                parent.append(
+                    inst.replace(
+                        qubits=[inner_bit_map[bit] for bit in inst.qubits],
+                        clbits=[inner_bit_map[bit] for bit in inst.clbits],
+                    ),
+                    qargs,
+                    cargs,
+                )
             parent.append(AerMark(continue_label, len(qargs), len(cargs)), qargs, cargs)
 
         if inlined_body is not None:
@@ -299,17 +305,18 @@ class AerCompiler:
         continue_label = f"{loop_name}_continue"
         loop_start_label = f"{loop_name}_start"
         break_label = f"{loop_name}_end"
+        inline_bit_map = {
+            inner: bit_map[outer]
+            for inner, outer in itertools.chain(
+                zip(body.qubits, instruction.qubits),
+                zip(body.clbits, instruction.clbits),
+            )
+        }
         inlined_body = self._inline_circuit(
             body,
             continue_label,
             break_label,
-            {
-                inner: bit_map[outer]
-                for inner, outer in itertools.chain(
-                    zip(body.qubits, instruction.qubits),
-                    zip(body.clbits, instruction.clbits),
-                )
-            },
+            inline_bit_map,
         )
         qargs = [bit_map[q] for q in instruction.qubits]
         cargs = [bit_map[c] for c in instruction.clbits]
@@ -333,7 +340,14 @@ class AerCompiler:
         parent.append(AerJump(break_label, len(qargs), len(mark_cargs)), qargs, mark_cargs)
         parent.append(AerMark(loop_start_label, len(qargs), len(mark_cargs)), qargs, mark_cargs)
         for inst in inlined_body:
-            parent.append(inst, qargs, cargs)
+            parent.append(
+                inst.replace(
+                    qubits=[inline_bit_map[bit] for bit in inst.qubits],
+                    clbits=[inline_bit_map[bit] for bit in inst.clbits],
+                ),
+                qargs,
+                cargs,
+            )
         parent.append(AerJump(continue_label, len(qargs), len(mark_cargs)), qargs, mark_cargs)
         parent.append(AerMark(break_label, len(qargs), len(mark_cargs)), qargs, mark_cargs)
 
@@ -383,7 +397,14 @@ class AerCompiler:
         parent.append(AerMark(if_true_label, len(qargs), len(mark_cargs)), qargs, mark_cargs)
         child = self._inline_circuit(true_body, continue_label, break_label, true_bit_map)
         for inst in child.data:
-            parent.append(inst, qargs, cargs)
+            parent.append(
+                inst.replace(
+                    qubits=[true_bit_map[bit] for bit in inst.qubits],
+                    clbits=[true_bit_map[bit] for bit in inst.clbits],
+                ),
+                qargs,
+                cargs,
+            )
 
         if false_body:
             false_bit_map = {
@@ -397,7 +418,14 @@ class AerCompiler:
             parent.append(AerMark(if_else_label, len(qargs), len(mark_cargs)), qargs, mark_cargs)
             child = self._inline_circuit(false_body, continue_label, break_label, false_bit_map)
             for inst in child.data:
-                parent.append(inst, qargs, cargs)
+                parent.append(
+                    inst.replace(
+                        qubits=[false_bit_map[bit] for bit in inst.qubits],
+                        clbits=[false_bit_map[bit] for bit in inst.clbits],
+                    ),
+                    qargs,
+                    cargs,
+                )
 
         parent.append(AerMark(if_end_label, len(qargs), len(mark_cargs)), qargs, mark_cargs)
 
@@ -482,7 +510,14 @@ class AerCompiler:
                 case_data.body, continue_label, break_label, case_data.bit_map
             )
             for inst in child.data:
-                parent.append(inst, qargs, cargs)
+                parent.append(
+                    inst.replace(
+                        qubits=[case_data.bit_map[bit] for bit in inst.qubits],
+                        clbits=[case_data.bit_map[bit] for bit in inst.clbits],
+                    ),
+                    qargs,
+                    cargs,
+                )
             parent.append(AerJump(switch_end_label, len(qargs), len(mark_cargs)), qargs, mark_cargs)
 
         parent.append(AerMark(switch_end_label, len(qargs), len(mark_cargs)), qargs, mark_cargs)

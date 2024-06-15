@@ -22,7 +22,7 @@ ADD_CUDA_REQUIREMENTS = (
 extras_requirements = {"dask": ["dask", "distributed"]}
 
 requirements = [
-    "qiskit>=1.1",
+    "qiskit>=1.1.0",
     "numpy>=1.16.3",
     "scipy>=1.0",
     "psutil>=5",

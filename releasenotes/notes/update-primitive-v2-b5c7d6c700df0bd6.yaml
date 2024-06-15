@@ -1,0 +1,12 @@
+---
+upgrade:
+  - |
+    :meth:`.SamplerV2.run` returns ``SamplerPubResult``, which was introduced in Qiskit 1.1.
+    More precisely, the return type is ``PrimitiveJob[PrimitiveResult[SamplerPubResult]]``.
+    Previously, it used to be PrimitiveJob[PrimitiveResult[PubResult]].
+  - |
+    :class:`.SamplerV2` won't accept ``np.random.Generator`` as ``seed``
+    because :meth:`.AerSimulator.run` does not support it.
+  - |
+    Qiskit Aer requires Qiskit 1.1.0 or later.
+
