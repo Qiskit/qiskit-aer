@@ -553,7 +553,10 @@ status csvd(cmatrix_t &A, cmatrix_t &U, rvector_t &S, cmatrix_t &V) {
 void csvd_wrapper(cmatrix_t &A, cmatrix_t &U, rvector_t &S, cmatrix_t &V,
                   bool lapack, std::string mps_svd_device) {
   if (mps_svd_device.compare("GPU") == 0) {
+#ifdef AER_THRUST_CUDA
     cutensor_csvd_wrapper(A, U, S, V);
+#endif // AER_THRUST_CUDA
+
   } else {
     if (lapack) {
       lapack_csvd_wrapper(A, U, S, V);
@@ -702,11 +705,28 @@ void lapack_csvd_wrapper(cmatrix_t &A, cmatrix_t &U, rvector_t &S,
 
 void cutensor_csvd_wrapper(cmatrix_t &A, cmatrix_t &U, rvector_t &S,
                            cmatrix_t &V) {
+
+  bool transposed = false;
+
+  const int64_t rows = A.GetRows(), cols = A.GetColumns();
+
+  if (rows < cols) {
+    transposed = true;
+    A = AER::Utils::dagger(A);
+  }
   cmatrix_t A_cpy = A;
 
-  const int64_t m = A.GetRows(), n = A.GetColumns();
-  U.resize(n, n);
-  V.resize(n, n);
+  const int64_t min_dim = std::min(rows, cols);
+  const int64_t lda = std::max(rows, cols);
+
+  U.resize(lda, min_dim);
+  V.resize(min_dim, min_dim);
+  S.resize(min_dim);
+
+  size_t sizeA = A.size() * sizeof(complex_t);
+  size_t sizeU = U.size() * sizeof(complex_t);
+  size_t sizeS = S.size() * sizeof(double);
+  size_t sizeV = V.size() * sizeof(complex_t);
 
   complex_t *cutensor_A = A.move_to_buffer(), *cutensor_U = U.move_to_buffer(),
             *cutensor_V = V.move_to_buffer();
@@ -718,19 +738,13 @@ void cutensor_csvd_wrapper(cmatrix_t &A, cmatrix_t &U, rvector_t &S,
   HANDLE_CUDA_ERROR(cudaGetDevice(&deviceId));
   HANDLE_CUDA_ERROR(cudaGetDeviceProperties(&prop, deviceId));
 
-  typedef double floatType;
   cudaDataType_t typeData = CUDA_C_64F;
 
-  std::vector<int32_t> modesA{'m', 'n'}; // input
-  std::vector<int32_t> modesU{'n', 'x'};
-  std::vector<int32_t> modesV{'x', 'n'}; // SVD output
+  std::vector<int32_t> modesA{'m', 'n'};
+  std::vector<int32_t> modesU{'m', 'x'};
+  std::vector<int32_t> modesV{'x', 'n'};
 
-  size_t sizeA = A.size() * sizeof(cmatrix_t);
-  size_t sizeU = U.size() * sizeof(cmatrix_t);
-  size_t sizeS = S.size() * sizeof(complex_t);
-  size_t sizeV = V.size() * sizeof(cmatrix_t);
-
-  complex_t *cutensor_S = (complex_t *)malloc(sizeS);
+  double *cutensor_S = (double *)malloc(sizeS);
 
   void *D_A;
   void *D_U;
@@ -758,10 +772,9 @@ void cutensor_csvd_wrapper(cmatrix_t &A, cmatrix_t &U, rvector_t &S,
   const int32_t numModesU = modesU.size();
   const int32_t numModesV = modesV.size();
 
-  std::vector<int64_t> extentA{m, n}; // shape of A
-  std::vector<int64_t> extentU{n, n}; // shape of U :)
-  std::vector<int64_t> extentS{n};    // shape of S
-  std::vector<int64_t> extentV{n, n}; // shape of V
+  std::vector<int64_t> extentA{lda, min_dim};     // shape of A
+  std::vector<int64_t> extentU{lda, min_dim};     // shape of U :)
+  std::vector<int64_t> extentV{min_dim, min_dim}; // shape of V
 
   const int64_t *strides =
       NULL; // matrices stores the entries in column-major-order.
@@ -776,45 +789,10 @@ void cutensor_csvd_wrapper(cmatrix_t &A, cmatrix_t &U, rvector_t &S,
       handle, numModesV, extentV.data(), strides, modesV.data(), typeData,
       &descTensorV));
 
-  cutensornetTensorSVDConfig_t svdConfig;
-  HANDLE_ERROR(cutensornetCreateTensorSVDConfig(handle, &svdConfig));
-
-  // set up truncation parameters
-  double absCutoff = 1e-13;
-  HANDLE_ERROR(cutensornetTensorSVDConfigSetAttribute(
-      handle, svdConfig, CUTENSORNET_TENSOR_SVD_CONFIG_ABS_CUTOFF, &absCutoff,
-      sizeof(absCutoff)));
-  double relCutoff = 4e-13;
-  HANDLE_ERROR(cutensornetTensorSVDConfigSetAttribute(
-      handle, svdConfig, CUTENSORNET_TENSOR_SVD_CONFIG_REL_CUTOFF, &relCutoff,
-      sizeof(relCutoff)));
-
-  // optional: choose gesvdj algorithm with customized parameters. Default is
-  // gesvd.
-  cutensornetTensorSVDAlgo_t svdAlgo = CUTENSORNET_TENSOR_SVD_ALGO_GESVDJ;
-  HANDLE_ERROR(cutensornetTensorSVDConfigSetAttribute(
-      handle, svdConfig, CUTENSORNET_TENSOR_SVD_CONFIG_ALGO, &svdAlgo,
-      sizeof(svdAlgo)));
-  cutensornetGesvdjParams_t gesvdjParams{/*tol=*/1e-12, /*maxSweeps=*/80};
-  HANDLE_ERROR(cutensornetTensorSVDConfigSetAttribute(
-      handle, svdConfig, CUTENSORNET_TENSOR_SVD_CONFIG_ALGO_PARAMS,
-      &gesvdjParams, sizeof(gesvdjParams)));
-
-  /********************************************************
-   * Create SVDInfo to record runtime SVD truncation details
-   *********************************************************/
-
-  cutensornetTensorSVDInfo_t svdInfo;
-  HANDLE_ERROR(cutensornetCreateTensorSVDInfo(handle, &svdInfo));
-
-  /**************************************************************
-   * Query the required workspace sizes and allocate memory
-   **************************************************************/
-
   cutensornetWorkspaceDescriptor_t workDesc;
   HANDLE_ERROR(cutensornetCreateWorkspaceDescriptor(handle, &workDesc));
   HANDLE_ERROR(cutensornetWorkspaceComputeSVDSizes(
-      handle, descTensorA, descTensorU, descTensorV, svdConfig, workDesc));
+      handle, descTensorA, descTensorU, descTensorV, NULL, workDesc));
   int64_t hostWorkspaceSize, deviceWorkspaceSize;
   // for tensor SVD, it does not matter which cutensornetWorksizePref_t we pick
   HANDLE_ERROR(cutensornetWorkspaceGetMemorySize(
@@ -840,34 +818,10 @@ void cutensor_csvd_wrapper(cmatrix_t &A, cmatrix_t &U, rvector_t &S,
       handle, workDesc, CUTENSORNET_MEMSPACE_HOST,
       CUTENSORNET_WORKSPACE_SCRATCH, hostWork, hostWorkspaceSize));
 
-  /**********
-   * Execution
-   ***********/
-
-  const int numRuns = 3; // to get stable perf results
-  for (int i = 0; i < numRuns; ++i) {
-    // restore output
-    cudaMemsetAsync(D_U, 0, sizeU, stream);
-    cudaMemsetAsync(D_S, 0, sizeS, stream);
-    cudaMemsetAsync(D_V, 0, sizeV, stream);
-    cudaDeviceSynchronize();
-
-    // With value-based truncation, `cutensornetTensorSVD` can potentially
-    // update the shared extent in descTensorU/V. We here restore descTensorU/V
-    // to the original problem.
-    HANDLE_ERROR(cutensornetDestroyTensorDescriptor(descTensorU));
-    HANDLE_ERROR(cutensornetDestroyTensorDescriptor(descTensorV));
-    HANDLE_ERROR(cutensornetCreateTensorDescriptor(
-        handle, numModesU, extentU.data(), strides, modesU.data(), typeData,
-        &descTensorU));
-    HANDLE_ERROR(cutensornetCreateTensorDescriptor(
-        handle, numModesV, extentV.data(), strides, modesV.data(), typeData,
-        &descTensorV));
-
-    HANDLE_ERROR(cutensornetTensorSVD(handle, descTensorA, D_A, descTensorU,
-                                      D_U, D_S, descTensorV, D_V, svdConfig,
-                                      svdInfo, workDesc, stream));
-  }
+  // Requesting for Exact SVD.
+  HANDLE_ERROR(cutensornetTensorSVD(handle, descTensorA, D_A, descTensorU, D_U,
+                                    D_S, descTensorV, D_V, NULL, NULL, workDesc,
+                                    stream));
 
   HANDLE_CUDA_ERROR(
       cudaMemcpyAsync(cutensor_U, D_U, sizeU, cudaMemcpyDeviceToHost));
@@ -877,14 +831,17 @@ void cutensor_csvd_wrapper(cmatrix_t &A, cmatrix_t &U, rvector_t &S,
       cudaMemcpyAsync(cutensor_V, D_V, sizeV, cudaMemcpyDeviceToHost));
 
   S.clear();
-  for (int i = 0; i < n; i++)
-    S.push_back(cutensor_S[i].real());
+  for (int i = 0; i < min_dim; i++)
+    S.push_back(cutensor_S[i]);
 
-  A = cmatrix_t::move_from_buffer(m, n, cutensor_A);
-  U = cmatrix_t::move_from_buffer(n, n, cutensor_U);
-  V = cmatrix_t::move_from_buffer(n, n, cutensor_V);
+  A = cmatrix_t::move_from_buffer(lda, min_dim, cutensor_A);
+  U = cmatrix_t::move_from_buffer(lda, min_dim, cutensor_U);
+  V = cmatrix_t::move_from_buffer(min_dim, min_dim, cutensor_V);
 
-  validate_SVD_result(A_cpy, U, S, V);
+  validate_SVdD_result(A_cpy, U, S, V);
+  if (transposed) {
+    std::swap(U, V);
+  }
 
   /***************
    * Free resources
@@ -893,8 +850,6 @@ void cutensor_csvd_wrapper(cmatrix_t &A, cmatrix_t &U, rvector_t &S,
   HANDLE_ERROR(cutensornetDestroyTensorDescriptor(descTensorA));
   HANDLE_ERROR(cutensornetDestroyTensorDescriptor(descTensorU));
   HANDLE_ERROR(cutensornetDestroyTensorDescriptor(descTensorV));
-  HANDLE_ERROR(cutensornetDestroyTensorSVDConfig(svdConfig));
-  HANDLE_ERROR(cutensornetDestroyTensorSVDInfo(svdInfo));
   HANDLE_ERROR(cutensornetDestroyWorkspaceDescriptor(workDesc));
   HANDLE_CUDA_ERROR(cudaStreamDestroy(stream));
   HANDLE_ERROR(cutensornetDestroy(handle));
