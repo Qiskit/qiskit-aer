@@ -1,0 +1,40 @@
+---
+features:
+  - |
+    This PR adds the ability to run Matrix Product State Simulation on Nvidia GPUs.
+    To be precise, this PR offloads the Singular Value Decomposition required for
+    Matrix Product State Simulation to Nvidia GPUs with the help of cuQuantum.
+    
+    While choosing for the backend for Matrix Product State simulation users can choose all as usual, but
+    this time they can choose the device as GPU.
+
+    Example
+
+    .. code-block:: python
+
+      from qiskit_aer import AerSimulator
+      from qiskit.circuit import QuantumCircuit
+      from qiskit.compiler import transpile
+      
+      num_qubits = 10
+      shots = 5
+      
+      qc = QuantumCircuit(num_qubits)
+      qc.h(0)
+      
+      for control, target in zip(range(num_qubits-1), range(1, num_qubits)):
+        qc.cx(control, target)
+        
+      qc.measure_all()
+      
+      sim = AerSimulator(method="matrix_product_state", device="GPU")
+      qc_t = transpile(qc, backend=sim)
+      job = sim.run(qc_t, shots = shots)
+      
+      counts = job.result().get_counts()
+      counts
+
+
+
+
+
