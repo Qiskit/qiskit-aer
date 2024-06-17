@@ -29,17 +29,21 @@ namespace Stabilizer {
 //============================================================================
 using OpType = Operations::OpType;
 
+// clang-format off
 // OpSet of supported instructions
 const Operations::OpSet StateOpSet(
     // Op types
-    {OpType::gate, OpType::measure, OpType::reset, OpType::barrier,
-     OpType::bfunc, OpType::qerror_loc, OpType::roerror, OpType::save_expval,
-     OpType::save_expval_var, OpType::save_probs, OpType::save_probs_ket,
-     OpType::save_amps_sq, OpType::save_stabilizer, OpType::save_clifford,
-     OpType::save_state, OpType::set_stabilizer, OpType::jump, OpType::mark},
+    { OpType::gate,             OpType::measure,        OpType::reset,
+      OpType::barrier,          OpType::bfunc,          OpType::qerror_loc,
+      OpType::roerror,          OpType::save_expval,    OpType::save_expval_var,
+      OpType::save_probs,       OpType::save_probs_ket, OpType::save_amps_sq,
+      OpType::save_stabilizer,  OpType::save_clifford,  OpType::save_state, 
+      OpType::set_stabilizer,   OpType::jump, OpType::mark,
+     OpType::store},
     // Gates
     {"CX", "cx", "cy", "cz", "swap", "id", "x", "y", "z", "h", "s", "sdg", "sx",
      "sxdg", "delay", "pauli", "ecr", "rz"});
+// clang-format on
 
 enum class Gates {
   id,
