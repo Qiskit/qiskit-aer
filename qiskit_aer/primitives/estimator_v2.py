@@ -76,7 +76,10 @@ class EstimatorV2(BaseEstimatorV2):
     def from_backend(cls, backend, **options):
         """make new sampler that uses external backend"""
         estimator = cls(**options)
-        estimator._backend = AerSimulator.from_backend(backend)
+        if isinstance(backend, AerSimulator):
+            estimator._backend = backend
+        else:
+            estimator._backend = AerSimulator.from_backend(backend)
         return estimator
 
     @property
