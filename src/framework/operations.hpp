@@ -410,7 +410,8 @@ enum class OpType {
   jump,
   mark,
   unary_expr,
-  binary_expr
+  binary_expr,
+  store
 };
 
 enum class DataSubType {
@@ -554,6 +555,9 @@ inline std::ostream &operator<<(std::ostream &stream, const OpType &type) {
     break;
   case OpType::binary_expr:
     stream << "binary_expr";
+    break;
+  case OpType::store:
+    stream << "store";
     break;
   default:
     stream << "unknown";
@@ -1030,6 +1034,17 @@ inline Op make_reset(const reg_t &qubits, const int_t conditional) {
     op.conditional_reg = conditional;
   }
 
+  return op;
+}
+
+inline Op make_store(const reg_t &qubits, const reg_t &clbits,
+                     const std::shared_ptr<CExpr> expr) {
+  Op op;
+  op.type = OpType::store;
+  op.name = "store";
+  op.qubits = qubits;
+  op.registers = clbits;
+  op.expr = expr;
   return op;
 }
 
