@@ -1279,3 +1279,21 @@ class TestControlFlow(SimulatorTestCase):
         counts = backend.run(qc).result().get_counts()
         self.assertEqual(len(counts), 1)
         self.assertIn("0010101", counts)
+
+    def test_bit_mapping_in_compiler(self):
+        """Test different bit mappings are correctly inlined"""
+        parent = QuantumCircuit(5, 2)
+        parent.x(0)
+        parent.measure(0, 0)
+
+        true_body = QuantumCircuit(1, 0)
+        true_body.x(0)
+
+        parent.append(IfElseOp((parent.clbits[0], 1), true_body), [1], [])
+
+        parent.measure(1, 1)
+
+        simulator = self.backend()
+        counts = simulator.run(parent).result().get_counts()
+        self.assertEqual(len(counts), 1)
+        self.assertIn("11", counts)
