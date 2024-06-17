@@ -133,7 +133,6 @@ class EstimatorV2(BaseEstimatorV2):
         result = self._backend.run(
             circuit, parameter_binds=[parameter_binds], **self.options.run_options
         ).result()
-        print(result)
 
         # calculate expectation values (evs) and standard errors (stds)
         flat_indices = list(param_indices.ravel())
