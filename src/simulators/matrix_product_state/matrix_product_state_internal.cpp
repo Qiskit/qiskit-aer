@@ -48,6 +48,10 @@ bool MPS::mps_log_data_ = 0;
 bool MPS::mps_lapack_ = false;
 std::string MPS::mps_svd_device_;
 
+// if cuda is present.
+cutensornetHandle_t MPS::cuda_handle_ = NULL;
+cudaStream_t MPS::cuda_stream_ = NULL;
+
 //------------------------------------------------------------------------
 // local function declarations
 //------------------------------------------------------------------------
@@ -665,9 +669,9 @@ void MPS::common_apply_2_qubit_gate(
 
   MPS_Tensor left_gamma, right_gamma;
   rvector_t lambda;
-  double discarded_value =
-      MPS_Tensor::Decompose(temp, left_gamma, lambda, right_gamma,
-                            MPS::mps_lapack_, MPS::mps_svd_device_);
+  double discarded_value = MPS_Tensor::Decompose(
+      temp, left_gamma, lambda, right_gamma, MPS::mps_lapack_,
+      MPS::mps_svd_device_, MPS::cuda_stream_, MPS::cuda_handle_);
 
   if (discarded_value > json_chop_threshold_)
     MPS::print_to_log("discarded_value=", discarded_value, ", ");
@@ -1806,8 +1810,14 @@ void MPS::initialize_from_matrix(uint_t num_qubits, const cmatrix_t &mat) {
     // step 2 - SVD
     S.clear();
     S.resize(std::min(reshaped_matrix.GetRows(), reshaped_matrix.GetColumns()));
-    csvd_wrapper(reshaped_matrix, U, S, V, MPS::mps_lapack_,
-                 MPS::mps_svd_device_);
+
+    if (MPS::mps_svd_device_.compare("GPU") == 0) {
+      cutensor_csvd_wrapper(reshaped_matrix, U, S, V, MPS::cuda_stream_,
+                            MPS::cuda_handle_);
+    } else {
+      csvd_wrapper(reshaped_matrix, U, S, V, MPS::mps_lapack_);
+    }
+
     reduce_zeros(U, S, V, MPS_Tensor::get_max_bond_dimension(),
                  MPS_Tensor::get_truncation_threshold(), MPS::mps_lapack_);
 

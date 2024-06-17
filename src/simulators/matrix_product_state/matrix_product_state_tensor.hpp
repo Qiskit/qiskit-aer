@@ -159,7 +159,9 @@ public:
                              const MPS_Tensor &right_gamma, bool mul_by_lambda);
   static double Decompose(MPS_Tensor &temp, MPS_Tensor &left_gamma,
                           rvector_t &lambda, MPS_Tensor &right_gamma,
-                          bool mps_lapack, std::string mps_svd_device);
+                          bool mps_lapack, std::string mps_svd_device,
+                          cudaStream_t cuda_stream,
+                          cutensornetHandle_t cuda_handle);
   static void reshape_for_3_qubits_before_SVD(const std::vector<cmatrix_t> data,
                                               MPS_Tensor &reshaped_tensor);
   static void contract_2_dimensions(const MPS_Tensor &left_gamma,
@@ -592,13 +594,19 @@ void MPS_Tensor::contract_2_dimensions(const MPS_Tensor &left_gamma,
 //---------------------------------------------------------------
 double MPS_Tensor::Decompose(MPS_Tensor &temp, MPS_Tensor &left_gamma,
                              rvector_t &lambda, MPS_Tensor &right_gamma,
-                             bool mps_lapack, std::string mps_svd_device) {
+                             bool mps_lapack, std::string mps_svd_device,
+                             cudaStream_t cuda_stream,
+                             cutensornetHandle_t cuda_handle) {
   cmatrix_t C;
   C = reshape_before_SVD(temp.data_);
   cmatrix_t U, V;
   rvector_t S(std::min(C.GetRows(), C.GetColumns()));
 
-  csvd_wrapper(C, U, S, V, mps_lapack, mps_svd_device);
+  if (mps_svd_device.compare("GPU") == 0) {
+    cutensor_csvd_wrapper(C, U, S, V, cuda_stream, cuda_handle);
+  } else {
+    csvd_wrapper(C, U, S, V, mps_lapack);
+  }
   double discarded_value = 0.0;
   discarded_value = reduce_zeros(U, S, V, max_bond_dimension_,
                                  truncation_threshold_, mps_lapack);

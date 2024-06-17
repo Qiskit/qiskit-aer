@@ -376,6 +376,11 @@ void State::set_config(const Config &config) {
 
   // Set device for SVD
   MPS::set_mps_svd_device(config.device);
+
+  // Get CUDA device, if GPU offloading enabled
+  if (config.device.compare("GPU") == 0) {
+    MPS::set_cuda_device();
+  }
 }
 
 void State::add_metadata(ExperimentResult &result) const {

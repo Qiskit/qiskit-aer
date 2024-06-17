@@ -551,18 +551,11 @@ status csvd(cmatrix_t &A, cmatrix_t &U, rvector_t &S, cmatrix_t &V) {
 }
 
 void csvd_wrapper(cmatrix_t &A, cmatrix_t &U, rvector_t &S, cmatrix_t &V,
-                  bool lapack, std::string mps_svd_device) {
-  if (mps_svd_device.compare("GPU") == 0) {
-#ifdef AER_THRUST_CUDA
-    cutensor_csvd_wrapper(A, U, S, V);
-#endif // AER_THRUST_CUDA
-
+                  bool lapack) {
+  if (lapack) {
+    lapack_csvd_wrapper(A, U, S, V);
   } else {
-    if (lapack) {
-      lapack_csvd_wrapper(A, U, S, V);
-    } else {
-      qiskit_csvd_wrapper(A, U, S, V);
-    }
+    qiskit_csvd_wrapper(A, U, S, V);
   }
 }
 
@@ -676,35 +669,9 @@ void lapack_csvd_wrapper(cmatrix_t &A, cmatrix_t &U, rvector_t &S,
 }
 
 #ifdef AER_THRUST_CUDA
-
-#include <cuda.h>
-#include <cuda_runtime.h>
-#include <cutensornet.h>
-#include <vector>
-
-#define HANDLE_ERROR(x)                                                        \
-  {                                                                            \
-    const auto err = x;                                                        \
-    if (err != CUTENSORNET_STATUS_SUCCESS) {                                   \
-      std::stringstream str;                                                   \
-      str << "ERROR TensorNet::contractor : "                                  \
-          << cutensornetGetErrorString(err);                                   \
-      throw std::runtime_error(str.str());                                     \
-    }                                                                          \
-  };
-
-#define HANDLE_CUDA_ERROR(x)                                                   \
-  {                                                                            \
-    const auto err = x;                                                        \
-    if (err != cudaSuccess) {                                                  \
-      std::stringstream str;                                                   \
-      str << "ERROR TensorNet::contractor : " << cudaGetErrorString(err);      \
-      throw std::runtime_error(str.str());                                     \
-    }                                                                          \
-  };
-
 void cutensor_csvd_wrapper(cmatrix_t &A, cmatrix_t &U, rvector_t &S,
-                           cmatrix_t &V) {
+                           cmatrix_t &V, cudaStream_t &stream,
+                           cutensornetHandle_t &handle) {
 
   bool transposed = false;
 
@@ -731,13 +698,6 @@ void cutensor_csvd_wrapper(cmatrix_t &A, cmatrix_t &U, rvector_t &S,
   complex_t *cutensor_A = A.move_to_buffer(), *cutensor_U = U.move_to_buffer(),
             *cutensor_V = V.move_to_buffer();
 
-  const size_t cuTensornetVersion = cutensornetGetVersion();
-
-  cudaDeviceProp prop;
-  int deviceId{-1};
-  HANDLE_CUDA_ERROR(cudaGetDevice(&deviceId));
-  HANDLE_CUDA_ERROR(cudaGetDeviceProperties(&prop, deviceId));
-
   cudaDataType_t typeData = CUDA_C_64F;
 
   std::vector<int32_t> modesA{'m', 'n'};
@@ -757,12 +717,6 @@ void cutensor_csvd_wrapper(cmatrix_t &A, cmatrix_t &U, rvector_t &S,
   HANDLE_CUDA_ERROR(cudaMalloc((void **)&D_V, sizeV));
 
   HANDLE_CUDA_ERROR(cudaMemcpy(D_A, cutensor_A, sizeA, cudaMemcpyHostToDevice));
-
-  cudaStream_t stream;
-  HANDLE_CUDA_ERROR(cudaStreamCreate(&stream));
-
-  cutensornetHandle_t handle;
-  HANDLE_ERROR(cutensornetCreate(&handle));
 
   cutensornetTensorDescriptor_t descTensorA;
   cutensornetTensorDescriptor_t descTensorU;
@@ -851,8 +805,6 @@ void cutensor_csvd_wrapper(cmatrix_t &A, cmatrix_t &U, rvector_t &S,
   HANDLE_ERROR(cutensornetDestroyTensorDescriptor(descTensorU));
   HANDLE_ERROR(cutensornetDestroyTensorDescriptor(descTensorV));
   HANDLE_ERROR(cutensornetDestroyWorkspaceDescriptor(workDesc));
-  HANDLE_CUDA_ERROR(cudaStreamDestroy(stream));
-  HANDLE_ERROR(cutensornetDestroy(handle));
 
   if (cutensor_S)
     free(cutensor_S);
