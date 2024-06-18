@@ -85,8 +85,7 @@ void validate_SVdD_result(const cmatrix_t &A, const cmatrix_t &U,
 
 // cutensor call
 void cutensor_csvd_wrapper(cmatrix_t &C, cmatrix_t &U, rvector_t &S,
-                           cmatrix_t &V, cudaStream_t &stream,
-                           cutensornetHandle_t &handle);
+                           cmatrix_t &V);
 
 #endif // AER_THRUST_CUDA
 

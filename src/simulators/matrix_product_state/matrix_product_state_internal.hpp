@@ -82,15 +82,7 @@ enum class MPS_swap_direction { SWAP_LEFT, SWAP_RIGHT };
 class MPS {
 public:
   MPS(uint_t num_qubits = 0) : num_qubits_(num_qubits) {}
-  ~MPS() {
-    if (cuda_stream_) {
-      HANDLE_CUDA_ERROR(cudaStreamDestroy(cuda_stream_));
-    }
-
-    if (cuda_handle_) {
-      HANDLE_ERROR(cutensornetDestroy(cuda_handle_));
-    }
-  }
+  ~MPS() {}
 
   //--------------------------------------------------------------------------
   // Function name: initialize
@@ -340,9 +332,6 @@ public:
     int deviceId{-1};
     HANDLE_CUDA_ERROR(cudaGetDevice(&deviceId));
     HANDLE_CUDA_ERROR(cudaGetDeviceProperties(&prop, deviceId));
-
-    HANDLE_CUDA_ERROR(cudaStreamCreate(&MPS::cuda_stream_));
-    HANDLE_ERROR(cutensornetCreate(&MPS::cuda_handle_));
   }
 
   static uint_t get_omp_threads() { return omp_threads_; }
@@ -594,8 +583,6 @@ private:
   static MPS_swap_direction mps_swap_direction_;
   static bool mps_lapack_;
   static std::string mps_svd_device_;
-  static cutensornetHandle_t cuda_handle_;
-  static cudaStream_t cuda_stream_;
 };
 
 inline std::ostream &operator<<(std::ostream &out, const rvector_t &vec) {

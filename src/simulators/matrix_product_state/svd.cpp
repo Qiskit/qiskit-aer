@@ -704,6 +704,12 @@ void cutensor_csvd_wrapper(cmatrix_t &A, cmatrix_t &U, rvector_t &S,
   std::vector<int32_t> modesU{'m', 'x'};
   std::vector<int32_t> modesV{'x', 'n'};
 
+  cudaStream_t stream;
+  HANDLE_CUDA_ERROR(cudaStreamCreate(&stream));
+
+  cutensornetHandle_t handle;
+  HANDLE_ERROR(cutensornetCreate(&handle));
+
   double *cutensor_S = (double *)malloc(sizeS);
 
   void *D_A;
@@ -805,6 +811,8 @@ void cutensor_csvd_wrapper(cmatrix_t &A, cmatrix_t &U, rvector_t &S,
   HANDLE_ERROR(cutensornetDestroyTensorDescriptor(descTensorU));
   HANDLE_ERROR(cutensornetDestroyTensorDescriptor(descTensorV));
   HANDLE_ERROR(cutensornetDestroyWorkspaceDescriptor(workDesc));
+  HANDLE_CUDA_ERROR(cudaStreamDestroy(stream));
+  HANDLE_ERROR(cutensornetDestroy(handle));
 
   if (cutensor_S)
     free(cutensor_S);
