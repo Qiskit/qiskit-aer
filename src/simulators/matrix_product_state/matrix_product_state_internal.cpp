@@ -1808,7 +1808,9 @@ void MPS::initialize_from_matrix(uint_t num_qubits, const cmatrix_t &mat) {
     S.resize(std::min(reshaped_matrix.GetRows(), reshaped_matrix.GetColumns()));
 
     if (MPS::mps_svd_device_.compare("GPU") == 0) {
+#ifdef AER_THRUST_CUDA
       cutensor_csvd_wrapper(reshaped_matrix, U, S, V);
+#endif // AER_THRUST_CUDA
     } else {
       csvd_wrapper(reshaped_matrix, U, S, V, MPS::mps_lapack_);
     }

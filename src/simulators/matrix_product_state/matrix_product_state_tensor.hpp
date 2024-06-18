@@ -599,7 +599,9 @@ double MPS_Tensor::Decompose(MPS_Tensor &temp, MPS_Tensor &left_gamma,
   rvector_t S(std::min(C.GetRows(), C.GetColumns()));
 
   if (mps_svd_device.compare("GPU") == 0) {
+#ifdef AER_THRUST_CUDA
     cutensor_csvd_wrapper(C, U, S, V);
+#endif // AER_THRUST_CUDA
   } else {
     csvd_wrapper(C, U, S, V, mps_lapack);
   }

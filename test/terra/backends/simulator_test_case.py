@@ -85,7 +85,7 @@ def _method_device(methods):
     # add special test device for cuStateVec if available
     cuStateVec = check_cuStateVec(available_devices)
 
-    gpu_methods = ["statevector", "density_matrix", "unitary", "tensor_network"]
+    gpu_methods = ["statevector", "density_matrix", "unitary", "tensor_network", "matrix_product_state"]
     batchable_methods = ["statevector", "density_matrix"]
     data_args = []
     for method in methods:

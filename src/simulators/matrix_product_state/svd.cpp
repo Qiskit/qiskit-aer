@@ -797,7 +797,8 @@ void cutensor_csvd_wrapper(cmatrix_t &A, cmatrix_t &U, rvector_t &S,
   U = cmatrix_t::move_from_buffer(lda, min_dim, cutensor_U);
   V = cmatrix_t::move_from_buffer(min_dim, min_dim, cutensor_V);
 
-  validate_SVdD_result(A_cpy, U, S, V);
+  V = AER::Utils::dagger(V);
+  validate_SVD_result(A_cpy, U, S, V);
   if (transposed) {
     std::swap(U, V);
   }

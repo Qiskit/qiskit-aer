@@ -328,10 +328,12 @@ public:
   static void set_cuda_device() {
     // the prop could be used to log the properties of the device.
 
+#ifdef AER_THRUST_CUDA
     cudaDeviceProp prop;
     int deviceId{-1};
     HANDLE_CUDA_ERROR(cudaGetDevice(&deviceId));
     HANDLE_CUDA_ERROR(cudaGetDeviceProperties(&prop, deviceId));
+#endif // AER_THRUST_CUDA
   }
 
   static uint_t get_omp_threads() { return omp_threads_; }
