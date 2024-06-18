@@ -670,8 +670,7 @@ void lapack_csvd_wrapper(cmatrix_t &A, cmatrix_t &U, rvector_t &S,
 
 #ifdef AER_THRUST_CUDA
 void cutensor_csvd_wrapper(cmatrix_t &A, cmatrix_t &U, rvector_t &S,
-                           cmatrix_t &V, cudaStream_t &stream,
-                           cutensornetHandle_t &handle) {
+                           cmatrix_t &V) {
 
   bool transposed = false;
 
