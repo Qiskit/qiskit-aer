@@ -111,7 +111,11 @@ def _method_device(methods):
                     # add test cases for cuStateVec if available using special device = 'GPU_cuStateVec'
                     #'GPU_cuStateVec' is used only inside tests not available in Aer
                     # and this is converted to "device='GPU'" and option "cuStateVec_enalbe = True" is added
-                    if cuStateVec and "tensor_network" != method:
+                    if (
+                        cuStateVec
+                        and "tensor_network" != method
+                        and "matrix_product_state" != method
+                    ):
                         data_args.append((method, "GPU_cuStateVec"))
             else:
                 data_args.append((method, "CPU"))
