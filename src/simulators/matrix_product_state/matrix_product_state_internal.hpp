@@ -15,12 +15,12 @@
 #ifndef _aer_matrix_product_state_hpp_
 #define _aer_matrix_product_state_hpp_
 
-#include <cstdarg>
-
 #include "framework/json.hpp"
 #include "framework/operations.hpp"
 #include "framework/utils.hpp"
 #include "matrix_product_state_tensor.hpp"
+#include <cstdarg>
+#include <string>
 
 namespace AER {
 namespace MatrixProductState {
@@ -321,6 +321,20 @@ public:
   }
 
   static void set_mps_lapack_svd(bool mps_lapack) { mps_lapack_ = mps_lapack; }
+  static void set_mps_svd_device(std::string mps_svd_device) {
+    mps_svd_device_ = mps_svd_device;
+  }
+
+  static void set_cuda_device() {
+    // the prop could be used to log the properties of the device.
+
+#ifdef AER_THRUST_CUDA
+    cudaDeviceProp prop;
+    int deviceId{-1};
+    HANDLE_CUDA_ERROR(cudaGetDevice(&deviceId));
+    HANDLE_CUDA_ERROR(cudaGetDeviceProperties(&prop, deviceId));
+#endif // AER_THRUST_CUDA
+  }
 
   static uint_t get_omp_threads() { return omp_threads_; }
   static uint_t get_omp_threshold() { return omp_threshold_; }
@@ -570,6 +584,7 @@ private:
   static bool mps_log_data_;
   static MPS_swap_direction mps_swap_direction_;
   static bool mps_lapack_;
+  static std::string mps_svd_device_;
 };
 
 inline std::ostream &operator<<(std::ostream &out, const rvector_t &vec) {
