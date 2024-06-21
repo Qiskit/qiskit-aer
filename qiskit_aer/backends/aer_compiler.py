@@ -758,8 +758,8 @@ def _assemble_type(expr_type):
 
 def _iter_var_recursive(circuit):
     yield from circuit.iter_vars()
-    for data in circuit.data:
-        for param in data[0].params:
+    for instruction in circuit.data:
+        for param in instruction.operation.params:
             if isinstance(param, QuantumCircuit):
                 yield from _iter_var_recursive(param)
 
