@@ -221,7 +221,7 @@ public:
 
 class UnaryExpr : public CExpr {
 public:
-  UnaryExpr(const UnaryOp op_, const std::shared_ptr<CExpr> operand_)
+  UnaryExpr(const UnaryOp op_, const std::shared_ptr<CExpr> &operand_)
       : CExpr(CExprType::Unary, operand_->type), op(op_), operand(operand_) {}
 
   virtual bool eval_bool(const std::string &memory) {
@@ -253,8 +253,8 @@ public:
 
 class BinaryExpr : public CExpr {
 public:
-  BinaryExpr(const BinaryOp op_, const std::shared_ptr<CExpr> left_,
-             const std::shared_ptr<CExpr> right_)
+  BinaryExpr(const BinaryOp op_, const std::shared_ptr<CExpr> &left_,
+             const std::shared_ptr<CExpr> &right_)
       : CExpr(CExprType::Binary,
               isBoolBinaryOp(op_) ? std::make_shared<Bool>()
                                   : get_wider_type(left_->type, right_->type)),
@@ -661,7 +661,7 @@ inline std::ostream &operator<<(std::ostream &s, const Op &op) {
   }
   s << "],[";
   first = true;
-  for (reg_t reg : op.regs) {
+  for (const reg_t &reg : op.regs) {
     if (!first)
       s << ",";
     s << "[";
@@ -779,8 +779,8 @@ inline Op make_initialize(const reg_t &qubits,
 
 inline Op make_unitary(const reg_t &qubits, const cmatrix_t &mat,
                        const int_t conditional = -1,
-                       const std::shared_ptr<CExpr> expr = nullptr,
-                       std::string label = "") {
+                       const std::shared_ptr<CExpr> &expr = nullptr,
+                       const std::string &label = "") {
   Op op;
   op.type = OpType::matrix;
   op.name = "unitary";
@@ -811,7 +811,7 @@ inline Op make_unitary(const reg_t &qubits, cmatrix_t &&mat,
 
 inline Op make_diagonal(const reg_t &qubits, const cvector_t &vec,
                         const int_t conditional = -1,
-                        const std::string label = "") {
+                        const std::string &label = "") {
   Op op;
   op.type = OpType::diagonal_matrix;
   op.name = "diagonal";
@@ -831,7 +831,7 @@ inline Op make_diagonal(const reg_t &qubits, const cvector_t &vec,
 
 inline Op make_diagonal(const reg_t &qubits, cvector_t &&vec,
                         const int_t conditional = -1,
-                        const std::string label = "") {
+                        const std::string &label = "") {
   Op op;
   op.type = OpType::diagonal_matrix;
   op.name = "diagonal";
@@ -851,7 +851,7 @@ inline Op make_diagonal(const reg_t &qubits, cvector_t &&vec,
 
 inline Op make_superop(const reg_t &qubits, const cmatrix_t &mat,
                        const int_t conditional = -1,
-                       const std::shared_ptr<CExpr> expr = nullptr) {
+                       const std::shared_ptr<CExpr> &expr = nullptr) {
   Op op;
   op.type = OpType::superop;
   op.name = "superop";
@@ -877,7 +877,7 @@ inline Op make_superop(const reg_t &qubits, cmatrix_t &&mat) {
 
 inline Op make_kraus(const reg_t &qubits, const std::vector<cmatrix_t> &mats,
                      const int_t conditional = -1,
-                     const std::shared_ptr<CExpr> expr = nullptr) {
+                     const std::shared_ptr<CExpr> &expr = nullptr) {
   Op op;
   op.type = OpType::kraus;
   op.name = "kraus";
@@ -961,12 +961,12 @@ inline Op make_bfunc(const std::string &mask, const std::string &val,
 Op make_gate(const std::string &name, const reg_t &qubits,
              const std::vector<complex_t> &params,
              const std::vector<std::string> &string_params,
-             const int_t conditional, const std::shared_ptr<CExpr> expr,
+             const int_t conditional, const std::shared_ptr<CExpr> &expr,
              const std::string &label);
 Op make_gate(const std::string &name, const reg_t &qubits,
              const std::vector<complex_t> &params,
              const std::vector<std::string> &string_params,
-             const int_t conditional, const std::shared_ptr<CExpr> expr,
+             const int_t conditional, const std::shared_ptr<CExpr> &expr,
              const std::string &label) {
   Op op;
   op.type = OpType::gate;
@@ -1051,8 +1051,8 @@ inline Op make_store(const reg_t &qubits, const reg_t &clbits,
 inline Op make_multiplexer(const reg_t &qubits,
                            const std::vector<cmatrix_t> &mats,
                            const int_t conditional = -1,
-                           const std::shared_ptr<CExpr> expr = nullptr,
-                           std::string label = "") {
+                           const std::shared_ptr<CExpr> &expr = nullptr,
+                           const std::string &label = "") {
 
   // Check matrices are N-qubit
   auto dim = mats[0].GetRows();
@@ -1172,9 +1172,9 @@ inline Op make_save_amplitudes(const reg_t &qubits, const std::string &name,
 }
 
 inline Op make_save_expval(const reg_t &qubits, const std::string &name,
-                           const std::vector<std::string> pauli_strings,
-                           const std::vector<double> coeff_reals,
-                           const std::vector<double> coeff_imags,
+                           const std::vector<std::string> &pauli_strings,
+                           const std::vector<double> &coeff_reals,
+                           const std::vector<double> &coeff_imags,
                            const std::string &snapshot_type,
                            const std::string &label) {
 
@@ -1264,7 +1264,7 @@ inline Op make_set_clifford(const reg_t &qubits, const std::string &name,
 
 inline Op make_jump(const reg_t &qubits, const std::vector<std::string> &params,
                     const int_t conditional,
-                    const std::shared_ptr<CExpr> expr = nullptr) {
+                    const std::shared_ptr<CExpr> &expr = nullptr) {
   Op op;
   op.type = OpType::jump;
   op.name = "jump";
@@ -1318,7 +1318,7 @@ inline Op make_measure(const reg_t &qubits, const reg_t &memory,
 
 inline Op make_qerror_loc(const reg_t &qubits, const std::string &label,
                           const int_t conditional = -1,
-                          const std::shared_ptr<CExpr> expr = nullptr) {
+                          const std::shared_ptr<CExpr> &expr = nullptr) {
   Op op;
   op.type = OpType::qerror_loc;
   op.name = label;

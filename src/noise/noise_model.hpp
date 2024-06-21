@@ -133,7 +133,7 @@ public:
 
   // Return vector of noise qubits for non local error on specified label and
   // qubits If no nonlocal error exists an empty set is returned.
-  std::set<uint_t> nonlocal_noise_qubits(const std::string label,
+  std::set<uint_t> nonlocal_noise_qubits(const std::string &label,
                                          const reg_t &qubits) const;
 
   // Return the opset for the noise model
@@ -951,7 +951,7 @@ std::string NoiseModel::reg2string(const reg_t &reg) const {
 reg_t NoiseModel::string2reg(std::string s) const {
   reg_t result;
   size_t pos = 0;
-  while ((pos = s.find(",")) != std::string::npos) {
+  while ((pos = s.find(',')) != std::string::npos) {
     result.push_back(std::stoi(s.substr(0, pos)));
     s.erase(0, pos + 1);
   }
@@ -962,7 +962,7 @@ reg_t NoiseModel::string2reg(std::string s) const {
 // Qubit Remapping
 //=========================================================================
 
-std::set<uint_t> NoiseModel::nonlocal_noise_qubits(const std::string label,
+std::set<uint_t> NoiseModel::nonlocal_noise_qubits(const std::string &label,
                                                    const reg_t &qubits) const {
   std::set<uint_t> all_noise_qubits;
   // Check if label has noise

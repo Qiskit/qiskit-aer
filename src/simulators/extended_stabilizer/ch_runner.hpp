@@ -132,7 +132,8 @@ public:
   double norm_estimation(uint_t n_samples, uint_t n_repetitions,
                          AER::RngEngine &rng);
   double norm_estimation(uint_t n_samples, uint_t n_repetitions,
-                         std::vector<pauli_t> generators, AER::RngEngine &rng);
+                         const std::vector<pauli_t> &generators,
+                         AER::RngEngine &rng);
 
   // Metropolis Estimation for sampling from the output distribution
   uint_t metropolis_estimation(uint_t n_steps, AER::RngEngine &rng);
@@ -446,7 +447,7 @@ double Runner::norm_estimation(uint_t n_samples, uint_t repetitions,
 }
 
 double Runner::norm_estimation(uint_t n_samples, uint_t repetitions,
-                               std::vector<pauli_t> generators,
+                               const std::vector<pauli_t> &generators,
                                AER::RngEngine &rng) {
   apply_pauli_projector(generators);
   return norm_estimation(n_samples, repetitions, rng);
@@ -549,7 +550,9 @@ void Runner::init_metropolis(AER::RngEngine &rng) {
   last_proposal_ = 0;
   double local_real = 0., local_imag = 0.;
   const int_t END = num_states_;
-#pragma omp parallel for if(num_states_ > omp_threshold_ && num_threads_ > 1) num_threads(num_threads_) reduction(+:local_real) reduction(+:local_imag)
+#pragma omp parallel for if (num_states_ > omp_threshold_ && num_threads_ > 1) \
+    num_threads(num_threads_) reduction(+ : local_real)                        \
+    reduction(+ : local_imag)
   for (int_t i = 0; i < END; i++) {
     scalar_t amp = states_[i].Amplitude(x_string_);
     if (amp.eps == 1) {
@@ -569,7 +572,9 @@ void Runner::metropolis_step(AER::RngEngine &rng) {
   double real_part = 0., imag_part = 0.;
   if (accept_ == 0) {
     const int_t END = num_states_;
-#pragma omp parallel for if(num_states_ > omp_threshold_ && num_threads_ > 1) num_threads(num_threads_) reduction(+:real_part) reduction(+:imag_part)
+#pragma omp parallel for if (num_states_ > omp_threshold_ && num_threads_ > 1) \
+    num_threads(num_threads_) reduction(+ : real_part)                         \
+    reduction(+ : imag_part)
     for (int_t i = 0; i < END; i++) {
       scalar_t amp = states_[i].ProposeFlip(proposal);
       if (amp.eps == 1) {
@@ -580,7 +585,9 @@ void Runner::metropolis_step(AER::RngEngine &rng) {
     }
   } else {
     const int_t END = num_states_;
-#pragma omp parallel for if(num_states_ > omp_threshold_ && num_threads_ > 1) num_threads(num_threads_) reduction(+:real_part) reduction(+:imag_part)
+#pragma omp parallel for if (num_states_ > omp_threshold_ && num_threads_ > 1) \
+    num_threads(num_threads_) reduction(+ : real_part)                         \
+    reduction(+ : imag_part)
     for (int_t i = 0; i < END; i++) {
       states_[i].AcceptFlip();
       scalar_t amp = states_[i].ProposeFlip(proposal);
@@ -634,7 +641,9 @@ complex_t Runner::amplitude(uint_t x_measure) {
   double real_part = 0., imag_part = 0.;
   // Splitting the reduction guarantees support on more OMP versions.
   const int_t END = num_states_;
-#pragma omp parallel for if(num_states_ > omp_threshold_ && num_threads_ > 1) num_threads(num_threads_) reduction(+:real_part) reduction(+:imag_part)
+#pragma omp parallel for if (num_states_ > omp_threshold_ && num_threads_ > 1) \
+    num_threads(num_threads_) reduction(+ : real_part)                         \
+    reduction(+ : imag_part)
   for (int_t i = 0; i < END; i++) {
     complex_t amplitude = states_[i].Amplitude(x_measure).to_complex();
     amplitude *= coefficients_[i];

@@ -55,17 +55,17 @@ cmatrix_t reshape_before_SVD(std::vector<cmatrix_t> data) {
             temp2 = AER::Utils::concatenate(data[2], data[3], 1);
   return AER::Utils::concatenate(temp1, temp2, 0);
 }
-std::vector<cmatrix_t> reshape_U_after_SVD(const cmatrix_t U) {
+std::vector<cmatrix_t> reshape_U_after_SVD(const cmatrix_t &U) {
   std::vector<cmatrix_t> Res(2);
   AER::Utils::split(U, Res[0], Res[1], 0);
   return Res;
 }
-std::vector<cmatrix_t> reshape_V_after_SVD(const cmatrix_t V) {
+std::vector<cmatrix_t> reshape_V_after_SVD(const cmatrix_t &V) {
   std::vector<cmatrix_t> Res(2);
   AER::Utils::split(AER::Utils::dagger(V), Res[0], Res[1], 1);
   return Res;
 }
-std::vector<cmatrix_t> reshape_VH_after_SVD(const cmatrix_t V) {
+std::vector<cmatrix_t> reshape_VH_after_SVD(const cmatrix_t &V) {
   std::vector<cmatrix_t> Res(2);
   AER::Utils::split(V, Res[0], Res[1], 1);
   return Res;
