@@ -611,6 +611,8 @@ class AerSimulator(AerBackend):
                 "roerror",
                 "save_statevector",
                 "reset",
+                "save_expval",
+                "save_expval_var",
                 "delay",
             ]
         ),
