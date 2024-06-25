@@ -47,38 +47,25 @@ static uint_t instruction_number = 0;
 
 using OpType = Operations::OpType;
 
+// clang-format off
 // OpSet of supported instructions
 const Operations::OpSet StateOpSet(
-    {OpType::gate,
-     OpType::measure,
-     OpType::reset,
-     OpType::initialize,
-     OpType::barrier,
-     OpType::bfunc,
-     OpType::roerror,
-     OpType::qerror_loc,
-     OpType::matrix,
-     OpType::diagonal_matrix,
-     OpType::kraus,
-     OpType::save_expval,
-     OpType::save_expval_var,
-     OpType::save_densmat,
-     OpType::save_statevec,
-     OpType::save_probs,
-     OpType::save_probs_ket,
-     OpType::save_amps,
-     OpType::save_amps_sq,
-     OpType::save_mps,
-     OpType::save_state,
-     OpType::set_mps,
-     OpType::set_statevec,
-     OpType::jump,
-     OpType::mark},
+    // Op types
+    {OpType::gate,            OpType::measure,        OpType::reset,
+     OpType::initialize,      OpType::barrier,        OpType::bfunc,
+     OpType::roerror,         OpType::qerror_loc,     OpType::matrix,
+     OpType::diagonal_matrix, OpType::kraus,          OpType::save_expval,
+     OpType::save_expval_var, OpType::save_densmat,   OpType::save_statevec,
+     OpType::save_probs,      OpType::save_probs_ket, OpType::save_amps,
+     OpType::save_amps_sq,    OpType::save_mps,       OpType::save_state,
+     OpType::set_mps,         OpType::set_statevec,   OpType::jump,
+     OpType::mark,            OpType::store},
     // Gates
     {"id",  "x",    "y",   "z",   "s",     "sdg",   "h",     "t",  "tdg", "p",
      "u1",  "u2",   "u3",  "u",   "U",     "CX",    "cx",    "cy", "cz",  "cp",
      "cu1", "swap", "ccx", "sx",  "sxdg",  "r",     "rx",    "ry", "rz",  "rxx",
      "ryy", "rzz",  "rzx", "csx", "delay", "cswap", "pauli", "ecr"});
+// clang-format on
 
 //=========================================================================
 // Matrix Product State subclass
