@@ -352,7 +352,7 @@ struct complex_less {
   typedef thrust::complex<data_t> first_argument_type;
   typedef thrust::complex<data_t> second_argument_type;
   typedef bool result_type;
-  __thrust_exec_check_disable__ __host__ __device__ bool
+  __host__ __device__ bool
   operator()(const thrust::complex<data_t> &lhs,
              const thrust::complex<data_t> &rhs) const {
     return lhs.real() < rhs.real();
