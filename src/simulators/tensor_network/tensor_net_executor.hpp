@@ -67,9 +67,9 @@ protected:
   void apply_kraus(CircuitExecutor::Branch &root, const reg_t &qubits,
                    const std::vector<cmatrix_t> &kmats);
 
-  std::vector<reg_t> sample_measure(state_t &state, const reg_t &qubits,
-                                    uint_t shots,
-                                    std::vector<RngEngine> &rng) const override;
+  std::vector<SampleVector>
+  sample_measure(state_t &state, const reg_t &qubits, uint_t shots,
+                 std::vector<RngEngine> &rng) const override;
 
   // Helper functions for shot-branching
   void apply_save_density_matrix(CircuitExecutor::Branch &root,
@@ -276,19 +276,22 @@ void Executor<state_t>::apply_initialize(CircuitExecutor::Branch &root,
     }
   }
 
-  if (root.additional_ops().size() == 0) {
+  if (!root.initialize_after_reset()) {
     apply_reset(root, qubits);
 
-    Operations::Op op;
-    op.type = OpType::initialize;
-    op.name = "initialize";
-    op.qubits = qubits;
-    op.params = params;
-    for (uint_t i = 0; i < root.num_branches(); i++) {
-      root.branches()[i]->add_op_after_branch(op);
+    if (root.num_branches() > 0) {
+      Operations::Op op;
+      op.type = OpType::initialize;
+      op.name = "initialize";
+      op.qubits = qubits;
+      op.params = params;
+      for (uint_t i = 0; i < root.num_branches(); i++) {
+        root.branches()[i]->add_op_after_branch(op);
+        root.branches()[i]->initialize_after_reset() = true;
+      }
+      return; // initialization will be done in next call because of shot
+              // branching in reset
     }
-    return; // initialization will be done in next call because of shot
-            // branching in reset
   }
 
   Base::states_[root.state_index()].qreg().initialize_component(qubits, params);
@@ -529,7 +532,7 @@ void Executor<state_t>::apply_save_amplitudes(CircuitExecutor::Branch &root,
 }
 
 template <class state_t>
-std::vector<reg_t>
+std::vector<SampleVector>
 Executor<state_t>::sample_measure(state_t &state, const reg_t &qubits,
                                   uint_t shots,
                                   std::vector<RngEngine> &rng) const {
@@ -540,21 +543,19 @@ Executor<state_t>::sample_measure(state_t &state, const reg_t &qubits,
   for (i = 0; i < (int_t)shots; ++i)
     rnds.push_back(rng[i].rand(0, 1));
 
-  std::vector<reg_t> samples = state.qreg().sample_measure(rnds);
-  std::vector<reg_t> ret(shots);
+  std::vector<SampleVector> samples = state.qreg().sample_measure(rnds);
+  std::vector<SampleVector> ret(shots, SampleVector(qubits.size()));
 
   if (omp_get_num_threads() > 1) {
     for (i = 0; i < (int_t)shots; ++i) {
-      ret[i].resize(qubits.size());
       for (j = 0; j < (int_t)qubits.size(); j++)
-        ret[i][j] = samples[i][qubits[j]];
+        ret[i].set(j, samples[i][qubits[j]]);
     }
   } else {
 #pragma omp parallel for private(j)
     for (i = 0; i < (int_t)shots; ++i) {
-      ret[i].resize(qubits.size());
       for (j = 0; j < (int_t)qubits.size(); j++)
-        ret[i][j] = samples[i][qubits[j]];
+        ret[i].set(j, samples[i][qubits[j]]);
     }
   }
   return ret;

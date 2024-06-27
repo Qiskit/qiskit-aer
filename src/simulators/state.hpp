@@ -24,6 +24,8 @@
 
 #include "noise/noise_model.hpp"
 
+#include "simulators/sample_vector.hpp"
+
 namespace AER {
 
 namespace QuantumState {
@@ -194,8 +196,8 @@ public:
   // to the system state. Even though this method is not marked as const
   // at the end of sample the system should be left in the same state
   // as before sampling
-  virtual std::vector<reg_t> sample_measure(const reg_t &qubits, uint_t shots,
-                                            RngEngine &rng);
+  virtual std::vector<SampleVector>
+  sample_measure(const reg_t &qubits, uint_t shots, RngEngine &rng);
 
   //-----------------------------------------------------------------------
   // Config Settings
@@ -283,11 +285,11 @@ void Base::set_config(const Config &config) {
   }
 }
 
-std::vector<reg_t> Base::sample_measure(const reg_t &qubits, uint_t shots,
-                                        RngEngine &rng) {
+std::vector<SampleVector> Base::sample_measure(const reg_t &qubits,
+                                               uint_t shots, RngEngine &rng) {
   (ignore_argument) qubits;
   (ignore_argument) shots;
-  return std::vector<reg_t>();
+  return std::vector<SampleVector>();
 }
 
 void Base::apply_ops(const OpItr first, const OpItr last,
@@ -324,6 +326,10 @@ void Base::apply_ops(const OpItr first, const OpItr last,
           }
         }
       }
+      break;
+    }
+    case Operations::OpType::store: {
+      creg().apply_store(*it);
       break;
     }
     default: {

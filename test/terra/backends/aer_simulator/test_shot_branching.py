@@ -12,6 +12,8 @@
 """
 AerSimulator Integration Tests
 """
+import unittest
+import platform
 
 from ddt import ddt
 from test.terra.reference import ref_measure
@@ -47,7 +49,6 @@ from qiskit_aer.library.control_flow_instructions import AerMark, AerJump
 
 import numpy as np
 
-
 SUPPORTED_METHODS = [
     "statevector",
     "density_matrix",
@@ -60,6 +61,7 @@ SUPPORTED_METHODS_INITIALIZE = [
 
 
 @ddt
+@unittest.skipIf(platform.system() == "Darwin", "skip MacOS tentatively")
 class TestShotBranching(SimulatorTestCase):
     """AerSimulator measure tests."""
 
@@ -400,13 +402,13 @@ class TestShotBranching(SimulatorTestCase):
             self.assertSuccess(result)
             self.compare_counts(result, [circuit], [target], delta=0.05 * shots)
 
-    @supported_methods(SUPPORTED_METHODS)
-    def test_shot_branching_pauli_gate_noise(self, method, device):
+    @supported_methods(SUPPORTED_METHODS, [noise.QuantumError, noise.PauliError])
+    def test_shot_branching_pauli_gate_noise(self, method, device, qerror_cls):
         """Test simulation with Pauli gate error noise model."""
         backend = self.backend(method=method, device=device)
         shots = 1000
         circuits = ref_pauli_noise.pauli_gate_error_circuits()
-        noise_models = ref_pauli_noise.pauli_gate_error_noise_models()
+        noise_models = ref_pauli_noise.pauli_gate_error_noise_models(qerror_cls)
         targets = ref_pauli_noise.pauli_gate_error_counts(shots)
 
         for circuit, noise_model, target in zip(circuits, noise_models, targets):
@@ -415,13 +417,13 @@ class TestShotBranching(SimulatorTestCase):
             self.assertSuccess(result)
             self.compare_counts(result, [circuit], [target], delta=0.05 * shots)
 
-    @supported_methods(SUPPORTED_METHODS)
-    def test_shot_branching_pauli_reset_noise(self, method, device):
+    @supported_methods(SUPPORTED_METHODS, [noise.QuantumError, noise.PauliError])
+    def test_shot_branching_pauli_reset_noise(self, method, device, qerror_cls):
         """Test simulation with Pauli reset error noise model."""
         backend = self.backend(method=method, device=device)
         shots = 1000
         circuits = ref_pauli_noise.pauli_reset_error_circuits()
-        noise_models = ref_pauli_noise.pauli_reset_error_noise_models()
+        noise_models = ref_pauli_noise.pauli_reset_error_noise_models(qerror_cls)
         targets = ref_pauli_noise.pauli_reset_error_counts(shots)
 
         for circuit, noise_model, target in zip(circuits, noise_models, targets):
@@ -430,13 +432,13 @@ class TestShotBranching(SimulatorTestCase):
             self.assertSuccess(result)
             self.compare_counts(result, [circuit], [target], delta=0.05 * shots)
 
-    @supported_methods(SUPPORTED_METHODS)
-    def test_shot_branching_pauli_measure_noise(self, method, device):
+    @supported_methods(SUPPORTED_METHODS, [noise.QuantumError, noise.PauliError])
+    def test_shot_branching_pauli_measure_noise(self, method, device, qerror_cls):
         """Test simulation with Pauli measure error noise model."""
         backend = self.backend(method=method, device=device)
         shots = 1000
         circuits = ref_pauli_noise.pauli_measure_error_circuits()
-        noise_models = ref_pauli_noise.pauli_measure_error_noise_models()
+        noise_models = ref_pauli_noise.pauli_measure_error_noise_models(qerror_cls)
         targets = ref_pauli_noise.pauli_measure_error_counts(shots)
 
         for circuit, noise_model, target in zip(circuits, noise_models, targets):

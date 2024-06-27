@@ -1,0 +1,7 @@
+---
+features:
+  - |
+    Adding SamplerV2 implementation based on BaseSamplerV2 using AerSimulator.
+    This is implemented based on qiskit.primitives.StatevectorSampler, but
+    this can simulate using any simulation methods other than statevector
+    by passing AerSimulator object with any methods.

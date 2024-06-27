@@ -86,6 +86,8 @@ void read_value(const py::tuple &t, size_t index, T &v) {
 
 template <typename MODULE>
 void bind_aer_controller(MODULE m) {
+  m.def("aer_initialize_libraries", &initialize_libraries);
+
   py::class_<ControllerExecutor<Controller>> aer_ctrl(m,
                                                       "aer_controller_execute");
   aer_ctrl.def(py::init<>());
@@ -139,7 +141,7 @@ void bind_aer_controller(MODULE m) {
   aer_config.def_property(
       "max_memory_mb",
       [](const Config &config) { return config.max_memory_mb.val; },
-      [](Config &config, uint_t val) { config.max_memory_mb.value(val); });
+      [](Config &config, int_t val) { config.max_memory_mb.value(val); });
   aer_config.def_readwrite("fusion_enable", &Config::fusion_enable);
   aer_config.def_readwrite("fusion_verbose", &Config::fusion_verbose);
   aer_config.def_property(

@@ -33,7 +33,7 @@ from qiskit.transpiler import CouplingMap
 from ..aererror import AerError
 from ..jobs import AerJob, AerJobSet, split_qobj
 from ..noise.noise_model import NoiseModel, QuantumErrorLocation
-from ..noise.errors.quantum_error import QuantumChannelInstruction
+from ..noise.errors.base_quantum_error import QuantumChannelInstruction
 from .aer_compiler import compile_circuit, assemble_circuits, generate_aer_config
 from .backend_utils import format_save_type, circuit_optypes
 from .name_mapping import NAME_MAPPING
@@ -144,9 +144,9 @@ class AerBackend(Backend, ABC):
         ]
         return parameterizations
 
-    # pylint: disable=arguments-differ
+    # pylint: disable=arguments-renamed
     def run(self, circuits, validate=False, parameter_binds=None, **run_options):
-        """Run a qobj on the backend.
+        """Run circuits on the backend.
 
         Args:
             circuits (QuantumCircuit or list): The QuantumCircuit (or list
@@ -187,7 +187,7 @@ class AerBackend(Backend, ABC):
 
         if isinstance(circuits, (QasmQobj, PulseQobj)):
             warnings.warn(
-                "Using a qobj for run() is deprecated as of qiskit-aer 0.9.0"
+                "Using a qobj for run() is deprecated as of qiskit-aer 0.14"
                 " and will be removed no sooner than 3 months from that release"
                 " date. Transpiled circuits should now be passed directly using"
                 " `backend.run(circuits, **run_options).",
@@ -244,7 +244,7 @@ class AerBackend(Backend, ABC):
             )
         else:
             raise TypeError(
-                "bad input to run() function;" "circuits must be either circuits or schedules"
+                "bad input to run() function; circuits must be either circuits or schedules"
             )
 
     def _run_circuits(self, circuits, parameter_binds, **run_options):
@@ -345,7 +345,16 @@ class AerBackend(Backend, ABC):
         if self._target is not None:
             return self._target
 
-        return convert_to_target(self.configuration(), self.properties(), None, NAME_MAPPING)
+        tgt = convert_to_target(self.configuration(), self.properties(), None, NAME_MAPPING)
+        if self._coupling_map is not None:
+            tgt._coupling_graph = self._coupling_map.graph.copy()
+        return tgt
+
+    def set_max_qubits(self, max_qubits):
+        """Set maximun number of qubits to be used for this backend."""
+        if self._target is None:
+            self._configuration.n_qubits = max_qubits
+            self._set_configuration_option("n_qubits", max_qubits)
 
     def clear_options(self):
         """Reset the simulator options to default values."""
@@ -442,12 +451,15 @@ class AerBackend(Backend, ABC):
         # Compile circuits
         circuits, noise_model = self._compile(circuits, **run_options)
 
-        aer_circuits, idx_maps = assemble_circuits(circuits)
+        if self._target is not None:
+            aer_circuits, idx_maps = assemble_circuits(circuits, self.configuration().basis_gates)
+        else:
+            aer_circuits, idx_maps = assemble_circuits(circuits)
         if parameter_binds:
             run_options["parameterizations"] = self._convert_binds(
                 circuits, parameter_binds, idx_maps
             )
-        elif not all([len(circuit.parameters) == 0 for circuit in circuits]):
+        elif not all(len(circuit.parameters) == 0 for circuit in circuits):
             raise AerError("circuits have parameters but parameter_binds is not specified.")
 
         for circ_id, aer_circuit in enumerate(aer_circuits):
@@ -514,9 +526,7 @@ class AerBackend(Backend, ABC):
         optypes = [circuit_optypes(circ) for circ in circuits]
 
         # Compile Qasm3 instructions
-        circuits, optypes = compile_circuit(
-            circuits, basis_gates=self.configuration().basis_gates, optypes=optypes
-        )
+        circuits, optypes = compile_circuit(circuits, optypes=optypes)
 
         # run option noise model
         circuits, noise_model, run_options = self._assemble_noise_model(
@@ -728,10 +738,3 @@ class AerBackend(Backend, ABC):
         name = self.__class__.__name__
         display = f"'{self.name}'"
         return f"{name}({display})"
-
-    def get_translation_stage_plugin(self):
-        """use custom translation method to avoid gate exchange"""
-        if self._target is None:
-            return "aer_backend_plugin"
-        else:
-            return None

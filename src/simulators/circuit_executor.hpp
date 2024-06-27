@@ -92,6 +92,7 @@ protected:
   size_t min_gpu_memory_mb_; // minimum size per GPU
   int num_gpus_;             // max number of GPU per process
   reg_t target_gpus_;        // GPUs to be used
+  bool check_required_memory_;
 
   // use explicit parallelization
   bool explicit_parallelization_;
@@ -209,7 +210,7 @@ protected:
   template <typename InputIterator>
   void measure_sampler(InputIterator first_meas, InputIterator last_meas,
                        uint_t shots, state_t &state, ExperimentResult &result,
-                       RngEngine &rng, bool save_creg_to_state = false) const;
+                       RngEngine &rng) const;
 
 #ifdef AER_MPI
   void gather_creg_memory(std::vector<ClassicalRegister> &cregs,
@@ -218,14 +219,14 @@ protected:
 
   // Sample n-measurement outcomes without applying the measure operation
   // to the system state
-  virtual std::vector<reg_t> sample_measure(const reg_t &qubits, uint_t shots,
-                                            RngEngine &rng) const {
-    std::vector<reg_t> ret;
+  virtual std::vector<SampleVector>
+  sample_measure(const reg_t &qubits, uint_t shots, RngEngine &rng) const {
+    std::vector<SampleVector> ret;
     return ret;
   };
-  virtual std::vector<reg_t> sample_measure(state_t &state, const reg_t &qubits,
-                                            uint_t shots,
-                                            std::vector<RngEngine> &rng) const {
+  virtual std::vector<SampleVector>
+  sample_measure(state_t &state, const reg_t &qubits, uint_t shots,
+                 std::vector<RngEngine> &rng) const {
     // this is for single rng, impement in sub-class for multi-shots case
     return state.sample_measure(qubits, shots, rng[0]);
   }
@@ -234,6 +235,7 @@ protected:
 template <class state_t>
 Executor<state_t>::Executor() {
   max_memory_mb_ = 0;
+  check_required_memory_ = true;
   max_gpu_memory_mb_ = 0;
   max_parallel_threads_ = 0;
   max_parallel_shots_ = 0;
@@ -290,8 +292,15 @@ void Executor<state_t>::set_config(const Config &config) {
 
   // Load configurations for parallelization
 
-  if (config.max_memory_mb.has_value())
-    max_memory_mb_ = config.max_memory_mb.value();
+  if (config.max_memory_mb.has_value()) {
+    int_t mem = config.max_memory_mb.value();
+    if (mem < 0) {
+      check_required_memory_ = false;
+      max_memory_mb_ = 0;
+    } else {
+      max_memory_mb_ = (size_t)mem;
+    }
+  }
 
   // for debugging
   if (config._parallel_shots.has_value()) {
@@ -1024,8 +1033,7 @@ void Executor<state_t>::measure_sampler(InputIterator first_meas,
                                         InputIterator last_meas, uint_t shots,
                                         state_t &state,
                                         ExperimentResult &result,
-                                        RngEngine &rng,
-                                        bool save_creg_to_state) const {
+                                        RngEngine &rng) const {
   // Check if meas_circ is empty, and if so return initial creg
   if (first_meas == last_meas) {
     while (shots-- > 0) {
@@ -1056,7 +1064,7 @@ void Executor<state_t>::measure_sampler(InputIterator first_meas,
 
   // Generate the samples
   auto timer_start = myclock_t::now();
-  std::vector<reg_t> all_samples;
+  std::vector<SampleVector> all_samples;
   all_samples = state.sample_measure(meas_qubits, shots, rng);
   auto time_taken =
       std::chrono::duration<double>(myclock_t::now() - timer_start).count();
@@ -1086,30 +1094,70 @@ void Executor<state_t>::measure_sampler(InputIterator first_meas,
       (memory_map.empty()) ? 0ULL : 1 + memory_map.rbegin()->first;
   uint_t num_registers =
       (register_map.empty()) ? 0ULL : 1 + register_map.rbegin()->first;
-  ClassicalRegister creg;
-  for (int_t i = all_samples.size() - 1; i >= 0; i--) {
-    creg.initialize(num_memory, num_registers);
 
-    // process memory bit measurements
-    for (const auto &pair : memory_map) {
-      creg.store_measure(reg_t({all_samples[i][pair.second]}),
-                         reg_t({pair.first}), reg_t());
-    }
-    // process register bit measurements
-    for (const auto &pair : register_map) {
-      creg.store_measure(reg_t({all_samples[i][pair.second]}), reg_t(),
-                         reg_t({pair.first}));
-    }
+  if (roerror_ops.size() > 0) {
+    // can not parallelize for read out error because of rng
+    ClassicalRegister creg;
+    for (uint_t is = 0; is < all_samples.size(); is++) {
+      uint_t i = all_samples.size() - is - 1;
+      creg.initialize(num_memory, num_registers);
 
-    // process read out errors for memory and registers
-    for (const Operations::Op &roerror : roerror_ops)
-      creg.apply_roerror(roerror, rng);
+      // process memory bit measurements
+      for (const auto &pair : memory_map) {
+        creg.store_measure(reg_t({(uint_t)all_samples[i][pair.second]}),
+                           reg_t({pair.first}), reg_t());
+      }
+      // process register bit measurements
+      for (const auto &pair : register_map) {
+        creg.store_measure(reg_t({(uint_t)all_samples[i][pair.second]}),
+                           reg_t(), reg_t({pair.first}));
+      }
 
-    // Save count data
-    if (save_creg_to_state)
-      state.creg() = creg;
-    else
+      // process read out errors for memory and registers
+      for (const Operations::Op &roerror : roerror_ops)
+        creg.apply_roerror(roerror, rng);
+
+      // Save count data
       result.save_count_data(creg, save_creg_memory_);
+    }
+  } else {
+    uint_t npar = parallel_state_update_;
+    if (npar > all_samples.size())
+      npar = all_samples.size();
+
+    std::vector<ExperimentResult> par_results(npar);
+    auto copy_samples_lambda = [this, &par_results, num_memory, num_registers,
+                                memory_map, register_map, npar,
+                                &all_samples](int_t ip) {
+      ClassicalRegister creg;
+      uint_t is, ie;
+      is = all_samples.size() * ip / npar;
+      ie = all_samples.size() * (ip + 1) / npar;
+      for (; is < ie; is++) {
+        uint_t i = all_samples.size() - is - 1;
+        creg.initialize(num_memory, num_registers);
+
+        // process memory bit measurements
+        for (const auto &pair : memory_map) {
+          creg.store_measure(reg_t({(uint_t)all_samples[i][pair.second]}),
+                             reg_t({pair.first}), reg_t());
+        }
+        // process register bit measurements
+        for (const auto &pair : register_map) {
+          creg.store_measure(reg_t({(uint_t)all_samples[i][pair.second]}),
+                             reg_t(), reg_t({pair.first}));
+        }
+
+        // Save count data
+        par_results[ip].save_count_data(creg, save_creg_memory_);
+      }
+    };
+    Utils::apply_omp_parallel_for((npar > 1), 0, npar, copy_samples_lambda,
+                                  npar);
+
+    for (uint_t i = 0; i < npar; i++) {
+      result.combine(std::move(par_results[i]));
+    }
   }
 }
 
@@ -1149,7 +1197,7 @@ bool Executor<state_t>::validate_state(const Config &config,
 
   // Validate memory requirements
   bool memory_valid = true;
-  if (max_memory_mb_ > 0) {
+  if (max_memory_mb_ > 0 && check_required_memory_) {
     size_t required_mb = state.required_memory_mb(circ.num_qubits, circ.ops) /
                          num_process_per_experiment_;
     size_t mem_size = (sim_device_ == Device::GPU)
@@ -1276,7 +1324,8 @@ bool Executor<state_t>::check_measure_sampling_opt(const Circuit &circ) const {
       circ.opset().contains(Operations::OpType::kraus) ||
       circ.opset().contains(Operations::OpType::superop) ||
       circ.opset().contains(Operations::OpType::jump) ||
-      circ.opset().contains(Operations::OpType::mark)) {
+      circ.opset().contains(Operations::OpType::mark) ||
+      circ.opset().contains(Operations::OpType::store)) {
     return false;
   }
   // Otherwise true

@@ -1,5 +1,5 @@
-pylint==2.4.4
-astroid==2.3.3
+pylint==2.16.2
+astroid==2.14.2
 
 # Jinja2 3.1.0 is incompatible with sphinx and/or jupyter until they are updated
 # to work with the new jinja version (the jinja maintainers aren't going to

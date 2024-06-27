@@ -213,7 +213,9 @@ class TestParameterizedQobj(common.QiskitAerTestCase):
         circuit.ry(phi, 1)
         circuit.measure_all()
         parameter_binds = [{theta: [0, pi, 2 * pi], phi: [0, 1, pi]}]
-        res = backend.run(circuit, shots=shots, parameter_binds=parameter_binds).result()
+        res = backend.run(
+            circuit, shots=shots, parameter_binds=parameter_binds, **self.BACKEND_OPTS
+        ).result()
         counts = res.get_counts()
         for index, expected in enumerate(
             [{"00": shots}, {"01": 0.25 * shots, "11": 0.75 * shots}, {"10": shots}]
@@ -317,7 +319,9 @@ class TestParameterizedQobj(common.QiskitAerTestCase):
         circuit.ry(phi, 1)
         circuit.measure_all()
         parameter_binds = [{theta: [0, pi, 2 * pi], phi: [0, 1, pi]}] * 3
-        res = backend.run([circuit] * 3, shots=shots, parameter_binds=parameter_binds).result()
+        res = backend.run(
+            [circuit] * 3, shots=shots, parameter_binds=parameter_binds, **self.BACKEND_OPTS
+        ).result()
         counts = res.get_counts()
         for index, expected in enumerate(
             [{"00": shots}, {"01": 0.25 * shots, "11": 0.75 * shots}, {"10": shots}] * 3
@@ -461,7 +465,7 @@ class TestParameterizedQobj(common.QiskitAerTestCase):
 
     def test_global_phase_parameters(self):
         """Test parameterized global phase"""
-        backend = AerSimulator(method="extended_stabilizer")
+        backend = AerSimulator(method="extended_stabilizer", basis_gates=["h", "x", "u1"])
 
         theta = Parameter("theta")
         circ = QuantumCircuit(2)

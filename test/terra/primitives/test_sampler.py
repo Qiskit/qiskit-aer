@@ -27,6 +27,8 @@ from qiskit.primitives import SamplerResult
 
 from qiskit_aer.primitives import Sampler
 
+from test.terra.backends.simulator_test_case import supported_methods
+
 
 @ddt
 class TestSampler(QiskitAerTestCase):
@@ -269,6 +271,28 @@ class TestSampler(QiskitAerTestCase):
 
         result = Sampler().run(qc, shots=100).result()
         self.assertDictAlmostEqual(result.quasi_dists[0], {0: 1})
+
+    @supported_methods(
+        [
+            "automatic",
+            "statevector",
+            "density_matrix",
+            "matrix_product_state",
+            "stabilizer",
+            "extended_stabilizer",
+            "tensor_network",
+        ]
+    )
+    def test_truncate_large_circuit(self, method, device):
+        """Test trancate large circuit in transplier"""
+        options = {"method": method, "device": device}
+        sampler = Sampler(backend_options=options)
+        qc = QuantumCircuit(100, 2)
+        qc.h(98)
+        qc.cx(98, 99)
+        qc.measure([98, 99], [0, 1])
+        result = sampler.run(qc).result()
+        self.assertIsInstance(result, SamplerResult)
 
 
 if __name__ == "__main__":

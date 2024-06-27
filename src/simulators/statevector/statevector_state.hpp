@@ -36,45 +36,32 @@ namespace Statevector {
 
 using OpType = Operations::OpType;
 
+// clang-format off
 // OpSet of supported instructions
 const Operations::OpSet StateOpSet(
     // Op types
-    {OpType::gate,
-     OpType::measure,
-     OpType::reset,
-     OpType::initialize,
-     OpType::barrier,
-     OpType::bfunc,
-     OpType::roerror,
-     OpType::matrix,
-     OpType::diagonal_matrix,
-     OpType::multiplexer,
-     OpType::kraus,
-     OpType::qerror_loc,
-     OpType::sim_op,
-     OpType::set_statevec,
-     OpType::save_expval,
-     OpType::save_expval_var,
-     OpType::save_probs,
-     OpType::save_probs_ket,
-     OpType::save_amps,
-     OpType::save_amps_sq,
-     OpType::save_state,
-     OpType::save_statevec,
-     OpType::save_statevec_dict,
-     OpType::save_densmat,
-     OpType::jump,
-     OpType::mark},
+    { OpType::gate,           OpType::measure,            OpType::reset,
+     OpType::initialize,      OpType::barrier,            OpType::bfunc,
+     OpType::roerror,         OpType::matrix,             OpType::diagonal_matrix,
+     OpType::multiplexer,     OpType::kraus,              OpType::qerror_loc,
+     OpType::sim_op,          OpType::set_statevec,       OpType::save_expval,
+     OpType::save_expval_var, OpType::save_probs,         OpType::save_probs_ket,
+     OpType::save_amps,       OpType::save_amps_sq,       OpType::save_state,
+     OpType::save_statevec,   OpType::save_statevec_dict, OpType::save_densmat,
+     OpType::jump,            OpType::mark,               OpType::store},
     // Gates
-    {"u1",   "u2",    "u3",     "u",     "U",     "CX",       "cx",
-     "cz",   "cy",    "cp",     "cu1",   "cu2",   "cu3",      "swap",
-     "id",   "p",     "x",      "y",     "z",     "h",        "s",
-     "sdg",  "t",     "tdg",    "r",     "rx",    "ry",       "rz",
-     "rxx",  "ryy",   "rzz",    "rzx",   "ccx",   "cswap",    "mcx",
-     "mcy",  "mcz",   "mcu1",   "mcu2",  "mcu3",  "mcswap",   "mcphase",
-     "mcr",  "mcrx",  "mcry",   "mcrz",  "sx",    "sxdg",     "csx",
-     "mcsx", "csxdg", "mcsxdg", "delay", "pauli", "mcx_gray", "cu",
-     "mcu",  "mcp",   "ecr"});
+    {
+        "u1",   "u2",    "u3",     "u",       "U",     "CX",       "cx",
+        "cz",   "cy",    "cp",     "cu1",     "cu2",   "cu3",      "swap",
+        "id",   "p",     "x",      "y",       "z",     "h",        "s",
+        "sdg",  "t",     "tdg",    "r",       "rx",    "ry",       "rz",
+        "rxx",  "ryy",   "rzz",    "rzx",     "ccx",   "ccz",      "cswap",
+        "mcx",  "mcy",   "mcz",    "mcu1",    "mcu2",  "mcu3",     "mcswap",
+        "mcr",  "mcrx",  "mcry",   "mcrz",    "sx",    "sxdg",     "csx",
+        "mcsx", "csxdg", "mcsxdg", "delay",   "pauli", "mcx_gray", "cu",
+        "mcu",  "mcp",   "ecr",    "mcphase", "crx",   "cry",      "crz",
+    });
+// clang-format on
 
 // Allowed gates enum class
 enum class Gates {
@@ -153,8 +140,8 @@ public:
 
   // Sample n-measurement outcomes without applying the measure operation
   // to the system state
-  virtual std::vector<reg_t> sample_measure(const reg_t &qubits, uint_t shots,
-                                            RngEngine &rng) override;
+  std::vector<SampleVector> sample_measure(const reg_t &qubits, uint_t shots,
+                                           RngEngine &rng) override;
 
   // Helper function for computing expectation value
   virtual double expval_pauli(const reg_t &qubits,
@@ -369,8 +356,12 @@ const stringmap_t<Gates> State<statevec_t>::gateset_(
      {"csx", Gates::mcsx},     // Controlled-Sqrt(X) gate
      {"csxdg", Gates::mcsxdg}, // Controlled-Sqrt(X)dg gate
      {"ecr", Gates::ecr},      // ECR Gate
+     {"crx", Gates::mcrx},     // Controlled X-rotation gate
+     {"cry", Gates::mcry},     // Controlled Y-rotation gate
+     {"crz", Gates::mcrz},     // Controlled Z-rotation gate
      /* 3-qubit gates */
      {"ccx", Gates::mcx},      // Controlled-CX gate (Toffoli)
+     {"ccz", Gates::mcz},      // Controlled-CZ gate
      {"cswap", Gates::mcswap}, // Controlled SWAP gate (Fredkin)
      /* Multi-qubit controlled gates */
      {"mcx", Gates::mcx},       // Multi-controlled-X gate
@@ -439,6 +430,9 @@ bool State<statevec_t>::allocate(uint_t num_qubits, uint_t block_bits,
     BaseState::qreg_.set_max_sampling_shots(BaseState::max_sampling_shots_);
 
   BaseState::qreg_.set_target_gpus(BaseState::target_gpus_);
+#ifdef AER_CUSTATEVEC
+  BaseState::qreg_.cuStateVec_enable(BaseState::cuStateVec_enable_);
+#endif
   BaseState::qreg_.chunk_setup(block_bits, num_qubits, 0, 1);
 
   return true;
@@ -1020,9 +1014,9 @@ void State<statevec_t>::measure_reset_update(const std::vector<uint_t> &qubits,
 }
 
 template <class statevec_t>
-std::vector<reg_t> State<statevec_t>::sample_measure(const reg_t &qubits,
-                                                     uint_t shots,
-                                                     RngEngine &rng) {
+std::vector<SampleVector> State<statevec_t>::sample_measure(const reg_t &qubits,
+                                                            uint_t shots,
+                                                            RngEngine &rng) {
   uint_t i;
   // Generate flat register for storing
   std::vector<double> rnds;
@@ -1034,18 +1028,25 @@ std::vector<reg_t> State<statevec_t>::sample_measure(const reg_t &qubits,
 
   allbit_samples = BaseState::qreg_.sample_measure(rnds);
 
-  // Convert to reg_t format
-  std::vector<reg_t> all_samples;
-  all_samples.reserve(shots);
-  for (int_t val : allbit_samples) {
-    reg_t allbit_sample = Utils::int2reg(val, 2, BaseState::qreg_.num_qubits());
-    reg_t sample;
-    sample.reserve(qubits.size());
-    for (uint_t qubit : qubits) {
-      sample.push_back(allbit_sample[qubit]);
+  // Convert to SampleVector format
+  int_t npar = BaseState::threads_;
+  if (npar > shots)
+    npar = shots;
+  std::vector<SampleVector> all_samples(shots, SampleVector(qubits.size()));
+
+  auto convert_to_bit_lambda = [this, &allbit_samples, &all_samples, shots,
+                                qubits, npar](int_t k) {
+    uint_t ishot, iend;
+    ishot = shots * k / npar;
+    iend = shots * (k + 1) / npar;
+    for (; ishot < iend; ishot++) {
+      SampleVector allbit_sample;
+      allbit_sample.from_uint(allbit_samples[ishot], qubits.size());
+      all_samples[ishot].map(allbit_sample, qubits);
     }
-    all_samples.push_back(sample);
-  }
+  };
+  Utils::apply_omp_parallel_for((npar > 1), 0, npar, convert_to_bit_lambda,
+                                npar);
 
   return all_samples;
 }

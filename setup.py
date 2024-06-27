@@ -22,7 +22,7 @@ ADD_CUDA_REQUIREMENTS = (
 extras_requirements = {"dask": ["dask", "distributed"]}
 
 requirements = [
-    "qiskit>=0.45.0",
+    "qiskit>=1.1.0",
     "numpy>=1.16.3",
     "scipy>=1.0",
     "psutil>=5",
@@ -103,7 +103,7 @@ setup(
     long_description_content_type="text/markdown",
     url="https://github.com/Qiskit/qiskit-aer",
     author="AER Development Team",
-    author_email="hello@qiskit.org",
+    author_email="qiskit@us.ibm.com",
     license="Apache 2.0",
     classifiers=classifiers,
     python_requires=">=3.7",
@@ -114,9 +114,4 @@ setup(
     cmake_args=cmake_args,
     keywords="qiskit, simulator, quantum computing, backend",
     zip_safe=False,
-    entry_points={
-        "qiskit.transpiler.translation": [
-            "aer_backend_plugin = qiskit_aer.backends.plugin.aer_backend_plugin:AerBackendPlugin",
-        ]
-    },
 )

@@ -45,7 +45,7 @@ const Operations::OpSet StateOpSet(
      OpType::set_densmat,  OpType::save_expval, OpType::save_expval_var,
      OpType::save_densmat, OpType::save_probs,  OpType::save_probs_ket,
      OpType::save_amps_sq, OpType::save_state,  OpType::jump,
-     OpType::mark},
+     OpType::mark,         OpType::store},
     // Gates
     {"U",   "CX", "u1",   "u2",  "u3",    "u",     "cx",  "cy",  "cz",  "swap",
      "id",  "x",  "y",    "z",   "h",     "s",     "sdg", "t",   "tdg", "ccx",
@@ -130,8 +130,8 @@ public:
 
   // Sample n-measurement outcomes without applying the measure operation
   // to the system state
-  std::vector<reg_t> sample_measure(const reg_t &qubits, uint_t shots,
-                                    RngEngine &rng) override;
+  std::vector<SampleVector> sample_measure(const reg_t &qubits, uint_t shots,
+                                           RngEngine &rng) override;
 
   // Helper function for computing expectation value
   double expval_pauli(const reg_t &qubits, const std::string &pauli) override;
@@ -344,6 +344,9 @@ bool State<densmat_t>::allocate(uint_t num_qubits, uint_t block_bits,
     BaseState::qreg_.set_max_sampling_shots(BaseState::max_sampling_shots_);
 
   BaseState::qreg_.set_target_gpus(BaseState::target_gpus_);
+#ifdef AER_CUSTATEVEC
+  BaseState::qreg_.cuStateVec_enable(BaseState::cuStateVec_enable_);
+#endif
   BaseState::qreg_.chunk_setup(block_bits * 2, block_bits * 2, 0, 1);
 
   return true;
@@ -987,9 +990,9 @@ void State<densmat_t>::measure_reset_update(const reg_t &qubits,
 }
 
 template <class densmat_t>
-std::vector<reg_t> State<densmat_t>::sample_measure(const reg_t &qubits,
-                                                    uint_t shots,
-                                                    RngEngine &rng) {
+std::vector<SampleVector> State<densmat_t>::sample_measure(const reg_t &qubits,
+                                                           uint_t shots,
+                                                           RngEngine &rng) {
   // Generate flat register for storing
   std::vector<double> rnds;
   rnds.reserve(shots);
@@ -999,18 +1002,26 @@ std::vector<reg_t> State<densmat_t>::sample_measure(const reg_t &qubits,
 
   allbit_samples = BaseState::qreg_.sample_measure(rnds);
 
-  // Convert to reg_t format
-  std::vector<reg_t> all_samples;
-  all_samples.reserve(shots);
-  for (int_t val : allbit_samples) {
-    reg_t allbit_sample = Utils::int2reg(val, 2, BaseState::qreg_.num_qubits());
-    reg_t sample;
-    sample.reserve(qubits.size());
-    for (uint_t qubit : qubits) {
-      sample.push_back(allbit_sample[qubit]);
+  // Convert to bit format
+  int_t npar = BaseState::threads_;
+  if (npar > shots)
+    npar = shots;
+  std::vector<SampleVector> all_samples(shots, SampleVector(qubits.size()));
+
+  auto convert_to_bit_lambda = [this, &allbit_samples, &all_samples, shots,
+                                qubits, npar](int_t k) {
+    uint_t ishot, iend;
+    ishot = shots * k / npar;
+    iend = shots * (k + 1) / npar;
+    for (; ishot < iend; ishot++) {
+      SampleVector allbit_sample;
+      allbit_sample.from_uint(allbit_samples[ishot], qubits.size());
+      all_samples[ishot].map(allbit_sample, qubits);
     }
-    all_samples.push_back(sample);
-  }
+  };
+  Utils::apply_omp_parallel_for((npar > 1), 0, npar, convert_to_bit_lambda,
+                                npar);
+
   return all_samples;
 }
 

@@ -29,17 +29,21 @@ namespace Stabilizer {
 //============================================================================
 using OpType = Operations::OpType;
 
+// clang-format off
 // OpSet of supported instructions
 const Operations::OpSet StateOpSet(
     // Op types
-    {OpType::gate, OpType::measure, OpType::reset, OpType::barrier,
-     OpType::bfunc, OpType::qerror_loc, OpType::roerror, OpType::save_expval,
-     OpType::save_expval_var, OpType::save_probs, OpType::save_probs_ket,
-     OpType::save_amps_sq, OpType::save_stabilizer, OpType::save_clifford,
-     OpType::save_state, OpType::set_stabilizer, OpType::jump, OpType::mark},
+    { OpType::gate,             OpType::measure,        OpType::reset,
+      OpType::barrier,          OpType::bfunc,          OpType::qerror_loc,
+      OpType::roerror,          OpType::save_expval,    OpType::save_expval_var,
+      OpType::save_probs,       OpType::save_probs_ket, OpType::save_amps_sq,
+      OpType::save_stabilizer,  OpType::save_clifford,  OpType::save_state, 
+      OpType::set_stabilizer,   OpType::jump, OpType::mark,
+     OpType::store},
     // Gates
-    {"CX", "cx",  "cy", "cz",   "swap",  "id",    "x",   "y",  "z",  "h",
-     "s",  "sdg", "sx", "sxdg", "delay", "pauli", "ecr", "rx", "ry", "rz"});
+    {"CX", "cx", "cy", "cz", "swap", "id", "x", "y", "z", "h", "s", "sdg", "sx",
+     "sxdg", "delay", "pauli", "ecr", "rz"});
+// clang-format on
 
 enum class Gates {
   id,
@@ -57,8 +61,6 @@ enum class Gates {
   swap,
   pauli,
   ecr,
-  rx,
-  ry,
   rz
 };
 
@@ -101,8 +103,8 @@ public:
 
   // Sample n-measurement outcomes without applying the measure operation
   // to the system state
-  virtual std::vector<reg_t> sample_measure(const reg_t &qubits, uint_t shots,
-                                            RngEngine &rng) override;
+  virtual std::vector<SampleVector>
+  sample_measure(const reg_t &qubits, uint_t shots, RngEngine &rng) override;
 
   bool
   validate_parameters(const std::vector<Operations::Op> &ops) const override;
@@ -202,6 +204,7 @@ const stringmap_t<Gates> State::gateset_({
     {"h", Gates::h},       // Hadamard gate (X + Z / sqrt(2))
     {"sx", Gates::sx},     // Sqrt X gate.
     {"sxdg", Gates::sxdg}, // Inverse Sqrt X gate.
+    {"rz", Gates::rz},     // RZ gate (only support k * pi/2 cases)
     // Two-qubit gates
     {"CX", Gates::cx},       // Controlled-X gate (CNOT)
     {"cx", Gates::cx},       // Controlled-X gate (CNOT),
@@ -210,9 +213,6 @@ const stringmap_t<Gates> State::gateset_({
     {"swap", Gates::swap},   // SWAP gate
     {"pauli", Gates::pauli}, // Pauli gate
     {"ecr", Gates::ecr},     // ECR gate
-    {"rx", Gates::rx},       // RX gate (only support k * pi/2 cases)
-    {"ry", Gates::ry},       // RY gate (only support k * pi/2 cases)
-    {"rz", Gates::rz}        // RZ gate (only support k * pi/2 cases)
 });
 
 //============================================================================
@@ -257,8 +257,8 @@ void State::set_config(const Config &config) {
 bool State::validate_parameters(const std::vector<Operations::Op> &ops) const {
   for (uint_t i = 0; i < ops.size(); i++) {
     if (ops[i].type == OpType::gate) {
-      // check parameter of R gates
-      if (ops[i].name == "rx" || ops[i].name == "ry" || ops[i].name == "rz") {
+      // check parameter of RZ gates
+      if (ops[i].name == "rz") {
         double pi2 = std::real(ops[i].params[0]) * 2.0 / M_PI;
         double pi2_int = (double)std::round(pi2);
 
@@ -387,45 +387,14 @@ void State::apply_gate(const Operations::Op &op) {
     apply_pauli(op.qubits, op.string_params[0]);
     break;
   case Gates::ecr:
-    BaseState::qreg_.append_h(op.qubits[1]);
     BaseState::qreg_.append_s(op.qubits[0]);
-    BaseState::qreg_.append_z(op.qubits[1]); // sdg(1)
-    BaseState::qreg_.append_s(op.qubits[1]); // sdg(1)
+    BaseState::qreg_.append_z(op.qubits[1]);
+    BaseState::qreg_.append_s(op.qubits[1]);
     BaseState::qreg_.append_h(op.qubits[1]);
+    BaseState::qreg_.append_z(op.qubits[1]);
+    BaseState::qreg_.append_s(op.qubits[1]);
     BaseState::qreg_.append_cx(op.qubits[0], op.qubits[1]);
     BaseState::qreg_.append_x(op.qubits[0]);
-    BaseState::qreg_.append_x(op.qubits[1]);
-    break;
-  case Gates::rx:
-    pi2 = (int_t)std::round(std::real(op.params[0]) * 2.0 / M_PI) & 3;
-    if (pi2 == 1) {
-      // HSH
-      BaseState::qreg_.append_h(op.qubits[0]);
-      BaseState::qreg_.append_s(op.qubits[0]);
-      BaseState::qreg_.append_h(op.qubits[0]);
-    } else if (pi2 == 2) {
-      // X
-      BaseState::qreg_.append_x(op.qubits[0]);
-    } else if (pi2 == 3) {
-      // HSdgH
-      BaseState::qreg_.append_h(op.qubits[0]);
-      BaseState::qreg_.append_z(op.qubits[0]);
-      BaseState::qreg_.append_s(op.qubits[0]);
-      BaseState::qreg_.append_h(op.qubits[0]);
-    }
-    break;
-  case Gates::ry:
-    pi2 = (int_t)std::round(std::real(op.params[0]) * 2.0 / M_PI) & 3;
-    if (pi2 == 1) {
-      BaseState::qreg_.append_h(op.qubits[0]);
-      BaseState::qreg_.append_x(op.qubits[0]);
-    } else if (pi2 == 2) {
-      // Y
-      BaseState::qreg_.append_y(op.qubits[0]);
-    } else if (pi2 == 3) {
-      BaseState::qreg_.append_x(op.qubits[0]);
-      BaseState::qreg_.append_h(op.qubits[0]);
-    }
     break;
   case Gates::rz:
     pi2 = (int_t)std::round(std::real(op.params[0]) * 2.0 / M_PI) & 3;
@@ -512,15 +481,14 @@ reg_t State::apply_measure_and_update(const reg_t &qubits, RngEngine &rng) {
   return outcome;
 }
 
-std::vector<reg_t> State::sample_measure(const reg_t &qubits, uint_t shots,
-                                         RngEngine &rng) {
+std::vector<SampleVector> State::sample_measure(const reg_t &qubits,
+                                                uint_t shots, RngEngine &rng) {
   // TODO: see if we can improve efficiency by directly sampling from Clifford
   // table
   auto qreg_cache = BaseState::qreg_;
-  std::vector<reg_t> samples;
-  samples.reserve(shots);
-  while (shots-- > 0) { // loop over shots
-    samples.push_back(apply_measure_and_update(qubits, rng));
+  std::vector<SampleVector> samples(shots);
+  for (uint_t ishot = 0; ishot < shots; ishot++) {
+    samples[ishot].from_vector(apply_measure_and_update(qubits, rng));
     BaseState::qreg_ = qreg_cache; // restore pre-measurement data from cache
   }
   return samples;

@@ -46,45 +46,101 @@ the [contributing guide](CONTRIBUTING.md#building-with-gpu-support)
 for instructions on doing this.
 
 ## Simulating your first Qiskit circuit with Aer
-Now that you have Aer installed, you can start simulating quantum circuits with noise. Here is a basic example:
+Now that you have Aer installed, you can start simulating quantum circuits using primitives and noise models. Here is a basic example:
 
 ```
 $ python
 ```
 
 ```python
-import qiskit
+from qiskit import transpile
+from qiskit.circuit.library import RealAmplitudes
+from qiskit.quantum_info import SparsePauliOp
 from qiskit_aer import AerSimulator
-from qiskit.providers.fake_provider import FakeManilaV2
 
-# Generate 3-qubit GHZ state
-circ = qiskit.QuantumCircuit(3)
-circ.h(0)
-circ.cx(0, 1)
-circ.cx(1, 2)
-circ.measure_all()
+sim = AerSimulator()
+# --------------------------
+# Simulating using estimator
+#---------------------------
+from qiskit_aer.primitives import EstimatorV2
 
-# Construct an ideal simulator
-aersim = AerSimulator()
+psi1 = transpile(RealAmplitudes(num_qubits=2, reps=2), sim, optimization_level=0)
+psi2 = transpile(RealAmplitudes(num_qubits=2, reps=3), sim, optimization_level=0)
 
-# Perform an ideal simulation
-result_ideal = aersim.run(circ).result()
-counts_ideal = result_ideal.get_counts(0)
-print('Counts(ideal):', counts_ideal)
-# Counts(ideal): {'000': 493, '111': 531}
+H1 = SparsePauliOp.from_list([("II", 1), ("IZ", 2), ("XI", 3)])
+H2 = SparsePauliOp.from_list([("IZ", 1)])
+H3 = SparsePauliOp.from_list([("ZI", 1), ("ZZ", 1)])
 
-# Construct a noisy simulator backend from an IBMQ backend
-# This simulator backend will be automatically configured
-# using the device configuration and noise model
-backend = FakeManilaV2()
-aersim_backend = AerSimulator.from_backend(backend)
+theta1 = [0, 1, 1, 2, 3, 5]
+theta2 = [0, 1, 1, 2, 3, 5, 8, 13]
+theta3 = [1, 2, 3, 4, 5, 6]
 
-# Perform noisy simulation
-result_noise = aersim_backend.run(circ).result()
-counts_noise = result_noise.get_counts(0)
+estimator = EstimatorV2()
 
-print('Counts(noise):', counts_noise)
-# Counts(noise): {'101': 16, '110': 48, '100': 7, '001': 31, '010': 7, '000': 464, '011': 15, '111': 436}
+# calculate [ [<psi1(theta1)|H1|psi1(theta1)>,
+#              <psi1(theta3)|H3|psi1(theta3)>],
+#             [<psi2(theta2)|H2|psi2(theta2)>] ]
+job = estimator.run(
+    [
+        (psi1, [H1, H3], [theta1, theta3]),
+        (psi2, H2, theta2)
+    ],
+    precision=0.01
+)
+result = job.result()
+print(f"expectation values : psi1 = {result[0].data.evs}, psi2 = {result[1].data.evs}")
+
+# --------------------------
+# Simulating using sampler
+# --------------------------
+from qiskit_aer.primitives import SamplerV2
+from qiskit import QuantumCircuit
+
+# create a Bell circuit
+bell = QuantumCircuit(2)
+bell.h(0)
+bell.cx(0, 1)
+bell.measure_all()
+
+# create two parameterized circuits
+pqc = RealAmplitudes(num_qubits=2, reps=2)
+pqc.measure_all()
+pqc = transpile(pqc, sim, optimization_level=0)
+pqc2 = RealAmplitudes(num_qubits=2, reps=3)
+pqc2.measure_all()
+pqc2 = transpile(pqc2, sim, optimization_level=0)
+
+theta1 = [0, 1, 1, 2, 3, 5]
+theta2 = [0, 1, 2, 3, 4, 5, 6, 7]
+
+# initialization of the sampler
+sampler = SamplerV2()
+
+# collect 128 shots from the Bell circuit
+job = sampler.run([bell], shots=128)
+job_result = job.result()
+print(f"counts for Bell circuit : {job_result[0].data.meas.get_counts()}")
+ 
+# run a sampler job on the parameterized circuits
+job2 = sampler.run([(pqc, theta1), (pqc2, theta2)])
+job_result = job2.result()
+print(f"counts for parameterized circuit : {job_result[0].data.meas.get_counts()}")
+
+# --------------------------------------------------
+# Simulating with noise model from actual hardware
+# --------------------------------------------------
+from qiskit_ibm_runtime import QiskitRuntimeService
+provider = QiskitRuntimeService(channel='ibm_quantum', token="set your own token here")
+backend = provider.get_backend("ibm_kyoto")
+
+# create sampler from the actual backend
+sampler = SamplerV2.from_backend(backend)
+
+# run a sampler job on the parameterized circuits with noise model of the actual hardware
+bell_t = transpile(bell, AerSimulator(basis_gates=["ecr", "id", "rz", "sx"]), optimization_level=0)
+job3 = sampler.run([bell_t], shots=128)
+job_result = job3.result()
+print(f"counts for Bell circuit w/noise: {job_result[0].data.meas.get_counts()}")
 ```
 
 ## Contribution Guidelines
@@ -96,7 +152,7 @@ We use [GitHub issues](https://github.com/Qiskit/qiskit-aer/issues) for tracking
 
 ## Next Steps
 
-Now you're set up and ready to check out some of the other examples from the [Aer documentation](https://qiskit.org/ecosystem/aer/).
+Now you're set up and ready to check out some of the other examples from the [Aer documentation](https://qiskit.github.io/qiskit-aer/).
 
 ## Authors and Citation
 
