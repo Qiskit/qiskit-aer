@@ -23,10 +23,11 @@ from .backends.statevector_simulator import StatevectorSimulator
 from .backends.unitary_simulator import UnitarySimulator
 
 
-class AerProvider(Provider):
+class AerProvider:
     """Provider for Aer backends."""
 
     _BACKENDS = None
+    version = 1
 
     @staticmethod
     def _get_backends():
@@ -64,7 +65,13 @@ class AerProvider(Provider):
         return AerProvider._BACKENDS
 
     def get_backend(self, name=None, **kwargs):
-        return super().get_backend(name=name, **kwargs)
+        backends = self.backends(name, **kwargs)
+        if len(backends) > 1:
+            raise QiskitBackendNotFoundError("More than one backend matches the criteria")
+        if not backends:
+            raise QiskitBackendNotFoundError("No backend matches the criteria")
+
+        return backends[0]
 
     def backends(self, name=None, filters=None, **kwargs):
         # pylint: disable=arguments-differ
