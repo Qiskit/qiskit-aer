@@ -14,7 +14,7 @@
 """Provider for Aer backends."""
 
 
-from qiskit.providers import ProviderV1 as Provider
+from qiskit.providers import QiskitBackendNotFoundError
 from qiskit.providers.providerutils import filter_backends
 
 from .backends.aer_simulator import AerSimulator
@@ -23,10 +23,11 @@ from .backends.statevector_simulator import StatevectorSimulator
 from .backends.unitary_simulator import UnitarySimulator
 
 
-class AerProvider(Provider):
+class AerProvider:
     """Provider for Aer backends."""
 
     _BACKENDS = None
+    version = 1
 
     @staticmethod
     def _get_backends():
@@ -64,10 +65,40 @@ class AerProvider(Provider):
         return AerProvider._BACKENDS
 
     def get_backend(self, name=None, **kwargs):
-        return super().get_backend(name=name, **kwargs)
+        """Return a single Aer backend matching the specified filtering.
+
+        Args:
+            name (str): name of the Aer backend.
+            **kwargs: dict used for filtering.
+
+        Returns:
+            Backend: an Aer backend matching the filtering.
+
+        Raises:
+            QiskitBackendNotFoundError: if no backend could be found or
+                more than one backend matches the filtering criteria.
+        """
+        backends = self.backends(name, **kwargs)
+        if len(backends) > 1:
+            raise QiskitBackendNotFoundError("More than one backend matches the criteria")
+        if not backends:
+            raise QiskitBackendNotFoundError("No backend matches the criteria")
+
+        return backends[0]
 
     def backends(self, name=None, filters=None, **kwargs):
-        # pylint: disable=arguments-differ
+        """Return a list of backends matching the specified filtering.
+
+        Args:
+            name (str): name of the backend.
+            filters (callable): filtering conditions as a callable.
+            **kwargs: dict used for filtering.
+
+        Returns:
+            list[Backend]: a list of Backends that match the filtering
+                criteria.
+        """
+        # pylint: disable=unused-argument
         # Instantiate a new backend instance so if config options
         # are set they will only last as long as that backend object exists
         backends = []
