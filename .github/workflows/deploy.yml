@@ -58,7 +58,7 @@ jobs:
         run: |
           python -m cibuildwheel --output-dir wheelhouse
         env:
-          CIBW_BEFORE_ALL_LINUX: "yum install -y https://dl.fedoraproject.org/pub/epel/7/aarch64/Packages/e/epel-release-7-12.noarch.rpm && yum install -y openblas-devel"
+          CIBW_BEFORE_ALL_LINUX: "sed -i -e 's/^mirrorlist/#mirrorlist/' -e 's/^#baseurl/baseurl/' -e 's/mirror\.centos\.org/vault.centos.org/' /etc/yum.repos.d/CentOS-SCLo-scl-rh.repo && yum install -y https://dl.fedoraproject.org/pub/epel/7/aarch64/Packages/e/epel-release-7-12.noarch.rpm && yum install -y openblas-devel"
           CIBW_ARCHS_LINUX: aarch64
           CIBW_TEST_SKIP: "cp38* cp39* cp310* cp311*"
       - uses: actions/upload-artifact@v4
@@ -148,7 +148,7 @@ jobs:
           python -m pip install cibuildwheel==2.16.2
       - name: Build wheels
         env:
-          CIBW_BEFORE_ALL: "yum install -y yum-utils wget && wget -q https://developer.download.nvidia.com/compute/cuda/11.8.0/local_installers/cuda-repo-rhel8-11-8-local-11.8.0_520.61.05-1.x86_64.rpm && rpm -i cuda-repo-rhel8-11-8-local-11.8.0_520.61.05-1.x86_64.rpm && yum clean all && yum -y install cuda && yum -y install openblas-devel && yum clean all"
+          CIBW_BEFORE_ALL: "sed -i -e 's/^mirrorlist/#mirrorlist/' -e 's/^#baseurl/baseurl/' -e 's/mirror\.centos\.org/vault.centos.org/' /etc/yum.repos.d/CentOS-SCLo-scl-rh.repo && yum install -y yum-utils wget && wget -q https://developer.download.nvidia.com/compute/cuda/11.8.0/local_installers/cuda-repo-rhel8-11-8-local-11.8.0_520.61.05-1.x86_64.rpm && rpm -i cuda-repo-rhel8-11-8-local-11.8.0_520.61.05-1.x86_64.rpm && yum clean all && yum -y install cuda && yum -y install openblas-devel && yum clean all"
           CIBW_BEFORE_BUILD : "pip install nvidia-cuda-runtime-cu11 nvidia-cublas-cu11 nvidia-cusolver-cu11 nvidia-cusparse-cu11 cuquantum-cu11"
           CIBW_SKIP: "*-manylinux_i686 pp* cp36* cp37* *musllinux*"
           CIBW_TEST_SKIP: "*"
@@ -192,7 +192,7 @@ jobs:
           python -m pip install cibuildwheel==2.16.2
       - name: Build wheels
         env:
-          CIBW_BEFORE_ALL: "yum install -y yum-utils wget && wget -q https://developer.download.nvidia.com/compute/cuda/12.5.1/local_installers/cuda-repo-rhel8-12-5-local-12.5.1_555.42.06-1.x86_64.rpm && rpm -i cuda-repo-rhel8-12-5-local-12.5.1_555.42.06-1.x86_64.rpm && yum clean all && yum -y install cuda-toolkit-12-5 && yum -y install openblas-devel && yum clean all"
+          CIBW_BEFORE_ALL: "sed -i -e 's/^mirrorlist/#mirrorlist/' -e 's/^#baseurl/baseurl/' -e 's/mirror\.centos\.org/vault.centos.org/' /etc/yum.repos.d/CentOS-SCLo-scl-rh.repo && yum install -y yum-utils wget && wget -q https://developer.download.nvidia.com/compute/cuda/12.5.1/local_installers/cuda-repo-rhel8-12-5-local-12.5.1_555.42.06-1.x86_64.rpm && rpm -i cuda-repo-rhel8-12-5-local-12.5.1_555.42.06-1.x86_64.rpm && yum clean all && yum -y install cuda-toolkit-12-5 && yum -y install openblas-devel && yum clean all"
           CIBW_BEFORE_BUILD : "pip install nvidia-cuda-runtime-cu12 nvidia-nvjitlink-cu12 nvidia-cublas-cu12 nvidia-cusolver-cu12 nvidia-cusparse-cu12 cuquantum-cu12"
           CIBW_SKIP: "*-manylinux_i686 pp* cp36* cp37* *musllinux*"
           CIBW_TEST_SKIP: "*"
