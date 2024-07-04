@@ -32,7 +32,6 @@ class AerJob(Job):
         backend,
         job_id,
         fn,
-        qobj=None,
         circuits=None,
         parameter_binds=None,
         run_options=None,
@@ -46,13 +45,9 @@ class AerJob(Job):
             fn(function): a callable function to execute qobj on backend.
                 This should usually be a bound :meth:`AerBackend._run()` method,
                 with the signature `(qobj: QasmQobj, job_id: str) -> Result`.
-            qobj(QasmQobj): qobj to execute
             circuits(list of QuantumCircuit): circuits to execute.
-                If `qobj` is set, this argument is ignored.
             parameter_binds(list): parameters for circuits.
-                If `qobj` is set, this argument is ignored.
             run_options(dict): run_options to execute.
-                If `qobj` is set, this argument is ignored.
             executor(ThreadPoolExecutor or dask.distributed.client):
                 The executor to be used to submit the job.
 
@@ -61,18 +56,9 @@ class AerJob(Job):
         """
         super().__init__(backend, job_id)
         self._fn = fn
-        if qobj:
-            self._qobj = qobj
-            self._circuits = None
-            self._parameter_binds = None
-            self._run_options = None
-        elif circuits:
-            self._qobj = None
-            self._circuits = circuits
-            self._parameter_binds = parameter_binds
-            self._run_options = run_options
-        else:
-            raise JobError("AerJob needs a qobj or circuits")
+        self._circuits = circuits
+        self._parameter_binds = parameter_binds
+        self._run_options = run_options
         self._executor = executor or DEFAULT_EXECUTOR
         self._future = None
 
@@ -86,12 +72,9 @@ class AerJob(Job):
         """
         if self._future is not None:
             raise JobError("Aer job has already been submitted.")
-        if self._qobj:
-            self._future = self._executor.submit(self._fn, self._qobj, self._job_id)
-        else:
-            self._future = self._executor.submit(
-                self._fn, self._circuits, self._parameter_binds, self._run_options, self._job_id
-            )
+        self._future = self._executor.submit(
+            self._fn, self._circuits, self._parameter_binds, self._run_options, self._job_id
+        )
 
     @requires_submit
     def result(self, timeout=None):
@@ -147,22 +130,6 @@ class AerJob(Job):
     def backend(self):
         """Return the instance of the backend used for this job."""
         return self._backend
-
-    def qobj(self):
-        """Return the Qobj submitted for this job.
-
-        Returns:
-            Qobj: the Qobj submitted for this job.
-        """
-        warnings.warn(
-            "`AerJob.qobj() is deprecated as of qiskit-aer 0.14`. "
-            "Using a qobj for `backend.run()` is deprecated as of qiskit-aer 0.14"
-            " and will be removed no sooner than 3 months from that release"
-            " date. Once it is removed, this `qobj()` returns always `None`.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return self._qobj
 
     def circuits(self):
         """Return the list of QuantumCircuit submitted for this job.

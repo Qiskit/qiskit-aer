@@ -38,7 +38,6 @@ DISABLE_WARNING_POP
 
 #include "framework/creg.hpp"
 #include "framework/linalg/vector.hpp"
-#include "framework/qobj.hpp"
 #include "framework/results/experiment_result.hpp"
 #include "framework/results/result.hpp"
 #include "framework/rng.hpp"

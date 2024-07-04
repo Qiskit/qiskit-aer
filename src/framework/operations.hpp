@@ -687,7 +687,7 @@ inline std::ostream &operator<<(std::ostream &s, const Op &op) {
 inline void check_empty_name(const Op &op) {
   if (op.name.empty())
     throw std::invalid_argument(
-        R"(Invalid qobj instruction ("name" is empty).)");
+        R"(Invalid instruction ("name" is empty).)");
 }
 
 // Raise an exception if qubits list is empty

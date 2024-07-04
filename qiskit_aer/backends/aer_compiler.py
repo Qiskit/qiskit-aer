@@ -41,8 +41,6 @@ from qiskit.circuit.controlflow import (
 from qiskit.transpiler import PassManager
 from qiskit.transpiler.passes import Decompose
 
-
-from qiskit.qobj import QobjExperimentHeader
 from qiskit_aer.aererror import AerError
 from qiskit_aer.noise import NoiseModel
 
@@ -62,7 +60,7 @@ from qiskit_aer.backends.controller_wrappers import (
     AerConfig,
 )
 
-from .backend_utils import circuit_optypes
+from .backend_utils import circuit_optypes, CircuitHeader
 from ..library.control_flow_instructions import AerMark, AerJump, AerStore
 
 
@@ -680,7 +678,7 @@ def assemble_circuit(circuit: QuantumCircuit, basis_gates=None):
         for inst in circuit.data
     )
 
-    header = QobjExperimentHeader(
+    header = CircuitHeader(
         n_qubits=num_qubits,
         qreg_sizes=qreg_sizes,
         memory_slots=num_memory,
