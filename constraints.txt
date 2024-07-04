@@ -7,4 +7,4 @@ astroid==2.14.2
 jinja2==3.0.3
 
 # this is temporary to avoid neko fail
-scipy==1.13.1
+scipy==1.13.1; python_version=='3.12'
