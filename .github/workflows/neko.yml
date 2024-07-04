@@ -16,6 +16,7 @@ jobs:
         with:
           test_selection: backend
           repo_install_command: |
+            pip install scipy==1.13.1
             pip install conan
             pip uninstall -y qiskit qiskit-terra qiskit-aer
             pip install -c constraints.txt .
