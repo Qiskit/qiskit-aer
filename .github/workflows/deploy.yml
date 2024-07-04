@@ -148,7 +148,7 @@ jobs:
           python -m pip install cibuildwheel==2.16.2
       - name: Build wheels
         env:
-          CIBW_BEFORE_ALL: "pip cache purge && yum install -y yum-utils wget && wget -q https://developer.download.nvidia.com/compute/cuda/11.8.0/local_installers/cuda-repo-rhel7-11-8-local-11.8.0_520.61.05-1.x86_64.rpm && rpm -i cuda-repo-rhel7-11-8-local-11.8.0_520.61.05-1.x86_64.rpm && yum clean all && yum -y install cuda && yum -y install openblas-devel && yum-config-manager --add-repo https://developer.download.nvidia.com/compute/cuda/repos/rhel7/x86_64/cuda-rhel7.repo && yum clean all"
+          CIBW_BEFORE_ALL: "yum install -y yum-utils wget && wget -q https://developer.download.nvidia.com/compute/cuda/11.8.0/local_installers/cuda-repo-rhel8-11-8-local-11.8.0_520.61.05-1.x86_64.rpm && rpm -i cuda-repo-rhel8-11-8-local-11.8.0_520.61.05-1.x86_64.rpm && yum clean all && yum -y install cuda && yum -y install openblas-devel && yum clean all"
           CIBW_BEFORE_BUILD : "pip install nvidia-cuda-runtime-cu11 nvidia-cublas-cu11 nvidia-cusolver-cu11 nvidia-cusparse-cu11 cuquantum-cu11"
           CIBW_SKIP: "*-manylinux_i686 pp* cp36* cp37* *musllinux*"
           CIBW_TEST_SKIP: "*"
@@ -192,7 +192,7 @@ jobs:
           python -m pip install cibuildwheel==2.16.2
       - name: Build wheels
         env:
-          CIBW_BEFORE_ALL: "pip cache purge && yum install -y yum-utils wget && wget -q https://developer.download.nvidia.com/compute/cuda/12.4.0/local_installers/cuda-repo-rhel7-12-4-local-12.4.0_550.54.14-1.x86_64.rpm && rpm -i cuda-repo-rhel7-12-4-local-12.4.0_550.54.14-1.x86_64.rpm && yum clean all && yum -y install nvidia-driver-latest-dkms && yum -y install cuda-toolkit-12-4 && yum -y install openblas-devel && yum clean all"
+          CIBW_BEFORE_ALL: "yum install -y yum-utils wget && wget -q https://developer.download.nvidia.com/compute/cuda/12.5.1/local_installers/cuda-repo-rhel8-12-5-local-12.5.1_555.42.06-1.x86_64.rpm && rpm -i cuda-repo-rhel8-12-5-local-12.5.1_555.42.06-1.x86_64.rpm && yum clean all && yum -y install cuda-toolkit-12-5 && yum -y install openblas-devel && yum clean all"
           CIBW_BEFORE_BUILD : "pip install nvidia-cuda-runtime-cu12 nvidia-nvjitlink-cu12 nvidia-cublas-cu12 nvidia-cusolver-cu12 nvidia-cusparse-cu12 cuquantum-cu12"
           CIBW_SKIP: "*-manylinux_i686 pp* cp36* cp37* *musllinux*"
           CIBW_TEST_SKIP: "*"
