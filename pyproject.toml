@@ -19,7 +19,7 @@ test-command = "python {project}/tools/verify_wheels.py"
 # tendency to crash if they're installed from source by `pip install`, and since
 # Numpy 1.22 there are no i686 wheels, so we force pip to use older ones without
 # restricting any dependencies that Numpy and Scipy might have.
-before-test = "pip install --only-binary=numpy,scipy numpy scipy"
+before-test = "pip install --only-binary=numpy,scipy numpy scipy==1.13.1"
 
 [tool.cibuildwheel.linux]
 before-all = "sed -i -e 's/^mirrorlist/#mirrorlist/' -e 's/^#baseurl/baseurl/' -e 's/mirror.centos.org/vault.centos.org/' /etc/yum.repos.d/*.repo && yum install -y openblas-devel"
