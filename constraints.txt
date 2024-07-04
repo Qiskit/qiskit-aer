@@ -5,3 +5,6 @@ astroid==2.14.2
 # to work with the new jinja version (the jinja maintainers aren't going to
 # fix things) pin to the previous working version.
 jinja2==3.0.3
+
+# this is temporary to avoid neko fail
+scipy==1.13.1
