@@ -20,6 +20,7 @@ from qiskit_aer import AerSimulator
 from test.terra.common import QiskitAerTestCase
 from qiskit.circuit import QuantumCircuit
 
+
 class SimulatorTestCase(QiskitAerTestCase):
     """Simulator test class"""
 
