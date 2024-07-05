@@ -523,8 +523,8 @@ def circuit_optypes(circuit):
     if not isinstance(circuit, QuantumCircuit):
         return set()
     optypes = set()
-    for inst, _, _ in circuit._data:
-        optypes.update(type(inst).mro())
+    for instruction in circuit.data:
+        optypes.update(type(instruction.operation).mro())
     optypes.discard(object)
     return optypes
 

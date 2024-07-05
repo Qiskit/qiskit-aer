@@ -50,16 +50,17 @@ def insert_noise(circuits, noise_model, transpile=False):
         qubit_indices = {bit: index for index, bit in enumerate(transpiled_circuit.qubits)}
         result_circuit = transpiled_circuit.copy(name=transpiled_circuit.name + "_with_noise")
         result_circuit.data = []
-        for inst, qargs, cargs in transpiled_circuit.data:
-            result_circuit.data.append((inst, qargs, cargs))
-            qubits = tuple(qubit_indices[q] for q in qargs)
+        for inst in transpiled_circuit.data:
+            result_circuit.data.append(inst)
+            qubits = tuple(qubit_indices[q] for q in inst.qubits)
             # Priority for error model used:
             # local error > default error
-            if inst.name in local_errors and qubits in local_errors[inst.name]:
-                error = local_errors[inst.name][qubits]
-                result_circuit.append(error.to_instruction(), qargs)
-            elif inst.name in default_errors.keys():
-                error = default_errors[inst.name]
-                result_circuit.append(error.to_instruction(), qargs)
+            name = inst.operation.name
+            if name in local_errors and qubits in local_errors[name]:
+                error = local_errors[name][qubits]
+                result_circuit.append(error.to_instruction(), inst.qubits)
+            elif name in default_errors.keys():
+                error = default_errors[name]
+                result_circuit.append(error.to_instruction(), inst.qubits)
         result_circuits.append(result_circuit)
     return result_circuits if is_circuits_list else result_circuits[0]
