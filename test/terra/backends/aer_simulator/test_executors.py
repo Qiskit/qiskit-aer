@@ -26,7 +26,7 @@ from qiskit.circuit.library import QuantumVolume
 from qiskit.quantum_info import Statevector
 from qiskit_aer.noise.noise_model import AerJSONEncoder
 from test.terra.reference import ref_kraus_noise
-from qiskit_aer.jobs import AerJob, AerJobSet
+from qiskit_aer.jobs import AerJob
 from test.terra.backends.simulator_test_case import SimulatorTestCase, supported_methods
 
 
