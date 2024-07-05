@@ -148,7 +148,6 @@ class AerBackend(Backend, ABC):
         Args:
             circuits (QuantumCircuit or list): The QuantumCircuit (or list
                 of QuantumCircuit objects) to run
-            validate (bool): validate before running (default: False).
             parameter_binds (list): A list of parameter binding dictionaries.
                                     See additional information (default: None).
             run_options (kwargs): additional run time backend options.
