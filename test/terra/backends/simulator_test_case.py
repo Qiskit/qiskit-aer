@@ -19,8 +19,6 @@ import itertools as it
 from qiskit_aer import AerSimulator
 from test.terra.common import QiskitAerTestCase
 from qiskit.circuit import QuantumCircuit
-from qiskit.compiler import assemble
-
 
 class SimulatorTestCase(QiskitAerTestCase):
     """Simulator test class"""
