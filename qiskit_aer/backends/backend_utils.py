@@ -117,6 +117,7 @@ BASIS_GATES = {
             "pauli",
             "mcx_gray",
             "ecr",
+            "store",
         ]
     ),
     "density_matrix": sorted(
@@ -198,6 +199,7 @@ BASIS_GATES = {
             "diagonal",
             "initialize",
             "ecr",
+            "store",
         ]
     ),
     "stabilizer": sorted(
@@ -218,6 +220,7 @@ BASIS_GATES = {
             "pauli",
             "ecr",
             "rz",
+            "store",
         ]
     ),
     "extended_stabilizer": sorted(
@@ -244,6 +247,7 @@ BASIS_GATES = {
             "pauli",
             "ecr",
             "rz",
+            "store",
         ]
     ),
     "unitary": sorted(
@@ -308,6 +312,7 @@ BASIS_GATES = {
             "multiplexer",
             "pauli",
             "ecr",
+            "store",
         ]
     ),
     "superop": sorted(
@@ -346,6 +351,7 @@ BASIS_GATES = {
             "unitary",
             "diagonal",
             "pauli",
+            "store",
         ]
     ),
     "tensor_network": sorted(
@@ -412,6 +418,7 @@ BASIS_GATES = {
             "pauli",
             "mcx_gray",
             "ecr",
+            "store",
         ]
     ),
 }
@@ -551,7 +558,7 @@ def circuit_optypes(circuit):
     if not isinstance(circuit, QuantumCircuit):
         return set()
     optypes = set()
-    for inst, _, _ in circuit._data:
-        optypes.update(type(inst).mro())
+    for instruction in circuit.data:
+        optypes.update(type(instruction.operation).mro())
     optypes.discard(object)
     return optypes

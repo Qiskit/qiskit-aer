@@ -140,6 +140,9 @@ public:
       }
       iter_++;
       return true;
+    } else if (iter_->type == Operations::OpType::store) {
+      creg.apply_store(*last);
+      return true;
     }
     return false;
   }
