@@ -544,7 +544,3 @@ set(AER_COMPILER_DEFINITIONS ${AER_COMPILER_DEFINITIONS} ${CONAN_DEFINES})
 
 add_subdirectory(qiskit_aer/backends/wrappers)
 
-# Tests
-if(BUILD_TESTS)
-	add_subdirectory(test)
-endif()
