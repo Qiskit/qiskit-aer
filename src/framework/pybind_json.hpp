@@ -222,7 +222,8 @@ void std::to_json(json_t &js, const py::handle &obj) {
   static py::object PyNoiseModel =
       py::module::import("qiskit_aer.noise.noise_model").attr("NoiseModel");
   static py::object PyCircuitHeader =
-      py::module::import("qiskit_aer.backends.backend_utils").attr("CircuitHeader");
+      py::module::import("qiskit_aer.backends.backend_utils")
+          .attr("CircuitHeader");
   if (py::isinstance<py::float_>(obj)) {
     js = obj.cast<nl::json::number_float_t>();
   } else if (py::isinstance<py::bool_>(obj)) {
