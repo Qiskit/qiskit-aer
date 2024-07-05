@@ -11,9 +11,6 @@
 # that they have been altered from the originals.
 
 """Utility functions for Aer job management."""
-import uuid
-import copy
-from math import ceil
 from functools import singledispatch, update_wrapper, wraps
 from concurrent.futures import ThreadPoolExecutor
 

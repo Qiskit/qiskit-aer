@@ -18,11 +18,9 @@ import datetime
 import logging
 import time
 import uuid
-import warnings
 from abc import ABC, abstractmethod
 
 from qiskit.circuit import QuantumCircuit, ParameterExpression, Delay
-from qiskit.compiler import assemble
 from qiskit.providers import BackendV2 as Backend
 from qiskit.providers import convert_to_target
 from qiskit.providers.models import BackendStatus
@@ -144,7 +142,7 @@ class AerBackend(Backend, ABC):
         return parameterizations
 
     # pylint: disable=arguments-renamed
-    def run(self, circuits, validate=False, parameter_binds=None, **run_options):
+    def run(self, circuits, parameter_binds=None, **run_options):
         """Run circuits on the backend.
 
         Args:

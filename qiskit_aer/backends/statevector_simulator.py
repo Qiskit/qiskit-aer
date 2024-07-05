@@ -17,7 +17,6 @@ import copy
 import logging
 from warnings import warn
 
-import psutil
 from qiskit.providers.options import Options
 from qiskit.providers.models import QasmBackendConfiguration
 

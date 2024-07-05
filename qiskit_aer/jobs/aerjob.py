@@ -15,7 +15,6 @@
 """This module implements the job class used for AerBackend objects."""
 
 import logging
-import warnings
 
 from qiskit.providers import JobV1 as Job
 from qiskit.providers import JobStatus, JobError
