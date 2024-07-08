@@ -26,6 +26,7 @@ from qiskit.quantum_info.states.densitymatrix import DensityMatrix
 from test.terra.backends.simulator_test_case import SimulatorTestCase, supported_methods
 from test.terra.reference import ref_kraus_noise
 from test.terra.reference import ref_pauli_noise
+from test.terra.reference import ref_pauli_lindblad_noise
 from test.terra.reference import ref_readout_noise
 from test.terra.reference import ref_reset_noise
 
@@ -84,14 +85,70 @@ class TestNoise(SimulatorTestCase):
         result = backend.run(circ, shots=1).result()
         self.assertSuccess(result)
 
-    @supported_methods(ALL_METHODS)
-    def test_pauli_gate_noise(self, method, device):
+    @supported_methods(ALL_METHODS, [noise.QuantumError, noise.PauliError])
+    def test_pauli_gate_noise(self, method, device, qerror_cls):
         """Test simulation with Pauli gate error noise model."""
         backend = self.backend(method=method, device=device)
         shots = 1000
         circuits = ref_pauli_noise.pauli_gate_error_circuits()
-        noise_models = ref_pauli_noise.pauli_gate_error_noise_models()
+        noise_models = ref_pauli_noise.pauli_gate_error_noise_models(qerror_cls)
         targets = ref_pauli_noise.pauli_gate_error_counts(shots)
+
+        for circuit, noise_model, target in zip(circuits, noise_models, targets):
+            backend.set_options(noise_model=noise_model)
+            result = backend.run(circuit, shots=shots).result()
+            self.assertSuccess(result)
+            self.compare_counts(result, [circuit], [target], delta=0.05 * shots)
+
+    @supported_methods(
+        [
+            "automatic",
+            "stabilizer",
+            "statevector",
+            "density_matrix",
+            "matrix_product_state",
+            "extended_stabilizer",
+            "tensor_network",
+        ],
+        [noise.QuantumError, noise.PauliError],
+    )
+    def test_pauli_reset_noise(self, method, device, qerror_cls):
+        """Test simulation with Pauli reset error noise model."""
+        backend = self.backend(method=method, device=device)
+        shots = 1000
+        circuits = ref_pauli_noise.pauli_reset_error_circuits()
+        noise_models = ref_pauli_noise.pauli_reset_error_noise_models(qerror_cls)
+        targets = ref_pauli_noise.pauli_reset_error_counts(shots)
+
+        for circuit, noise_model, target in zip(circuits, noise_models, targets):
+            backend.set_options(noise_model=noise_model)
+            result = backend.run(circuit, shots=shots).result()
+            self.assertSuccess(result)
+            self.compare_counts(result, [circuit], [target], delta=0.05 * shots)
+
+    @supported_methods(ALL_METHODS, [noise.QuantumError, noise.PauliError])
+    def test_pauli_measure_noise(self, method, device, qerror_cls):
+        """Test simulation with Pauli measure error noise model."""
+        backend = self.backend(method=method, device=device)
+        shots = 1000
+        circuits = ref_pauli_noise.pauli_measure_error_circuits()
+        noise_models = ref_pauli_noise.pauli_measure_error_noise_models(qerror_cls)
+        targets = ref_pauli_noise.pauli_measure_error_counts(shots)
+
+        for circuit, noise_model, target in zip(circuits, noise_models, targets):
+            backend.set_options(noise_model=noise_model)
+            result = backend.run(circuit, shots=shots).result()
+            self.assertSuccess(result)
+            self.compare_counts(result, [circuit], [target], delta=0.05 * shots)
+
+    @supported_methods(ALL_METHODS)
+    def test_pauli_lindblad_gate_noise(self, method, device):
+        """Test simulation with Pauli gate error noise model."""
+        backend = self.backend(method=method, device=device)
+        shots = 1000
+        circuits = ref_pauli_lindblad_noise.pauli_lindblad_gate_error_circuits()
+        noise_models = ref_pauli_lindblad_noise.pauli_lindblad_gate_error_noise_models()
+        targets = ref_pauli_lindblad_noise.pauli_lindblad_gate_error_counts(shots)
 
         for circuit, noise_model, target in zip(circuits, noise_models, targets):
             backend.set_options(noise_model=noise_model)
@@ -110,13 +167,13 @@ class TestNoise(SimulatorTestCase):
             "tensor_network",
         ]
     )
-    def test_pauli_reset_noise(self, method, device):
+    def test_pauli_lindblad_reset_noise(self, method, device):
         """Test simulation with Pauli reset error noise model."""
         backend = self.backend(method=method, device=device)
         shots = 1000
-        circuits = ref_pauli_noise.pauli_reset_error_circuits()
-        noise_models = ref_pauli_noise.pauli_reset_error_noise_models()
-        targets = ref_pauli_noise.pauli_reset_error_counts(shots)
+        circuits = ref_pauli_lindblad_noise.pauli_lindblad_reset_error_circuits()
+        noise_models = ref_pauli_lindblad_noise.pauli_lindblad_reset_error_noise_models()
+        targets = ref_pauli_lindblad_noise.pauli_lindblad_reset_error_counts(shots)
 
         for circuit, noise_model, target in zip(circuits, noise_models, targets):
             backend.set_options(noise_model=noise_model)
@@ -125,13 +182,13 @@ class TestNoise(SimulatorTestCase):
             self.compare_counts(result, [circuit], [target], delta=0.05 * shots)
 
     @supported_methods(ALL_METHODS)
-    def test_pauli_measure_noise(self, method, device):
+    def test_pauli_lindblad_measure_noise(self, method, device):
         """Test simulation with Pauli measure error noise model."""
         backend = self.backend(method=method, device=device)
         shots = 1000
-        circuits = ref_pauli_noise.pauli_measure_error_circuits()
-        noise_models = ref_pauli_noise.pauli_measure_error_noise_models()
-        targets = ref_pauli_noise.pauli_measure_error_counts(shots)
+        circuits = ref_pauli_lindblad_noise.pauli_lindblad_measure_error_circuits()
+        noise_models = ref_pauli_lindblad_noise.pauli_lindblad_measure_error_noise_models()
+        targets = ref_pauli_lindblad_noise.pauli_lindblad_measure_error_counts(shots)
 
         for circuit, noise_model, target in zip(circuits, noise_models, targets):
             backend.set_options(noise_model=noise_model)

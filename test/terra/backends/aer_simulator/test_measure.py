@@ -284,6 +284,38 @@ class TestMeasure(SimulatorTestCase):
         targets["1" * num_qubits] = shots / 2
         self.assertDictAlmostEqual(counts, targets, delta=delta * shots)
 
+    @supported_methods(["stabilizer"])
+    def test_measure_stablizer_deterministic(self, method, device):
+        """Test stabilizer measure for deterministic case"""
+        backend = self.backend(method=method, device=device)
+        shots = 10000
+        qc = QuantumCircuit(5, 1)
+        qc.h([2, 4])
+        qc.cx(2, 0)
+        qc.s(0)
+        qc.cx(4, 2)
+        qc.h(0)
+        qc.cx(2, 3)
+        qc.s(4)
+        qc.cx(1, 0)
+        qc.h([3, 4])
+        qc.cx(3, 2)
+        qc.h(3)
+        qc.cx(0, 3)
+        qc.cx(3, 1)
+        qc.s(0)
+        qc.s(1)
+        qc.h(0)
+        qc.s(0)
+        qc.cx(4, 0)
+        qc.cx(0, 1)
+        qc.measure(1, 0)
+        result = backend.run(qc, shots=shots).result()
+        counts = result.get_counts()
+        self.assertSuccess(result)
+
+        self.assertDictEqual(counts, {"1": shots})
+
     # ---------------------------------------------------------------------
     # Test MPS algorithms for measure
     # ---------------------------------------------------------------------

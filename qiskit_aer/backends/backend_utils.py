@@ -91,6 +91,9 @@ BASIS_GATES = {
             "rzx",
             "ccx",
             "ccz",
+            "crx",
+            "cry",
+            "crz",
             "cswap",
             "mcx",
             "mcy",
@@ -111,10 +114,10 @@ BASIS_GATES = {
             "diagonal",
             "multiplexer",
             "initialize",
-            "delay",
             "pauli",
             "mcx_gray",
             "ecr",
+            "store",
         ]
     ),
     "density_matrix": sorted(
@@ -152,7 +155,6 @@ BASIS_GATES = {
             "ccx",
             "unitary",
             "diagonal",
-            "delay",
             "pauli",
             "ecr",
         ]
@@ -183,7 +185,6 @@ BASIS_GATES = {
             "ccx",
             "unitary",
             "roerror",
-            "delay",
             "pauli",
             "r",
             "rx",
@@ -197,6 +198,8 @@ BASIS_GATES = {
             "cswap",
             "diagonal",
             "initialize",
+            "ecr",
+            "store",
         ]
     ),
     "stabilizer": sorted(
@@ -214,12 +217,10 @@ BASIS_GATES = {
             "cy",
             "cz",
             "swap",
-            "delay",
             "pauli",
             "ecr",
-            "rx",
-            "ry",
             "rz",
+            "store",
         ]
     ),
     "extended_stabilizer": sorted(
@@ -243,8 +244,10 @@ BASIS_GATES = {
             "p",
             "ccx",
             "ccz",
-            "delay",
             "pauli",
+            "ecr",
+            "rz",
+            "store",
         ]
     ),
     "unitary": sorted(
@@ -286,6 +289,9 @@ BASIS_GATES = {
             "ccx",
             "ccz",
             "cswap",
+            "crx",
+            "cry",
+            "crz",
             "mcx",
             "mcy",
             "mcz",
@@ -304,9 +310,9 @@ BASIS_GATES = {
             "unitary",
             "diagonal",
             "multiplexer",
-            "delay",
             "pauli",
             "ecr",
+            "store",
         ]
     ),
     "superop": sorted(
@@ -344,8 +350,8 @@ BASIS_GATES = {
             "ccx",
             "unitary",
             "diagonal",
-            "delay",
             "pauli",
+            "store",
         ]
     ),
     "tensor_network": sorted(
@@ -387,6 +393,9 @@ BASIS_GATES = {
             "ccx",
             "ccz",
             "cswap",
+            "crx",
+            "cry",
+            "crz",
             "mcx",
             "mcy",
             "mcz",
@@ -406,9 +415,10 @@ BASIS_GATES = {
             "diagonal",
             "multiplexer",
             "initialize",
-            "delay",
             "pauli",
             "mcx_gray",
+            "ecr",
+            "store",
         ]
     ),
 }
@@ -548,7 +558,7 @@ def circuit_optypes(circuit):
     if not isinstance(circuit, QuantumCircuit):
         return set()
     optypes = set()
-    for inst, _, _ in circuit._data:
-        optypes.update(type(inst).mro())
+    for instruction in circuit.data:
+        optypes.update(type(instruction.operation).mro())
     optypes.discard(object)
     return optypes

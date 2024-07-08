@@ -504,9 +504,11 @@ class TestGateFusion(SimulatorTestCase):
         self.assertTrue(
             len(meta_enabled["output_ops"])
             if "output_ops" in meta_enabled
-            else len(circuit.ops) < len(meta_disabled["output_ops"])
-            if "output_ops" in meta_disabled
-            else len(circuit.ops)
+            else (
+                len(circuit.ops) < len(meta_disabled["output_ops"])
+                if "output_ops" in meta_disabled
+                else len(circuit.ops)
+            )
         )
 
     def test_fusion_diagonal(self):

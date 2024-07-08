@@ -12,28 +12,26 @@
 """
 Quantum error class for Aer noise model
 """
-import copy
 import numbers
-import uuid
 from typing import Iterable
-
 import numpy as np
 
-from qiskit.circuit import QuantumCircuit, Instruction, QuantumRegister, Reset
+from qiskit.circuit import QuantumCircuit, Instruction, Reset
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.library.generalized_gates import PauliGate, UnitaryGate
 from qiskit.circuit.library.standard_gates import IGate, XGate, YGate, ZGate
 from qiskit.exceptions import QiskitError
+from qiskit.quantum_info import Kraus, SuperOp, Clifford, Pauli
 from qiskit.quantum_info.operators.base_operator import BaseOperator
-from qiskit.quantum_info.operators.channel import Kraus, SuperOp
 from qiskit.quantum_info.operators.channel.quantum_channel import QuantumChannel
 from qiskit.quantum_info.operators.mixins import TolerancesMixin
 from qiskit.quantum_info.operators.predicates import is_identity_matrix
-from qiskit.quantum_info.operators.symplectic import Clifford
+
+from .base_quantum_error import BaseQuantumError
 from ..noiseerror import NoiseError
 
 
-class QuantumError(BaseOperator, TolerancesMixin):
+class QuantumError(BaseQuantumError, TolerancesMixin):
     """
     Quantum error class for Aer noise model
 
@@ -90,9 +88,6 @@ class QuantumError(BaseOperator, TolerancesMixin):
         Raises:
             NoiseError: If input noise_ops is invalid, e.g. it's not a CPTP map.
         """
-        # Unique ID for QuantumError
-        self._id = uuid.uuid4().hex
-
         # Shallow copy constructor
         if isinstance(noise_ops, QuantumError):
             self._circs = noise_ops.circuits
@@ -194,7 +189,7 @@ class QuantumError(BaseOperator, TolerancesMixin):
                 )
         if isinstance(op, list):
             if all(isinstance(aop, tuple) for aop in op):
-                num_qubits = max([max(qubits) for _, qubits in op]) + 1
+                num_qubits = max(max(qubits) for _, qubits in op) + 1
                 circ = QuantumCircuit(num_qubits)
                 for inst, qubits in op:
                     try:
@@ -212,7 +207,10 @@ class QuantumError(BaseOperator, TolerancesMixin):
 
     def __repr__(self):
         """Display QuantumError."""
-        return f"QuantumError({list(zip(self.circuits, self.probabilities))})"
+        return (
+            f"<{self._repr_name()}, num_qubits={self.num_qubits},"
+            f" size={self.size}, probabilities={self.probabilities}>"
+        )
 
     def __str__(self):
         """Print error information."""
@@ -223,23 +221,9 @@ class QuantumError(BaseOperator, TolerancesMixin):
 
     def __eq__(self, other):
         """Test if two QuantumErrors are equal as SuperOps"""
-        if not isinstance(other, QuantumError):
+        if not isinstance(other, BaseQuantumError):
             return False
         return self.to_quantumchannel() == other.to_quantumchannel()
-
-    def __hash__(self):
-        return hash(self._id)
-
-    @property
-    def id(self):  # pylint: disable=invalid-name
-        """Return unique ID string for error"""
-        return self._id
-
-    def copy(self):
-        """Make a copy of current QuantumError."""
-        # pylint: disable=no-value-for-parameter
-        # The constructor of subclasses from raw data should be a copy
-        return copy.deepcopy(self)
 
     @property
     def size(self):
@@ -269,7 +253,8 @@ class QuantumError(BaseOperator, TolerancesMixin):
                 pass
 
             # Component-wise check for non-Clifford circuits
-            for op, _, _ in circ:
+            for instruction in circ:
+                op = instruction.operation
                 if isinstance(op, IGate):
                     continue
                 if isinstance(op, PauliGate):
@@ -296,10 +281,6 @@ class QuantumError(BaseOperator, TolerancesMixin):
             component = prob * SuperOp(circ)
             ret = ret + component
         return ret
-
-    def to_instruction(self):
-        """Convert the QuantumError to a circuit Instruction."""
-        return QuantumChannelInstruction(self)
 
     def error_term(self, position):
         """
@@ -330,9 +311,9 @@ class QuantumError(BaseOperator, TolerancesMixin):
         instructions = []
         for circ in self._circs:
             circ_inst = []
-            for inst, qargs, _ in circ.data:
-                qobj_inst = inst.assemble()
-                qobj_inst.qubits = [circ.find_bit(q).index for q in qargs]
+            for inst in circ.data:
+                qobj_inst = inst.operation.assemble()
+                qobj_inst.qubits = [circ.find_bit(q).index for q in inst.qubits]
                 circ_inst.append(qobj_inst.to_dict())
             instructions.append(circ_inst)
         # Construct error dict
@@ -359,7 +340,7 @@ class QuantumError(BaseOperator, TolerancesMixin):
             or ("instructions" not in error)
             or ("probabilities" not in error)
         ):
-            raise NoiseError("erorr dictionary not containing expected keys")
+            raise NoiseError("error dictionary not containing expected keys")
         error_instructions = error["instructions"]
         error_probabilities = error["probabilities"]
 
@@ -372,7 +353,6 @@ class QuantumError(BaseOperator, TolerancesMixin):
             for elem in inst:
                 inst_name = elem["name"]
                 inst_qubits = elem["qubits"]
-
                 if inst_name == "x":
                     noise_elem.append((XGate(), inst_qubits))
                 elif inst_name == "id":
@@ -381,18 +361,22 @@ class QuantumError(BaseOperator, TolerancesMixin):
                     noise_elem.append((YGate(), inst_qubits))
                 elif inst_name == "z":
                     noise_elem.append((ZGate(), inst_qubits))
-                elif inst_name == "kraus":
-                    if "params" not in inst[0]:
-                        raise NoiseError("kraus does not have a parameter value")
-                    noise_elem.append((Kraus(inst[0]["params"]), inst_qubits))
                 elif inst_name == "reset":
                     noise_elem.append((Reset(), inst_qubits))
                 elif inst_name == "measure":
                     raise NoiseError("instruction 'measure' not supported")
+                elif inst_name == "pauli":
+                    if "params" not in elem:
+                        raise NoiseError("pauli does not have a parameter value")
+                    noise_elem.append((Pauli(elem["params"][0]), inst_qubits))
+                elif inst_name == "kraus":
+                    if "params" not in elem:
+                        raise NoiseError("kraus does not have a parameter value")
+                    noise_elem.append((Kraus(elem["params"]), inst_qubits))
                 elif inst_name == "unitary":
-                    if "params" not in inst[0]:
+                    if "params" not in elem:
                         raise NoiseError("unitary does not have a parameter value")
-                    noise_elem.append((UnitaryGate(inst[0]["params"][0]), inst_qubits))
+                    noise_elem.append((UnitaryGate(elem["params"][0]), inst_qubits))
                 else:
                     raise NoiseError("error gate for instruction not recognized")
 
@@ -457,39 +441,3 @@ class QuantumError(BaseOperator, TolerancesMixin):
 
     def expand(self, other):
         return other.tensor(self)
-
-    # Overloads
-    def __rmul__(self, other):
-        raise NotImplementedError("'QuantumError' does not support scalar multiplication.")
-
-    def __truediv__(self, other):
-        raise NotImplementedError("'QuantumError' does not support division.")
-
-    def __add__(self, other):
-        raise NotImplementedError("'QuantumError' does not support addition.")
-
-    def __sub__(self, other):
-        raise NotImplementedError("'QuantumError' does not support subtraction.")
-
-    def __neg__(self):
-        raise NotImplementedError("'QuantumError' does not support negation.")
-
-
-class QuantumChannelInstruction(Instruction):
-    """Container instruction for adding QuantumError to circuit"""
-
-    def __init__(self, quantum_error):
-        """Initialize a quantum error circuit instruction.
-
-        Args:
-            quantum_error (QuantumError): the error to add as an instruction.
-        """
-        super().__init__("quantum_channel", quantum_error.num_qubits, 0, [])
-        self._quantum_error = quantum_error
-
-    def _define(self):
-        """Allow unrolling to a Kraus instruction"""
-        q = QuantumRegister(self.num_qubits, "q")
-        qc = QuantumCircuit(q, name=self.name)
-        qc._append(Kraus(self._quantum_error).to_instruction(), q, [])
-        self.definition = qc

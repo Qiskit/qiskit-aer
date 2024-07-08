@@ -33,7 +33,7 @@ from qiskit.transpiler import CouplingMap
 from ..aererror import AerError
 from ..jobs import AerJob, AerJobSet, split_qobj
 from ..noise.noise_model import NoiseModel, QuantumErrorLocation
-from ..noise.errors.quantum_error import QuantumChannelInstruction
+from ..noise.errors.base_quantum_error import QuantumChannelInstruction
 from .aer_compiler import compile_circuit, assemble_circuits, generate_aer_config
 from .backend_utils import format_save_type, circuit_optypes
 from .name_mapping import NAME_MAPPING
@@ -144,7 +144,7 @@ class AerBackend(Backend, ABC):
         ]
         return parameterizations
 
-    # pylint: disable=arguments-differ
+    # pylint: disable=arguments-renamed
     def run(self, circuits, validate=False, parameter_binds=None, **run_options):
         """Run circuits on the backend.
 
@@ -244,7 +244,7 @@ class AerBackend(Backend, ABC):
             )
         else:
             raise TypeError(
-                "bad input to run() function;" "circuits must be either circuits or schedules"
+                "bad input to run() function; circuits must be either circuits or schedules"
             )
 
     def _run_circuits(self, circuits, parameter_binds, **run_options):
@@ -354,6 +354,7 @@ class AerBackend(Backend, ABC):
         """Set maximun number of qubits to be used for this backend."""
         if self._target is None:
             self._configuration.n_qubits = max_qubits
+            self._set_configuration_option("n_qubits", max_qubits)
 
     def clear_options(self):
         """Reset the simulator options to default values."""
@@ -458,7 +459,7 @@ class AerBackend(Backend, ABC):
             run_options["parameterizations"] = self._convert_binds(
                 circuits, parameter_binds, idx_maps
             )
-        elif not all([len(circuit.parameters) == 0 for circuit in circuits]):
+        elif not all(len(circuit.parameters) == 0 for circuit in circuits):
             raise AerError("circuits have parameters but parameter_binds is not specified.")
 
         for circ_id, aer_circuit in enumerate(aer_circuits):

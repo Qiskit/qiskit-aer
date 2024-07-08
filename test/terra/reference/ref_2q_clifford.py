@@ -109,6 +109,14 @@ def cx_gate_circuits_deterministic(final_measure=True):
         circuit.measure(qr, cr)
     circuits.append(circuit)
 
+    # test ctrl_states=0
+    circuit = QuantumCircuit(*regs)
+    circuit.cx(qr[0], qr[1], ctrl_state=0)
+    if final_measure:
+        circuit.barrier(qr)
+        circuit.measure(qr, cr)
+    circuits.append(circuit)
+
     return circuits
 
 
@@ -132,6 +140,8 @@ def cx_gate_counts_deterministic(shots, hex_counts=True):
         targets.append({"0x1": shots})  # {"00": shots}
         # CX10.(X^X), |10> state
         targets.append({"0x2": shots})  # {"00": shots}
+        # test ctrl_states=0
+        targets.append({"0x2": shots})  # {"00": shots}
     else:
         # CX01, |00> state
         targets.append({"00": shots})  # {"00": shots}
@@ -148,6 +158,8 @@ def cx_gate_counts_deterministic(shots, hex_counts=True):
         # CX01.(X^X), |01> state
         targets.append({"01": shots})  # {"00": shots}
         # CX10.(X^X), |10> state
+        targets.append({"10": shots})  # {"00": shots}
+        # test ctrl_states=0
         targets.append({"10": shots})  # {"00": shots}
     return targets
 
@@ -225,6 +237,16 @@ def cx_gate_circuits_nondeterministic(final_measure=True):
         circuit.barrier(qr)
         circuit.measure(qr, cr)
     circuits.append(circuit)
+
+    # test ctrl_states=0
+    circuit = QuantumCircuit(*regs)
+    circuit.h(qr[0])
+    circuit.cx(qr[0], qr[1], ctrl_state=0)
+    if final_measure:
+        circuit.barrier(qr)
+        circuit.measure(qr, cr)
+    circuits.append(circuit)
+
     return circuits
 
 
@@ -236,11 +258,15 @@ def cx_gate_counts_nondeterministic(shots, hex_counts=True):
         targets.append({"0x0": shots / 2, "0x3": shots / 2})
         # CX10.(I^H), Bell state
         targets.append({"0x0": shots / 2, "0x3": shots / 2})
+        # test ctrl_states=0
+        targets.append({"0x1": shots / 2, "0x2": shots / 2})
     else:
         # CX01.(I^H), Bell state
         targets.append({"00": shots / 2, "11": shots / 2})
         # CX10.(I^H), Bell state
         targets.append({"00": shots / 2, "11": shots / 2})
+        # test ctrl_states=0
+        targets.append({"01": shots / 2, "10": shots / 2})
     return targets
 
 

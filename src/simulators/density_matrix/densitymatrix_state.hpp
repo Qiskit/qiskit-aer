@@ -45,7 +45,7 @@ const Operations::OpSet StateOpSet(
      OpType::set_densmat,  OpType::save_expval, OpType::save_expval_var,
      OpType::save_densmat, OpType::save_probs,  OpType::save_probs_ket,
      OpType::save_amps_sq, OpType::save_state,  OpType::jump,
-     OpType::mark},
+     OpType::mark,         OpType::store},
     // Gates
     {"U",   "CX", "u1",   "u2",  "u3",    "u",     "cx",  "cy",  "cz",  "swap",
      "id",  "x",  "y",    "z",   "h",     "s",     "sdg", "t",   "tdg", "ccx",
@@ -1009,10 +1009,10 @@ std::vector<SampleVector> State<densmat_t>::sample_measure(const reg_t &qubits,
   std::vector<SampleVector> all_samples(shots, SampleVector(qubits.size()));
 
   auto convert_to_bit_lambda = [this, &allbit_samples, &all_samples, shots,
-                                qubits, npar](int_t i) {
+                                qubits, npar](int_t k) {
     uint_t ishot, iend;
-    ishot = shots * i / npar;
-    iend = shots * (i + 1) / npar;
+    ishot = shots * k / npar;
+    iend = shots * (k + 1) / npar;
     for (; ishot < iend; ishot++) {
       SampleVector allbit_sample;
       allbit_sample.from_uint(allbit_samples[ishot], qubits.size());

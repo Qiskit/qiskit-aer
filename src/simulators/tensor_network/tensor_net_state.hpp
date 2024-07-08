@@ -34,37 +34,20 @@ namespace TensorNetwork {
 
 using OpType = Operations::OpType;
 
+// clang-format off
 // OpSet of supported instructions
 const Operations::OpSet StateOpSet(
     // Op types
-    {OpType::gate,
-     OpType::measure,
-     OpType::reset,
-     OpType::initialize,
-     OpType::barrier,
-     OpType::bfunc,
-     OpType::roerror,
-     OpType::matrix,
-     OpType::diagonal_matrix,
-     OpType::multiplexer,
-     OpType::kraus,
-     OpType::superop,
-     OpType::qerror_loc,
-     OpType::sim_op,
-     OpType::set_statevec,
-     OpType::set_densmat,
-     OpType::save_expval,
-     OpType::save_expval_var,
-     OpType::save_probs,
-     OpType::save_probs_ket,
-     OpType::save_amps,
-     OpType::save_amps_sq,
-     OpType::save_state,
-     OpType::save_statevec,
-     OpType::save_statevec_dict,
-     OpType::save_densmat,
-     OpType::jump,
-     OpType::mark},
+    { OpType::gate,               OpType::measure,        OpType::reset,
+      OpType::initialize,         OpType::barrier,        OpType::bfunc,
+      OpType::roerror,            OpType::matrix,         OpType::diagonal_matrix,
+      OpType::multiplexer,        OpType::kraus,          OpType::superop,
+      OpType::qerror_loc,         OpType::sim_op,         OpType::set_statevec,
+      OpType::set_densmat,        OpType::save_expval,    OpType::save_expval_var,
+      OpType::save_probs,         OpType::save_probs_ket, OpType::save_amps,
+      OpType::save_amps_sq,       OpType::save_state,     OpType::save_statevec,
+      OpType::save_statevec_dict, OpType::save_densmat,   OpType::jump,
+      OpType::mark, OpType::store},
     // Gates
     {"u1",   "u2",    "u3",     "u",     "U",     "CX",       "cx",
      "cz",   "cy",    "cp",     "cu1",   "cu2",   "cu3",      "swap",
@@ -72,9 +55,10 @@ const Operations::OpSet StateOpSet(
      "sdg",  "t",     "tdg",    "r",     "rx",    "ry",       "rz",
      "rxx",  "ryy",   "rzz",    "rzx",   "ccx",   "ccz",      "mcx",
      "mcy",  "mcz",   "mcu1",   "mcu2",  "mcu3",  "mcswap",   "mcphase",
-     "mcr",  "mcrx",  "mcry",   "mcry",  "sx",    "sxdg",     "csx",
+     "mcr",  "mcrx",  "mcry",   "mcrz",  "sx",    "sxdg",     "csx",
      "mcsx", "csxdg", "mcsxdg", "delay", "pauli", "mcx_gray", "cu",
-     "mcu",  "mcp",   "ecr",    "cswap"});
+     "mcu",  "mcp",   "ecr",    "cswap", "crx",   "cry",      "crz"});
+// clang-format on
 
 // Allowed gates enum class
 enum class Gates {
@@ -361,6 +345,9 @@ const stringmap_t<Gates> State<tensor_net_t>::gateset_(
      {"csx", Gates::mcsx},     // Controlled-Sqrt(X) gate
      {"csxdg", Gates::mcsxdg}, // Controlled-Sqrt(X)dg gate
      {"ecr", Gates::ecr},      // ECR Gate
+     {"crx", Gates::mcrx},     // Controlled X-rotation gate
+     {"cry", Gates::mcry},     // Controlled Y-rotation gate
+     {"crz", Gates::mcrz},     // Controlled Z-rotation gate
      /* 3-qubit gates */
      {"ccx", Gates::mcx},      // Controlled-CX gate (Toffoli)
      {"ccz", Gates::mcz},      // Controlled-CZ gate

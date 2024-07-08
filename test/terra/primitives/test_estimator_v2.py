@@ -32,7 +32,7 @@ from qiskit_aer.primitives import EstimatorV2
 
 
 class TestEstimatorV2(QiskitAerTestCase):
-    """Test Estimator"""
+    """Test Estimator V2"""
 
     def setUp(self):
         super().setUp()
@@ -84,6 +84,7 @@ class TestEstimatorV2(QiskitAerTestCase):
         job = estimator.run([(psi1, ham1, [theta1])])
         result = job.result()
         np.testing.assert_allclose(result[0].data.evs, [1.5555572817900956], rtol=self._rtol)
+        self.assertIn("simulator_metadata", result[0].metadata)
 
         # Objects can be passed instead of indices.
         # Note that passing objects has an overhead
@@ -93,12 +94,14 @@ class TestEstimatorV2(QiskitAerTestCase):
         ham1 = hamiltonian1.apply_layout(psi2.layout)
         result2 = estimator.run([(psi2, ham1, theta2)]).result()
         np.testing.assert_allclose(result2[0].data.evs, [2.97797666], rtol=self._rtol)
+        self.assertIn("simulator_metadata", result2[0].metadata)
 
         # calculate [ <psi1(theta1)|H2|psi1(theta1)>, <psi1(theta1)|H3|psi1(theta1)> ]
         ham2 = hamiltonian2.apply_layout(psi1.layout)
         ham3 = hamiltonian3.apply_layout(psi1.layout)
         result3 = estimator.run([(psi1, [ham2, ham3], theta1)]).result()
         np.testing.assert_allclose(result3[0].data.evs, [-0.551653, 0.07535239], rtol=self._rtol)
+        self.assertIn("simulator_metadata", result3[0].metadata)
 
         # calculate [ [<psi1(theta1)|H1|psi1(theta1)>,
         #              <psi1(theta3)|H3|psi1(theta3)>],
@@ -114,6 +117,8 @@ class TestEstimatorV2(QiskitAerTestCase):
         ).result()
         np.testing.assert_allclose(result4[0].data.evs, [1.55555728, -1.08766318], rtol=self._rtol)
         np.testing.assert_allclose(result4[1].data.evs, [0.17849238], rtol=self._rtol)
+        self.assertIn("simulator_metadata", result4[0].metadata)
+        self.assertIn("simulator_metadata", result4[1].metadata)
 
     def test_estimator_with_pub(self):
         """Test estimator with explicit EstimatorPubs."""
@@ -296,10 +301,9 @@ class TestEstimatorV2(QiskitAerTestCase):
             est.run([(qc, op, None, -1)]).result()
         with self.assertRaises(ValueError):
             est.run([(qc, op)], precision=-1).result()
-        # Comment out after Qiskit 1.0.3
-        # with self.subTest("missing []"):
-        #     with self.assertRaisesRegex(ValueError, "An invalid Estimator pub-like was given"):
-        #         _ = est.run((qc, op)).result()
+        with self.subTest("missing []"):
+            with self.assertRaisesRegex(ValueError, "An invalid Estimator pub-like was given"):
+                _ = est.run((qc, op)).result()
 
     def test_run_numpy_params(self):
         """Test for numpy array as parameter values"""
@@ -346,6 +350,31 @@ class TestEstimatorV2(QiskitAerTestCase):
         job = estimator.run([(psi1, hamiltonian1, [theta1])], precision=self._precision * 0.5)
         result = job.result()
         np.testing.assert_allclose(result[0].data.evs, [1.5555572817900956], rtol=self._rtol)
+
+    def test_diff_precision(self):
+        """Test for running different precisions at once"""
+        estimator = EstimatorV2(options=self._options)
+        pm = generate_preset_pass_manager(optimization_level=0, backend=self.backend)
+        psi1 = pm.run(self.psi[0])
+        hamiltonian1 = self.hamiltonian[0].apply_layout(psi1.layout)
+        theta1 = self.theta[0]
+        job = estimator.run(
+            [(psi1, hamiltonian1, [theta1]), (psi1, hamiltonian1, [theta1], self._precision * 0.8)]
+        )
+        result = job.result()
+        np.testing.assert_allclose(result[0].data.evs, [1.901141473854881], rtol=self._rtol)
+        np.testing.assert_allclose(result[1].data.evs, [1.901141473854881], rtol=self._rtol)
+
+    def test_iter_pub(self):
+        """test for an iterable of pubs"""
+        circuit = self.ansatz.assign_parameters([0, 1, 1, 2, 3, 5])
+        pm = generate_preset_pass_manager(optimization_level=0, backend=self.backend)
+        circuit = pm.run(circuit)
+        estimator = EstimatorV2(options=self._options)
+        observable = self.observable.apply_layout(circuit.layout)
+        result = estimator.run(iter([(circuit, observable), (circuit, observable)])).result()
+        np.testing.assert_allclose(result[0].data.evs, [-1.284366511861733], rtol=self._rtol)
+        np.testing.assert_allclose(result[1].data.evs, [-1.284366511861733], rtol=self._rtol)
 
 
 if __name__ == "__main__":
