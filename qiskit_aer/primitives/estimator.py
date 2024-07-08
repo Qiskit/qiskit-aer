@@ -244,7 +244,7 @@ class Estimator(BaseEstimator):
             # Group and create measurement circuit
             for circ_ind, obs_indices in circ_obs_map.items():
                 pauli_list = sum(
-                    [self._observables[obs_ind].paulis for obs_ind in obs_indices]
+                    self._observables[obs_ind].paulis for obs_ind in obs_indices
                 ).unique()
                 if self._abelian_grouping:
                     pauli_lists = pauli_list.group_commuting(qubit_wise=True)
@@ -284,7 +284,7 @@ class Estimator(BaseEstimator):
         if experiments:
             results = (
                 self._backend.run(
-                    circuits=experiments,
+                    experiments,
                     parameter_binds=parameter_binds if any(parameter_binds) else None,
                     **run_options,
                 )

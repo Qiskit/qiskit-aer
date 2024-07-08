@@ -36,44 +36,32 @@ namespace Statevector {
 
 using OpType = Operations::OpType;
 
+// clang-format off
 // OpSet of supported instructions
 const Operations::OpSet StateOpSet(
     // Op types
-    {OpType::gate,
-     OpType::measure,
-     OpType::reset,
-     OpType::initialize,
-     OpType::barrier,
-     OpType::bfunc,
-     OpType::roerror,
-     OpType::matrix,
-     OpType::diagonal_matrix,
-     OpType::multiplexer,
-     OpType::kraus,
-     OpType::qerror_loc,
-     OpType::sim_op,
-     OpType::set_statevec,
-     OpType::save_expval,
-     OpType::save_expval_var,
-     OpType::save_probs,
-     OpType::save_probs_ket,
-     OpType::save_amps,
-     OpType::save_amps_sq,
-     OpType::save_state,
-     OpType::save_statevec,
-     OpType::save_statevec_dict,
-     OpType::save_densmat,
-     OpType::jump,
-     OpType::mark},
+    { OpType::gate,           OpType::measure,            OpType::reset,
+     OpType::initialize,      OpType::barrier,            OpType::bfunc,
+     OpType::roerror,         OpType::matrix,             OpType::diagonal_matrix,
+     OpType::multiplexer,     OpType::kraus,              OpType::qerror_loc,
+     OpType::sim_op,          OpType::set_statevec,       OpType::save_expval,
+     OpType::save_expval_var, OpType::save_probs,         OpType::save_probs_ket,
+     OpType::save_amps,       OpType::save_amps_sq,       OpType::save_state,
+     OpType::save_statevec,   OpType::save_statevec_dict, OpType::save_densmat,
+     OpType::jump,            OpType::mark,               OpType::store},
     // Gates
-    {"u1",   "u2",     "u3",    "u",      "U",     "CX",    "cx",       "cz",
-     "cy",   "cp",     "cu1",   "cu2",    "cu3",   "swap",  "id",       "p",
-     "x",    "y",      "z",     "h",      "s",     "sdg",   "t",        "tdg",
-     "r",    "rx",     "ry",    "rz",     "rxx",   "ryy",   "rzz",      "rzx",
-     "ccx",  "ccz",    "cswap", "mcx",    "mcy",   "mcz",   "mcu1",     "mcu2",
-     "mcu3", "mcswap", "mcr",   "mcrx",   "mcry",  "mcrz",  "sx",       "sxdg",
-     "csx",  "mcsx",   "csxdg", "mcsxdg", "delay", "pauli", "mcx_gray", "cu",
-     "mcu",  "mcp",    "ecr",   "mcphase"});
+    {
+        "u1",   "u2",    "u3",     "u",       "U",     "CX",       "cx",
+        "cz",   "cy",    "cp",     "cu1",     "cu2",   "cu3",      "swap",
+        "id",   "p",     "x",      "y",       "z",     "h",        "s",
+        "sdg",  "t",     "tdg",    "r",       "rx",    "ry",       "rz",
+        "rxx",  "ryy",   "rzz",    "rzx",     "ccx",   "ccz",      "cswap",
+        "mcx",  "mcy",   "mcz",    "mcu1",    "mcu2",  "mcu3",     "mcswap",
+        "mcr",  "mcrx",  "mcry",   "mcrz",    "sx",    "sxdg",     "csx",
+        "mcsx", "csxdg", "mcsxdg", "delay",   "pauli", "mcx_gray", "cu",
+        "mcu",  "mcp",   "ecr",    "mcphase", "crx",   "cry",      "crz",
+    });
+// clang-format on
 
 // Allowed gates enum class
 enum class Gates {
@@ -368,6 +356,9 @@ const stringmap_t<Gates> State<statevec_t>::gateset_(
      {"csx", Gates::mcsx},     // Controlled-Sqrt(X) gate
      {"csxdg", Gates::mcsxdg}, // Controlled-Sqrt(X)dg gate
      {"ecr", Gates::ecr},      // ECR Gate
+     {"crx", Gates::mcrx},     // Controlled X-rotation gate
+     {"cry", Gates::mcry},     // Controlled Y-rotation gate
+     {"crz", Gates::mcrz},     // Controlled Z-rotation gate
      /* 3-qubit gates */
      {"ccx", Gates::mcx},      // Controlled-CX gate (Toffoli)
      {"ccz", Gates::mcz},      // Controlled-CZ gate
@@ -1044,10 +1035,10 @@ std::vector<SampleVector> State<statevec_t>::sample_measure(const reg_t &qubits,
   std::vector<SampleVector> all_samples(shots, SampleVector(qubits.size()));
 
   auto convert_to_bit_lambda = [this, &allbit_samples, &all_samples, shots,
-                                qubits, npar](int_t i) {
+                                qubits, npar](int_t k) {
     uint_t ishot, iend;
-    ishot = shots * i / npar;
-    iend = shots * (i + 1) / npar;
+    ishot = shots * k / npar;
+    iend = shots * (k + 1) / npar;
     for (; ishot < iend; ishot++) {
       SampleVector allbit_sample;
       allbit_sample.from_uint(allbit_samples[ishot], qubits.size());

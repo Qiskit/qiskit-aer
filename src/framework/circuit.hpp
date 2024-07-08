@@ -276,6 +276,11 @@ public:
     ops.push_back(Operations::make_reset(qubits, cond_regidx));
   }
 
+  void store(const reg_t &qubits, const reg_t &clbits,
+             const std::shared_ptr<Operations::CExpr> expr) {
+    ops.push_back(Operations::make_store(qubits, clbits, expr));
+  }
+
 private:
   Operations::OpSet opset_;       // Set of operation types contained in circuit
   std::set<uint_t> qubitset_;     // Set of qubits used in the circuit
@@ -451,6 +456,12 @@ void Circuit::set_params(bool truncation) {
     const auto &op = ops[rpos];
     if (op.type == OpType::mark && last_ancestor_pos == 0)
       last_ancestor_pos = rpos;
+    if (op.type == OpType::store) {
+      // Conservertively OpType::store does not allow sampling
+      can_sample = false;
+      if (last_ancestor_pos == 0)
+        last_ancestor_pos = rpos;
+    }
     if (!truncation || check_result_ancestor(op, ancestor_qubits)) {
       add_op_metadata(op);
       ancestor[rpos] = true;
@@ -572,7 +583,7 @@ void Circuit::set_params(bool truncation) {
   }
   for (size_t pos = 0; pos < head_end; ++pos) {
     if (ops_to_remove && !ancestor[pos] && ops[pos].type != OpType::mark &&
-        ops[pos].type != OpType::jump) {
+        ops[pos].type != OpType::jump && ops[pos].type != OpType::store) {
       // Skip if not ancestor
       continue;
     }
@@ -676,7 +687,8 @@ bool Circuit::check_result_ancestor(
   case OpType::save_clifford:
   case OpType::save_unitary:
   case OpType::save_mps:
-  case OpType::save_superop: {
+  case OpType::save_superop:
+  case OpType::store: {
     ancestor_qubits.insert(op.qubits.begin(), op.qubits.end());
     return true;
   }
