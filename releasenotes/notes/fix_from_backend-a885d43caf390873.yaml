@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    `from_backend` function of V2 primitives are fixed to accept AerSimulator
+    objects as input so that user can define simulator objects outside of
+    primitives
