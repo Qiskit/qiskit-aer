@@ -259,7 +259,7 @@ protected:
 
   // Maximum threads which may be used by the backend for OpenMP multithreading
   // Default value is single-threaded unless overridden
-  int threads_ = 1;
+  uint_t threads_ = 1;
 
   // Set a global phase exp(1j * theta) for the state
   bool has_global_phase_ = false;
