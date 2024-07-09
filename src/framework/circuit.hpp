@@ -136,22 +136,22 @@ public:
             const std::vector<complex_t> &params,
             const std::vector<std::string> &string_params,
             const int_t cond_regidx = -1,
-            const std::shared_ptr<Operations::CExpr> expr = nullptr,
-            const std::string label = "") {
+            const std::shared_ptr<Operations::CExpr> &expr = nullptr,
+            const std::string &label = "") {
     ops.push_back(Operations::make_gate(name, qubits, params, string_params,
                                         cond_regidx, expr, label));
     check_gate_params(ops.back());
   }
 
   void diagonal(const reg_t &qubits, const cvector_t &vec,
-                const int_t cond_regidx = -1, const std::string label = "") {
+                const int_t cond_regidx = -1, const std::string &label = "") {
     ops.push_back(Operations::make_diagonal(qubits, vec, cond_regidx, label));
   }
 
   void unitary(const reg_t &qubits, const cmatrix_t &mat,
                const int_t cond_regidx = -1,
-               const std::shared_ptr<Operations::CExpr> expr = nullptr,
-               const std::string label = "") {
+               const std::shared_ptr<Operations::CExpr> &expr = nullptr,
+               const std::string &label = "") {
     ops.push_back(
         Operations::make_unitary(qubits, mat, cond_regidx, expr, label));
   }
@@ -168,8 +168,8 @@ public:
 
   void multiplexer(const reg_t &qubits, const std::vector<cmatrix_t> &mats,
                    const int_t cond_regidx = -1,
-                   const std::shared_ptr<Operations::CExpr> expr = nullptr,
-                   std::string label = "") {
+                   const std::shared_ptr<Operations::CExpr> &expr = nullptr,
+                   const std::string &label = "") {
     ops.push_back(
         Operations::make_multiplexer(qubits, mats, cond_regidx, expr, label));
   }
@@ -182,7 +182,7 @@ public:
 
   void superop(const reg_t &qubits, const cmatrix_t &mat,
                const int_t cond_regidx = -1,
-               const std::shared_ptr<Operations::CExpr> expr = nullptr) {
+               const std::shared_ptr<Operations::CExpr> &expr = nullptr) {
     ops.push_back(Operations::make_superop(qubits, mat, cond_regidx, expr));
   }
 
@@ -202,19 +202,20 @@ public:
   }
 
   void save_expval(const reg_t &qubits, const std::string &name,
-                   const std::vector<std::string> pauli_strings,
-                   const std::vector<double> coeff_reals,
-                   const std::vector<double> coeff_imags,
+                   const std::vector<std::string> &pauli_strings,
+                   const std::vector<double> &coeff_reals,
+                   const std::vector<double> &coeff_imags,
                    const std::string &snapshot_type,
-                   const std::string label = "") {
+                   const std::string &label = "") {
     ops.push_back(Operations::make_save_expval(qubits, name, pauli_strings,
                                                coeff_reals, coeff_imags,
                                                snapshot_type, label));
   }
 
-  void set_qerror_loc(const reg_t &qubits, const std::string &label,
-                      const int_t conditional = -1,
-                      const std::shared_ptr<Operations::CExpr> expr = nullptr) {
+  void
+  set_qerror_loc(const reg_t &qubits, const std::string &label,
+                 const int_t conditional = -1,
+                 const std::shared_ptr<Operations::CExpr> &expr = nullptr) {
     ops.push_back(
         Operations::make_qerror_loc(qubits, label, conditional, expr));
   }
@@ -254,7 +255,7 @@ public:
 
   void jump(const reg_t &qubits, const std::vector<std::string> &params,
             const int_t cond_regidx = -1,
-            const std::shared_ptr<Operations::CExpr> expr = nullptr) {
+            const std::shared_ptr<Operations::CExpr> &expr = nullptr) {
     ops.push_back(Operations::make_jump(qubits, params, cond_regidx, expr));
   }
 
@@ -355,7 +356,7 @@ Circuit::Circuit(const inputdata_t &circ, const json_t &qobj_config,
   // without conversion we could call `get_reversed_ops` on the inputdata
   // without first converting.
   std::vector<Op> converted_ops;
-  for (auto the_op : input_ops) {
+  for (const auto &the_op : input_ops) {
     converted_ops.emplace_back(Operations::input_to_op(the_op));
   }
   ops = std::move(converted_ops);
@@ -610,7 +611,7 @@ void Circuit::set_params(bool truncation) {
     op_idx++;
   }
 
-  for (auto dest : dests) {
+  for (const auto &dest : dests) {
     if (marks.find(dest) == marks.end()) {
       std::stringstream msg;
       msg << "Invalid jump destination:\"" << dest << "\"." << std::endl;
