@@ -241,7 +241,7 @@ class AerDensityMatrix(DensityMatrix):
             aer_state.configure(config_key, config_value)
 
         basis_gates = BASIS_GATES["density_matrix"]
-        custom_insts = ["kraus", "barrier"]
+        custom_insts = ["reset", "kraus", "barrier"]
 
         aer_state.allocate_qubits(inst.num_qubits)
         num_qubits = inst.num_qubits
