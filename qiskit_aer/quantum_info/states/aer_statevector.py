@@ -260,6 +260,8 @@ class AerStatevector(Statevector):
                 pass
             else:
                 applied = False
+        elif inst.name == "initialize":
+            aer_state.apply_initialize(qubits, inst.params)
         elif inst.name == "reset":
             aer_state.apply_reset(qubits)
         elif inst.name == "kraus":
