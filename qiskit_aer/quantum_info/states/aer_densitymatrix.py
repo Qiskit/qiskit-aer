@@ -255,9 +255,13 @@ class AerDensityMatrix(DensityMatrix):
             aer_state.apply_global_phase(inst.global_phase)
 
         if isinstance(inst, QuantumCircuit):
-            AerStatevector._aer_evolve_circuit(aer_state, inst, range(num_qubits), basis_gates, custom_insts)
+            AerStatevector._aer_evolve_circuit(
+                aer_state, inst, range(num_qubits), basis_gates, custom_insts
+            )
         else:
-            AerStatevector._aer_evolve_instruction(aer_state, inst, range(num_qubits), basis_gates, custom_insts)
+            AerStatevector._aer_evolve_instruction(
+                aer_state, inst, range(num_qubits), basis_gates, custom_insts
+            )
 
         return aer_state.move_to_ndarray(), aer_state
 
