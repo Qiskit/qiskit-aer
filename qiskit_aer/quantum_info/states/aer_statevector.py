@@ -175,8 +175,9 @@ class AerStatevector(Statevector):
             aer_state.configure("method", method)
 
         basis_gates = BASIS_GATES[method]
-        custom_insts = ["reset", "kraus", "barrier"]
+        custom_insts = ["kraus", "barrier"]
         if method == "statevector":
+            custom_insts.append("reset")
             custom_insts.append("initialize")
 
         aer_state.allocate_qubits(inst.num_qubits)
