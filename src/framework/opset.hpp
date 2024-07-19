@@ -233,7 +233,6 @@ inline std::ostream &operator<<(std::ostream &out,
     if (!first)
       out << ", ";
     out << "\"gates\": " << opset.gates;
-    first = false;
   }
   out << "}";
   return out;

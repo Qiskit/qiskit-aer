@@ -114,7 +114,6 @@ BASIS_GATES = {
             "unitary",
             "diagonal",
             "multiplexer",
-            "initialize",
             "pauli",
             "mcx_gray",
             "ecr",
@@ -198,7 +197,6 @@ BASIS_GATES = {
             "csx",
             "cswap",
             "diagonal",
-            "initialize",
             "ecr",
             "store",
         ]
@@ -415,7 +413,6 @@ BASIS_GATES = {
             "unitary",
             "diagonal",
             "multiplexer",
-            "initialize",
             "pauli",
             "mcx_gray",
             "ecr",

@@ -522,6 +522,7 @@ class AerSimulator(AerBackend):
                 "while_loop",
                 "break_loop",
                 "continue_loop",
+                "initialize",
                 "reset",
                 "switch_case",
                 "delay",
@@ -574,6 +575,7 @@ class AerSimulator(AerBackend):
                 "while_loop",
                 "break_loop",
                 "continue_loop",
+                "initialize",
                 "reset",
                 "switch_case",
                 "delay",
@@ -654,6 +656,7 @@ class AerSimulator(AerBackend):
                 "save_statevector_dict",
                 "set_statevector",
                 "set_density_matrix",
+                "initialize",
                 "reset",
                 "switch_case",
                 "delay",
@@ -854,7 +857,9 @@ class AerSimulator(AerBackend):
                 open_pulse=False,
                 memory=False,
                 max_shots=int(1e6),
-                coupling_map=list(backend.coupling_map.get_edges()),
+                coupling_map=(
+                    None if backend.coupling_map is None else list(backend.coupling_map.get_edges())
+                ),
                 max_experiments=backend.max_circuits,
                 description=description,
             )

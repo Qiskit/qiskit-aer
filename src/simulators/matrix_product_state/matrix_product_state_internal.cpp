@@ -139,7 +139,7 @@ std::vector<uint_t> calc_new_indices(const reg_t &indices);
 
 // The following two functions are helper functions used by
 // initialize_from_statevector
-cmatrix_t reshape_matrix(cmatrix_t input_matrix);
+cmatrix_t reshape_matrix(const cmatrix_t &input_matrix);
 cmatrix_t mul_matrix_by_lambda(const cmatrix_t &mat, const rvector_t &lambda);
 
 std::string sort_paulis_by_qubits(const std::string &paulis,
@@ -324,7 +324,7 @@ cmatrix_t mul_matrix_by_lambda(const cmatrix_t &mat, const rvector_t &lambda) {
   return res_mat;
 }
 
-cmatrix_t reshape_matrix(cmatrix_t input_matrix) {
+cmatrix_t reshape_matrix(const cmatrix_t &input_matrix) {
   std::vector<cmatrix_t> res(2);
   AER::Utils::split(input_matrix, res[0], res[1], 1);
   cmatrix_t reshaped_matrix = AER::Utils::concatenate(res[0], res[1], 0);
