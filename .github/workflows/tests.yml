@@ -192,7 +192,7 @@ jobs:
           stestr run --slowest
         shell: bash
   tests_macos:
-    runs-on: macos-13
+    runs-on: macos-14
     name: macOS Python ${{ matrix.python-version }}
     needs: [sdist, lint]
     timeout-minutes: 60
