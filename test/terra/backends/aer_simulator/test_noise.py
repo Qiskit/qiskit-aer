@@ -243,12 +243,13 @@ class TestNoise(SimulatorTestCase):
 
         # manaully build noise circuit
         noise_circuit = QuantumCircuit(3)
-        for inst, qargs, cargs in ideal_circuit.data:
-            noise_circuit.append(inst, qargs, cargs)
-            if inst.name == "h":
-                noise_circuit.append(error1, qargs)
-            elif inst.name in ["cp", "swap"]:
-                noise_circuit.append(error2, qargs)
+        for inst in ideal_circuit.data:
+            noise_circuit.append(inst)
+            name = inst.operation.name
+            if name == "h":
+                noise_circuit.append(error1, inst.qubits)
+            elif name in ["cp", "swap"]:
+                noise_circuit.append(error2, inst.qubits)
         # compute target counts
         noise_state = DensityMatrix(noise_circuit)
         ref_target = {i: shots * p for i, p in noise_state.probabilities_dict().items()}

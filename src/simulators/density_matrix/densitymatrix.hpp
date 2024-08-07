@@ -47,7 +47,7 @@ public:
   explicit DensityMatrix(size_t num_qubits);
   DensityMatrix(const DensityMatrix &obj){};
   DensityMatrix &operator=(const DensityMatrix &obj) = delete;
-  DensityMatrix &operator=(DensityMatrix &&obj);
+  DensityMatrix &operator=(DensityMatrix &&obj) noexcept;
 
   //-----------------------------------------------------------------------
   // Utility functions
@@ -186,7 +186,7 @@ DensityMatrix<data_t>::DensityMatrix(size_t num_qubits)
 
 template <typename data_t>
 DensityMatrix<data_t> &
-DensityMatrix<data_t>::operator=(DensityMatrix<data_t> &&obj) {
+DensityMatrix<data_t>::operator=(DensityMatrix<data_t> &&obj) noexcept {
   apply_unitary_threshold_ = obj.apply_unitary_threshold_;
   BaseMatrix::operator=(std::move(obj));
   return *this;

@@ -468,6 +468,13 @@ class AerState:
         # measure and update state
         return self._native_state.apply_measure(qubits)
 
+    def apply_initialize(self, qubits, vec):
+        """apply an initialize operation."""
+        self._assert_allocated_or_mapped()
+        self._assert_in_allocated_qubits(qubits)
+        # update state
+        return self._native_state.apply_initialize(qubits, vec)
+
     def apply_reset(self, qubits):
         """apply a reset operation."""
         self._assert_allocated_or_mapped()
