@@ -18,7 +18,6 @@ import logging
 from qiskit.providers import convert_to_target
 from qiskit.providers.options import Options
 from qiskit.providers.backend import BackendV2, BackendV1
-from qiskit.transpiler.target import target_to_backend_properties
 
 from ..version import __version__
 from .aerbackend import AerBackend, AerError
@@ -854,7 +853,7 @@ class AerSimulator(AerBackend):
             target = backend.target
         elif isinstance(backend, BackendV1):
             # BackendV1 will be removed in Qiskit 2.0, so we will remove this soon
-            warnings.warn(
+            warn(
                 " from_backend using V1 based backend is deprecated as of Aer 0.15"
                 " and will be removed no sooner than 3 months from that release"
                 " date. Please use backends based on V2.",

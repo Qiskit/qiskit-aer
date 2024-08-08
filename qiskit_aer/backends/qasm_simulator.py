@@ -16,9 +16,9 @@ Aer qasm simulator backend.
 import copy
 import logging
 from warnings import warn
+from qiskit.providers import convert_to_target
 from qiskit.providers.options import Options
-from qiskit.providers.models import QasmBackendConfiguration
-from qiskit.providers.backend import BackendV2
+from qiskit.providers.backend import BackendV2, BackendV1
 
 from ..version import __version__
 from ..aererror import AerError
@@ -35,6 +35,7 @@ from .backend_utils import (
 
 # pylint: disable=import-error, no-name-in-module, abstract-method
 from .controller_wrappers import aer_controller_execute
+from .name_mapping import NAME_MAPPING
 
 logger = logging.getLogger(__name__)
 
@@ -431,7 +432,7 @@ class QasmSimulator(AerBackend):
 
     _AVAILABLE_DEVICES = None
 
-    def __init__(self, configuration=None, properties=None, provider=None, **backend_options):
+    def __init__(self, configuration=None, provider=None, **backend_options):
         warn(
             "The `QasmSimulator` backend will be deprecated in the"
             " future. It has been superseded by the `AerSimulator`"
@@ -550,7 +551,7 @@ class QasmSimulator(AerBackend):
             target = backend.target
         elif isinstance(backend, BackendV1):
             # BackendV1 will be removed in Qiskit 2.0, so we will remove this soon
-            warnings.warn(
+            warn(
                 " from_backend using V1 based backend is deprecated as of Aer 0.15"
                 " and will be removed no sooner than 3 months from that release"
                 " date. Please use backends based on V2.",

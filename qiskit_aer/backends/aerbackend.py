@@ -29,7 +29,7 @@ from qiskit.pulse import Schedule, ScheduleBlock
 from qiskit.qobj import QasmQobj, PulseQobj
 from qiskit.result import Result
 from qiskit.transpiler import CouplingMap
-from qiskit.circuit.controlflow import CONTROL_FLOW_OP_NAMES
+from qiskit.circuit.library.standard_gates import get_standard_gate_name_mapping
 from ..aererror import AerError
 from ..jobs import AerJob, AerJobSet, split_qobj
 from ..noise.noise_model import NoiseModel, QuantumErrorLocation
@@ -329,21 +329,8 @@ class AerBackend(Backend, ABC):
             return self._target
 
         # make target for AerBackend
-
-        # importing packages where they are needed, to avoid cyclic-import.
-        # pylint: disable=cyclic-import
-        from qiskit.transpiler.target import (
-            Target,
-            InstructionProperties,
-        )
-        from qiskit.circuit.controlflow import ForLoopOp, IfElseOp, SwitchCaseOp, WhileLoopOp
-        from qiskit.circuit.library.standard_gates import get_standard_gate_name_mapping
-        from qiskit.circuit.parameter import Parameter
-        from qiskit.circuit.gate import Gate
-
         required = ["measure", "delay"]
 
-        # Load Qiskit object representation
         qiskit_inst_mapping = get_standard_gate_name_mapping()
         qiskit_inst_mapping.update(NAME_MAPPING)
 
