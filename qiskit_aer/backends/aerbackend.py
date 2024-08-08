@@ -339,24 +339,24 @@ class AerBackend(Backend, ABC):
         in_data = {"num_qubits": num_qubits}
         basis_gates = set.union(set(required), set(self.configuration().get("basis_gates", [])))
 
-        self._target = Target(**in_data)
+        target = Target(**in_data)
         for name in basis_gates:
             if name in required:
-                self._target.add_instruction(
+                target.add_instruction(
                     instruction=qiskit_inst_mapping[name],
                     properties={(q,): None for q in range(num_qubits)},
                     name=name,
                 )
             elif name in qiskit_inst_mapping:
-                self._target.add_instruction(
+                target.add_instruction(
                     instruction=qiskit_inst_mapping[name],
                     properties=None,
                     name=name,
                 )
 
         if self._coupling_map is not None:
-            self._target._coupling_graph = self._coupling_map.graph.copy()
-        return self._target
+            target._coupling_graph = self._coupling_map.graph.copy()
+        return target
 
     def set_max_qubits(self, max_qubits):
         """Set maximun number of qubits to be used for this backend."""
