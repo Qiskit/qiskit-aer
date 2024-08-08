@@ -598,8 +598,8 @@ class QasmSimulator(AerBackend):
             setattr(config, key, val)
         # Update basis gates based on custom options, config, method,
         # and noise model
-        config.custom_instructions = self._custom_instructions()
-        config.basis_gates = self._cached_basis_gates + config.custom_instructions
+        config["custom_instructions"] = self._custom_instructions()
+        config["basis_gates"] = self._cached_basis_gates + config["custom_instructions"]
         return config
 
     def available_methods(self):
@@ -681,7 +681,7 @@ class QasmSimulator(AerBackend):
 
         # Compute intersection with method basis gates
         method_gates = self._method_basis_gates()
-        config_gates = self._configuration.basis_gates
+        config_gates = self.configuration().["basis_gates"]
         if config_gates:
             basis_gates = set(config_gates).intersection(method_gates)
         else:
