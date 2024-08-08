@@ -681,7 +681,7 @@ class QasmSimulator(AerBackend):
 
         # Compute intersection with method basis gates
         method_gates = self._method_basis_gates()
-        config_gates = self.configuration().["basis_gates"]
+        config_gates = self.configuration()["basis_gates"]
         if config_gates:
             basis_gates = set(config_gates).intersection(method_gates)
         else:
