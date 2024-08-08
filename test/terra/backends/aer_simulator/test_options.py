@@ -22,10 +22,7 @@ from qiskit import QuantumCircuit, transpile
 from qiskit.quantum_info.random import random_unitary
 from qiskit.quantum_info import state_fidelity
 
-if qiskit.__version__.startswith("0."):
-    from qiskit.providers.fake_provider import FakeAlmaden as Fake20QV1
-else:
-    from qiskit.providers.fake_provider import Fake20QV1
+from qiskit.providers.fake_provider import GenericBackendV2
 
 from qiskit_aer import AerSimulator
 
@@ -153,11 +150,12 @@ class TestOptions(SimulatorTestCase):
         noise_gates = ["id", "sx", "x", "cx"]
         noise_model = NoiseModel(basis_gates=noise_gates)
         target_gates = (
-            sorted(set(config.basis_gates).intersection(noise_gates)) + config.custom_instructions
+            sorted(set(config["basis_gates"]).intersection(noise_gates))
+            + config["custom_instructions"]
         )
 
         sim = self.backend(method=method, noise_model=noise_model)
-        basis_gates = sim.configuration().basis_gates
+        basis_gates = sim.configuration()["basis_gates"]
         self.assertEqual(sorted(basis_gates), sorted(target_gates))
 
     @data(
@@ -172,9 +170,9 @@ class TestOptions(SimulatorTestCase):
         """Test order of setting method and noise model gives same basis gates"""
         noise_model = NoiseModel(basis_gates=["id", "sx", "x", "cx"])
         sim1 = self.backend(method=method, noise_model=noise_model)
-        basis_gates1 = sim1.configuration().basis_gates
+        basis_gates1 = sim1.configuration()["basis_gates"]
         sim2 = self.backend(noise_model=noise_model, method=method)
-        basis_gates2 = sim2.configuration().basis_gates
+        basis_gates2 = sim2.configuration()["basis_gates"]
         self.assertEqual(sorted(basis_gates1), sorted(basis_gates2))
 
     @supported_methods(
@@ -305,9 +303,10 @@ class TestOptions(SimulatorTestCase):
     def test_num_qubits(self, method):
         """Test number of qubits is correctly checked"""
 
-        num_qubits = Fake20QV1().configuration().num_qubits
-        backend = AerSimulator.from_backend(Fake20QV1(), method=method)
-        self.assertGreaterEqual(backend.configuration().num_qubits, num_qubits)
+        num_qubits = 20
+        fake_backend = GenericBackendV2(num_qubits=num_qubits)
+        backend = AerSimulator.from_backend(fake_backend, method=method)
+        self.assertGreaterEqual(backend.configuration()["n_qubits"], num_qubits)
 
     def test_mps_svd_method(self):
         """Test env. variabe to change MPS SVD method"""

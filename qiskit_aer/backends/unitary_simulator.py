@@ -20,7 +20,6 @@ from warnings import warn
 
 import psutil
 from qiskit.providers.options import Options
-from qiskit.providers.models import QasmBackendConfiguration
 
 from ..aererror import AerError
 from ..version import __version__
@@ -228,7 +227,7 @@ class UnitarySimulator(AerBackend):
 
     _AVAILABLE_DEVICES = None
 
-    def __init__(self, configuration=None, properties=None, provider=None, **backend_options):
+    def __init__(self, configuration=None, provider=None, **backend_options):
         warn(
             "The `UnitarySimulator` backend will be deprecated in the"
             " future. It has been superseded by the `AerSimulator`"
@@ -244,15 +243,9 @@ class UnitarySimulator(AerBackend):
             UnitarySimulator._AVAILABLE_DEVICES = available_devices(self._controller)
 
         if configuration is None:
-            configuration = QasmBackendConfiguration.from_dict(
-                UnitarySimulator._DEFAULT_CONFIGURATION
-            )
-        else:
-            configuration.open_pulse = False
+            configuration = UnitarySimulator._DEFAULT_CONFIGURATION
 
-        super().__init__(
-            configuration, properties=properties, provider=provider, backend_options=backend_options
-        )
+        super().__init__(configuration, provider=provider, backend_options=backend_options)
 
     @classmethod
     def _default_options(cls):
@@ -346,7 +339,7 @@ class UnitarySimulator(AerBackend):
             raise AerError(f"{name} does not support noise.")
 
         n_qubits = qobj.config.n_qubits
-        max_qubits = self.configuration().n_qubits
+        max_qubits = self.configuration()["n_qubits"]
         if n_qubits > max_qubits:
             raise AerError(
                 f"Number of qubits ({n_qubits}) is greater than "

@@ -450,17 +450,13 @@ class QasmSimulator(AerBackend):
 
         # Default configuration
         if configuration is None:
-            configuration = QasmBackendConfiguration.from_dict(QasmSimulator._DEFAULT_CONFIGURATION)
-        else:
-            configuration.open_pulse = False
+            configuration = QasmSimulator._DEFAULT_CONFIGURATION
 
         # Cache basis gates since computing the intersection
         # of noise model, method, and config gates is expensive.
         self._cached_basis_gates = self._DEFAULT_BASIS_GATES
 
-        super().__init__(
-            configuration, properties=properties, provider=provider, backend_options=backend_options
-        )
+        super().__init__(configuration, provider=provider, backend_options=backend_options)
 
     def __repr__(self):
         """String representation of an AerBackend."""
@@ -534,27 +530,60 @@ class QasmSimulator(AerBackend):
     def from_backend(cls, backend, **options):
         """Initialize simulator from backend."""
         if isinstance(backend, BackendV2):
-            raise AerError("QasmSimulator.from_backend does not currently support V2 Backends.")
-        # pylint: disable=import-outside-toplevel
-        # Avoid cyclic import
-        from ..noise.noise_model import NoiseModel
+            if backend.description is None:
+                description = "created by QasmSimulator.from_backend"
+            else:
+                description = backend.description
 
-        # Get configuration and properties from backend
-        configuration = copy.copy(backend.configuration())
-        properties = copy.copy(backend.properties())
+            configuration = {
+                "backend_name": f"aer_simulator_from({backend.name})",
+                "backend_version": backend.backend_version,
+                "n_qubits": backend.num_qubits,
+                "basis_gates": backend.operation_names,
+                "max_shots": int(1e6),
+                "coupling_map": (
+                    None if backend.coupling_map is None else list(backend.coupling_map.get_edges())
+                ),
+                "max_experiments": backend.max_circuits,
+                "description": description,
+            }
+            target = backend.target
+        elif isinstance(backend, BackendV1):
+            # BackendV1 will be removed in Qiskit 2.0, so we will remove this soon
+            warnings.warn(
+                " from_backend using V1 based backend is deprecated as of Aer 0.15"
+                " and will be removed no sooner than 3 months from that release"
+                " date. Please use backends based on V2.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            # Get configuration and properties from backend
+            config = backend.configuration()
+            properties = copy.copy(backend.properties())
 
-        # Customize configuration name
-        name = configuration.backend_name
-        configuration.backend_name = f"qasm_simulator({name})"
+            # Customize configuration name
+            name = config.backend_name
+            config.backend_name = f"aer_simulator_from({name})"
 
+            target = convert_to_target(config, properties, None, NAME_MAPPING)
+            configuration = config.to_dict()
+        else:
+            raise TypeError(
+                "The backend argument requires a BackendV2 or BackendV1 object, "
+                f"not a {type(backend)} object"
+            )
         # Use automatic noise model if none is provided
         if "noise_model" not in options:
+            # pylint: disable=import-outside-toplevel
+            # Avoid cyclic import
+            from ..noise.noise_model import NoiseModel
+
             noise_model = NoiseModel.from_backend(backend)
             if not noise_model.is_ideal():
                 options["noise_model"] = noise_model
 
         # Initialize simulator
-        sim = cls(configuration=configuration, properties=properties, **options)
+        sim = cls(configuration=configuration, target=target, **options)
         return sim
 
     def configuration(self):
@@ -563,7 +592,7 @@ class QasmSimulator(AerBackend):
         Returns:
             BackendConfiguration: the configuration for the backend.
         """
-        config = copy.copy(self._configuration)
+        config = self._configuration.copy()
         for key, val in self._options_configuration.items():
             setattr(config, key, val)
         # Update basis gates based on custom options, config, method,
