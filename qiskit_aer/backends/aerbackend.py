@@ -29,6 +29,7 @@ from qiskit.pulse import Schedule, ScheduleBlock
 from qiskit.qobj import QasmQobj, PulseQobj
 from qiskit.result import Result
 from qiskit.transpiler import CouplingMap
+from qiskit.transpiler.target import Target
 from qiskit.circuit.library.standard_gates import get_standard_gate_name_mapping
 from ..aererror import AerError
 from ..jobs import AerJob, AerJobSet, split_qobj

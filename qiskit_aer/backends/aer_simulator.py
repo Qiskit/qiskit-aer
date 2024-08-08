@@ -15,6 +15,7 @@ Aer qasm simulator backend.
 
 import copy
 import logging
+import warnings
 from qiskit.providers import convert_to_target
 from qiskit.providers.options import Options
 from qiskit.providers.backend import BackendV2, BackendV1
