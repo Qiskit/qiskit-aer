@@ -122,7 +122,8 @@ class AerCompiler:
         if isinstance(optype, set) and Initialize not in optype:
             return circ
 
-        for inst, _, _ in circ.data:
+        for datum in circ.data:
+            inst = datum.operation
             if isinstance(inst, Initialize) and (
                 (not isinstance(inst.params[0], complex)) or (len(inst.params) == 1)
             ):
@@ -132,7 +133,8 @@ class AerCompiler:
 
         new_circ = circ.copy()
         new_circ.data = []
-        for inst, qargs, cargs in circ.data:
+        for datum in circ.data:
+            inst, qargs, cargs = datum.operation, datum.qubits, datum.clbits
             if isinstance(inst, Initialize) and (
                 (not isinstance(inst.params[0], complex)) or (len(inst.params) == 1)
             ):
