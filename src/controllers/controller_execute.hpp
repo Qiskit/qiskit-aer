@@ -35,12 +35,6 @@ void initialize_libraries(const std::string &lib_dir) {
   Hacks::maybe_load_openmp(lib_dir);
 }
 
-template <class controller_t, typename inputdata_t>
-Result controller_execute(const inputdata_t &qobj) {
-  controller_t controller;
-  return controller.execute(qobj);
-}
-
 template <class controller_t>
 Result controller_execute(std::vector<std::shared_ptr<Circuit>> &input_circs,
                           AER::Noise::NoiseModel &noise_model,

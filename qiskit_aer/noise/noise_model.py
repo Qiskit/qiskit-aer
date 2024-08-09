@@ -751,7 +751,7 @@ class NoiseModel:
         for name, label in self._instruction_names_labels(instructions):
             self._check_number_of_qubits(error, name)
             if not isinstance(label, str):
-                raise NoiseError("Qobj invalid instructions.")
+                raise NoiseError("QuantumCircuit invalid instructions.")
             # Check number of qubits is correct for standard instructions
             self._check_number_of_qubits(error, name)
             if label in self._local_quantum_errors:

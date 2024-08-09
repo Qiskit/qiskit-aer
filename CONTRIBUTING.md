@@ -292,7 +292,6 @@ repository.
 
 This is useful for building from source offline, or to reuse the installed package dependencies.
 
-If we are only building the standalone version and do not want to install all Python requirements you can just install
 **Conan**:
 
     $ pip install conan
@@ -352,11 +351,6 @@ Ubuntu
 
 #### <a name="linux-build"> Build </a>
 
-There are two ways of building `Aer` simulators, depending on your goal:
-
-1. Build a Python extension that works with Terra.
-2. Build a standalone executable.
-
 **Python extension**
 
 As any other Python package, we can install from source code by just running:
@@ -404,36 +398,6 @@ we install those dependencies outside the regular setuptools *mechanism*. If you
 of these packages set the environment variable DISABLE_DEPENDENCY_INSTALL (ON or 1).
 
 
-**Standalone Executable**
-
-If you want to build a standalone executable, you have to use *CMake* directly.
-The preferred way *CMake* is meant to be used, is by setting up an "out of
-source" build. So in order to build your standalone executable, you have to follow
-these steps:
-
-    qiskit-aer$ mkdir out
-    qiskit-aer$ cd out
-    qiskit-aer/out$ cmake ..
-    qiskit-aer/out$ cmake --build . --config Release -- -j4
-
-Once built, you will have your standalone executable into the `Release/` or
-`Debug/` directory (depending on the type of building chosen with the `--config`
-option):
-
-    qiskit-aer/out$ cd Release
-    qiskit-aer/out/Release/$ ls
-    qasm_simulator
-
-
-**Advanced options**
-
-Because the standalone version of `Aer` doesn't need Python at all, the build system is
-based on CMake, just like most of other C++ projects. So to pass all the different
-options we have on `Aer` to CMake, we use its native mechanism:
-
-    qiskit-aer/out$ cmake -DCMAKE_CXX_COMPILER=g++-9 -DAER_BLAS_LIB_PATH=/path/to/my/blas ..
-
-
 ### macOS
 
 #### <a name="mac-dependencies"> Dependencies </a>
@@ -450,11 +414,6 @@ You further need to have *Xcode Command Line Tools* installed on macOS:
     $ xcode-select --install
 
 #### <a name="mac-build"> Build </a>
-
-There are two ways of building `Aer` simulators, depending on your goal:
-
-1. Build a Python extension that works with Terra;
-2. Build a standalone executable.
 
 **Python extension**
 
@@ -500,35 +459,6 @@ the `dist/` directory, so next step is installing it:
 As we are using *scikit-build* and we need some *Python* dependencies to be present before compiling the C++ code,
 we install those dependencies outside the regular setuptools *mechanism*. If you want to avoid automatic installation
 of these packages set the environment variable DISABLE_DEPENDENCY_INSTALL (ON or 1).
-
-**Standalone Executable**
-
-If you want to build a standalone executable, you have to use **CMake** directly.
-The preferred way **CMake** is meant to be used, is by setting up an "out of
-source" build. So in order to build your standalone executable, you have to follow
-these steps:
-
-    qiskit-aer$ mkdir out
-    qiskit-aer$ cd out
-    qiskit-aer/out$ cmake ..
-    qiskit-aer/out$ cmake --build . --config Release -- -j4
-
-Once built, you will have your standalone executable into the `Release/` or
-`Debug/` directory (depending on the type of building chosen with the `--config`
-option):
-
-    qiskit-aer/out$ cd Release
-    qiskit-aer/out/Release/$ ls
-    qasm_simulator
-
-***Advanced options***
-
-Because the standalone version of `Aer` doesn't need Python at all, the build system is
-based on CMake, just like most of other C++ projects. So to pass all the different
-options we have on `Aer` to CMake, we use its native mechanism:
-
-    qiskit-aer/out$ cmake -DCMAKE_CXX_COMPILER=g++-9 -DAER_BLAS_LIB_PATH=/path/to/my/blas ..
-
 
 
 ### Windows
@@ -603,34 +533,6 @@ the `dist/` directory, so next step is installing it:
 As we are using *scikit-build* and we need some *Python* dependencies to be present before compiling the C++ code,
 we install those dependencies outside the regular setuptools *mechanism*. If you want to avoid automatic installation
 of these packages set the environment variable DISABLE_DEPENDENCY_INSTALL (ON or 1).
-
-**Standalone Executable**
-
-If you want to build a standalone executable, you have to use **CMake** directly.
-The preferred way **CMake** is meant to be used, is by setting up an "out of
-source" build. So in order to build our standalone executable, you have to follow
-these steps:
-
-    (QiskitDevEnv) qiskit-aer> mkdir out
-    (QiskitDevEnv) qiskit-aer> cd out
-    (QiskitDevEnv) qiskit-aer\out> cmake ..
-    (QiskitDevEnv) qiskit-aer\out> cmake --build . --config Release -- -j4
-
-Once built, you will have your standalone executable into the `Release/` or
-`Debug/` directory (depending on the type of building chosen with the `--config`
-option):
-
-    (QiskitDevEnv) qiskit-aer\out> cd Release
-    (QiskitDevEnv) qiskit-aer\out\Release> dir
-    qasm_simulator
-
-***Advanced options***
-
-Because the standalone version of `Aer` doesn't need Python at all, the build system is
-based on CMake, just like most of other C++ projects. So to pass all the different
-options we have on `Aer` to CMake, we use its native mechanism:
-
-    (QiskitDevEnv) qiskit-aer\out> cmake -G "Visual Studio 15 2017" -DAER_BLAS_LIB_PATH=c:\path\to\my\blas ..
 
 
 ### Building with GPU support
@@ -714,21 +616,7 @@ on the `thrust` library. This enables Aer to run on AMD® GPUs,
 including the AMD® Instinct GPU line based on the CDNA architecture. 
 ROCm® only support linux platforms.
 
-To build the standalone version, the following should be sufficient:
-
-```
-cmake <qiskit-aer source folder> -G Ninja \
-   -DCMAKE_INSTALL_PREFIX=<qiskit-aer target instalation folder> \
-   -DSKBUILD=FALSE \
-   -DAER_THRUST_BACKEND=ROCM \
-   -DAER_MPI=<set to ON or OFF depending on whether to activate MPI support> \
-   -DAER_ROCM_ARCH=<target AMD GPU list, white-space separated, e.g. 'gfx90a gfx908'> \
-   -DCMAKE_BUILD_TYPE=Release \
-   -DBUILD_TESTS=True
-ninja install
-```
-Alternatively, and possibly preferred for most use cases, you can create a Python
-wheel file that you can install as part of your Python environemnt:
+You can create a Python wheel file that you can install as part of your Python environemnt:
 ```
 cd <qiskit-aer source folder>
 
@@ -1105,10 +993,6 @@ To create a Debug build for all platforms, you just need to pass a parameter whi
 create the wheel file:
 
     qiskit-aer$> python ./setup.py bdist_wheel --build-type=Debug
-
-If you want to debug the standalone executable, the parameter changes to:
-
-    qiskit-aer/out$> cmake -DCMAKE_BUILD_TYPE=Debug
 
 There are three different build configurations: `Release`, `Debug`, and `Release with Debug Symbols`, whose parameters are:
 `Release`, `Debug`, `RelWithDebInfo` respectively.

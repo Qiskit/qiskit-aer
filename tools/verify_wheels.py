@@ -8,7 +8,7 @@
 import numpy as np
 
 from qiskit import ClassicalRegister
-from qiskit.compiler import assemble, transpile
+from qiskit.compiler import transpile
 from qiskit import QuantumCircuit
 from qiskit import QuantumRegister
 from qiskit.quantum_info import Operator, Statevector

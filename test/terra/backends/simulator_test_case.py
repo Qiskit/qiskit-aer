@@ -19,9 +19,6 @@ import itertools as it
 from qiskit_aer import AerSimulator
 from test.terra.common import QiskitAerTestCase
 from qiskit.circuit import QuantumCircuit
-from qiskit.compiler import assemble
-from qiskit_aer.backends.backend_utils import cpp_execute_qobj
-from qiskit_aer.backends.controller_wrappers import aer_controller_execute
 
 
 class SimulatorTestCase(QiskitAerTestCase):
@@ -117,16 +114,12 @@ def check_cuStateVec(devices):
     if "GPU" in devices:
         dummy_circ = QuantumCircuit(1)
         dummy_circ.id(0)
-        qobj = assemble(
-            dummy_circ,
-            optimization_level=0,
-            shots=1,
-            method="statevector",
-            device="GPU",
-            cuStateVec_enable=True,
-        )
         # run dummy circuit to check if Aer is built with cuStateVec
-        result = cpp_execute_qobj(aer_controller_execute(), qobj)
-        return result.get("success", False)
+        sim = AerSimulator()
+        result = sim.run(
+            dummy_circ, shots=1, method="statevector", device="GPU", cuStateVec_enable=True
+        ).result()
+        success = getattr(result, "success", False)
+        return success
     else:
         return False

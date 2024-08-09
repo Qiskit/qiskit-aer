@@ -24,12 +24,10 @@ from ..version import __version__
 from ..aererror import AerError
 from .aerbackend import AerBackend
 from .backend_utils import (
-    cpp_execute_qobj,
     cpp_execute_circuits,
     available_methods,
     MAX_QUBITS_STATEVECTOR,
     LEGACY_METHOD_MAP,
-    map_legacy_method_options,
     map_legacy_method_config,
 )
 
@@ -161,7 +159,7 @@ class QasmSimulator(AerBackend):
       maximum will be set to the number of CPU cores (Default: 0).
 
     * ``max_parallel_experiments`` (int): Sets the maximum number of
-      qobj experiments that may be executed in parallel up to the
+      experiments that may be executed in parallel up to the
       max_parallel_threads value. If set to 1 parallel circuit
       execution will be disabled. If set to 0 the maximum will be
       automatically set to max_parallel_threads (Default: 1).
@@ -403,7 +401,7 @@ class QasmSimulator(AerBackend):
         "open_pulse": False,
         "memory": True,
         "max_shots": int(1e6),
-        "description": "A C++ QasmQobj simulator with noise",
+        "description": "A C++ Qasm simulator with noise",
         "coupling_map": None,
         "basis_gates": _DEFAULT_BASIS_GATES,
         "custom_instructions": _DEFAULT_CUSTOM_INSTR,
@@ -580,18 +578,6 @@ class QasmSimulator(AerBackend):
         """Return the available simulation methods."""
         return copy.copy(self._AVAILABLE_DEVICES)
 
-    def _execute_qobj(self, qobj):
-        """Execute a qobj on the backend.
-
-        Args:
-            qobj (QasmQobj): simulator input.
-
-        Returns:
-            dict: return a dictionary of results.
-        """
-        qobj = map_legacy_method_options(qobj)
-        return cpp_execute_qobj(self._controller, qobj)
-
     def _execute_circuits(self, aer_circuits, noise_model, config):
         """Execute circuits on the backend."""
         config = map_legacy_method_config(config)
@@ -614,29 +600,6 @@ class QasmSimulator(AerBackend):
         super().set_option(key, value)
         if key in ["method", "noise_model", "basis_gates"]:
             self._cached_basis_gates = self._basis_gates()
-
-    def _validate(self, qobj):
-        """Semantic validations of the qobj which cannot be done via schemas.
-
-        Warn if no measurements in circuit with classical registers.
-        """
-        for experiment in qobj.experiments:
-            # If circuit contains classical registers but not
-            # measurements raise a warning
-            if experiment.config.memory_slots > 0:
-                # Check if measure opts missing
-                no_measure = True
-                for op in experiment.instructions:
-                    if not no_measure:
-                        break  # we don't need to check any more ops
-                    if no_measure and op.name == "measure":
-                        no_measure = False
-                # Print warning if clbits but no measure
-                if no_measure:
-                    logger.warning(
-                        'No measurements in circuit "%s": count data will return all zeros.',
-                        experiment.header.name,
-                    )
 
     def _basis_gates(self):
         """Return simualtor basis gates.
