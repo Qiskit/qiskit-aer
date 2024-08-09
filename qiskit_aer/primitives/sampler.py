@@ -22,14 +22,14 @@ import numpy as np
 from qiskit.circuit import ParameterExpression, QuantumCircuit
 from qiskit.compiler import transpile
 from qiskit.exceptions import QiskitError
-from qiskit.primitives import BaseSampler, SamplerResult
+from qiskit.primitives import BaseSamplerV1, SamplerResult
 from qiskit.primitives.utils import final_measurement_mapping, init_circuit
 from qiskit.result import QuasiDistribution
 
 from .. import AerSimulator
 
 
-class Sampler(BaseSampler):
+class Sampler(BaseSamplerV1):
     """
     Aer implementation of Sampler class.
 
