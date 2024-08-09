@@ -221,10 +221,9 @@ json_t JSON::iterable_to_json_list(const py::handle &obj) {
 void std::to_json(json_t &js, const py::handle &obj) {
   static py::object PyNoiseModel =
       py::module::import("qiskit_aer.noise.noise_model").attr("NoiseModel");
-  static py::object PyQasmQobj =
-      py::module::import("qiskit.qobj.qasm_qobj").attr("QasmQobj");
-  static py::object PyQasmQobjHeader =
-      py::module::import("qiskit.qobj.common").attr("QobjExperimentHeader");
+  static py::object PyCircuitHeader =
+      py::module::import("qiskit_aer.backends.backend_utils")
+          .attr("CircuitHeader");
   if (py::isinstance<py::float_>(obj)) {
     js = obj.cast<nl::json::number_float_t>();
   } else if (py::isinstance<py::bool_>(obj)) {
@@ -249,9 +248,7 @@ void std::to_json(json_t &js, const py::handle &obj) {
     return;
   } else if (py::isinstance(obj, PyNoiseModel)) {
     std::to_json(js, obj.attr("to_dict")());
-  } else if (py::isinstance(obj, PyQasmQobj)) {
-    std::to_json(js, obj.attr("to_dict")());
-  } else if (py::isinstance(obj, PyQasmQobjHeader)) {
+  } else if (py::isinstance(obj, PyCircuitHeader)) {
     std::to_json(js, obj.attr("to_dict")());
   } else {
     auto type_str = std::string(py::str(obj.get_type()));

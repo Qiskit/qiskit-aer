@@ -575,17 +575,21 @@ class TestSamplerV2(QiskitAerTestCase):
         c2 = ClassicalRegister(1, "c2")
 
         qc = QuantumCircuit(q, c1, c2)
-        qc.ry(np.pi / 4, 2)
-        qc.cx(2, 1)
-        qc.cx(0, 1)
-        qc.h(0)
-        qc.measure(0, c1)
-        qc.measure(1, c2)
         qc.z(2).c_if(c1, 1)
         qc.x(2).c_if(c2, 1)
         qc2 = QuantumCircuit(5, 5)
         qc2.compose(qc, [0, 2, 3], [2, 4], inplace=True)
-        cregs = [creg.name for creg in qc2.cregs]
+        # Note: qc2 has aliased cregs, c0 -> c[2] and c1 -> c[4].
+        # copy_empty_like copies the aliased cregs of qc2 to qc3.
+        qc3 = QuantumCircuit.copy_empty_like(qc2)
+        qc3.ry(np.pi / 4, 2)
+        qc3.cx(2, 1)
+        qc3.cx(0, 1)
+        qc3.h(0)
+        qc3.measure(0, 2)
+        qc3.measure(1, 4)
+        self.assertEqual(len(qc3.cregs), 3)
+        cregs = [creg.name for creg in qc3.cregs]
         target = {
             cregs[0]: {0: 4255, 4: 4297, 16: 720, 20: 726},
             cregs[1]: {0: 5000, 1: 5000},
@@ -593,8 +597,7 @@ class TestSamplerV2(QiskitAerTestCase):
         }
 
         sampler = SamplerV2(**self._options)
-        qc2 = self._pm.run(qc2)
-        result = sampler.run([qc2], shots=self._shots).result()
+        result = sampler.run([qc3], shots=self._shots).result()
         self.assertEqual(len(result), 1)
         data = result[0].data
         self.assertEqual(len(data), 3)

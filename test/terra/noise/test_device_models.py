@@ -85,8 +85,11 @@ class TestDeviceNoiseModel(QiskitAerTestCase):
         target = target_7q()
         # tweak target to have non-operational qubits
         faulty_qubits = (1, 2)
+        q_prop = target.qubit_properties
         for q in faulty_qubits:
-            target.qubit_properties[q] = QubitProperties(t1=None, t2=None, frequency=0)
+            q_prop[q] = QubitProperties(t1=None, t2=None, frequency=0)
+        target.qubit_properties = q_prop
+
         # build gate errors with only relaxation errors i.e. without depolarizing errors
         gate_errors = basic_device_gate_errors(target=target, gate_error=False)
         errors_on_sx = {qubits: error for name, qubits, error in gate_errors if name == "sx"}
@@ -128,7 +131,9 @@ class TestDeviceNoiseModel(QiskitAerTestCase):
         """Test if non-zero excited_state_population is obtained when positive temperature is supplied.
         See https://github.com/Qiskit/qiskit-aer/issues/1937 for the details."""
         t1, t2, frequency, duration = 1e-4, 1e-4, 5e9, 5e-8
-        target = Target(qubit_properties=[QubitProperties(t1=t1, t2=t2, frequency=frequency)])
+        target = Target(
+            num_qubits=1, qubit_properties=[QubitProperties(t1=t1, t2=t2, frequency=frequency)]
+        )
         target.add_instruction(library.XGate(), {(0,): InstructionProperties(duration=duration)})
         errors = basic_device_gate_errors(target=target, gate_error=False, temperature=100)
         _, _, x_error = errors[0]

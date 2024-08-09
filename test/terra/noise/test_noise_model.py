@@ -37,9 +37,6 @@ from qiskit.providers import QubitProperties, BackendV2, Options
 
 if qiskit.__version__.startswith("0."):
     from qiskit.providers.fake_provider import (
-        FakeBackend,
-        FakeAlmaden as Fake20QV1,
-        FakeMumbai as Fake27QPulseV1,
         FakeLagosV2,
     )
 
@@ -49,9 +46,6 @@ if qiskit.__version__.startswith("0."):
 
 else:
     from qiskit.providers.fake_provider import (
-        FakeBackend,
-        Fake20QV1,
-        Fake27QPulseV1,
         GenericBackendV2,
     )
 
@@ -213,30 +207,6 @@ class TestNoiseModel(QiskitAerTestCase):
         model2 = NoiseModel(basis_gates=["u3", "cx"])
         model2.add_all_qubit_quantum_error(error, ["u3"], False)
 
-    def test_noise_model_from_backend_20(self):
-        circ = QuantumCircuit(2)
-        circ.x(0)
-        circ.x(1)
-        circ.measure_all()
-
-        backend = Fake20QV1()
-        noise_model = NoiseModel.from_backend(backend)
-        circ = transpile(circ, backend, optimization_level=0)
-        result = AerSimulator().run(circ, noise_model=noise_model).result()
-        self.assertTrue(result.success)
-
-    def test_noise_model_from_backend_27_pulse(self):
-        circ = QuantumCircuit(2)
-        circ.x(0)
-        circ.x(1)
-        circ.measure_all()
-
-        backend = Fake27QPulseV1()
-        noise_model = NoiseModel.from_backend(backend)
-        circ = transpile(circ, backend, optimization_level=0)
-        result = AerSimulator().run(circ, noise_model=noise_model).result()
-        self.assertTrue(result.success)
-
     def test_noise_model_from_backend_v2(self):
         circ = QuantumCircuit(2)
         circ.x(0)
@@ -269,67 +239,6 @@ class TestNoiseModel(QiskitAerTestCase):
         result = AerSimulator().run(circ, noise_model=noise_model).result()
         self.assertTrue(result.success)
 
-    def test_noise_model_from_invalid_t2_backend(self):
-        """Test if silently truncate invalid T2 values when creating a noise model from backend"""
-        from qiskit.providers.models.backendproperties import BackendProperties, Gate, Nduv
-        import datetime
-
-        t1_ns, invalid_t2_ns = 75_1000, 200_1000
-        u3_time_ns = 320
-        frequency = 4919.96800692
-
-        class InvalidT2Fake1Q(FakeBackend):
-            def __init__(self):
-                mock_time = datetime.datetime.now()
-                dt = 1.3333
-                configuration = BackendProperties(
-                    backend_name="invalid_t2",
-                    backend_version="0.0.0",
-                    num_qubits=1,
-                    basis_gates=["u3"],
-                    qubits=[
-                        [
-                            Nduv(date=mock_time, name="T1", unit="µs", value=t1_ns / 1000),
-                            Nduv(date=mock_time, name="T2", unit="µs", value=invalid_t2_ns / 1000),
-                            Nduv(date=mock_time, name="frequency", unit="MHz", value=frequency),
-                        ],
-                    ],
-                    gates=[
-                        Gate(
-                            gate="u3",
-                            name="u3_0",
-                            qubits=[0],
-                            parameters=[
-                                Nduv(date=mock_time, name="gate_error", unit="", value=0.001),
-                                Nduv(
-                                    date=mock_time, name="gate_length", unit="ns", value=u3_time_ns
-                                ),
-                            ],
-                        ),
-                    ],
-                    last_update_date=mock_time,
-                    general=[],
-                )
-                super().__init__(configuration)
-
-            def defaults(self):
-                """defaults == configuration"""
-                return self._configuration
-
-            def properties(self):
-                """properties == configuration"""
-                return self._configuration
-
-        backend = InvalidT2Fake1Q()
-        noise_model = NoiseModel.from_backend(backend, gate_error=False)
-        expected = thermal_relaxation_error(
-            t1=t1_ns,
-            t2=2 * t1_ns,
-            time=u3_time_ns,
-            excited_state_population=_excited_population(frequency, temperature=0),
-        )
-        self.assertEqual(expected, noise_model._local_quantum_errors["u3"][(0,)])
-
     def test_create_noise_model_without_user_warnings(self):
         """Test if never issue user warnings when creating a noise model from backend.
         See issue#1631 for the details."""
@@ -358,19 +267,6 @@ class TestNoiseModel(QiskitAerTestCase):
             NoiseModel.from_backend(BadlyCalibratedBackendV2())
             user_warnings = [w for w in warns if issubclass(w.category, UserWarning)]
             self.assertEqual(len(user_warnings), 0)
-
-    def test_noise_model_from_backend_properties(self):
-        circ = QuantumCircuit(2)
-        circ.x(0)
-        circ.x(1)
-        circ.measure_all()
-
-        backend = Fake20QV1()
-        backend_propeties = backend.properties()
-        noise_model = NoiseModel.from_backend_properties(backend_propeties)
-        circ = transpile(circ, backend, optimization_level=0)
-        result = AerSimulator().run(circ, noise_model=noise_model).result()
-        self.assertTrue(result.success)
 
     def test_transform_noise(self):
         org_error = reset_error(0.2)
