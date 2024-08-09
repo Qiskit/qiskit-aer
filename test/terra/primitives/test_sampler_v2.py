@@ -41,7 +41,6 @@ class TestSamplerV2(QiskitAerTestCase):
         self._shots = 10000
         self._seed = 123
         self._options = {"default_shots": self._shots, "seed": self._seed}
-        self._pm = generate_preset_pass_manager(optimization_level=0, backend=AerSimulator())
 
         self._cases = []
         hadamard = QuantumCircuit(1, 1, name="Hadamard")
@@ -82,10 +81,10 @@ class TestSamplerV2(QiskitAerTestCase):
 
     def test_sampler_run(self):
         """Test run()."""
-        pm = self._pm
 
         with self.subTest("single"):
             bell, _, target = self._cases[1]
+            pm = generate_preset_pass_manager(optimization_level=0, backend=AerSimulator())
             bell = pm.run(bell)
             sampler = SamplerV2(**self._options)
             job = sampler.run([bell], shots=self._shots)
@@ -102,6 +101,7 @@ class TestSamplerV2(QiskitAerTestCase):
         with self.subTest("single with param"):
             pqc, param_vals, target = self._cases[2]
             sampler = SamplerV2(**self._options)
+            pm = generate_preset_pass_manager(optimization_level=0, backend=AerSimulator())
             pqc = pm.run(pqc)
             params = (param.name for param in pqc.parameters)
             job = sampler.run([(pqc, {params: param_vals})], shots=self._shots)
@@ -118,6 +118,7 @@ class TestSamplerV2(QiskitAerTestCase):
         with self.subTest("multiple"):
             pqc, param_vals, target = self._cases[2]
             sampler = SamplerV2(**self._options)
+            pm = generate_preset_pass_manager(optimization_level=0, backend=AerSimulator())
             pqc = pm.run(pqc)
             params = (param.name for param in pqc.parameters)
             job = sampler.run(
@@ -137,7 +138,8 @@ class TestSamplerV2(QiskitAerTestCase):
         """Test run() returns the same results if the same input is given."""
         bell, _, _ = self._cases[1]
         sampler = SamplerV2(**self._options)
-        bell = self._pm.run(bell)
+        pm = generate_preset_pass_manager(optimization_level=0, backend=AerSimulator())
+        bell = pm.run(bell)
         result1 = sampler.run([bell], shots=self._shots).result()
         meas1 = result1[0].data.meas
         result2 = sampler.run([bell], shots=self._shots).result()
@@ -148,7 +150,8 @@ class TestSamplerV2(QiskitAerTestCase):
         """Test run() with multiple circuits."""
         bell, _, target = self._cases[1]
         sampler = SamplerV2(**self._options)
-        bell = self._pm.run(bell)
+        pm = generate_preset_pass_manager(optimization_level=0, backend=AerSimulator())
+        bell = pm.run(bell)
         result = sampler.run([bell, bell, bell], shots=self._shots).result()
         self.assertEqual(len(result), 3)
         self._assert_allclose(result[0].data.meas, np.array(target))
@@ -160,7 +163,8 @@ class TestSamplerV2(QiskitAerTestCase):
         pqc1, param1, target1 = self._cases[4]
         pqc2, param2, target2 = self._cases[5]
         pqc3, param3, target3 = self._cases[6]
-        pqc1, pqc2, pqc3 = self._pm.run([pqc1, pqc2, pqc3])
+        pm = generate_preset_pass_manager(optimization_level=0, backend=AerSimulator())
+        pqc1, pqc2, pqc3 = pm.run([pqc1, pqc2, pqc3])
 
         sampler = SamplerV2(**self._options)
         result = sampler.run(
@@ -178,7 +182,8 @@ class TestSamplerV2(QiskitAerTestCase):
         qc2 = QuantumCircuit(1)
         qc2.x(0)
         qc2.measure_all()
-        qc, qc2 = self._pm.run([qc, qc2])
+        pm = generate_preset_pass_manager(optimization_level=0, backend=AerSimulator())
+        qc, qc2 = pm.run([qc, qc2])
 
         sampler = SamplerV2(**self._options)
         result = sampler.run([qc, qc2], shots=self._shots).result()
@@ -199,7 +204,8 @@ class TestSamplerV2(QiskitAerTestCase):
         qc3 = QuantumCircuit(2)
         qc3.x([0, 1])
         qc3.measure_all()
-        qc0, qc1, qc2, qc3 = self._pm.run([qc0, qc1, qc2, qc3])
+        pm = generate_preset_pass_manager(optimization_level=0, backend=AerSimulator())
+        qc0, qc1, qc2, qc3 = pm.run([qc0, qc1, qc2, qc3])
 
         sampler = SamplerV2(**self._options)
         result = sampler.run([qc0, qc1, qc2, qc3], shots=self._shots).result()
@@ -210,7 +216,7 @@ class TestSamplerV2(QiskitAerTestCase):
     def test_run_single_circuit(self):
         """Test for single circuit case."""
         sampler = SamplerV2(**self._options)
-        pm = self._pm
+        pm = generate_preset_pass_manager(optimization_level=0, backend=AerSimulator())
 
         with self.subTest("No parameter"):
             circuit, _, target = self._cases[1]
@@ -276,7 +282,8 @@ class TestSamplerV2(QiskitAerTestCase):
         qc.measure(0, 2)
         qc.measure(1, 1)
         qc.measure(2, 0)
-        qc = self._pm.run(qc)
+        pm = generate_preset_pass_manager(optimization_level=0, backend=AerSimulator())
+        qc = pm.run(qc)
 
         sampler = SamplerV2(**self._options)
         sampler.options.seed_simulator = self._seed
@@ -295,7 +302,8 @@ class TestSamplerV2(QiskitAerTestCase):
         qc1.measure_all()
         qc2 = RealAmplitudes(num_qubits=1, reps=1)
         qc2.measure_all()
-        qc1, qc2 = self._pm.run([qc1, qc2])
+        pm = generate_preset_pass_manager(optimization_level=0, backend=AerSimulator())
+        qc1, qc2 = pm.run([qc1, qc2])
 
         sampler = SamplerV2(**self._options)
         with self.subTest("set parameter values to a non-parameterized circuit"):
@@ -344,7 +352,8 @@ class TestSamplerV2(QiskitAerTestCase):
         n = 5
         qc = QuantumCircuit(n, n - 1)
         qc.measure(range(n - 1), range(n - 1))
-        qc = self._pm.run(qc)
+        pm = generate_preset_pass_manager(optimization_level=0, backend=AerSimulator())
+        qc = pm.run(qc)
         sampler = SamplerV2(**self._options)
         with self.subTest("one circuit"):
             result = sampler.run([qc], shots=self._shots).result()
@@ -361,7 +370,8 @@ class TestSamplerV2(QiskitAerTestCase):
         """Test for numpy array as parameter values"""
         qc = RealAmplitudes(num_qubits=2, reps=2)
         qc.measure_all()
-        qc = self._pm.run(qc)
+        pm = generate_preset_pass_manager(optimization_level=0, backend=AerSimulator())
+        qc = pm.run(qc)
         k = 5
         params_array = np.linspace(0, 1, k * qc.num_parameters).reshape((k, qc.num_parameters))
         params_list = params_array.tolist()
@@ -388,7 +398,8 @@ class TestSamplerV2(QiskitAerTestCase):
     def test_run_with_shots_option(self):
         """test with shots option."""
         bell, _, _ = self._cases[1]
-        bell = self._pm.run(bell)
+        pm = generate_preset_pass_manager(optimization_level=0, backend=AerSimulator())
+        bell = pm.run(bell)
         shots = 100
 
         with self.subTest("run arg"):
@@ -443,7 +454,8 @@ class TestSamplerV2(QiskitAerTestCase):
         qc = QuantumCircuit(n)
         qc.h(range(n))
         qc.measure_all()
-        qc = self._pm.run(qc)
+        pm = generate_preset_pass_manager(optimization_level=0, backend=AerSimulator())
+        qc = pm.run(qc)
         sampler = SamplerV2(**self._options)
         result = sampler.run([qc], shots=self._shots).result()
         self.assertEqual(len(result), 1)
@@ -453,7 +465,8 @@ class TestSamplerV2(QiskitAerTestCase):
     def test_primitive_job_status_done(self):
         """test primitive job's status"""
         bell, _, _ = self._cases[1]
-        bell = self._pm.run(bell)
+        pm = generate_preset_pass_manager(optimization_level=0, backend=AerSimulator())
+        bell = pm.run(bell)
         sampler = SamplerV2(**self._options)
         job = sampler.run([bell], shots=self._shots)
         _ = job.result()
@@ -461,7 +474,7 @@ class TestSamplerV2(QiskitAerTestCase):
 
     def test_circuit_with_unitary(self):
         """Test for circuit with unitary gate."""
-        pm = self._pm
+        pm = generate_preset_pass_manager(optimization_level=0, backend=AerSimulator())
 
         with self.subTest("identity"):
             gate = UnitaryGate(np.eye(2))
@@ -491,7 +504,7 @@ class TestSamplerV2(QiskitAerTestCase):
 
     def test_circuit_with_multiple_cregs(self):
         """Test for circuit with multiple classical registers."""
-        pm = self._pm
+        pm = generate_preset_pass_manager(optimization_level=0, backend=AerSimulator())
         cases = []
 
         # case 1
@@ -632,7 +645,8 @@ class TestSamplerV2(QiskitAerTestCase):
     def test_diff_shots(self):
         """Test of pubs with different shots"""
         bell, _, target = self._cases[1]
-        bell = self._pm.run(bell)
+        pm = generate_preset_pass_manager(optimization_level=0, backend=AerSimulator())
+        bell = pm.run(bell)
         sampler = SamplerV2(**self._options)
         shots2 = self._shots + 2
         target2 = {k: v + 1 for k, v in target.items()}

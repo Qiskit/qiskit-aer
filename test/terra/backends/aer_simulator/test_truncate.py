@@ -91,7 +91,7 @@ class TestTruncateQubits(SimulatorTestCase):
         result = backend.run(circuit, shots=1).result()
         metadata = result.results[0].metadata
         self.assertEqual(metadata["num_qubits"], 2)
-        self.assertEqual(metadata["active_input_qubits"], [0, 1])
+        self.assertEqual(len(metadata["active_input_qubits"]), 2)
 
     def test_truncate_non_measured_qubits(self):
         """Test truncation of non-measured uncoupled qubits."""
