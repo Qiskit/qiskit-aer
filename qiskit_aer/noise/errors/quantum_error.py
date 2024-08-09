@@ -312,9 +312,16 @@ class QuantumError(BaseQuantumError, TolerancesMixin):
         for circ in self._circs:
             circ_inst = []
             for inst in circ.data:
-                qobj_inst = inst.operation.assemble()
-                qobj_inst.qubits = [circ.find_bit(q).index for q in inst.qubits]
-                circ_inst.append(qobj_inst.to_dict())
+                inst_dict = {}
+                inst_dict["name"] = inst.operation.name
+                inst_dict["qubits"] = [circ.find_bit(q).index for q in inst.qubits]
+                if inst.operation.params:
+                    inst_dict["params"] = inst.operation.params
+                if inst.operation.label:
+                    inst_dict["label"] = inst.operation.label
+                if inst.operation.condition:
+                    inst_dict["condition"] = inst.operation.condition
+                circ_inst.append(inst_dict)
             instructions.append(circ_inst)
         # Construct error dict
         error = {

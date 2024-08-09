@@ -26,18 +26,8 @@ from qiskit.circuit.library import QuantumVolume
 from qiskit.quantum_info import Statevector
 from qiskit_aer.noise.noise_model import AerJSONEncoder
 from test.terra.reference import ref_kraus_noise
-from qiskit_aer.jobs import AerJob, AerJobSet
+from qiskit_aer.jobs import AerJob
 from test.terra.backends.simulator_test_case import SimulatorTestCase, supported_methods
-
-
-DASK = False
-
-try:
-    from dask.distributed import LocalCluster, Client
-
-    DASK = True
-except ImportError:
-    DASK = False
 
 
 def run_random_circuits(backend, shots=None, **run_options):
@@ -105,58 +95,6 @@ class CBFixture(SimulatorTestCase):
     def backend(self, **options):
         """Return AerSimulator backend using current class options"""
         return super().backend(executor=self._test_executor, **options)
-
-
-@ddt
-class TestDaskExecutor(CBFixture):
-    """Tests of Dask executor"""
-
-    @classmethod
-    def setUpClass(cls):
-        super().setUpClass()
-        if DASK:
-            cls._test_executor = Client(address=LocalCluster(n_workers=1, processes=True))
-
-    def setUp(self):
-        super().setUp()
-        if not DASK:
-            self.skipTest("Dask not installed, skipping ClusterBackend-dask tests")
-
-    @supported_methods(["statevector"], [None, 1, 2, 3])
-    def test_random_circuits_job(self, method, device, max_job_size):
-        """Test random circuits with custom executor."""
-        shots = 4000
-        backend = self.backend(method=method, device=device, max_job_size=max_job_size)
-        result, circuits, targets = run_random_circuits(backend, shots=shots)
-        self.assertSuccess(result)
-        self.compare_counts(result, circuits, targets, hex_counts=False, delta=0.05 * shots)
-
-    @supported_methods(["statevector"], [None, 1, 1, 1], [None, 100, 500, 1000])
-    def test_noise_circuits_job(self, method, device, max_job_size, max_shot_size):
-        """Test random circuits with custom executor."""
-        shots = 4000
-        backend = self.backend(
-            method=method, device=device, max_job_size=max_job_size, max_shot_size=max_shot_size
-        )
-
-        circuits = ref_kraus_noise.kraus_gate_error_circuits()
-        noise_models = ref_kraus_noise.kraus_gate_error_noise_models()
-        targets = ref_kraus_noise.kraus_gate_error_counts(shots)
-
-        for circuit, noise_model, target in zip(circuits, noise_models, targets):
-            backend.set_options(noise_model=noise_model)
-            result = backend.run(circuit, shots=shots).result()
-            self.assertSuccess(result)
-            self.compare_counts(result, [circuit], [target], delta=0.05 * shots)
-
-    @supported_methods(["statevector"], [None, 1, 2, 3])
-    def test_result_time_val(self, method, device, max_job_size):
-        """Test random circuits with custom executor."""
-        shots = 4000
-        backend = self.backend(method=method, device=device, max_job_size=max_job_size)
-        result, _, _ = run_random_circuits(backend, shots=shots)
-        self.assertSuccess(result)
-        self.assertGreaterEqual(result.time_taken, 0)
 
 
 @ddt

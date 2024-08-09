@@ -17,6 +17,8 @@ Aer simulator backend utils
 import os
 from math import log2
 
+from types import SimpleNamespace
+
 import psutil
 from qiskit.circuit import QuantumCircuit
 from qiskit.qobj import QasmQobjInstruction
@@ -559,3 +561,44 @@ def circuit_optypes(circuit):
         optypes.update(type(instruction.operation).mro())
     optypes.discard(object)
     return optypes
+
+
+class CircuitHeader(SimpleNamespace):
+    """A class used to represent a dictionary header in circuit objects."""
+
+    def __init__(self, **kwargs):
+        """Instantiate a new circuit dict field object.
+
+        Args:
+            kwargs: arbitrary keyword arguments that can be accessed as
+                attributes of the object.
+        """
+        self.__dict__.update(kwargs)
+
+    def to_dict(self):
+        """Return a dictionary format representation of the circuit.
+
+        Returns:
+            dict: The dictionary form of the CircuitHeader.
+        """
+        return self.__dict__
+
+    @classmethod
+    def from_dict(cls, data):
+        """Create a new header object from a dictionary.
+
+        Args:
+            data (dict): A dictionary representing the header to create. It
+                will be in the same format as output by :func:`to_dict`.
+
+        Returns:
+            CircuitHeader: The CircuitHeader from the input dictionary.
+        """
+
+        return cls(**data)
+
+    def __eq__(self, other):
+        if isinstance(other, self.__class__):
+            if self.__dict__ == other.__dict__:
+                return True
+        return False

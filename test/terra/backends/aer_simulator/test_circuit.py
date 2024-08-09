@@ -193,29 +193,6 @@ class TestVariousCircuit(SimulatorTestCase):
 
         deepcopy(job.result())
 
-    def test_run_qobj(self):
-        """Test qobj run"""
-
-        qubits = QuantumRegister(3)
-        clbits = ClassicalRegister(3)
-
-        circuit = QuantumCircuit(qubits, clbits)
-        circuit.h(qubits[0])
-        circuit.cx(qubits[0], qubits[1])
-        circuit.cx(qubits[0], qubits[2])
-
-        for q, c in zip(qubits, clbits):
-            circuit.measure(q, c)
-
-        backend = self.backend()
-
-        shots = 1000
-        with self.assertWarns(DeprecationWarning):
-            result = backend.run(assemble(circuit), shots=shots).result()
-
-        self.assertSuccess(result)
-        self.compare_counts(result, [circuit], [{"0x0": 500, "0x7": 500}], delta=0.05 * shots)
-
     def test_numpy_integer_shots(self):
         """Test implicit cast of shot option from np.int_ to int."""
 
