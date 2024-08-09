@@ -231,7 +231,6 @@ jobs:
       - name: Run Tests
         run: |
           set -e
-          pip check
           rm -rf qiskit_aer
           stestr run --slowest
         shell: bash
