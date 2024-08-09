@@ -47,7 +47,7 @@ class AerJob(Job):
             circuits(list of QuantumCircuit): circuits to execute.
             parameter_binds(list): parameters for circuits.
             run_options(dict): run_options to execute.
-            executor(ThreadPoolExecutor or dask.distributed.client):
+            executor(ThreadPoolExecutor):
                 The executor to be used to submit the job.
 
         Raises:
