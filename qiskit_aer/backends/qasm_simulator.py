@@ -595,7 +595,7 @@ class QasmSimulator(AerBackend):
         """
         config = self._configuration.copy()
         for key, val in self._options_configuration.items():
-            setattr(config, key, val)
+            config[key] = val
         # Update basis gates based on custom options, config, method,
         # and noise model
         config["custom_instructions"] = self._custom_instructions()
