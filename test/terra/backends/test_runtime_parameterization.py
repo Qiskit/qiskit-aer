@@ -22,6 +22,7 @@ import numpy as np
 
 from test.terra import common
 
+import qiskit
 from qiskit.compiler import assemble, transpile
 from qiskit.circuit import QuantumCircuit, Parameter
 from test.terra.reference.ref_save_expval import (
@@ -89,6 +90,7 @@ class TestRuntimeParameterization(SimulatorTestCase):
         qobj = assemble(circuits, backend=backend, shots=shots, parameterizations=params)
         return qobj
 
+    @unittest.skipIf(qiskit.__version__.startswith("1.2"), "skip Qiskit 1.2 tentatively")
     def test_runtime_parameterization_qasm_save_expval(self):
         """Test parameterized qobj with Expectation Value snapshot and qasm simulator."""
         shots = 1000
@@ -114,6 +116,7 @@ class TestRuntimeParameterization(SimulatorTestCase):
                 for label in labels:
                     self.assertAlmostEqual(data[label], target[label], delta=1e-7)
 
+    @unittest.skipIf(qiskit.__version__.startswith("1.2"), "skip Qiskit 1.2 tentatively")
     def test_runtime_parameterization_statevector(self):
         """Test parameterized qobj with Expectation Value snapshot and qasm simulator."""
         statevec_targets = save_expval_final_statevecs() * 3

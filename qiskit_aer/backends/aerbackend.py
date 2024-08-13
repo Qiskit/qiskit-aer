@@ -615,7 +615,8 @@ class AerBackend(Backend, ABC):
             ):
                 updated_circ = False
                 new_data = []
-                for inst, qargs, cargs in circ.data:
+                for datum in circ.data:
+                    inst, qargs, cargs = datum.operation, datum.qubits, datum.clbits
                     if isinstance(inst, QuantumChannelInstruction):
                         updated_circ = True
                         if not updated_noise:
