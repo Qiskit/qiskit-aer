@@ -123,7 +123,6 @@ class TestStatevectorSimulator(SimulatorTestCase):
         circuits = ref_conditionals.conditional_circuits_1bit(
             final_measure=False, conditional_type="unitary"
         )
-        circuits = transpile(circuits, backend, optimization_level=1)
         result = backend.run(circuits, shots=1).result()
         targets = ref_conditionals.conditional_statevector_1bit()
         self.assertSuccess(result)
@@ -147,7 +146,6 @@ class TestStatevectorSimulator(SimulatorTestCase):
         circuits = ref_conditionals.conditional_circuits_2bit(
             final_measure=False, conditional_type="unitary"
         )
-        circuits = transpile(circuits, backend, optimization_level=1)
         result = backend.run(circuits, shots=1).result()
         targets = ref_conditionals.conditional_statevector_2bit()
         self.assertSuccess(result)
@@ -175,7 +173,6 @@ class TestStatevectorSimulator(SimulatorTestCase):
         circuits = ref_conditionals.conditional_circuits_nbit(
             64, cases, final_measure=False, conditional_type="unitary"
         )
-        circuits = transpile(circuits, backend, optimization_level=1)
         result = backend.run(circuits, shots=1).result()
         targets = ref_conditionals.conditional_statevector_nbit(cases)
         self.assertSuccess(result)
@@ -203,7 +200,6 @@ class TestStatevectorSimulator(SimulatorTestCase):
         circuits = ref_conditionals.conditional_circuits_nbit(
             132, cases, final_measure=False, conditional_type="unitary"
         )
-        circuits = transpile(circuits, backend, optimization_level=1)
         result = backend.run(circuits, shots=1).result()
         targets = ref_conditionals.conditional_statevector_nbit(cases)
         self.assertSuccess(result)
@@ -217,7 +213,6 @@ class TestStatevectorSimulator(SimulatorTestCase):
         """Test simulation with unitary gate circuit instructions."""
         backend = self.backend(device=device)
         circuits = ref_unitary_gate.unitary_gate_circuits_deterministic(final_measure=False)
-        circuits = transpile(circuits, backend, optimization_level=1)
         result = backend.run(circuits, shots=1).result()
         targets = ref_unitary_gate.unitary_gate_statevector_deterministic()
         self.assertSuccess(result)
@@ -228,7 +223,6 @@ class TestStatevectorSimulator(SimulatorTestCase):
         """Test simulation with unitary gate circuit instructions."""
         backend = self.backend(device=device)
         circuits = ref_unitary_gate.unitary_gate_circuits_deterministic(final_measure=False)
-        circuits = transpile(circuits, backend, optimization_level=1)
         result = backend.run(circuits, shots=1).result()
         targets = ref_unitary_gate.unitary_gate_statevector_deterministic()
         self.assertSuccess(result)
@@ -239,7 +233,6 @@ class TestStatevectorSimulator(SimulatorTestCase):
         """Test simulation with diagonal gate circuit instructions."""
         backend = self.backend(device=device)
         circuits = ref_diagonal_gate.diagonal_gate_circuits_deterministic(final_measure=False)
-        circuits = transpile(circuits, backend, optimization_level=1)
         result = backend.run(circuits, shots=1).result()
         targets = ref_diagonal_gate.diagonal_gate_statevector_deterministic()
         self.assertSuccess(result)
