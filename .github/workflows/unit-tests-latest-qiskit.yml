@@ -1,7 +1,12 @@
 name: Unit Tests for latest Qiskit
 on:
-  schedule:
-    - cron: '0 5 * * *'
+  push:
+    branches: [main, 'stable/*']
+  pull_request:
+    branches: [main, 'stable/*']
+#on:
+#  schedule:
+#    - cron: '0 5 * * *'
 concurrency:
   group: ${{ github.repository }}-${{ github.ref }}-${{ github.head_ref }}-${{ github.workflow }}
   cancel-in-progress: true
@@ -39,7 +44,7 @@ jobs:
         shell: bash
       - name: Install dependencies and Aer
         run: |
-          python -m pip install -U setuptools wheel
+          python -m pip install -U setuptools setuptools-rust wheel
           python -m pip install -U \
             -c constraints.txt \
             -r requirements-dev.txt \
