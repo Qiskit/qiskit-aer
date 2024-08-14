@@ -23,7 +23,7 @@ from qiskit.providers.options import Options
 from ..aererror import AerError
 from ..version import __version__
 from .aerbackend import AerBackend
-from .backendproperties import AerBackendProperties
+from .backendconfiguration import AerBackendConfiguration
 from .backend_utils import (
     cpp_execute_qobj,
     available_devices,
