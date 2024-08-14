@@ -14,6 +14,7 @@ Aer backend configuration
 """
 import copy
 
+
 class GateConfig:
     """Class representing a Gate Configuration
 
