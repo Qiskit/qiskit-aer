@@ -1,12 +1,7 @@
 name: Unit Tests for latest Qiskit
 on:
-  push:
-    branches: [main, 'stable/*']
-  pull_request:
-    branches: [main, 'stable/*']
-#on:
-#  schedule:
-#    - cron: '0 5 * * *'
+  schedule:
+    - cron: '0 5 * * *'
 concurrency:
   group: ${{ github.repository }}-${{ github.ref }}-${{ github.head_ref }}-${{ github.workflow }}
   cancel-in-progress: true
