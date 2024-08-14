@@ -296,6 +296,7 @@ class AerBackend(Backend, ABC):
         from qiskit.circuit.parameter import Parameter
         from qiskit.circuit.gate import Gate
         from qiskit.circuit.controlflow import CONTROL_FLOW_OP_NAMES
+        from qiskit.providers.backend import QubitProperties
 
         required = ["measure", "delay"]
 
@@ -340,10 +341,6 @@ class AerBackend(Backend, ABC):
             if name in qiskit_inst_mapping:
                 inst_name_map[name] = qiskit_inst_mapping[name]
             elif name in gate_configs:
-                # GateConfig model is a translator of QASM opcode.
-                # This doesn't have quantum definition, so Qiskit transpiler doesn't perform
-                # any optimization in quantum domain.
-                # Usually GateConfig counterpart should exist in Qiskit namespace so this is rarely called.
                 this_config = gate_configs[name]
                 params = list(map(Parameter, getattr(this_config, "parameters", [])))
                 coupling_map = getattr(this_config, "coupling_map", [])
@@ -423,8 +420,6 @@ class AerBackend(Backend, ABC):
                             faulty_ops.add((name, qubits))
                             continue
                         if prop_name_map[name] is None:
-                            # This instruction is tied to particular qubits
-                            # i.e. gate config is not provided, and instruction has been globally defined.
                             prop_name_map[name] = {}
                         prop_name_map[name][qubits] = InstructionProperties(
                             error=_get_value(params, "gate_error"),

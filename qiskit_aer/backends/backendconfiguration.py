@@ -13,11 +13,6 @@
 Aer backend configuration
 """
 import copy
-import numbers
-from typing import Dict, List, Any, Iterable, Tuple, Union
-from qiskit.exceptions import QiskitError
-from qiskit.providers.exceptions import BackendConfigurationError
-
 
 class GateConfig:
     """Class representing a Gate Configuration

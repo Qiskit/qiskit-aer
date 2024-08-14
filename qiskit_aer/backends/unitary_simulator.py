@@ -35,6 +35,7 @@ from .backend_utils import (
     add_final_save_op,
     map_legacy_method_config,
 )
+from .backendconfiguration import AerBackendConfiguration
 
 # pylint: disable=import-error, no-name-in-module, abstract-method
 from .controller_wrappers import aer_controller_execute
@@ -243,7 +244,7 @@ class UnitarySimulator(AerBackend):
             UnitarySimulator._AVAILABLE_DEVICES = available_devices(self._controller)
 
         if configuration is None:
-            configuration = QasmBackendConfiguration.from_dict(
+            configuration = AerBackendConfiguration.from_dict(
                 UnitarySimulator._DEFAULT_CONFIGURATION
             )
         else:

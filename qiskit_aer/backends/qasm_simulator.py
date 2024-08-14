@@ -24,7 +24,7 @@ from ..version import __version__
 from ..aererror import AerError
 from .aerbackend import AerBackend
 from .backendconfiguration import AerBackendConfiguration
-from .backendproperties import AerBackendProperties, target_to_backend_properties
+from .backendproperties import target_to_backend_properties
 from .backend_utils import (
     cpp_execute_qobj,
     cpp_execute_circuits,
@@ -571,7 +571,7 @@ class QasmSimulator(AerBackend):
             name = configuration.backend_name
             configuration.backend_name = f"aer_simulator_from({name})"
 
-            target = convert_to_target(config, properties, None, NAME_MAPPING)
+            target = convert_to_target(configuration, properties, None, NAME_MAPPING)
         else:
             raise TypeError(
                 "The backend argument requires a BackendV2 or BackendV1 object, "

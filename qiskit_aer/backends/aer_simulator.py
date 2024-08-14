@@ -23,7 +23,7 @@ from qiskit.providers.backend import BackendV2, BackendV1
 from ..version import __version__
 from .aerbackend import AerBackend, AerError
 from .backendconfiguration import AerBackendConfiguration
-from .backendproperties import AerBackendProperties, target_to_backend_properties
+from .backendproperties import target_to_backend_properties
 from .backend_utils import (
     cpp_execute_circuits,
     cpp_execute_qobj,
@@ -876,7 +876,7 @@ class AerSimulator(AerBackend):
             name = configuration.backend_name
             configuration.backend_name = f"aer_simulator_from({name})"
 
-            target = convert_to_target(config, properties, None, NAME_MAPPING)
+            target = convert_to_target(configuration, properties, None, NAME_MAPPING)
         else:
             raise TypeError(
                 "The backend argument requires a BackendV2 or BackendV1 object, "

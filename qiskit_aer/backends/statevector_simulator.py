@@ -23,6 +23,7 @@ from qiskit.providers.options import Options
 from ..aererror import AerError
 from ..version import __version__
 from .aerbackend import AerBackend
+from .backendproperties import AerBackendProperties
 from .backend_utils import (
     cpp_execute_qobj,
     available_devices,
@@ -257,7 +258,7 @@ class StatevectorSimulator(AerBackend):
             StatevectorSimulator._AVAILABLE_DEVICES = available_devices(self._controller)
 
         if configuration is None:
-            configuration = QasmBackendConfiguration.from_dict(
+            configuration = AerBackendConfiguration.from_dict(
                 StatevectorSimulator._DEFAULT_CONFIGURATION
             )
         else:

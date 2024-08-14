@@ -14,6 +14,8 @@ Aer backend properties
 """
 import copy
 import datetime
+import warnings
+import dateutil.parser
 from typing import Any, Iterable, Tuple, Union, Dict
 from qiskit.providers.exceptions import BackendPropertyError
 from qiskit.utils.units import apply_prefix
@@ -272,7 +274,7 @@ class AerBackendProperties:
         return out_dict
 
     def __eq__(self, other):
-        if isinstance(other, BackendProperties):
+        if isinstance(other, AerBackendProperties):
             if self.to_dict() == other.to_dict():
                 return True
         return False
@@ -504,7 +506,7 @@ class AerBackendProperties:
 
 
 def target_to_backend_properties(target: Target):
-    """Convert a :class:`qiskit.transpiler.Target` object into a legacy :class:`~.AerBackendProperties`"""
+    """Convert a :class:`qiskit.transpiler.Target` into a legacy :class:`~.AerBackendProperties`"""
 
     properties_dict: dict[str, Any] = {
         "backend_name": "",
