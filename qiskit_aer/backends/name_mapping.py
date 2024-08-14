@@ -16,6 +16,7 @@ Qiskit Aer simulator name mapping for Target object
 """
 from qiskit.circuit import ControlledGate, Parameter
 from qiskit.circuit.reset import Reset
+from qiskit.circuit.store import Store
 from qiskit.circuit.library import (
     U2Gate,
     RGate,
@@ -301,4 +302,5 @@ NAME_MAPPING = {
     "save_probs_ket": SaveProbabilitiesDict,
     "save_probs": SaveProbabilities,
     "reset": Reset(),
+    "store": Store,
 }

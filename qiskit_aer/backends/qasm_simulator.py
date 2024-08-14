@@ -23,6 +23,8 @@ from qiskit.providers.backend import BackendV2, BackendV1
 from ..version import __version__
 from ..aererror import AerError
 from .aerbackend import AerBackend
+from .backendconfiguration import AerBackendConfiguration
+from .backendproperties import AerBackendProperties, target_to_backend_properties
 from .backend_utils import (
     cpp_execute_qobj,
     cpp_execute_circuits,
@@ -401,7 +403,6 @@ class QasmSimulator(AerBackend):
         "simulator": True,
         "local": True,
         "conditional": True,
-        "open_pulse": False,
         "memory": True,
         "max_shots": int(1e6),
         "description": "A C++ QasmQobj simulator with noise",
@@ -432,7 +433,7 @@ class QasmSimulator(AerBackend):
 
     _AVAILABLE_DEVICES = None
 
-    def __init__(self, configuration=None, provider=None, **backend_options):
+    def __init__(self, configuration=None, properties=None, provider=None, **backend_options):
         warn(
             "The `QasmSimulator` backend will be deprecated in the"
             " future. It has been superseded by the `AerSimulator`"
@@ -451,13 +452,17 @@ class QasmSimulator(AerBackend):
 
         # Default configuration
         if configuration is None:
-            configuration = QasmSimulator._DEFAULT_CONFIGURATION
+            configuration = AerBackendConfiguration.from_dict(QasmSimulator._DEFAULT_CONFIGURATION)
+        else:
+            configuration.open_pulse = False
 
         # Cache basis gates since computing the intersection
         # of noise model, method, and config gates is expensive.
         self._cached_basis_gates = self._DEFAULT_BASIS_GATES
 
-        super().__init__(configuration, provider=provider, backend_options=backend_options)
+        super().__init__(
+            configuration, properties, provider=provider, backend_options=backend_options
+        )
 
     def __repr__(self):
         """String representation of an AerBackend."""
@@ -532,22 +537,22 @@ class QasmSimulator(AerBackend):
         """Initialize simulator from backend."""
         if isinstance(backend, BackendV2):
             if backend.description is None:
-                description = "created by QasmSimulator.from_backend"
+                description = "created by AerSimulator.from_backend"
             else:
                 description = backend.description
 
-            configuration = {
-                "backend_name": f"aer_simulator_from({backend.name})",
-                "backend_version": backend.backend_version,
-                "n_qubits": backend.num_qubits,
-                "basis_gates": backend.operation_names,
-                "max_shots": int(1e6),
-                "coupling_map": (
-                    None if backend.coupling_map is None else list(backend.coupling_map.get_edges())
-                ),
-                "max_experiments": backend.max_circuits,
-                "description": description,
-            }
+            configuration = AerBackendConfiguration(
+                backend_name=f"aer_simulator_from({backend.name})",
+                backend_version=backend.backend_version,
+                n_qubits=backend.num_qubits,
+                basis_gates=backend.operation_names,
+                gates=[],
+                max_shots=int(1e6),
+                coupling_map=list(backend.coupling_map.get_edges()),
+                max_experiments=backend.max_circuits,
+                description=description,
+            )
+            properties = target_to_backend_properties(backend.target)
             target = backend.target
         elif isinstance(backend, BackendV1):
             # BackendV1 will be removed in Qiskit 2.0, so we will remove this soon
@@ -559,15 +564,14 @@ class QasmSimulator(AerBackend):
                 stacklevel=2,
             )
             # Get configuration and properties from backend
-            config = backend.configuration()
+            configuration = backend.configuration()
             properties = copy.copy(backend.properties())
 
             # Customize configuration name
-            name = config.backend_name
-            config.backend_name = f"aer_simulator_from({name})"
+            name = configuration.backend_name
+            configuration.backend_name = f"aer_simulator_from({name})"
 
             target = convert_to_target(config, properties, None, NAME_MAPPING)
-            configuration = config.to_dict()
         else:
             raise TypeError(
                 "The backend argument requires a BackendV2 or BackendV1 object, "
@@ -584,7 +588,7 @@ class QasmSimulator(AerBackend):
                 options["noise_model"] = noise_model
 
         # Initialize simulator
-        sim = cls(configuration=configuration, target=target, **options)
+        sim = cls(configuration=configuration, properties=properties, target=target, **options)
         return sim
 
     def configuration(self):
@@ -593,13 +597,13 @@ class QasmSimulator(AerBackend):
         Returns:
             BackendConfiguration: the configuration for the backend.
         """
-        config = self._configuration.copy()
+        config = copy.copy(self._configuration)
         for key, val in self._options_configuration.items():
-            config[key] = val
+            setattr(config, key, val)
         # Update basis gates based on custom options, config, method,
         # and noise model
-        config["custom_instructions"] = self._custom_instructions()
-        config["basis_gates"] = self._cached_basis_gates + config["custom_instructions"]
+        config.custom_instructions = self._custom_instructions()
+        config.basis_gates = self._cached_basis_gates + config.custom_instructions
         return config
 
     def available_methods(self):
@@ -681,7 +685,7 @@ class QasmSimulator(AerBackend):
 
         # Compute intersection with method basis gates
         method_gates = self._method_basis_gates()
-        config_gates = self.configuration()["basis_gates"]
+        config_gates = self._configuration.basis_gates
         if config_gates:
             basis_gates = set(config_gates).intersection(method_gates)
         else:

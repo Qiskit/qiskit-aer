@@ -22,6 +22,8 @@ from qiskit.providers.backend import BackendV2, BackendV1
 
 from ..version import __version__
 from .aerbackend import AerBackend, AerError
+from .backendconfiguration import AerBackendConfiguration
+from .backendproperties import AerBackendProperties, target_to_backend_properties
 from .backend_utils import (
     cpp_execute_circuits,
     cpp_execute_qobj,
@@ -681,6 +683,10 @@ class AerSimulator(AerBackend):
         "backend_version": __version__,
         "n_qubits": MAX_QUBITS_STATEVECTOR,
         "url": "https://github.com/Qiskit/qiskit-aer",
+        "simulator": True,
+        "local": True,
+        "conditional": True,
+        "memory": True,
         "max_shots": int(1e6),
         "description": "A C++ QasmQobj simulator with noise",
         "coupling_map": None,
@@ -707,7 +713,9 @@ class AerSimulator(AerBackend):
 
     _AVAILABLE_DEVICES = None
 
-    def __init__(self, configuration=None, provider=None, target=None, **backend_options):
+    def __init__(
+        self, configuration=None, properties=None, provider=None, target=None, **backend_options
+    ):
         self._controller = aer_controller_execute()
 
         # Update available methods and devices for class
@@ -720,11 +728,10 @@ class AerSimulator(AerBackend):
 
         # Default configuration
         if configuration is None:
-            configuration = AerSimulator._DEFAULT_CONFIGURATION
+            configuration = AerBackendConfiguration.from_dict(AerSimulator._DEFAULT_CONFIGURATION)
 
         # set backend name from method and device in option
-        backend_name = configuration["backend_name"]
-        if "from" not in backend_name:
+        if "from" not in configuration.backend_name:
             method = "automatic"
             device = "CPU"
             for key, value in backend_options.items():
@@ -733,10 +740,9 @@ class AerSimulator(AerBackend):
                 if key == "device":
                     device = value
             if method not in [None, "automatic"]:
-                backend_name += f"_{method}"
+                configuration.backend_name += f"_{method}"
             if device not in [None, "CPU"]:
-                backend_name += f"_{device}".lower()
-            configuration["backend_name"] = backend_name
+                configuration.backend_name += f"_{device}".lower()
 
         # Cache basis gates since computing the intersection
         # of noise model, method, and config gates is expensive.
@@ -744,6 +750,7 @@ class AerSimulator(AerBackend):
 
         super().__init__(
             configuration,
+            properties=properties,
             provider=provider,
             target=target,
             backend_options=backend_options,
@@ -839,18 +846,18 @@ class AerSimulator(AerBackend):
             else:
                 description = backend.description
 
-            configuration = {
-                "backend_name": f"aer_simulator_from({backend.name})",
-                "backend_version": backend.backend_version,
-                "n_qubits": backend.num_qubits,
-                "basis_gates": backend.operation_names,
-                "max_shots": int(1e6),
-                "coupling_map": (
-                    None if backend.coupling_map is None else list(backend.coupling_map.get_edges())
-                ),
-                "max_experiments": backend.max_circuits,
-                "description": description,
-            }
+            configuration = AerBackendConfiguration(
+                backend_name=f"aer_simulator_from({backend.name})",
+                backend_version=backend.backend_version,
+                n_qubits=backend.num_qubits,
+                basis_gates=backend.operation_names,
+                gates=[],
+                max_shots=int(1e6),
+                coupling_map=list(backend.coupling_map.get_edges()),
+                max_experiments=backend.max_circuits,
+                description=description,
+            )
+            properties = target_to_backend_properties(backend.target)
             target = backend.target
         elif isinstance(backend, BackendV1):
             # BackendV1 will be removed in Qiskit 2.0, so we will remove this soon
@@ -862,15 +869,14 @@ class AerSimulator(AerBackend):
                 stacklevel=2,
             )
             # Get configuration and properties from backend
-            config = backend.configuration()
+            configuration = backend.configuration()
             properties = copy.copy(backend.properties())
 
             # Customize configuration name
-            name = config.backend_name
-            config.backend_name = f"aer_simulator_from({name})"
+            name = configuration.backend_name
+            configuration.backend_name = f"aer_simulator_from({name})"
 
             target = convert_to_target(config, properties, None, NAME_MAPPING)
-            configuration = config.to_dict()
         else:
             raise TypeError(
                 "The backend argument requires a BackendV2 or BackendV1 object, "
@@ -887,7 +893,7 @@ class AerSimulator(AerBackend):
                 options["noise_model"] = noise_model
 
         # Initialize simulator
-        sim = cls(configuration=configuration, target=target, **options)
+        sim = cls(configuration=configuration, properties=properties, target=target, **options)
         return sim
 
     def available_methods(self):
@@ -906,15 +912,16 @@ class AerSimulator(AerBackend):
         Returns:
             BackendConfiguration: the configuration for the backend.
         """
-        config = self._configuration.copy()
-        config.update(self._options_configuration)
+        config = copy.copy(self._configuration)
+        for key, val in self._options_configuration.items():
+            setattr(config, key, val)
 
         method = getattr(self.options, "method", "automatic")
 
         # Update basis gates based on custom options, config, method,
         # and noise model
-        config["custom_instructions"] = self._CUSTOM_INSTR[method]
-        config["basis_gates"] = self._cached_basis_gates + config["custom_instructions"]
+        config.custom_instructions = self._CUSTOM_INSTR[method]
+        config.basis_gates = self._cached_basis_gates + config.custom_instructions
         return config
 
     def _execute_circuits(self, aer_circuits, noise_model, config):
@@ -1002,7 +1009,7 @@ class AerSimulator(AerBackend):
         # Compute intersection with method basis gates
         method = getattr(self._options, "method", "automatic")
         method_gates = self._BASIS_GATES[method]
-        config_gates = self._configuration.get("basis_gates", [])
+        config_gates = self._configuration.basis_gates
         if config_gates:
             basis_gates = set(config_gates).intersection(method_gates)
         else:
@@ -1056,8 +1063,8 @@ class AerSimulator(AerBackend):
             description = None
             n_qubits = None
 
-        if self._configuration.get("coupling_map", None) is not None:
-            n_qubits = max(list(map(max, self._configuration["coupling_map"]))) + 1
+        if self._configuration.coupling_map:
+            n_qubits = max(list(map(max, self._configuration.coupling_map))) + 1
 
         self._set_configuration_option("description", description)
         self._set_configuration_option("n_qubits", n_qubits)
