@@ -15,8 +15,8 @@ Aer backend properties
 import copy
 import datetime
 import warnings
-import dateutil.parser
 from typing import Any, Iterable, Tuple, Union, Dict
+import dateutil.parser
 from qiskit.providers.exceptions import BackendPropertyError
 from qiskit.utils.units import apply_prefix
 from qiskit.transpiler.target import Target

@@ -160,7 +160,6 @@ class AerBackendConfiguration:
         dt=None,
         dtm=None,
         processor_type=None,
-        parametric_pulses=None,
         **kwargs,
     ):
         """Initialize a AerBackendConfiguration Object

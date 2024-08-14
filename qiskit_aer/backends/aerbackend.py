@@ -406,39 +406,35 @@ class AerBackend(Backend, ABC):
             in_data["qubit_properties"] = qubit_properties
 
             for name in all_instructions:
-                try:
-                    for qubits, params in properties.gate_property(name).items():
-                        if set.intersection(
-                            faulty_qubits, qubits
-                        ) or not properties.is_gate_operational(name, qubits):
-                            try:
-                                # Qubits might be pre-defined by the gate config
-                                # However properties objects says the qubits is non-operational
-                                del prop_name_map[name][qubits]
-                            except KeyError:
-                                pass
-                            faulty_ops.add((name, qubits))
-                            continue
-                        if prop_name_map[name] is None:
-                            prop_name_map[name] = {}
-                        prop_name_map[name][qubits] = InstructionProperties(
-                            error=_get_value(params, "gate_error"),
-                            duration=_get_value(params, "gate_length"),
-                        )
-                    if isinstance(prop_name_map[name], dict) and any(
-                        v is None for v in prop_name_map[name].values()
-                    ):
-                        # Properties provides gate properties only for subset of qubits
-                        # Associated qubit set might be defined by the gate config here
-                        logger.info(
-                            "Gate properties of instruction %s are not provided for every qubits. "
-                            "This gate is ideal for some qubits and the rest is with finite error. "
-                            "Created backend target may confuse error-aware circuit optimization.",
-                            name,
-                        )
-                except BackendPropertyError:
-                    # This gate doesn't report any property
-                    continue
+                for qubits, params in properties.gate_property(name).items():
+                    if set.intersection(
+                        faulty_qubits, qubits
+                    ) or not properties.is_gate_operational(name, qubits):
+                        try:
+                            # Qubits might be pre-defined by the gate config
+                            # However properties objects says the qubits is non-operational
+                            del prop_name_map[name][qubits]
+                        except KeyError:
+                            pass
+                        faulty_ops.add((name, qubits))
+                        continue
+                    if prop_name_map[name] is None:
+                        prop_name_map[name] = {}
+                    prop_name_map[name][qubits] = InstructionProperties(
+                        error=_get_value(params, "gate_error"),
+                        duration=_get_value(params, "gate_length"),
+                    )
+                if isinstance(prop_name_map[name], dict) and any(
+                    v is None for v in prop_name_map[name].values()
+                ):
+                    # Properties provides gate properties only for subset of qubits
+                    # Associated qubit set might be defined by the gate config here
+                    logger.info(
+                        "Gate properties of instruction %s are not provided for every qubits. "
+                        "This gate is ideal for some qubits and the rest is with finite error. "
+                        "Created backend target may confuse error-aware circuit optimization.",
+                        name,
+                    )
 
             # Measure instruction property is stored in qubit property
             prop_name_map["measure"] = {}
