@@ -437,7 +437,7 @@ class AerSimulator(AerBackend):
         shots, and a large number of qubits, with complexity around
         O(n * D^2) per shot.
 
-    * ``mps_log_data`` (str): if True, output logging data of the MPS
+    * ``mps_log_data`` (bool): if True, output logging data of the MPS
       structure: bond dimensions and values discarded during approximation.
       (Default: False)
 
