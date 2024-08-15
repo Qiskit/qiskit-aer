@@ -173,7 +173,8 @@ public:
                                     std::string("fusion"));
   };
 
-  virtual bool can_apply(const op_t &op, uint_t max_fused_qubits) const override {
+  virtual bool can_apply(const op_t &op,
+                         uint_t max_fused_qubits) const override {
     if (op.conditional || op.sample_noise)
       return false;
     switch (op.type) {
@@ -220,7 +221,8 @@ public:
     return Operations::make_superop(qubits, std::move(superop));
   };
 
-  virtual bool can_apply(const op_t &op, uint_t max_fused_qubits) const override {
+  virtual bool can_apply(const op_t &op,
+                         uint_t max_fused_qubits) const override {
     if (op.conditional || op.sample_noise)
       return false;
     switch (op.type) {
@@ -270,7 +272,8 @@ public:
     return Operations::make_kraus(qubits, Utils::superop2kraus(superop, dim));
   };
 
-  virtual bool can_apply(const op_t &op, uint_t max_fused_qubits) const override {
+  virtual bool can_apply(const op_t &op,
+                         uint_t max_fused_qubits) const override {
     if (op.conditional || op.sample_noise)
       return false;
     switch (op.type) {

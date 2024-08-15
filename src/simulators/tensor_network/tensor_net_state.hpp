@@ -151,7 +151,9 @@ public:
   auto move_to_vector();
   auto copy_to_vector();
 
-  void enable_density_matrix(bool flg) override { enable_density_matrix_ = flg; }
+  void enable_density_matrix(bool flg) override {
+    enable_density_matrix_ = flg;
+  }
 
 protected:
   //-----------------------------------------------------------------------
