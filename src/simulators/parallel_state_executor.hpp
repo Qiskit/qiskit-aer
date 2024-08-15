@@ -64,7 +64,7 @@ public:
 protected:
   void set_config(const Config &config) override;
 
-  virtual uint_t qubit_scale(void) { return 1; }
+  virtual uint_t qubit_scale(void) override { return 1; }
 
   bool multiple_chunk_required(const Config &config, const Circuit &circuit,
                                const Noise::NoiseModel &noise) const;
