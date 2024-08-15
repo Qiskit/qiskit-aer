@@ -18,11 +18,11 @@ import logging
 from warnings import warn
 
 from qiskit.providers.options import Options
-from qiskit.providers.models import QasmBackendConfiguration
 
 from ..aererror import AerError
 from ..version import __version__
 from .aerbackend import AerBackend
+from .backendconfiguration import AerBackendConfiguration
 from .backend_utils import (
     available_devices,
     MAX_QUBITS_STATEVECTOR,
@@ -254,7 +254,7 @@ class StatevectorSimulator(AerBackend):
             StatevectorSimulator._AVAILABLE_DEVICES = available_devices(self._controller)
 
         if configuration is None:
-            configuration = QasmBackendConfiguration.from_dict(
+            configuration = AerBackendConfiguration.from_dict(
                 StatevectorSimulator._DEFAULT_CONFIGURATION
             )
         else:

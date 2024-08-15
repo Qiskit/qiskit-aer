@@ -19,7 +19,6 @@ import logging
 from warnings import warn
 
 from qiskit.providers.options import Options
-from qiskit.providers.models import QasmBackendConfiguration
 
 from ..aererror import AerError
 from ..version import __version__
@@ -32,6 +31,7 @@ from .backend_utils import (
     add_final_save_op,
     map_legacy_method_config,
 )
+from .backendconfiguration import AerBackendConfiguration
 
 # pylint: disable=import-error, no-name-in-module, abstract-method
 from .controller_wrappers import aer_controller_execute
@@ -240,7 +240,7 @@ class UnitarySimulator(AerBackend):
             UnitarySimulator._AVAILABLE_DEVICES = available_devices(self._controller)
 
         if configuration is None:
-            configuration = QasmBackendConfiguration.from_dict(
+            configuration = AerBackendConfiguration.from_dict(
                 UnitarySimulator._DEFAULT_CONFIGURATION
             )
         else:
@@ -314,3 +314,43 @@ class UnitarySimulator(AerBackend):
         config = map_legacy_method_config(config)
         aer_circuits = add_final_save_op(aer_circuits, "unitary")
         return cpp_execute_circuits(self._controller, aer_circuits, noise_model, config)
+<<<<<<< HEAD
+=======
+
+    def _validate(self, qobj):
+        """Semantic validations of the qobj which cannot be done via schemas.
+        Some of these may later move to backend schemas.
+        1. Set shots=1
+        2. No measurements or reset
+        3. Check number of qubits will fit in local memory.
+        """
+        name = self.name
+        if getattr(qobj.config, "noise_model", None) is not None:
+            raise AerError(f"{name} does not support noise.")
+
+        n_qubits = qobj.config.n_qubits
+        max_qubits = self.configuration()["n_qubits"]
+        if n_qubits > max_qubits:
+            raise AerError(
+                f"Number of qubits ({n_qubits}) is greater than "
+                f'max ({max_qubits}) for "{name}" with '
+                f"{int(psutil.virtual_memory().total / (1024**3))} GB system memory."
+            )
+        if qobj.config.shots != 1:
+            logger.info('"%s" only supports 1 shot. Setting shots=1.', name)
+            qobj.config.shots = 1
+        for experiment in qobj.experiments:
+            exp_name = experiment.header.name
+            if getattr(experiment.config, "shots", 1) != 1:
+                logger.info(
+                    '"%s" only supports 1 shot. Setting shots=1 for circuit "%s".',
+                    name,
+                    exp_name,
+                )
+                experiment.config.shots = 1
+            for operation in experiment.instructions:
+                if operation.name in ["measure", "reset"]:
+                    raise AerError(
+                        f"Unsupported {name} instruction {operation.name} in circuit {exp_name}"
+                    )
+>>>>>>> upstream/main

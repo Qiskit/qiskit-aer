@@ -13,10 +13,7 @@ from ddt import ddt
 import qiskit
 from qiskit import transpile, QuantumCircuit
 
-if qiskit.__version__.startswith("0."):
-    from qiskit.providers.fake_provider import FakeQuito as Fake5QV1
-else:
-    from qiskit.providers.fake_provider import Fake5QV1
+from qiskit.providers.fake_provider import GenericBackendV2
 
 from qiskit_aer.noise import NoiseModel
 from test.terra.backends.simulator_test_case import SimulatorTestCase, supported_methods
@@ -53,7 +50,7 @@ class TestTruncateQubits(SimulatorTestCase):
         return circuit
 
     def device_backend(self):
-        return Fake5QV1()
+        return GenericBackendV2(num_qubits=5)
 
     def test_truncate_ideal_sparse_circuit(self):
         """Test qubit truncation for large circuit with unused qubits."""
@@ -94,7 +91,7 @@ class TestTruncateQubits(SimulatorTestCase):
         result = backend.run(circuit, shots=1).result()
         metadata = result.results[0].metadata
         self.assertEqual(metadata["num_qubits"], 2)
-        self.assertEqual(metadata["active_input_qubits"], [0, 1])
+        self.assertEqual(len(metadata["active_input_qubits"]), 2)
 
     def test_truncate_non_measured_qubits(self):
         """Test truncation of non-measured uncoupled qubits."""
