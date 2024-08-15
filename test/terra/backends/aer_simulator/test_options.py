@@ -22,10 +22,7 @@ from qiskit import QuantumCircuit, transpile
 from qiskit.quantum_info.random import random_unitary
 from qiskit.quantum_info import state_fidelity
 
-if qiskit.__version__.startswith("0."):
-    from qiskit.providers.fake_provider import FakeAlmaden as Fake20QV1
-else:
-    from qiskit.providers.fake_provider import Fake20QV1
+from qiskit.providers.fake_provider import GenericBackendV2
 
 from qiskit_aer import AerSimulator
 
@@ -305,8 +302,9 @@ class TestOptions(SimulatorTestCase):
     def test_num_qubits(self, method):
         """Test number of qubits is correctly checked"""
 
-        num_qubits = Fake20QV1().configuration().num_qubits
-        backend = AerSimulator.from_backend(Fake20QV1(), method=method)
+        num_qubits = 20
+        fake_backend = GenericBackendV2(num_qubits=num_qubits)
+        backend = AerSimulator.from_backend(fake_backend, method=method)
         self.assertGreaterEqual(backend.configuration().num_qubits, num_qubits)
 
     def test_mps_svd_method(self):

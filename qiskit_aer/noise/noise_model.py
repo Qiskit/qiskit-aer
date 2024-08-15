@@ -381,6 +381,14 @@ class NoiseModel:
                 )
             dt = backend.dt
         elif backend_interface_version <= 1:
+            # BackendV1 will be removed in Qiskit 2.0, so we will remove this soon
+            warn(
+                " from_backend using V1 based backend is deprecated as of Aer 0.15"
+                " and will be removed no sooner than 3 months from that release"
+                " date. Please use backends based on V2.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
             properties = backend.properties()
             configuration = backend.configuration()
             basis_gates = configuration.basis_gates
