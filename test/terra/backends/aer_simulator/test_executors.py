@@ -29,6 +29,7 @@ from test.terra.reference import ref_kraus_noise
 from qiskit_aer.jobs import AerJob
 from test.terra.backends.simulator_test_case import SimulatorTestCase, supported_methods
 
+
 def run_random_circuits(backend, shots=None, **run_options):
     """Test random circuits on different executor fictures"""
     job_size = 10
