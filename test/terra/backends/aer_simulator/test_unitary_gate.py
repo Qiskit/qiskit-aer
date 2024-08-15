@@ -47,7 +47,6 @@ class TestUnitaryGates(SimulatorTestCase):
         shots = 100
         circuits = ref_unitary_gate.unitary_gate_circuits_deterministic(final_measure=True)
         targets = ref_unitary_gate.unitary_gate_counts_deterministic(shots)
-        circuits = transpile(circuits, backend)
         result = backend.run(circuits, shots=shots).result()
         self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0)
@@ -61,7 +60,6 @@ class TestUnitaryGates(SimulatorTestCase):
             final_measure=True
         )
         targets = ref_unitary_gate.unitary_random_gate_counts_nondeterministic(shots)
-        circuits = transpile(circuits, backend)
         result = backend.run(circuits, shots=shots).result()
         self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
@@ -78,8 +76,7 @@ class TestUnitaryGates(SimulatorTestCase):
         circuit.unitary(unitary_matrix, perm)
         circuit.barrier(range(n))
         circuit.measure(range(n), range(n))
-        circuits = transpile(circuit, backend)
-        result = backend.run(circuits, shots=shots).result()
+        result = backend.run(circuit, shots=shots).result()
 
         state = Statevector.from_label(n * "0").evolve(unitary_matrix, perm)
         state.seed(11111)
@@ -99,7 +96,6 @@ class TestUnitaryGates(SimulatorTestCase):
         shots = 100
         circuits = ref_diagonal_gate.diagonal_gate_circuits_deterministic(final_measure=True)
         targets = ref_diagonal_gate.diagonal_gate_counts_deterministic(shots)
-        circuits = transpile(circuits, backend)
         result = backend.run(circuits, shots=shots).result()
         self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0)
