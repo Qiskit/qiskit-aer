@@ -151,7 +151,7 @@ public:
   auto move_to_vector();
   auto copy_to_vector();
 
-  void enable_density_matrix(bool flg) { enable_density_matrix_ = flg; }
+  void enable_density_matrix(bool flg) override { enable_density_matrix_ = flg; }
 
 protected:
   //-----------------------------------------------------------------------
@@ -208,7 +208,7 @@ protected:
                    RngEngine &rng);
 
   // Apply the global phase
-  void apply_global_phase(void);
+  void apply_global_phase(void) override;
 
   //-----------------------------------------------------------------------
   // Save data instructions

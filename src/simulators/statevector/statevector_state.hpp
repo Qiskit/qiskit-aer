@@ -213,7 +213,7 @@ public:
   cmatrix_t density_matrix(const reg_t &qubits);
 
   // Apply the global phase
-  void apply_global_phase();
+  void apply_global_phase() override;
 
 protected:
   //-----------------------------------------------------------------------
