@@ -632,7 +632,7 @@ void lapack_csvd_wrapper(cmatrix_t &A, cmatrix_t &U, rvector_t &S,
     zgesdd_("A", &m, &n, lapackA, &m, lapackS, lapackU, &m, lapackV, &n, work_,
             &lwork, rwork, iwork, &info);
 
-    delete iwork;
+    delete[] iwork;
     free(rwork);
     free(work_);
   } else {
@@ -655,8 +655,8 @@ void lapack_csvd_wrapper(cmatrix_t &A, cmatrix_t &U, rvector_t &S,
   validate_SVdD_result(tempA, U, S, V);
   // #endif
 
-  delete lapackS;
-  delete work;
+  delete[] lapackS;
+  delete[] work;
 
   if (info == 0) {
     return;
