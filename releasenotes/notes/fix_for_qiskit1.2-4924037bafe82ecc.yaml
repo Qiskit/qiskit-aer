@@ -1,0 +1,13 @@
+---
+fixes:
+  - |
+    - Clone configuration and properties from Qiskit to Aer #2197 
+    - Deprecation of V1 backends passed to `AerSimulator.from_backend()`
+      will be removed in Qiskit 2.0
+    - target.qubit_properties is now rust function, so list can not be
+      updated by [] operator directly
+    - remove QobjExperimentHeader in AerCompiler this is from #2187 
+    - remove using qobj in AerBackend.run this will be removed by #2187
+    - replace some V1 based fake backends to GenericBackendV2 
+    - Remove transpile for test using `UnitaryGate` or `DiagonalGate`
+      maybe issue in QIskit https://github.com/Qiskit/qiskit/issues/12953

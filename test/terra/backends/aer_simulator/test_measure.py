@@ -358,7 +358,6 @@ class TestMeasure(SimulatorTestCase):
             circuits.append(circuit)
         circuits[0].measure([0, 2, 4], [0, 2, 4])
         circuits[1].measure([4, 1], [4, 1])
-        circuits = transpile(circuits, backend)
 
         for circuit in circuits:
             result1 = backend.run(

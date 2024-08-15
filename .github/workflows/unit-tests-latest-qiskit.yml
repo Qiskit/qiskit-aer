@@ -39,7 +39,7 @@ jobs:
         shell: bash
       - name: Install dependencies and Aer
         run: |
-          python -m pip install -U setuptools wheel
+          python -m pip install -U setuptools setuptools-rust wheel
           python -m pip install -U \
             -c constraints.txt \
             -r requirements-dev.txt \

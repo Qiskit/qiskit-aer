@@ -15,14 +15,15 @@ Aer qasm simulator backend.
 
 import copy
 import logging
+from warnings import warn
 from qiskit.providers import convert_to_target
 from qiskit.providers.options import Options
-from qiskit.providers.models import QasmBackendConfiguration
 from qiskit.providers.backend import BackendV2, BackendV1
-from qiskit.transpiler.target import target_to_backend_properties
 
 from ..version import __version__
 from .aerbackend import AerBackend, AerError
+from .backendconfiguration import AerBackendConfiguration
+from .backendproperties import target_to_backend_properties
 from .backend_utils import (
     cpp_execute_circuits,
     cpp_execute_qobj,
@@ -685,7 +686,6 @@ class AerSimulator(AerBackend):
         "simulator": True,
         "local": True,
         "conditional": True,
-        "open_pulse": False,
         "memory": True,
         "max_shots": int(1e6),
         "description": "A C++ QasmQobj simulator with noise",
@@ -728,7 +728,7 @@ class AerSimulator(AerBackend):
 
         # Default configuration
         if configuration is None:
-            configuration = QasmBackendConfiguration.from_dict(AerSimulator._DEFAULT_CONFIGURATION)
+            configuration = AerBackendConfiguration.from_dict(AerSimulator._DEFAULT_CONFIGURATION)
 
         # set backend name from method and device in option
         if "from" not in configuration.backend_name:
@@ -846,29 +846,30 @@ class AerSimulator(AerBackend):
             else:
                 description = backend.description
 
-            configuration = QasmBackendConfiguration(
+            configuration = AerBackendConfiguration(
                 backend_name=f"aer_simulator_from({backend.name})",
                 backend_version=backend.backend_version,
                 n_qubits=backend.num_qubits,
                 basis_gates=backend.operation_names,
                 gates=[],
-                local=True,
-                simulator=True,
-                conditional=True,
-                open_pulse=False,
-                memory=False,
                 max_shots=int(1e6),
-                coupling_map=(
-                    None if backend.coupling_map is None else list(backend.coupling_map.get_edges())
-                ),
+                coupling_map=list(backend.coupling_map.get_edges()),
                 max_experiments=backend.max_circuits,
                 description=description,
             )
             properties = target_to_backend_properties(backend.target)
             target = backend.target
         elif isinstance(backend, BackendV1):
+            # BackendV1 will be removed in Qiskit 2.0, so we will remove this soon
+            warn(
+                " from_backend using V1 based backend is deprecated as of Aer 0.15"
+                " and will be removed no sooner than 3 months from that release"
+                " date. Please use backends based on V2.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
             # Get configuration and properties from backend
-            configuration = copy.copy(backend.configuration())
+            configuration = backend.configuration()
             properties = copy.copy(backend.properties())
 
             # Customize configuration name
