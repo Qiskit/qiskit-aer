@@ -26,5 +26,5 @@ features:
     `Dask <http://dask.org>`__ distributed  Client executors if the optional
     dask library is installed. Using a Dask executor allows configuring parallel
     execution of multiple circuits on HPC clusters. See the 
-    Dask executor :ref:`API Documentation <dask>` for additional details
+    Dask executor :ref:`API Documentation dask` for additional details
     on using Dask executors for HPC simulation.
