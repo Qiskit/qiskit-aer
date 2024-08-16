@@ -53,7 +53,7 @@ public:
   //-----------------------------------------------------------------------
 
   // Set the size of the vector in terms of qubit number
-  void set_num_qubits(size_t num_qubits);
+  void set_num_qubits(size_t num_qubits) override;
 
   // Returns the number of qubits for the superoperator
   virtual uint_t num_qubits() const override { return num_qubits_; }
