@@ -23,7 +23,7 @@ from abc import ABC, abstractmethod
 
 from qiskit.circuit import QuantumCircuit, ParameterExpression, Delay
 from qiskit.providers import BackendV2 as Backend
-from qiskit.providers.models import BackendStatus
+from qiskit.providers.models.backendstatus import BackendStatus
 from qiskit.pulse import Schedule, ScheduleBlock
 from qiskit.result import Result
 from qiskit.transpiler import CouplingMap
