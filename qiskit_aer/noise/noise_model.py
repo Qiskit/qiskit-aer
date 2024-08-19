@@ -23,7 +23,7 @@ import numpy as np
 from qiskit.circuit import Instruction, Delay
 from qiskit.providers import QubitProperties
 from qiskit.providers.exceptions import BackendPropertyError
-from qiskit.providers.models import BackendProperties
+from qiskit.providers.models.backendproperties import BackendProperties
 from qiskit.transpiler import PassManager
 from qiskit.utils import apply_prefix
 from .device.models import _excited_population, _truncate_t2_value
