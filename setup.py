@@ -19,8 +19,6 @@ ADD_CUDA_REQUIREMENTS = (
     else True
 )
 
-extras_requirements = {"dask": ["dask", "distributed"]}
-
 requirements = [
     "qiskit>=1.1.0",
     "numpy>=1.16.3",
@@ -110,7 +108,6 @@ setup(
     install_requires=requirements,
     include_package_data=False,
     package_data={"qiskit_aer": ["VERSION.txt"], "qiskit_aer.library": ["*.csv"]},
-    extras_require=extras_requirements,
     cmake_args=cmake_args,
     keywords="qiskit, simulator, quantum computing, backend",
     zip_safe=False,

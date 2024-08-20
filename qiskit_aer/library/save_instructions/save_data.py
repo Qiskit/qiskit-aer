@@ -58,15 +58,6 @@ class SaveData(Instruction):
         self._label = label
         self._subtype = subtype
 
-    def assemble(self):
-        """Return the QasmQobjInstruction for the intructions."""
-        instr = super().assemble()
-        # Use same fields as Snapshot instruction
-        # so we dont need to modify QasmQobjInstruction
-        instr.snapshot_type = self._subtype
-        instr.label = self._label
-        return instr
-
     def inverse(self, annotated=False):
         """Special case. Return self."""
         return copy.copy(self)
