@@ -23,7 +23,7 @@ import numpy as np
 from qiskit.circuit import Instruction, Delay
 from qiskit.providers import QubitProperties
 from qiskit.providers.exceptions import BackendPropertyError
-from qiskit.providers.models import BackendProperties
+from qiskit.providers.models.backendproperties import BackendProperties
 from qiskit.transpiler import PassManager
 from qiskit.utils import apply_prefix
 from .device.models import _excited_population, _truncate_t2_value
@@ -759,7 +759,7 @@ class NoiseModel:
         for name, label in self._instruction_names_labels(instructions):
             self._check_number_of_qubits(error, name)
             if not isinstance(label, str):
-                raise NoiseError("Qobj invalid instructions.")
+                raise NoiseError("QuantumCircuit invalid instructions.")
             # Check number of qubits is correct for standard instructions
             self._check_number_of_qubits(error, name)
             if label in self._local_quantum_errors:

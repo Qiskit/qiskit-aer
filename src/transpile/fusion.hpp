@@ -173,7 +173,8 @@ public:
                                     std::string("fusion"));
   };
 
-  virtual bool can_apply(const op_t &op, uint_t max_fused_qubits) const {
+  virtual bool can_apply(const op_t &op,
+                         uint_t max_fused_qubits) const override {
     if (op.conditional || op.sample_noise)
       return false;
     switch (op.type) {
@@ -220,7 +221,8 @@ public:
     return Operations::make_superop(qubits, std::move(superop));
   };
 
-  virtual bool can_apply(const op_t &op, uint_t max_fused_qubits) const {
+  virtual bool can_apply(const op_t &op,
+                         uint_t max_fused_qubits) const override {
     if (op.conditional || op.sample_noise)
       return false;
     switch (op.type) {
@@ -270,7 +272,8 @@ public:
     return Operations::make_kraus(qubits, Utils::superop2kraus(superop, dim));
   };
 
-  virtual bool can_apply(const op_t &op, uint_t max_fused_qubits) const {
+  virtual bool can_apply(const op_t &op,
+                         uint_t max_fused_qubits) const override {
     if (op.conditional || op.sample_noise)
       return false;
     switch (op.type) {
@@ -346,7 +349,7 @@ void Fuser::allocate_new_operation(oplist_t &ops, const uint_t idx,
       ops[i].type = optype_t::nop;
 }
 
-class CostBasedFusion : public Fuser {
+class CostBasedFusion final : public Fuser {
 public:
   CostBasedFusion() { std::fill_n(costs_, 64, -1); };
 
@@ -377,7 +380,7 @@ private:
 };
 
 template <size_t N>
-class NQubitFusion : public Fuser {
+class NQubitFusion final : public Fuser {
 public:
   NQubitFusion() : opt_name(std::to_string(N) + "_qubits") {}
 

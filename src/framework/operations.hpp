@@ -103,6 +103,7 @@ public:
       : expr_type(_expr_type), type(_type) {}
   virtual bool eval_bool(const std::string &memory) { return false; };
   virtual uint_t eval_uint(const std::string &memory) { return 0ul; };
+  virtual ~CExpr() = default;
 
 public:
   const CExprType expr_type;
@@ -139,6 +140,8 @@ public:
       throw std::invalid_argument(R"(invalid cast: from unknown type.)");
   }
 
+  virtual ~CastExpr() = default;
+
 public:
   const std::shared_ptr<CExpr> operand;
 };
@@ -162,6 +165,8 @@ public:
           R"(eval_uint is called for non-uint expression.)");
     return eval_uint_(memory);
   }
+
+  virtual ~VarExpr() = default;
 
 private:
   uint_t eval_uint_(const std::string &memory) {
@@ -199,6 +204,8 @@ public:
 
   virtual uint_t eval_uint(const std::string &memory) { return value; }
 
+  virtual ~UintValue() = default;
+
 public:
   const uint_t value;
 };
@@ -214,6 +221,8 @@ public:
     throw std::invalid_argument(
         R"(eval_uint is called for Bool value without cast.)");
   }
+
+  virtual ~BoolValue() = default;
 
 public:
   const bool value;
@@ -245,6 +254,8 @@ public:
     }
     throw std::invalid_argument(R"(should not reach here.)");
   }
+
+  virtual ~UnaryExpr() = default;
 
 public:
   const UnaryOp op;
@@ -357,6 +368,8 @@ public:
       throw std::invalid_argument(R"(must not reach here.)");
     }
   }
+
+  virtual ~BinaryExpr() = default;
 
 public:
   const BinaryOp op;
@@ -686,8 +699,7 @@ inline std::ostream &operator<<(std::ostream &s, const Op &op) {
 // Raise an exception if name string is empty
 inline void check_empty_name(const Op &op) {
   if (op.name.empty())
-    throw std::invalid_argument(
-        R"(Invalid qobj instruction ("name" is empty).)");
+    throw std::invalid_argument(R"(Invalid instruction ("name" is empty).)");
 }
 
 // Raise an exception if qubits list is empty

@@ -43,7 +43,6 @@
 
 #include "framework/config.hpp"
 #include "framework/creg.hpp"
-#include "framework/qobj.hpp"
 #include "framework/results/experiment_result.hpp"
 #include "framework/results/result.hpp"
 #include "framework/rng.hpp"
@@ -77,13 +76,8 @@ public:
   Controller() {}
 
   //-----------------------------------------------------------------------
-  // Execute qobj
+  // Execute circuits
   //-----------------------------------------------------------------------
-
-  // Load a QOBJ from a JSON file and execute on the State type
-  // class.
-  template <typename inputdata_t>
-  Result execute(const inputdata_t &qobj);
 
   Result execute(std::vector<std::shared_ptr<Circuit>> &circuits,
                  Noise::NoiseModel &noise_model, const Config &config);
@@ -455,52 +449,6 @@ std::vector<std::string> Controller::available_devices() {
 #endif
 #endif
   return ret;
-}
-
-//-------------------------------------------------------------------------
-// Qobj execution
-//-------------------------------------------------------------------------
-template <typename inputdata_t>
-Result Controller::execute(const inputdata_t &input_qobj) {
-  // Load QOBJ in a try block so we can catch parsing errors and still return
-  // a valid JSON output containing the error message.
-  try {
-    // Start QOBJ timer
-    auto timer_start = myclock_t::now();
-
-    // Initialize QOBJ
-    Qobj qobj(input_qobj);
-    auto qobj_time_taken =
-        std::chrono::duration<double>(myclock_t::now() - timer_start).count();
-
-    // Set config
-    set_config(qobj.config);
-
-    // Run qobj circuits
-    auto result = execute(qobj.circuits, qobj.noise_model, qobj.config);
-
-    // Add QOBJ loading time
-    result.metadata.add(qobj_time_taken, "time_taken_load_qobj");
-
-    // Get QOBJ id and pass through header to result
-    result.qobj_id = qobj.id;
-    if (!qobj.header.empty()) {
-      result.header = qobj.header;
-    }
-
-    // Stop the timer and add total timing data including qobj parsing
-    auto time_taken =
-        std::chrono::duration<double>(myclock_t::now() - timer_start).count();
-    result.metadata.add(time_taken, "time_taken");
-    return result;
-  } catch (std::exception &e) {
-    // qobj was invalid, return valid output containing error message
-    Result result;
-
-    result.status = Result::Status::error;
-    result.message = std::string("Failed to load qobj: ") + e.what();
-    return result;
-  }
 }
 
 //-------------------------------------------------------------------------

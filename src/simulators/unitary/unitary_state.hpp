@@ -140,7 +140,7 @@ public:
   auto copy_to_matrix();
 
   // Apply the global phase
-  void apply_global_phase();
+  void apply_global_phase() override;
 
 protected:
   //-----------------------------------------------------------------------

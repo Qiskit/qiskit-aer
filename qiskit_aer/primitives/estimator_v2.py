@@ -107,7 +107,7 @@ class EstimatorV2(BaseEstimatorV2):
                 )
 
     def _run(self, pubs: list[EstimatorPub]) -> PrimitiveResult[PubResult]:
-        return PrimitiveResult([self._run_pub(pub) for pub in pubs])
+        return PrimitiveResult([self._run_pub(pub) for pub in pubs], metadata={"version": 2})
 
     def _run_pub(self, pub: EstimatorPub) -> PubResult:
         circuit = pub.circuit.copy()
@@ -151,5 +151,9 @@ class EstimatorV2(BaseEstimatorV2):
             evs = rng.normal(evs, precision, evs.shape)
         return PubResult(
             DataBin(evs=evs, stds=stds, shape=evs.shape),
-            metadata={"target_precision": precision, "simulator_metadata": result.metadata},
+            metadata={
+                "target_precision": precision,
+                "circuit_metadata": pub.circuit.metadata,
+                "simulator_metadata": result.metadata,
+            },
         )
