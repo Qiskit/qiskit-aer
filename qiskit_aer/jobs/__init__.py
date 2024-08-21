@@ -29,10 +29,7 @@ The following are the classes used to manage job submissions.
     :toctree: ../stubs/
 
     AerJob
-    AerJobSet
 
 """
 
 from .aerjob import AerJob
-from .aerjobset import AerJobSet
-from .utils import split_qobj

@@ -1,0 +1,5 @@
+---
+deprecations:
+  - |
+    Removed standalone simulators and remove using qobj as input circuits
+

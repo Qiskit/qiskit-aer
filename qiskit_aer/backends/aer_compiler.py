@@ -41,7 +41,6 @@ from qiskit.circuit.controlflow import (
 from qiskit.transpiler import PassManager
 from qiskit.transpiler.passes import Decompose
 
-
 from qiskit_aer.aererror import AerError
 from qiskit_aer.noise import NoiseModel
 
