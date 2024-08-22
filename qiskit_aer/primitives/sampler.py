@@ -18,8 +18,8 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 
-import numpy as np
 from warnings import warn
+import numpy as np
 from qiskit.circuit import ParameterExpression, QuantumCircuit
 from qiskit.compiler import transpile
 from qiskit.exceptions import QiskitError
