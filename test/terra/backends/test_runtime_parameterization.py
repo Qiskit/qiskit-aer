@@ -754,6 +754,44 @@ class TestRuntimeParameterization(SimulatorTestCase):
 
         self.assertEqual(counts, counts_pre_bind)
 
+    @supported_methods(SUPPORTED_METHODS)
+    def test_bind_some_param(self, method, device):
+        """Test parameterized circuit with gate with defaul values"""
+        shots = 1000
+        backend = self.backend(method=method, device=device)
+        circuit = QuantumCircuit(2)
+        theta = Parameter("theta")
+        theta_squared = theta * theta
+        circuit.h(0)
+        circuit.rx(theta, 0)
+        circuit.cx(0, 1)
+        circuit.rz(theta_squared, 1)
+        circuit.u(theta, theta_squared, 1.5708, 1)
+        circuit.measure_all()
+        parameter_binds = [{theta: [0, pi, 2 * pi]}]
+
+        result = backend.run(
+            circuit,
+            shots=shots,
+            parameter_binds=parameter_binds,
+            shot_branching_enable=False,
+            runtime_parameter_bind_enable=True,
+        ).result()
+        self.assertSuccess(result)
+        counts = result.get_counts()
+
+        result_pre_bind = backend.run(
+            circuit,
+            shots=shots,
+            parameter_binds=parameter_binds,
+            shot_branching_enable=False,
+            runtime_parameter_bind_enable=False,
+        ).result()
+        self.assertSuccess(result_pre_bind)
+        counts_pre_bind = result_pre_bind.get_counts()
+
+        self.assertEqual(counts, counts_pre_bind)
+
 
 if __name__ == "__main__":
     unittest.main()
