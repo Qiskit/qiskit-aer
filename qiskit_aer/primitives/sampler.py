@@ -25,6 +25,7 @@ from qiskit.exceptions import QiskitError
 from qiskit.primitives import BaseSamplerV1, SamplerResult
 from qiskit.primitives.utils import final_measurement_mapping, init_circuit
 from qiskit.result import QuasiDistribution
+from qiskit.utils.deprecation import deprecate_func
 
 from .. import AerSimulator
 
@@ -51,6 +52,10 @@ class Sampler(BaseSamplerV1):
         4. default.
     """
 
+    @deprecate_func(
+        since="1.5",
+        additional_msg="Sampler(V1) has been deprecated in favor of SamplerV2.",
+    )
     def __init__(
         self,
         *,

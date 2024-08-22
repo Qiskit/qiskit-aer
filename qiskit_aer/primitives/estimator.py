@@ -75,6 +75,10 @@ class Estimator(BaseEstimator):
           normal distribution approximation.
     """
 
+    @deprecate_func(
+        since="1.5",
+        additional_msg="Estimator(V1) has been deprecated in favor of EstimatorV2.",
+    )
     def __init__(
         self,
         *,

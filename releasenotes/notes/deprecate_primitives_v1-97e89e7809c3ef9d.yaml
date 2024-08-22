@@ -1,0 +1,6 @@
+---
+deprecations:
+  - |
+    Primitives V1 (``Sampler`` and ``Estimator`` in `qiskit_aer.primitives`
+    has been deprecated and ``SamplerV2`` and ``EstimatorV2`` are recommended
+    as their successors.
