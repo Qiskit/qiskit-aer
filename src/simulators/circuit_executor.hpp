@@ -205,7 +205,8 @@ protected:
   void run_circuit_with_parameter_binding(state_t &state, OpItr first,
                                           OpItr last, ExperimentResult &result,
                                           RngEngine &rng, const uint_t iparam,
-                                          bool final_op);
+                                          const Noise::NoiseModel *noise,
+                                          bool sample_noise, bool final_op);
 
   template <typename InputIterator>
   void measure_sampler(InputIterator first_meas, InputIterator last_meas,
@@ -802,9 +803,9 @@ void Executor<state_t>::run_circuit_with_sampling(Circuit &circ,
       state.initialize_creg(circ.num_memory, circ.num_registers);
 
       if (circ.num_bind_params > 1) {
-        run_circuit_with_parameter_binding(state, circ.ops.cbegin(),
-                                           circ.ops.cbegin() + first_meas,
-                                           result, rng, iparam, final_ops);
+        run_circuit_with_parameter_binding(
+            state, circ.ops.cbegin(), circ.ops.cbegin() + first_meas, result,
+            rng, iparam, nullptr, false, final_ops);
       } else {
         state.apply_ops(circ.ops.cbegin(), circ.ops.cbegin() + first_meas,
                         result, rng, final_ops);
@@ -846,7 +847,11 @@ void Executor<state_t>::run_circuit_shots(
       shot_end[distributed_rank_] - shot_begin[distributed_rank_];
 
   int max_matrix_qubits = 1;
-  if (!sample_noise) {
+  if (sample_noise) {
+    if (circ.num_bind_params > 1) {
+      noise.set_config(circ, Noise::NoiseModel::Method::circuit);
+    }
+  } else {
     Noise::NoiseModel dummy_noise;
     state_t dummy_state;
     ExperimentResult fusion_result;
@@ -905,7 +910,7 @@ void Executor<state_t>::run_circuit_shots(
       ExperimentResult &result = par_results[i][iparam];
 
       Circuit circ_opt;
-      if (sample_noise) {
+      if (sample_noise && (circ.num_bind_params == 1)) {
         Noise::NoiseModel dummy_noise;
         circ_opt = noise.sample_noise(circ, rng);
         fusion_pass.optimize_circuit(circ_opt, dummy_noise, state.opset(),
@@ -927,25 +932,20 @@ void Executor<state_t>::run_circuit_shots(
       state.initialize_qreg(circ.num_qubits);
       state.initialize_creg(circ.num_memory, circ.num_registers);
 
-      if (sample_noise) {
-        if (circ.num_bind_params > 1) {
-          run_circuit_with_parameter_binding(state, circ_opt.ops.cbegin(),
-                                             circ_opt.ops.cend(), result, rng,
-                                             iparam, true);
-        } else {
+      if (circ.num_bind_params > 1) {
+        run_circuit_with_parameter_binding(state, circ.ops.cbegin(),
+                                           circ.ops.cend(), result, rng, iparam,
+                                           &noise, sample_noise, true);
+      } else {
+        if (sample_noise) {
           state.apply_ops(circ_opt.ops.cbegin(), circ_opt.ops.cend(), result,
                           rng, true);
-        }
-      } else {
-        if (circ.num_bind_params > 1) {
-          run_circuit_with_parameter_binding(state, circ.ops.cbegin(),
-                                             circ.ops.cend(), result, rng,
-                                             iparam, true);
         } else {
           state.apply_ops(circ.ops.cbegin(), circ.ops.cend(), result, rng,
                           true);
         }
       }
+
       if (distributed_procs_ > 1) {
         // save creg to be gathered
         cregs[shot_index] = state.creg();
@@ -1002,28 +1002,27 @@ void Executor<state_t>::run_circuit_shots(
 template <class state_t>
 void Executor<state_t>::run_circuit_with_parameter_binding(
     state_t &state, OpItr first, OpItr last, ExperimentResult &result,
-    RngEngine &rng, const uint_t iparam, bool final_op) {
-  OpItr op_begin = first;
+    RngEngine &rng, const uint_t iparam, const Noise::NoiseModel *noise,
+    bool sample_noise, bool final_op) {
   OpItr op = first;
 
   while (op != last) {
+    Operations::Op top;
+    std::vector<Operations::Op> ops;
     // run with parameter bind
     if (op->has_bind_params) {
-      if (op_begin != op) {
-        // run ops before this
-        state.apply_ops(op_begin, op, result, rng, false);
-      }
-
-      std::vector<Operations::Op> binded_op(1);
-      binded_op[0] = Operations::bind_parameter(*op, iparam, num_bind_params_);
-      state.apply_ops(binded_op.cbegin(), binded_op.cend(), result, rng,
-                      final_op && (op == last - 1));
-      op_begin = op + 1;
+      top = Operations::bind_parameter(*op, iparam, num_bind_params_);
+    } else {
+      top = *op;
     }
+    if (sample_noise) {
+      ops = noise->sample_noise_at_runtime(top, rng);
+    } else {
+      ops.push_back(top);
+    }
+    state.apply_ops(ops.cbegin(), ops.cend(), result, rng,
+                    final_op && (op == last - 1));
     op++;
-  }
-  if (op_begin != last) {
-    state.apply_ops(op_begin, last, result, rng, final_op);
   }
 }
 
