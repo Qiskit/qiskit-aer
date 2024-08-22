@@ -22,8 +22,7 @@ import numpy as np
 
 from test.terra import common
 
-import qiskit
-from qiskit.compiler import assemble, transpile
+from qiskit.compiler import transpile
 from qiskit.circuit import QuantumCircuit, Parameter
 from test.terra.reference.ref_save_expval import (
     save_expval_circuits,

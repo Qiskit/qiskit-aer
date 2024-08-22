@@ -26,7 +26,6 @@ from .backendconfiguration import AerBackendConfiguration
 from .backendproperties import target_to_backend_properties
 from .backend_utils import (
     cpp_execute_circuits,
-    cpp_execute_qobj,
     available_methods,
     available_devices,
     MAX_QUBITS_STATEVECTOR,
@@ -226,7 +225,7 @@ class AerSimulator(AerBackend):
       maximum will be set to the number of CPU cores (Default: 0).
 
     * ``max_parallel_experiments`` (int): Sets the maximum number of
-      qobj experiments that may be executed in parallel up to the
+      experiments that may be executed in parallel up to the
       max_parallel_threads value. If set to 1 parallel circuit
       execution will be disabled. If set to 0 the maximum will be
       automatically set to max_parallel_threads (Default: 1).
@@ -688,7 +687,7 @@ class AerSimulator(AerBackend):
         "conditional": True,
         "memory": True,
         "max_shots": int(1e6),
-        "description": "A C++ QasmQobj simulator with noise",
+        "description": "A C++ Qasm simulator with noise",
         "coupling_map": None,
         "basis_gates": BASIS_GATES["automatic"],
         "custom_instructions": _CUSTOM_INSTR["automatic"],
@@ -929,17 +928,6 @@ class AerSimulator(AerBackend):
         ret = cpp_execute_circuits(self._controller, aer_circuits, noise_model, config)
         return ret
 
-    def _execute_qobj(self, qobj):
-        """Execute a qobj on the backend.
-
-        Args:
-            qobj (QasmQobj): simulator input.
-
-        Returns:
-            dict: return a dictionary of results.
-        """
-        return cpp_execute_qobj(self._controller, qobj)
-
     def set_option(self, key, value):
         if key == "custom_instructions":
             self._set_configuration_option(key, value)
@@ -975,25 +963,6 @@ class AerSimulator(AerBackend):
                         self.name += f"_{method}"
                         if value != "CPU":
                             self.name += f"_{value}".lower()
-
-    def _validate(self, qobj):
-        """Semantic validations of the qobj which cannot be done via schemas.
-
-        Warn if no measure or save instructions in run circuits.
-        """
-        for experiment in qobj.experiments:
-            # If circuit does not contain measurement or save
-            # instructions raise a warning
-            no_data = True
-            for op in experiment.instructions:
-                if op.name == "measure" or op.name[:5] == "save_":
-                    no_data = False
-                    break
-            if no_data:
-                logger.warning(
-                    'No measure or save instruction in circuit "%s": results will be empty.',
-                    experiment.header.name,
-                )
 
     def _basis_gates(self):
         """Return simualtor basis gates.

@@ -22,16 +22,14 @@ import warnings
 from abc import ABC, abstractmethod
 
 from qiskit.circuit import QuantumCircuit, ParameterExpression, Delay
-from qiskit.compiler import assemble
 from qiskit.providers import BackendV2 as Backend
 from qiskit.providers.models.backendstatus import BackendStatus
 from qiskit.pulse import Schedule, ScheduleBlock
-from qiskit.qobj import QasmQobj, PulseQobj
 from qiskit.result import Result
 from qiskit.transpiler import CouplingMap
 from qiskit.transpiler.target import Target
 from ..aererror import AerError
-from ..jobs import AerJob, AerJobSet, split_qobj
+from ..jobs import AerJob
 from ..noise.noise_model import NoiseModel, QuantumErrorLocation
 from ..noise.errors.base_quantum_error import QuantumChannelInstruction
 from .aer_compiler import compile_circuit, assemble_circuits, generate_aer_config
@@ -201,49 +199,6 @@ class AerBackend(Backend, ABC):
             run_options=run_options,
         )
         aer_job.submit()
-
-        return aer_job
-
-    # pylint: disable=arguments-differ
-    def _run_qobj(self, circuits, validate=False, parameter_binds=None, **run_options):
-        """Run circuits by assembling qobj."""
-        qobj = self._assemble(circuits, parameter_binds=parameter_binds, **run_options)
-
-        # Optional validation
-        if validate:
-            self._validate(qobj)
-
-        # Get executor from qobj config and delete attribute so qobj can still be serialized
-        executor = getattr(qobj.config, "executor", None)
-        if hasattr(qobj.config, "executor"):
-            delattr(qobj.config, "executor")
-
-        # Optionally split the job
-        experiments = split_qobj(
-            qobj,
-            max_size=getattr(qobj.config, "max_job_size", None),
-            max_shot_size=getattr(qobj.config, "max_shot_size", None),
-        )
-
-        # Temporarily remove any executor from options so that job submission
-        # can work with Dask client executors which can't be pickled
-        opts_executor = getattr(self._options, "executor", None)
-        if hasattr(self._options, "executor"):
-            self._options.executor = None
-
-        # Submit job
-        job_id = str(uuid.uuid4())
-        if isinstance(experiments, list):
-            aer_job = AerJobSet(self, job_id, self._execute_qobj_job, experiments, executor)
-        else:
-            aer_job = AerJob(
-                self, job_id, self._execute_qobj_job, qobj=experiments, executor=executor
-            )
-        aer_job.submit()
-
-        # Restore removed executor after submission
-        if hasattr(self._options, "executor"):
-            self._options.executor = opts_executor
 
         return aer_job
 
@@ -501,71 +456,6 @@ class AerBackend(Backend, ABC):
             status_msg="",
         )
 
-    def _execute_qobj_job(self, qobj, job_id="", format_result=True):
-        """Run a qobj job"""
-        # Start timer
-        start = time.time()
-
-        # Take metadata from headers of experiments to work around JSON serialization error
-        metadata_list = []
-        metadata_index = 0
-        for expr in qobj.experiments:
-            if hasattr(expr.header, "metadata"):
-                metadata_copy = expr.header.metadata.copy()
-                metadata_list.append(metadata_copy)
-                expr.header.metadata.clear()
-                if "id" in metadata_copy:
-                    expr.header.metadata["id"] = metadata_copy["id"]
-                expr.header.metadata["metadata_index"] = metadata_index
-                metadata_index += 1
-
-        # Run simulation
-        output = self._execute_qobj(qobj)
-
-        # Recover metadata
-        metadata_index = 0
-        for expr in qobj.experiments:
-            if hasattr(expr.header, "metadata"):
-                expr.header.metadata.clear()
-                expr.header.metadata.update(metadata_list[metadata_index])
-                metadata_index += 1
-
-        # Validate output
-        if not isinstance(output, dict):
-            logger.error("%s: simulation failed.", self.name)
-            if output:
-                logger.error("Output: %s", output)
-            raise AerError("simulation terminated without returning valid output.")
-
-        # Format results
-        output["job_id"] = job_id
-        output["date"] = datetime.datetime.now().isoformat()
-        output["backend_name"] = self.name
-        output["backend_version"] = self.configuration().backend_version
-
-        # Push metadata to experiment headers
-        for result in output["results"]:
-            if (
-                "header" in result
-                and "metadata" in result["header"]
-                and "metadata_index" in result["header"]["metadata"]
-            ):
-                metadata_index = result["header"]["metadata"]["metadata_index"]
-                result["header"]["metadata"] = metadata_list[metadata_index]
-
-        # Add execution time
-        output["time_taken"] = time.time() - start
-
-        # Display warning if simulation failed
-        if not output.get("success", False):
-            msg = "Simulation failed"
-            if "status" in output:
-                msg += f" and returned the following error message:\n{output['status']}"
-            logger.warning(msg)
-        if format_result:
-            return self._format_results(output)
-        return output
-
     def _execute_circuits_job(
         self, circuits, parameter_binds, run_options, job_id="", format_result=True
     ):
@@ -660,49 +550,6 @@ class AerBackend(Backend, ABC):
 
         return circuits, noise_model
 
-    def _assemble(self, circuits, parameter_binds=None, **run_options):
-        """Assemble one or more Qobj for running on the simulator"""
-
-        if isinstance(circuits, (QasmQobj, PulseQobj)):
-            qobj = circuits
-        else:
-            # compile and insert noise injection points
-            circuits, noise_model = self._compile(circuits, **run_options)
-
-            # If noise model exists, add it to the run options
-            if noise_model:
-                run_options["noise_model"] = noise_model
-
-            if parameter_binds:
-                # Handle parameter binding
-                parameterizations = self._convert_binds(circuits, parameter_binds)
-                qobj = None
-                for circuit in circuits:
-                    assemble_bind = {param: 1 for param in circuit.parameters}
-                    qobj_tmp = assemble(
-                        [circuit],
-                        backend=self,
-                        parameter_binds=[assemble_bind],
-                        parameterizations=parameterizations,
-                    )
-                    if qobj:
-                        qobj.experiments.append(qobj_tmp.experiments[0])
-                    else:
-                        qobj = qobj_tmp
-            else:
-                qobj = assemble(circuits, backend=self)
-
-        # Add options
-        for key, val in self.options.__dict__.items():
-            if val is not None:
-                setattr(qobj.config, key, val)
-
-        # Override with run-time options
-        for key, val in run_options.items():
-            setattr(qobj.config, key, val)
-
-        return qobj
-
     def _assemble_noise_model(self, circuits, optypes, **run_options):
         """Move quantum error instructions from circuits to noise model"""
         # Make a shallow copy so we can modify list elements if required
@@ -778,18 +625,6 @@ class AerBackend(Backend, ABC):
             return getattr(self._options, "executor", None)
 
     @abstractmethod
-    def _execute_qobj(self, qobj):
-        """Execute a qobj on the backend.
-
-        Args:
-            qobj (QasmQobj or PulseQobj): simulator input.
-
-        Returns:
-            dict: return a dictionary of results.
-        """
-        pass
-
-    @abstractmethod
     def _execute_circuits(self, aer_circuits, noise_model, config):
         """Execute aer circuits on the backend.
 
@@ -801,10 +636,6 @@ class AerBackend(Backend, ABC):
         Returns:
             dict: return a dictionary of results.
         """
-        pass
-
-    def _validate(self, qobj):
-        """Validate the qobj for the backend"""
         pass
 
     def set_option(self, key, value):
