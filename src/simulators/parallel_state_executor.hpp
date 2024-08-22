@@ -924,8 +924,9 @@ void ParallelStateExecutor<state_t>::apply_cache_blocking_ops(
     // fecth chunk in cache
     if (Base::states_[iChunk].qreg().fetch_chunk()) {
       if (Base::num_bind_params_ > 1) {
-        Base::run_circuit_with_parameter_binding(
-            Base::states_[iChunk], first, last, result, rng, iparam, false);
+        Base::run_circuit_with_parameter_binding(Base::states_[iChunk], first,
+                                                 last, result, rng, iparam,
+                                                 nullptr, false, false);
       } else {
         Base::states_[iChunk].apply_ops(first, last, result, rng, false);
       }
