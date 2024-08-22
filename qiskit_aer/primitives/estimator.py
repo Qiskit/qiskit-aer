@@ -96,6 +96,11 @@ class Estimator(BaseEstimator):
             abelian_grouping: Whether the observable should be grouped into commuting.
                 If approximation is True, this parameter is ignored and assumed to be False.
         """
+        warn(
+            "Estimator has been deprecated as of Aer 0.15, please use EstimatorV2 instead.",
+            DeprecationWarning,
+            stacklevel=3,
+        )
         super().__init__(options=run_options)
         # These three private attributes used to be created by super, but were deprecated in Qiskit
         # 0.46. See https://github.com/Qiskit/qiskit/pull/11051
