@@ -803,9 +803,9 @@ void Executor<state_t>::run_circuit_with_sampling(Circuit &circ,
       state.initialize_creg(circ.num_memory, circ.num_registers);
 
       if (circ.num_bind_params > 1) {
-        run_circuit_with_parameter_binding(state, circ.ops.cbegin(),
-                                           circ.ops.cbegin() + first_meas,
-                                           result, rng, iparam, nullptr, false, final_ops);
+        run_circuit_with_parameter_binding(
+            state, circ.ops.cbegin(), circ.ops.cbegin() + first_meas, result,
+            rng, iparam, nullptr, false, final_ops);
       } else {
         state.apply_ops(circ.ops.cbegin(), circ.ops.cbegin() + first_meas,
                         result, rng, final_ops);
@@ -848,11 +848,10 @@ void Executor<state_t>::run_circuit_shots(
 
   int max_matrix_qubits = 1;
   if (sample_noise) {
-    if(circ.num_bind_params > 1){
+    if (circ.num_bind_params > 1) {
       noise.set_config(circ, Noise::NoiseModel::Method::circuit);
     }
-  }
-  else {
+  } else {
     Noise::NoiseModel dummy_noise;
     state_t dummy_state;
     ExperimentResult fusion_result;
@@ -935,8 +934,8 @@ void Executor<state_t>::run_circuit_shots(
 
       if (circ.num_bind_params > 1) {
         run_circuit_with_parameter_binding(state, circ.ops.cbegin(),
-                                           circ.ops.cend(), result, rng,
-                                           iparam, &noise, sample_noise, true);
+                                           circ.ops.cend(), result, rng, iparam,
+                                           &noise, sample_noise, true);
       } else {
         if (sample_noise) {
           state.apply_ops(circ_opt.ops.cbegin(), circ_opt.ops.cend(), result,
@@ -1013,14 +1012,12 @@ void Executor<state_t>::run_circuit_with_parameter_binding(
     // run with parameter bind
     if (op->has_bind_params) {
       top = Operations::bind_parameter(*op, iparam, num_bind_params_);
-    }
-    else{
+    } else {
       top = *op;
     }
-    if(sample_noise){
+    if (sample_noise) {
       ops = noise->sample_noise_at_runtime(top, rng);
-    }
-    else{
+    } else {
       ops.push_back(top);
     }
     state.apply_ops(ops.cbegin(), ops.cend(), result, rng,

@@ -286,8 +286,7 @@ Circuit NoiseModel::sample_noise(const Circuit &circ, RngEngine &rng,
   return sample_noise_circuit(circ, rng, method, sample_at_runtime);
 }
 
-void NoiseModel::set_config(const Circuit &circ, const Method method) const
-{
+void NoiseModel::set_config(const Circuit &circ, const Method method) const {
   // Qubit mapping
   reg_t mapping;
   if (circ.remapped_qubits)
@@ -395,7 +394,8 @@ Circuit NoiseModel::sample_noise_circuit(const Circuit &circ, RngEngine &rng,
     default:
       if (noise_active) {
         NoiseOps noisy_op =
-            sample_noise_op(op, rng, method, mapping, sample_at_runtime, (circ.num_bind_params > 0));
+            sample_noise_op(op, rng, method, mapping, sample_at_runtime,
+                            (circ.num_bind_params > 0));
         noisy_circ.ops.insert(noisy_circ.ops.end(), noisy_op.begin(),
                               noisy_op.end());
       }
@@ -412,14 +412,12 @@ Circuit NoiseModel::sample_noise_circuit(const Circuit &circ, RngEngine &rng,
   return noisy_circ;
 }
 
-NoiseModel::NoiseOps NoiseModel::sample_noise_op(const Operations::Op &op,
-                                                 RngEngine &rng,
-                                                 const Method method,
-                                                 const reg_t &mapping,
-                                                 bool sample_at_runtime,
-                                                 bool param_bind) const {
-  auto noise_ops =
-      sample_noise_helper(op, rng, method, mapping, sample_at_runtime, param_bind);
+NoiseModel::NoiseOps
+NoiseModel::sample_noise_op(const Operations::Op &op, RngEngine &rng,
+                            const Method method, const reg_t &mapping,
+                            bool sample_at_runtime, bool param_bind) const {
+  auto noise_ops = sample_noise_helper(op, rng, method, mapping,
+                                       sample_at_runtime, param_bind);
 
   // If original op is conditional, make all the noise operations also
   // conditional
@@ -565,8 +563,7 @@ void NoiseModel::add_nonlocal_quantum_error(
 NoiseModel::NoiseOps
 NoiseModel::sample_noise_helper(const Operations::Op &op, RngEngine &rng,
                                 const Method method, const reg_t &mapping,
-                                bool sample_at_runtime,
-                                bool param_bind) const {
+                                bool sample_at_runtime, bool param_bind) const {
   // Return operator set
   NoiseOps noise_before;
   NoiseOps noise_after;
