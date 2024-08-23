@@ -113,19 +113,3 @@ jobs:
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           packages-dir: wheelhouse
-  publish-shared-wheels:
-    name: Publish shared wheels
-    runs-on: ubuntu-latest
-    needs: [wheel-build, wheel-arm64-macos]
-    environment: release
-    permissions:
-      id-token: write
-    steps:
-      - uses: actions/download-artifact@v4
-        with:
-          path: deploy
-          name: publish-shared-wheels
-      - name: Publish package distributions to PyPI
-        uses: pypa/gh-action-pypi-publish@release/v1
-        with:
-          packages-dir: deploy
