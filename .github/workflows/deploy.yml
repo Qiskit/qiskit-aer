@@ -2,6 +2,36 @@ name: Deploy
 on: push
 jobs:
   build_wheels_aarch64:
+    name: Build wheels on macOS arm
+    strategy:
+      matrix:
+        os: ["macos-latest"]
+    runs-on: ${{ matrix.os }}
+    environment: release
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        name: Install Python
+        with:
+          python-version: '3.10'
+          architecture: arm64
+      - name: Install cibuildwheel
+        run: |
+          python -m pip install cibuildwheel==2.19.2
+      - name: Build wheels
+        env:
+          CIBW_ARCHS_MACOS: arm64
+          AER_CMAKE_OPENMP_BUILD: 1
+        run: python -m cibuildwheel --output-dir wheelhouse
+      - uses: actions/upload-artifact@v4
+        with:
+          path: ./wheelhouse/*.whl
+      - name: Publish package distributions to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: wheelhouse
+
+  build_wheels_aarch64:
     name: Build wheels on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     environment: release
@@ -31,7 +61,7 @@ jobs:
         run: |
           python -m cibuildwheel --output-dir wheelhouse
         env:
-          CIBW_BEFORE_ALL_LINUX: "sed -i -e 's/^mirrorlist/#mirrorlist/' -e 's/^#baseurl/baseurl/'  /etc/yum.repos.d/*.repo && yum install -y https://dl.fedoraproject.org/pub/epel/8/Everything/aarch64/Packages/e/epel-rpm-macros-8-41.noarch.rpm && yum install -y openblas-devel"
+          CIBW_BEFORE_ALL_LINUX: "sed -i -e 's/^mirrorlist/#mirrorlist/' -e 's/^#baseurl/baseurl/' -e 's/mirror.centos.org/vault.centos.org/' /etc/yum.repos.d/*.repo && yum install -y https://dl.fedoraproject.org/pub/epel/8/Everything/aarch64/Packages/e/epel-release-8-20.el8.noarch.rpm && yum install -y openblas-devel"
           CIBW_ARCHS_LINUX: aarch64
           CIBW_TEST_SKIP: "cp38* cp39* cp310* cp311*"
       - uses: actions/upload-artifact@v4
@@ -69,7 +99,7 @@ jobs:
         env:
           CIBW_ARCHS_LINUX: s390x
           CIBW_TEST_SKIP: "cp*"
-          CIBW_BEFORE_ALL: "sed -i -e 's/^mirrorlist/#mirrorlist/' -e 's/^#baseurl/baseurl/' -e 's/archives.fedoraproject.org/' /etc/yum.repos.d/*.repo && yum install -y https://dl.fedoraproject.org/pub/epel/8/Everything/s390x/Packages/e/epel-rpm-macros-8-41.noarch.rpm && yum install -y openblas-devel"
+          CIBW_BEFORE_ALL: "sed -i -e 's/^mirrorlist/#mirrorlist/' -e 's/^#baseurl/baseurl/' -e 's/mirror.centos.org/vault.centos.org/' /etc/yum.repos.d/*.repo && yum install -y https://dl.fedoraproject.org/pub/epel/8/Everything/s390x/Packages/e/epel-release-8-20.el8.noarch.rpm  && yum install -y openblas-devel"
       - uses: actions/upload-artifact@v4
         with:
           path: ./wheelhouse/*.whl
@@ -105,7 +135,7 @@ jobs:
         env:
           CIBW_ARCHS_LINUX: ppc64le
           CIBW_TEST_SKIP: "cp*"
-          CIBW_BEFORE_ALL: "sed -i -e 's/^mirrorlist/#mirrorlist/' -e 's/^#baseurl/baseurl/' -e 's/archives.fedoraproject.org/' /etc/yum.repos.d/*.repo && yum install -y https://dl.fedoraproject.org/pub/epel/8/Everything/ppc64le/Packages/e/epel-rpm-macros-8-41.noarch.rpm && yum install -y openblas-devel"
+          CIBW_BEFORE_ALL: "sed -i -e 's/^mirrorlist/#mirrorlist/' -e 's/^#baseurl/baseurl/' -e 's/mirror.centos.org/vault.centos.org/' /etc/yum.repos.d/*.repo && yum install -y https://dl.fedoraproject.org/pub/epel/8/Everything/ppc64le/Packages/e/epel-release-8-20.el8.noarch.rpm && yum install -y openblas-devel"
       - uses: actions/upload-artifact@v4
         with:
           path: ./wheelhouse/*.whl
