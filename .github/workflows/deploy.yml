@@ -27,6 +27,7 @@ jobs:
       - name: Build wheels
         uses: pypa/cibuildwheel@v2.19.2
         env:
+          CIBW_BEFORE_ALL:
           CIBW_ARCHS_LINUX: ppc64le
           CIBW_TEST_SKIP: "cp*"
       - uses: actions/upload-artifact@v4
@@ -62,6 +63,7 @@ jobs:
       - name: Build wheels
         uses: pypa/cibuildwheel@v2.19.2
         env:
+          CIBW_BEFORE_ALL:
           CIBW_ARCHS_LINUX: s390x
           CIBW_TEST_SKIP: "cp*"
       - uses: actions/upload-artifact@v4
@@ -97,6 +99,7 @@ jobs:
       - name: Build wheels
         uses: pypa/cibuildwheel@v2.19.2
         env:
+          CIBW_BEFORE_ALL:
           CIBW_ARCHS_LINUX: ppc64le
           CIBW_TEST_SKIP: "cp*"
       - uses: actions/upload-artifact@v4
