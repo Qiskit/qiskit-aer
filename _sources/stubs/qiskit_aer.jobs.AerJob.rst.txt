@@ -31,7 +31,6 @@ AerJob
    .. automethod:: AerJob.executor
    .. automethod:: AerJob.in_final_state
    .. automethod:: AerJob.job_id
-   .. automethod:: AerJob.qobj
    .. automethod:: AerJob.result
    .. automethod:: AerJob.running
    .. automethod:: AerJob.status

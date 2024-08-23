@@ -1,0 +1,59 @@
+﻿
+
+PauliLindbladError
+===================================
+
+.. currentmodule:: qiskit_aer.noise
+
+.. autoclass:: PauliLindbladError
+   :no-members:
+   :no-inherited-members:
+   :no-special-members:
+   :show-inheritance:
+
+
+   
+   .. rubric:: Attributes
+      
+   .. autoattribute:: PauliLindbladError.atol
+   .. autoattribute:: PauliLindbladError.dim
+   .. autoattribute:: PauliLindbladError.generators
+   .. autoattribute:: PauliLindbladError.id
+   .. autoattribute:: PauliLindbladError.num_qubits
+   .. autoattribute:: PauliLindbladError.qargs
+   .. autoattribute:: PauliLindbladError.rates
+   .. autoattribute:: PauliLindbladError.rtol
+   .. autoattribute:: PauliLindbladError.settings
+   .. autoattribute:: PauliLindbladError.size
+   
+
+
+
+   
+   .. rubric:: Methods
+   
+   .. automethod:: PauliLindbladError.__call__
+   .. automethod:: PauliLindbladError.compose
+   .. automethod:: PauliLindbladError.copy
+   .. automethod:: PauliLindbladError.dot
+   .. automethod:: PauliLindbladError.expand
+   .. automethod:: PauliLindbladError.from_dict
+   .. automethod:: PauliLindbladError.ideal
+   .. automethod:: PauliLindbladError.input_dims
+   .. automethod:: PauliLindbladError.inverse
+   .. automethod:: PauliLindbladError.is_cp
+   .. automethod:: PauliLindbladError.is_cptp
+   .. automethod:: PauliLindbladError.is_tp
+   .. automethod:: PauliLindbladError.output_dims
+   .. automethod:: PauliLindbladError.power
+   .. automethod:: PauliLindbladError.reshape
+   .. automethod:: PauliLindbladError.simplify
+   .. automethod:: PauliLindbladError.subsystem_errors
+   .. automethod:: PauliLindbladError.tensor
+   .. automethod:: PauliLindbladError.to_dict
+   .. automethod:: PauliLindbladError.to_instruction
+   .. automethod:: PauliLindbladError.to_pauli_error
+   .. automethod:: PauliLindbladError.to_quantum_error
+   .. automethod:: PauliLindbladError.to_quantumchannel
+
+   

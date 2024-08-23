@@ -6,7 +6,7 @@
 <link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" /><link rel="next" title="Running with multiple-GPUs and/or multiple nodes" href="running_gpu.html" /><link rel="prev" title="Qiskit Aer How-To Guides" href="index.html" />
 
     <!-- Generated with Sphinx 7.1.2 and Furo 2024.01.29 -->
-        <title>Running with Threadpool and DASK - Qiskit Aer 0.14.2</title>
+        <title>Running with Threadpool - Qiskit Aer 0.15.0</title>
       <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=135e06be" />
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=82a976d7" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/qiskit-sphinx-theme.css?v=fe84956c" />
@@ -145,7 +145,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../index.html"><div class="brand">Qiskit Aer 0.14.2</div></a>
+      <a href="../index.html"><div class="brand">Qiskit Aer 0.15.0</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -172,7 +172,7 @@
     </div>
   </a>
   
-  <span class="sidebar-brand-text">Qiskit Aer 0.14.2</span>
+  <span class="sidebar-brand-text">Qiskit Aer 0.15.0</span>
 </div><form class="sidebar-search-container" method="get" action="../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
   <input type="hidden" name="check_keywords" value="yes">
@@ -194,7 +194,6 @@
 </li>
 <li class="toctree-l2 has-children"><a class="reference internal" href="../apidocs/aer_jobs.html">Aer Jobs (<code class="xref py py-mod docutils literal notranslate"><span class="pre">qiskit_aer.jobs</span></code>)</a><input class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><div class="visually-hidden">Toggle navigation of Aer Jobs (qiskit_aer.jobs)</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="../stubs/qiskit_aer.jobs.AerJob.html">AerJob</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../stubs/qiskit_aer.jobs.AerJobSet.html">AerJobSet</a></li>
 </ul>
 </li>
 <li class="toctree-l2 has-children"><a class="reference internal" href="../apidocs/aer_library.html">Instruction Library (<code class="xref py py-mod docutils literal notranslate"><span class="pre">qiskit_aer.library</span></code>)</a><input class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" role="switch" type="checkbox"/><label for="toctree-checkbox-4"><div class="visually-hidden">Toggle navigation of Instruction Library (qiskit_aer.library)</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
@@ -245,6 +244,7 @@
 <li class="toctree-l2 has-children"><a class="reference internal" href="../apidocs/aer_noise.html">Noise Models (<code class="xref py py-mod docutils literal notranslate"><span class="pre">qiskit_aer.noise</span></code>)</a><input class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><div class="visually-hidden">Toggle navigation of Noise Models (qiskit_aer.noise)</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="../stubs/qiskit_aer.noise.NoiseModel.html">NoiseModel</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../stubs/qiskit_aer.noise.QuantumError.html">QuantumError</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../stubs/qiskit_aer.noise.PauliLindbladError.html">PauliLindbladError</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../stubs/qiskit_aer.noise.ReadoutError.html">ReadoutError</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../stubs/qiskit_aer.noise.pauli_error.html">pauli_error</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../stubs/qiskit_aer.noise.depolarizing_error.html">depolarizing_error</a></li>
@@ -270,6 +270,8 @@
 <li class="toctree-l2 has-children"><a class="reference internal" href="../apidocs/aer_primitives.html">Primitives (<code class="xref py py-mod docutils literal notranslate"><span class="pre">qiskit_aer.primitives</span></code>)</a><input class="toctree-checkbox" id="toctree-checkbox-6" name="toctree-checkbox-6" role="switch" type="checkbox"/><label for="toctree-checkbox-6"><div class="visually-hidden">Toggle navigation of Primitives (qiskit_aer.primitives)</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="../stubs/qiskit_aer.primitives.Sampler.html">Sampler</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../stubs/qiskit_aer.primitives.Estimator.html">Estimator</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../stubs/qiskit_aer.primitives.SamplerV2.html">SamplerV2</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../stubs/qiskit_aer.primitives.EstimatorV2.html">EstimatorV2</a></li>
 </ul>
 </li>
 <li class="toctree-l2 has-children"><a class="reference internal" href="../apidocs/aer_utils.html">Utilities (<code class="xref py py-mod docutils literal notranslate"><span class="pre">qiskit_aer.utils</span></code>)</a><input class="toctree-checkbox" id="toctree-checkbox-7" name="toctree-checkbox-7" role="switch" type="checkbox"/><label for="toctree-checkbox-7"><div class="visually-hidden">Toggle navigation of Utilities (qiskit_aer.utils)</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
@@ -300,7 +302,7 @@
 </ul>
 </li>
 <li class="toctree-l1 current has-children"><a class="reference internal" href="index.html">How-Tos</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-10" name="toctree-checkbox-10" role="switch" type="checkbox"/><label for="toctree-checkbox-10"><div class="visually-hidden">Toggle navigation of How-Tos</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
-<li class="toctree-l2 current current-page"><a class="current reference internal" href="#">Running with Threadpool and DASK</a></li>
+<li class="toctree-l2 current current-page"><a class="current reference internal" href="#">Running with Threadpool</a></li>
 <li class="toctree-l2"><a class="reference internal" href="running_gpu.html">Running with multiple-GPUs and/or multiple nodes</a></li>
 </ul>
 </li>
@@ -337,27 +339,16 @@
           </label>
         </div>
         <article role="main">
-          <section id="running-with-threadpool-and-dask">
-<span id="dask"></span><h1>Running with Threadpool and DASK<a class="headerlink" href="#running-with-threadpool-and-dask" title="Permalink to this heading">#</a></h1>
+          <section id="running-with-threadpool">
+<span id="threadpool"></span><h1>Running with Threadpool<a class="headerlink" href="#running-with-threadpool" title="Permalink to this heading">#</a></h1>
 <p>Qiskit Aer runs simulation jobs on a single-worker Python multiprocessing ThreadPool executor
 so that all parallelization is handled by low-level OpenMP and CUDA code.
 However to customize job-level parallel execution of multiple circuits a user can specify
 a custom multiprocessing executor and control the splitting of circuits using
-the <code class="docutils literal notranslate"><span class="pre">executor</span></code> and <code class="docutils literal notranslate"><span class="pre">max_job_size</span></code> backend options.
-For large scale job parallelization on HPC clusters Qiskit Aer executors support
-the distributed Clients from the <a class="reference external" href="http://dask.org">DASK</a>.</p>
-<section id="installation-of-dask-packages-with-aer">
-<h2>Installation of DASK packages with Aer<a class="headerlink" href="#installation-of-dask-packages-with-aer" title="Permalink to this heading">#</a></h2>
-<p>If you want to install dask client at the same time as Qiskit Aer,
-please add the <code class="docutils literal notranslate"><span class="pre">dask</span></code> extra as follows.
-This option installs Aer, dask, and  distributed packages.</p>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span>.<span class="o">[</span>dask<span class="o">]</span>
-</pre></div>
-</div>
-</section>
+the <code class="docutils literal notranslate"><span class="pre">executor</span></code> and <code class="docutils literal notranslate"><span class="pre">max_job_size</span></code> backend options.</p>
 <section id="usage-of-executor">
 <h2>Usage of executor<a class="headerlink" href="#usage-of-executor" title="Permalink to this heading">#</a></h2>
-<p>To use Threadpool or DASK as an executor, you need to set
+<p>To use Threadpool as an executor, you need to set
 <code class="docutils literal notranslate"><span class="pre">executor</span></code> and <code class="docutils literal notranslate"><span class="pre">max_job_size</span></code> by <code class="docutils literal notranslate"><span class="pre">set_options</span></code> function.
 If both <code class="docutils literal notranslate"><span class="pre">executor</span></code> (default None) and <code class="docutils literal notranslate"><span class="pre">max_job_size</span></code> (default None) are set,
 Aer splits the multiple circuits to some chunk of circuits and submits them to the executor.
@@ -399,45 +390,6 @@ If there are 60 circuits and <code class="docutils literal notranslate"><span cl
 </pre></div>
 </div>
 </section>
-<section id="example-dask-execution">
-<h3>Example: Dask execution<a class="headerlink" href="#example-dask-execution" title="Permalink to this heading">#</a></h3>
-<p>The Dask client uses <code class="docutils literal notranslate"><span class="pre">multiprocessing</span></code> so you need to
-guard it by an <code class="docutils literal notranslate"><span class="pre">if</span> <span class="pre">__name__</span> <span class="pre">==</span> <span class="pre">&quot;__main__&quot;:</span></code> block.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">qiskit</span>
-<span class="kn">from</span> <span class="nn">qiskit_aer</span> <span class="kn">import</span> <span class="n">AerSimulator</span>
-<span class="kn">from</span> <span class="nn">dask.distributed</span> <span class="kn">import</span> <span class="n">LocalCluster</span><span class="p">,</span> <span class="n">Client</span>
-<span class="kn">from</span> <span class="nn">math</span> <span class="kn">import</span> <span class="n">pi</span>
-<span class="k">def</span> <span class="nf">q_exec</span><span class="p">():</span>
-    <span class="c1"># Generate circuits</span>
-    <span class="n">circ</span> <span class="o">=</span> <span class="n">qiskit</span><span class="o">.</span><span class="n">QuantumCircuit</span><span class="p">(</span><span class="mi">15</span><span class="p">,</span> <span class="mi">15</span><span class="p">)</span>
-    <span class="n">circ</span><span class="o">.</span><span class="n">h</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
-    <span class="n">circ</span><span class="o">.</span><span class="n">cx</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
-    <span class="n">circ</span><span class="o">.</span><span class="n">cx</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
-    <span class="n">circ</span><span class="o">.</span><span class="n">p</span><span class="p">(</span><span class="n">pi</span><span class="o">/</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
-    <span class="n">circ</span><span class="o">.</span><span class="n">measure</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span> <span class="p">,</span><span class="mi">2</span><span class="p">])</span>
-
-    <span class="n">circ2</span> <span class="o">=</span> <span class="n">qiskit</span><span class="o">.</span><span class="n">QuantumCircuit</span><span class="p">(</span><span class="mi">15</span><span class="p">,</span> <span class="mi">15</span><span class="p">)</span>
-    <span class="n">circ2</span><span class="o">.</span><span class="n">h</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
-    <span class="n">circ2</span><span class="o">.</span><span class="n">cx</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
-    <span class="n">circ2</span><span class="o">.</span><span class="n">cx</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
-    <span class="n">circ2</span><span class="o">.</span><span class="n">p</span><span class="p">(</span><span class="n">pi</span><span class="o">/</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
-    <span class="n">circ2</span><span class="o">.</span><span class="n">measure</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span> <span class="p">,</span><span class="mi">2</span><span class="p">])</span>
-
-    <span class="n">circ_list</span> <span class="o">=</span> <span class="p">[</span><span class="n">circ</span><span class="p">,</span> <span class="n">circ2</span><span class="p">]</span>
-
-    <span class="n">exc</span> <span class="o">=</span> <span class="n">Client</span><span class="p">(</span><span class="n">address</span><span class="o">=</span><span class="n">LocalCluster</span><span class="p">(</span><span class="n">n_workers</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">processes</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span>
-    <span class="c1"># Set executor and max_job_size</span>
-    <span class="n">qbackend</span> <span class="o">=</span> <span class="n">AerSimulator</span><span class="p">()</span>
-    <span class="n">qbackend</span><span class="o">.</span><span class="n">set_options</span><span class="p">(</span><span class="n">executor</span><span class="o">=</span><span class="n">exc</span><span class="p">)</span>
-    <span class="n">qbackend</span><span class="o">.</span><span class="n">set_options</span><span class="p">(</span><span class="n">max_job_size</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
-    <span class="n">result</span> <span class="o">=</span> <span class="n">qbackend</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">circ_list</span><span class="p">)</span><span class="o">.</span><span class="n">result</span><span class="p">()</span>
-
-
-<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
-    <span class="n">q_exec</span><span class="p">()</span>
-</pre></div>
-</div>
-</section>
 </section>
 </section>
 
@@ -475,7 +427,7 @@ guard it by an <code class="docutils literal notranslate"><span class="pre">if</
             
             <a href="https://github.com/pradyunsg/furo">Furo</a>
             <div class="last-updated">
-              Last updated on 2024/05/31</div>
+              Last updated on 2024/08/23</div>
           </div>
           <div class="right-details">
             
@@ -496,11 +448,9 @@ guard it by an <code class="docutils literal notranslate"><span class="pre">if</
         <div class="toc-tree-container">
           <div class="toc-tree">
             <ul>
-<li><a class="reference internal" href="#">Running with Threadpool and DASK</a><ul>
-<li><a class="reference internal" href="#installation-of-dask-packages-with-aer">Installation of DASK packages with Aer</a></li>
+<li><a class="reference internal" href="#">Running with Threadpool</a><ul>
 <li><a class="reference internal" href="#usage-of-executor">Usage of executor</a><ul>
 <li><a class="reference internal" href="#example-threadpool-execution">Example: Threadpool execution</a></li>
-<li><a class="reference internal" href="#example-dask-execution">Example: Dask execution</a></li>
 </ul>
 </li>
 </ul>
@@ -516,7 +466,7 @@ guard it by an <code class="docutils literal notranslate"><span class="pre">if</
   </div>
 </div><script src="../_static/jquery.js?v=5d32c60e"></script>
     <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-    <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js?v=75e7b761"></script>
+    <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js?v=97b2f34b"></script>
     <script src="../_static/doctools.js?v=888ff710"></script>
     <script src="../_static/sphinx_highlight.js?v=4825356b"></script>
     <script src="../_static/scripts/qiskit-sphinx-theme.js?v=4d77b8ca"></script>

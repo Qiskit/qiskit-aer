@@ -1,0 +1,29 @@
+﻿
+
+EstimatorV2
+=================================
+
+.. currentmodule:: qiskit_aer.primitives
+
+.. autoclass:: EstimatorV2
+   :no-members:
+   :no-inherited-members:
+   :no-special-members:
+   :show-inheritance:
+
+
+   
+   .. rubric:: Attributes
+      
+   .. autoattribute:: EstimatorV2.options
+   
+
+
+
+   
+   .. rubric:: Methods
+   
+   .. automethod:: EstimatorV2.from_backend
+   .. automethod:: EstimatorV2.run
+
+   

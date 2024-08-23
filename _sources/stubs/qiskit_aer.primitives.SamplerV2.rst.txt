@@ -1,0 +1,31 @@
+﻿
+
+SamplerV2
+===============================
+
+.. currentmodule:: qiskit_aer.primitives
+
+.. autoclass:: SamplerV2
+   :no-members:
+   :no-inherited-members:
+   :no-special-members:
+   :show-inheritance:
+
+
+   
+   .. rubric:: Attributes
+      
+   .. autoattribute:: SamplerV2.default_shots
+   .. autoattribute:: SamplerV2.options
+   .. autoattribute:: SamplerV2.seed
+   
+
+
+
+   
+   .. rubric:: Methods
+   
+   .. automethod:: SamplerV2.from_backend
+   .. automethod:: SamplerV2.run
+
+   
