@@ -1,7 +1,7 @@
 name: Deploy
 on: push
 jobs:
-  build_wheels_aarch64:
+  wheel-arm64-macos:
     name: Build wheels on macOS arm
     strategy:
       matrix:
@@ -30,7 +30,6 @@ jobs:
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           packages-dir: wheelhouse
-
   build_wheels_aarch64:
     name: Build wheels on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
