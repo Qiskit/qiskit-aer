@@ -220,6 +220,7 @@ class AerBackendConfiguration:
         self.local = True
         self.simulator = True
         self.conditional = True
+        self.open_pulse = False
         self.memory = True
         self.max_shots = max_shots
         self.coupling_map = coupling_map
