@@ -17,9 +17,10 @@ Aer simulator backend utils
 import os
 from math import log2
 
+from types import SimpleNamespace
+
 import psutil
 from qiskit.circuit import QuantumCircuit
-from qiskit.qobj import QasmQobjInstruction
 from qiskit.result import ProbDistribution
 from qiskit.quantum_info import Clifford
 
@@ -113,7 +114,6 @@ BASIS_GATES = {
             "unitary",
             "diagonal",
             "multiplexer",
-            "initialize",
             "pauli",
             "mcx_gray",
             "ecr",
@@ -197,7 +197,6 @@ BASIS_GATES = {
             "csx",
             "cswap",
             "diagonal",
-            "initialize",
             "ecr",
             "store",
         ]
@@ -414,7 +413,6 @@ BASIS_GATES = {
             "unitary",
             "diagonal",
             "multiplexer",
-            "initialize",
             "pauli",
             "mcx_gray",
             "ecr",
@@ -434,15 +432,6 @@ BASIS_GATES[None] = BASIS_GATES["automatic"] = sorted(
     .union(BASIS_GATES["superop"])
     .union(BASIS_GATES["tensor_network"])
 )
-
-
-def cpp_execute_qobj(controller, qobj):
-    """Execute qobj on C++ controller wrapper"""
-
-    # Location where we put external libraries that will be
-    # loaded at runtime by the simulator extension
-    qobj.config.library_dir = LIBRARY_DIR
-    return controller(qobj)
 
 
 def cpp_execute_circuits(controller, aer_circuits, noise_model, config):
@@ -476,25 +465,6 @@ def available_devices(controller):
     return tuple(dev)
 
 
-def add_final_save_instruction(qobj, state):
-    """Add final save state instruction to all experiments in a qobj."""
-
-    def save_inst(num_qubits):
-        """Return n-qubit save statevector inst"""
-        return QasmQobjInstruction(
-            name=f"save_{state}",
-            qubits=list(range(num_qubits)),
-            label=f"{state}",
-            snapshot_type="single",
-        )
-
-    for exp in qobj.experiments:
-        num_qubits = exp.config.n_qubits
-        exp.instructions.append(save_inst(num_qubits))
-
-    return qobj
-
-
 def add_final_save_op(aer_circuits, state):
     """Add final save state op to all experiments in a qobj."""
 
@@ -503,14 +473,6 @@ def add_final_save_op(aer_circuits, state):
         aer_circuit.save_state(list(range(num_qubits)), f"save_{state}", "single", state)
 
     return aer_circuits
-
-
-def map_legacy_method_options(qobj):
-    """Map legacy method names of qasm simulator to aer simulator options"""
-    method = getattr(qobj.config, "method", None)
-    if method in LEGACY_METHOD_MAP:
-        qobj.config.method, qobj.config.device = LEGACY_METHOD_MAP[method]
-    return qobj
 
 
 def map_legacy_method_config(config):
@@ -558,7 +520,48 @@ def circuit_optypes(circuit):
     if not isinstance(circuit, QuantumCircuit):
         return set()
     optypes = set()
-    for inst, _, _ in circuit._data:
-        optypes.update(type(inst).mro())
+    for instruction in circuit.data:
+        optypes.update(type(instruction.operation).mro())
     optypes.discard(object)
     return optypes
+
+
+class CircuitHeader(SimpleNamespace):
+    """A class used to represent a dictionary header in circuit objects."""
+
+    def __init__(self, **kwargs):
+        """Instantiate a new circuit dict field object.
+
+        Args:
+            kwargs: arbitrary keyword arguments that can be accessed as
+                attributes of the object.
+        """
+        self.__dict__.update(kwargs)
+
+    def to_dict(self):
+        """Return a dictionary format representation of the circuit.
+
+        Returns:
+            dict: The dictionary form of the CircuitHeader.
+        """
+        return self.__dict__
+
+    @classmethod
+    def from_dict(cls, data):
+        """Create a new header object from a dictionary.
+
+        Args:
+            data (dict): A dictionary representing the header to create. It
+                will be in the same format as output by :func:`to_dict`.
+
+        Returns:
+            CircuitHeader: The CircuitHeader from the input dictionary.
+        """
+
+        return cls(**data)
+
+    def __eq__(self, other):
+        if isinstance(other, self.__class__):
+            if self.__dict__ == other.__dict__:
+                return True
+        return False

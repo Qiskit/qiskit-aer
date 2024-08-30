@@ -97,7 +97,10 @@ class SamplerV2(BaseSamplerV2):
     def from_backend(cls, backend, **options):
         """make new sampler that uses external backend"""
         sampler = cls(**options)
-        sampler._backend = AerSimulator.from_backend(backend)
+        if isinstance(backend, AerSimulator):
+            sampler._backend = backend
+        else:
+            sampler._backend = AerSimulator.from_backend(backend)
         return sampler
 
     @property
@@ -148,7 +151,7 @@ class SamplerV2(BaseSamplerV2):
             # reconstruct the result of pubs
             for i, pub_result in zip(lst, pub_results):
                 results[i] = pub_result
-        return PrimitiveResult(results)
+        return PrimitiveResult(results, metadata={"version": 2})
 
     def _run_pubs(self, pubs: list[SamplerPub], shots: int) -> list[SamplerPubResult]:
         """Compute results for pubs that all require the same value of ``shots``."""
@@ -189,6 +192,7 @@ class SamplerV2(BaseSamplerV2):
                     p_v.shape,
                     meas_info,
                     max_num_bytes,
+                    pub.circuit.metadata,
                     result.metadata,
                 )
             )
@@ -203,7 +207,8 @@ class SamplerV2(BaseSamplerV2):
         shape: tuple[int, ...],
         meas_info: list[_MeasureInfo],
         max_num_bytes: int,
-        metadata: dict,
+        circuit_metadata: dict,
+        simulator_metadata: dict,
     ) -> SamplerPubResult:
         """Converts the memory data into an array of bit arrays with the shape of the pub."""
         arrays = {
@@ -221,7 +226,12 @@ class SamplerV2(BaseSamplerV2):
             item.creg_name: BitArray(arrays[item.creg_name], item.num_bits) for item in meas_info
         }
         return SamplerPubResult(
-            DataBin(**meas, shape=shape), metadata={"simulator_metadata": metadata}
+            DataBin(**meas, shape=shape),
+            metadata={
+                "shots": shots,
+                "circuit_metadata": circuit_metadata,
+                "simulator_metadata": simulator_metadata,
+            },
         )
 
 

@@ -376,6 +376,37 @@ class TestEstimatorV2(QiskitAerTestCase):
         np.testing.assert_allclose(result[0].data.evs, [-1.284366511861733], rtol=self._rtol)
         np.testing.assert_allclose(result[1].data.evs, [-1.284366511861733], rtol=self._rtol)
 
+    def test_metadata(self):
+        """Test for metadata"""
+        qc = QuantumCircuit(2)
+        qc2 = QuantumCircuit(2)
+        qc2.metadata = {"a": 1}
+        estimator = EstimatorV2(options=self._options)
+        pm = generate_preset_pass_manager(optimization_level=0, backend=self.backend)
+        qc, qc2 = pm.run([qc, qc2])
+        op = SparsePauliOp("ZZ").apply_layout(qc.layout)
+        op2 = SparsePauliOp("ZZ").apply_layout(qc2.layout)
+        result = estimator.run([(qc, op), (qc2, op2)], precision=0.1).result()
+
+        self.assertEqual(len(result), 2)
+        self.assertEqual(result.metadata, {"version": 2})
+
+        metadata = result[0].metadata
+        self.assertIsInstance(metadata["simulator_metadata"], dict)
+        del metadata["simulator_metadata"]
+        self.assertEqual(
+            metadata,
+            {"target_precision": 0.1, "circuit_metadata": qc.metadata},
+        )
+
+        metadata = result[1].metadata
+        self.assertIsInstance(metadata["simulator_metadata"], dict)
+        del metadata["simulator_metadata"]
+        self.assertEqual(
+            result[1].metadata,
+            {"target_precision": 0.1, "circuit_metadata": qc2.metadata},
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -64,7 +64,7 @@ public:
 protected:
   void set_config(const Config &config) override;
 
-  virtual uint_t qubit_scale(void) { return 1; }
+  virtual uint_t qubit_scale(void) override { return 1; }
 
   bool multiple_chunk_required(const Config &config, const Circuit &circuit,
                                const Noise::NoiseModel &noise) const;
@@ -924,8 +924,9 @@ void ParallelStateExecutor<state_t>::apply_cache_blocking_ops(
     // fecth chunk in cache
     if (Base::states_[iChunk].qreg().fetch_chunk()) {
       if (Base::num_bind_params_ > 1) {
-        Base::run_circuit_with_parameter_binding(
-            Base::states_[iChunk], first, last, result, rng, iparam, false);
+        Base::run_circuit_with_parameter_binding(Base::states_[iChunk], first,
+                                                 last, result, rng, iparam,
+                                                 nullptr, false, false);
       } else {
         Base::states_[iChunk].apply_ops(first, last, result, rng, false);
       }

@@ -38,7 +38,6 @@ DISABLE_WARNING_POP
 
 #include "framework/creg.hpp"
 #include "framework/linalg/vector.hpp"
-#include "framework/qobj.hpp"
 #include "framework/results/experiment_result.hpp"
 #include "framework/results/result.hpp"
 #include "framework/rng.hpp"
@@ -372,7 +371,7 @@ public:
   // Operation management
   //-----------------------------------------------------------------------
   // Buffer Operations::Op
-  virtual void buffer_op(const Operations::Op &&op);
+  virtual void buffer_op(Operations::Op &&op);
 
   // Flush buffered Operations::Op
   virtual void flush_ops();
@@ -385,7 +384,7 @@ public:
 
 private:
   void initialize_state_controller();
-  void initialize_qreg_state(std::shared_ptr<QuantumState::Base> state);
+  void initialize_qreg_state(const std::shared_ptr<QuantumState::Base> &state);
   void assert_initialized() const;
   void assert_not_initialized() const;
   bool is_gpu(bool raise_error) const;
@@ -658,7 +657,7 @@ void AerState::initialize_state_controller() {
 };
 
 void AerState::initialize_qreg_state(
-    std::shared_ptr<QuantumState::Base> state) {
+    const std::shared_ptr<QuantumState::Base> &state) {
   if (!state) {
     if (method_ == Method::statevector) {
       if (device_ == Device::CPU)
@@ -1488,7 +1487,7 @@ std::unordered_map<uint_t, uint_t> AerState::sample_counts(const reg_t &qubits,
 //-----------------------------------------------------------------------
 // Operation management
 //-----------------------------------------------------------------------
-void AerState::buffer_op(const Operations::Op &&op) {
+void AerState::buffer_op(Operations::Op &&op) {
   assert_initialized();
   buffer_.ops.push_back(std::move(op));
 };

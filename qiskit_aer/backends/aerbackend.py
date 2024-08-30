@@ -22,16 +22,14 @@ import warnings
 from abc import ABC, abstractmethod
 
 from qiskit.circuit import QuantumCircuit, ParameterExpression, Delay
-from qiskit.compiler import assemble
 from qiskit.providers import BackendV2 as Backend
-from qiskit.providers import convert_to_target
-from qiskit.providers.models import BackendStatus
+from qiskit.providers.models.backendstatus import BackendStatus
 from qiskit.pulse import Schedule, ScheduleBlock
-from qiskit.qobj import QasmQobj, PulseQobj
 from qiskit.result import Result
 from qiskit.transpiler import CouplingMap
+from qiskit.transpiler.target import Target
 from ..aererror import AerError
-from ..jobs import AerJob, AerJobSet, split_qobj
+from ..jobs import AerJob
 from ..noise.noise_model import NoiseModel, QuantumErrorLocation
 from ..noise.errors.base_quantum_error import QuantumChannelInstruction
 from .aer_compiler import compile_circuit, assemble_circuits, generate_aer_config
@@ -58,8 +56,8 @@ class AerBackend(Backend, ABC):
         not available.
 
         Args:
-            configuration (BackendConfiguration): backend configuration.
-            properties (BackendProperties or None): Optional, backend properties.
+            configuration (AerBackendConfiguration): backend configuration.
+            properties (AerBackendProperties or None): Optional, backend properties.
             provider (Provider): Optional, provider responsible for this backend.
             target (Target):  initial target for backend
             backend_options (dict or None): Optional set custom backend options.
@@ -68,8 +66,6 @@ class AerBackend(Backend, ABC):
             AerError: if there is no name in the configuration
         """
         # Init configuration and provider in Backend
-        configuration.simulator = True
-        configuration.local = True
         super().__init__(
             provider=provider,
             name=configuration.backend_name,
@@ -77,15 +73,19 @@ class AerBackend(Backend, ABC):
             backend_version=configuration.backend_version,
         )
 
-        # Initialize backend properties
+        # Initialize backend configuration
         self._properties = properties
         self._configuration = configuration
 
-        # Custom option values for config, properties
+        # Custom option values for config
         self._options_configuration = {}
         self._options_properties = {}
         self._target = target
         self._mapping = NAME_MAPPING
+        if target is not None:
+            self._from_backend = True
+        else:
+            self._from_backend = False
 
         # Set options from backend_options dictionary
         if backend_options is not None:
@@ -145,13 +145,12 @@ class AerBackend(Backend, ABC):
         return parameterizations
 
     # pylint: disable=arguments-renamed
-    def run(self, circuits, validate=False, parameter_binds=None, **run_options):
+    def run(self, circuits, parameter_binds=None, **run_options):
         """Run circuits on the backend.
 
         Args:
             circuits (QuantumCircuit or list): The QuantumCircuit (or list
                 of QuantumCircuit objects) to run
-            validate (bool): validate the Qobj before running (default: False).
             parameter_binds (list): A list of parameter binding dictionaries.
                                     See additional information (default: None).
             run_options (kwargs): additional run time backend options.
@@ -160,7 +159,7 @@ class AerBackend(Backend, ABC):
             AerJob: The simulation job.
 
         Raises:
-            TypeError: If ``parameter_binds`` is specified with a qobj input or
+            TypeError: If ``parameter_binds`` is specified with an input or
                 has a length mismatch with the number of circuits.
 
         Additional Information:
@@ -185,67 +184,7 @@ class AerBackend(Backend, ABC):
         if isinstance(circuits, (QuantumCircuit, Schedule, ScheduleBlock)):
             circuits = [circuits]
 
-        if isinstance(circuits, (QasmQobj, PulseQobj)):
-            warnings.warn(
-                "Using a qobj for run() is deprecated as of qiskit-aer 0.14"
-                " and will be removed no sooner than 3 months from that release"
-                " date. Transpiled circuits should now be passed directly using"
-                " `backend.run(circuits, **run_options).",
-                DeprecationWarning,
-                stacklevel=2,
-            )
-            if parameter_binds:
-                raise TypeError("Parameter binds can't be used with an input qobj")
-            # A work around to support both qobj options and run options until
-            # qobj is deprecated is to copy all the set qobj.config fields into
-            # run_options that don't override existing fields. This means set
-            # run_options fields will take precidence over the value for those
-            # fields that are set via assemble.
-            if not run_options:
-                run_options = circuits.config.__dict__
-            else:
-                run_options = copy.copy(run_options)
-                for key, value in circuits.config.__dict__.items():
-                    if key not in run_options and value is not None:
-                        run_options[key] = value
-            if "parameter_binds" in run_options:
-                parameter_binds = run_options.pop("parameter_binds")
-            return self._run_qobj(circuits, validate, parameter_binds, **run_options)
-
-        only_circuits = True
-        only_pulse = True
-        for circ in circuits:
-            only_circuits &= isinstance(circ, QuantumCircuit)
-            only_pulse &= isinstance(circ, (ScheduleBlock, Schedule))
-
-        if only_circuits and not only_pulse:
-            if validate:
-                raise TypeError(
-                    "bad input to run() function;"
-                    "`validation` argument is only effective for input qobj"
-                )
-
-            executor = run_options.get("executor", None)
-            if executor is None and "executor" in self.options.__dict__:
-                executor = self.options.__dict__.get("executor", None)
-            if executor:
-                # This path remains for DASK execution to split a qobj insttance
-                # into sub-qobj instances. This will be replaced with _run_circuits path
-                # in the near releases
-                return self._run_qobj(circuits, validate, parameter_binds, **run_options)
-            else:
-                return self._run_circuits(circuits, parameter_binds, **run_options)
-        elif not only_circuits and only_pulse:
-            return self._run_qobj(circuits, validate, parameter_binds, **run_options)
-        elif not only_circuits and not only_pulse:
-            raise TypeError(
-                "bad input to run() function;"
-                "circuits and schedules cannot be mixed in a single run"
-            )
-        else:
-            raise TypeError(
-                "bad input to run() function; circuits must be either circuits or schedules"
-            )
+        return self._run_circuits(circuits, parameter_binds, **run_options)
 
     def _run_circuits(self, circuits, parameter_binds, **run_options):
         """Run circuits by generating native circuits."""
@@ -260,49 +199,6 @@ class AerBackend(Backend, ABC):
             run_options=run_options,
         )
         aer_job.submit()
-
-        return aer_job
-
-    # pylint: disable=arguments-differ
-    def _run_qobj(self, circuits, validate=False, parameter_binds=None, **run_options):
-        """Run circuits by assembling qobj."""
-        qobj = self._assemble(circuits, parameter_binds=parameter_binds, **run_options)
-
-        # Optional validation
-        if validate:
-            self._validate(qobj)
-
-        # Get executor from qobj config and delete attribute so qobj can still be serialized
-        executor = getattr(qobj.config, "executor", None)
-        if hasattr(qobj.config, "executor"):
-            delattr(qobj.config, "executor")
-
-        # Optionally split the job
-        experiments = split_qobj(
-            qobj,
-            max_size=getattr(qobj.config, "max_job_size", None),
-            max_shot_size=getattr(qobj.config, "max_shot_size", None),
-        )
-
-        # Temporarily remove any executor from options so that job submission
-        # can work with Dask client executors which can't be pickled
-        opts_executor = getattr(self._options, "executor", None)
-        if hasattr(self._options, "executor"):
-            self._options.executor = None
-
-        # Submit job
-        job_id = str(uuid.uuid4())
-        if isinstance(experiments, list):
-            aer_job = AerJobSet(self, job_id, self._execute_qobj_job, experiments, executor)
-        else:
-            aer_job = AerJob(
-                self, job_id, self._execute_qobj_job, qobj=experiments, executor=executor
-            )
-        aer_job.submit()
-
-        # Restore removed executor after submission
-        if hasattr(self._options, "executor"):
-            self._options.executor = opts_executor
 
         return aer_job
 
@@ -342,17 +238,201 @@ class AerBackend(Backend, ABC):
 
     @property
     def target(self):
-        if self._target is not None:
+        if self._from_backend:
             return self._target
 
-        tgt = convert_to_target(self.configuration(), self.properties(), None, NAME_MAPPING)
+        # make target for AerBackend
+
+        # importing packages where they are needed, to avoid cyclic-import.
+        # pylint: disable=cyclic-import
+        from qiskit.transpiler.target import InstructionProperties
+        from qiskit.circuit.controlflow import ForLoopOp, IfElseOp, SwitchCaseOp, WhileLoopOp
+        from qiskit.circuit.library.standard_gates import get_standard_gate_name_mapping
+        from qiskit.circuit.parameter import Parameter
+        from qiskit.circuit.gate import Gate
+        from qiskit.circuit.controlflow import CONTROL_FLOW_OP_NAMES
+        from qiskit.providers.backend import QubitProperties
+
+        required = ["measure", "delay"]
+
+        configuration = self.configuration()
+        properties = self.properties()
+
+        # Load Qiskit object representation
+        qiskit_inst_mapping = get_standard_gate_name_mapping()
+        qiskit_inst_mapping.update(NAME_MAPPING)
+
+        qiskit_control_flow_mapping = {
+            "if_else": IfElseOp,
+            "while_loop": WhileLoopOp,
+            "for_loop": ForLoopOp,
+            "switch_case": SwitchCaseOp,
+        }
+        in_data = {"num_qubits": configuration.num_qubits}
+
+        # Parse global configuration properties
+        if hasattr(configuration, "dt"):
+            in_data["dt"] = configuration.dt
+        if hasattr(configuration, "timing_constraints"):
+            in_data.update(configuration.timing_constraints)
+
+        # Create instruction property placeholder from backend configuration
+        basis_gates = set(getattr(configuration, "basis_gates", []))
+        supported_instructions = set(getattr(configuration, "supported_instructions", []))
+        gate_configs = {gate.name: gate for gate in configuration.gates}
+        all_instructions = set.union(
+            basis_gates, set(required), supported_instructions.intersection(CONTROL_FLOW_OP_NAMES)
+        )
+        inst_name_map = {}  # type: Dict[str, Instruction]
+
+        faulty_ops = set()
+        faulty_qubits = set()
+        unsupported_instructions = []
+
+        # Create name to Qiskit instruction object repr mapping
+        for name in all_instructions:
+            if name in qiskit_control_flow_mapping:
+                continue
+            if name in qiskit_inst_mapping:
+                inst_name_map[name] = qiskit_inst_mapping[name]
+            elif name in gate_configs:
+                this_config = gate_configs[name]
+                params = list(map(Parameter, getattr(this_config, "parameters", [])))
+                coupling_map = getattr(this_config, "coupling_map", [])
+                inst_name_map[name] = Gate(
+                    name=name,
+                    num_qubits=len(coupling_map[0]) if coupling_map else 0,
+                    params=params,
+                )
+            else:
+                warnings.warn(
+                    f"No gate definition for {name} can be found and is being excluded "
+                    "from the generated target.",
+                    RuntimeWarning,
+                )
+                unsupported_instructions.append(name)
+
+        for name in unsupported_instructions:
+            all_instructions.remove(name)
+
+        # Create inst properties placeholder
+        # Without any assignment, properties value is None,
+        # which defines a global instruction that can be applied to any qubit(s).
+        # The None value behaves differently from an empty dictionary.
+        # See API doc of Target.add_instruction for details.
+        prop_name_map = dict.fromkeys(all_instructions)
+        for name in all_instructions:
+            if name in gate_configs:
+                if coupling_map := getattr(gate_configs[name], "coupling_map", None):
+                    # Respect operational qubits that gate configuration defines
+                    # This ties instruction to particular qubits even without properties information.
+                    # Note that each instruction is considered to be ideal unless
+                    # its spec (e.g. error, duration) is bound by the properties object.
+                    prop_name_map[name] = dict.fromkeys(map(tuple, coupling_map))
+
+        # Populate instruction properties
+        if properties:
+
+            def _get_value(prop_dict, prop_name):
+                if ndval := prop_dict.get(prop_name, None):
+                    return ndval[0]
+                return None
+
+            # is_qubit_operational is a bit of expensive operation so precache the value
+            faulty_qubits = {
+                q for q in range(configuration.num_qubits) if not properties.is_qubit_operational(q)
+            }
+
+            qubit_properties = []
+            for qi in range(0, configuration.num_qubits):
+                # TODO faulty qubit handling might be needed since
+                #  faulty qubit reporting qubit properties doesn't make sense.
+                try:
+                    prop_dict = properties.qubit_property(qubit=qi)
+                except KeyError:
+                    continue
+                qubit_properties.append(
+                    QubitProperties(
+                        t1=prop_dict.get("T1", (None, None))[0],
+                        t2=prop_dict.get("T2", (None, None))[0],
+                        frequency=prop_dict.get("frequency", (None, None))[0],
+                    )
+                )
+            in_data["qubit_properties"] = qubit_properties
+
+            for name in all_instructions:
+                for qubits, params in properties.gate_property(name).items():
+                    if set.intersection(
+                        faulty_qubits, qubits
+                    ) or not properties.is_gate_operational(name, qubits):
+                        try:
+                            # Qubits might be pre-defined by the gate config
+                            # However properties objects says the qubits is non-operational
+                            del prop_name_map[name][qubits]
+                        except KeyError:
+                            pass
+                        faulty_ops.add((name, qubits))
+                        continue
+                    if prop_name_map[name] is None:
+                        prop_name_map[name] = {}
+                    prop_name_map[name][qubits] = InstructionProperties(
+                        error=_get_value(params, "gate_error"),
+                        duration=_get_value(params, "gate_length"),
+                    )
+                if isinstance(prop_name_map[name], dict) and any(
+                    v is None for v in prop_name_map[name].values()
+                ):
+                    # Properties provides gate properties only for subset of qubits
+                    # Associated qubit set might be defined by the gate config here
+                    logger.info(
+                        "Gate properties of instruction %s are not provided for every qubits. "
+                        "This gate is ideal for some qubits and the rest is with finite error. "
+                        "Created backend target may confuse error-aware circuit optimization.",
+                        name,
+                    )
+
+            # Measure instruction property is stored in qubit property
+            prop_name_map["measure"] = {}
+
+            for qubit_idx in range(configuration.num_qubits):
+                if qubit_idx in faulty_qubits:
+                    continue
+                qubit_prop = properties.qubit_property(qubit_idx)
+                prop_name_map["measure"][(qubit_idx,)] = InstructionProperties(
+                    error=_get_value(qubit_prop, "readout_error"),
+                    duration=_get_value(qubit_prop, "readout_length"),
+                )
+
+        for op in required:
+            # Map required ops to each operational qubit
+            if prop_name_map[op] is None:
+                prop_name_map[op] = {
+                    (q,): None for q in range(configuration.num_qubits) if q not in faulty_qubits
+                }
+
+        # Add parsed properties to target
+        target = Target(**in_data)
+        for inst_name in all_instructions:
+            if inst_name in qiskit_control_flow_mapping:
+                # Control flow operator doesn't have gate property.
+                target.add_instruction(
+                    instruction=qiskit_control_flow_mapping[inst_name],
+                    name=inst_name,
+                )
+            else:
+                target.add_instruction(
+                    instruction=inst_name_map[inst_name],
+                    properties=prop_name_map.get(inst_name, None),
+                    name=inst_name,
+                )
+
         if self._coupling_map is not None:
-            tgt._coupling_graph = self._coupling_map.graph.copy()
-        return tgt
+            target._coupling_graph = self._coupling_map.graph.copy()
+        return target
 
     def set_max_qubits(self, max_qubits):
         """Set maximun number of qubits to be used for this backend."""
-        if self._target is None:
+        if not self._from_backend:
             self._configuration.n_qubits = max_qubits
             self._set_configuration_option("n_qubits", max_qubits)
 
@@ -375,71 +455,6 @@ class AerBackend(Backend, ABC):
             pending_jobs=0,
             status_msg="",
         )
-
-    def _execute_qobj_job(self, qobj, job_id="", format_result=True):
-        """Run a qobj job"""
-        # Start timer
-        start = time.time()
-
-        # Take metadata from headers of experiments to work around JSON serialization error
-        metadata_list = []
-        metadata_index = 0
-        for expr in qobj.experiments:
-            if hasattr(expr.header, "metadata"):
-                metadata_copy = expr.header.metadata.copy()
-                metadata_list.append(metadata_copy)
-                expr.header.metadata.clear()
-                if "id" in metadata_copy:
-                    expr.header.metadata["id"] = metadata_copy["id"]
-                expr.header.metadata["metadata_index"] = metadata_index
-                metadata_index += 1
-
-        # Run simulation
-        output = self._execute_qobj(qobj)
-
-        # Recover metadata
-        metadata_index = 0
-        for expr in qobj.experiments:
-            if hasattr(expr.header, "metadata"):
-                expr.header.metadata.clear()
-                expr.header.metadata.update(metadata_list[metadata_index])
-                metadata_index += 1
-
-        # Validate output
-        if not isinstance(output, dict):
-            logger.error("%s: simulation failed.", self.name)
-            if output:
-                logger.error("Output: %s", output)
-            raise AerError("simulation terminated without returning valid output.")
-
-        # Format results
-        output["job_id"] = job_id
-        output["date"] = datetime.datetime.now().isoformat()
-        output["backend_name"] = self.name
-        output["backend_version"] = self.configuration().backend_version
-
-        # Push metadata to experiment headers
-        for result in output["results"]:
-            if (
-                "header" in result
-                and "metadata" in result["header"]
-                and "metadata_index" in result["header"]["metadata"]
-            ):
-                metadata_index = result["header"]["metadata"]["metadata_index"]
-                result["header"]["metadata"] = metadata_list[metadata_index]
-
-        # Add execution time
-        output["time_taken"] = time.time() - start
-
-        # Display warning if simulation failed
-        if not output.get("success", False):
-            msg = "Simulation failed"
-            if "status" in output:
-                msg += f" and returned the following error message:\n{output['status']}"
-            logger.warning(msg)
-        if format_result:
-            return self._format_results(output)
-        return output
 
     def _execute_circuits_job(
         self, circuits, parameter_binds, run_options, job_id="", format_result=True
@@ -535,49 +550,6 @@ class AerBackend(Backend, ABC):
 
         return circuits, noise_model
 
-    def _assemble(self, circuits, parameter_binds=None, **run_options):
-        """Assemble one or more Qobj for running on the simulator"""
-
-        if isinstance(circuits, (QasmQobj, PulseQobj)):
-            qobj = circuits
-        else:
-            # compile and insert noise injection points
-            circuits, noise_model = self._compile(circuits, **run_options)
-
-            # If noise model exists, add it to the run options
-            if noise_model:
-                run_options["noise_model"] = noise_model
-
-            if parameter_binds:
-                # Handle parameter binding
-                parameterizations = self._convert_binds(circuits, parameter_binds)
-                qobj = None
-                for circuit in circuits:
-                    assemble_bind = {param: 1 for param in circuit.parameters}
-                    qobj_tmp = assemble(
-                        [circuit],
-                        backend=self,
-                        parameter_binds=[assemble_bind],
-                        parameterizations=parameterizations,
-                    )
-                    if qobj:
-                        qobj.experiments.append(qobj_tmp.experiments[0])
-                    else:
-                        qobj = qobj_tmp
-            else:
-                qobj = assemble(circuits, backend=self)
-
-        # Add options
-        for key, val in self.options.__dict__.items():
-            if val is not None:
-                setattr(qobj.config, key, val)
-
-        # Override with run-time options
-        for key, val in run_options.items():
-            setattr(qobj.config, key, val)
-
-        return qobj
-
     def _assemble_noise_model(self, circuits, optypes, **run_options):
         """Move quantum error instructions from circuits to noise model"""
         # Make a shallow copy so we can modify list elements if required
@@ -615,7 +587,8 @@ class AerBackend(Backend, ABC):
             ):
                 updated_circ = False
                 new_data = []
-                for inst, qargs, cargs in circ.data:
+                for datum in circ.data:
+                    inst, qargs, cargs = datum.operation, datum.qubits, datum.clbits
                     if isinstance(inst, QuantumChannelInstruction):
                         updated_circ = True
                         if not updated_noise:
@@ -652,18 +625,6 @@ class AerBackend(Backend, ABC):
             return getattr(self._options, "executor", None)
 
     @abstractmethod
-    def _execute_qobj(self, qobj):
-        """Execute a qobj on the backend.
-
-        Args:
-            qobj (QasmQobj or PulseQobj): simulator input.
-
-        Returns:
-            dict: return a dictionary of results.
-        """
-        pass
-
-    @abstractmethod
     def _execute_circuits(self, aer_circuits, noise_model, config):
         """Execute aer circuits on the backend.
 
@@ -675,10 +636,6 @@ class AerBackend(Backend, ABC):
         Returns:
             dict: return a dictionary of results.
         """
-        pass
-
-    def _validate(self, qobj):
-        """Validate the qobj for the backend"""
         pass
 
     def set_option(self, key, value):

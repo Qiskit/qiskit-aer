@@ -16,25 +16,26 @@ Aer qasm simulator backend.
 import copy
 import logging
 from warnings import warn
+from qiskit.providers import convert_to_target
 from qiskit.providers.options import Options
-from qiskit.providers.models import QasmBackendConfiguration
-from qiskit.providers.backend import BackendV2
+from qiskit.providers.backend import BackendV2, BackendV1
 
 from ..version import __version__
 from ..aererror import AerError
 from .aerbackend import AerBackend
+from .backendconfiguration import AerBackendConfiguration
+from .backendproperties import target_to_backend_properties
 from .backend_utils import (
-    cpp_execute_qobj,
     cpp_execute_circuits,
     available_methods,
     MAX_QUBITS_STATEVECTOR,
     LEGACY_METHOD_MAP,
-    map_legacy_method_options,
     map_legacy_method_config,
 )
 
 # pylint: disable=import-error, no-name-in-module, abstract-method
 from .controller_wrappers import aer_controller_execute
+from .name_mapping import NAME_MAPPING
 
 logger = logging.getLogger(__name__)
 
@@ -161,7 +162,7 @@ class QasmSimulator(AerBackend):
       maximum will be set to the number of CPU cores (Default: 0).
 
     * ``max_parallel_experiments`` (int): Sets the maximum number of
-      qobj experiments that may be executed in parallel up to the
+      experiments that may be executed in parallel up to the
       max_parallel_threads value. If set to 1 parallel circuit
       execution will be disabled. If set to 0 the maximum will be
       automatically set to max_parallel_threads (Default: 1).
@@ -400,10 +401,9 @@ class QasmSimulator(AerBackend):
         "simulator": True,
         "local": True,
         "conditional": True,
-        "open_pulse": False,
         "memory": True,
         "max_shots": int(1e6),
-        "description": "A C++ QasmQobj simulator with noise",
+        "description": "A C++ Qasm simulator with noise",
         "coupling_map": None,
         "basis_gates": _DEFAULT_BASIS_GATES,
         "custom_instructions": _DEFAULT_CUSTOM_INSTR,
@@ -450,7 +450,7 @@ class QasmSimulator(AerBackend):
 
         # Default configuration
         if configuration is None:
-            configuration = QasmBackendConfiguration.from_dict(QasmSimulator._DEFAULT_CONFIGURATION)
+            configuration = AerBackendConfiguration.from_dict(QasmSimulator._DEFAULT_CONFIGURATION)
         else:
             configuration.open_pulse = False
 
@@ -459,7 +459,7 @@ class QasmSimulator(AerBackend):
         self._cached_basis_gates = self._DEFAULT_BASIS_GATES
 
         super().__init__(
-            configuration, properties=properties, provider=provider, backend_options=backend_options
+            configuration, properties, provider=provider, backend_options=backend_options
         )
 
     def __repr__(self):
@@ -534,27 +534,59 @@ class QasmSimulator(AerBackend):
     def from_backend(cls, backend, **options):
         """Initialize simulator from backend."""
         if isinstance(backend, BackendV2):
-            raise AerError("QasmSimulator.from_backend does not currently support V2 Backends.")
-        # pylint: disable=import-outside-toplevel
-        # Avoid cyclic import
-        from ..noise.noise_model import NoiseModel
+            if backend.description is None:
+                description = "created by AerSimulator.from_backend"
+            else:
+                description = backend.description
 
-        # Get configuration and properties from backend
-        configuration = copy.copy(backend.configuration())
-        properties = copy.copy(backend.properties())
+            configuration = AerBackendConfiguration(
+                backend_name=f"aer_simulator_from({backend.name})",
+                backend_version=backend.backend_version,
+                n_qubits=backend.num_qubits,
+                basis_gates=backend.operation_names,
+                gates=[],
+                max_shots=int(1e6),
+                coupling_map=list(backend.coupling_map.get_edges()),
+                max_experiments=backend.max_circuits,
+                description=description,
+            )
+            properties = target_to_backend_properties(backend.target)
+            target = backend.target
+        elif isinstance(backend, BackendV1):
+            # BackendV1 will be removed in Qiskit 2.0, so we will remove this soon
+            warn(
+                " from_backend using V1 based backend is deprecated as of Aer 0.15"
+                " and will be removed no sooner than 3 months from that release"
+                " date. Please use backends based on V2.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            # Get configuration and properties from backend
+            configuration = backend.configuration()
+            properties = copy.copy(backend.properties())
 
-        # Customize configuration name
-        name = configuration.backend_name
-        configuration.backend_name = f"qasm_simulator({name})"
+            # Customize configuration name
+            name = configuration.backend_name
+            configuration.backend_name = f"aer_simulator_from({name})"
 
+            target = convert_to_target(configuration, properties, None, NAME_MAPPING)
+        else:
+            raise TypeError(
+                "The backend argument requires a BackendV2 or BackendV1 object, "
+                f"not a {type(backend)} object"
+            )
         # Use automatic noise model if none is provided
         if "noise_model" not in options:
+            # pylint: disable=import-outside-toplevel
+            # Avoid cyclic import
+            from ..noise.noise_model import NoiseModel
+
             noise_model = NoiseModel.from_backend(backend)
             if not noise_model.is_ideal():
                 options["noise_model"] = noise_model
 
         # Initialize simulator
-        sim = cls(configuration=configuration, properties=properties, **options)
+        sim = cls(configuration=configuration, properties=properties, target=target, **options)
         return sim
 
     def configuration(self):
@@ -580,18 +612,6 @@ class QasmSimulator(AerBackend):
         """Return the available simulation methods."""
         return copy.copy(self._AVAILABLE_DEVICES)
 
-    def _execute_qobj(self, qobj):
-        """Execute a qobj on the backend.
-
-        Args:
-            qobj (QasmQobj): simulator input.
-
-        Returns:
-            dict: return a dictionary of results.
-        """
-        qobj = map_legacy_method_options(qobj)
-        return cpp_execute_qobj(self._controller, qobj)
-
     def _execute_circuits(self, aer_circuits, noise_model, config):
         """Execute circuits on the backend."""
         config = map_legacy_method_config(config)
@@ -614,29 +634,6 @@ class QasmSimulator(AerBackend):
         super().set_option(key, value)
         if key in ["method", "noise_model", "basis_gates"]:
             self._cached_basis_gates = self._basis_gates()
-
-    def _validate(self, qobj):
-        """Semantic validations of the qobj which cannot be done via schemas.
-
-        Warn if no measurements in circuit with classical registers.
-        """
-        for experiment in qobj.experiments:
-            # If circuit contains classical registers but not
-            # measurements raise a warning
-            if experiment.config.memory_slots > 0:
-                # Check if measure opts missing
-                no_measure = True
-                for op in experiment.instructions:
-                    if not no_measure:
-                        break  # we don't need to check any more ops
-                    if no_measure and op.name == "measure":
-                        no_measure = False
-                # Print warning if clbits but no measure
-                if no_measure:
-                    logger.warning(
-                        'No measurements in circuit "%s": count data will return all zeros.',
-                        experiment.header.name,
-                    )
 
     def _basis_gates(self):
         """Return simualtor basis gates.

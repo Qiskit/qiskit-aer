@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Distribution packages for Python 3.8 and 3.9 for MacOS on Arm64
+    was disabled by #2106
+    This fix restore these distributions, because Python 3.8 and 3.9 supports
+    MacOS on Arm64 now

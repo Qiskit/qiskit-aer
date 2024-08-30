@@ -35,12 +35,6 @@ void initialize_libraries(const std::string &lib_dir) {
   Hacks::maybe_load_openmp(lib_dir);
 }
 
-template <class controller_t, typename inputdata_t>
-Result controller_execute(const inputdata_t &qobj) {
-  controller_t controller;
-  return controller.execute(qobj);
-}
-
 template <class controller_t>
 Result controller_execute(std::vector<std::shared_ptr<Circuit>> &input_circs,
                           AER::Noise::NoiseModel &noise_model,
@@ -126,7 +120,13 @@ Result controller_execute(std::vector<std::shared_ptr<Circuit>> &input_circs,
                     R"(Invalid parameterized qobj: instruction param position out of range)");
               }
               // resize parameter array
-              op.params.resize(op.params.size() * num_params);
+              uint_t stride = op.params.size();
+              op.params.resize(stride * num_params);
+              // populate default params to allocated params
+              for (size_t j = 1; j < num_params; j++) {
+                for (size_t k = 0; k < stride; k++)
+                  op.params[k + stride * j] = op.params[k];
+              }
               op.has_bind_params = true;
             }
             uint_t stride = op.params.size() / num_params;

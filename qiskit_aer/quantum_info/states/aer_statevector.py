@@ -175,6 +175,9 @@ class AerStatevector(Statevector):
             aer_state.configure("method", method)
 
         basis_gates = BASIS_GATES[method]
+        custom_insts = ["reset", "kraus", "barrier"]
+        if method == "statevector":
+            custom_insts.append("initialize")
 
         aer_state.allocate_qubits(inst.num_qubits)
         num_qubits = inst.num_qubits
@@ -188,14 +191,18 @@ class AerStatevector(Statevector):
             aer_state.apply_global_phase(inst.global_phase)
 
         if isinstance(inst, QuantumCircuit):
-            AerStatevector._aer_evolve_circuit(aer_state, inst, range(num_qubits), basis_gates)
+            AerStatevector._aer_evolve_circuit(
+                aer_state, inst, range(num_qubits), basis_gates, custom_insts
+            )
         else:
-            AerStatevector._aer_evolve_instruction(aer_state, inst, range(num_qubits), basis_gates)
+            AerStatevector._aer_evolve_instruction(
+                aer_state, inst, range(num_qubits), basis_gates, custom_insts
+            )
 
         return aer_state.move_to_ndarray(), aer_state
 
     @staticmethod
-    def _aer_evolve_circuit(aer_state, circuit, qubits, basis_gates=None):
+    def _aer_evolve_circuit(aer_state, circuit, qubits, basis_gates=None, custom_insts=None):
         """Apply circuit into aer_state"""
         for instruction in circuit.data:
             if instruction.clbits:
@@ -209,10 +216,11 @@ class AerStatevector(Statevector):
                 inst,
                 [qubits[circuit.find_bit(qarg).index] for qarg in qargs],
                 basis_gates,
+                custom_insts,
             )
 
     @staticmethod
-    def _aer_evolve_instruction(aer_state, inst, qubits, basis_gates=None):
+    def _aer_evolve_instruction(aer_state, inst, qubits, basis_gates=None, custom_insts=None):
         """Apply instruction into aer_state"""
 
         params = inst.params
@@ -260,12 +268,17 @@ class AerStatevector(Statevector):
                 pass
             else:
                 applied = False
-        elif inst.name == "reset":
-            aer_state.apply_reset(qubits)
-        elif inst.name == "kraus":
-            aer_state.apply_kraus(qubits, inst.params)
-        elif inst.name == "barrier":
-            pass
+        elif custom_insts and inst.name in custom_insts:
+            if inst.name == "initialize":
+                aer_state.apply_initialize(qubits, inst.params)
+            elif inst.name == "reset":
+                aer_state.apply_reset(qubits)
+            elif inst.name == "kraus":
+                aer_state.apply_kraus(qubits, inst.params)
+            elif inst.name == "barrier":
+                pass
+            else:
+                applied = False
         else:
             applied = False
 
@@ -273,7 +286,9 @@ class AerStatevector(Statevector):
             definition = inst.definition
             if definition is inst or definition is None:
                 raise AerError("cannot decompose " + inst.name)
-            AerStatevector._aer_evolve_circuit(aer_state, definition, qubits, basis_gates)
+            AerStatevector._aer_evolve_circuit(
+                aer_state, definition, qubits, basis_gates, custom_insts
+            )
 
     @classmethod
     def from_label(cls, label):

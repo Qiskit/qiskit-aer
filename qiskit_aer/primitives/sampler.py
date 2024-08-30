@@ -18,18 +18,19 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 
+from warnings import warn
 import numpy as np
 from qiskit.circuit import ParameterExpression, QuantumCircuit
 from qiskit.compiler import transpile
 from qiskit.exceptions import QiskitError
-from qiskit.primitives import BaseSampler, SamplerResult
+from qiskit.primitives import BaseSamplerV1, SamplerResult
 from qiskit.primitives.utils import final_measurement_mapping, init_circuit
 from qiskit.result import QuasiDistribution
 
 from .. import AerSimulator
 
 
-class Sampler(BaseSampler):
+class Sampler(BaseSamplerV1):
     """
     Aer implementation of Sampler class.
 
@@ -66,6 +67,11 @@ class Sampler(BaseSampler):
             run_options: Options passed to run.
             skip_transpilation: if True, transpilation is skipped.
         """
+        warn(
+            "Sampler has been deprecated as of Aer 0.15, please use SamplerV2 instead.",
+            DeprecationWarning,
+            stacklevel=3,
+        )
         super().__init__(options=run_options)
         # These two private attributes used to be created by super, but were deprecated in Qiskit
         # 0.46. See https://github.com/Qiskit/qiskit/pull/11051

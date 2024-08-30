@@ -253,7 +253,8 @@ class QuantumError(BaseQuantumError, TolerancesMixin):
                 pass
 
             # Component-wise check for non-Clifford circuits
-            for op, _, _ in circ:
+            for instruction in circ:
+                op = instruction.operation
                 if isinstance(op, IGate):
                     continue
                 if isinstance(op, PauliGate):
@@ -310,10 +311,17 @@ class QuantumError(BaseQuantumError, TolerancesMixin):
         instructions = []
         for circ in self._circs:
             circ_inst = []
-            for inst, qargs, _ in circ.data:
-                qobj_inst = inst.assemble()
-                qobj_inst.qubits = [circ.find_bit(q).index for q in qargs]
-                circ_inst.append(qobj_inst.to_dict())
+            for inst in circ.data:
+                inst_dict = {}
+                inst_dict["name"] = inst.operation.name
+                inst_dict["qubits"] = [circ.find_bit(q).index for q in inst.qubits]
+                if inst.operation.params:
+                    inst_dict["params"] = inst.operation.params
+                if inst.operation.label:
+                    inst_dict["label"] = inst.operation.label
+                if inst.operation.condition:
+                    inst_dict["condition"] = inst.operation.condition
+                circ_inst.append(inst_dict)
             instructions.append(circ_inst)
         # Construct error dict
         error = {

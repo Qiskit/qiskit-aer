@@ -15,17 +15,17 @@ Aer qasm simulator backend.
 
 import copy
 import logging
+from warnings import warn
 from qiskit.providers import convert_to_target
 from qiskit.providers.options import Options
-from qiskit.providers.models import QasmBackendConfiguration
 from qiskit.providers.backend import BackendV2, BackendV1
-from qiskit.transpiler.target import target_to_backend_properties
 
 from ..version import __version__
 from .aerbackend import AerBackend, AerError
+from .backendconfiguration import AerBackendConfiguration
+from .backendproperties import target_to_backend_properties
 from .backend_utils import (
     cpp_execute_circuits,
-    cpp_execute_qobj,
     available_methods,
     available_devices,
     MAX_QUBITS_STATEVECTOR,
@@ -225,7 +225,7 @@ class AerSimulator(AerBackend):
       maximum will be set to the number of CPU cores (Default: 0).
 
     * ``max_parallel_experiments`` (int): Sets the maximum number of
-      qobj experiments that may be executed in parallel up to the
+      experiments that may be executed in parallel up to the
       max_parallel_threads value. If set to 1 parallel circuit
       execution will be disabled. If set to 0 the maximum will be
       automatically set to max_parallel_threads (Default: 1).
@@ -436,7 +436,7 @@ class AerSimulator(AerBackend):
         shots, and a large number of qubits, with complexity around
         O(n * D^2) per shot.
 
-    * ``mps_log_data`` (str): if True, output logging data of the MPS
+    * ``mps_log_data`` (bool): if True, output logging data of the MPS
       structure: bond dimensions and values discarded during approximation.
       (Default: False)
 
@@ -523,6 +523,7 @@ class AerSimulator(AerBackend):
                 "while_loop",
                 "break_loop",
                 "continue_loop",
+                "initialize",
                 "reset",
                 "switch_case",
                 "delay",
@@ -575,6 +576,7 @@ class AerSimulator(AerBackend):
                 "while_loop",
                 "break_loop",
                 "continue_loop",
+                "initialize",
                 "reset",
                 "switch_case",
                 "delay",
@@ -655,6 +657,7 @@ class AerSimulator(AerBackend):
                 "save_statevector_dict",
                 "set_statevector",
                 "set_density_matrix",
+                "initialize",
                 "reset",
                 "switch_case",
                 "delay",
@@ -682,10 +685,9 @@ class AerSimulator(AerBackend):
         "simulator": True,
         "local": True,
         "conditional": True,
-        "open_pulse": False,
         "memory": True,
         "max_shots": int(1e6),
-        "description": "A C++ QasmQobj simulator with noise",
+        "description": "A C++ Qasm simulator with noise",
         "coupling_map": None,
         "basis_gates": BASIS_GATES["automatic"],
         "custom_instructions": _CUSTOM_INSTR["automatic"],
@@ -725,7 +727,7 @@ class AerSimulator(AerBackend):
 
         # Default configuration
         if configuration is None:
-            configuration = QasmBackendConfiguration.from_dict(AerSimulator._DEFAULT_CONFIGURATION)
+            configuration = AerBackendConfiguration.from_dict(AerSimulator._DEFAULT_CONFIGURATION)
 
         # set backend name from method and device in option
         if "from" not in configuration.backend_name:
@@ -843,17 +845,12 @@ class AerSimulator(AerBackend):
             else:
                 description = backend.description
 
-            configuration = QasmBackendConfiguration(
+            configuration = AerBackendConfiguration(
                 backend_name=f"aer_simulator_from({backend.name})",
                 backend_version=backend.backend_version,
                 n_qubits=backend.num_qubits,
                 basis_gates=backend.operation_names,
                 gates=[],
-                local=True,
-                simulator=True,
-                conditional=True,
-                open_pulse=False,
-                memory=False,
                 max_shots=int(1e6),
                 coupling_map=list(backend.coupling_map.get_edges()),
                 max_experiments=backend.max_circuits,
@@ -862,8 +859,16 @@ class AerSimulator(AerBackend):
             properties = target_to_backend_properties(backend.target)
             target = backend.target
         elif isinstance(backend, BackendV1):
+            # BackendV1 will be removed in Qiskit 2.0, so we will remove this soon
+            warn(
+                " from_backend using V1 based backend is deprecated as of Aer 0.15"
+                " and will be removed no sooner than 3 months from that release"
+                " date. Please use backends based on V2.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
             # Get configuration and properties from backend
-            configuration = copy.copy(backend.configuration())
+            configuration = backend.configuration()
             properties = copy.copy(backend.properties())
 
             # Customize configuration name
@@ -923,17 +928,6 @@ class AerSimulator(AerBackend):
         ret = cpp_execute_circuits(self._controller, aer_circuits, noise_model, config)
         return ret
 
-    def _execute_qobj(self, qobj):
-        """Execute a qobj on the backend.
-
-        Args:
-            qobj (QasmQobj): simulator input.
-
-        Returns:
-            dict: return a dictionary of results.
-        """
-        return cpp_execute_qobj(self._controller, qobj)
-
     def set_option(self, key, value):
         if key == "custom_instructions":
             self._set_configuration_option(key, value)
@@ -969,25 +963,6 @@ class AerSimulator(AerBackend):
                         self.name += f"_{method}"
                         if value != "CPU":
                             self.name += f"_{value}".lower()
-
-    def _validate(self, qobj):
-        """Semantic validations of the qobj which cannot be done via schemas.
-
-        Warn if no measure or save instructions in run circuits.
-        """
-        for experiment in qobj.experiments:
-            # If circuit does not contain measurement or save
-            # instructions raise a warning
-            no_data = True
-            for op in experiment.instructions:
-                if op.name == "measure" or op.name[:5] == "save_":
-                    no_data = False
-                    break
-            if no_data:
-                logger.warning(
-                    'No measure or save instruction in circuit "%s": results will be empty.',
-                    experiment.header.name,
-                )
 
     def _basis_gates(self):
         """Return simualtor basis gates.

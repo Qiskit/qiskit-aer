@@ -22,7 +22,7 @@ import numpy as np
 
 from test.terra import common
 
-from qiskit.compiler import assemble, transpile
+from qiskit.compiler import transpile
 from qiskit.circuit import QuantumCircuit, Parameter
 from test.terra.reference.ref_save_expval import (
     save_expval_circuits,
@@ -55,89 +55,6 @@ class TestRuntimeParameterization(SimulatorTestCase):
         "shot_branching_enable": False,
         "runtime_parameter_bind_enable": True,
     }
-
-    @staticmethod
-    def runtime_parameterization(
-        backend,
-        shots=1000,
-        measure=True,
-        snapshot=False,
-        save_state=False,
-    ):
-        """Return ParameterizedQobj for settings."""
-        pershot = shots == 1
-        pcirc1, param1 = save_expval_circuit_parameterized(
-            pershot=pershot,
-            measure=measure,
-            snapshot=snapshot,
-        )
-        circuits2to4 = save_expval_circuits(
-            pauli=True,
-            skip_measure=(not measure),
-            pershot=pershot,
-        )
-        pcirc2, param2 = save_expval_circuit_parameterized(
-            pershot=pershot,
-            measure=measure,
-            snapshot=snapshot,
-        )
-        circuits = [pcirc1] + circuits2to4 + [pcirc2]
-        if save_state:
-            for circuit in circuits:
-                circuit.save_statevector(pershot=pershot)
-        params = [param1, [], [], [], param2]
-        qobj = assemble(circuits, backend=backend, shots=shots, parameterizations=params)
-        return qobj
-
-    def test_runtime_parameterization_qasm_save_expval(self):
-        """Test parameterized qobj with Expectation Value snapshot and qasm simulator."""
-        shots = 1000
-        labels = save_expval_labels() * 3
-        counts_targets = save_expval_counts(shots) * 3
-        value_targets = save_expval_pre_meas_values() * 3
-
-        backend = AerSimulator()
-        qobj = self.runtime_parameterization(
-            backend=backend, shots=1000, measure=True, snapshot=True
-        )
-        self.assertIn("parameterizations", qobj.to_dict()["config"])
-        with self.assertWarns(DeprecationWarning):
-            job = backend.run(qobj, **self.BACKEND_OPTS)
-            result = job.result()
-            success = getattr(result, "success", False)
-            num_circs = len(result.to_dict()["results"])
-            self.assertTrue(success)
-            self.compare_counts(result, range(num_circs), counts_targets, delta=0.1 * shots)
-            # Check snapshots
-            for j, target in enumerate(value_targets):
-                data = result.data(j)
-                for label in labels:
-                    self.assertAlmostEqual(data[label], target[label], delta=1e-7)
-
-    def test_runtime_parameterization_statevector(self):
-        """Test parameterized qobj with Expectation Value snapshot and qasm simulator."""
-        statevec_targets = save_expval_final_statevecs() * 3
-
-        backend = AerSimulator(method="statevector")
-        qobj = self.runtime_parameterization(
-            backend=backend,
-            measure=False,
-            snapshot=False,
-            save_state=True,
-        )
-        self.assertIn("parameterizations", qobj.to_dict()["config"])
-        with self.assertWarns(DeprecationWarning):
-            job = backend.run(qobj, **self.BACKEND_OPTS)
-            result = job.result()
-            success = getattr(result, "success", False)
-            num_circs = len(result.to_dict()["results"])
-            self.assertTrue(success)
-
-            for j in range(num_circs):
-                statevector = result.get_statevector(j)
-                np.testing.assert_array_almost_equal(
-                    statevector, statevec_targets[j].data, decimal=7
-                )
 
     @supported_methods(SUPPORTED_METHODS)
     def test_run_path(self, method, device):
@@ -827,6 +744,44 @@ class TestRuntimeParameterization(SimulatorTestCase):
         result_pre_bind = backend.run(
             circuit,
             noise_model=noise_model,
+            shots=shots,
+            parameter_binds=parameter_binds,
+            shot_branching_enable=False,
+            runtime_parameter_bind_enable=False,
+        ).result()
+        self.assertSuccess(result_pre_bind)
+        counts_pre_bind = result_pre_bind.get_counts()
+
+        self.assertEqual(counts, counts_pre_bind)
+
+    @supported_methods(SUPPORTED_METHODS)
+    def test_bind_some_param(self, method, device):
+        """Test parameterized circuit with gate with defaul values"""
+        shots = 1000
+        backend = self.backend(method=method, device=device)
+        circuit = QuantumCircuit(2)
+        theta = Parameter("theta")
+        theta_squared = theta * theta
+        circuit.h(0)
+        circuit.rx(theta, 0)
+        circuit.cx(0, 1)
+        circuit.rz(theta_squared, 1)
+        circuit.u(theta, theta_squared, 1.5708, 1)
+        circuit.measure_all()
+        parameter_binds = [{theta: [0, pi, 2 * pi]}]
+
+        result = backend.run(
+            circuit,
+            shots=shots,
+            parameter_binds=parameter_binds,
+            shot_branching_enable=False,
+            runtime_parameter_bind_enable=True,
+        ).result()
+        self.assertSuccess(result)
+        counts = result.get_counts()
+
+        result_pre_bind = backend.run(
+            circuit,
             shots=shots,
             parameter_binds=parameter_binds,
             shot_branching_enable=False,

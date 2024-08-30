@@ -8,117 +8,8 @@ concurrency:
   group: ${{ github.repository }}-${{ github.ref }}-${{ github.head_ref }}-${{ github.workflow }}
   cancel-in-progress: true
 jobs:
-  standalone:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: ["macos-13", "ubuntu-latest", "windows-2019"]
-    steps:
-      - uses: actions/checkout@v4
-      - name: Set up Python '3.10'
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.10'
-      - name: Install deps
-        run: pip install "conan<2.0.0"
-      - name: Install openblas
-        run: |
-          set -e
-          sudo apt-get update
-          sudo apt-get install -y libopenblas-dev
-        shell: bash
-        if: runner.os == 'Linux'
-      - name: Add msbuild to PATH
-        uses: microsoft/setup-msbuild@v2
-        if: runner.os == 'Windows'
-      - name: Compile Standalone Windows
-        run: |
-          set -e
-          mkdir out; cd out; cmake .. -DBUILD_TESTS=1
-          cmake --build . --config Release
-        shell: bash
-        if: runner.os == 'Windows'
-      - name: Compile Standalone
-        run: |
-          set -e
-          mkdir out; cd out; cmake .. -DBUILD_TESTS=1
-          make
-        shell: bash
-        if: runner.os != 'Windows'
-      - name: Run Unit Tests
-        run: |
-          cd out/bin
-          for test in test*
-          do echo $test
-            if ! ./$test
-            then
-              ERR=1
-            fi
-          done
-          if [ ! -z "$ERR" ]
-          then
-            exit 1
-          fi
-        shell: bash
-      - name: Run qobj
-        run: |
-          pip install -U qiskit
-          python tools/generate_qobj.py
-          cd out
-          Release/qasm_simulator ../qobj.json | python ../tools/verify_standalone_results.py
-        shell: bash
-  mpi_standalone:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: ["ubuntu-latest"]
-    steps:
-      - uses: actions/checkout@v4
-      - name: Set up Python '3.10'
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.10'
-      - name: Install deps
-        run: pip install "conan<2.0.0"
-      - name: Install openblas and mpi
-        run: |
-          set -e
-          sudo apt-get update
-          sudo apt-get install -y libopenblas-dev openmpi-bin libopenmpi-dev
-        shell: bash
-      - name: Compile Standalone
-        run: |
-          set -e
-          mkdir out; cd out; cmake .. -DBUILD_TESTS=1 -DAER_MPI=True
-          make
-        shell: bash
-      - name: Run Unit Tests with mpi
-        run: |
-          cd out/bin
-          for test in test*
-          do echo $test
-            if ! /usr/bin/mpirun.openmpi -host localhost:2 -np 2 ./$test
-            then
-              ERR=1
-            fi
-          done
-          if [ ! -z "$ERR" ]
-          then
-            exit 1
-          fi
-        shell: bash
-      - name: Run qobj
-        run: |
-          pip install -U qiskit
-          python tools/generate_qobj.py
-          cd out
-          /usr/bin/mpirun.openmpi -host localhost:2 -np 2 Release/qasm_simulator ../qobj.json | python ../tools/verify_standalone_results.py
-        env:
-          USE_MPI: 1
-        shell: bash
   wheel:
     runs-on: ${{ matrix.os }}
-    needs: ["standalone"]
     strategy:
       matrix:
         os: ["macos-13", "ubuntu-latest", "windows-2019"]
@@ -158,7 +49,6 @@ jobs:
       - name: Build Wheels
         env:
           CIBW_ARCHS_MACOS: arm64
-          CIBW_SKIP: "pp* cp38* cp39*"
         run: cibuildwheel --output-dir wheelhouse
       - uses: actions/upload-artifact@v4
         with:

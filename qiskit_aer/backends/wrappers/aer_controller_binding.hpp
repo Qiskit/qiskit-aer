@@ -42,13 +42,6 @@ template <typename T>
 class ControllerExecutor {
 public:
   ControllerExecutor() = default;
-  py::object operator()(const py::handle &qobj) {
-#ifdef TEST_JSON // Convert input qobj to json to test standalone data reading
-    return AerToPy::to_python(controller_execute<T>(json_t(qobj)));
-#else
-    return AerToPy::to_python(controller_execute<T>(qobj));
-#endif
-  }
 
   py::object execute(std::vector<std::shared_ptr<Circuit>> &circuits,
                      Noise::NoiseModel &noise_model,
@@ -91,7 +84,6 @@ void bind_aer_controller(MODULE m) {
   py::class_<ControllerExecutor<Controller>> aer_ctrl(m,
                                                       "aer_controller_execute");
   aer_ctrl.def(py::init<>());
-  aer_ctrl.def("__call__", &ControllerExecutor<Controller>::operator());
   aer_ctrl.def("__reduce__",
                [aer_ctrl](const ControllerExecutor<Controller> &self) {
                  return py::make_tuple(aer_ctrl, py::tuple());

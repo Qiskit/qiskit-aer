@@ -231,6 +231,7 @@ jobs:
       - name: Run Tests
         run: |
           set -e
+          pip install "pip<24.2"
           pip check
           rm -rf qiskit_aer
           stestr run --slowest

@@ -1003,7 +1003,7 @@ std::vector<SampleVector> State<densmat_t>::sample_measure(const reg_t &qubits,
   allbit_samples = BaseState::qreg_.sample_measure(rnds);
 
   // Convert to bit format
-  int_t npar = BaseState::threads_;
+  uint_t npar = BaseState::threads_;
   if (npar > shots)
     npar = shots;
   std::vector<SampleVector> all_samples(shots, SampleVector(qubits.size()));

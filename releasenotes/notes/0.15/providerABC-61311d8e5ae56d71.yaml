@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    The class :class:`.AerProvider` does not implement Qiskit's ``Provider``, as it is now deprecated.
+    This fix removes the raising of the warning from Qiskit.
