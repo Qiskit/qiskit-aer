@@ -160,9 +160,10 @@ public:
   static double Decompose(MPS_Tensor &temp, MPS_Tensor &left_gamma,
                           rvector_t &lambda, MPS_Tensor &right_gamma,
                           bool mps_lapack, std::string mps_svd_device);
-  
-  static void reshape_for_3_qubits_before_SVD(const std::vector<cmatrix_t> data,
-                                              MPS_Tensor &reshaped_tensor);
+
+  static void
+  reshape_for_3_qubits_before_SVD(const std::vector<cmatrix_t> &data,
+                                  MPS_Tensor &reshaped_tensor);
 
   static void contract_2_dimensions(const MPS_Tensor &left_gamma,
                                     const MPS_Tensor &right_gamma,
