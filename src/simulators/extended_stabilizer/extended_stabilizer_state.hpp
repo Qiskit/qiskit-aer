@@ -803,14 +803,17 @@ void State::apply_save_expval(const Operations::Op &op,
       sq_expval += std::get<2>(param) * val;
     }
   }
+  int_t key = 0;
+  if (op.string_params.size() > 1)
+    key = 1;
   if (variance) {
     std::vector<double> expval_var(2);
     expval_var[0] = expval;                      // mean
     expval_var[1] = sq_expval - expval * expval; // variance
-    result.save_data_average(creg(), op.string_params[0], expval_var, op.type,
+    result.save_data_average(creg(), op.string_params[key], expval_var, op.type,
                              op.save_type);
   } else {
-    result.save_data_average(creg(), op.string_params[0], expval, op.type,
+    result.save_data_average(creg(), op.string_params[key], expval, op.type,
                              op.save_type);
   }
 }

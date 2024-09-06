@@ -419,7 +419,9 @@ void Circuit::reset_metadata() {
 void Circuit::add_op_metadata(const Op &op) {
   has_conditional |= op.conditional;
   opset_.insert(op);
-  qubitset_.insert(op.qubits.begin(), op.qubits.end());
+  if (op.type != OpType::save_expval && op.type != OpType::save_expval_var) {
+    qubitset_.insert(op.qubits.begin(), op.qubits.end());
+  }
   memoryset_.insert(op.memory.begin(), op.memory.end());
   registerset_.insert(op.registers.begin(), op.registers.end());
 
@@ -589,6 +591,22 @@ void Circuit::set_params(bool truncation) {
     }
     if (remapped_qubits) {
       remap_qubits(ops[pos]);
+    } else if (truncation) {
+      // truncate save_expval here when remap is not needed
+      if (ops[pos].type == OpType::save_expval ||
+          ops[pos].type == OpType::save_expval_var) {
+        int_t nparams = ops[pos].string_params.size();
+        for (int_t i = 0; i < nparams; i++) {
+          std::string new_pauli(ops[pos].string_params[i].end() -
+                                    qubitmap_.size(),
+                                ops[pos].string_params[i].end());
+          // save original pauli string to restore for output
+          ops[pos].string_params.push_back(ops[pos].string_params[i]);
+
+          ops[pos].string_params[i] = new_pauli;
+        }
+        ops[pos].qubits.resize(qubitmap_.size());
+      }
     }
     if (pos != op_idx) {
       ops[op_idx] = std::move(ops[pos]);
@@ -653,11 +671,30 @@ void Circuit::set_params(bool truncation) {
 }
 
 void Circuit::remap_qubits(Op &op) const {
-  reg_t new_qubits;
-  for (auto &qubit : op.qubits) {
-    new_qubits.push_back(qubitmap_.at(qubit));
+  // truncate save_expval
+  if (op.type == OpType::save_expval || op.type == OpType::save_expval_var) {
+    int_t nparams = op.string_params.size();
+    for (int_t i = 0; i < nparams; i++) {
+      uint_t size = op.string_params[i].length();
+      // save original pauli string to restore for output
+      op.string_params.push_back(op.string_params[i]);
+
+      op.string_params[i].resize(size);
+      for (auto q = qubitmap_.cbegin(); q != qubitmap_.cend(); q++) {
+        op.string_params[i][size - 1 - q->second] =
+            op.string_params[i][size - 1 - q->first];
+      }
+    }
+    for (int_t i = 0; i < qubitmap_.size(); i++) {
+      op.qubits[i] = i;
+    }
+  } else {
+    reg_t new_qubits;
+    for (auto &qubit : op.qubits) {
+      new_qubits.push_back(qubitmap_.at(qubit));
+    }
+    op.qubits = std::move(new_qubits);
   }
-  op.qubits = std::move(new_qubits);
 }
 
 bool Circuit::check_result_ancestor(
