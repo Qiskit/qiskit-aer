@@ -596,14 +596,10 @@ void Circuit::set_params(bool truncation) {
       // truncate save_expval here when remap is not needed
       if (ops[pos].type == OpType::save_expval ||
           ops[pos].type == OpType::save_expval_var) {
-        int_t nparams = ops[pos].string_params.size();
+        int_t nparams = ops[pos].expval_params.size();
         for (int_t i = 0; i < nparams; i++) {
-          // save original pauli string to restore for output
-          ops[pos].string_params.push_back(ops[pos].string_params[i]);
-
-          ops[pos].string_params[i].assign(ops[pos].string_params[i].end() -
-                                               qubitmap_.size(),
-                                           ops[pos].string_params[i].end());
+          std::string &pauli = std::get<0>(ops[pos].expval_params[i]);
+          pauli.assign(pauli.end() - qubitmap_.size(), pauli.end());
         }
         ops[pos].qubits.resize(qubitmap_.size());
       }
@@ -673,19 +669,16 @@ void Circuit::set_params(bool truncation) {
 void Circuit::remap_qubits(Op &op) const {
   // truncate save_expval
   if (op.type == OpType::save_expval || op.type == OpType::save_expval_var) {
-    int_t nparams = op.string_params.size();
+    int_t nparams = op.expval_params.size();
     for (int_t i = 0; i < nparams; i++) {
-      uint_t size = op.string_params[i].length();
-      // save original pauli string to restore for output
-      op.string_params.push_back(op.string_params[i]);
+      std::string &pauli = std::get<0>(op.expval_params[i]);
       std::string new_pauli;
       new_pauli.resize(qubitmap_.size());
-
       for (auto q = qubitmap_.cbegin(); q != qubitmap_.cend(); q++) {
         new_pauli[qubitmap_.size() - 1 - q->second] =
-            op.string_params[i][size - 1 - q->first];
+            pauli[pauli.size() - 1 - q->first];
       }
-      op.string_params[i] = std::move(new_pauli);
+      pauli = new_pauli;
     }
     for (int_t i = 0; i < qubitmap_.size(); i++) {
       op.qubits[i] = i;
