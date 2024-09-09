@@ -498,6 +498,7 @@ void Circuit::set_params(bool truncation) {
   }
 
   // Set qubit and memory size
+  uint_t num_qubits_orig = num_qubits;
   num_memory = (memoryset_.empty()) ? 0 : 1 + *memoryset_.rbegin();
   num_registers = (registerset_.empty()) ? 0 : 1 + *registerset_.rbegin();
   if (remapped_qubits) {
@@ -591,19 +592,18 @@ void Circuit::set_params(bool truncation) {
     }
     if (remapped_qubits) {
       remap_qubits(ops[pos]);
-    } else if (truncation) {
+    } else if (truncation && qubitmap_.size() != num_qubits_orig) {
       // truncate save_expval here when remap is not needed
       if (ops[pos].type == OpType::save_expval ||
           ops[pos].type == OpType::save_expval_var) {
         int_t nparams = ops[pos].string_params.size();
         for (int_t i = 0; i < nparams; i++) {
-          std::string new_pauli(ops[pos].string_params[i].end() -
-                                    qubitmap_.size(),
-                                ops[pos].string_params[i].end());
           // save original pauli string to restore for output
           ops[pos].string_params.push_back(ops[pos].string_params[i]);
 
-          ops[pos].string_params[i] = new_pauli;
+          ops[pos].string_params[i].assign(ops[pos].string_params[i].end() -
+                                               qubitmap_.size(),
+                                           ops[pos].string_params[i].end());
         }
         ops[pos].qubits.resize(qubitmap_.size());
       }
@@ -678,12 +678,14 @@ void Circuit::remap_qubits(Op &op) const {
       uint_t size = op.string_params[i].length();
       // save original pauli string to restore for output
       op.string_params.push_back(op.string_params[i]);
+      std::string new_pauli;
+      new_pauli.resize(qubitmap_.size());
 
-      op.string_params[i].resize(size);
       for (auto q = qubitmap_.cbegin(); q != qubitmap_.cend(); q++) {
-        op.string_params[i][size - 1 - q->second] =
+        new_pauli[qubitmap_.size() - 1 - q->second] =
             op.string_params[i][size - 1 - q->first];
       }
+      op.string_params[i] = std::move(new_pauli);
     }
     for (int_t i = 0; i < qubitmap_.size(); i++) {
       op.qubits[i] = i;
