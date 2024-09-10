@@ -46,6 +46,7 @@ public:
   uint_t num_qubits = 0;    // maximum number of qubits needed for ops
   uint_t num_memory = 0;    // maximum number of memory clbits needed for ops
   uint_t num_registers = 0; // maximum number of registers clbits needed for ops
+  uint_t num_original_qubits = 0; // number of qubits without ancilla qubits
 
   // Measurement params
   bool has_conditional = false; // True if any ops are conditional
@@ -419,7 +420,10 @@ void Circuit::reset_metadata() {
 void Circuit::add_op_metadata(const Op &op) {
   has_conditional |= op.conditional;
   opset_.insert(op);
-  if (op.type != OpType::save_expval && op.type != OpType::save_expval_var) {
+  if (op.qubits.size() > num_original_qubits) {
+    qubitset_.insert(op.qubits.begin(),
+                     op.qubits.begin() + num_original_qubits);
+  } else {
     qubitset_.insert(op.qubits.begin(), op.qubits.end());
   }
   memoryset_.insert(op.memory.begin(), op.memory.end());
@@ -498,7 +502,6 @@ void Circuit::set_params(bool truncation) {
   }
 
   // Set qubit and memory size
-  uint_t num_qubits_orig = num_qubits;
   num_memory = (memoryset_.empty()) ? 0 : 1 + *memoryset_.rbegin();
   num_registers = (registerset_.empty()) ? 0 : 1 + *registerset_.rbegin();
   if (remapped_qubits) {
@@ -592,14 +595,17 @@ void Circuit::set_params(bool truncation) {
     }
     if (remapped_qubits) {
       remap_qubits(ops[pos]);
-    } else if (truncation && qubitmap_.size() != num_qubits_orig) {
+    } else if (truncation && qubitmap_.size() < ops[pos].qubits.size()) {
       // truncate save_expval here when remap is not needed
       if (ops[pos].type == OpType::save_expval ||
           ops[pos].type == OpType::save_expval_var) {
         int_t nparams = ops[pos].expval_params.size();
         for (int_t i = 0; i < nparams; i++) {
           std::string &pauli = std::get<0>(ops[pos].expval_params[i]);
+          std::cout << " before truncate : " << pauli << std::endl;
           pauli.assign(pauli.end() - qubitmap_.size(), pauli.end());
+          std::cout << " after truncate : "
+                    << std::get<0>(ops[pos].expval_params[i]) << std::endl;
         }
         ops[pos].qubits.resize(qubitmap_.size());
       }
@@ -673,12 +679,15 @@ void Circuit::remap_qubits(Op &op) const {
     for (int_t i = 0; i < nparams; i++) {
       std::string &pauli = std::get<0>(op.expval_params[i]);
       std::string new_pauli;
+      std::cout << " before remap : " << pauli << std::endl;
       new_pauli.resize(qubitmap_.size());
       for (auto q = qubitmap_.cbegin(); q != qubitmap_.cend(); q++) {
         new_pauli[qubitmap_.size() - 1 - q->second] =
             pauli[pauli.size() - 1 - q->first];
       }
       pauli = new_pauli;
+      std::cout << " after remap : " << std::get<0>(op.expval_params[i])
+                << std::endl;
     }
     for (int_t i = 0; i < qubitmap_.size(); i++) {
       op.qubits[i] = i;
