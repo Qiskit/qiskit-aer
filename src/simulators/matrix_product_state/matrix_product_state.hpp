@@ -366,7 +366,12 @@ void State::set_config(const Config &config) {
 
   // Get CUDA device, if GPU offloading enabled
   if (config.device.compare("GPU") == 0) {
-    MPS::set_cuda_device();
+#ifdef AER_THRUST_CUDA
+    cudaDeviceProp prop;
+    int deviceId{-1};
+    HANDLE_CUDA_ERROR(cudaGetDevice(&deviceId));
+    HANDLE_CUDA_ERROR(cudaGetDeviceProperties(&prop, deviceId));
+#endif // AER_THRUST_CUDA
   }
 }
 

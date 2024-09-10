@@ -157,9 +157,17 @@ public:
   static MPS_Tensor contract(const MPS_Tensor &left_gamma,
                              const rvector_t &lambda,
                              const MPS_Tensor &right_gamma, bool mul_by_lambda);
+#ifdef AER_THRUST_CUDA
   static double Decompose(MPS_Tensor &temp, MPS_Tensor &left_gamma,
                           rvector_t &lambda, MPS_Tensor &right_gamma,
-                          bool mps_lapack, std::string mps_svd_device);
+                          bool mps_lapack, std::string mps_svd_device,
+                          cudaStream_t &cuda_stream,
+                          cutensornetHandle_t &cutensor_handle);
+#else
+  static double Decompose(MPS_Tensor &temp, MPS_Tensor &left_gamma,
+                          rvector_t &lambda, MPS_Tensor &right_gamma,
+                          bool mps_lapack);
+#endif // AER_THRUST_CUDA
 
   static void
   reshape_for_3_qubits_before_SVD(const std::vector<cmatrix_t> &data,
@@ -593,21 +601,33 @@ void MPS_Tensor::contract_2_dimensions(const MPS_Tensor &left_gamma,
 //             rvector_t &lambda - tensors for the result.
 // Returns: none.
 //---------------------------------------------------------------
+#ifdef AER_THRUST_CUDA
 double MPS_Tensor::Decompose(MPS_Tensor &temp, MPS_Tensor &left_gamma,
                              rvector_t &lambda, MPS_Tensor &right_gamma,
-                             bool mps_lapack, std::string mps_svd_device) {
+                             bool mps_lapack, std::string mps_svd_device,
+                             cudaStream_t &cuda_stream,
+                             cutensornetHandle_t &cutensor_handle)
+#else
+double MPS_Tensor::Decompose(MPS_Tensor &temp, MPS_Tensor &left_gamma,
+                             rvector_t &lambda, MPS_Tensor &right_gamma,
+                             bool mps_lapack)
+#endif // AER_THRUST_CUDA
+{
   cmatrix_t C;
   C = reshape_before_SVD(temp.data_);
   cmatrix_t U, V;
   rvector_t S(std::min(C.GetRows(), C.GetColumns()));
 
-  if (mps_svd_device.compare("GPU") == 0) {
 #ifdef AER_THRUST_CUDA
-    cutensor_csvd_wrapper(C, U, S, V);
-#endif // AER_THRUST_CUDA
+  if (mps_svd_device.compare("GPU") == 0) {
+    cutensor_csvd_wrapper(C, U, S, V, cuda_stream, cutensor_handle);
   } else {
     csvd_wrapper(C, U, S, V, mps_lapack);
   }
+#else
+  csvd_wrapper(C, U, S, V, mps_lapack);
+#endif // AER_THRUST_CUDA
+
   double discarded_value = 0.0;
   discarded_value = reduce_zeros(U, S, V, max_bond_dimension_,
                                  truncation_threshold_, mps_lapack);

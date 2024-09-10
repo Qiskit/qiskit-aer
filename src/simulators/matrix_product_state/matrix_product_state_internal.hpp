@@ -81,7 +81,14 @@ enum class MPS_swap_direction { SWAP_LEFT, SWAP_RIGHT };
 
 class MPS {
 public:
-  MPS(uint_t num_qubits = 0) : num_qubits_(num_qubits) {}
+  MPS(uint_t num_qubits = 0) : num_qubits_(num_qubits) {
+#ifdef AER_THRUST_CUDA
+    if (mps_svd_device_.compare("GPU") == 0) {
+      cudaStreamCreate(&cuda_stream);
+      cutensornetCreate(&cutensor_handle);
+    }
+#endif // AER_THRUST_CUDA
+  }
   ~MPS() {}
 
   //--------------------------------------------------------------------------
@@ -325,17 +332,6 @@ public:
     mps_svd_device_ = mps_svd_device;
   }
 
-  static void set_cuda_device() {
-    // the prop could be used to log the properties of the device.
-
-#ifdef AER_THRUST_CUDA
-    cudaDeviceProp prop;
-    int deviceId{-1};
-    HANDLE_CUDA_ERROR(cudaGetDevice(&deviceId));
-    HANDLE_CUDA_ERROR(cudaGetDeviceProperties(&prop, deviceId));
-#endif // AER_THRUST_CUDA
-  }
-
   static uint_t get_omp_threads() { return omp_threads_; }
   static uint_t get_omp_threshold() { return omp_threshold_; }
   static double get_json_chop_threshold() { return json_chop_threshold_; }
@@ -557,6 +553,11 @@ private:
   uint_t num_qubits_;
   std::vector<MPS_Tensor> q_reg_;
   std::vector<rvector_t> lambda_reg_;
+
+#ifdef AER_THRUST_CUDA
+  cudaStream_t cuda_stream;
+  cutensornetHandle_t cutensor_handle;
+#endif // AER_THRUST_CUDA
 
   struct ordering {
     // order_ stores the current ordering of the qubits,

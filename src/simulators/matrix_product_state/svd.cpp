@@ -670,7 +670,8 @@ void lapack_csvd_wrapper(cmatrix_t &A, cmatrix_t &U, rvector_t &S,
 
 #ifdef AER_THRUST_CUDA
 void cutensor_csvd_wrapper(cmatrix_t &A, cmatrix_t &U, rvector_t &S,
-                           cmatrix_t &V) {
+                           cmatrix_t &V, cudaStream_t &stream,
+                           cutensornetHandle_t &handle) {
 
   bool transposed = false;
 
@@ -702,12 +703,6 @@ void cutensor_csvd_wrapper(cmatrix_t &A, cmatrix_t &U, rvector_t &S,
   std::vector<int32_t> modesA{'m', 'n'};
   std::vector<int32_t> modesU{'m', 'x'};
   std::vector<int32_t> modesV{'x', 'n'};
-
-  cudaStream_t stream;
-  HANDLE_CUDA_ERROR(cudaStreamCreate(&stream));
-
-  cutensornetHandle_t handle;
-  HANDLE_ERROR(cutensornetCreate(&handle));
 
   double *cutensor_S = (double *)malloc(sizeS);
 
@@ -811,8 +806,6 @@ void cutensor_csvd_wrapper(cmatrix_t &A, cmatrix_t &U, rvector_t &S,
   HANDLE_ERROR(cutensornetDestroyTensorDescriptor(descTensorU));
   HANDLE_ERROR(cutensornetDestroyTensorDescriptor(descTensorV));
   HANDLE_ERROR(cutensornetDestroyWorkspaceDescriptor(workDesc));
-  HANDLE_CUDA_ERROR(cudaStreamDestroy(stream));
-  HANDLE_ERROR(cutensornetDestroy(handle));
 
   if (cutensor_S)
     free(cutensor_S);
