@@ -420,7 +420,8 @@ void Circuit::reset_metadata() {
 void Circuit::add_op_metadata(const Op &op) {
   has_conditional |= op.conditional;
   opset_.insert(op);
-  if (op.type == OpType::save_expval || op.type == OpType::save_expval_var) {
+  if (!qubitset_.empty() &&
+      (op.type == OpType::save_expval || op.type == OpType::save_expval_var)) {
     for (int_t j = 0; j < op.expval_params.size(); j++) {
       const std::string &pauli = std::get<0>(op.expval_params[j]);
       for (int_t i = 0; i < op.qubits.size(); i++) {
@@ -609,7 +610,9 @@ void Circuit::set_params(bool truncation) {
         int_t nparams = ops[pos].expval_params.size();
         for (int_t i = 0; i < nparams; i++) {
           std::string &pauli = std::get<0>(ops[pos].expval_params[i]);
-          pauli.assign(pauli.end() - qubitmap_.size(), pauli.end());
+          std::string new_pauli;
+          new_pauli.assign(pauli.end() - qubitmap_.size(), pauli.end());
+          pauli = new_pauli;
         }
         ops[pos].qubits.resize(qubitmap_.size());
       }
