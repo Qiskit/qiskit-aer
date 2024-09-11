@@ -20,7 +20,6 @@ import qiskit.quantum_info as qi
 from qiskit import QuantumCircuit
 from qiskit.circuit.library import QuantumVolume
 from qiskit.compiler import transpile
-from qiskit.providers.fake_provider import GenericBackendV2
 
 PAULI2 = [
     "II",
