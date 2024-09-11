@@ -159,8 +159,6 @@ void bind_aer_circuit(MODULE m) {
   aer_circuit.def_readwrite("circ_id", &Circuit::circ_id);
   aer_circuit.def_readwrite("shots", &Circuit::shots);
   aer_circuit.def_readwrite("num_qubits", &Circuit::num_qubits);
-  aer_circuit.def_readwrite("num_original_qubits",
-                            &Circuit::num_original_qubits);
   aer_circuit.def_readwrite("num_memory", &Circuit::num_memory);
   aer_circuit.def_readwrite("seed", &Circuit::seed);
   aer_circuit.def_readwrite("ops", &Circuit::ops);

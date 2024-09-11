@@ -695,11 +695,6 @@ def assemble_circuit(circuit: QuantumCircuit, basis_gates=None):
     aer_circ = AerCircuit()
     aer_circ.set_header(header)
     aer_circ.num_qubits = num_qubits
-    aer_circ.num_original_qubits = num_qubits
-    if hasattr(circuit, "layout"):
-        if hasattr(circuit.layout, "final_index_layout"):
-            if circuit.layout.final_index_layout(True) is not None:
-                aer_circ.num_original_qubits = len(circuit.layout.final_index_layout(True))
     aer_circ.num_memory = num_memory
     aer_circ.global_phase_angle = global_phase
 
