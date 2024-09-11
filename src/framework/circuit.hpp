@@ -420,7 +420,6 @@ void Circuit::reset_metadata() {
 void Circuit::add_op_metadata(const Op &op) {
   has_conditional |= op.conditional;
   opset_.insert(op);
-  std::cout << op << std::endl;
   if (op.type == OpType::save_expval || op.type == OpType::save_expval_var) {
     for (int_t j = 0; j < op.expval_params.size(); j++) {
       const std::string &pauli = std::get<0>(op.expval_params[j]);
