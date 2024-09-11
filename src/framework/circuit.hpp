@@ -46,6 +46,7 @@ public:
   uint_t num_qubits = 0;    // maximum number of qubits needed for ops
   uint_t num_memory = 0;    // maximum number of memory clbits needed for ops
   uint_t num_registers = 0; // maximum number of registers clbits needed for ops
+  uint_t num_original_qubits = 0; // number of qubits without ancilla qubits
 
   // Measurement params
   bool has_conditional = false; // True if any ops are conditional
@@ -419,8 +420,8 @@ void Circuit::reset_metadata() {
 void Circuit::add_op_metadata(const Op &op) {
   has_conditional |= op.conditional;
   opset_.insert(op);
-  if (op.type == OpType::save_expval ||
-      op.type == OpType::save_expval_var) {
+  std::cout << op << std::endl;
+  if (op.type == OpType::save_expval || op.type == OpType::save_expval_var) {
     for (int_t j = 0; j < op.expval_params.size(); j++) {
       const std::string &pauli = std::get<0>(op.expval_params[j]);
       for (int_t i = 0; i < op.qubits.size(); i++) {
