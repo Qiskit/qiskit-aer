@@ -76,6 +76,7 @@ jobs:
           pip install -c constraints.txt .
           pip install -U "qiskit-ibmq-provider" "z3-solver" "qiskit-ignis" "qiskit-aqua" "pyscf" "matplotlib>=3.3.0" jupyter pylatexenc nbsphinx cvxpy qiskit-sphinx-theme -c constraints.txt
           sudo apt install -y graphviz pandoc libopenblas-dev
+          pip check
         shell: bash
       - name: Run Tutorials
         run: |
