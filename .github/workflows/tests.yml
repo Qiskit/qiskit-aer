@@ -97,7 +97,7 @@ jobs:
         qiskit-extra: [""]
         include:
           - python-version: "3.10"
-            qiskit-extra: "'qiskit>=1.0.0rc1'"
+            qiskit-extra: "'qiskit>=1.3.0b1'"
 
     env:
       AER_THRUST_BACKEND: OMP

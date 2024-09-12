@@ -13,7 +13,7 @@ jobs:
     timeout-minutes: 60
     strategy:
       matrix:
-        python-version: ['3.8']
+        python-version: ['3.9']
     steps:
       - uses: actions/checkout@v4
         with:
@@ -50,7 +50,7 @@ jobs:
     needs: [docs]
     strategy:
       matrix:
-        python-version: ['3.8']
+        python-version: ['3.9']
     steps:
       - uses: actions/checkout@v4
       - name: Set up Python ${{ matrix.python-version }}
@@ -74,7 +74,6 @@ jobs:
           pip install -U -r requirements-dev.txt -c constraints.txt
           pip install -c constraints.txt git+https://github.com/Qiskit/qiskit
           pip install -c constraints.txt .
-          pip install -U "qiskit-ibmq-provider" "z3-solver" "qiskit-ignis" "qiskit-aqua" "pyscf<1.7.4" "matplotlib>=3.3.0" jupyter pylatexenc nbsphinx cvxpy qiskit-sphinx-theme -c constraints.txt
           sudo apt install -y graphviz pandoc libopenblas-dev
           pip check
         shell: bash
@@ -82,7 +81,7 @@ jobs:
         run: |
           set -e
           cd qiskit-tutorials
-          rm -rf tutorials/chemistry tutorials/circuits tutorials/circuits_advanced tutorials/finance tutorials/optimization tutorials/algorithms tutorials/operators tutorials/noise tutorials/machine_learning
+          rm -rf tutorials/circuits tutorials/circuits_advanced tutorials/algorithms tutorials/operators
           sphinx-build -b html . _build/html
       - uses: actions/upload-artifact@v4
         with:
