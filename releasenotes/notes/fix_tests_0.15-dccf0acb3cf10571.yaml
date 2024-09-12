@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixed tutorial build failure of Python version and unused tutorials.
+    Upgraded test for Qiskit 1.0.0rc1 to 1.3.0b1 this will need protection rules
+    for Aer repository. Also fixed noise/passes/local_noise_pass.py needed
+    conversion from tuple to list 
