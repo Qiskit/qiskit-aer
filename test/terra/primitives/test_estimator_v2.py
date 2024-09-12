@@ -18,6 +18,7 @@ import unittest
 from test.terra.common import QiskitAerTestCase
 
 import numpy as np
+from qiskit import transpile
 from qiskit.circuit import Parameter, QuantumCircuit
 from qiskit.circuit.library import RealAmplitudes
 from qiskit.primitives import StatevectorEstimator
@@ -26,6 +27,7 @@ from qiskit.primitives.containers.estimator_pub import EstimatorPub
 from qiskit.primitives.containers.observables_array import ObservablesArray
 from qiskit.quantum_info import SparsePauliOp
 from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
+from qiskit.providers.fake_provider import GenericBackendV2
 
 from qiskit_aer import AerSimulator
 from qiskit_aer.primitives import EstimatorV2
@@ -405,6 +407,42 @@ class TestEstimatorV2(QiskitAerTestCase):
         self.assertEqual(
             result[1].metadata,
             {"target_precision": 0.1, "circuit_metadata": qc2.metadata},
+        )
+
+    def test_truncate(self):
+        """Test for truncation of save_expval"""
+        qc = QuantumCircuit(2, 2)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.append(RealAmplitudes(num_qubits=2, reps=2), [0, 1])
+        backend_2 = GenericBackendV2(num_qubits=2)
+        backend_5 = GenericBackendV2(num_qubits=5)
+
+        qc_2 = transpile(qc, backend_2, optimization_level=0)
+        qc_5 = transpile(qc, backend_5, optimization_level=0)
+
+        estimator_2 = EstimatorV2.from_backend(backend_2, options=self._options)
+        estimator_5 = EstimatorV2.from_backend(backend_5, options=self._options)
+
+        H1 = self.observable
+        H1_2 = H1.apply_layout(qc_2.layout)
+        H1_5 = H1.apply_layout(qc_5.layout)
+        theta1 = [0, 1, 1, 2, 3, 5]
+
+        result_2 = estimator_2.run(
+            [
+                (qc_2, [H1_2], [theta1]),
+            ],
+            precision=0.01,
+        ).result()
+        result_5 = estimator_5.run(
+            [
+                (qc_5, [H1_5], [theta1]),
+            ],
+            precision=0.01,
+        ).result()
+        self.assertAlmostEqual(
+            result_5[0].data["evs"][0], result_2[0].data["evs"][0], delta=self._rtol
         )
 
 
