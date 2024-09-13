@@ -32,6 +32,7 @@ NoiseModel
    .. automethod:: NoiseModel.add_readout_error
    .. automethod:: NoiseModel.from_backend
    .. automethod:: NoiseModel.from_backend_properties
+   .. automethod:: NoiseModel.from_dict
    .. automethod:: NoiseModel.is_ideal
    .. automethod:: NoiseModel.reset
    .. automethod:: NoiseModel.to_dict
