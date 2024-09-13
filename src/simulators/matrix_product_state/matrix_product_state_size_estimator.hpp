@@ -74,17 +74,19 @@ uint_t MPSSizeEstimator::estimate(const std::vector<Operations::Op> &ops,
     case Operations::OpType::gate:
       if (ops[i].qubits.size() > 1) {
         auto it = gateset.find(ops[i].name);
-        switch (it->second) {
-        case Gates::rxx:
-        case Gates::ryy:
-        case Gates::rzx:
-          pi2 = std::real(ops[i].params[0]) / M_PI;
-          pi2_int = (double)std::round(pi2);
-          if (!AER::Linalg::almost_equal(pi2, pi2_int))
-            apply_qubits(ops[i].qubits);
-          break;
-        default:
-          break;
+        if (it != gateset.end()) {
+          switch (it->second) {
+          case Gates::rxx:
+          case Gates::ryy:
+          case Gates::rzx:
+            pi2 = std::real(ops[i].params[0]) / M_PI;
+            pi2_int = (double)std::round(pi2);
+            if (!AER::Linalg::almost_equal(pi2, pi2_int))
+              apply_qubits(ops[i].qubits);
+            break;
+          default:
+            break;
+          }
         }
       }
       break;
