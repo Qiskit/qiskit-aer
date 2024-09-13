@@ -20,7 +20,8 @@ from warnings import warn, catch_warnings, filterwarnings
 
 import numpy as np
 
-from qiskit.circuit import Instruction, Delay
+from qiskit.circuit import QuantumCircuit, Instruction, Delay, Reset
+from qiskit.circuit.library.generalized_gates import PauliGate, UnitaryGate
 from qiskit.providers import QubitProperties
 from qiskit.providers.exceptions import BackendPropertyError
 from qiskit.providers.models.backendproperties import BackendProperties
@@ -958,6 +959,105 @@ class NoiseModel:
             ret = json.loads(json.dumps(ret, cls=AerJSONEncoder))
 
         return ret
+
+    @staticmethod
+    def from_dict(noise_dict):
+        """
+        Load NoiseModel from a dictionary.
+        Args:
+            noise_dict (dict): A serialized noise model.
+        Returns:
+            NoiseModel: the noise model.
+        Raises:
+            NoiseError: if dict cannot be converted to NoiseModel.
+        """
+        warn(
+            "from_dict has been deprecated as of qiskit-aer 0.15.0"
+            " and will be removed no earlier than 3 months from that release date.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+
+        def inst_dic_list_to_circuit(dic_list):
+            num_qubits = max(max(dic["qubits"]) for dic in dic_list) + 1
+            circ = QuantumCircuit(num_qubits)
+            for dic in dic_list:
+                if dic["name"] == "reset":
+                    circ.append(Reset(), qargs=dic["qubits"])
+                elif dic["name"] == "kraus":
+                    circ.append(
+                        Instruction(
+                            name="kraus",
+                            num_qubits=len(dic["qubits"]),
+                            num_clbits=0,
+                            params=dic["params"],
+                        ),
+                        qargs=dic["qubits"],
+                    )
+                elif dic["name"] == "unitary":
+                    circ.append(UnitaryGate(data=dic["params"][0]), qargs=dic["qubits"])
+                elif dic["name"] == "pauli":
+                    circ.append(PauliGate(dic["params"][0]), qargs=dic["qubits"])
+                else:
+                    with catch_warnings():
+                        filterwarnings(
+                            "ignore",
+                            category=DeprecationWarning,
+                            module="qiskit_aer.noise.errors.errorutils",
+                        )
+                        circ.append(
+                            UnitaryGate(
+                                label=dic["name"], data=_standard_gate_unitary(dic["name"])
+                            ),
+                            qargs=dic["qubits"],
+                        )
+            return circ
+
+        # Return noise model
+        noise_model = NoiseModel()
+
+        # Get error terms
+        errors = noise_dict.get("errors", [])
+
+        for error in errors:
+            error_type = error["type"]
+
+            # Add QuantumError
+            if error_type == "qerror":
+                circuits = [inst_dic_list_to_circuit(dics) for dics in error["instructions"]]
+                noise_ops = tuple(zip(circuits, error["probabilities"]))
+                qerror = QuantumError(noise_ops)
+                qerror._id = error.get("id", None) or qerror.id
+                instruction_names = error["operations"]
+                all_gate_qubits = error.get("gate_qubits", None)
+                if all_gate_qubits is not None:
+                    for gate_qubits in all_gate_qubits:
+                        # Add local quantum error
+                        noise_model.add_quantum_error(
+                            qerror, instruction_names, gate_qubits, warnings=False
+                        )
+                else:
+                    # Add all-qubit quantum error
+                    noise_model.add_all_qubit_quantum_error(
+                        qerror, instruction_names, warnings=False
+                    )
+
+            # Add ReadoutError
+            elif error_type == "roerror":
+                probabilities = error["probabilities"]
+                all_gate_qubits = error.get("gate_qubits", None)
+                roerror = ReadoutError(probabilities)
+                # Add local readout error
+                if all_gate_qubits is not None:
+                    for gate_qubits in all_gate_qubits:
+                        noise_model.add_readout_error(roerror, gate_qubits, warnings=False)
+                # Add all-qubit readout error
+                else:
+                    noise_model.add_all_qubit_readout_error(roerror, warnings=False)
+            # Invalid error type
+            else:
+                raise NoiseError("Invalid error type: {}".format(error_type))
+        return noise_model
 
     def _instruction_names_labels(self, instructions):
         """Return two lists of instruction name strings and label strings."""
