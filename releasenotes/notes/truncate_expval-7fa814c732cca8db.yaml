@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    This fix truncates qubits of save_expval operation when EstimatorV2
+    is made from existing backends using `from_backend`.
+    By transpiling on the existing backends, ancilla qubits are filled
+    to all the qubits that causes memory error on the simulator.
+    So Aer removes unused qubits for save_expval operation.

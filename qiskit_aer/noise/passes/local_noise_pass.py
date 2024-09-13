@@ -144,7 +144,9 @@ class LocalNoisePass(TransformationPass):
             if isinstance(new_op, QuantumCircuit):
                 # If the new op is a quantum circuit, compose its DAG with the new dag
                 # so that it is unrolled rather than added as an opaque instruction
-                new_dag.compose(circuit_to_dag(new_op), qubits=node.qargs)  # never touch clbits
+                new_dag.compose(
+                    circuit_to_dag(new_op), qubits=list(node.qargs)
+                )  # never touch clbits
             else:
                 # Otherwise append the instruction returned by the function
                 new_dag.apply_operation_back(new_op, qargs=node.qargs)  # never touch cargs
