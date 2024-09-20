@@ -24,7 +24,7 @@ class TestBackendConfiguration(QiskitAerTestCase):
     """Tests for Aer BackendConfiguration."""
 
     @data(AerSimulator(), StatevectorSimulator(), QasmSimulator(), UnitarySimulator())
-    def test_oepn_pulse_in_backend_configuration(self, simulator: str):
+    def test_open_pulse_in_backend_configuration(self, simulator: str):
         """Test for backend_configuration"""
         assert simulator.configuration().open_pulse is False
         assert simulator.configuration().to_dict()["open_pulse"] is False
