@@ -42,7 +42,9 @@ const Operations::OpSet StateOpSet(
         Operations::OpType::bfunc,
         Operations::OpType::qerror_loc,
         Operations::OpType::save_statevec,
-    }, // Operations::OpType::save_expval, Operations::OpType::save_expval_var},
+        Operations::OpType::save_expval,
+        Operations::OpType::save_expval_var,
+    },
     // Gates
     {"CX", "u0",  "u1",  "p",   "cx",    "cz",    "swap", "id",
      "x",  "y",   "z",   "h",   "s",     "sdg",   "sx",   "sxdg",
@@ -334,7 +336,8 @@ bool State::check_measurement_opt(InputIterator first,
     if (op->type == Operations::OpType::measure ||
         op->type == Operations::OpType::bfunc ||
         op->type == Operations::OpType::save_statevec ||
-        op->type == Operations::OpType::save_expval) {
+        op->type == Operations::OpType::save_expval ||
+        op->type == Operations::OpType::save_expval_var) {
       return false;
     }
   }
@@ -421,10 +424,10 @@ void State::apply_ops(InputIterator first, InputIterator last,
             apply_save_statevector(op, result);
             break;
           // Disabled until can fix bug in expval
-          // case Operations::OpType::save_expval:
-          // case Operations::OpType::save_expval_var:
-          //   apply_save_expval(op, result, rng);
-          //   break;
+          case Operations::OpType::save_expval:
+          case Operations::OpType::save_expval_var:
+            apply_save_expval(op, result, rng);
+            break;
           default:
             throw std::invalid_argument("CH::State::apply_ops does not support "
                                         "operations of the type \'" +
@@ -827,14 +830,15 @@ double State::expval_pauli(const reg_t &qubits, const std::string &pauli,
     case 'I':
       break;
     case 'X':
-      paulis[0].X += (1ULL << qubits[pos]);
+      paulis[0].X |= (1ULL << qubits[pos]);
       break;
     case 'Y':
-      paulis[0].X += (1ULL << qubits[pos]);
-      paulis[0].Z += (1ULL << qubits[pos]);
+      paulis[0].X |= (1ULL << qubits[pos]);
+      paulis[0].Z |= (1ULL << qubits[pos]);
+      paulis[0].e += 1;
       break;
     case 'Z':
-      paulis[0].Z += (1ULL << qubits[pos]);
+      paulis[0].Z |= (1ULL << qubits[pos]);
       break;
     default: {
       std::stringstream msg;
@@ -843,9 +847,25 @@ double State::expval_pauli(const reg_t &qubits, const std::string &pauli,
     }
     }
   }
+  paulis[0].e = paulis[0].e % 4;
   auto g_norm = state_cpy.norm_estimation(
       norm_estimation_samples_, norm_estimation_repetitions_, paulis, rng);
-  return (2 * g_norm - phi_norm);
+  //  std::cout << pauli << ", phi_norm = " << phi_norm << " gnorm = "<<g_norm
+  //  << std::endl;
+
+  double t = 2 * g_norm - phi_norm;
+
+  if (BaseState::qreg_.get_num_states() == 1) {
+    // if all ops in circuit are cliffords, return -1, 0 or 1
+    if (t < -0.5)
+      return -1.0;
+    else if (t > 0.5)
+      return 1.0;
+    else
+      return 0.0;
+  } else {
+    return t;
+  }
 }
 
 double State::expval_pauli(const reg_t &qubits, const std::string &pauli) {
