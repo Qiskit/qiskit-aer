@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    SIGSEGV raised when the circuits with unsupported gates is
+    passed to MPS simulator, because of `std::set.find()` in
+    size estimator for MPS.
+    This fix avoids SIGSEGV if unsupported gates is passed.

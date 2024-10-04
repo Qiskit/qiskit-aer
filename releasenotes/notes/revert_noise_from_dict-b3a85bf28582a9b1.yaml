@@ -1,0 +1,5 @@
+---
+deprecations:
+  - |
+    Reverting NoiseModel.from_dict temporary to extend deprecation period
+    for qiskit-ibm-runtime, but we will remove again in the future release
