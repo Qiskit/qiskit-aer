@@ -381,6 +381,7 @@ class TestConditionalDiagonal(SimulatorTestCase):
         self.assertNotEqual(result.data(circuit)["base"], result.data(circuit0)["diff"])
         self.assertEqual(result.data(circuit)["base"], result.data(circuit1)["equal"])
 
+
 class TestConditionalErrors(SimulatorTestCase):
     def test_infinite_run_error(self):
         backend = self.backend(method="statevector", device="CPU")
@@ -391,7 +392,7 @@ class TestConditionalErrors(SimulatorTestCase):
         main_circ.add_register(creg_0)
         main_circ.measure(0, creg_0[0])
         main_circ.x(0)
-        with main_circ.if_test((creg_0[0],0)) as else_1:
+        with main_circ.if_test((creg_0[0], 0)) as else_1:
             pass
         with else_1:
             pass
