@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Using a conditional with empty body caused the transpile run to
+    mix the order of gates in the circuit, leading sometimes to infinite
+    simulations.
+    This fix ensures that the order of gates is preserved.
