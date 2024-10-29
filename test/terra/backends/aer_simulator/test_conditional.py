@@ -16,7 +16,7 @@ from ddt import ddt
 from test.terra.reference import ref_conditionals
 from test.terra.backends.simulator_test_case import SimulatorTestCase, supported_methods
 
-from qiskit import QuantumCircuit
+from qiskit import QuantumCircuit, ClassicalRegister
 from qiskit.circuit.library import DiagonalGate
 
 
@@ -380,3 +380,23 @@ class TestConditionalDiagonal(SimulatorTestCase):
 
         self.assertNotEqual(result.data(circuit)["base"], result.data(circuit0)["diff"])
         self.assertEqual(result.data(circuit)["base"], result.data(circuit1)["equal"])
+
+
+class TestConditionalErrors(SimulatorTestCase):
+    def test_infinite_run_error(self):
+        backend = self.backend(method="statevector", device="CPU")
+        backend.set_options(max_parallel_experiments=0)
+
+        main_circ = QuantumCircuit(1)
+        creg_0 = ClassicalRegister(1)
+        main_circ.add_register(creg_0)
+        main_circ.measure(0, creg_0[0])
+        main_circ.x(0)
+        with main_circ.if_test((creg_0[0], 0)) as else_1:
+            pass
+        with else_1:
+            pass
+        main_circ.measure_active()
+
+        result = backend.run(main_circ, shots=1).result()
+        self.assertSuccess(result)
