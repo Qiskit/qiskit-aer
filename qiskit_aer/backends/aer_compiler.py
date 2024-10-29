@@ -259,6 +259,9 @@ class AerCompiler:
         """inline for_loop body while iterating its indexset"""
         qargs = [bit_map[q] for q in instruction.qubits]
         cargs = [bit_map[c] for c in instruction.clbits]
+        # to avoid wrong topological sorting of command with "empty" block
+        if len(qargs) == 0:
+            qargs = parent.qubits
         indexset, loop_parameter, body = instruction.operation.params
         inner_bit_map = {
             inner: bit_map[outer]
@@ -320,6 +323,9 @@ class AerCompiler:
         )
         qargs = [bit_map[q] for q in instruction.qubits]
         cargs = [bit_map[c] for c in instruction.clbits]
+        # to avoid wrong topological sorting of command with "empty" block
+        if len(qargs) == 0:
+            qargs = parent.qubits
 
         if isinstance(condition_tuple, Expr):
             mark_cargs = self._list_clbit_from_expr(bit_map, condition_tuple)
@@ -371,6 +377,13 @@ class AerCompiler:
 
         qargs = [bit_map[q] for q in instruction.qubits]
         cargs = [bit_map[c] for c in instruction.clbits]
+        # to avoid wrong topological sorting of command with "empty" block
+        if len(qargs) == 0:
+            qargs = parent.qubits
+
+        # to avoid wrong topological sorting of command with "empty" block
+        if len(qargs) == 0:
+            qargs = parent.qubits
 
         if isinstance(condition_tuple, Expr):
             mark_cargs = self._list_clbit_from_expr(bit_map, condition_tuple)
@@ -439,6 +452,9 @@ class AerCompiler:
 
         qargs = [bit_map[q] for q in instruction.qubits]
         cargs = [bit_map[c] for c in instruction.clbits]
+        # to avoid wrong topological sorting of command with "empty" block
+        if len(qargs) == 0:
+            qargs = parent.qubits
 
         if isinstance(instruction.operation.target, Clbit):
             target_clbits = {bit_map[instruction.operation.target]}
