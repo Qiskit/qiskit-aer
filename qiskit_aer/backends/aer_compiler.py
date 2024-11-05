@@ -920,17 +920,17 @@ def _assemble_op(
         if ctrl_state_pos > 0:
             # Add x gates for ctrl qubits which state=0
             ctrl_state = int(name[ctrl_state_pos+2:len(name)])
-            for i in range(len(qubits)):
+            for i in range(len(qubits)-1):
                 if (ctrl_state >> i) & 1 == 0:
-                    qubits_i = [qubits[len(qubits) - 1 - i]]
+                    qubits_i = [qubits[i]]
                     aer_circ.gate("x", qubits_i, params, [], conditional_reg, aer_cond_expr,
                                   label if label else "x")
                     num_of_aer_ops += 1
             aer_circ.gate(gate_name, qubits, params, [], conditional_reg, aer_cond_expr,
                           label if label else gate_name)
-            for i in range(len(qubits)):
+            for i in range(len(qubits)-1):
                 if (ctrl_state >> i) & 1 == 0:
-                    qubits_i = [qubits[len(qubits) - 1 - i]]
+                    qubits_i = [qubits[i]]
                     aer_circ.gate("x", qubits_i, params, [], conditional_reg, aer_cond_expr,
                                   label if label else "x")
                     num_of_aer_ops += 1
