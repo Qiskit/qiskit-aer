@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fixes a bug in the compilation of circuits with controlled gates that resulted
+    in adding X gates on the incorrect qubits.
