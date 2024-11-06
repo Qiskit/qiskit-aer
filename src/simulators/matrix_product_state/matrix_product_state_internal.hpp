@@ -15,12 +15,12 @@
 #ifndef _aer_matrix_product_state_hpp_
 #define _aer_matrix_product_state_hpp_
 
-#include <cstdarg>
-
 #include "framework/json.hpp"
 #include "framework/operations.hpp"
 #include "framework/utils.hpp"
 #include "matrix_product_state_tensor.hpp"
+#include <cstdarg>
+#include <string>
 
 namespace AER {
 namespace MatrixProductState {
@@ -81,7 +81,14 @@ enum class MPS_swap_direction { SWAP_LEFT, SWAP_RIGHT };
 
 class MPS {
 public:
-  MPS(uint_t num_qubits = 0) : num_qubits_(num_qubits) {}
+  MPS(uint_t num_qubits = 0) : num_qubits_(num_qubits) {
+#ifdef AER_THRUST_CUDA
+    if (mps_svd_device_.compare("GPU") == 0) {
+      cudaStreamCreate(&cuda_stream);
+      cutensornetCreate(&cutensor_handle);
+    }
+#endif // AER_THRUST_CUDA
+  }
   ~MPS() {}
 
   //--------------------------------------------------------------------------
@@ -321,6 +328,9 @@ public:
   }
 
   static void set_mps_lapack_svd(bool mps_lapack) { mps_lapack_ = mps_lapack; }
+  static void set_mps_svd_device(std::string mps_svd_device) {
+    mps_svd_device_ = mps_svd_device;
+  }
 
   static uint_t get_omp_threads() { return omp_threads_; }
   static uint_t get_omp_threshold() { return omp_threshold_; }
@@ -544,6 +554,11 @@ private:
   std::vector<MPS_Tensor> q_reg_;
   std::vector<rvector_t> lambda_reg_;
 
+#ifdef AER_THRUST_CUDA
+  cudaStream_t cuda_stream;
+  cutensornetHandle_t cutensor_handle;
+#endif // AER_THRUST_CUDA
+
   struct ordering {
     // order_ stores the current ordering of the qubits,
     // location_ stores the location of each qubit in the vector. It is derived
@@ -570,6 +585,7 @@ private:
   static bool mps_log_data_;
   static MPS_swap_direction mps_swap_direction_;
   static bool mps_lapack_;
+  static std::string mps_svd_device_;
 };
 
 inline std::ostream &operator<<(std::ostream &out, const rvector_t &vec) {
