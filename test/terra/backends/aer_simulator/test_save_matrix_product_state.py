@@ -16,6 +16,9 @@ from ddt import ddt
 import math
 import numpy as np
 from qiskit import QuantumCircuit, transpile
+from qiskit.circuit.library import PauliEvolutionGate
+from qiskit.quantum_info import SparsePauliOp
+from qiskit.synthesis import SuzukiTrotter
 from test.terra.backends.simulator_test_case import SimulatorTestCase, supported_methods
 
 
@@ -60,3 +63,32 @@ class TestSaveMatrixProductStateTests(SimulatorTestCase):
             self.assertTrue(np.allclose(val, target))
         for val, target in zip(value[1], target_lambda_reg):
             self.assertTrue(np.allclose(val, target))
+
+    @supported_methods(["automatic", "matrix_product_state"])
+    def test_save_matrix_product_state_memory_limit(self, method, device):
+        """Test save matrix_product_state instruction when max memory check is disabled"""
+        backend = self.backend(
+            method=method,
+            device=device,
+            matrix_product_state_max_bond_dimension=10,
+            max_memory_mb=-1,  # Disable memory limit check
+        )
+
+        L = 100
+        hamiltonian = SparsePauliOp.from_sparse_list([], num_qubits=L)
+        for x in range(L - 1):
+            hamiltonian += SparsePauliOp.from_sparse_list(
+                [
+                    ("XX", (x, x + 1), 1),
+                    ("YY", (x, x + 1), 1),
+                ],
+                num_qubits=L,
+            )
+        qc = QuantumCircuit(L)
+        qc.append(
+            PauliEvolutionGate(hamiltonian, synthesis=SuzukiTrotter(reps=100)), qargs=qc.qubits
+        )
+        qc = qc.decompose()
+        qc.save_matrix_product_state("mps")
+        result = backend.run(qc).result().data(0)
+        self.assertTrue("mps" in result)
