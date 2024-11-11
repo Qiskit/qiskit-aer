@@ -83,13 +83,22 @@ class MPS {
 public:
   MPS(uint_t num_qubits = 0) : num_qubits_(num_qubits) {
 #ifdef AER_THRUST_CUDA
+    cuda_stream = NULL;
+    cutensor_handle = NULL;
     if (mps_svd_device_.compare("GPU") == 0) {
       cudaStreamCreate(&cuda_stream);
       cutensornetCreate(&cutensor_handle);
     }
 #endif // AER_THRUST_CUDA
   }
-  ~MPS() {}
+  ~MPS() {
+#ifdef AER_THRUST_CUDA
+    if (cutensor_handle)
+      cutensornetDestroy(cutensor_handle);
+    if (cuda_stream)
+      cudaStreamDestroy(cuda_stream);
+#endif // AER_THRUST_CUDA
+  }
 
   //--------------------------------------------------------------------------
   // Function name: initialize
@@ -328,9 +337,11 @@ public:
   }
 
   static void set_mps_lapack_svd(bool mps_lapack) { mps_lapack_ = mps_lapack; }
+#ifdef AER_THRUST_CUDA
   static void set_mps_svd_device(std::string mps_svd_device) {
     mps_svd_device_ = mps_svd_device;
   }
+#endif // AER_THRUST_CUDA
 
   static uint_t get_omp_threads() { return omp_threads_; }
   static uint_t get_omp_threshold() { return omp_threshold_; }
@@ -585,7 +596,9 @@ private:
   static bool mps_log_data_;
   static MPS_swap_direction mps_swap_direction_;
   static bool mps_lapack_;
+#ifdef AER_THRUST_CUDA
   static std::string mps_svd_device_;
+#endif // AER_THRUST_CUDA
 };
 
 inline std::ostream &operator<<(std::ostream &out, const rvector_t &vec) {

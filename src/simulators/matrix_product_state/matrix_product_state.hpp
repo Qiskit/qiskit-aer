@@ -362,17 +362,9 @@ void State::set_config(const Config &config) {
   MPS::set_mps_lapack_svd(config.mps_lapack);
 
   // Set device for SVD
-  MPS::set_mps_svd_device(config.device);
-
-  // Get CUDA device, if GPU offloading enabled
-  if (config.device.compare("GPU") == 0) {
 #ifdef AER_THRUST_CUDA
-    cudaDeviceProp prop;
-    int deviceId{-1};
-    HANDLE_CUDA_ERROR(cudaGetDevice(&deviceId));
-    HANDLE_CUDA_ERROR(cudaGetDeviceProperties(&prop, deviceId));
+  MPS::set_mps_svd_device(config.device);
 #endif // AER_THRUST_CUDA
-  }
 }
 
 void State::add_metadata(ExperimentResult &result) const {
