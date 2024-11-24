@@ -420,13 +420,14 @@ void Circuit::reset_metadata() {
 void Circuit::add_op_metadata(const Op &op) {
   has_conditional |= op.conditional;
   opset_.insert(op);
-  if (!qubitset_.empty() &&
-      (op.type == OpType::save_expval || op.type == OpType::save_expval_var)) {
+  if (op.type == OpType::save_expval || op.type == OpType::save_expval_var) {
     for (int_t j = 0; j < op.expval_params.size(); j++) {
       const std::string &pauli = std::get<0>(op.expval_params[j]);
       for (int_t i = 0; i < op.qubits.size(); i++) {
         // add qubit with non-I operator
-        if (pauli[pauli.size() - 1 - i] != 'I') {
+        // we also add one qubit if the qubitset is empty to prevent edge cases
+        // with empty circuits
+        if (qubitset_.empty() || pauli[pauli.size() - 1 - i] != 'I') {
           qubitset_.insert(op.qubits[i]);
         }
       }
@@ -693,6 +694,7 @@ void Circuit::remap_qubits(Op &op) const {
       }
       pauli = new_pauli;
     }
+    op.qubits.resize(qubitmap_.size());
     for (int_t i = 0; i < qubitmap_.size(); i++) {
       op.qubits[i] = i;
     }
