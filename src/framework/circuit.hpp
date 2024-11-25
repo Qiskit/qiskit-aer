@@ -683,6 +683,11 @@ void Circuit::set_params(bool truncation) {
 void Circuit::remap_qubits(Op &op) const {
   // truncate save_expval
   if (op.type == OpType::save_expval || op.type == OpType::save_expval_var) {
+    // map each qubit to its location in the pauli strings
+    std::unordered_map<uint_t, uint_t> ops_pauli_qubit_map;
+    for (size_t i = 0; i < op.qubits.size(); ++i) {
+      ops_pauli_qubit_map[op.qubits[i]] = op.qubits.size() - 1 - i;
+    }
     int_t nparams = op.expval_params.size();
     for (int_t i = 0; i < nparams; i++) {
       std::string &pauli = std::get<0>(op.expval_params[i]);
@@ -690,7 +695,7 @@ void Circuit::remap_qubits(Op &op) const {
       new_pauli.resize(qubitmap_.size());
       for (auto q = qubitmap_.cbegin(); q != qubitmap_.cend(); q++) {
         new_pauli[qubitmap_.size() - 1 - q->second] =
-            pauli[pauli.size() - 1 - q->first];
+            pauli[ops_pauli_qubit_map[q->first]];
       }
       pauli = new_pauli;
     }
