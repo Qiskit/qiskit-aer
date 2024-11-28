@@ -271,3 +271,21 @@ class TestSaveExpectationValueTests(SimulatorTestCase):
             blocking_qubits=2,
             max_parallel_threads=1,
         )
+
+    @supported_methods(
+        [
+            "automatic",
+            "stabilizer",
+            "statevector",
+            "density_matrix",
+            "matrix_product_state",
+            "tensor_network",
+        ],
+    )
+    def test_save_expval_truncation(self, method, device):
+        """Test save expval when qubits are not in use and are truncated"""
+        circ = QuantumCircuit(3)
+        circ.x(1)
+        oper = qi.Pauli("ZZ")
+        qubits = [1, 2]  # qubit 0 will be truncated
+        self._test_save_expval(circ, oper, qubits, False, method=method, device=device)

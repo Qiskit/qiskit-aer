@@ -1,0 +1,4 @@
+---
+fixes:
+  - |
+    Fixes a small bug preventing the expval truncation mechanism from activating correctly.

@@ -445,6 +445,33 @@ class TestEstimatorV2(QiskitAerTestCase):
             result_5[0].data["evs"][0], result_2[0].data["evs"][0], delta=self._rtol
         )
 
+    def test_truncate_large_backends(self):
+        """Test truncation allows us to run few-qubit circuits on many-qubit backends"""
+        N = 12
+        qc = QuantumCircuit(N)
+
+        qc.x(range(N))
+        qc.h(range(N))
+
+        for kk in range(N // 2, 0, -1):
+            qc.ch(kk, kk - 1)
+        for kk in range(N // 2, N - 1):
+            qc.ch(kk, kk + 1)
+
+        op = SparsePauliOp("Z" * N)
+        backend_127 = GenericBackendV2(num_qubits=127)
+        pm = generate_preset_pass_manager(backend=backend_127, optimization_level=1)
+        isa_circuit = pm.run(qc)
+        mapped_observable = op.apply_layout(isa_circuit.layout)
+
+        ref_est = StatevectorEstimator()
+        ref_result = ref_est.run(pubs=[(qc, op)]).result()
+
+        est = EstimatorV2()
+        res = est.run(pubs=[(isa_circuit, mapped_observable)]).result()
+
+        self.assertAlmostEqual(ref_result[0].data.evs, res[0].data.evs)
+
 
 if __name__ == "__main__":
     unittest.main()
