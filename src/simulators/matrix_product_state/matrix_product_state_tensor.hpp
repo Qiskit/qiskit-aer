@@ -15,6 +15,19 @@
 #ifndef _tensor_tensor_hpp_
 #define _tensor_tensor_hpp_
 
+#ifdef AER_THRUST_CUDA
+#include <cublas_v2.h>
+#define HANDLE_CUBLAS_ERROR(x)                                                 \
+  {                                                                            \
+    const auto err = x;                                                        \
+    if (err != CUBLAS_STATUS_SUCCESS) {                                        \
+      printf("Error: %s in line %d/n", cublasGetStatusString(err), __LINE__);  \
+      fflush(stdout);                                                          \
+    }                                                                          \
+  };
+
+#endif // AER_THRUST_CUDA
+
 #include <complex>
 #include <cstdio>
 #include <exception>
@@ -154,19 +167,33 @@ public:
   void mul_Gamma_by_right_Lambda(const rvector_t &Lambda);
   void div_Gamma_by_left_Lambda(const rvector_t &Lambda);
   void div_Gamma_by_right_Lambda(const rvector_t &Lambda);
-  static MPS_Tensor contract(const MPS_Tensor &left_gamma,
-                             const rvector_t &lambda,
-                             const MPS_Tensor &right_gamma, bool mul_by_lambda);
+
 #ifdef AER_THRUST_CUDA
   static double Decompose(MPS_Tensor &temp, MPS_Tensor &left_gamma,
                           rvector_t &lambda, MPS_Tensor &right_gamma,
-                          bool mps_lapack, std::string mps_svd_device,
-                          cudaStream_t &cuda_stream,
+                          bool mps_lapack, std::string mps_device,
+                          uint_t num_qubits, cudaStream_t &cuda_stream,
                           cutensornetHandle_t &cutensor_handle);
+
+  static MPS_Tensor contract(const MPS_Tensor &left_gamma,
+                             const rvector_t &lambda,
+                             const MPS_Tensor &right_gamma,
+                             std::string mps_device, uint_t num_qubits,
+                             const cublasHandle_t &cublas_handle,
+                             bool mul_by_lambda);
+
+  static void cublas_Zgemm_(cmatrix_t &A, cmatrix_t &B, cmatrix_t &C,
+                            const cublasHandle_t &cublas_handle);
+
 #else
   static double Decompose(MPS_Tensor &temp, MPS_Tensor &left_gamma,
                           rvector_t &lambda, MPS_Tensor &right_gamma,
                           bool mps_lapack);
+
+  static MPS_Tensor contract(const MPS_Tensor &left_gamma,
+                             const rvector_t &lambda,
+                             const MPS_Tensor &right_gamma, bool mul_by_lambda);
+
 #endif // AER_THRUST_CUDA
 
   static void
@@ -503,6 +530,65 @@ void MPS_Tensor::mul_Gamma_by_Lambda(const rvector_t &Lambda,
 // 	       tensors to contract.
 // Returns: The result tensor of the contract
 //---------------------------------------------------------------
+#ifdef AER_THRUST_CUDA
+MPS_Tensor MPS_Tensor::contract(const MPS_Tensor &left_gamma,
+                                const rvector_t &lambda,
+                                const MPS_Tensor &right_gamma,
+                                std::string mps_device, uint_t num_qubits,
+                                const cublasHandle_t &cublas_handle,
+                                bool mul_by_lambda = true) {
+  MPS_Tensor Res;
+  MPS_Tensor new_left = left_gamma;
+  if (mul_by_lambda) {
+    new_left.mul_Gamma_by_right_Lambda(lambda);
+  }
+
+  for (uint_t idx1 = 0; idx1 < new_left.data_.size(); idx1++) {
+    for (uint_t idx2 = 0; idx2 < right_gamma.data_.size(); idx2++) {
+
+      // Before offloading to the GPU, we need to make sure the size of
+      // matrices to be operated on should be big enough to make the time
+      // taken by the initialization of involved GPU routines worth it.
+      // Size of matrices involved for qubits < 16 is too small to be
+      // considered to offload to the GPU.
+      // Even if num_qubits involved in the operation is > 16, still
+      // a lot of the matrices are too small to be offloaded.
+      // Matrices with rows/cols > 128 when offloaded to GPU for multiplication
+      // show speed up when compared to the operation done on the CPU.
+      // This observation was obtained on trial and error, and, does not have
+      // any theoritical basis.
+      // The number of rows/cols and number of qubits depends solely on
+      // difference between the speed of CPU and GPU involved. Even if matrices
+      // are big, they are not big enough to make speed of PICe a bottleneck.
+      // In this particular case CPU was `Zen+` and GPU was `NVIDIA Ampere`.
+
+      if ((num_qubits > 16) && (mps_device.compare("GPU") == 0)) {
+        cmatrix_t mat1 = new_left.data_[idx1], mat2 = right_gamma.data_[idx2];
+
+        uint_t mat1_rows = mat1.GetRows(), mat1_cols = mat1.GetColumns(),
+               mat2_rows = mat2.GetRows(), mat2_cols = mat2.GetColumns();
+
+        // If the mps_device is set to `GPU`, also need to make
+        // sure if the matrix is large enough to make it worth
+        // invoking needed GPU routines.
+        // If the matris is not big enough, the multiplication
+        // will be done on CPU using openblas zgemm_ routine.
+        if ((mat1_rows > 128) && (mat1_cols > 128) && (mat2_cols > 128)) {
+          cmatrix_t mat1_mat2(mat1_rows, mat2_cols);
+          cublas_Zgemm_(mat1, mat2, mat1_mat2, cublas_handle);
+          Res.data_.push_back(mat1_mat2);
+        } else {
+          Res.data_.push_back(mat1 * mat2);
+        }
+      } else {
+        Res.data_.push_back(new_left.data_[idx1] * right_gamma.data_[idx2]);
+      }
+    }
+  }
+
+  return Res;
+}
+#else
 MPS_Tensor MPS_Tensor::contract(const MPS_Tensor &left_gamma,
                                 const rvector_t &lambda,
                                 const MPS_Tensor &right_gamma,
@@ -514,11 +600,11 @@ MPS_Tensor MPS_Tensor::contract(const MPS_Tensor &left_gamma,
   }
   for (uint_t i = 0; i < new_left.data_.size(); i++)
     for (uint_t j = 0; j < right_gamma.data_.size(); j++) {
-
       Res.data_.push_back(new_left.data_[i] * right_gamma.data_[j]);
     }
   return Res;
 }
+#endif
 
 //---------------------------------------------------------------
 // Function name: contract_2_dimensions
@@ -604,8 +690,8 @@ void MPS_Tensor::contract_2_dimensions(const MPS_Tensor &left_gamma,
 #ifdef AER_THRUST_CUDA
 double MPS_Tensor::Decompose(MPS_Tensor &temp, MPS_Tensor &left_gamma,
                              rvector_t &lambda, MPS_Tensor &right_gamma,
-                             bool mps_lapack, std::string mps_svd_device,
-                             cudaStream_t &cuda_stream,
+                             bool mps_lapack, std::string mps_device,
+                             uint_t num_qubits, cudaStream_t &cuda_stream,
                              cutensornetHandle_t &cutensor_handle)
 #else
 double MPS_Tensor::Decompose(MPS_Tensor &temp, MPS_Tensor &left_gamma,
@@ -619,7 +705,22 @@ double MPS_Tensor::Decompose(MPS_Tensor &temp, MPS_Tensor &left_gamma,
   rvector_t S(std::min(C.GetRows(), C.GetColumns()));
 
 #ifdef AER_THRUST_CUDA
-  if (mps_svd_device.compare("GPU") == 0) {
+  // Before offloading to the GPU, we need to make sure the size of
+  // matrices to be operated on should be big enough to make
+  // the time taken by the initialization of `cutensornet` worth it.
+  // Size of matrices involved for qubits < 13 is too small to be
+  // considered to offload to the GPU.
+  // Even if num_qubits involved in the operation is > 13, still
+  // a lot of the matrices are too small to be offloaded, so to determine
+  // the size of matrices to offload, we can look at the number of elements
+  // it has. The number of elements `8401` and num_qubits > 13 has been
+  // obtained not on any theoritical basis, but on trial and error.
+  // The number of elements and number of qubits depends solely on
+  // difference between the speed of CPU and GPU involved. Even if matrices
+  // are big, they are not big enough to make speed of PICe a bottleneck.
+  // In this particular case CPU was `Zen+` and GPU was `NVIDIA Ampere`.
+  if ((num_qubits > 13) && (mps_device.compare("GPU") == 0) &&
+      ((C.GetRows() * C.GetColumns()) > 8401)) {
     cutensor_csvd_wrapper(C, U, S, V, cuda_stream, cutensor_handle);
   } else {
     csvd_wrapper(C, U, S, V, mps_lapack);
@@ -659,6 +760,54 @@ void MPS_Tensor::reshape_for_3_qubits_before_SVD(
   new_data_vector.push_back(temp6_7);
   reshaped_tensor = MPS_Tensor(new_data_vector);
 }
+
+#ifdef AER_THRUST_CUDA
+void MPS_Tensor::cublas_Zgemm_(cmatrix_t &A, cmatrix_t &B, cmatrix_t &C,
+                               const cublasHandle_t &cublas_handle) {
+  size_t A_rows = A.GetRows(), A_cols = A.GetColumns(), B_rows = B.GetRows(),
+         B_cols = B.GetColumns(),
+         size_cuDoubleComplex = sizeof(cuDoubleComplex);
+
+  size_t size_A = A_rows * A_cols * size_cuDoubleComplex,
+         size_B = B_rows * B_cols * size_cuDoubleComplex,
+         size_C = A_rows * B_cols * size_cuDoubleComplex;
+
+  cuDoubleComplex *A_data_dev, *B_data_dev, *C_data_dev;
+
+  HANDLE_CUDA_ERROR(cudaMalloc((void **)&A_data_dev, size_A));
+  HANDLE_CUDA_ERROR(cudaMalloc((void **)&B_data_dev, size_B));
+  HANDLE_CUDA_ERROR(cudaMalloc((void **)&C_data_dev, size_C));
+
+  complex_t *A_data = A.move_to_buffer(), *B_data = B.move_to_buffer();
+
+  HANDLE_CUDA_ERROR(
+      cudaMemcpy(A_data_dev, A_data, size_A, cudaMemcpyHostToDevice));
+  HANDLE_CUDA_ERROR(
+      cudaMemcpy(B_data_dev, B_data, size_B, cudaMemcpyHostToDevice));
+
+  A = std::move(cmatrix_t::move_from_buffer(A_rows, A_cols, A_data));
+  B = std::move(cmatrix_t::move_from_buffer(B_rows, B_cols, B_data));
+
+  cuDoubleComplex alpha = make_cuDoubleComplex(1.0, 0.0),
+                  beta = make_cuDoubleComplex(0.0, 0.0);
+
+  cublasZgemm(cublas_handle, CUBLAS_OP_N, CUBLAS_OP_N, A_rows, B_cols, A_cols,
+              &alpha, reinterpret_cast<const cuDoubleComplex *>(A_data_dev),
+              A_rows, reinterpret_cast<const cuDoubleComplex *>(B_data_dev),
+              B_rows, &beta, C_data_dev, A_rows);
+
+  complex_t *C_res = reinterpret_cast<complex_t *>(malloc(size_C));
+  HANDLE_CUDA_ERROR(
+      cudaMemcpy(C_res, C_data_dev, size_C, cudaMemcpyDeviceToHost));
+  C = std::move(cmatrix_t::copy_from_buffer(A_rows, B_cols, C_res));
+
+  HANDLE_CUDA_ERROR(cudaFree(A_data_dev));
+  HANDLE_CUDA_ERROR(cudaFree(B_data_dev));
+  HANDLE_CUDA_ERROR(cudaFree(C_data_dev));
+  if (C_res)
+    free(C_res);
+}
+#endif // AER_THRUST_CUDA
 
 //-------------------------------------------------------------------------
 } // end namespace MatrixProductState

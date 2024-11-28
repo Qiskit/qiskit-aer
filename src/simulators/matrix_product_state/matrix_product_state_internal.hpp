@@ -85,9 +85,12 @@ public:
 #ifdef AER_THRUST_CUDA
     cuda_stream = NULL;
     cutensor_handle = NULL;
-    if (mps_svd_device_.compare("GPU") == 0) {
+    cublas_handle = NULL;
+    if (mps_device_.compare("GPU") == 0) {
       cudaStreamCreate(&cuda_stream);
       cutensornetCreate(&cutensor_handle);
+      cublasCreate(&cublas_handle);
+      cublasSetStream(cublas_handle, cuda_stream);
     }
 #endif // AER_THRUST_CUDA
   }
@@ -95,6 +98,8 @@ public:
 #ifdef AER_THRUST_CUDA
     if (cutensor_handle)
       cutensornetDestroy(cutensor_handle);
+    if (cublas_handle)
+      cublasDestroy(cublas_handle);
     if (cuda_stream)
       cudaStreamDestroy(cuda_stream);
 #endif // AER_THRUST_CUDA
@@ -338,8 +343,8 @@ public:
 
   static void set_mps_lapack_svd(bool mps_lapack) { mps_lapack_ = mps_lapack; }
 #ifdef AER_THRUST_CUDA
-  static void set_mps_svd_device(std::string mps_svd_device) {
-    mps_svd_device_ = mps_svd_device;
+  static void set_mps_device(std::string mps_device) {
+    mps_device_ = mps_device;
   }
 #endif // AER_THRUST_CUDA
 
@@ -568,6 +573,7 @@ private:
 #ifdef AER_THRUST_CUDA
   cudaStream_t cuda_stream;
   cutensornetHandle_t cutensor_handle;
+  cublasHandle_t cublas_handle;
 #endif // AER_THRUST_CUDA
 
   struct ordering {
@@ -597,7 +603,7 @@ private:
   static MPS_swap_direction mps_swap_direction_;
   static bool mps_lapack_;
 #ifdef AER_THRUST_CUDA
-  static std::string mps_svd_device_;
+  static std::string mps_device_;
 #endif // AER_THRUST_CUDA
 };
 

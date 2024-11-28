@@ -672,7 +672,6 @@ void lapack_csvd_wrapper(cmatrix_t &A, cmatrix_t &U, rvector_t &S,
 void cutensor_csvd_wrapper(cmatrix_t &A, cmatrix_t &U, rvector_t &S,
                            cmatrix_t &V, cudaStream_t &stream,
                            cutensornetHandle_t &handle) {
-
   bool transposed = false;
 
   const int64_t rows = A.GetRows(), cols = A.GetColumns();

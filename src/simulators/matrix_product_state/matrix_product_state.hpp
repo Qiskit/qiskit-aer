@@ -363,7 +363,7 @@ void State::set_config(const Config &config) {
 
   // Set device for SVD
 #ifdef AER_THRUST_CUDA
-  MPS::set_mps_svd_device(config.device);
+  MPS::set_mps_device(config.device);
 #endif // AER_THRUST_CUDA
 }
 
