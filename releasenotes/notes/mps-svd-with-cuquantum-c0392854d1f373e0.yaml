@@ -2,11 +2,13 @@
 features:
   - |
     This PR adds the ability to run Matrix Product State Simulation on Nvidia GPUs.
-    To be precise, this PR offloads the Singular Value Decomposition required for
-    Matrix Product State Simulation to Nvidia GPUs with the help of cuQuantum.
-    
-    While choosing for the backend for Matrix Product State simulation users can 
-    choose all as usual, but this time they can choose the device as GPU.
+
+    While choosing for the backend for Matrix Product State simulation users can
+    choose all as usual, but this time when they can choose the device as GPU, the
+    simulation is accelerated by NVIDIA GPU. To be precise, this PR offloads the
+    Singular Value Decomposition and matrix multiplication of bigger matrices involved
+    in Matrix Product State Simulation to GPU.
+
 
     Example
 

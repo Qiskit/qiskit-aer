@@ -1837,7 +1837,7 @@ void MPS::initialize_from_matrix(uint_t num_qubits, const cmatrix_t &mat) {
     // a lot of the matrices are too small to be offloaded, so to determine
     // the size of matrices to offload, we can look at the number of elements
     // it has. The number of elements `8401` and num_qubits > 13 has been
-    // obtained not on any theoritical basis, but on trial and error.
+    // obtained not on any theoretical basis, but on trial and error.
     // The number of elements and number of qubits depends solely on
     // difference between the speed of CPU and GPU involved. Even if matrices
     // are big, they are not big enough to make speed of PICe a bottleneck.

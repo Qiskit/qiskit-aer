@@ -556,7 +556,7 @@ MPS_Tensor MPS_Tensor::contract(const MPS_Tensor &left_gamma,
       // Matrices with rows/cols > 128 when offloaded to GPU for multiplication
       // show speed up when compared to the operation done on the CPU.
       // This observation was obtained on trial and error, and, does not have
-      // any theoritical basis.
+      // any theoretical basis.
       // The number of rows/cols and number of qubits depends solely on
       // difference between the speed of CPU and GPU involved. Even if matrices
       // are big, they are not big enough to make speed of PICe a bottleneck.
@@ -714,7 +714,7 @@ double MPS_Tensor::Decompose(MPS_Tensor &temp, MPS_Tensor &left_gamma,
   // a lot of the matrices are too small to be offloaded, so to determine
   // the size of matrices to offload, we can look at the number of elements
   // it has. The number of elements `8401` and num_qubits > 13 has been
-  // obtained not on any theoritical basis, but on trial and error.
+  // obtained not on any theoretical basis, but on trial and error.
   // The number of elements and number of qubits depends solely on
   // difference between the speed of CPU and GPU involved. Even if matrices
   // are big, they are not big enough to make speed of PICe a bottleneck.
