@@ -56,7 +56,7 @@ if ADD_CUDA_REQUIREMENTS and "gpu" in PACKAGE_NAME and "rocm" not in PACKAGE_NAM
             "nvidia-cublas-cu11>=11.11.3.6",
             "nvidia-cusolver-cu11>=11.4.1.48",
             "nvidia-cusparse-cu11>=11.7.5.86",
-            "cuquantum-cu11>=23.3.0",
+            "cuquantum-cu11>=23.3.0,<24.11.0",
         ]
         classifiers_cuda = [
             "Environment :: GPU :: NVIDIA CUDA :: 11",
@@ -68,7 +68,7 @@ if ADD_CUDA_REQUIREMENTS and "gpu" in PACKAGE_NAME and "rocm" not in PACKAGE_NAM
             "nvidia-cublas-cu12>=12.1.3.1",
             "nvidia-cusolver-cu12>=11.4.5.107",
             "nvidia-cusparse-cu12>=12.1.0.106",
-            "cuquantum-cu12>=23.3.0",
+            "cuquantum-cu12>=23.3.0,<24.11.0",
         ]
         classifiers_cuda = [
             "Environment :: GPU :: NVIDIA CUDA :: 12",
