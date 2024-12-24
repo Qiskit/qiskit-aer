@@ -10,7 +10,7 @@ concurrency:
 jobs:
   neko:
     name: Qiskit Neko Integration Tests
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
       - uses: Qiskit/qiskit-neko@main
         with:
