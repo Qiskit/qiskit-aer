@@ -9,7 +9,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   docs:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     timeout-minutes: 60
     strategy:
       matrix:
@@ -46,7 +46,7 @@ jobs:
           name: html_docs
           path: docs/_build/html
   tutorials:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     needs: [docs]
     strategy:
       matrix:
