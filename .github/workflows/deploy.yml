@@ -8,7 +8,7 @@ jobs:
     name: Build qiskit-aer wheels
     strategy:
       matrix:
-        os: ["macos-13", "ubuntu-latest", "windows-2019"]
+        os: ["macos-13", "ubuntu-22.04", "windows-2019"]
     runs-on: ${{ matrix.os }}
     environment: release
     steps:
@@ -37,7 +37,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest]
+        os: [ubuntu-22.04]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -90,7 +90,7 @@ jobs:
           name: publish-shared-wheels
   sdist:
     name: Publish qiskit-aer sdist
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     needs: [publish-shared-wheels]
     environment: release
     permissions:
@@ -118,7 +118,7 @@ jobs:
     name: Build qiskit-aer-gpu-cu11 wheels
     strategy:
       matrix:
-        os: ["ubuntu-latest"]
+        os: ["ubuntu-22.04"]
     runs-on: ${{ matrix.os }}
     environment: release
     permissions:
@@ -162,7 +162,7 @@ jobs:
     name: Build qiskit-aer-gpu-cu12 wheels
     strategy:
       matrix:
-        os: ["ubuntu-latest"]
+        os: ["ubuntu-22.04"]
     runs-on: ${{ matrix.os }}
     environment: release
     permissions:
@@ -211,7 +211,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest]
+        os: [ubuntu-22.04]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -247,7 +247,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest]
+        os: [ubuntu-22.04]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -276,7 +276,7 @@ jobs:
           packages-dir: wheelhouse
   publish-shared-wheels:
     name: Publish shared wheels
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     needs: [wheel-build, wheel-arm64-macos]
     environment: release
     permissions:
