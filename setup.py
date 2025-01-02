@@ -63,7 +63,7 @@ if ADD_CUDA_REQUIREMENTS and "gpu" in PACKAGE_NAME and "rocm" not in PACKAGE_NAM
         ]
     else:
         requirements_cuda = [
-            "nvidia-cuda-runtime-cu12>=12.1.105",
+            "nvidia-cuda-runtime-cu12>=12.1.105,<12.6",
             "nvidia-nvjitlink-cu12<12.6.85",
             "nvidia-cublas-cu12>=12.1.3.1",
             "nvidia-cusolver-cu12>=11.4.5.107",
