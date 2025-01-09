@@ -8,7 +8,7 @@
     <!-- Generated with Sphinx 7.1.2 and Furo 2024.01.29 -->
         <title>Simulators - Qiskit Aer 0.15.0</title>
       <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=135e06be" />
-    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=82a976d7" />
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=3ee1c6c6" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/qiskit-sphinx-theme.css?v=fe84956c" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/qiskit-ecosystem.css?v=745c5aa7" />
     <link rel="stylesheet" type="text/css" href="../_static/jupyter-sphinx.css" />
@@ -349,13 +349,13 @@
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
 </pre></div>
 </div>
-<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 
 <span class="c1"># Import Qiskit</span>
-<span class="kn">from</span> <span class="nn">qiskit</span> <span class="kn">import</span> <span class="n">QuantumCircuit</span><span class="p">,</span> <span class="n">transpile</span>
-<span class="kn">from</span> <span class="nn">qiskit_aer</span> <span class="kn">import</span> <span class="n">AerSimulator</span>
-<span class="kn">from</span> <span class="nn">qiskit.visualization</span> <span class="kn">import</span> <span class="n">plot_histogram</span><span class="p">,</span> <span class="n">plot_state_city</span>
-<span class="kn">import</span> <span class="nn">qiskit.quantum_info</span> <span class="k">as</span> <span class="nn">qi</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">qiskit</span><span class="w"> </span><span class="kn">import</span> <span class="n">QuantumCircuit</span><span class="p">,</span> <span class="n">transpile</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">qiskit_aer</span><span class="w"> </span><span class="kn">import</span> <span class="n">AerSimulator</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">qiskit.visualization</span><span class="w"> </span><span class="kn">import</span> <span class="n">plot_histogram</span><span class="p">,</span> <span class="n">plot_state_city</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">qiskit.quantum_info</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">qi</span>
 </pre></div>
 </div>
 </div>
@@ -536,7 +536,7 @@
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
 </pre></div>
 </div>
-<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">qiskit_aer</span> <span class="kn">import</span> <span class="n">AerError</span>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">qiskit_aer</span><span class="w"> </span><span class="kn">import</span> <span class="n">AerError</span>
 
 <span class="c1"># Initialize a GPU backend</span>
 <span class="c1"># Note that the cloud instance for tutorials does not have a GPU</span>
@@ -568,7 +568,7 @@
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
 </pre></div>
 </div>
-<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">qiskit_aer</span> <span class="kn">import</span> <span class="n">AerError</span>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">qiskit_aer</span><span class="w"> </span><span class="kn">import</span> <span class="n">AerError</span>
 
 <span class="c1"># Initialize a GPU backend</span>
 <span class="c1"># Note that the cloud instance for tutorials does not have a GPU</span>
@@ -808,8 +808,13 @@ Circuit unitary:
 </tbody>
 </table>
 </div>
-<p><strong>Notes:</strong> * These instructions must be applied to all qubits in a circuit, otherwise an exception will be raised. * The input state must also be a valid state (statevector, density matrix, unitary etc) otherwise an exception will be raised. * These instructions can be applied at any location in a circuit and will override the current state with the specified one. Any classical register values (e.g. from preceding measurements) will be unaffected * Set state instructions are only supported
-by the Aer simulator and will result in an error if a circuit containing them is run on a non-simulator backend such as an IBM Quantum device.</p>
+<p><strong>Notes:</strong></p>
+<ul class="simple">
+<li><p>These instructions must be applied to all qubits in a circuit, otherwise an exception will be raised.</p></li>
+<li><p>The input state must also be a valid state (statevector, density matrix, unitary etc) otherwise an exception will be raised.</p></li>
+<li><p>These instructions can be applied at any location in a circuit and will override the current state with the specified one. Any classical register values (e.g. from preceding measurements) will be unaffected</p></li>
+<li><p>Set state instructions are only supported by the Aer simulator and will result in an error if a circuit containing them is run on a non-simulator backend such as an IBM Quantum device.</p></li>
+</ul>
 <section id="Setting-a-Custom-Statevector">
 <h4>Setting a Custom Statevector<a class="headerlink" href="#Setting-a-Custom-Statevector" title="Permalink to this heading">#</a></h4>
 <p>The set_statevector instruction can be used to set a custom Statevector state. The input statevector must be valid (<span class="math notranslate nohighlight">\(|\langle\psi|\psi\rangle|=1\)</span>)</p>
@@ -1006,7 +1011,7 @@ by the Aer simulator and will result in an error if a circuit containing them is
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[37]:
 </pre></div>
 </div>
-<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">qiskit</span>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">qiskit</span>
 <span class="n">qiskit</span><span class="o">.</span><span class="n">__version__</span>
 </pre></div>
 </div>
@@ -1053,13 +1058,13 @@ by the Aer simulator and will result in an error if a circuit containing them is
         <div class="bottom-of-page">
           <div class="left-details">
             <div class="copyright">
-                Copyright &#169; 2017-2024, Qiskit Development Team
+                Copyright &#169; 2017-2025, Qiskit Development Team
             </div>
             Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
             
             <a href="https://github.com/pradyunsg/furo">Furo</a>
             <div class="last-updated">
-              Last updated on 2024/09/13</div>
+              Last updated on 2025/01/09</div>
           </div>
           <div class="right-details">
             

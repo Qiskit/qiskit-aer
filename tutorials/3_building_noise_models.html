@@ -8,7 +8,7 @@
     <!-- Generated with Sphinx 7.1.2 and Furo 2024.01.29 -->
         <title>Building Noise Models - Qiskit Aer 0.15.0</title>
       <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=135e06be" />
-    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=82a976d7" />
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=3ee1c6c6" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/qiskit-sphinx-theme.css?v=fe84956c" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/qiskit-ecosystem.css?v=745c5aa7" />
     <link rel="stylesheet" type="text/css" href="../_static/jupyter-sphinx.css" />
@@ -349,14 +349,14 @@
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-<span class="kn">from</span> <span class="nn">qiskit</span> <span class="kn">import</span> <span class="n">QuantumCircuit</span><span class="p">,</span> <span class="n">transpile</span>
-<span class="kn">from</span> <span class="nn">qiskit.quantum_info</span> <span class="kn">import</span> <span class="n">Kraus</span><span class="p">,</span> <span class="n">SuperOp</span>
-<span class="kn">from</span> <span class="nn">qiskit_aer</span> <span class="kn">import</span> <span class="n">AerSimulator</span>
-<span class="kn">from</span> <span class="nn">qiskit.visualization</span> <span class="kn">import</span> <span class="n">plot_histogram</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">qiskit</span><span class="w"> </span><span class="kn">import</span> <span class="n">QuantumCircuit</span><span class="p">,</span> <span class="n">transpile</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">qiskit.quantum_info</span><span class="w"> </span><span class="kn">import</span> <span class="n">Kraus</span><span class="p">,</span> <span class="n">SuperOp</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">qiskit_aer</span><span class="w"> </span><span class="kn">import</span> <span class="n">AerSimulator</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">qiskit.visualization</span><span class="w"> </span><span class="kn">import</span> <span class="n">plot_histogram</span>
 
 <span class="c1"># Import from Qiskit Aer noise module</span>
-<span class="kn">from</span> <span class="nn">qiskit_aer.noise</span> <span class="kn">import</span> <span class="p">(</span><span class="n">NoiseModel</span><span class="p">,</span> <span class="n">QuantumError</span><span class="p">,</span> <span class="n">ReadoutError</span><span class="p">,</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">qiskit_aer.noise</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span><span class="n">NoiseModel</span><span class="p">,</span> <span class="n">QuantumError</span><span class="p">,</span> <span class="n">ReadoutError</span><span class="p">,</span>
     <span class="n">pauli_error</span><span class="p">,</span> <span class="n">depolarizing_error</span><span class="p">,</span> <span class="n">thermal_relaxation_error</span><span class="p">)</span>
 </pre></div>
 </div>
@@ -884,7 +884,12 @@ NoiseModel:
 </section>
 <section id="Example-2:-T1/T2-thermal-relaxation">
 <h2>Example 2: T1/T2 thermal relaxation<a class="headerlink" href="#Example-2:-T1/T2-thermal-relaxation" title="Permalink to this heading">#</a></h2>
-<p>Now consider a more realistic error model based on thermal relaxation with the qubit environment: * Each qubit is parameterized by a thermal relaxation time constant <span class="math notranslate nohighlight">\(T_1\)</span> and a dephasing time constant <span class="math notranslate nohighlight">\(T_2\)</span>. * Note that we must have <span class="math notranslate nohighlight">\(T_2 \le 2 T_1\)</span>. * Error rates on instructions are determined by gate times and qubit <span class="math notranslate nohighlight">\(T_1\)</span>, <span class="math notranslate nohighlight">\(T_2\)</span> values.</p>
+<p>Now consider a more realistic error model based on thermal relaxation with the qubit environment:</p>
+<ul class="simple">
+<li><p>Each qubit is parameterized by a thermal relaxation time constant <span class="math notranslate nohighlight">\(T_1\)</span> and a dephasing time constant <span class="math notranslate nohighlight">\(T_2\)</span>.</p></li>
+<li><p>Note that we must have <span class="math notranslate nohighlight">\(T_2 \le 2 T_1\)</span>.</p></li>
+<li><p>Error rates on instructions are determined by gate times and qubit <span class="math notranslate nohighlight">\(T_1\)</span>, <span class="math notranslate nohighlight">\(T_2\)</span> values.</p></li>
+</ul>
 <div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[15]:
 </pre></div>
@@ -980,7 +985,7 @@ NoiseModel:
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[17]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">qiskit</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">qiskit</span>
 <span class="n">qiskit</span><span class="o">.</span><span class="n">__version__</span>
 <br/></pre></div>
 </div>
@@ -1029,13 +1034,13 @@ NoiseModel:
         <div class="bottom-of-page">
           <div class="left-details">
             <div class="copyright">
-                Copyright &#169; 2017-2024, Qiskit Development Team
+                Copyright &#169; 2017-2025, Qiskit Development Team
             </div>
             Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
             
             <a href="https://github.com/pradyunsg/furo">Furo</a>
             <div class="last-updated">
-              Last updated on 2024/09/13</div>
+              Last updated on 2025/01/09</div>
           </div>
           <div class="right-details">
             
