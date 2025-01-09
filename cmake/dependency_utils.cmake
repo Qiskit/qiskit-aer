@@ -24,7 +24,7 @@ endmacro()
 macro(_use_system_libraries)
 	# Use system libraries
 	_import_aer_system_dependency(nlohmann_json 3.11.3)
-	_import_aer_system_dependency(spdlog 1.15.0)
+	_import_aer_system_dependency(spdlog 1.14.1)
 
 	if(AER_THRUST_BACKEND AND NOT AER_THRUST_BACKEND STREQUAL "CUDA")
 		string(TOLOWER ${AER_THRUST_BACKEND} THRUST_BACKEND)
