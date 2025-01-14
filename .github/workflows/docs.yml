@@ -74,7 +74,7 @@ jobs:
           pip install -U -r requirements-dev.txt -c constraints.txt
           pip install -c constraints.txt git+https://github.com/Qiskit/qiskit
           pip install -c constraints.txt .
-          sudo apt install -y graphviz pandoc libopenblas-dev
+          sudo apt install -y graphviz pandoc libblas-dev liblapack-dev
           pip check
         shell: bash
       - name: Run Tutorials
