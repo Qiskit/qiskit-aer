@@ -27,7 +27,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           path: ./wheelhouse/*.whl
-          name: publish-shared-wheels
+          name: ${{ github.job }}-${{ matrix.os }}
   build_wheels_aarch64:
     name: Build wheels on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
@@ -60,6 +60,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           path: ./wheelhouse/*.whl
+          name: ${{ github.job }}-${{ matrix.os }}
       - name: Publish package distributions to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
@@ -110,6 +111,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           path: ./dist/qiskit*
+          name: ${{ github.job }}-${{ matrix.os }}
       - name: Publish package distributions to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
@@ -154,6 +156,7 @@ jobs:
       - uses: actions/upload-artifact@v3
         with:
           path: ./wheelhouse/*.whl
+          name: ${{ github.job }}-${{ matrix.os }}
       - name: Publish package distributions to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
@@ -198,6 +201,7 @@ jobs:
       - uses: actions/upload-artifact@v3
         with:
           path: ./wheelhouse/*.whl
+          name: ${{ github.job }}-${{ matrix.os }}
       - name: Publish package distributions to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
@@ -234,6 +238,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           path: ./wheelhouse/*.whl
+          name: ${{ github.job }}-${{ matrix.os }}
       - name: Publish package distributions to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
@@ -270,6 +275,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           path: ./wheelhouse/*.whl
+          name: ${{ github.job }}-${{ matrix.os }}
       - name: Publish package distributions to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
