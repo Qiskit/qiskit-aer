@@ -1,8 +1,8 @@
 name: Deploy
 on:
   push:
-    tags:
-      - '*'
+    branches: 
+      - deploy_016
 jobs:
   wheel-build:
     name: Build qiskit-aer wheels
