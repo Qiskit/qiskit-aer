@@ -730,10 +730,10 @@ void QubitVector<data_t>::check_vector(const cvector_t<data_t> &vec,
 
 template <typename data_t>
 void QubitVector<data_t>::check_dimension(const QubitVector &qv) const {
-  if (data_size_ != qv.size_) {
+  if (data_size_ != qv.data_size_) {
     std::string error = "QubitVector: vectors are different shape " +
                         std::to_string(data_size_) +
-                        " != " + std::to_string(qv.num_states_);
+                        " != " + std::to_string(qv.data_size_);
     throw std::runtime_error(error);
   }
 }
