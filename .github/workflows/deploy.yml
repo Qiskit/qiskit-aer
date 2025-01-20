@@ -291,7 +291,7 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           path: deploy
-          pattern: 'aer-deploy-shared-'
+          pattern: 'aer-deploy-shared-*'
           merge-multiple: true
       - name: Publish package distributions to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
