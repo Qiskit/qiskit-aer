@@ -1,0 +1,7 @@
+---
+features:
+  - |
+    Added support for running qiskit-aer with Python 3.13
+deprecations:
+  - |
+    Python 3.8 is no longer supported as it is not supported in qiskit 1.3
