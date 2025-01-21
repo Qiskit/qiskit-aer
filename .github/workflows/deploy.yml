@@ -89,33 +89,6 @@ jobs:
         with:
           path: ./wheelhouse/*.whl
           name: aer-deploy-shared-wheel-arm64-macos-${{ matrix.os }}
-  sdist:
-    name: Publish qiskit-aer sdist
-    runs-on: ubuntu-latest
-    needs: [publish-shared-wheels]
-    environment: release
-    permissions:
-      id-token: write
-    steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
-        name: Install Python
-        with:
-          python-version: '3.13'
-      - name: Install Deps
-        run: pip install -U scikit-build wheel
-      - name: Build Artifacts
-        run: |
-          python setup.py sdist
-        shell: bash
-      - uses: actions/upload-artifact@v4
-        with:
-          path: ./dist/qiskit*
-          name: aer-deploy-separate-sdist-${{ matrix.os }}
-      - name: Publish package distributions to PyPI
-        uses: pypa/gh-action-pypi-publish@release/v1
-        with:
-          packages-dir: dist
   gpu-build-cuda11:
     name: Build qiskit-aer-gpu-cu11 wheels
     strategy:
@@ -202,80 +175,6 @@ jobs:
         with:
           path: ./wheelhouse/*.whl
           name: aer-deploy-separate-gpu-build-cuda12-${{ matrix.os }}
-      - name: Publish package distributions to PyPI
-        uses: pypa/gh-action-pypi-publish@release/v1
-        with:
-          packages-dir: wheelhouse
-  build_wheels_s390x:
-    name: Build wheels on s390x
-    runs-on: ${{ matrix.os }}
-    environment: release
-    permissions:
-      id-token: write
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest]
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        name: Install Python
-        with:
-          python-version: '3.10'
-      - uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-        with:
-          platforms: all
-      - name: Build wheels
-        uses: pypa/cibuildwheel@v2.19.2
-        env:
-          CIBW_ARCHS_LINUX: s390x
-          CIBW_TEST_SKIP: "cp*"
-          CIBW_BEFORE_ALL: "sed -i -e 's/^mirrorlist/#mirrorlist/' -e 's/^#baseurl/baseurl/' -e 's/mirror.centos.org/vault.centos.org/' /etc/yum.repos.d/*.repo && yum install -y https://dl.fedoraproject.org/pub/epel/8/Everything/s390x/Packages/e/epel-release-8-21.el8.noarch.rpm && yum install -y openblas-devel"
-      - uses: actions/upload-artifact@v4
-        with:
-          path: ./wheelhouse/*.whl
-          name: aer-deploy-separate-build_wheels_s390x-${{ matrix.os }}
-      - name: Publish package distributions to PyPI
-        uses: pypa/gh-action-pypi-publish@release/v1
-        with:
-          packages-dir: wheelhouse
-  build_wheels_ppc64le:
-    name: Build wheels on ppc64le
-    runs-on: ${{ matrix.os }}
-    environment: release
-    permissions:
-      id-token: write
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest]
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        name: Install Python
-        with:
-          python-version: '3.13'
-      - uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-        with:
-          platforms: all
-      - name: Build wheels
-        uses: pypa/cibuildwheel@v2.19.2
-        env:
-          CIBW_BEFORE_ALL: "sed -i -e 's/^mirrorlist/#mirrorlist/' -e 's/^#baseurl/baseurl/' -e 's/mirror.centos.org/vault.centos.org/' /etc/yum.repos.d/*.repo && yum install -y https://dl.fedoraproject.org/pub/archive/epel/7/ppc64le/Packages/e/epel-release-7-14.noarch.rpm && yum install -y openblas-devel"
-          CIBW_ARCHS_LINUX: ppc64le
-          CIBW_TEST_SKIP: "cp*"
-      - uses: actions/upload-artifact@v4
-        with:
-          path: ./wheelhouse/*.whl
-          name: aer-deploy-separate-build_wheels_ppc64le-${{ matrix.os }}
       - name: Publish package distributions to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:

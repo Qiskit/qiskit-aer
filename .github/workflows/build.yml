@@ -1,9 +1,9 @@
 name: Build
 on:
   push:
-    branches: [main, 'stable/*']
+    branches: [main]
   pull_request:
-    branches: [main, 'stable/*']
+    branches: [main]
 concurrency:
   group: ${{ github.repository }}-${{ github.ref }}-${{ github.head_ref }}-${{ github.workflow }}
   cancel-in-progress: true
