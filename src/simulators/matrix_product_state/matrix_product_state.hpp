@@ -324,14 +324,14 @@ size_t State::required_memory_mb(uint_t num_qubits,
 
 void State::set_config(const Config &config) {
   // Set threshold for truncating Schmidt coefficients
-  MPS_Tensor::set_truncation_threshold(
+  qreg_.set_truncation_threshold(
       config.matrix_product_state_truncation_threshold);
 
   if (config.matrix_product_state_max_bond_dimension.has_value())
-    MPS_Tensor::set_max_bond_dimension(
+    qreg_.set_max_bond_dimension(
         config.matrix_product_state_max_bond_dimension.value());
   else
-    MPS_Tensor::set_max_bond_dimension(UINT64_MAX);
+    qreg_.set_max_bond_dimension(UINT64_MAX);
 
   // Set threshold for truncating snapshots
   MPS::set_json_chop_threshold(config.chop_threshold);
@@ -363,9 +363,9 @@ void State::set_config(const Config &config) {
 }
 
 void State::add_metadata(ExperimentResult &result) const {
-  result.metadata.add(MPS_Tensor::get_truncation_threshold(),
+  result.metadata.add(qreg_.get_truncation_threshold(),
                       "matrix_product_state_truncation_threshold");
-  result.metadata.add(MPS_Tensor::get_max_bond_dimension(),
+  result.metadata.add(qreg_.get_max_bond_dimension(),
                       "matrix_product_state_max_bond_dimension");
   result.metadata.add(MPS::get_sample_measure_alg(),
                       "matrix_product_state_sample_measure_algorithm");
