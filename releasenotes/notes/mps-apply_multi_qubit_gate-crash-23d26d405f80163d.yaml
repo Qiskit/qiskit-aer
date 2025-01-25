@@ -1,0 +1,11 @@
+---
+prelude: >
+    MPS::apply_multi_qubit_gate could crash in some circumstances
+fixes:
+  - |
+    A matrix was attempted to be constructed despite having `is_diagonal`
+    parameter set to true and the passed matrix being a vector. The attempt
+    to access the element incorrectly resulted in a crash. Now a vector is
+    constructed when `is_diagonal` is true. For more information refer to
+    `#2292 <https://github.com/Qiskit/qiskit-aer/issues/2292>`
+
