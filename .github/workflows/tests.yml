@@ -49,7 +49,7 @@ jobs:
     needs: ["lint"]
     strategy:
       matrix:
-        python-version: [3.8, 3.9, "3.10", '3.11', "3.12.0"]
+        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
         platform: [
           { os: "ubuntu-latest", python-architecture: "x64" },
         ]
@@ -93,7 +93,7 @@ jobs:
     timeout-minutes: 60
     strategy:
       matrix:
-        python-version: [3.8, 3.9, "3.10", "3.11", "3.12.0"]
+        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
         qiskit-extra: [""]
         include:
           - python-version: "3.10"
@@ -198,7 +198,7 @@ jobs:
     timeout-minutes: 60
     strategy:
       matrix:
-        python-version: [3.8, 3.9, "3.10", '3.11', "3.12.0"]
+        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
     env:
       AER_THRUST_BACKEND: OMP
       QISKIT_TEST_CAPTURE_STREAMS: 1
@@ -243,7 +243,7 @@ jobs:
     timeout-minutes: 60
     strategy:
       matrix:
-        python-version: [3.8, 3.9, "3.10", "3.11", "3.12.0"]
+        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
     env:
       AER_THRUST_BACKEND: OMP
       QISKIT_TEST_CAPTURE_STREAMS: 1
