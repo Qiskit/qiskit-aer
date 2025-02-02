@@ -120,3 +120,40 @@ jobs:
         with:
           path: ./wheelhouse/*.whl
           name: artifact-${{ github.job }}
+  build_wheels_s390x:
+    name: Build wheels on s390x
+    runs-on: ${{ matrix.os }}
+    environment: release
+    permissions:
+      id-token: write
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        name: Install Python
+        with:
+          python-version: '3.13'
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: all
+      - name: Build wheels
+        uses: pypa/cibuildwheel@v2.19.2
+        env:
+          CIBW_ARCHS_LINUX: s390x
+          CIBW_TEST_SKIP: "cp*"
+          CIBW_BEFORE_ALL: "sed -i -e 's/^mirrorlist/#mirrorlist/' -e 's/^#baseurl/baseurl/' -e 's/mirror.centos.org/vault.centos.org/' /etc/yum.repos.d/*.repo && yum install -y https://dl.fedoraproject.org/pub/epel/8/Everything/s390x/Packages/e/epel-release-8-21.el8.noarch.rpm && yum install -y openblas-devel"
+      - uses: actions/upload-artifact@v4
+        with:
+          path: ./wheelhouse/*.whl
+          name: aer-deploy-separate-build_wheels_s390x-${{ matrix.os }}
+      - name: Publish package distributions to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: wheelhouse
