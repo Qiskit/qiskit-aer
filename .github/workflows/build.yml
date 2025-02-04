@@ -163,3 +163,32 @@ jobs:
         with:
           path: ./wheelhouse/*.whl
           name: artifact-${{ github.job }}
+  test-rocm:
+    runs-on: ubuntu-latest
+    needs: wheel-gpu-rocm  # Ensures the ROCm wheels are built before testing
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Install ROCm Dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y rocm-dev rocm-libs rocblas rocm-llvm
+          echo "/opt/rocm/bin" >> $GITHUB_PATH
+
+      - name: Install Test Dependencies
+        run: |
+          pip install -r requirements-dev.txt pytest
+
+      - name: Install ROCm Build
+        run: |
+          pip install ./wheelhouse/qiskit_aer_gpu_rocm*.whl
+
+      - name: Run Unit Tests for ROCm
+        env:
+          AER_THRUST_BACKEND: ROCM
+        run: |
+          pytest -v tests --disable-warnings
