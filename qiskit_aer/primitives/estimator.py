@@ -371,8 +371,11 @@ class Estimator(BaseEstimator):
         circs = []
         for meas_circuit in meas_circuits:
             new_circ = circuit.copy()
+            # Track existing classical register names in new_circ
+            existing_creg_names = {creg.name for creg in new_circ.cregs}
             for creg in meas_circuit.cregs:
-                new_circ.add_register(creg)
+                if creg.name not in existing_creg_names: # Prevent duplicate registers
+                    new_circ.add_register(creg)
             new_circ.compose(meas_circuit, inplace=True)
             _update_metadata(new_circ, meas_circuit.metadata)
             circs.append(new_circ)
