@@ -6,7 +6,7 @@
 <link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" /><link rel="next" title="PauliLindbladError" href="qiskit_aer.noise.PauliLindbladError.html" /><link rel="prev" title="NoiseModel" href="qiskit_aer.noise.NoiseModel.html" />
 
     <!-- Generated with Sphinx 7.1.2 and Furo 2024.01.29 -->
-        <title>QuantumError - Qiskit Aer 0.15.0</title>
+        <title>QuantumError - Qiskit Aer 0.16.1</title>
       <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=135e06be" />
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=3ee1c6c6" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/qiskit-sphinx-theme.css?v=fe84956c" />
@@ -145,7 +145,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../index.html"><div class="brand">Qiskit Aer 0.15.0</div></a>
+      <a href="../index.html"><div class="brand">Qiskit Aer 0.16.1</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -172,7 +172,7 @@
     </div>
   </a>
   
-  <span class="sidebar-brand-text">Qiskit Aer 0.15.0</span>
+  <span class="sidebar-brand-text">Qiskit Aer 0.16.1</span>
 </div><form class="sidebar-search-container" method="get" action="../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
   <input type="hidden" name="check_keywords" value="yes">
@@ -343,7 +343,7 @@
 <h1>QuantumError<a class="headerlink" href="#quantumerror" title="Permalink to this heading">#</a></h1>
 <dl class="py class">
 <dt class="sig sig-object py" id="qiskit_aer.noise.QuantumError">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">QuantumError</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">noise_ops</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Qiskit/qiskit-aer/tree/stable/0.16/qiskit_aer/noise/errors/quantum_error.py#L34-L450"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_aer.noise.QuantumError" title="Permalink to this definition">#</a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">QuantumError</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">noise_ops</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Qiskit/qiskit-aer/tree/stable/0.16/qiskit_aer/noise/errors/quantum_error.py#L34-L451"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_aer.noise.QuantumError" title="Permalink to this definition">#</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">BaseQuantumError</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">TolerancesMixin</span></code></p>
 <p>Quantum error class for Aer noise model</p>
 <div class="admonition warning">
@@ -453,7 +453,7 @@ Note that <code class="docutils literal notranslate"><span class="pre">qargs</sp
 
 <dl class="py method">
 <dt class="sig sig-object py" id="qiskit_aer.noise.QuantumError.compose">
-<span class="sig-name descname"><span class="pre">compose</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">other</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">qargs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">front</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Qiskit/qiskit-aer/tree/stable/0.16/qiskit_aer/noise/errors/quantum_error.py#L396-L421"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_aer.noise.QuantumError.compose" title="Permalink to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">compose</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">other</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">qargs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">front</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Qiskit/qiskit-aer/tree/stable/0.16/qiskit_aer/noise/errors/quantum_error.py#L397-L422"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_aer.noise.QuantumError.compose" title="Permalink to this definition">#</a></dt>
 <dd><p>Return the operator composition with another CLASS.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -549,7 +549,7 @@ is the list of qobj instructions for the error term.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="qiskit_aer.noise.QuantumError.expand">
-<span class="sig-name descname"><span class="pre">expand</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">other</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Qiskit/qiskit-aer/tree/stable/0.16/qiskit_aer/noise/errors/quantum_error.py#L449-L450"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_aer.noise.QuantumError.expand" title="Permalink to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">expand</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">other</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Qiskit/qiskit-aer/tree/stable/0.16/qiskit_aer/noise/errors/quantum_error.py#L450-L451"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_aer.noise.QuantumError.expand" title="Permalink to this definition">#</a></dt>
 <dd><p>Return the reverse-order tensor product with another CLASS.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -570,7 +570,7 @@ is the list of qobj instructions for the error term.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="qiskit_aer.noise.QuantumError.from_dict">
-<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_dict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">error</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Qiskit/qiskit-aer/tree/stable/0.16/qiskit_aer/noise/errors/quantum_error.py#L336-L394"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_aer.noise.QuantumError.from_dict" title="Permalink to this definition">#</a></dt>
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_dict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">error</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Qiskit/qiskit-aer/tree/stable/0.16/qiskit_aer/noise/errors/quantum_error.py#L337-L395"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_aer.noise.QuantumError.from_dict" title="Permalink to this definition">#</a></dt>
 <dd><p>Implement current error from a dictionary.</p>
 </dd></dl>
 
@@ -643,7 +643,7 @@ If None the original output dims will be preserved [Default: None].</p></li>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="qiskit_aer.noise.QuantumError.tensor">
-<span class="sig-name descname"><span class="pre">tensor</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">other</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Qiskit/qiskit-aer/tree/stable/0.16/qiskit_aer/noise/errors/quantum_error.py#L441-L447"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_aer.noise.QuantumError.tensor" title="Permalink to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">tensor</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">other</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Qiskit/qiskit-aer/tree/stable/0.16/qiskit_aer/noise/errors/quantum_error.py#L442-L448"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_aer.noise.QuantumError.tensor" title="Permalink to this definition">#</a></dt>
 <dd><p>Return the tensor product with another CLASS.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -669,7 +669,7 @@ Hence <code class="docutils literal notranslate"><span class="pre">a.tensor(b)</
 
 <dl class="py method">
 <dt class="sig sig-object py" id="qiskit_aer.noise.QuantumError.to_dict">
-<span class="sig-name descname"><span class="pre">to_dict</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Qiskit/qiskit-aer/tree/stable/0.16/qiskit_aer/noise/errors/quantum_error.py#L308-L334"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_aer.noise.QuantumError.to_dict" title="Permalink to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">to_dict</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Qiskit/qiskit-aer/tree/stable/0.16/qiskit_aer/noise/errors/quantum_error.py#L308-L335"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_aer.noise.QuantumError.to_dict" title="Permalink to this definition">#</a></dt>
 <dd><p>Return the current error as a dictionary.</p>
 </dd></dl>
 
@@ -787,7 +787,7 @@ Required to enable SuperOp(QuantumError).</p>
   </div>
 </div><script src="../_static/jquery.js?v=5d32c60e"></script>
     <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-    <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js?v=97b2f34b"></script>
+    <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js?v=a1b5a9b9"></script>
     <script src="../_static/doctools.js?v=888ff710"></script>
     <script src="../_static/sphinx_highlight.js?v=4825356b"></script>
     <script src="../_static/scripts/qiskit-sphinx-theme.js?v=4d77b8ca"></script>
