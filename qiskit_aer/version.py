@@ -50,10 +50,10 @@ def git_version():
     # Determine if we're at main
     try:
         out = _minimal_ext_cmd(["git", "rev-parse", "HEAD"])
-        git_revision = out.strip().decode("ascii")
+        git_revision = out.strip()
     except OSError:
         git_revision = "Unknown"
-
+    
     return git_revision
 
 
