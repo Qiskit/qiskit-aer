@@ -1646,7 +1646,7 @@ reg_t MPS::sort_measured_values(const reg_t &input_outcome,
 //        probability. We then update 'mat' by contracting it with the suitable
 //        matrix (0 or 1).
 
-reg_t MPS::sample_measure(uint_t shots, RngEngine &rng) const {
+reg_t MPS::sample_measure(RngEngine &rng) const {
   double prob = 1;
   reg_t current_measure(num_qubits_);
   cmatrix_t mat;
@@ -1692,10 +1692,6 @@ uint_t MPS::sample_measure_single_qubit(uint_t qubit, double &prob, double rnd,
   // measurement outcome
   if (qubit == 0) {
     mat = q_reg_[qubit].get_data(measurement);
-    if (qubit != 0) // multiply mat by left lambda
-      for (uint_t col = 0; col < mat.GetColumns(); col++)
-        for (uint_t row = 0; row < mat.GetRows(); row++)
-          mat(row, col) *= lambda_reg_[qubit - 1][row];
   } else {
     mat = mat * q_reg_[qubit].get_data(measurement);
   }
