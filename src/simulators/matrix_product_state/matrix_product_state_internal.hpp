@@ -361,7 +361,7 @@ public:
 
   reg_t apply_measure(const reg_t &qubits, const rvector_t &rnds);
   reg_t apply_measure_internal(const reg_t &qubits, const rvector_t &rands);
-  reg_t sample_measure(uint_t shots, RngEngine &rng) const;
+  reg_t sample_measure(RngEngine &rng) const;
 
   //----------------------------------------------------------------
   // Function name: initialize_from_statevector_internal
