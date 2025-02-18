@@ -520,7 +520,7 @@ class AerBackend(Backend, ABC):
 
     def _compile(self, circuits, **run_options):
         """Compile circuits and noise model"""
-        if isinstance(circuits, (QuantumCircuit, Schedule, ScheduleBlock)):
+        if isinstance(circuits, QuantumCircuit):
             circuits = [circuits]
         optypes = [circuit_optypes(circ) for circ in circuits]
 
@@ -566,9 +566,7 @@ class AerBackend(Backend, ABC):
 
         # Check if circuits contain quantum error instructions
         for idx, circ in enumerate(run_circuits):
-            if QuantumChannelInstruction in optypes[idx] and not isinstance(
-                circ, (Schedule, ScheduleBlock)
-            ):
+            if QuantumChannelInstruction in optypes[idx]:
                 updated_circ = False
                 new_data = []
                 for datum in circ.data:

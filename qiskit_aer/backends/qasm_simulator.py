@@ -34,7 +34,6 @@ from .backend_utils import (
 
 # pylint: disable=import-error, no-name-in-module, abstract-method
 from .controller_wrappers import aer_controller_execute
-from .name_mapping import NAME_MAPPING
 
 logger = logging.getLogger(__name__)
 

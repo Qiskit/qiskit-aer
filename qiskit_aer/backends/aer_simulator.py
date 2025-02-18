@@ -15,7 +15,6 @@ Aer qasm simulator backend.
 
 import copy
 import logging
-from warnings import warn
 from qiskit.providers.options import Options
 from qiskit.providers.backend import BackendV2
 
@@ -33,7 +32,6 @@ from .backend_utils import (
 
 # pylint: disable=import-error, no-name-in-module, abstract-method
 from .controller_wrappers import aer_controller_execute
-from .name_mapping import NAME_MAPPING
 
 logger = logging.getLogger(__name__)
 

@@ -22,7 +22,6 @@ import numpy as np
 
 from qiskit.circuit import QuantumCircuit, Instruction, Delay, Reset
 from qiskit.circuit.library.generalized_gates import PauliGate, UnitaryGate
-from qiskit.providers import QubitProperties
 from qiskit.providers.exceptions import BackendPropertyError
 from qiskit.transpiler import PassManager
 from qiskit.utils import apply_prefix
