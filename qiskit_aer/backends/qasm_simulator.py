@@ -553,8 +553,7 @@ class QasmSimulator(AerBackend):
             target = backend.target
         else:
             raise TypeError(
-                "The backend argument requires a BackendV2 object, "
-                f"not a {type(backend)} object"
+                "The backend argument requires a BackendV2 object, " f"not a {type(backend)} object"
             )
         # Use automatic noise model if none is provided
         if "noise_model" not in options:
