@@ -1,0 +1,9 @@
+---
+deprecations:
+  - |
+    Remove the parts of the code that relied on deprecated `qiskit` components:
+      * Everything that uses `convert_to_target` is removed
+      * Usage of `qiskit.pulse` is removed.
+      * Use of `BackendProperties` is removed, resulting in the removal of :class:`.NoiseModel`'s :meth:`.from_backend_properties` method.
+      * `BackendV1` related code is removed.
+      * Use of `BackendStatus` was removed, resulting in the removal of the :meth:`status` method for the Aer backend.
