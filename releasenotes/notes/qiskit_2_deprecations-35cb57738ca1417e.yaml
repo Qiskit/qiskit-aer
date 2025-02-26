@@ -1,7 +1,7 @@
 ---
 deprecations:
   - |
-    Remove the parts of the code that relied on deprecated `qiskit` components:
+    Remove the parts of the code that relied on deprecated `qiskit` components that are being removed in Qiskit 2.0::
       * Everything that uses `convert_to_target` is removed
       * Usage of `qiskit.pulse` is removed.
       * Use of `BackendProperties` is removed, resulting in the removal of :class:`.NoiseModel`'s :meth:`.from_backend_properties` method.
