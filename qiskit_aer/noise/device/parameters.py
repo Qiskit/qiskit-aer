@@ -12,6 +12,8 @@
 
 """
 Functions to extract device error parameters from backend properties.
+
+We assume the structure of the class `BackendProperties` in `qiskit-ibm-runtime`.
 """
 
 from numpy import inf
