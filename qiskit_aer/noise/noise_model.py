@@ -506,6 +506,11 @@ class NoiseModel:
         Raises:
             NoiseError: If the input backend properties are not valid.
         """
+        warn(
+            "NoiseModel.from_backend_properties has been deprecated as of Aer 0.16.2, please use NoiseModel.from_backend instead.",
+            DeprecationWarning,
+            stacklevel=3,
+        )
         if not isinstance(backend_properties, BackendProperties):
             raise NoiseError(
                 "{} is not a Qiskit backend or" " BackendProperties".format(backend_properties)

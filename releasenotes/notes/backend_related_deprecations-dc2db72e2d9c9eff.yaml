@@ -1,0 +1,9 @@
+---
+deprecations:
+  - |
+    Deprecates :meth:`AerBackend.status` and :meth:`NoiseMode.from_backend_properties` methods.
+    This follows the removal of `BackendV1` from `qiskit` and with it, corresponding classes
+    such as `BackendProperties` and `BackendStatus`.
+
+    The property-handling methods of :class:`NoiseMode` remain, as :meth:`NoiseModel.from_backend`
+    relies of them when constructing a noise model from `IBMBackend` obtained from `qiskit-ibm-runtime`.
