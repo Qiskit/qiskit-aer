@@ -23,8 +23,6 @@ from abc import ABC, abstractmethod
 
 from qiskit.circuit import QuantumCircuit, ParameterExpression, Delay
 from qiskit.providers import BackendV2 as Backend
-from qiskit.providers.models.backendstatus import BackendStatus
-from qiskit.pulse import Schedule, ScheduleBlock
 from qiskit.result import Result
 from qiskit.transpiler import CouplingMap
 from qiskit.transpiler.target import Target
@@ -181,7 +179,7 @@ class AerBackend(Backend, ABC):
         Raises:
             ValueError: if run is not implemented
         """
-        if isinstance(circuits, (QuantumCircuit, Schedule, ScheduleBlock)):
+        if isinstance(circuits, QuantumCircuit):
             circuits = [circuits]
 
         return self._run_circuits(circuits, parameter_binds, **run_options)
@@ -442,20 +440,6 @@ class AerBackend(Backend, ABC):
         self._options_configuration = {}
         self._options_properties = {}
 
-    def status(self):
-        """Return backend status.
-
-        Returns:
-            BackendStatus: the status of the backend.
-        """
-        return BackendStatus(
-            backend_name=self.name,
-            backend_version=self.configuration().backend_version,
-            operational=True,
-            pending_jobs=0,
-            status_msg="",
-        )
-
     def _execute_circuits_job(
         self, circuits, parameter_binds, run_options, job_id="", format_result=True
     ):
@@ -536,7 +520,7 @@ class AerBackend(Backend, ABC):
 
     def _compile(self, circuits, **run_options):
         """Compile circuits and noise model"""
-        if isinstance(circuits, (QuantumCircuit, Schedule, ScheduleBlock)):
+        if isinstance(circuits, QuantumCircuit):
             circuits = [circuits]
         optypes = [circuit_optypes(circ) for circ in circuits]
 
@@ -582,9 +566,7 @@ class AerBackend(Backend, ABC):
 
         # Check if circuits contain quantum error instructions
         for idx, circ in enumerate(run_circuits):
-            if QuantumChannelInstruction in optypes[idx] and not isinstance(
-                circ, (Schedule, ScheduleBlock)
-            ):
+            if QuantumChannelInstruction in optypes[idx]:
                 updated_circ = False
                 new_data = []
                 for datum in circ.data:
