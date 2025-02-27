@@ -507,7 +507,8 @@ class NoiseModel:
             NoiseError: If the input backend properties are not valid.
         """
         warn(
-            "NoiseModel.from_backend_properties has been deprecated as of Aer 0.16.2, please use NoiseModel.from_backend instead.",
+            "NoiseModel.from_backend_properties has been deprecated as of Aer 0.16.2, "
+            "please use NoiseModel.from_backend instead.",
             DeprecationWarning,
             stacklevel=3,
         )

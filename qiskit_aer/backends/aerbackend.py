@@ -449,7 +449,8 @@ class AerBackend(Backend, ABC):
             BackendStatus: the status of the backend.
         """
         warnings.warn(
-            "AerBackend.status has been deprecated as of Aer 0.16.2, please access the non-trivial data (name and version) directly",
+            "AerBackend.status has been deprecated as of Aer 0.16.2, "
+            "please access the non-trivial data (name and version) directly",
             DeprecationWarning,
             stacklevel=3,
         )
