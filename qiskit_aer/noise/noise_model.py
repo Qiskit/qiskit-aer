@@ -432,6 +432,115 @@ class NoiseModel:
 
         return noise_model
 
+    @classmethod
+    def from_backend_properties(
+        cls,
+        backend_properties: "BackendProperties",
+        gate_error: bool = True,
+        readout_error: bool = True,
+        thermal_relaxation: bool = True,
+        temperature: float = 0,
+        gate_lengths: Optional[list] = None,
+        gate_length_units: str = "ns",
+        dt: Optional[float] = None,
+    ):
+        """Return a noise model derived from a backend properties.
+
+        This method basically generates a noise model in the same way as
+        :meth:`~.NoiseModel.from_backend`. One small difference is that the ``dt`` option is
+        required to be set manually if you want to add thermal relaxation noises to delay
+        instructions with durations in ``dt`` time unit. Because it is not supplied by a
+        :class:`BackendProperties` object unlike a :class:`Backend` object.
+        Note that the resulting noise model is the same as described in
+        :meth:`~.NoiseModel.from_backend` so please refer to it for the details.
+
+        Args:
+            backend_properties (BackendProperties): The property of backend.
+            gate_error (Bool): Include depolarizing gate errors (Default: True).
+            readout_error (Bool): Include readout errors in model (Default: True).
+            thermal_relaxation (Bool): Include thermal relaxation errors (Default: True).
+                If no ``t1`` and ``t2`` values are provided (i.e. None) in ``target`` for a qubit,
+                an identity ``QuantumError` (i.e. effectively no thermal relaxation error)
+                will be added to the qubit even if this flag is set to True.
+                If no ``frequency`` is not defined (i.e. None) in ``target`` for a qubit,
+                no excitation is considered in the thermal relaxation error on the qubit
+                even with non-zero ``temperature``.
+            temperature (double): qubit temperature in milli-Kelvin (mK) for
+                                  thermal relaxation errors (Default: 0).
+            gate_lengths (Optional[list]): Custom gate times for thermal relaxation errors.
+                                  Used to extend or override the gate times in
+                                  the backend properties (Default: None))
+            gate_length_units (str): Time units for gate length values in
+                                     gate_lengths. Can be 'ns', 'ms', 'us',
+                                     or 's' (Default: 'ns').
+            dt (Optional[float]): Backend sample time (resolution) in seconds (Default: None).
+                        Required to convert time unit of durations to seconds
+                        if including thermal relaxation errors on delay instructions.
+
+        Returns:
+            NoiseModel: An approximate noise model for the device backend.
+
+        Raises:
+            NoiseError: If the input backend properties are not valid.
+        """
+        for required_field in ["gates", "qubits", "frequency", "t1", "t2"]:
+            if not hasattr(backend_properties, required_field):
+                raise NoiseError(
+                    f"Backend properties are missing the required field '{required_field}'"
+                )
+        basis_gates = set()
+        for prop in backend_properties.gates:
+            basis_gates.add(prop.gate)
+        basis_gates = list(basis_gates)
+        num_qubits = len(backend_properties.qubits)
+        noise_model = NoiseModel(basis_gates=basis_gates)
+
+        # Add single-qubit readout errors
+        if readout_error:
+            for qubits, error in basic_device_readout_errors(backend_properties):
+                noise_model.add_readout_error(error, qubits)
+
+        gate_errors = basic_device_gate_errors(
+            backend_properties,
+            gate_error=gate_error,
+            thermal_relaxation=thermal_relaxation,
+            gate_lengths=gate_lengths,
+            gate_length_units=gate_length_units,
+            temperature=temperature,
+        )
+        for name, qubits, error in gate_errors:
+            noise_model.add_quantum_error(error, name, qubits)
+
+        if thermal_relaxation:
+            # Add delay errors via RelaxationNiose pass
+            try:
+                excited_state_populations = [
+                    _excited_population(
+                        freq=backend_properties.frequency(q), temperature=temperature
+                    )
+                    for q in range(num_qubits)
+                ]
+            except BackendPropertyError:
+                excited_state_populations = None
+            try:
+                delay_pass = RelaxationNoisePass(
+                    t1s=[backend_properties.t1(q) for q in range(num_qubits)],
+                    t2s=[
+                        _truncate_t2_value(backend_properties.t1(q), backend_properties.t2(q))
+                        for q in range(num_qubits)
+                    ],
+                    dt=dt,
+                    op_types=Delay,
+                    excited_state_populations=excited_state_populations,
+                )
+                noise_model._custom_noise_passes.append(delay_pass)
+            except BackendPropertyError:
+                # Device does not have the required T1 or T2 information
+                # in its properties
+                pass
+
+        return noise_model
+
     def is_ideal(self):  # pylint: disable=too-many-return-statements
         """Return True if the noise model has no noise terms."""
         # Get default errors
