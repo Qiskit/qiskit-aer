@@ -448,6 +448,12 @@ class AerBackend(Backend, ABC):
         Returns:
             BackendStatus: the status of the backend.
         """
+        warnings.warn(
+            "AerBackend.status has been deprecated as of Aer 0.16.2, "
+            "please access the non-trivial data (name and version) directly",
+            DeprecationWarning,
+            stacklevel=3,
+        )
         return BackendStatus(
             backend_name=self.name,
             backend_version=self.configuration().backend_version,
