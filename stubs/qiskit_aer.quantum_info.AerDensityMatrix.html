@@ -344,7 +344,7 @@
 <dl class="py class">
 <dt class="sig sig-object py" id="qiskit_aer.quantum_info.AerDensityMatrix">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">AerDensityMatrix</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dims</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">configs</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Qiskit/qiskit-aer/tree/stable/0.16/qiskit_aer/quantum_info/states/aer_densitymatrix.py#L31-L313"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_aer.quantum_info.AerDensityMatrix" title="Permalink to this definition">#</a></dt>
-<dd><p>Bases: <a class="reference external" href="https://docs.quantum.ibm.com/api/qiskit/qiskit.quantum_info.DensityMatrix" title="(in Qiskit v1.3)"><code class="xref py py-class docutils literal notranslate"><span class="pre">DensityMatrix</span></code></a></p>
+<dd><p>Bases: <a class="reference external" href="https://docs.quantum.ibm.com/api/qiskit/qiskit.quantum_info.DensityMatrix" title="(in Qiskit v1.4)"><code class="xref py py-class docutils literal notranslate"><span class="pre">DensityMatrix</span></code></a></p>
 <p>AerDensityMatrix class
 This class inherits <code class="xref py py-class docutils literal notranslate"><span class="pre">DensityMatrix</span></code>.</p>
 <dl class="field-list simple">
@@ -539,7 +539,7 @@ the same number of qubits as the input instruction or circuit, evolved
 by the input instruction, and the output statevector returned.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>instruction</strong> (<a class="reference external" href="https://docs.quantum.ibm.com/api/qiskit/qiskit.circuit.Instruction" title="(in Qiskit v1.3)"><em>qiskit.circuit.Instruction</em></a><em> or </em><em>QuantumCircuit</em>) – instruction or circuit</p>
+<dd class="field-odd"><p><strong>instruction</strong> (<a class="reference external" href="https://docs.quantum.ibm.com/api/qiskit/qiskit.circuit.Instruction" title="(in Qiskit v1.4)"><em>qiskit.circuit.Instruction</em></a><em> or </em><em>QuantumCircuit</em>) – instruction or circuit</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>the final density matrix.</p>
@@ -821,14 +821,14 @@ subsystems will be reset to their 0-state
 <dt>Additional Information:</dt><dd><p>If all subsystems are reset this will return the ground state
 on all subsystems. If only a some subsystems are reset this
 function will perform evolution by the reset
-<a class="reference external" href="https://docs.quantum.ibm.com/api/qiskit/qiskit.quantum_info.SuperOp" title="(in Qiskit v1.3)"><code class="xref py py-class docutils literal notranslate"><span class="pre">SuperOp</span></code></a> of the reset subsystems.</p>
+<a class="reference external" href="https://docs.quantum.ibm.com/api/qiskit/qiskit.quantum_info.SuperOp" title="(in Qiskit v1.4)"><code class="xref py py-class docutils literal notranslate"><span class="pre">SuperOp</span></code></a> of the reset subsystems.</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="qiskit_aer.quantum_info.AerDensityMatrix.reverse_qargs">
-<span class="sig-name descname"><span class="pre">reverse_qargs</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.quantum.ibm.com/api/qiskit/qiskit.quantum_info.DensityMatrix" title="(in Qiskit v1.3)"><span class="pre">DensityMatrix</span></a></span></span><a class="reference external" href="https://github.com/Qiskit/qiskit/tree/stable/0.16/qiskit/quantum_info/states/densitymatrix.py#L345-L365"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_aer.quantum_info.AerDensityMatrix.reverse_qargs" title="Permalink to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">reverse_qargs</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.quantum.ibm.com/api/qiskit/qiskit.quantum_info.DensityMatrix" title="(in Qiskit v1.4)"><span class="pre">DensityMatrix</span></a></span></span><a class="reference external" href="https://github.com/Qiskit/qiskit/tree/stable/0.16/qiskit/quantum_info/states/densitymatrix.py#L345-L365"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_aer.quantum_info.AerDensityMatrix.reverse_qargs" title="Permalink to this definition">#</a></dt>
 <dd><p>Return a DensityMatrix with reversed subsystem ordering.</p>
 <p>For a tensor product state this is equivalent to reversing the order
 of tensor product subsystems. For a density matrix
@@ -1007,7 +1007,7 @@ a qubit and 10-dimensional qudit.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="qiskit_aer.quantum_info.AerDensityMatrix.to_operator">
-<span class="sig-name descname"><span class="pre">to_operator</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.quantum.ibm.com/api/qiskit/qiskit.quantum_info.Operator" title="(in Qiskit v1.3)"><span class="pre">Operator</span></a></span></span><a class="reference external" href="https://github.com/Qiskit/qiskit/tree/stable/0.16/qiskit/quantum_info/states/densitymatrix.py#L207-L210"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_aer.quantum_info.AerDensityMatrix.to_operator" title="Permalink to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">to_operator</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.quantum.ibm.com/api/qiskit/qiskit.quantum_info.Operator" title="(in Qiskit v1.4)"><span class="pre">Operator</span></a></span></span><a class="reference external" href="https://github.com/Qiskit/qiskit/tree/stable/0.16/qiskit/quantum_info/states/densitymatrix.py#L207-L210"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_aer.quantum_info.AerDensityMatrix.to_operator" title="Permalink to this definition">#</a></dt>
 <dd><p>Convert to Operator</p>
 </dd></dl>
 
@@ -1080,7 +1080,7 @@ a qubit and 10-dimensional qudit.</p>
             
             <a href="https://github.com/pradyunsg/furo">Furo</a>
             <div class="last-updated">
-              Last updated on 2025/02/06</div>
+              Last updated on 2025/03/03</div>
           </div>
           <div class="right-details">
             
