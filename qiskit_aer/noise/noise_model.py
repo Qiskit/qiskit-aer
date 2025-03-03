@@ -22,9 +22,7 @@ import numpy as np
 
 from qiskit.circuit import QuantumCircuit, Instruction, Delay, Reset
 from qiskit.circuit.library.generalized_gates import PauliGate, UnitaryGate
-from qiskit.providers import QubitProperties
 from qiskit.providers.exceptions import BackendPropertyError
-from qiskit.providers.models.backendproperties import BackendProperties
 from qiskit.transpiler import PassManager
 from qiskit.utils import apply_prefix
 from .device.models import _excited_population, _truncate_t2_value
@@ -381,27 +379,6 @@ class NoiseModel:
                     UserWarning,
                 )
             dt = backend.dt
-        elif backend_interface_version <= 1:
-            # BackendV1 will be removed in Qiskit 2.0, so we will remove this soon
-            warn(
-                " from_backend using V1 based backend is deprecated as of Aer 0.15"
-                " and will be removed no sooner than 3 months from that release"
-                " date. Please use backends based on V2.",
-                DeprecationWarning,
-                stacklevel=2,
-            )
-            properties = backend.properties()
-            configuration = backend.configuration()
-            basis_gates = configuration.basis_gates
-            all_qubit_properties = [
-                QubitProperties(
-                    t1=properties.t1(q), t2=properties.t2(q), frequency=properties.frequency(q)
-                )
-                for q in range(configuration.num_qubits)
-            ]
-            dt = getattr(configuration, "dt", 0)
-            if not properties:
-                raise NoiseError(f"Qiskit backend {backend} does not have a BackendProperties")
         else:
             raise NoiseError(f"{backend} is not a Qiskit backend")
 
@@ -458,7 +435,7 @@ class NoiseModel:
     @classmethod
     def from_backend_properties(
         cls,
-        backend_properties: BackendProperties,
+        backend_properties: "BackendProperties",
         gate_error: bool = True,
         readout_error: bool = True,
         thermal_relaxation: bool = True,
@@ -468,6 +445,7 @@ class NoiseModel:
         dt: Optional[float] = None,
     ):
         """Return a noise model derived from a backend properties.
+        We assume the structure of the class `BackendProperties` in `qiskit-ibm-runtime`
 
         This method basically generates a noise model in the same way as
         :meth:`~.NoiseModel.from_backend`. One small difference is that the ``dt`` option is
@@ -479,6 +457,7 @@ class NoiseModel:
 
         Args:
             backend_properties (BackendProperties): The property of backend.
+                We assume the structure of the class `BackendProperties` in `qiskit-ibm-runtime`
             gate_error (Bool): Include depolarizing gate errors (Default: True).
             readout_error (Bool): Include readout errors in model (Default: True).
             thermal_relaxation (Bool): Include thermal relaxation errors (Default: True).
@@ -506,10 +485,11 @@ class NoiseModel:
         Raises:
             NoiseError: If the input backend properties are not valid.
         """
-        if not isinstance(backend_properties, BackendProperties):
-            raise NoiseError(
-                "{} is not a Qiskit backend or" " BackendProperties".format(backend_properties)
-            )
+        for required_field in ["gates", "qubits", "frequency", "t1", "t2"]:
+            if not hasattr(backend_properties, required_field):
+                raise NoiseError(
+                    f"Backend properties are missing the required field '{required_field}'"
+                )
         basis_gates = set()
         for prop in backend_properties.gates:
             basis_gates.add(prop.gate)
