@@ -55,6 +55,5 @@ UnitarySimulator
    .. automethod:: UnitarySimulator.set_max_qubits
    .. automethod:: UnitarySimulator.set_option
    .. automethod:: UnitarySimulator.set_options
-   .. automethod:: UnitarySimulator.status
 
    

@@ -343,11 +343,12 @@
 <h1>gate_param_values<a class="headerlink" href="#gate-param-values" title="Permalink to this heading">#</a></h1>
 <dl class="py function">
 <dt class="sig sig-object py" id="qiskit_aer.noise.device.gate_param_values">
-<span class="sig-name descname"><span class="pre">gate_param_values</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">properties</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Qiskit/qiskit-aer/tree/stable/0.16/qiskit_aer/noise/device/parameters.py#L24-L55"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_aer.noise.device.gate_param_values" title="Permalink to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">gate_param_values</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">properties</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Qiskit/qiskit-aer/tree/stable/0.16/qiskit_aer/noise/device/parameters.py#L26-L58"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_aer.noise.device.gate_param_values" title="Permalink to this definition">#</a></dt>
 <dd><p>Return parameter error values from a devices BackendProperties.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>properties</strong> (<em>BackendProperties</em>) – device backend properties</p>
+<dd class="field-odd"><p><strong>properties</strong> (<em>BackendProperties</em>) – device backend properties
+We assume the structure of the class <cite>BackendProperties</cite> in <cite>qiskit-ibm-runtime</cite></p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>A list of tuples <code class="docutils literal notranslate"><span class="pre">(name,</span> <span class="pre">qubits,</span> <span class="pre">time,</span> <span class="pre">error)</span></code>. If gate

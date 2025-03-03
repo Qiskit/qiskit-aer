@@ -55,6 +55,5 @@ StatevectorSimulator
    .. automethod:: StatevectorSimulator.set_max_qubits
    .. automethod:: StatevectorSimulator.set_option
    .. automethod:: StatevectorSimulator.set_options
-   .. automethod:: StatevectorSimulator.status
 
    
