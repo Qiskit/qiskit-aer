@@ -445,6 +445,7 @@ class NoiseModel:
         dt: Optional[float] = None,
     ):
         """Return a noise model derived from a backend properties.
+        We assume the structure of the class `BackendProperties` in `qiskit-ibm-runtime`
 
         This method basically generates a noise model in the same way as
         :meth:`~.NoiseModel.from_backend`. One small difference is that the ``dt`` option is
@@ -456,6 +457,7 @@ class NoiseModel:
 
         Args:
             backend_properties (BackendProperties): The property of backend.
+                We assume the structure of the class `BackendProperties` in `qiskit-ibm-runtime`
             gate_error (Bool): Include depolarizing gate errors (Default: True).
             readout_error (Bool): Include readout errors in model (Default: True).
             thermal_relaxation (Bool): Include thermal relaxation errors (Default: True).
