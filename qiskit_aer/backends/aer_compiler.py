@@ -27,6 +27,7 @@ from qiskit.circuit.classical.expr import Expr, Unary, Binary, Var, Value, ExprV
 from qiskit.circuit.classical.types import Bool, Uint
 from qiskit.circuit.library import Initialize
 from qiskit.providers.options import Options
+from qiskit.pulse import Schedule, ScheduleBlock
 from qiskit.circuit import Store
 from qiskit.circuit.controlflow import (
     WhileLoopOp,
@@ -84,7 +85,7 @@ class AerCompiler:
                    compiled circuit optypes for each circuit if
                    optypes kwarg is not None.
         """
-        if isinstance(circuits, QuantumCircuit):
+        if isinstance(circuits, (QuantumCircuit, Schedule, ScheduleBlock)):
             circuits = [circuits]
         if optypes is None:
             compiled_optypes = len(circuits) * [None]
