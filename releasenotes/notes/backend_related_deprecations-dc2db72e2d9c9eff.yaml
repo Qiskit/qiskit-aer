@@ -1,0 +1,6 @@
+---
+deprecations:
+  - |
+    Deprecates the :meth:`AerBackend.status` method.
+    This follows the removal of `BackendV1` from `qiskit` and with it, corresponding classes
+    such as `BackendStatus`.
