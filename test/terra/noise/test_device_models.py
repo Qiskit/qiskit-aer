@@ -16,14 +16,8 @@ Tests for utility functions to create device noise model.
 import numpy as np
 from test.terra.common import QiskitAerTestCase
 
-import qiskit
 from qiskit.circuit import library, Reset, Measure, Parameter
 from qiskit.transpiler import CouplingMap, Target, QubitProperties, InstructionProperties
-
-if qiskit.__version__.startswith("0."):
-    from qiskit.providers.fake_provider import FakeQuito as Fake5QV1
-else:
-    from qiskit.providers.fake_provider import Fake5QV1
 
 from qiskit_aer.noise.device.models import basic_device_gate_errors
 from qiskit_aer.noise.errors.standard_errors import thermal_relaxation_error
