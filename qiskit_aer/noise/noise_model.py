@@ -22,7 +22,6 @@ import numpy as np
 
 from qiskit.circuit import QuantumCircuit, Instruction, Delay, Reset
 from qiskit.circuit.library.generalized_gates import PauliGate, UnitaryGate
-from qiskit.providers.exceptions import BackendPropertyError
 from qiskit.transpiler import PassManager
 from qiskit.utils import apply_prefix
 from .device.models import _excited_population, _truncate_t2_value
@@ -412,7 +411,7 @@ class NoiseModel:
                     _excited_population(freq=q.frequency, temperature=temperature)
                     for q in all_qubit_properties
                 ]
-            except BackendPropertyError:
+            except ValueError:
                 excited_state_populations = None
             try:
                 t1s = [prop.t1 for prop in all_qubit_properties]
@@ -425,7 +424,7 @@ class NoiseModel:
                     excited_state_populations=excited_state_populations,
                 )
                 noise_model._custom_noise_passes.append(delay_pass)
-            except BackendPropertyError:
+            except ValueError:
                 # Device does not have the required T1 or T2 information
                 # in its properties
                 pass
@@ -522,7 +521,7 @@ class NoiseModel:
                     )
                     for q in range(num_qubits)
                 ]
-            except BackendPropertyError:
+            except ValueError:
                 excited_state_populations = None
             try:
                 delay_pass = RelaxationNoisePass(
@@ -536,7 +535,7 @@ class NoiseModel:
                     excited_state_populations=excited_state_populations,
                 )
                 noise_model._custom_noise_passes.append(delay_pass)
-            except BackendPropertyError:
+            except ValueError:
                 # Device does not have the required T1 or T2 information
                 # in its properties
                 pass
