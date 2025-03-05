@@ -23,7 +23,7 @@ from warnings import warn
 import numpy as np
 from qiskit.circuit import ParameterExpression, QuantumCircuit
 from qiskit.compiler import transpile
-from qiskit.primitives import BaseEstimator, EstimatorResult
+from qiskit.primitives import BaseEstimatorV1, EstimatorResult
 from qiskit.primitives.primitive_job import PrimitiveJob
 from qiskit.primitives.utils import _circuit_key, _observable_key, init_observable
 from qiskit.providers import Options
@@ -43,7 +43,7 @@ from qiskit.utils import deprecate_func
 from .. import AerError, AerSimulator
 
 
-class Estimator(BaseEstimator):
+class Estimator(BaseEstimatorV1):
     """
     Aer implmentation of Estimator.
 
