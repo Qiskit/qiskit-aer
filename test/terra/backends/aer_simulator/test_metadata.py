@@ -42,9 +42,9 @@ class TestMetadata(SimulatorTestCase):
         result = backend.run(circuit).result()
         self.assertSuccess(result)
         try:
-            out_metadata = result.header.metadata
+            out_metadata = result.results[0].header.metadata
         except AttributeError:
-            out_metadata = result.header["metadata"]
+            out_metadata = result.results[0].header["metadata"]
         self.assertEqual(out_metadata, metadata)
         self.assertEqual(circuit.metadata, metadata)
 

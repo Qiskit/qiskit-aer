@@ -101,10 +101,8 @@ def teleport_circuit():
     circuit.h(qr[0])
     circuit.measure(qr[0], c0[0])
     circuit.measure(qr[1], c1[0])
-    with circuit.if_test((c0, 1)):
-        circuit.z(qr[2])
-    with circuit.if_test((c1, 1)):
-        circuit.x(qr[2])
+    circuit.z(qr[2]).c_if(c0, 1)
+    circuit.x(qr[2]).c_if(c1, 1)
     circuit.measure(qr[2], c2[0])
     circuits.append(circuit)
 

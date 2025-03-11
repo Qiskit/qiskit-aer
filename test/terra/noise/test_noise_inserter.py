@@ -115,8 +115,7 @@ class TestNoiseInserter(QiskitAerTestCase):
         target_basis = ["quantum_channel"] + noise_model.basis_gates
 
         target = Target.from_configuration(
-            basis_gates = target_basis,
-            custom_name_mapping = {"quantum_channel": None}
+            basis_gates=target_basis, custom_name_mapping={"quantum_channel": None}
         )
 
         target_circuit = transpile(target_circuit, target=target)
