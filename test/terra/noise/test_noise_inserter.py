@@ -21,7 +21,6 @@ from qiskit_aer.utils import insert_noise
 from test.terra.common import QiskitAerTestCase
 
 from qiskit import QuantumRegister, QuantumCircuit, transpile
-from qiskit.circuit.library import Gate
 from qiskit.transpiler import Target
 from qiskit.quantum_info import SuperOp
 
