@@ -12,15 +12,13 @@
 """
 AerSimulator Integration Tests
 """
-from math import sqrt
 from copy import deepcopy
 from ddt import ddt
 import numpy as np
-from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister, assemble
+from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.library.standard_gates import HGate, XGate, ZGate
 from qiskit.quantum_info import Statevector
-from test.terra.reference import ref_algorithms
 
 from test.terra.backends.simulator_test_case import SimulatorTestCase, supported_methods
 from qiskit_aer.backends import StatevectorSimulator
