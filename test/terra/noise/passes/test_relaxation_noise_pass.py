@@ -18,8 +18,9 @@ from qiskit_aer.noise import thermal_relaxation_error, RelaxationNoisePass
 
 import qiskit.quantum_info as qi
 from qiskit.circuit import QuantumCircuit, Delay
+from qiskit.circuit.library import HGate, CXGate, Measure
 from qiskit.compiler import transpile
-from qiskit.transpiler import TranspilerError
+from qiskit.transpiler import TranspilerError, Target, InstructionProperties
 from test.terra.common import QiskitAerTestCase
 
 
@@ -66,8 +67,18 @@ class TestRelaxationNoisePass(QiskitAerTestCase):
         qc.cx(0, 1)
         qc.measure([0, 1], [0, 1])
 
-        durations = [("h", None, 10), ("cx", None, 50), ("measure", None, 200)]
-        sched_circ = transpile(qc, scheduling_method="alap", instruction_durations=durations)
+        target = Target(num_qubits=2, dt=1e-9)
+        target.add_instruction(
+            HGate(), {(i,): InstructionProperties(duration=10 * 1e-9) for i in range(2)}
+        )
+        target.add_instruction(
+            CXGate(),
+            {(0, 1): InstructionProperties(duration=50 * 1e-9)},
+        )
+        target.add_instruction(
+            Measure(), {(i,): InstructionProperties(duration=200 * 1e-9) for i in range(2)}
+        )
+        sched_circ = transpile(qc, scheduling_method="alap", target=target)
 
         noise_pass = RelaxationNoisePass(t1s=[0.10, 0.11], t2s=[0.20, 0.21], dt=0.01)
         noisy_circ = noise_pass(sched_circ)
@@ -101,8 +112,18 @@ class TestRelaxationNoisePass(QiskitAerTestCase):
         qc.cx(0, 1)
         qc.measure([0, 1], [0, 1])
 
-        durations = [("h", None, 10), ("cx", None, 50), ("measure", None, 200)]
-        sched_circ = transpile(qc, scheduling_method="alap", instruction_durations=durations)
+        target = Target(num_qubits=2, dt=1e-9)
+        target.add_instruction(
+            HGate(), {(i,): InstructionProperties(duration=10 * 1e-9) for i in range(2)}
+        )
+        target.add_instruction(
+            CXGate(),
+            {(0, 1): InstructionProperties(duration=50 * 1e-9)},
+        )
+        target.add_instruction(
+            Measure(), {(i,): InstructionProperties(duration=200 * 1e-9) for i in range(2)}
+        )
+        sched_circ = transpile(qc, scheduling_method="alap", target=target)
 
         noise_pass = RelaxationNoisePass(t1s=t1s, t2s=t2s, dt=dt, op_types=Delay)
         noisy_circ = noise_pass(sched_circ)
