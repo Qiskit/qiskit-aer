@@ -22,6 +22,7 @@ import numpy as np
 
 from qiskit.circuit import QuantumCircuit, Instruction, Delay, Reset
 from qiskit.circuit.library.generalized_gates import PauliGate, UnitaryGate
+from qiskit.providers import QubitProperties
 from qiskit.transpiler import PassManager
 from qiskit.utils import apply_prefix
 from .device.models import _excited_population, _truncate_t2_value
@@ -378,6 +379,27 @@ class NoiseModel:
                     UserWarning,
                 )
             dt = backend.dt
+        elif backend_interface_version <= 1:
+            # BackendV1 will be removed in Qiskit 2.0, so we will remove this soon
+            warn(
+                " from_backend using V1 based backend is deprecated as of Aer 0.15"
+                " and will be removed no sooner than 3 months from that release"
+                " date. Please use backends based on V2.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            properties = backend.properties()
+            configuration = backend.configuration()
+            basis_gates = configuration.basis_gates
+            all_qubit_properties = [
+                QubitProperties(
+                    t1=properties.t1(q), t2=properties.t2(q), frequency=properties.frequency(q)
+                )
+                for q in range(configuration.num_qubits)
+            ]
+            dt = getattr(configuration, "dt", 0)
+            if not properties:
+                raise NoiseError(f"Qiskit backend {backend} does not have a BackendProperties")
         else:
             raise NoiseError(f"{backend} is not a Qiskit backend")
 
