@@ -43,6 +43,7 @@ from qiskit.utils import deprecate_func
 from .. import AerError, AerSimulator
 from .sampler import _circuit_key
 
+
 def init_observable(observable: BaseOperator | str) -> SparsePauliOp:
     """Initialize observable by converting the input to a :class:`~qiskit.quantum_info.SparsePauliOp`.
 
@@ -65,6 +66,7 @@ def init_observable(observable: BaseOperator | str) -> SparsePauliOp:
             raise AerError(f"observable type not supported: {type(observable)}")
         return SparsePauliOp(observable)
 
+
 def _observable_key(observable: SparsePauliOp) -> tuple:
     """Private key function for SparsePauliOp.
     Args:
@@ -79,6 +81,7 @@ def _observable_key(observable: SparsePauliOp) -> tuple:
         observable.paulis.phase.tobytes(),
         observable.coeffs.tobytes(),
     )
+
 
 class Estimator(BaseEstimatorV1):
     """

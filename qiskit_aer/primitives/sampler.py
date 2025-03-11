@@ -31,6 +31,7 @@ from qiskit.result import QuasiDistribution
 
 from .. import AerSimulator
 
+
 def init_circuit(state: QuantumCircuit | Statevector) -> QuantumCircuit:
     """Initialize state by converting the input to a quantum circuit.
 
@@ -47,6 +48,7 @@ def init_circuit(state: QuantumCircuit | Statevector) -> QuantumCircuit:
     qc = QuantumCircuit(state.num_qubits)
     qc.append(Initialize(state), qargs=range(state.num_qubits))
     return qc
+
 
 def final_measurement_mapping(circuit: QuantumCircuit) -> dict[int, int]:
     """Return the final measurement mapping for the circuit.
@@ -86,6 +88,7 @@ def final_measurement_mapping(circuit: QuantumCircuit) -> dict[int, int]:
     mapping = dict(sorted(mapping.items(), key=lambda item: item[1]))
     return mapping
 
+
 def _bits_key(bits: tuple[Bit, ...], circuit: QuantumCircuit) -> tuple:
     return tuple(
         (
@@ -95,6 +98,7 @@ def _bits_key(bits: tuple[Bit, ...], circuit: QuantumCircuit) -> tuple:
         for bit in bits
     )
 
+
 def _format_params(param):
     if isinstance(param, np.ndarray):
         return param.data.tobytes()
@@ -103,6 +107,7 @@ def _format_params(param):
     elif isinstance(param, Iterable):
         return tuple(param)
     return param
+
 
 def _circuit_key(circuit: QuantumCircuit, functional: bool = True) -> tuple:
     """Private key function for QuantumCircuit.
@@ -138,6 +143,7 @@ def _circuit_key(circuit: QuantumCircuit, functional: bool = True) -> tuple:
         circuit.name,
         *functional_key,
     )
+
 
 class Sampler(BaseSamplerV1):
     """
