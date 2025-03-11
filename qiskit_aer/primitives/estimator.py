@@ -632,7 +632,7 @@ class _PostProcessing:
                 result = results[c_i]
                 count = result.data.counts
                 shots = sum(count.values())
-                basis = result.header.metadata["basis"]
+                basis = result.header["metadata"]["basis"]
                 indices = np.where(basis.z | basis.x)[0]
                 measured_paulis = PauliList.from_symplectic(
                     paulis.z[:, indices], paulis.x[:, indices], 0
