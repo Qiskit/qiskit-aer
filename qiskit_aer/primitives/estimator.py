@@ -25,10 +25,10 @@ from qiskit.circuit import ParameterExpression, QuantumCircuit
 from qiskit.compiler import transpile
 from qiskit.primitives import BaseEstimatorV1, EstimatorResult
 from qiskit.primitives.primitive_job import PrimitiveJob
-from qiskit.primitives.utils import _circuit_key, _observable_key, init_observable
 from qiskit.providers import Options
-from qiskit.quantum_info import Pauli, PauliList
+from qiskit.quantum_info import Pauli, PauliList, SparsePauliOp
 from qiskit.quantum_info.operators.base_operator import BaseOperator
+from qiskit.quantum_info.operators.symplectic.base_pauli import BasePauli
 from qiskit.result.models import ExperimentResult
 from qiskit.transpiler import CouplingMap, PassManager
 from qiskit.transpiler.passes import (
@@ -41,7 +41,44 @@ from qiskit.transpiler.passes import (
 from qiskit.utils import deprecate_func
 
 from .. import AerError, AerSimulator
+from .sampler import _circuit_key
 
+def init_observable(observable: BaseOperator | str) -> SparsePauliOp:
+    """Initialize observable by converting the input to a :class:`~qiskit.quantum_info.SparsePauliOp`.
+
+    Args:
+        observable: The observable.
+
+    Returns:
+        The observable as :class:`~qiskit.quantum_info.SparsePauliOp`.
+
+    Raises:
+        AerError: when observable type cannot be converted to SparsePauliOp.
+    """
+
+    if isinstance(observable, SparsePauliOp):
+        return observable
+    elif isinstance(observable, BaseOperator) and not isinstance(observable, BasePauli):
+        raise AerError(f"observable type not supported: {type(observable)}")
+    else:
+        if isinstance(observable, PauliList):
+            raise AerError(f"observable type not supported: {type(observable)}")
+        return SparsePauliOp(observable)
+
+def _observable_key(observable: SparsePauliOp) -> tuple:
+    """Private key function for SparsePauliOp.
+    Args:
+        observable: Input operator.
+
+    Returns:
+        Key for observables.
+    """
+    return (
+        observable.paulis.z.tobytes(),
+        observable.paulis.x.tobytes(),
+        observable.paulis.phase.tobytes(),
+        observable.coeffs.tobytes(),
+    )
 
 class Estimator(BaseEstimatorV1):
     """
