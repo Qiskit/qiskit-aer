@@ -20,8 +20,7 @@ from collections.abc import Sequence, Iterable
 
 from warnings import warn
 import numpy as np
-from qiskit.circuit import ParameterExpression, QuantumCircuit
-from qiskit.circuit.bit import Bit
+from qiskit.circuit import ParameterExpression, QuantumCircuit, Qubit
 from qiskit.circuit.library.data_preparation import Initialize
 from qiskit.compiler import transpile
 from qiskit.exceptions import QiskitError
@@ -89,7 +88,7 @@ def final_measurement_mapping(circuit: QuantumCircuit) -> dict[int, int]:
     return mapping
 
 
-def _bits_key(bits: tuple[Bit, ...], circuit: QuantumCircuit) -> tuple:
+def _bits_key(bits: tuple[Qubit, ...], circuit: QuantumCircuit) -> tuple:
     return tuple(
         (
             circuit.find_bit(bit).index,
