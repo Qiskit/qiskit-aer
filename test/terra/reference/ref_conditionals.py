@@ -14,7 +14,6 @@
 Test circuits and reference outputs for conditional gates.
 """
 
-import math
 import numpy as np
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.circuit import Instruction
@@ -40,16 +39,21 @@ def add_conditional_x(circuit, qreg, creg, val, conditional_type):
     x_kraus = Instruction("kraus", 1, 0, [x_mat])
 
     if conditional_type == "unitary":
-        circuit.unitary(x_mat, [qreg]).c_if(creg, val)
+        with circuit.if_test((creg, val)):
+            circuit.unitary(x_mat, [qreg])
     elif conditional_type == "kraus":
-        circuit.append(x_kraus, [qreg]).c_if(creg, val)
+        with circuit.if_test((creg, val)):
+            circuit.append(x_kraus, [qreg])
     elif conditional_type == "superop":
-        circuit.append(x_superop, [qreg]).c_if(creg, val)
+        with circuit.if_test((creg, val)):
+            circuit.append(x_superop, [qreg])
     elif conditional_type == "reset":
-        circuit.x(qreg).c_if(creg, val)
-        circuit.reset(qreg).c_if(creg, val)
+        with circuit.if_test((creg, val)):
+            circuit.x(qreg)
+            circuit.reset(qreg)
     else:
-        circuit.x(qreg).c_if(creg, val)
+        with circuit.if_test((creg, val)):
+            circuit.x(qreg)
 
 
 # ==========================================================================
@@ -281,7 +285,8 @@ def conditional_circuits_2bit(final_measure=True, conditional_type="gate"):
 
     # Conditional on 10 (cr = 00)
     circuit = QuantumCircuit(*regs)
-    circuit.x(qr).c_if(cond, 2)
+    with circuit.if_test((cond, 2)):
+        circuit.x(qr)
     if final_measure:
         circuit.barrier(qr)
         circuit.measure(qr, cr)

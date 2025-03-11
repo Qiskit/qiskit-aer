@@ -366,13 +366,15 @@ class TestConditionalDiagonal(SimulatorTestCase):
         circuit0 = QuantumCircuit(4, 4)
         for i in range(1, 4):
             circuit0.h(i)
-        circuit0.append(DiagonalGate([-1, -1]), [1]).c_if(circuit0.clbits[0], 0)
+        with circuit0.if_test((circuit0.clbits[0], 0)):
+            circuit0.append(DiagonalGate([-1, -1]), [1])
         circuit0.save_statevector(label="diff")
 
         circuit1 = QuantumCircuit(4, 4)
         for i in range(1, 4):
             circuit1.h(i)
-        circuit1.append(DiagonalGate([-1, -1]), [1]).c_if(circuit1.clbits[0], 1)
+        with circuit0.if_test((circuit0.clbits[0], 1)):
+            circuit0.append(DiagonalGate([-1, -1]), [1])
         circuit1.save_statevector(label="equal")
 
         result = backend.run([circuit, circuit0, circuit1], shots=1).result()

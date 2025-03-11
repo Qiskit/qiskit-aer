@@ -61,14 +61,16 @@ def pauli_lindblad_gate_error_circuits():
 
     # 50% Pauli error on conditional gate that doesn't get applied
     circuit = QuantumCircuit(qr, cr)
-    circuit.x(qr).c_if(cr, 1)
+    with circuit.if_test((cr, 1)):
+        circuit.x(qr)
     circuit.barrier(qr)
     circuit.measure(qr, cr)
     circuits.append(circuit)
 
     # 50% Pauli error on conditional gate that does get applied
     circuit = QuantumCircuit(qr, cr)
-    circuit.x(qr).c_if(cr, 0)
+    with circuit.if_test((cr, 0)):
+        circuit.x(qr)
     circuit.barrier(qr)
     circuit.measure(qr, cr)
     circuits.append(circuit)
