@@ -632,7 +632,12 @@ class _PostProcessing:
                 result = results[c_i]
                 count = result.data.counts
                 shots = sum(count.values())
-                basis = result.header["metadata"]["basis"]
+                # added for compatibility with qiskit 1.4 (metadata as attribute)
+                # and qiskit 2.0 (header as dict)
+                try:
+                    basis = result.header.metadata["basis"]
+                except AttributeError:
+                    basis = result.header["metadata"]["basis"]
                 indices = np.where(basis.z | basis.x)[0]
                 measured_paulis = PauliList.from_symplectic(
                     paulis.z[:, indices], paulis.x[:, indices], 0
