@@ -67,13 +67,6 @@ class RelaxationNoisePass(LocalNoisePass):
         duration = None
 
         if self._target is not None:
-            # Duration information in the target is given priority over potential op.duration field
-            op_props = self._target.get(op.name)
-            if op_props is not None:
-                inst_props = op.props.get(qubits)
-                if inst_props is not None:
-                    # get duration in seconds
-                    duration = getattr(inst_props, "duration")
             if op.name == "delay":
                 duration = op.duration
                 if duration is not None:
@@ -87,6 +80,13 @@ class RelaxationNoisePass(LocalNoisePass):
                         duration = op.duration * self._dt
                     else:
                         duration = apply_prefix(op.duration, op.unit)
+            else:
+                op_props = self._target.get(op.name)
+                if op_props is not None:
+                    inst_props = op_props.get(qubits)
+                    if inst_props is not None:
+                        # get duration in seconds
+                        duration = getattr(inst_props, "duration")
         else:
             try:
                 duration = op.duration
