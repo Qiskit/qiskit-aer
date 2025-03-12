@@ -83,7 +83,7 @@ class TestRelaxationNoisePass(QiskitAerTestCase):
 
         sched_circ = transpile(qc, scheduling_method="alap", target=target)
 
-        noise_pass = RelaxationNoisePass(t1s=[0.10, 0.11], t2s=[0.20, 0.21], dt=0.01)
+        noise_pass = RelaxationNoisePass(t1s=[0.10, 0.11], t2s=[0.20, 0.21], dt=0.01, target=target)
         noisy_circ = noise_pass(sched_circ)
         self.assertEqual(6, noisy_circ.decompose().decompose().count_ops()["kraus"])
 
@@ -130,7 +130,7 @@ class TestRelaxationNoisePass(QiskitAerTestCase):
 
         sched_circ = transpile(qc, scheduling_method="alap", target=target)
 
-        noise_pass = RelaxationNoisePass(t1s=t1s, t2s=t2s, dt=dt, op_types=Delay)
+        noise_pass = RelaxationNoisePass(t1s=t1s, t2s=t2s, dt=dt, op_types=Delay, target=target)
         noisy_circ = noise_pass(sched_circ)
 
         expected = QuantumCircuit(2, 2)
