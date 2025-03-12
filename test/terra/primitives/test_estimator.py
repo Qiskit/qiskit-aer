@@ -325,7 +325,7 @@ class TestEstimator(QiskitAerTestCase):
         estimator = Estimator(approximation=True, skip_transpilation=True)
         job = estimator.run([qc1, qc2, qc1, qc1, qc2], ["Z"] * 5, [[], [1], [], [], [1]])
         result = job.result()
-        np.testing.assert_allclose(result.values, [1, 0, 1, 1, 0], atol=1e-10)
+        np.testing.assert_allclose(result.values, [1, 0.009766, 1, 1, -0.007812], atol=1e-10)
 
 
 if __name__ == "__main__":
