@@ -83,7 +83,7 @@ class RelaxationNoisePass(LocalNoisePass):
             else:
                 op_props = self._target.get(op.name)
                 if op_props is not None:
-                    inst_props = op_props.get(qubits)
+                    inst_props = op_props.get(tuple(qubits))
                     if inst_props is not None:
                         # get duration in seconds
                         duration = getattr(inst_props, "duration")
