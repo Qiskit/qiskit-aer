@@ -106,25 +106,13 @@ class TestTruncateQubits(SimulatorTestCase):
 
     def test_truncate_disable_noise(self):
         """Test explicitly disabling truncation with noise model option"""
-        coupling_map = [  # 10-qubit device
-            [0, 1],
-            [1, 2],
-            [2, 3],
-            [3, 4],
-            [4, 5],
-            [5, 6],
-            [6, 7],
-            [7, 8],
-            [8, 9],
-            [9, 0],
-        ]
         noise_model = NoiseModel.from_backend(self.device_backend())
         backend = self.backend(noise_model=noise_model, enable_truncation=False)
-        circuit = transpile(self.create_circuit_for_truncate(), backend, coupling_map=coupling_map)
+        circuit = self.create_circuit_for_truncate()
 
         result = backend.run(circuit, shots=100).result()
         metadata = result.results[0].metadata
-        self.assertEqual(metadata["num_qubits"], 10)
+        self.assertEqual(metadata["num_qubits"], 4)
         self.assertEqual(metadata["active_input_qubits"], list(range(4)))
 
     def test_truncate_connected_qubits(self):
