@@ -12,7 +12,7 @@
 """
 StatevectorSimulator Integration Tests
 """
-
+import unittest
 from ddt import ddt
 from numpy import exp, pi
 
