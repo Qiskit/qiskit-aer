@@ -28,6 +28,7 @@ from test.terra import common
 from qiskit_aer.aererror import AerError
 from qiskit_aer.backends.controller_wrappers import AerStateWrapper
 from qiskit_aer.backends.name_mapping import MCYGate, MCZGate, MCSwapGate
+from qiskit_aer.backends.name_mapping import MCU2Gate, MCU3Gate, MCUGate
 from qiskit_aer.quantum_info.states.aer_state import AerState
 
 
@@ -456,7 +457,7 @@ class TestAerState(common.QiskitAerTestCase):
             self.assertAlmostEqual(expected[i], amp)
 
     def test_apply_mcz(self):
-        """Test applying a mcz gate"""
+        """Test applying an mcz gate"""
 
         init_state = random_statevector(2**5, seed=111)
 
@@ -484,7 +485,7 @@ class TestAerState(common.QiskitAerTestCase):
             self.assertAlmostEqual(expected[i], amp)
 
     def test_apply_mcswap(self):
-        """Test applying a mcswap gate"""
+        """Test applying an mcswap gate"""
 
         init_state = random_statevector(2**5, seed=111)
 
@@ -508,6 +509,88 @@ class TestAerState(common.QiskitAerTestCase):
 
         for i, amp in enumerate(actual):
             self.assertAlmostEqual(expected[i], amp)
+
+    def test_apply_mcu(self):
+        """Test applying an mcu gate, including the U2 and U3 special cases"""
+
+        init_state = random_statevector(2**5, seed=111)
+        rng = np.random.default_rng(seed=112)
+        theta = pi/2
+        phi = rng.uniform(-pi, pi)
+        lamb = rng.uniform(-pi, pi)
+        gamma = 0
+
+        circuit = QuantumCircuit(5)
+        circuit.initialize(init_state, [0, 1, 2, 3, 4])
+        circuit.append(MCU2Gate(phi, lamb, 1), [0, 1])
+        circuit.append(MCU2Gate(phi, lamb, 2), [1, 2, 3])
+        circuit.append(MCU2Gate(phi, lamb, 3), [4, 0, 1, 2])
+        circuit.save_statevector()
+
+        aer_simulator = AerSimulator(method="statevector")
+        result = aer_simulator.run(circuit).result()
+        expected = result.get_statevector(0)
+
+        state = AerState(method="statevector")
+        state.allocate_qubits(5)
+        state.initialize(init_state.data)
+
+        state.apply_mcu([0], 1, theta, phi, lamb, gamma)
+        state.apply_mcu([1, 2], 3, theta, phi, lamb, gamma)
+        state.apply_mcu([4, 0, 1], 2, theta, phi, lamb, gamma)
+        actual = state.move_to_ndarray()
+
+        for i, amp in enumerate(actual):
+            self.assertAlmostEqual(expected[i], amp)
+
+        theta = rng.uniform(-pi, pi)
+
+        circuit = QuantumCircuit(5)
+        circuit.initialize(init_state, [0, 1, 2, 3, 4])
+        circuit.append(MCU3Gate(theta, phi, lamb, 1), [0, 1])
+        circuit.append(MCU3Gate(theta, phi, lamb, 2), [1, 2, 3])
+        circuit.append(MCU3Gate(theta, phi, lamb, 3), [4, 0, 1, 2])
+        circuit.save_statevector()
+
+        result = aer_simulator.run(circuit).result()
+        expected = result.get_statevector(0)
+
+        state = AerState(method="statevector")
+        state.allocate_qubits(5)
+        state.initialize(init_state.data)
+
+        state.apply_mcu([0], 1, theta, phi, lamb, gamma)
+        state.apply_mcu([1, 2], 3, theta, phi, lamb, gamma)
+        state.apply_mcu([4, 0, 1], 2, theta, phi, lamb, gamma)
+        actual = state.move_to_ndarray()
+
+        for i, amp in enumerate(actual):
+            self.assertAlmostEqual(expected[i], amp)
+
+        gamma = rng.uniform(-pi, pi)
+
+        circuit = QuantumCircuit(5)
+        circuit.initialize(init_state, [0, 1, 2, 3, 4])
+        circuit.append(MCUGate(theta, phi, lamb, gamma, 1), [0, 1])
+        circuit.append(MCUGate(theta, phi, lamb, gamma, 2), [1, 2, 3])
+        circuit.append(MCUGate(theta, phi, lamb, gamma, 3), [4, 0, 1, 2])
+        circuit.save_statevector()
+
+        result = aer_simulator.run(circuit).result()
+        expected = result.get_statevector(0)
+
+        state = AerState(method="statevector")
+        state.allocate_qubits(5)
+        state.initialize(init_state.data)
+
+        state.apply_mcu([0], 1, theta, phi, lamb, gamma)
+        state.apply_mcu([1, 2], 3, theta, phi, lamb, gamma)
+        state.apply_mcu([4, 0, 1], 2, theta, phi, lamb, gamma)
+        actual = state.move_to_ndarray()
+
+        for i, amp in enumerate(actual):
+            self.assertAlmostEqual(expected[i], amp)
+
 
     def test_appply_reset(self):
         """Test applying a rest gate"""
