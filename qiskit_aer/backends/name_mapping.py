@@ -37,6 +37,7 @@ from qiskit.circuit.library import (
     MCXGrayCode,
     Initialize,
     UCGate,
+    CUGate,
 )
 from qiskit.circuit.controlflow import (
     IfElseOp,
@@ -212,14 +213,20 @@ class MCU3Gate(ControlledGate):
         )
 
 
-class MCUGate(ControlledGate):
-    """mcu gate"""
+class MCUGate(CUGate):
+    """
+    mcu gate
 
-    def __init__(self, theta, lam, phi, num_ctrl_qubits, ctrl_state=None):
-        super().__init__(
+    Note: CUGate used as base class to make the gamma parameter properly settable.
+    No gate definition included. Be careful when transpiling this gate or running it on
+    non-Aer backends.
+    """
+
+    def __init__(self, theta, phi, lam, gamma, num_ctrl_qubits, ctrl_state=None):
+        super(CUGate, self).__init__(
             "mcu",
             1 + num_ctrl_qubits,
-            [theta, phi, lam],
+            [theta, phi, lam, gamma],
             None,
             num_ctrl_qubits,
             ctrl_state=ctrl_state,
