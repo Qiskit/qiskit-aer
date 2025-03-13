@@ -13,10 +13,11 @@
 AerSimulator Integration Tests
 """
 from ddt import ddt
+import unittest
 from test.terra.reference import ref_conditionals
 from test.terra.backends.simulator_test_case import SimulatorTestCase, supported_methods
 
-from qiskit import QuantumCircuit, ClassicalRegister
+from qiskit import QuantumCircuit, ClassicalRegister, __version__ as qiskit_version
 from qiskit.circuit.library import DiagonalGate
 
 
@@ -36,6 +37,10 @@ class TestConditionalGates(SimulatorTestCase):
     # ---------------------------------------------------------------------
     # Test conditional
     # ---------------------------------------------------------------------
+    @unittest.skipUnless(
+        qiskit_version.startswith("0.") or qiskit_version.startswith("1."),
+        reason="c_if support was removed in Qiskit >= 2.0",
+    )
     @supported_methods(SUPPORTED_METHODS)
     def test_conditional_gates_1bit(self, method, device):
         """Test conditional gate operations on 1-bit conditional register."""
@@ -49,6 +54,10 @@ class TestConditionalGates(SimulatorTestCase):
         self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0)
 
+    @unittest.skipUnless(
+        qiskit_version.startswith("0.") or qiskit_version.startswith("1."),
+        reason="c_if support was removed in Qiskit >= 2.0",
+    )
     @supported_methods(SUPPORTED_METHODS)
     def test_conditional_gates_2bit(self, method, device):
         """Test conditional gate operations on 2-bit conditional register."""
@@ -63,6 +72,10 @@ class TestConditionalGates(SimulatorTestCase):
         self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0)
 
+    @unittest.skipUnless(
+        qiskit_version.startswith("0.") or qiskit_version.startswith("1."),
+        reason="c_if support was removed in Qiskit >= 2.0",
+    )
     @supported_methods(SUPPORTED_METHODS)
     def test_conditional_gates_64bit(self, method, device):
         """Test conditional gate operations on 64-bit conditional register."""
@@ -82,6 +95,10 @@ class TestConditionalGates(SimulatorTestCase):
         self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, hex_counts=False, delta=0)
 
+    @unittest.skipUnless(
+        qiskit_version.startswith("0.") or qiskit_version.startswith("1."),
+        reason="c_if support was removed in Qiskit >= 2.0",
+    )
     @supported_methods(SUPPORTED_METHODS)
     def test_conditional_gates_132bit(self, method, device):
         """Test conditional gate operations on 132-bit conditional register."""
@@ -114,6 +131,10 @@ class TestConditionalUnitary(SimulatorTestCase):
     # ---------------------------------------------------------------------
     # Test conditional
     # ---------------------------------------------------------------------
+    @unittest.skipUnless(
+        qiskit_version.startswith("0.") or qiskit_version.startswith("1."),
+        reason="c_if support was removed in Qiskit >= 2.0",
+    )
     @supported_methods(SUPPORTED_METHODS)
     def test_conditional_unitary_1bit(self, method, device):
         """Test conditional unitary operations on 1-bit conditional register."""
@@ -127,6 +148,10 @@ class TestConditionalUnitary(SimulatorTestCase):
         self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0)
 
+    @unittest.skipUnless(
+        qiskit_version.startswith("0.") or qiskit_version.startswith("1."),
+        reason="c_if support was removed in Qiskit >= 2.0",
+    )
     @supported_methods(SUPPORTED_METHODS)
     def test_conditional_unitary_2bit(self, method, device):
         """Test conditional unitary operations on 2-bit conditional register."""
@@ -141,6 +166,10 @@ class TestConditionalUnitary(SimulatorTestCase):
         self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0)
 
+    @unittest.skipUnless(
+        qiskit_version.startswith("0.") or qiskit_version.startswith("1."),
+        reason="c_if support was removed in Qiskit >= 2.0",
+    )
     @supported_methods(SUPPORTED_METHODS)
     def test_conditional_unitary_64bit(self, method, device):
         """Test conditional unitary operations on 64-bit conditional register."""
@@ -157,6 +186,10 @@ class TestConditionalUnitary(SimulatorTestCase):
         self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, hex_counts=False, delta=0)
 
+    @unittest.skipUnless(
+        qiskit_version.startswith("0.") or qiskit_version.startswith("1."),
+        reason="c_if support was removed in Qiskit >= 2.0",
+    )
     @supported_methods(SUPPORTED_METHODS)
     def test_conditional_unitary_132bit(self, method, device):
         """Test conditional unitary operations on 132-bit conditional register."""
@@ -187,6 +220,10 @@ class TestConditionalKraus(SimulatorTestCase):
     # ---------------------------------------------------------------------
     # Test conditional
     # ---------------------------------------------------------------------
+    @unittest.skipUnless(
+        qiskit_version.startswith("0.") or qiskit_version.startswith("1."),
+        reason="c_if support was removed in Qiskit >= 2.0",
+    )
     @supported_methods(SUPPORTED_METHODS)
     def test_conditional_unitary_1bit(self, method, device):
         """Test conditional kraus operations on 1-bit conditional register."""
@@ -200,6 +237,10 @@ class TestConditionalKraus(SimulatorTestCase):
         self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0)
 
+    @unittest.skipUnless(
+        qiskit_version.startswith("0.") or qiskit_version.startswith("1."),
+        reason="c_if support was removed in Qiskit >= 2.0",
+    )
     @supported_methods(SUPPORTED_METHODS)
     def test_conditional_kraus_2bit(self, method, device):
         """Test conditional kraus operations on 2-bit conditional register."""
@@ -214,6 +255,10 @@ class TestConditionalKraus(SimulatorTestCase):
         self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0)
 
+    @unittest.skipUnless(
+        qiskit_version.startswith("0.") or qiskit_version.startswith("1."),
+        reason="c_if support was removed in Qiskit >= 2.0",
+    )
     @supported_methods(SUPPORTED_METHODS)
     def test_conditional_kraus_64bit(self, method, device):
         """Test conditional kraus operations on 64-bit conditional register."""
@@ -230,6 +275,10 @@ class TestConditionalKraus(SimulatorTestCase):
         self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, hex_counts=False, delta=0)
 
+    @unittest.skipUnless(
+        qiskit_version.startswith("0.") or qiskit_version.startswith("1."),
+        reason="c_if support was removed in Qiskit >= 2.0",
+    )
     @supported_methods(SUPPORTED_METHODS)
     def test_conditional_kraus_132bit(self, method, device):
         """Test conditional kraus operations on 132-bit conditional register."""
@@ -255,6 +304,10 @@ class TestConditionalSuperOp(SimulatorTestCase):
     # ---------------------------------------------------------------------
     # Test conditional
     # ---------------------------------------------------------------------
+    @unittest.skipUnless(
+        qiskit_version.startswith("0.") or qiskit_version.startswith("1."),
+        reason="c_if support was removed in Qiskit >= 2.0",
+    )
     @supported_methods(SUPPORTED_METHODS)
     def test_conditional_superop_1bit(self, method, device):
         """Test conditional superop operations on 1-bit conditional register."""
@@ -268,6 +321,10 @@ class TestConditionalSuperOp(SimulatorTestCase):
         self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0)
 
+    @unittest.skipUnless(
+        qiskit_version.startswith("0.") or qiskit_version.startswith("1."),
+        reason="c_if support was removed in Qiskit >= 2.0",
+    )
     @supported_methods(SUPPORTED_METHODS)
     def test_conditional_superop_2bit(self, method, device):
         """Test conditional superop operations on 2-bit conditional register."""
@@ -282,6 +339,10 @@ class TestConditionalSuperOp(SimulatorTestCase):
         self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0)
 
+    @unittest.skipUnless(
+        qiskit_version.startswith("0.") or qiskit_version.startswith("1."),
+        reason="c_if support was removed in Qiskit >= 2.0",
+    )
     @supported_methods(SUPPORTED_METHODS)
     def test_conditional_superop_64bit(self, method, device):
         """Test conditional superop operations on 64-bit conditional register."""
@@ -298,6 +359,10 @@ class TestConditionalSuperOp(SimulatorTestCase):
         self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, hex_counts=False, delta=0)
 
+    @unittest.skipUnless(
+        qiskit_version.startswith("0.") or qiskit_version.startswith("1."),
+        reason="c_if support was removed in Qiskit >= 2.0",
+    )
     @supported_methods(SUPPORTED_METHODS)
     def test_conditional_superop_132bit(self, method, device):
         """Test conditional superop operations on 132-bit conditional register."""
@@ -329,6 +394,10 @@ class TestConditionalReset(SimulatorTestCase):
     # ---------------------------------------------------------------------
     # Test conditional
     # ---------------------------------------------------------------------
+    @unittest.skipUnless(
+        qiskit_version.startswith("0.") or qiskit_version.startswith("1."),
+        reason="c_if support was removed in Qiskit >= 2.0",
+    )
     @supported_methods(SUPPORTED_METHODS)
     def test_conditional_reset_1bit(self, method, device):
         """Test conditional reset on 1-bit conditional register."""
@@ -352,6 +421,10 @@ class TestConditionalDiagonal(SimulatorTestCase):
     # ---------------------------------------------------------------------
     # Test conditional
     # ---------------------------------------------------------------------
+    @unittest.skipUnless(
+        qiskit_version.startswith("0.") or qiskit_version.startswith("1."),
+        reason="c_if support was removed in Qiskit >= 2.0",
+    )
     def test_conditional_diagonal(self):
         """Test conditional diagonal with statevector."""
         shots = 100

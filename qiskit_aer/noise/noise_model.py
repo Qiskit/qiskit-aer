@@ -444,6 +444,7 @@ class NoiseModel:
                     dt=dt,
                     op_types=Delay,
                     excited_state_populations=excited_state_populations,
+                    target=target,
                 )
                 noise_model._custom_noise_passes.append(delay_pass)
             except ValueError:
