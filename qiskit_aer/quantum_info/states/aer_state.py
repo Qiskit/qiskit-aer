@@ -461,6 +461,38 @@ class AerState:
         # update state
         self._native_state.apply_mcswap(control_qubits + [qubit0, qubit1])
 
+    def apply_mcsx(self, control_qubits, target_qubit):
+        """apply an mcsx operation."""
+        self._assert_allocated_or_mapped()
+        self._assert_in_allocated_qubits(control_qubits)
+        self._assert_in_allocated_qubits(target_qubit)
+        # update state
+        self._native_state.apply_mcsx(control_qubits + [target_qubit])
+
+    def apply_mcrx(self, control_qubits, target_qubit, theta):
+        """apply an mcrx operation."""
+        self._assert_allocated_or_mapped()
+        self._assert_in_allocated_qubits(control_qubits)
+        self._assert_in_allocated_qubits(target_qubit)
+        # update state
+        self._native_state.apply_mcrx(control_qubits + [target_qubit], theta)
+
+    def apply_mcry(self, control_qubits, target_qubit, theta):
+        """apply an mcrx operation."""
+        self._assert_allocated_or_mapped()
+        self._assert_in_allocated_qubits(control_qubits)
+        self._assert_in_allocated_qubits(target_qubit)
+        # update state
+        self._native_state.apply_mcry(control_qubits + [target_qubit], theta)
+
+    def apply_mcrz(self, control_qubits, target_qubit, theta):
+        """apply an mcrx operation."""
+        self._assert_allocated_or_mapped()
+        self._assert_in_allocated_qubits(control_qubits)
+        self._assert_in_allocated_qubits(target_qubit)
+        # update state
+        self._native_state.apply_mcrz(control_qubits + [target_qubit], theta)
+
     def apply_measure(self, qubits):
         """apply a measure operation."""
         self._assert_allocated_or_mapped()
