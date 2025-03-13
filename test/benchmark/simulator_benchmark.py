@@ -15,7 +15,7 @@ Base class of Qiskit Aer Benchmarking
 import sys
 import numpy as np
 from time import time
-from qiskit.compiler import transpile, assemble
+from qiskit.compiler import transpile
 from qiskit_aer import AerSimulator, UnitarySimulator
 from qiskit_aer.noise import NoiseModel, amplitude_damping_error, depolarizing_error
 
@@ -186,31 +186,23 @@ class SimulatorBenchmarkSuite(CircuitLibraryCircuits):
             if runtime in self.TRANSPLIERS:
                 runtime_circuit = eval(self.TRANSPLIERS[runtime])(circuit)
                 if (runtime, app, measure, measure_count, qubit) not in QOBJS:
-                    QOBJS[(runtime, app, measure, measure_count, qubit)] = assemble(
-                        runtime_circuit, simulator, shots=measure_count
-                    )
+                    QOBJS[(runtime, app, measure, measure_count, qubit)] = runtime_circuit
                 return QOBJS[(runtime, app, measure, measure_count, qubit)]
             else:
                 runtime_circuit = circuit
                 if (simulator, app, measure, measure_count, qubit) not in QOBJS:
-                    QOBJS[(simulator, app, measure, measure_count, qubit)] = assemble(
-                        runtime_circuit, simulator, shots=measure_count
-                    )
+                    QOBJS[(simulator, app, measure, measure_count, qubit)] = runtime_circuit
                 return QOBJS[(simulator, app, measure, measure_count, qubit)]
         elif measure == self.MEASUREMENT_EXPVAL:
             if runtime in self.TRANSPLIERS:
                 runtime_circuit = eval(self.TRANSPLIERS[runtime])(circuit)
                 if (runtime, app, measure, measure_count, qubit) not in QOBJS:
-                    QOBJS[(runtime, app, measure, measure_count, qubit)] = assemble(
-                        runtime_circuit, simulator, shots=1
-                    )
+                    QOBJS[(runtime, app, measure, measure_count, qubit)] = runtime_circuit
                 return QOBJS[(runtime, app, measure, measure_count, qubit)]
             else:
                 runtime_circuit = circuit
                 if (simulator, app, measure, measure_count, qubit) not in QOBJS:
-                    QOBJS[(simulator, app, measure, measure_count, qubit)] = assemble(
-                        runtime_circuit, simulator, shots=1
-                    )
+                    QOBJS[(simulator, app, measure, measure_count, qubit)] = runtime_circuit
                 return QOBJS[(simulator, app, measure, measure_count, qubit)]
 
     def _transpile(self, circuit, basis_gates):
