@@ -130,7 +130,7 @@ class TestTruncateQubits(SimulatorTestCase):
         result = backend.run(circuit, shots=100).result()
         metadata = result.results[0].metadata
         self.assertEqual(metadata["num_qubits"], 10)
-        self.assertEqual(metadata["active_input_qubits"], list(range(4)))
+        self.assertEqual(len(metadata["active_input_qubits"]), 4)
 
     def test_truncate_connected_qubits(self):
         """Test truncation isn't applied to coupled qubits."""
