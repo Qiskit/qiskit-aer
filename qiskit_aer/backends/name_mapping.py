@@ -185,22 +185,22 @@ class MCRGate(ControlledGate):
 class MCU2Gate(ControlledGate):
     """mcu2 gate"""
 
-    def __init__(self, theta, lam, num_ctrl_qubits, ctrl_state=None):
+    def __init__(self, phi, lam, num_ctrl_qubits, ctrl_state=None):
         super().__init__(
             "mcu2",
             1 + num_ctrl_qubits,
-            [theta, lam],
+            [phi, lam],
             None,
             num_ctrl_qubits,
             ctrl_state=ctrl_state,
-            base_gate=U2Gate(theta, lam),
+            base_gate=U2Gate(phi, lam),
         )
 
 
 class MCU3Gate(ControlledGate):
     """mcu3 gate"""
 
-    def __init__(self, theta, lam, phi, num_ctrl_qubits, ctrl_state=None):
+    def __init__(self, theta, phi, lam, num_ctrl_qubits, ctrl_state=None):
         super().__init__(
             "mcu3",
             1 + num_ctrl_qubits,
