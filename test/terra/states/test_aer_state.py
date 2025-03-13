@@ -538,16 +538,16 @@ class TestAerState(common.QiskitAerTestCase):
         state.allocate_qubits(5)
         state.initialize(init_state.data)
 
-        state.apply_mcu([0], 1, theta, phi - pi/2, pi/2 - phi, gamma)
-        state.apply_mcu([1, 2], 3, theta, phi - pi/2, pi/2 - phi, gamma)
-        state.apply_mcu([4, 0, 1], 2, theta, phi - pi/2, pi/2 - phi, gamma)
+        state.apply_mcu([0], 1, theta, phi - pi / 2, pi / 2 - phi, gamma)
+        state.apply_mcu([1, 2], 3, theta, phi - pi / 2, pi / 2 - phi, gamma)
+        state.apply_mcu([4, 0, 1], 2, theta, phi - pi / 2, pi / 2 - phi, gamma)
         actual = state.move_to_ndarray()
 
         for i, amp in enumerate(actual):
             self.assertAlmostEqual(expected[i], amp)
 
         # MCU2 gate
-        theta = pi/2
+        theta = pi / 2
         lamb = rng.uniform(-pi, pi)
 
         circuit = QuantumCircuit(5)
