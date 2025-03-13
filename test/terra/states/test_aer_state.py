@@ -27,7 +27,7 @@ from qiskit_aer import AerSimulator
 from test.terra import common
 from qiskit_aer.aererror import AerError
 from qiskit_aer.backends.controller_wrappers import AerStateWrapper
-from qiskit_aer.backends.name_mapping import MCYGate, MCZGate
+from qiskit_aer.backends.name_mapping import MCYGate, MCZGate, MCSwapGate
 from qiskit_aer.quantum_info.states.aer_state import AerState
 
 
@@ -478,6 +478,32 @@ class TestAerState(common.QiskitAerTestCase):
         state.apply_mcz([0], 1)
         state.apply_mcz([1, 2], 3)
         state.apply_mcz([4, 0, 1], 2)
+        actual = state.move_to_ndarray()
+
+        for i, amp in enumerate(actual):
+            self.assertAlmostEqual(expected[i], amp)
+
+    def test_apply_mcswap(self):
+        """Test applying a mcswap gate"""
+
+        init_state = random_statevector(2**5, seed=111)
+
+        circuit = QuantumCircuit(5)
+        circuit.initialize(init_state, [0, 1, 2, 3, 4])
+        circuit.append(MCSwapGate(1), [0, 1, 2])
+        circuit.append(MCSwapGate(2), [3, 4, 0, 1])
+        circuit.save_statevector()
+
+        aer_simulator = AerSimulator(method="statevector")
+        result = aer_simulator.run(circuit).result()
+        expected = result.get_statevector(0)
+
+        state = AerState(method="statevector")
+        state.allocate_qubits(5)
+        state.initialize(init_state.data)
+
+        state.apply_mcswap([0], 1, 2)
+        state.apply_mcswap([3, 4], 0, 1)
         actual = state.move_to_ndarray()
 
         for i, amp in enumerate(actual):
