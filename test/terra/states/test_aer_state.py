@@ -28,7 +28,7 @@ from test.terra import common
 from qiskit_aer.aererror import AerError
 from qiskit_aer.backends.controller_wrappers import AerStateWrapper
 from qiskit_aer.backends.name_mapping import MCSXGate, MCYGate, MCZGate, MCSwapGate
-from qiskit_aer.backends.name_mapping import MCU2Gate, MCU3Gate, MCUGate
+from qiskit_aer.backends.name_mapping import MCU2Gate, MCU3Gate, MCUGate, MCRGate
 from qiskit_aer.backends.name_mapping import MCRXGate, MCRYGate, MCRZGate
 from qiskit_aer.quantum_info.states.aer_state import AerState
 
@@ -512,14 +512,43 @@ class TestAerState(common.QiskitAerTestCase):
             self.assertAlmostEqual(expected[i], amp)
 
     def test_apply_mcu(self):
-        """Test applying an mcu gate, including the U2 and U3 special cases"""
+        """Test applying an mcu gate, including the R, U2, and U3 special cases"""
 
+        # MCR gate
+        # phi is defined differently in MCR, use these parameters for MCU:
+        # phi, lam = (phi - pi/2, pi/2 - phi)
         init_state = random_statevector(2**5, seed=111)
         rng = np.random.default_rng(seed=112)
-        theta = pi/2
+        theta = rng.uniform(-pi, pi)
         phi = rng.uniform(-pi, pi)
-        lamb = rng.uniform(-pi, pi)
         gamma = 0
+
+        circuit = QuantumCircuit(5)
+        circuit.initialize(init_state, [0, 1, 2, 3, 4])
+        circuit.append(MCRGate(theta, phi, 1), [0, 1])
+        circuit.append(MCRGate(theta, phi, 2), [1, 2, 3])
+        circuit.append(MCRGate(theta, phi, 3), [4, 0, 1, 2])
+        circuit.save_statevector()
+
+        aer_simulator = AerSimulator(method="statevector")
+        result = aer_simulator.run(circuit).result()
+        expected = result.get_statevector(0)
+
+        state = AerState(method="statevector")
+        state.allocate_qubits(5)
+        state.initialize(init_state.data)
+
+        state.apply_mcu([0], 1, theta, phi - pi/2, pi/2 - phi, gamma)
+        state.apply_mcu([1, 2], 3, theta, phi - pi/2, pi/2 - phi, gamma)
+        state.apply_mcu([4, 0, 1], 2, theta, phi - pi/2, pi/2 - phi, gamma)
+        actual = state.move_to_ndarray()
+
+        for i, amp in enumerate(actual):
+            self.assertAlmostEqual(expected[i], amp)
+
+        # MCU2 gate
+        theta = pi/2
+        lamb = rng.uniform(-pi, pi)
 
         circuit = QuantumCircuit(5)
         circuit.initialize(init_state, [0, 1, 2, 3, 4])
@@ -544,6 +573,7 @@ class TestAerState(common.QiskitAerTestCase):
         for i, amp in enumerate(actual):
             self.assertAlmostEqual(expected[i], amp)
 
+        # MCU3 gate
         theta = rng.uniform(-pi, pi)
 
         circuit = QuantumCircuit(5)
@@ -568,6 +598,7 @@ class TestAerState(common.QiskitAerTestCase):
         for i, amp in enumerate(actual):
             self.assertAlmostEqual(expected[i], amp)
 
+        # MCU gate
         gamma = rng.uniform(-pi, pi)
 
         circuit = QuantumCircuit(5)
