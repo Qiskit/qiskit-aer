@@ -20,13 +20,14 @@ import numpy as np
 from qiskit.circuit import QuantumCircuit, Gate
 from qiskit.quantum_info.random import random_unitary
 from qiskit.quantum_info import random_statevector, random_density_matrix
-from qiskit.circuit.library import DiagonalGate
+from qiskit.circuit.library import DiagonalGate, MCXGate
 
 from qiskit_aer import AerSimulator
 
 from test.terra import common
 from qiskit_aer.aererror import AerError
 from qiskit_aer.backends.controller_wrappers import AerStateWrapper
+from qiskit_aer.backends.name_mapping import MCYGate, MCZGate
 from qiskit_aer.quantum_info.states.aer_state import AerState
 
 
@@ -398,23 +399,16 @@ class TestAerState(common.QiskitAerTestCase):
         for i, amp in enumerate(actual):
             self.assertAlmostEqual(expected[i], amp)
 
-    def test_appply_mcx(self):
+    def test_apply_mcx(self):
         """Test applying a mcx gate"""
-
-        class MCX(Gate):
-            def validate_parameter(self, param):
-                return param
-
-        def mcx(num_control):
-            return MCX("mcx", num_control + 1, [])
 
         init_state = random_statevector(2**5, seed=111)
 
         circuit = QuantumCircuit(5)
         circuit.initialize(init_state, [0, 1, 2, 3, 4])
-        circuit.append(mcx(1), [0, 1])
-        circuit.append(mcx(2), [1, 2, 3])
-        circuit.append(mcx(3), [4, 0, 1, 2])
+        circuit.append(MCXGate(1), [0, 1])
+        circuit.append(MCXGate(2), [1, 2, 3])
+        circuit.append(MCXGate(3), [4, 0, 1, 2])
         circuit.save_statevector()
 
         aer_simulator = AerSimulator(method="statevector")
@@ -433,23 +427,16 @@ class TestAerState(common.QiskitAerTestCase):
         for i, amp in enumerate(actual):
             self.assertAlmostEqual(expected[i], amp)
 
-    def test_appply_mcy(self):
+    def test_apply_mcy(self):
         """Test applying a mcy gate"""
-
-        class MCY(Gate):
-            def validate_parameter(self, param):
-                return param
-
-        def mcy(num_control):
-            return MCY("mcy", num_control + 1, [])
 
         init_state = random_statevector(2**5, seed=111)
 
         circuit = QuantumCircuit(5)
         circuit.initialize(init_state, [0, 1, 2, 3, 4])
-        circuit.append(mcy(1), [0, 1])
-        circuit.append(mcy(2), [1, 2, 3])
-        circuit.append(mcy(3), [4, 0, 1, 2])
+        circuit.append(MCYGate(1), [0, 1])
+        circuit.append(MCYGate(2), [1, 2, 3])
+        circuit.append(MCYGate(3), [4, 0, 1, 2])
         circuit.save_statevector()
 
         aer_simulator = AerSimulator(method="statevector")
@@ -468,23 +455,16 @@ class TestAerState(common.QiskitAerTestCase):
         for i, amp in enumerate(actual):
             self.assertAlmostEqual(expected[i], amp)
 
-    def test_appply_mcz(self):
+    def test_apply_mcz(self):
         """Test applying a mcz gate"""
-
-        class MCZ(Gate):
-            def validate_parameter(self, param):
-                return param
-
-        def mcz(num_control):
-            return MCZ("mcz", num_control + 1, [])
 
         init_state = random_statevector(2**5, seed=111)
 
         circuit = QuantumCircuit(5)
         circuit.initialize(init_state, [0, 1, 2, 3, 4])
-        circuit.append(mcz(1), [0, 1])
-        circuit.append(mcz(2), [1, 2, 3])
-        circuit.append(mcz(3), [4, 0, 1, 2])
+        circuit.append(MCZGate(1), [0, 1])
+        circuit.append(MCZGate(2), [1, 2, 3])
+        circuit.append(MCZGate(3), [4, 0, 1, 2])
         circuit.save_statevector()
 
         aer_simulator = AerSimulator(method="statevector")
