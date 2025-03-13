@@ -27,8 +27,9 @@ from qiskit_aer import AerSimulator
 from test.terra import common
 from qiskit_aer.aererror import AerError
 from qiskit_aer.backends.controller_wrappers import AerStateWrapper
-from qiskit_aer.backends.name_mapping import MCYGate, MCZGate, MCSwapGate
+from qiskit_aer.backends.name_mapping import MCSXGate, MCYGate, MCZGate, MCSwapGate
 from qiskit_aer.backends.name_mapping import MCU2Gate, MCU3Gate, MCUGate
+from qiskit_aer.backends.name_mapping import MCRXGate, MCRYGate, MCRZGate
 from qiskit_aer.quantum_info.states.aer_state import AerState
 
 
@@ -401,7 +402,7 @@ class TestAerState(common.QiskitAerTestCase):
             self.assertAlmostEqual(expected[i], amp)
 
     def test_apply_mcx(self):
-        """Test applying a mcx gate"""
+        """Test applying an mcx gate"""
 
         init_state = random_statevector(2**5, seed=111)
 
@@ -429,7 +430,7 @@ class TestAerState(common.QiskitAerTestCase):
             self.assertAlmostEqual(expected[i], amp)
 
     def test_apply_mcy(self):
-        """Test applying a mcy gate"""
+        """Test applying an mcy gate"""
 
         init_state = random_statevector(2**5, seed=111)
 
@@ -591,6 +592,123 @@ class TestAerState(common.QiskitAerTestCase):
         for i, amp in enumerate(actual):
             self.assertAlmostEqual(expected[i], amp)
 
+    def test_apply_mcsx(self):
+        """Test applying an mcsx gate"""
+
+        init_state = random_statevector(2**5, seed=111)
+
+        circuit = QuantumCircuit(5)
+        circuit.initialize(init_state, [0, 1, 2, 3, 4])
+        circuit.append(MCSXGate(1), [0, 1])
+        circuit.append(MCSXGate(2), [1, 2, 3])
+        circuit.append(MCSXGate(3), [4, 0, 1, 2])
+        circuit.save_statevector()
+
+        aer_simulator = AerSimulator(method="statevector")
+        result = aer_simulator.run(circuit).result()
+        expected = result.get_statevector(0)
+
+        state = AerState(method="statevector")
+        state.allocate_qubits(5)
+        state.initialize(init_state.data)
+
+        state.apply_mcsx([0], 1)
+        state.apply_mcsx([1, 2], 3)
+        state.apply_mcsx([4, 0, 1], 2)
+        actual = state.move_to_ndarray()
+
+        for i, amp in enumerate(actual):
+            self.assertAlmostEqual(expected[i], amp)
+
+    def test_apply_mcrx(self):
+        """Test applying an mcrx gate"""
+
+        init_state = random_statevector(2**5, seed=111)
+        rng = np.random.default_rng(seed=112)
+        theta = rng.uniform(-pi, pi)
+
+        circuit = QuantumCircuit(5)
+        circuit.initialize(init_state, [0, 1, 2, 3, 4])
+        circuit.append(MCRXGate(theta, 1), [0, 1])
+        circuit.append(MCRXGate(theta, 2), [1, 2, 3])
+        circuit.append(MCRXGate(theta, 3), [4, 0, 1, 2])
+        circuit.save_statevector()
+
+        aer_simulator = AerSimulator(method="statevector")
+        result = aer_simulator.run(circuit).result()
+        expected = result.get_statevector(0)
+
+        state = AerState(method="statevector")
+        state.allocate_qubits(5)
+        state.initialize(init_state.data)
+
+        state.apply_mcrx([0], 1, theta)
+        state.apply_mcrx([1, 2], 3, theta)
+        state.apply_mcrx([4, 0, 1], 2, theta)
+        actual = state.move_to_ndarray()
+
+        for i, amp in enumerate(actual):
+            self.assertAlmostEqual(expected[i], amp)
+
+    def test_apply_mcry(self):
+        """Test applying an mcry gate"""
+
+        init_state = random_statevector(2**5, seed=111)
+        rng = np.random.default_rng(seed=112)
+        theta = rng.uniform(-pi, pi)
+
+        circuit = QuantumCircuit(5)
+        circuit.initialize(init_state, [0, 1, 2, 3, 4])
+        circuit.append(MCRYGate(theta, 1), [0, 1])
+        circuit.append(MCRYGate(theta, 2), [1, 2, 3])
+        circuit.append(MCRYGate(theta, 3), [4, 0, 1, 2])
+        circuit.save_statevector()
+
+        aer_simulator = AerSimulator(method="statevector")
+        result = aer_simulator.run(circuit).result()
+        expected = result.get_statevector(0)
+
+        state = AerState(method="statevector")
+        state.allocate_qubits(5)
+        state.initialize(init_state.data)
+
+        state.apply_mcry([0], 1, theta)
+        state.apply_mcry([1, 2], 3, theta)
+        state.apply_mcry([4, 0, 1], 2, theta)
+        actual = state.move_to_ndarray()
+
+        for i, amp in enumerate(actual):
+            self.assertAlmostEqual(expected[i], amp)
+
+    def test_apply_mcrz(self):
+        """Test applying an mcrz gate"""
+
+        init_state = random_statevector(2**5, seed=111)
+        rng = np.random.default_rng(seed=112)
+        theta = rng.uniform(-pi, pi)
+
+        circuit = QuantumCircuit(5)
+        circuit.initialize(init_state, [0, 1, 2, 3, 4])
+        circuit.append(MCRZGate(theta, 1), [0, 1])
+        circuit.append(MCRZGate(theta, 2), [1, 2, 3])
+        circuit.append(MCRZGate(theta, 3), [4, 0, 1, 2])
+        circuit.save_statevector()
+
+        aer_simulator = AerSimulator(method="statevector")
+        result = aer_simulator.run(circuit).result()
+        expected = result.get_statevector(0)
+
+        state = AerState(method="statevector")
+        state.allocate_qubits(5)
+        state.initialize(init_state.data)
+
+        state.apply_mcrz([0], 1, theta)
+        state.apply_mcrz([1, 2], 3, theta)
+        state.apply_mcrz([4, 0, 1], 2, theta)
+        actual = state.move_to_ndarray()
+
+        for i, amp in enumerate(actual):
+            self.assertAlmostEqual(expected[i], amp)
 
     def test_appply_reset(self):
         """Test applying a rest gate"""
