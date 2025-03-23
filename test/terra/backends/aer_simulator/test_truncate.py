@@ -118,14 +118,19 @@ class TestTruncateQubits(SimulatorTestCase):
             [8, 9],
             [9, 0],
         ]
+        # original circuit has 4 qubits.
+        # transpile circuit to have > #qubits than backend
+        circuit = transpile(self.create_circuit_for_truncate(), coupling_map=coupling_map)
+
+        # 5-qubit backend
         noise_model = NoiseModel.from_backend(self.device_backend())
         backend = self.backend(noise_model=noise_model, enable_truncation=False)
-        circuit = transpile(self.create_circuit_for_truncate(), backend, coupling_map=coupling_map)
 
+        # backend.run does not truncate
         result = backend.run(circuit, shots=100).result()
         metadata = result.results[0].metadata
         self.assertEqual(metadata["num_qubits"], 10)
-        self.assertEqual(metadata["active_input_qubits"], list(range(4)))
+        self.assertEqual(len(metadata["active_input_qubits"]), 4)
 
     def test_truncate_connected_qubits(self):
         """Test truncation isn't applied to coupled qubits."""

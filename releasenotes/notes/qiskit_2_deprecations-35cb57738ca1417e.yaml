@@ -1,0 +1,9 @@
+---
+deprecations:
+  - |
+    Remove the parts of the code that relied on deprecated `qiskit` components that are being removed in Qiskit 2.0::
+      * Everything that uses `convert_to_target` is removed
+      * Usage of `qiskit.pulse` is removed.
+      * `BackendProperties` is not being imported from `qiskit.providers.models.backendproperties` anymore.
+      * `BackendV1` related code is removed.
+      * Use of `BackendStatus` was removed, resulting in the removal of the `status` method for the Aer backend.

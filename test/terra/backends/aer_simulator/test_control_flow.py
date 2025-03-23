@@ -16,10 +16,10 @@ from ddt import ddt, data
 import unittest
 import numpy
 import logging
-from test.terra.backends.simulator_test_case import SimulatorTestCase, supported_methods
+from test.terra.backends.simulator_test_case import SimulatorTestCase
 from qiskit_aer import AerSimulator
-from qiskit import QuantumCircuit, transpile
-from qiskit.circuit import Parameter, Qubit, Clbit, QuantumRegister, ClassicalRegister
+from qiskit import QuantumCircuit, transpile, __version__ as qiskit_version
+from qiskit.circuit import Qubit, Clbit, QuantumRegister, ClassicalRegister
 from qiskit.circuit.controlflow import *
 from qiskit.circuit.classical import expr, types
 from qiskit_aer.library.default_qubits import default_qubits
@@ -54,6 +54,10 @@ class TestControlFlow(SimulatorTestCase):
             instr.c_if(clbit, value)
         return circ.append(instr, qubits)
 
+    @unittest.skipUnless(
+        qiskit_version.startswith("0.") or qiskit_version.startswith("1."),
+        reason="c_if support was removed in Qiskit >= 2.0",
+    )
     @data("statevector", "density_matrix", "matrix_product_state", "stabilizer")
     def test_jump_always(self, method):
         backend = self.backend(method=method)
@@ -76,6 +80,10 @@ class TestControlFlow(SimulatorTestCase):
         self.assertEqual(len(counts), 1)
         self.assertIn("0000", counts)
 
+    @unittest.skipUnless(
+        qiskit_version.startswith("0.") or qiskit_version.startswith("1."),
+        reason="c_if support was removed in Qiskit >= 2.0",
+    )
     @data("statevector", "density_matrix", "matrix_product_state", "stabilizer")
     def test_jump_conditional(self, method):
         backend = self.backend(method=method)
@@ -98,6 +106,10 @@ class TestControlFlow(SimulatorTestCase):
         self.assertEqual(len(counts), 1)
         self.assertIn("0000 0", counts)
 
+    @unittest.skipUnless(
+        qiskit_version.startswith("0.") or qiskit_version.startswith("1."),
+        reason="c_if support was removed in Qiskit >= 2.0",
+    )
     @data("statevector", "density_matrix", "matrix_product_state", "stabilizer")
     def test_no_jump_conditional(self, method):
         backend = self.backend(method=method)
@@ -119,6 +131,10 @@ class TestControlFlow(SimulatorTestCase):
         counts = result.get_counts()
         self.assertNotEqual(len(counts), 1)
 
+    @unittest.skipUnless(
+        qiskit_version.startswith("0.") or qiskit_version.startswith("1."),
+        reason="c_if support was removed in Qiskit >= 2.0",
+    )
     @data("statevector", "density_matrix", "matrix_product_state", "stabilizer")
     def test_invalid_jump(self, method):
         logging.disable(level=logging.WARN)
@@ -142,6 +158,10 @@ class TestControlFlow(SimulatorTestCase):
 
         logging.disable(level=logging.NOTSET)
 
+    @unittest.skipUnless(
+        qiskit_version.startswith("0.") or qiskit_version.startswith("1."),
+        reason="c_if support was removed in Qiskit >= 2.0",
+    )
     @data("statevector", "density_matrix", "matrix_product_state", "stabilizer")
     def test_duplicated_mark(self, method):
         logging.disable(level=logging.WARN)

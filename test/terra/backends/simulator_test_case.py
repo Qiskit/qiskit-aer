@@ -13,7 +13,6 @@
 AerSimulator test case class
 """
 
-from qiskit_aer.backends.backend_utils import available_devices
 import ddt
 import itertools as it
 from qiskit_aer import AerSimulator
@@ -43,6 +42,7 @@ class SimulatorTestCase(QiskitAerTestCase):
             if "method" == key and "tensor_network" in val:
                 sim_options["shot_branching_enable"] = True
                 sim_options["shot_branching_sampling_enable"] = True
+
         return self.BACKEND(**sim_options)
 
 

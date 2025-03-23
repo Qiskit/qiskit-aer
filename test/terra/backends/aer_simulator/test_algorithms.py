@@ -14,7 +14,8 @@ AerSimulator Integration Tests
 """
 from math import sqrt
 from ddt import ddt
-from qiskit import transpile, QuantumCircuit
+import unittest
+from qiskit import transpile, QuantumCircuit, __version__ as qiskit_version
 from test.terra.reference import ref_algorithms
 
 from test.terra.backends.simulator_test_case import SimulatorTestCase, supported_methods
@@ -88,6 +89,10 @@ class TestAlgorithms(SimulatorTestCase):
             "tensor_network",
         ]
     )
+    @unittest.skipUnless(
+        qiskit_version.startswith("0.") or qiskit_version.startswith("1."),
+        reason="c_if support was removed in Qiskit >= 2.0",
+    )
     def test_teleport(self, method, device):
         """Test teleport circuits."""
         self._test_teleport(method=method, device=device)
@@ -97,6 +102,10 @@ class TestAlgorithms(SimulatorTestCase):
         """Test grovers circuits execute."""
         self._test_grovers(method=method, device=device, blocking_qubits=2, max_parallel_threads=1)
 
+    @unittest.skipUnless(
+        qiskit_version.startswith("0.") or qiskit_version.startswith("1."),
+        reason="c_if support was removed in Qiskit >= 2.0",
+    )
     @supported_methods(["statevector", "density_matrix"])
     def test_teleport_cache_blocking(self, method, device):
         """Test teleport circuits."""

@@ -41,7 +41,11 @@ class TestMetadata(SimulatorTestCase):
         circuit = QuantumCircuit(1, name="circ0", metadata=metadata.copy())
         result = backend.run(circuit).result()
         self.assertSuccess(result)
-        self.assertEqual(result.results[0].header.metadata, metadata)
+        try:
+            out_metadata = result.results[0].header.metadata
+        except AttributeError:
+            out_metadata = result.results[0].header["metadata"]
+        self.assertEqual(out_metadata, metadata)
         self.assertEqual(circuit.metadata, metadata)
 
     @supported_methods(
@@ -70,9 +74,18 @@ class TestMetadata(SimulatorTestCase):
         result = backend.run([circuit0, circuit1, circuit2]).result()
         self.assertSuccess(result)
         self.assertEqual(len(result.results), 3)
-        self.assertEqual(result.results[0].header.metadata, metadata0)
-        self.assertEqual(result.results[1].header.metadata, metadata1)
-        self.assertEqual(result.results[2].header.metadata, metadata2)
+        try:
+            out_metadata_0 = result.results[0].header.metadata
+            out_metadata_1 = result.results[1].header.metadata
+            out_metadata_2 = result.results[2].header.metadata
+        except AttributeError:
+            out_metadata_0 = result.results[0].header["metadata"]
+            out_metadata_1 = result.results[1].header["metadata"]
+            out_metadata_2 = result.results[2].header["metadata"]
+
+        self.assertEqual(out_metadata_0, metadata0)
+        self.assertEqual(out_metadata_1, metadata1)
+        self.assertEqual(out_metadata_2, metadata2)
         self.assertEqual(circuit0.metadata, metadata0)
         self.assertEqual(circuit1.metadata, metadata1)
         self.assertEqual(circuit2.metadata, metadata2)
@@ -106,12 +119,27 @@ class TestMetadata(SimulatorTestCase):
         ).result()
         self.assertSuccess(result)
         self.assertEqual(len(result.results), 6)
-        self.assertEqual(result.results[0].header.metadata, metadata0)
-        self.assertEqual(result.results[1].header.metadata, metadata0)
-        self.assertEqual(result.results[2].header.metadata, metadata1)
-        self.assertEqual(result.results[3].header.metadata, metadata1)
-        self.assertEqual(result.results[4].header.metadata, metadata1)
-        self.assertEqual(result.results[5].header.metadata, metadata2)
+        try:
+            out_metadata_0 = result.results[0].header.metadata
+            out_metadata_1 = result.results[1].header.metadata
+            out_metadata_2 = result.results[2].header.metadata
+            out_metadata_3 = result.results[3].header.metadata
+            out_metadata_4 = result.results[4].header.metadata
+            out_metadata_5 = result.results[5].header.metadata
+        except AttributeError:
+            out_metadata_0 = result.results[0].header["metadata"]
+            out_metadata_1 = result.results[1].header["metadata"]
+            out_metadata_2 = result.results[2].header["metadata"]
+            out_metadata_3 = result.results[3].header["metadata"]
+            out_metadata_4 = result.results[4].header["metadata"]
+            out_metadata_5 = result.results[5].header["metadata"]
+
+        self.assertEqual(out_metadata_0, metadata0)
+        self.assertEqual(out_metadata_1, metadata0)
+        self.assertEqual(out_metadata_2, metadata1)
+        self.assertEqual(out_metadata_3, metadata1)
+        self.assertEqual(out_metadata_4, metadata1)
+        self.assertEqual(out_metadata_5, metadata2)
         self.assertEqual(circuit0.metadata, metadata0)
         self.assertEqual(circuit1.metadata, metadata1)
         self.assertEqual(circuit2.metadata, metadata2)
