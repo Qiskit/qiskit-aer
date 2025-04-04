@@ -12,22 +12,25 @@
 """
 AerSimualtor options tests
 """
-import logging
 import json
-from math import ceil
 import concurrent.futures
 import pickle
 import tempfile
 
 from ddt import ddt
-from qiskit import QuantumCircuit, transpile
+from qiskit import transpile
 from qiskit.circuit.random import random_circuit
 from qiskit.circuit.library import QuantumVolume
 from qiskit.quantum_info import Statevector
 from qiskit_aer.noise.noise_model import AerJSONEncoder
 from test.terra.reference import ref_kraus_noise
-from qiskit_aer.jobs import AerJob
+from qiskit_aer.backends.backend_utils import BASIS_GATES
 from test.terra.backends.simulator_test_case import SimulatorTestCase, supported_methods
+
+# skip fractional gates in multiprocessing transpilation tests until
+# https://github.com/Qiskit/qiskit/issues/14002 is resolved
+FRACTIONAL_GATES = sorted(["rxx", "rzz", "ryy", "rzx", "cphase", "crx", "cry", "crz"])
+STATEVEC_BASIS_GATES = [gate for gate in BASIS_GATES["statevector"] if gate not in FRACTIONAL_GATES]
 
 
 def run_random_circuits(backend, shots=None, **run_options):
@@ -111,7 +114,12 @@ class TestThreadPoolExecutor(CBFixture):
     def test_random_circuits_job(self, method, device, max_job_size):
         """Test random circuits with custom executor."""
         shots = 4000
-        backend = self.backend(method=method, device=device, max_job_size=max_job_size)
+        backend = self.backend(
+            method=method,
+            device=device,
+            max_job_size=max_job_size,
+            basis_gates=STATEVEC_BASIS_GATES,
+        )
         result, circuits, targets = run_random_circuits(backend, shots=shots)
         self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, hex_counts=False, delta=0.05 * shots)
@@ -138,7 +146,12 @@ class TestThreadPoolExecutor(CBFixture):
     def test_result_time_val(self, method, device, max_job_size):
         """Test random circuits with custom executor."""
         shots = 4000
-        backend = self.backend(method=method, device=device, max_job_size=max_job_size)
+        backend = self.backend(
+            method=method,
+            device=device,
+            max_job_size=max_job_size,
+            basis_gates=STATEVEC_BASIS_GATES,
+        )
         result, _, _ = run_random_circuits(backend, shots=shots)
         self.assertSuccess(result)
         self.assertGreaterEqual(result.time_taken, 0)

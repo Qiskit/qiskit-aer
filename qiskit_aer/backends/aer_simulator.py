@@ -15,10 +15,8 @@ Aer qasm simulator backend.
 
 import copy
 import logging
-from warnings import warn
-from qiskit.providers import convert_to_target
 from qiskit.providers.options import Options
-from qiskit.providers.backend import BackendV2, BackendV1
+from qiskit.providers.backend import BackendV2
 
 from ..version import __version__
 from .aerbackend import AerBackend, AerError
@@ -34,7 +32,6 @@ from .backend_utils import (
 
 # pylint: disable=import-error, no-name-in-module, abstract-method
 from .controller_wrappers import aer_controller_execute
-from .name_mapping import NAME_MAPPING
 
 logger = logging.getLogger(__name__)
 
@@ -858,28 +855,9 @@ class AerSimulator(AerBackend):
             )
             properties = target_to_backend_properties(backend.target)
             target = backend.target
-        elif isinstance(backend, BackendV1):
-            # BackendV1 will be removed in Qiskit 2.0, so we will remove this soon
-            warn(
-                " from_backend using V1 based backend is deprecated as of Aer 0.15"
-                " and will be removed no sooner than 3 months from that release"
-                " date. Please use backends based on V2.",
-                DeprecationWarning,
-                stacklevel=2,
-            )
-            # Get configuration and properties from backend
-            configuration = backend.configuration()
-            properties = copy.copy(backend.properties())
-
-            # Customize configuration name
-            name = configuration.backend_name
-            configuration.backend_name = f"aer_simulator_from({name})"
-
-            target = convert_to_target(configuration, properties, None, NAME_MAPPING)
         else:
             raise TypeError(
-                "The backend argument requires a BackendV2 or BackendV1 object, "
-                f"not a {type(backend)} object"
+                "The backend argument requires a BackendV2 object, " f"not a {type(backend)} object"
             )
         # Use automatic noise model if none is provided
         if "noise_model" not in options:

@@ -69,12 +69,12 @@ jobs:
       - name: Setup tutorials job
         run: |
           set -e
+          sudo apt install -y graphviz pandoc libblas-dev liblapack-dev
           git clone https://github.com/Qiskit/qiskit-tutorials --depth=1
           python -m pip install --upgrade pip wheel
           pip install -U -r requirements-dev.txt -c constraints.txt
           pip install -c constraints.txt git+https://github.com/Qiskit/qiskit
           pip install -c constraints.txt .
-          sudo apt install -y graphviz pandoc libopenblas-dev
           pip check
         shell: bash
       - name: Run Tutorials
