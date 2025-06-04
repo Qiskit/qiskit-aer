@@ -148,7 +148,7 @@ html_last_updated_fmt = '%Y/%m/%d'
 autoclass_content = 'both'
 intersphinx_mapping = {
     "matplotlib": ("https://matplotlib.org/stable/", None),
-    "qiskit": ("https://docs.quantum.ibm.com/api/qiskit/", None),
+    "qiskit": ("https://quantum.cloud.ibm.com/docs/api/qiskit/", None),
 }
 
 

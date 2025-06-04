@@ -16,15 +16,8 @@ Tests for utility functions to create device noise model.
 import numpy as np
 from test.terra.common import QiskitAerTestCase
 
-import qiskit
 from qiskit.circuit import library, Reset, Measure, Parameter
-from qiskit.providers import convert_to_target
 from qiskit.transpiler import CouplingMap, Target, QubitProperties, InstructionProperties
-
-if qiskit.__version__.startswith("0."):
-    from qiskit.providers.fake_provider import FakeQuito as Fake5QV1
-else:
-    from qiskit.providers.fake_provider import Fake5QV1
 
 from qiskit_aer.noise.device.models import basic_device_gate_errors
 from qiskit_aer.noise.errors.standard_errors import thermal_relaxation_error
@@ -100,25 +93,6 @@ class TestDeviceNoiseModel(QiskitAerTestCase):
             self.assertTrue(errors_on_sx[(q,)].ideal())
         # check if no error is added on cx gate on a qubit pair without T1 and T2 definitions
         self.assertTrue(errors_on_cx[faulty_qubits].ideal())
-
-    def test_basic_device_gate_errors_from_target_and_properties(self):
-        """Test if the device same gate errors are produced both from target and properties"""
-        backend = Fake5QV1()
-        target = convert_to_target(
-            configuration=backend.configuration(),
-            properties=backend.properties(),
-        )
-        errors_from_properties = basic_device_gate_errors(properties=backend.properties())
-        errors_from_target = basic_device_gate_errors(target=target)
-        self.assertEqual(len(errors_from_properties), len(errors_from_target))
-        errors_from_properties_s = sorted(errors_from_properties)
-        errors_from_target_s = sorted(errors_from_target)
-        for err_properties, err_target in zip(errors_from_properties_s, errors_from_target_s):
-            name1, qargs1, err1 = err_properties
-            name2, qargs2, err2 = err_target
-            self.assertEqual(name1, name2)
-            self.assertEqual(tuple(qargs1), qargs2)
-            self.assertEqual(err1, err2)
 
     def test_basic_device_gate_errors_from_target_with_no_t2_value(self):
         """Test if gate errors are successfully created from a target with qubits not reporting T2.
