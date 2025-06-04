@@ -18,8 +18,10 @@ from qiskit_aer.noise import thermal_relaxation_error, RelaxationNoisePass
 
 import qiskit.quantum_info as qi
 from qiskit.circuit import QuantumCircuit, Delay
+from qiskit.circuit.library import HGate, CXGate, Measure
 from qiskit.compiler import transpile
-from qiskit.transpiler import TranspilerError
+from qiskit.transpiler import TranspilerError, Target, InstructionProperties
+from qiskit.providers.fake_provider import GenericBackendV2
 from test.terra.common import QiskitAerTestCase
 
 
@@ -66,10 +68,22 @@ class TestRelaxationNoisePass(QiskitAerTestCase):
         qc.cx(0, 1)
         qc.measure([0, 1], [0, 1])
 
-        durations = [("h", None, 10), ("cx", None, 50), ("measure", None, 200)]
-        sched_circ = transpile(qc, scheduling_method="alap", instruction_durations=durations)
+        target = GenericBackendV2(
+            2,
+            coupling_map=[[0, 1]],
+            basis_gates=["cx", "h"],
+            seed=42,
+        ).target
+        target.dt = 10e-2
+        target.update_instruction_properties("cx", (0, 1), InstructionProperties(50 * 10e-2))
+        target.update_instruction_properties("h", (0,), InstructionProperties(10 * 10e-2))
+        target.update_instruction_properties("h", (1,), InstructionProperties(10 * 10e-2))
+        target.update_instruction_properties("measure", (0,), InstructionProperties(200 * 10e-2))
+        target.update_instruction_properties("measure", (1,), InstructionProperties(200 * 10e-2))
 
-        noise_pass = RelaxationNoisePass(t1s=[0.10, 0.11], t2s=[0.20, 0.21], dt=0.01)
+        sched_circ = transpile(qc, scheduling_method="alap", target=target)
+
+        noise_pass = RelaxationNoisePass(t1s=[0.10, 0.11], t2s=[0.20, 0.21], dt=0.01, target=target)
         noisy_circ = noise_pass(sched_circ)
         self.assertEqual(6, noisy_circ.decompose().decompose().count_ops()["kraus"])
 
@@ -101,10 +115,22 @@ class TestRelaxationNoisePass(QiskitAerTestCase):
         qc.cx(0, 1)
         qc.measure([0, 1], [0, 1])
 
-        durations = [("h", None, 10), ("cx", None, 50), ("measure", None, 200)]
-        sched_circ = transpile(qc, scheduling_method="alap", instruction_durations=durations)
+        target = GenericBackendV2(
+            2,
+            coupling_map=[[0, 1]],
+            basis_gates=["cx", "h"],
+            seed=42,
+        ).target
+        target.dt = 10e-2
+        target.update_instruction_properties("cx", (0, 1), InstructionProperties(50 * 10e-2))
+        target.update_instruction_properties("h", (0,), InstructionProperties(10 * 10e-2))
+        target.update_instruction_properties("h", (1,), InstructionProperties(10 * 10e-2))
+        target.update_instruction_properties("measure", (0,), InstructionProperties(200 * 10e-2))
+        target.update_instruction_properties("measure", (1,), InstructionProperties(200 * 10e-2))
 
-        noise_pass = RelaxationNoisePass(t1s=t1s, t2s=t2s, dt=dt, op_types=Delay)
+        sched_circ = transpile(qc, scheduling_method="alap", target=target)
+
+        noise_pass = RelaxationNoisePass(t1s=t1s, t2s=t2s, dt=dt, op_types=Delay, target=target)
         noisy_circ = noise_pass(sched_circ)
 
         expected = QuantumCircuit(2, 2)
