@@ -18,7 +18,7 @@ Primitives (:mod:`qiskit_aer.primitives`)
 .. currentmodule:: qiskit_aer.primitives
 
 This module is Aer implementation of primitives.
-See the docs https://docs.quantum.ibm.com/api/qiskit/primitives for general descriptions.
+See the docs https://quantum.cloud.ibm.com/docs/api/qiskit/primitives for general descriptions.
 
 
 Classes

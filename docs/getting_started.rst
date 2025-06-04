@@ -7,7 +7,7 @@ Getting started
 Installation
 ============
 Qiskit Aer depends on the main Qiskit package which has its own
-`Qiskit Installation guide <https://docs.quantum.ibm.com/start/install>`__ detailing the
+`Qiskit Installation guide <https://quantum.cloud.ibm.com/docs/guides/install-qiskit>`__ detailing the
 installation options for Qiskit and its supported environments/platforms. You should refer to
 that first. Then the information here can be followed which focuses on the additional installation
 specific to Qiskit Aer.
@@ -17,7 +17,7 @@ specific to Qiskit Aer.
 
     .. tab-item:: Start locally
 
-      The simplest way to get started is to follow the installation guide for Qiskit `here <https://docs.quantum.ibm.com/start/install>`__
+      The simplest way to get started is to follow the installation guide for Qiskit `here <https://quantum.cloud.ibm.com/docs/guides/install-qiskit>`__
 
       In your virtual environment where you installed Qiskit, add ``qiskit-aer``, e.g.:
 
@@ -54,7 +54,7 @@ specific to Qiskit Aer.
       the latest version of the Qiskit Aer code more efficiently.
 
       Since Qiskit Aer depends on Qiskit, and its latest changes may require new or changed
-      features of Qiskit, you should first follow Qiskit's `"Install from source"` instructions `here <https://docs.quantum.ibm.com/start/install-qiskit-source>`__
+      features of Qiskit, you should first follow Qiskit's `"Install from source"` instructions `here <https://quantum.cloud.ibm.com/docs/guides/install-qiskit-source>`__
 
       .. raw:: html
 
