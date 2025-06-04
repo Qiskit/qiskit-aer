@@ -24,6 +24,7 @@ requirements = [
     "numpy>=1.16.3",
     "scipy>=1.0",
     "psutil>=5",
+    "python-dateutil>=2.8.0",
 ]
 
 classifiers = [
