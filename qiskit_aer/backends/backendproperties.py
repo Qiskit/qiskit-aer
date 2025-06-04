@@ -17,7 +17,6 @@ import datetime
 import warnings
 from typing import Any, Iterable, Tuple, Union, Dict
 import dateutil.parser
-from qiskit.providers.exceptions import BackendPropertyError
 from qiskit.utils.units import apply_prefix
 from qiskit.transpiler.target import Target
 
@@ -301,7 +300,7 @@ class AerBackendProperties:
             Gate property as a tuple of the value and the time it was measured.
 
         Raises:
-            BackendPropertyError: If the property is not found or name is
+            ValueError: If the property is not found or name is
                                   specified but qubit is not.
         """
         try:
@@ -313,9 +312,9 @@ class AerBackendProperties:
                 if name:
                     result = result[name]
             elif name:
-                raise BackendPropertyError(f"Provide qubits to get {name} of {gate}")
+                raise ValueError(f"Provide qubits to get {name} of {gate}")
         except KeyError as ex:
-            raise BackendPropertyError(f"Could not find the desired property for {gate}") from ex
+            raise ValueError(f"Could not find the desired property for {gate}") from ex
         return result
 
     def faulty_qubits(self):
@@ -396,7 +395,7 @@ class AerBackendProperties:
             Qubit property as a tuple of the value and the time it was measured.
 
         Raises:
-            BackendPropertyError: If the property is not found.
+            ValueError: If the property is not found.
         """
         try:
             result = self._qubits[qubit]
@@ -404,7 +403,7 @@ class AerBackendProperties:
                 result = result[name]
         except KeyError as ex:
             formatted_name = "y '" + name + "'" if name else "ies"
-            raise BackendPropertyError(
+            raise ValueError(
                 f"Couldn't find the propert{formatted_name} for qubit {qubit}."
             ) from ex
         return result
@@ -497,12 +496,12 @@ class AerBackendProperties:
             Converted value.
 
         Raises:
-            BackendPropertyError: If the units aren't recognized.
+            ValueError: If the units aren't recognized.
         """
         try:
             return apply_prefix(value, unit)
         except Exception as ex:
-            raise BackendPropertyError(f"Could not understand units: {unit}") from ex
+            raise ValueError(f"Could not understand units: {unit}") from ex
 
 
 def target_to_backend_properties(target: Target):

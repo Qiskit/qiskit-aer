@@ -21,6 +21,7 @@ from qiskit_aer.utils import insert_noise
 from test.terra.common import QiskitAerTestCase
 
 from qiskit import QuantumRegister, QuantumCircuit, transpile
+from qiskit.transpiler import Target
 from qiskit.quantum_info import SuperOp
 
 
@@ -111,7 +112,12 @@ class TestNoiseInserter(QiskitAerTestCase):
         target_circuit.append(error_y, [qr[1]])
         target_circuit.z(qr[2])
         target_basis = ["quantum_channel"] + noise_model.basis_gates
-        target_circuit = transpile(target_circuit, basis_gates=target_basis)
+
+        target = Target.from_configuration(
+            basis_gates=target_basis, custom_name_mapping={"quantum_channel": None}
+        )
+
+        target_circuit = transpile(target_circuit, target=target)
         result_circuit = insert_noise(circuit, noise_model, transpile=True)
         self.assertEqual(SuperOp(target_circuit), SuperOp(result_circuit))
 
