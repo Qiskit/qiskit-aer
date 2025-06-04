@@ -6,7 +6,7 @@
 <link rel="index" title="Index" href="genindex.html" /><link rel="search" title="Search" href="search.html" /><link rel="prev" title="Running with multiple-GPUs and/or multiple nodes" href="howtos/running_gpu.html" />
 
     <!-- Generated with Sphinx 7.1.2 and Furo 2024.01.29 -->
-        <title>Release Notes - Qiskit Aer 0.16.1</title>
+        <title>Release Notes - Qiskit Aer 0.17.1</title>
       <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?v=135e06be" />
     <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=3ee1c6c6" />
     <link rel="stylesheet" type="text/css" href="_static/styles/qiskit-sphinx-theme.css?v=fe84956c" />
@@ -145,7 +145,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="index.html"><div class="brand">Qiskit Aer 0.16.1</div></a>
+      <a href="index.html"><div class="brand">Qiskit Aer 0.17.1</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -172,7 +172,7 @@
     </div>
   </a>
   
-  <span class="sidebar-brand-text">Qiskit Aer 0.16.1</span>
+  <span class="sidebar-brand-text">Qiskit Aer 0.17.1</span>
 </div><form class="sidebar-search-container" method="get" action="search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
   <input type="hidden" name="check_keywords" value="yes">
@@ -683,7 +683,7 @@ directly is now a direct dependency for <code class="docutils literal notranslat
 <code class="docutils literal notranslate"><span class="pre">observables</span></code> input arguments of type <code class="docutils literal notranslate"><span class="pre">PauliSumOp</span></code>. The <code class="docutils literal notranslate"><span class="pre">PauliSumOp</span></code>
 class was deprecated in Qiskit 0.44 and will be removed in Qiskit 1.0.
 Alternative types that you can use instead of <code class="docutils literal notranslate"><span class="pre">PauliSumOp</span></code> are
-<a class="reference external" href="https://docs.quantum.ibm.com/api/qiskit/qiskit.quantum_info.SparsePauliOp" title="(in Qiskit v1.4)"><code class="xref py py-class docutils literal notranslate"><span class="pre">qiskit.quantum_info.SparsePauliOp</span></code></a> or <a class="reference external" href="https://docs.quantum.ibm.com/api/qiskit/qiskit.quantum_info.Pauli" title="(in Qiskit v1.4)"><code class="xref py py-class docutils literal notranslate"><span class="pre">qiskit.quantum_info.Pauli</span></code></a>.</p></li>
+<a class="reference external" href="https://quantum.cloud.ibm.com/docs/api/qiskit/qiskit.quantum_info.SparsePauliOp" title="(in Qiskit v2.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">qiskit.quantum_info.SparsePauliOp</span></code></a> or <a class="reference external" href="https://quantum.cloud.ibm.com/docs/api/qiskit/qiskit.quantum_info.Pauli" title="(in Qiskit v2.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">qiskit.quantum_info.Pauli</span></code></a>.</p></li>
 </ul>
 </section>
 <section id="release-notes-0-14-deprecation-notes">
@@ -963,7 +963,7 @@ in qiskit-terra 0.24.0. The instruction is converted to multiple instructions of
 <li><p>Update Aer Backend to BackendV2. Refer to <cite>#1681&lt;https://github.com/Qiskit/qiskit-aer/issues/1681&gt;</cite>. 
 BackendV2 is differs from BackendV1 in the following points: backend.name() changes to backend.name string attribute, 
 the configuration attribute no longer exists, and the options attribute is added. For more information about BackendV2 is
-<cite>here&lt;https://docs.quantum.ibm.com/api/qiskit/qiskit.providers.BackendV2&gt;</cite>.</p></li>
+<cite>here&lt;https://quantum.cloud.ibm.com/docs/api/qiskit/qiskit.providers.BackendV2&gt;</cite>.</p></li>
 </ul>
 </section>
 <section id="known-issues">
@@ -1228,7 +1228,7 @@ correctly as reported in <cite>#1821 &lt;https://github.com/Qiskit/qiskit-aer/is
 This commit enables such initialization by decomposing initialize instructions.</p></li>
 </ul>
 <ul class="simple">
-<li><p><a class="reference external" href="https://docs.quantum.ibm.com/api/qiskit/qiskit.circuit.QuantumCircuit" title="(in Qiskit v1.4)"><code class="xref py py-class docutils literal notranslate"><span class="pre">QuantumCircuit</span></code></a> supports parameterization for its <cite>global_phase</cite>.
+<li><p><a class="reference external" href="https://quantum.cloud.ibm.com/docs/api/qiskit/qiskit.circuit.QuantumCircuit" title="(in Qiskit v2.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">QuantumCircuit</span></code></a> supports parameterization for its <cite>global_phase</cite>.
 However, Aer has not allowed such parameterization and failed when transpiler generates
 parameterized global phases. This commit supports parameterization of <cite>global_phase</cite> and
 resolve issues related to <a class="reference external" href="https://github.com/Qiskit/qiskit-aer/issues/1795">https://github.com/Qiskit/qiskit-aer/issues/1795</a>,
@@ -1288,7 +1288,7 @@ object.</p></li>
 <ul class="simple">
 <li><p>Added a new class, <a class="reference internal" href="stubs/qiskit_aer.quantum_info.AerDensityMatrix.html#qiskit_aer.quantum_info.AerDensityMatrix" title="qiskit_aer.quantum_info.AerDensityMatrix"><code class="xref py py-class docutils literal notranslate"><span class="pre">AerDensityMatrix</span></code></a>, to the <a class="reference internal" href="apidocs/aer_quantum_info.html#module-qiskit_aer.quantum_info" title="qiskit_aer.quantum_info"><code class="xref py py-mod docutils literal notranslate"><span class="pre">qiskit_aer.quantum_info</span></code></a>
 module. This class is used to provide the same interface to the
-upstream <a class="reference external" href="https://docs.quantum.ibm.com/api/qiskit/qiskit.quantum_info.DensityMatrix" title="(in Qiskit v1.4)"><code class="xref py py-class docutils literal notranslate"><span class="pre">DensityMatrix</span></code></a> class in Qiskit but backed by
+upstream <a class="reference external" href="https://quantum.cloud.ibm.com/docs/api/qiskit/qiskit.quantum_info.DensityMatrix" title="(in Qiskit v2.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">DensityMatrix</span></code></a> class in Qiskit but backed by
 Qiskit Aer’s simulation.</p></li>
 </ul>
 <ul class="simple">
@@ -1311,9 +1311,9 @@ C++ and python, the data must not be collected in python while C++ accesses it.<
 <li><p>The overhead for running simulations with <a class="reference internal" href="stubs/qiskit_aer.AerSimulator.html#qiskit_aer.AerSimulator.run" title="qiskit_aer.AerSimulator.run"><code class="xref py py-meth docutils literal notranslate"><span class="pre">run()</span></code></a>
 (for all simulator backend classess) has been greatly reduced. This was
 accomplished by no longer internally serializing
-<a class="reference external" href="https://docs.quantum.ibm.com/api/qiskit/qiskit.circuit.QuantumCircuit" title="(in Qiskit v1.4)"><code class="xref py py-class docutils literal notranslate"><span class="pre">QuantumCircuit</span></code></a> objects into
-<a class="reference external" href="https://docs.quantum.ibm.com/api/qiskit/qiskit.qobj.QasmQobj" title="(in Qiskit v1.4)"><code class="xref py py-class docutils literal notranslate"><span class="pre">QasmQobj</span></code></a> and instead the
-<a class="reference external" href="https://docs.quantum.ibm.com/api/qiskit/qiskit.circuit.QuantumCircuit" title="(in Qiskit v1.4)"><code class="xref py py-class docutils literal notranslate"><span class="pre">QuantumCircuit</span></code></a> object directly to
+<a class="reference external" href="https://quantum.cloud.ibm.com/docs/api/qiskit/qiskit.circuit.QuantumCircuit" title="(in Qiskit v2.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">QuantumCircuit</span></code></a> objects into
+<code class="xref py py-class docutils literal notranslate"><span class="pre">QasmQobj</span></code> and instead the
+<a class="reference external" href="https://quantum.cloud.ibm.com/docs/api/qiskit/qiskit.circuit.QuantumCircuit" title="(in Qiskit v2.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">QuantumCircuit</span></code></a> object directly to
 an internal C++  circuit structure used for simulation. This improvement
 is most noticeable for simulations of circuts with a small number of qubits
 or parameterized circuits using the <code class="docutils literal notranslate"><span class="pre">parameter_binds</span></code> keyword argument
@@ -1324,11 +1324,11 @@ not see this performance improvement.</p></li>
 </ul>
 <ul class="simple">
 <li><p>Added a new method to the <a class="reference internal" href="stubs/qiskit_aer.jobs.AerJob.html#qiskit_aer.jobs.AerJob" title="qiskit_aer.jobs.AerJob"><code class="xref py py-class docutils literal notranslate"><span class="pre">AerJob</span></code></a>, <a class="reference internal" href="stubs/qiskit_aer.jobs.AerJob.html#qiskit_aer.jobs.AerJob.circuits" title="qiskit_aer.jobs.AerJob.circuits"><code class="xref py py-meth docutils literal notranslate"><span class="pre">circuits()</span></code></a>, which
-returns  a list of <a class="reference external" href="https://docs.quantum.ibm.com/api/qiskit/qiskit.circuit.QuantumCircuit" title="(in Qiskit v1.4)"><code class="xref py py-class docutils literal notranslate"><span class="pre">QuantumCircuit</span></code></a> objects. This method returns
+returns  a list of <a class="reference external" href="https://quantum.cloud.ibm.com/docs/api/qiskit/qiskit.circuit.QuantumCircuit" title="(in Qiskit v2.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">QuantumCircuit</span></code></a> objects. This method returns
 <code class="docutils literal notranslate"><span class="pre">None</span></code> if Qobj is used for simulation.</p></li>
 </ul>
 <ul class="simple">
-<li><p><code class="xref py py-class docutils literal notranslate"><span class="pre">AerState</span></code> and <a class="reference internal" href="stubs/qiskit_aer.quantum_info.AerStatevector.html#qiskit_aer.quantum_info.AerStatevector" title="qiskit_aer.quantum_info.AerStatevector"><code class="xref py py-class docutils literal notranslate"><span class="pre">AerStatevector</span></code></a> now support applying <a class="reference external" href="https://docs.quantum.ibm.com/api/qiskit/qiskit.quantum_info.Kraus" title="(in Qiskit v1.4)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Kraus</span></code></a> operators.
+<li><p><code class="xref py py-class docutils literal notranslate"><span class="pre">AerState</span></code> and <a class="reference internal" href="stubs/qiskit_aer.quantum_info.AerStatevector.html#qiskit_aer.quantum_info.AerStatevector" title="qiskit_aer.quantum_info.AerStatevector"><code class="xref py py-class docutils literal notranslate"><span class="pre">AerStatevector</span></code></a> now support applying <a class="reference external" href="https://quantum.cloud.ibm.com/docs/api/qiskit/qiskit.quantum_info.Kraus" title="(in Qiskit v2.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Kraus</span></code></a> operators.
 In <a class="reference internal" href="stubs/qiskit_aer.quantum_info.AerStatevector.html#qiskit_aer.quantum_info.AerStatevector" title="qiskit_aer.quantum_info.AerStatevector"><code class="xref py py-class docutils literal notranslate"><span class="pre">AerStatevector</span></code></a>, one of the Kraus operators is applied randomly to the quantum state based on the error probabilities.</p></li>
 </ul>
 <ul>
@@ -1578,7 +1578,7 @@ Fixed <a class="reference external" href="https://github.com/Qiskit/qiskit-aer/i
 <li><p><code class="docutils literal notranslate"><span class="pre">stabilizer</span></code></p></li>
 </ul>
 <p>now report that they support <code class="docutils literal notranslate"><span class="pre">break_loop</span></code> and <code class="docutils literal notranslate"><span class="pre">continue_loop</span></code> instructions when used
-as backends for the Terra <a class="reference external" href="https://docs.quantum.ibm.com/api/qiskit/compiler#qiskit.compiler.transpile" title="(in Qiskit v1.4)"><code class="xref py py-func docutils literal notranslate"><span class="pre">transpile()</span></code></a> function.  The simulators
+as backends for the Terra <a class="reference external" href="https://quantum.cloud.ibm.com/docs/api/qiskit/compiler#qiskit.compiler.transpile" title="(in Qiskit v2.0)"><code class="xref py py-func docutils literal notranslate"><span class="pre">transpile()</span></code></a> function.  The simulators
 already did support these, but had just not been reporting it.</p>
 </li>
 </ul>
@@ -1592,7 +1592,7 @@ already did support these, but had just not been reporting it.</p>
 <ul class="simple">
 <li><p>The migration to a new self-contained Python namespace <code class="docutils literal notranslate"><span class="pre">qiskit_aer</span></code></p></li>
 <li><p>The introduction of the <a class="reference internal" href="stubs/qiskit_aer.quantum_info.AerStatevector.html#qiskit_aer.quantum_info.AerStatevector" title="qiskit_aer.quantum_info.AerStatevector"><code class="xref py py-class docutils literal notranslate"><span class="pre">AerStatevector</span></code></a> class</p></li>
-<li><p>The introduction of Aer implementations of <a class="reference external" href="https://docs.quantum.ibm.com/api/qiskit/primitives#module-qiskit.primitives" title="(in Qiskit v1.4)"><code class="xref py py-mod docutils literal notranslate"><span class="pre">primitives</span></code></a>,
+<li><p>The introduction of Aer implementations of <a class="reference external" href="https://quantum.cloud.ibm.com/docs/api/qiskit/primitives#module-qiskit.primitives" title="(in Qiskit v2.0)"><code class="xref py py-mod docutils literal notranslate"><span class="pre">primitives</span></code></a>,
 <a class="reference internal" href="stubs/qiskit_aer.primitives.Sampler.html#qiskit_aer.primitives.Sampler" title="qiskit_aer.primitives.Sampler"><code class="xref py py-class docutils literal notranslate"><span class="pre">Sampler</span></code></a> and <a class="reference internal" href="stubs/qiskit_aer.primitives.Estimator.html#qiskit_aer.primitives.Estimator" title="qiskit_aer.primitives.Estimator"><code class="xref py py-class docutils literal notranslate"><span class="pre">Estimator</span></code></a></p></li>
 <li><p>Introduction of support for running with <a class="reference external" href="https://developer.nvidia.com/cuquantum-sdk">cuQuantum</a></p></li>
 </ul>
@@ -1608,11 +1608,11 @@ input is used on <a class="reference internal" href="stubs/qiskit_aer.noise.Nois
 options, <code class="docutils literal notranslate"><span class="pre">standard_gates</span></code> and <code class="docutils literal notranslate"><span class="pre">warnings</span></code>, are gracefully ignored.</p></li>
 </ul>
 <ul class="simple">
-<li><p>Added Aer implementation of <a class="reference external" href="https://docs.quantum.ibm.com/api/qiskit/primitives#module-qiskit.primitives" title="(in Qiskit v1.4)"><code class="xref py py-mod docutils literal notranslate"><span class="pre">primitives</span></code></a>,
+<li><p>Added Aer implementation of <a class="reference external" href="https://quantum.cloud.ibm.com/docs/api/qiskit/primitives#module-qiskit.primitives" title="(in Qiskit v2.0)"><code class="xref py py-mod docutils literal notranslate"><span class="pre">primitives</span></code></a>,
 <a class="reference internal" href="stubs/qiskit_aer.primitives.Sampler.html#qiskit_aer.primitives.Sampler" title="qiskit_aer.primitives.Sampler"><code class="xref py py-class docutils literal notranslate"><span class="pre">Sampler</span></code></a> and <code class="xref py py-class docutils literal notranslate"><span class="pre">BaseSampler</span></code> and
-<a class="reference external" href="https://docs.quantum.ibm.com/api/qiskit/qiskit.primitives.BaseEstimator" title="(in Qiskit v1.4)"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseEstimator</span></code></a> interfaces leverage qiskit aer to
+<code class="xref py py-class docutils literal notranslate"><span class="pre">BaseEstimator</span></code> interfaces leverage qiskit aer to
 efficiently perform the computation of the primitive operations. You can
-refer to the <a class="reference external" href="https://docs.quantum.ibm.com/api/qiskit/primitives#module-qiskit.primitives" title="(in Qiskit v1.4)"><code class="xref py py-mod docutils literal notranslate"><span class="pre">qiskit.primitives</span></code></a> docs for a more detailed description
+refer to the <a class="reference external" href="https://quantum.cloud.ibm.com/docs/api/qiskit/primitives#module-qiskit.primitives" title="(in Qiskit v2.0)"><code class="xref py py-mod docutils literal notranslate"><span class="pre">qiskit.primitives</span></code></a> docs for a more detailed description
 of the primitives API.</p></li>
 </ul>
 <ul class="simple">
@@ -1860,9 +1860,9 @@ noise models, and inserting them into circuits.</p></li>
 <span id="id38"></span><h3>New Features<a class="headerlink" href="#release-notes-0-10-0-new-features" title="Permalink to this heading">#</a></h3>
 <ul class="simple">
 <li><p>Added support of QASM 3.0 control-flow instructions introduced in Qiskit-Terra
-0.19.0. Supported instructions are <a class="reference external" href="https://docs.quantum.ibm.com/api/qiskit/qiskit.circuit.ForLoopOp" title="(in Qiskit v1.4)"><code class="xref py py-class docutils literal notranslate"><span class="pre">ForLoopOp</span></code></a>,
-<a class="reference external" href="https://docs.quantum.ibm.com/api/qiskit/qiskit.circuit.WhileLoopOp" title="(in Qiskit v1.4)"><code class="xref py py-class docutils literal notranslate"><span class="pre">WhileLoopOp</span></code></a>, <a class="reference external" href="https://docs.quantum.ibm.com/api/qiskit/qiskit.circuit.ContinueLoopOp" title="(in Qiskit v1.4)"><code class="xref py py-class docutils literal notranslate"><span class="pre">ContinueLoopOp</span></code></a>,
-<a class="reference external" href="https://docs.quantum.ibm.com/api/qiskit/qiskit.circuit.BreakLoopOp" title="(in Qiskit v1.4)"><code class="xref py py-class docutils literal notranslate"><span class="pre">BreakLoopOp</span></code></a>, <a class="reference external" href="https://docs.quantum.ibm.com/api/qiskit/qiskit.circuit.IfElseOp" title="(in Qiskit v1.4)"><code class="xref py py-class docutils literal notranslate"><span class="pre">IfElseOp</span></code></a>.</p></li>
+0.19.0. Supported instructions are <a class="reference external" href="https://quantum.cloud.ibm.com/docs/api/qiskit/qiskit.circuit.ForLoopOp" title="(in Qiskit v2.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">ForLoopOp</span></code></a>,
+<a class="reference external" href="https://quantum.cloud.ibm.com/docs/api/qiskit/qiskit.circuit.WhileLoopOp" title="(in Qiskit v2.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">WhileLoopOp</span></code></a>, <a class="reference external" href="https://quantum.cloud.ibm.com/docs/api/qiskit/qiskit.circuit.ContinueLoopOp" title="(in Qiskit v2.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">ContinueLoopOp</span></code></a>,
+<a class="reference external" href="https://quantum.cloud.ibm.com/docs/api/qiskit/qiskit.circuit.BreakLoopOp" title="(in Qiskit v2.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">BreakLoopOp</span></code></a>, <a class="reference external" href="https://quantum.cloud.ibm.com/docs/api/qiskit/qiskit.circuit.IfElseOp" title="(in Qiskit v2.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">IfElseOp</span></code></a>.</p></li>
 </ul>
 <ul>
 <li><p>Added a batched-shot simulation optimization for GPU simulations. This
@@ -1891,7 +1891,7 @@ running multiple shots of a noisy circuit in parallel.</p>
 </div>
 <p>will split the shots of a noisy circuit into multiple circuits.
 After all individual shots have finished executing, the job results
-are automatically combined into a single <a class="reference external" href="https://docs.quantum.ibm.com/api/qiskit/qiskit.result.Result" title="(in Qiskit v1.4)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Result</span></code></a>
+are automatically combined into a single <a class="reference external" href="https://quantum.cloud.ibm.com/docs/api/qiskit/qiskit.result.Result" title="(in Qiskit v2.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Result</span></code></a>
 object that is returned by <code class="docutils literal notranslate"><span class="pre">job.result()</span></code>.</p>
 </li>
 </ul>
@@ -1915,12 +1915,12 @@ simulation method of the <code class="xref py py-class docutils literal notransl
 <ul>
 <li><p>Added a <code class="xref py py-class docutils literal notranslate"><span class="pre">SaveClifford</span></code> instruction for
 saving the state of the stabilizer simulation method as a
-<a class="reference external" href="https://docs.quantum.ibm.com/api/qiskit/qiskit.quantum_info.Clifford" title="(in Qiskit v1.4)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Clifford</span></code></a> object.</p>
+<a class="reference external" href="https://quantum.cloud.ibm.com/docs/api/qiskit/qiskit.quantum_info.Clifford" title="(in Qiskit v2.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Clifford</span></code></a> object.</p>
 <p>Note that this instruction is essentially equivalent to the
 <code class="xref py py-class docutils literal notranslate"><span class="pre">SaveStabilizer</span></code> instruction, however
 that instruction will return the saved state as a
-<a class="reference external" href="https://docs.quantum.ibm.com/api/qiskit/qiskit.quantum_info.StabilizerState" title="(in Qiskit v1.4)"><code class="xref py py-class docutils literal notranslate"><span class="pre">StabilizerState</span></code></a> object instead of a
-<a class="reference external" href="https://docs.quantum.ibm.com/api/qiskit/qiskit.quantum_info.Clifford" title="(in Qiskit v1.4)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Clifford</span></code></a> object.</p>
+<a class="reference external" href="https://quantum.cloud.ibm.com/docs/api/qiskit/qiskit.quantum_info.StabilizerState" title="(in Qiskit v2.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">StabilizerState</span></code></a> object instead of a
+<a class="reference external" href="https://quantum.cloud.ibm.com/docs/api/qiskit/qiskit.quantum_info.Clifford" title="(in Qiskit v2.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Clifford</span></code></a> object.</p>
 </li>
 </ul>
 <ul>
@@ -2036,7 +2036,7 @@ and all errors in a <code class="xref py py-class docutils literal notranslate">
 <ul>
 <li><p>Added the ability to add <code class="xref py py-class docutils literal notranslate"><span class="pre">QuantumError</span></code>
 objects directly to a <code class="xref py py-class docutils literal notranslate"><span class="pre">QuantumCircuit</span></code> without converting
-to a <a class="reference external" href="https://docs.quantum.ibm.com/api/qiskit/qiskit.quantum_info.Kraus" title="(in Qiskit v1.4)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Kraus</span></code></a> instruction.</p>
+to a <a class="reference external" href="https://quantum.cloud.ibm.com/docs/api/qiskit/qiskit.quantum_info.Kraus" title="(in Qiskit v2.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Kraus</span></code></a> instruction.</p>
 <p>Circuits containing quantum errors can now be run on the
 <code class="xref py py-class docutils literal notranslate"><span class="pre">AerSimulator</span></code> and
 <code class="xref py py-class docutils literal notranslate"><span class="pre">QasmSimulator</span></code> simulators as an alternative
@@ -2066,8 +2066,8 @@ instructions.</p>
 </pre></div>
 </div>
 <p>Circuits containing quantum errors can also be evaluated using
-the <a class="reference external" href="https://docs.quantum.ibm.com/api/qiskit/quantum_info#module-qiskit.quantum_info" title="(in Qiskit v1.4)"><code class="xref py py-mod docutils literal notranslate"><span class="pre">quantum_info</span></code></a> quantum channel and
-<a class="reference external" href="https://docs.quantum.ibm.com/api/qiskit/qiskit.quantum_info.DensityMatrix" title="(in Qiskit v1.4)"><code class="xref py py-class docutils literal notranslate"><span class="pre">DensityMatrix</span></code></a> classes.</p>
+the <a class="reference external" href="https://quantum.cloud.ibm.com/docs/api/qiskit/quantum_info#module-qiskit.quantum_info" title="(in Qiskit v2.0)"><code class="xref py py-mod docutils literal notranslate"><span class="pre">quantum_info</span></code></a> quantum channel and
+<a class="reference external" href="https://quantum.cloud.ibm.com/docs/api/qiskit/qiskit.quantum_info.DensityMatrix" title="(in Qiskit v2.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">DensityMatrix</span></code></a> classes.</p>
 </li>
 </ul>
 </section>
@@ -2079,17 +2079,17 @@ corresponding Qiskit Terra classes rather than raw NumPy arrays or
 dictionaries. The types that have changed are</p>
 <ul>
 <li><p><a class="reference internal" href="stubs/qiskit_aer.library.save_statevector.html#qiskit_aer.library.save_statevector" title="qiskit_aer.library.save_statevector"><code class="xref py py-func docutils literal notranslate"><span class="pre">save_statevector()</span></code></a> now returns as a
-<a class="reference external" href="https://docs.quantum.ibm.com/api/qiskit/qiskit.quantum_info.Statevector" title="(in Qiskit v1.4)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Statevector</span></code></a></p></li>
+<a class="reference external" href="https://quantum.cloud.ibm.com/docs/api/qiskit/qiskit.quantum_info.Statevector" title="(in Qiskit v2.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Statevector</span></code></a></p></li>
 <li><p><a class="reference internal" href="stubs/qiskit_aer.library.save_density_matrix.html#qiskit_aer.library.save_density_matrix" title="qiskit_aer.library.save_density_matrix"><code class="xref py py-func docutils literal notranslate"><span class="pre">save_density_matrix()</span></code></a> now returns as a
-<a class="reference external" href="https://docs.quantum.ibm.com/api/qiskit/qiskit.quantum_info.DensityMatrix" title="(in Qiskit v1.4)"><code class="xref py py-class docutils literal notranslate"><span class="pre">DensityMatrix</span></code></a></p></li>
+<a class="reference external" href="https://quantum.cloud.ibm.com/docs/api/qiskit/qiskit.quantum_info.DensityMatrix" title="(in Qiskit v2.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">DensityMatrix</span></code></a></p></li>
 <li><p><a class="reference internal" href="stubs/qiskit_aer.library.save_stabilizer.html#qiskit_aer.library.save_stabilizer" title="qiskit_aer.library.save_stabilizer"><code class="xref py py-func docutils literal notranslate"><span class="pre">save_stabilizer()</span></code></a> now returns as
-<a class="reference external" href="https://docs.quantum.ibm.com/api/qiskit/qiskit.quantum_info.StabilizerState" title="(in Qiskit v1.4)"><code class="xref py py-class docutils literal notranslate"><span class="pre">StabilizerState</span></code></a></p></li>
+<a class="reference external" href="https://quantum.cloud.ibm.com/docs/api/qiskit/qiskit.quantum_info.StabilizerState" title="(in Qiskit v2.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">StabilizerState</span></code></a></p></li>
 <li><p><a class="reference internal" href="stubs/qiskit_aer.library.save_unitary.html#qiskit_aer.library.save_unitary" title="qiskit_aer.library.save_unitary"><code class="xref py py-func docutils literal notranslate"><span class="pre">save_unitary()</span></code></a> now returns as
-<a class="reference external" href="https://docs.quantum.ibm.com/api/qiskit/qiskit.quantum_info.Operator" title="(in Qiskit v1.4)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Operator</span></code></a></p></li>
+<a class="reference external" href="https://quantum.cloud.ibm.com/docs/api/qiskit/qiskit.quantum_info.Operator" title="(in Qiskit v2.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Operator</span></code></a></p></li>
 <li><p><a class="reference internal" href="stubs/qiskit_aer.library.save_superop.html#qiskit_aer.library.save_superop" title="qiskit_aer.library.save_superop"><code class="xref py py-func docutils literal notranslate"><span class="pre">save_superop()</span></code></a> now returns as
-<a class="reference external" href="https://docs.quantum.ibm.com/api/qiskit/qiskit.quantum_info.SuperOp" title="(in Qiskit v1.4)"><code class="xref py py-class docutils literal notranslate"><span class="pre">SuperOp</span></code></a></p></li>
+<a class="reference external" href="https://quantum.cloud.ibm.com/docs/api/qiskit/qiskit.quantum_info.SuperOp" title="(in Qiskit v2.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">SuperOp</span></code></a></p></li>
 <li><p><a class="reference internal" href="stubs/qiskit_aer.library.save_probabilities_dict.html#qiskit_aer.library.save_probabilities_dict" title="qiskit_aer.library.save_probabilities_dict"><code class="xref py py-func docutils literal notranslate"><span class="pre">save_probabilities_dict()</span></code></a> now returns as a
-<a class="reference external" href="https://docs.quantum.ibm.com/api/qiskit/qiskit.result.ProbDistribution" title="(in Qiskit v1.4)"><code class="xref py py-class docutils literal notranslate"><span class="pre">ProbDistribution</span></code></a></p></li>
+<a class="reference external" href="https://quantum.cloud.ibm.com/docs/api/qiskit/qiskit.result.ProbDistribution" title="(in Qiskit v2.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">ProbDistribution</span></code></a></p></li>
 </ul>
 </li>
 </ul>
@@ -2110,7 +2110,7 @@ it will now raise a <code class="xref py py-class docutils literal notranslate">
 <a class="reference internal" href="stubs/qiskit_aer.library.save_statevector.html#qiskit_aer.library.save_statevector" title="qiskit_aer.library.save_statevector"><code class="xref py py-func docutils literal notranslate"><span class="pre">save_statevector()</span></code></a>, <a class="reference internal" href="stubs/qiskit_aer.library.save_density_matrix.html#qiskit_aer.library.save_density_matrix" title="qiskit_aer.library.save_density_matrix"><code class="xref py py-func docutils literal notranslate"><span class="pre">save_density_matrix()</span></code></a>,
 <a class="reference internal" href="stubs/qiskit_aer.library.save_unitary.html#qiskit_aer.library.save_unitary" title="qiskit_aer.library.save_unitary"><code class="xref py py-func docutils literal notranslate"><span class="pre">save_unitary()</span></code></a>, and <a class="reference internal" href="stubs/qiskit_aer.library.save_superop.html#qiskit_aer.library.save_superop" title="qiskit_aer.library.save_superop"><code class="xref py py-func docutils literal notranslate"><span class="pre">save_superop()</span></code></a> has been deprecated, and
 will stop working in a future release.
-These instructions now return <a class="reference external" href="https://docs.quantum.ibm.com/api/qiskit/quantum_info#module-qiskit.quantum_info" title="(in Qiskit v1.4)"><code class="xref py py-mod docutils literal notranslate"><span class="pre">qiskit.quantum_info</span></code></a> classes for their
+These instructions now return <a class="reference external" href="https://quantum.cloud.ibm.com/docs/api/qiskit/quantum_info#module-qiskit.quantum_info" title="(in Qiskit v2.0)"><code class="xref py py-mod docutils literal notranslate"><span class="pre">qiskit.quantum_info</span></code></a> classes for their
 return types. Partial backwards compatability with treating these objects as
 NumPy arrays is implemented by forwarding methods to the internal array
 during the deprecation period.</p></li>
@@ -2182,9 +2182,9 @@ along with other general performance improvements and bug fixes.</p>
 <section id="release-notes-0-9-0-new-features">
 <span id="id43"></span><h3>New Features<a class="headerlink" href="#release-notes-0-9-0-new-features" title="Permalink to this heading">#</a></h3>
 <ul class="simple">
-<li><p>Add qiskit library <a class="reference external" href="https://docs.quantum.ibm.com/api/qiskit/qiskit.circuit.library.SXdgGate" title="(in Qiskit v1.4)"><code class="xref py py-class docutils literal notranslate"><span class="pre">SXdgGate</span></code></a>
-and <a class="reference external" href="https://docs.quantum.ibm.com/api/qiskit/qiskit.circuit.library.CUGate" title="(in Qiskit v1.4)"><code class="xref py py-class docutils literal notranslate"><span class="pre">CUGate</span></code></a> to the supported basis gates for
-the Aer simulator backends. Note that the <a class="reference external" href="https://docs.quantum.ibm.com/api/qiskit/qiskit.circuit.library.CUGate" title="(in Qiskit v1.4)"><code class="xref py py-class docutils literal notranslate"><span class="pre">CUGate</span></code></a>
+<li><p>Add qiskit library <a class="reference external" href="https://quantum.cloud.ibm.com/docs/api/qiskit/qiskit.circuit.library.SXdgGate" title="(in Qiskit v2.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">SXdgGate</span></code></a>
+and <a class="reference external" href="https://quantum.cloud.ibm.com/docs/api/qiskit/qiskit.circuit.library.CUGate" title="(in Qiskit v2.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">CUGate</span></code></a> to the supported basis gates for
+the Aer simulator backends. Note that the <a class="reference external" href="https://quantum.cloud.ibm.com/docs/api/qiskit/qiskit.circuit.library.CUGate" title="(in Qiskit v2.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">CUGate</span></code></a>
 gate is only natively
 supported for the <code class="docutils literal notranslate"><span class="pre">statevector</span></code> and <code class="docutils literal notranslate"><span class="pre">unitary</span></code> methods. For other simulation
 methods it must be transpiled to the supported basis gates for that method.</p></li>
@@ -2328,7 +2328,7 @@ unsupported.</p></li>
             
             <a href="https://github.com/pradyunsg/furo">Furo</a>
             <div class="last-updated">
-              Last updated on 2025/03/13</div>
+              Last updated on 2025/06/04</div>
           </div>
           <div class="right-details">
             
@@ -2438,7 +2438,7 @@ unsupported.</p></li>
   </div>
 </div><script src="_static/jquery.js?v=5d32c60e"></script>
     <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-    <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js?v=a1b5a9b9"></script>
+    <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js?v=d060e3e0"></script>
     <script src="_static/doctools.js?v=888ff710"></script>
     <script src="_static/sphinx_highlight.js?v=4825356b"></script>
     <script src="_static/scripts/qiskit-sphinx-theme.js?v=4d77b8ca"></script>
