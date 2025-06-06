@@ -238,9 +238,6 @@ parameters and error objects from device `BackendProperties`.
     device.thermal_relaxation_values
 """
 
-# Transpiler Passes
-from .passes import LocalNoisePass, RelaxationNoisePass
-
 # Noise and Error classes
 from .noise_model import NoiseModel
 from .errors import QuantumError
