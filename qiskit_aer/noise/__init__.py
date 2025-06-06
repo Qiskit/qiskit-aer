@@ -43,12 +43,11 @@ method. See the method documentation for details.
 
 .. code-block:: python
 
-    from qiskit import IBMQ
-    from qiskit.providers.aer.noise import NoiseModel
     from qiskit import QuantumCircuit, transpile
-    from qiskit_aer import AerSimulator
     from qiskit.visualization import plot_histogram
+    from qiskit_aer import AerSimulator
     from qiskit_aer.noise import NoiseModel
+    from qiskit_ibm_runtime import QiskitRuntimeService
 
     # Make a circuit
     circ = QuantumCircuit(3, 3)
@@ -57,14 +56,14 @@ method. See the method documentation for details.
     circ.cx(1, 2)
     circ.measure([0, 1, 2], [0, 1, 2])
 
-    # Get the noise model of ibmq_lima
-    provider = IBMQ.load_account()
-    provider = IBMQ.get_provider(hub='ibm-q', group='open', project='main')
-    backend_lima = provider.get_backend('ibmq_lima')
-    noise_model = NoiseModel.from_backend(backend_lima)
+    # Get the noise model of ibm_brisbane
+    service = QiskitRuntimeService(channel='ibm_quantum_platform',
+                                   instance='ibm-q/open/main')
+    backend_brisbane = service.backend('ibm_brisbane')
+    noise_model = NoiseModel.from_backend(backend_brisbane)
 
     # Get coupling map from backend
-    coupling_map = backend_lima.configuration().coupling_map
+    coupling_map = backend_brisbane.configuration().coupling_map
 
     # Get basis gates from noise model
     basis_gates = noise_model.basis_gates
@@ -73,7 +72,7 @@ method. See the method documentation for details.
     backend = AerSimulator(noise_model=noise_model,
                            coupling_map=coupling_map,
                            basis_gates=basis_gates)
-    transpiled_circuit = transpile(circ, backend)
+    transpiled_circuit = transpile(circ, backend, optimization_level=0)
     result = backend.run(transpiled_circuit).result()
 
     counts = result.get_counts(0)
@@ -85,13 +84,13 @@ method. See the method documentation for details.
 .. code-block:: python
 
     from qiskit import QuantumCircuit, transpile
-    from qiskit_aer import AerSimulator
     from qiskit.visualization import plot_histogram
+    from qiskit_aer import AerSimulator
     from qiskit_aer.noise import NoiseModel
-    from qiskit.providers.fake_provider import FakeVigo
+    from qiskit_ibm_runtime.fake_provider import FakeVigoV2
 
     # Build noise model from backend properties
-    backend = FakeVigo()
+    backend = FakeVigoV2()
     noise_model = NoiseModel.from_backend(backend)
 
     # Get coupling map from backend
@@ -111,7 +110,7 @@ method. See the method documentation for details.
     backend = AerSimulator(noise_model=noise_model,
                            coupling_map=coupling_map,
                            basis_gates=basis_gates)
-    transpiled_circuit = transpile(circ, backend)
+    transpiled_circuit = transpile(circ, backend, optimization_level=0)
     result = backend.run(transpiled_circuit).result()
 
     counts = result.get_counts(0)
@@ -132,10 +131,9 @@ documentation for the :class:`NoiseModel` class for additional details.
 
 .. code-block:: python
 
-    from qiskit import QuantumCircuit, transpile, Aer
+    from qiskit import QuantumCircuit, transpile
     from qiskit.visualization import plot_histogram
-    from qiskit_aer import AerSimulator
-    import qiskit_aer.noise as noise
+    from qiskit_aer import AerSimulator, noise
 
     # Error probabilities
     prob_1 = 0.001  # 1-qubit gate
@@ -149,6 +147,9 @@ documentation for the :class:`NoiseModel` class for additional details.
     noise_model = noise.NoiseModel()
     noise_model.add_all_qubit_quantum_error(error_1, ['u1', 'u2', 'u3'])
     noise_model.add_all_qubit_quantum_error(error_2, ['cx'])
+
+    # Define a coupling map
+    coupling_map = [[0, 1], [1, 0], [1, 2], [2, 1]]
 
     # Get basis gates from noise model
     basis_gates = noise_model.basis_gates
@@ -164,7 +165,7 @@ documentation for the :class:`NoiseModel` class for additional details.
     backend = AerSimulator(noise_model=noise_model,
                            coupling_map=coupling_map,
                            basis_gates=basis_gates)
-    transpiled_circuit = transpile(circ, backend)
+    transpiled_circuit = transpile(circ, backend, optimization_level=0)
     result = backend.run(transpiled_circuit).result()
 
     counts = result.get_counts(0)
