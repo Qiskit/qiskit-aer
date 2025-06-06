@@ -238,29 +238,32 @@ parameters and error objects from device `BackendProperties`.
     device.thermal_relaxation_values
 """
 
-# Submodules
-from . import device, errors
-
-# Error generating functions
-from .errors import (
-    PauliError,
-    PauliLindbladError,
-    QuantumError,
-    ReadoutError,
-    amplitude_damping_error,
-    coherent_unitary_error,
-    depolarizing_error,
-    kraus_error,
-    mixed_unitary_error,
-    pauli_error,
-    phase_amplitude_damping_error,
-    phase_damping_error,
-    reset_error,
-    thermal_relaxation_error,
-)
+# Transpiler Passes
+from .passes import LocalNoisePass, RelaxationNoisePass
 
 # Noise and Error classes
 from .noise_model import NoiseModel
+from .errors import QuantumError
+from .errors import PauliError
+from .errors import PauliLindbladError
+from .errors import ReadoutError
+
+# Error generating functions
+from .errors import kraus_error
+from .errors import mixed_unitary_error
+from .errors import coherent_unitary_error
+from .errors import pauli_error
+from .errors import depolarizing_error
+from .errors import reset_error
+from .errors import thermal_relaxation_error
+from .errors import phase_amplitude_damping_error
+from .errors import amplitude_damping_error
+from .errors import phase_damping_error
 
 # Transpiler Passes
-from .passes import LocalNoisePass, RelaxationNoisePass
+from .passes import LocalNoisePass
+from .passes import RelaxationNoisePass
+
+# Submodules
+from . import errors
+from . import device
