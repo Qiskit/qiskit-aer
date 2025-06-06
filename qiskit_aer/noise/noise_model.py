@@ -91,11 +91,11 @@ class NoiseModel:
 
     .. code-block:: python
 
-        from qiskit import IBMQ, Aer
+        from qiskit_ibm_runtime import QiskitRuntimeService
         from qiskit_aer.noise import NoiseModel
 
-        provider = IBMQ.load_account()
-        backend = provider.get_backend('ibmq_vigo')
+        service = QiskitRuntimeService()
+        backend = service.backend('ibm_brisbane')
         noise_model = NoiseModel.from_backend(backend)
         print(noise_model)
 
@@ -108,7 +108,7 @@ class NoiseModel:
 
     .. code-block:: python
 
-        import qiskit_aer.noise as noise
+        from qiskit_aer import noise
 
         # Error probabilities
         prob_1 = 0.001  # 1-qubit gate
