@@ -18,7 +18,7 @@ DISABLE_WARNING_POP
 
 using namespace AER;
 
-PYBIND11_MODULE(controller_wrappers, m) {
+PYBIND11_MODULE(@BACKEND_MODULE_NAME@, m) {
 
 #ifdef AER_MPI
   int prov;
