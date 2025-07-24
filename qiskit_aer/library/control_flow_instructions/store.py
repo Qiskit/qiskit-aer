@@ -18,7 +18,7 @@ from qiskit.circuit import Instruction
 
 class AerStore(Instruction):
     """
-    Store instruction for Aer to work wround transpilation issue
+    Store instruction for Aer to work around transpilation issue
     of qiskit.circuit.Store
     """
 
