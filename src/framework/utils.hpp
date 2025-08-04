@@ -1126,60 +1126,101 @@ std::string hex2bin(std::string str, bool prefix) {
   return bin;
 }
 
+// std::string bin2hex(std::string str, bool prefix) {
+//   // empty case
+//   if (str.empty())
+//     return std::string();
+
+//   // If string starts with 0b prob prefix
+//   if (str.size() > 1 && str.substr(0, 2) == "0b") {
+//     str.erase(0, 2);
+//   }
+
+//   // We go via long integer conversion, so we process 64-bit chunks at
+//   // a time
+//   const size_t bin_block = 64;
+//   const size_t hex_block = bin_block / 4;
+//   const size_t len = str.size();
+//   const size_t chunks = len / bin_block;
+//   const size_t remain = len % bin_block;
+
+//   // initialize output string
+//   std::string hex = (prefix) ? "0x" : "";
+
+//   // Add remainder
+//   if (remain > 0) {
+//     // Add remainder
+//     std::stringstream ss;
+//     ss << std::hex << std::stoull(str.substr(0, remain), nullptr, 2);
+//     hex += ss.str();
+//   }
+
+//   // Add > 64 bit chunks
+//   if (chunks > 0) {
+//     std::string part;
+//     // Add last 64-bit chunk
+//     {
+//       std::stringstream ss;
+//       ss << std::hex << std::stoull(str.substr(remain, bin_block), nullptr, 2);
+//       part = ss.str();
+//       if (remain > 0) {
+//         part.insert(0, hex_block - part.size(), '0'); // pad out zeros
+//       }
+//       hex += part;
+//     }
+//     // Add any additional chunks
+//     for (size_t j = 1; j < chunks; ++j) {
+//       std::stringstream ss; // clear string stream
+//       ss << std::hex
+//          << std::stoull(str.substr(remain + j * bin_block, bin_block), nullptr,
+//                         2);
+//       part = ss.str();
+//       part.insert(0, hex_block - part.size(), '0');
+//       hex += part;
+//     }
+//   }
+//   return hex;
+// }
 std::string bin2hex(std::string str, bool prefix) {
-  // empty case
-  if (str.empty())
-    return std::string();
+    if (str.empty()) return std::string();
 
-  // If string starts with 0b prob prefix
-  if (str.size() > 1 && str.substr(0, 2) == "0b") {
-    str.erase(0, 2);
-  }
-
-  // We go via long integer conversion, so we process 64-bit chunks at
-  // a time
-  const size_t bin_block = 64;
-  const size_t hex_block = bin_block / 4;
-  const size_t len = str.size();
-  const size_t chunks = len / bin_block;
-  const size_t remain = len % bin_block;
-
-  // initialize output string
-  std::string hex = (prefix) ? "0x" : "";
-
-  // Add remainder
-  if (remain > 0) {
-    // Add remainder
-    std::stringstream ss;
-    ss << std::hex << std::stoull(str.substr(0, remain), nullptr, 2);
-    hex += ss.str();
-  }
-
-  // Add > 64 bit chunks
-  if (chunks > 0) {
-    std::string part;
-    // Add last 64-bit chunk
-    {
-      std::stringstream ss;
-      ss << std::hex << std::stoull(str.substr(remain, bin_block), nullptr, 2);
-      part = ss.str();
-      if (remain > 0) {
-        part.insert(0, hex_block - part.size(), '0'); // pad out zeros
-      }
-      hex += part;
+    if (str.size() >= 2 && str[0] == '0' && str[1] == 'b') {
+        str.erase(0, 2);
+        if (str.empty()) return prefix ? std::string("0x") : std::string();
     }
-    // Add any additional chunks
-    for (size_t j = 1; j < chunks; ++j) {
-      std::stringstream ss; // clear string stream
-      ss << std::hex
-         << std::stoull(str.substr(remain + j * bin_block, bin_block), nullptr,
-                        2);
-      part = ss.str();
-      part.insert(0, hex_block - part.size(), '0');
-      hex += part;
+
+    size_t i = 0, n = str.size();
+    while (i < n && str[i] == '0') ++i;
+    if (i == n) return prefix ? std::string("0x0") : std::string("0");
+
+    static const char LUT[] = "0123456789abcdef";
+
+    size_t bits = n - i;
+    size_t rem  = bits & 3;
+    size_t hex_len = (rem ? 1 : 0) + (bits >> 2);
+
+    std::string out;
+    out.reserve((prefix ? 2 : 0) + hex_len);
+    if (prefix) out += "0x";
+
+    if (rem) {
+        unsigned v = 0;
+        for (size_t k = 0; k < rem; ++k) {
+            v = (v << 1) | (unsigned)(str[i++] - '0');
+        }
+        out.push_back(LUT[v]);
     }
-  }
-  return hex;
+
+    while (i + 3 < n) {
+        unsigned v = ((unsigned)(str[i]   - '0') << 3) |
+                     ((unsigned)(str[i+1] - '0') << 2) |
+                     ((unsigned)(str[i+2] - '0') << 1) |
+                     ((unsigned)(str[i+3] - '0'));
+        out.push_back(LUT[v]);
+        i += 4;
+    }
+
+    return out;
 }
 
 uint_t reg2int(const reg_t &reg, uint_t base) {

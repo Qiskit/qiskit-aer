@@ -124,12 +124,12 @@ void ClassicalRegister::store_measure(const reg_t &outcome, const reg_t &memory,
     if (use_mem) {
       // least significant bit first ordering
       const size_t pos = creg_memory_.size() - memory[j] - 1;
-      creg_memory_[pos] = std::to_string(outcome[j])[0]; // int->string->char
+      creg_memory_[pos] = '0' + (outcome[j] & 1); // Fast int->char conversion
     }
     if (use_reg) {
       // least significant bit first ordering
       const size_t pos = creg_register_.size() - registers[j] - 1;
-      creg_register_[pos] = std::to_string(outcome[j])[0]; // int->string->char
+      creg_register_[pos] = '0' + (outcome[j] & 1); // Fast int->char conversion
     }
   }
 }
