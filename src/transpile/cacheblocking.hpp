@@ -232,19 +232,19 @@ void CacheBlocking::optimize_circuit(Circuit &circ, Noise::NoiseModel &noise,
     if (num_processes_ > 1) {
       if (block_bits_ >= qubits_) {
         blocking_enabled_ = false;
-        std::string error = "cache blocking : there are gates operation can "
-                            "not cache blocked in blocking_qubits = " +
-                            std::to_string(block_bits_);
-        throw std::runtime_error(error);
+        // std::string error = "cache blocking : there are gates operation can "
+        //                     "not cache blocked in blocking_qubits = " +
+        //                     std::to_string(block_bits_);
+        // throw std::runtime_error(error);
         return;
       }
       if ((1ull << (qubits_ - block_bits_)) < num_processes_) {
         // not enough distribution
         blocking_enabled_ = false;
-        std::string error = "cache blocking : blocking_qubits is to large to "
-                            "parallelize with " +
-                            std::to_string(num_processes_) + " processes ";
-        throw std::runtime_error(error);
+        // std::string error = "cache blocking : blocking_qubits is to large to "
+        //                     "parallelize with " +
+        //                     std::to_string(num_processes_) + " processes ";
+        // throw std::runtime_error(error);
         return;
       }
     }
