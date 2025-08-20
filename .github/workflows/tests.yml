@@ -32,7 +32,7 @@ jobs:
         run: |
           set -e
           pip install -U pip wheel
-          pip install -U -c constraints.txt -r requirements-dev.txt qiskit numpy scipy
+          pip install -U -c constraints.txt -r requirements-dev.txt
         shell: bash
       - name: Run clang-format
         run: |
