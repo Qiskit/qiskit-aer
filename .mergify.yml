@@ -1,7 +1,7 @@
 queue_rules:
   - name: automerge
     conditions: []  # No additional rules, because branch-protection does them.
-    merge-method: squash
+    merge_method: squash
 
 pull_request_rules:
   - name: automatic merge on CI success and review
