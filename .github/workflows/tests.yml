@@ -237,7 +237,7 @@ jobs:
           stestr run --slowest
         shell: bash
   tests_windows:
-    runs-on: windows-2019
+    runs-on: windows-latest
     name: Windows Python ${{ matrix.python-version }}
     needs: ["lint", "sdist"]
     timeout-minutes: 60
