@@ -8,7 +8,7 @@ jobs:
     name: Build qiskit-aer wheels
     strategy:
       matrix:
-        os: ["macos-13", "ubuntu-latest", "windows-2019"]
+        os: ["macos-13", "ubuntu-latest"] # disable Windows for now https://github.com/Qiskit/qiskit-aer/pull/2361#issuecomment-3227442312
     runs-on: ${{ matrix.os }}
     environment: release
     steps:
