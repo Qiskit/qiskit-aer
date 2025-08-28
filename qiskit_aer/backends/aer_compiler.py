@@ -232,18 +232,6 @@ class AerCompiler:
         elif isinstance(cond_tuple[0], ClassicalRegister):
             # ClassicalRegister conditions should already be in the outer circuit.
             return cond_tuple
-        elif isinstance(cond_tuple[0], Var):
-            if isinstance(cond_tuple[0].var, Clbit):
-                expr = Var(bit_map[cond_tuple[0].var], cond_tuple[0].type)
-            elif isinstance(cond_tuple[0].var, ClassicalRegister):
-                # This passes tests but does not perform the mapping
-                return cond_tuple
-            else:
-                raise AerError(
-                    f"jump condition does not support this tyep of Var: {cond_tuple[0]}."
-                )
-            return (expr, cond_tuple[1])
-
         raise AerError(f"jump condition does not support {cond_tuple[0].__class__}.")
 
     def _list_clbit_from_expr(self, bit_map, expr):
