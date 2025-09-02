@@ -1,3 +1,4 @@
+# Mergify configuration for qiskit-aer
 queue_rules:
   - name: automerge
     merge_method: squash
