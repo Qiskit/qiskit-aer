@@ -235,6 +235,9 @@ class AerCompiler:
         elif isinstance(cond_tuple[0], Var):
             if isinstance(cond_tuple[0].var, Clbit):
                 expr = Var(bit_map[cond_tuple[0].var], cond_tuple[0].type)
+            elif isinstance(cond_tuple[0].var, ClassicalRegister):
+                reg = ClassicalRegister(bits = [bit_map[clbit] for clbit in cond_tuple[0].var])
+                expr = Var(reg, cond_tuple[0].type)
             else:
                 raise AerError(
                     f"jump condition does not support this tyep of Var: {cond_tuple[0]}."
