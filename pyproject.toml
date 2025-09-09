@@ -7,7 +7,7 @@ requires = [
   "ninja",
   "pybind11>2.6",
 ]
-build-backend = "setuptools.build_meta"
+build-backend = "scikit_build_core.build"
 
 [tool.cibuildwheel]
 manylinux-x86_64-image = "manylinux2014"
