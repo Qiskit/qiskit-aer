@@ -12,7 +12,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: ["macos-13", "ubuntu-latest", "windows-2019"]
+        os: ["macos-13", "ubuntu-latest"] # disable Windows for now https://github.com/Qiskit/qiskit-aer/pull/2361#issuecomment-3227442312
     steps:
       - uses: actions/checkout@v4
       - name: Set up Python Python '3.13'
