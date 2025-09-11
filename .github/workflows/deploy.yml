@@ -8,7 +8,7 @@ jobs:
     name: Build qiskit-aer wheels
     strategy:
       matrix:
-        os: ["macos-13", "ubuntu-latest", "windows-2019"]
+        os: ["macos-13", "ubuntu-latest"] # disable Windows for now https://github.com/Qiskit/qiskit-aer/pull/2361#issuecomment-3227442312
     runs-on: ${{ matrix.os }}
     environment: release
     steps:
@@ -84,6 +84,10 @@ jobs:
       - name: Build Wheels
         env:
           CIBW_ARCHS_MACOS: arm64
+          CIBW_BEFORE_BUILD: | # conan<2.0.0 on arm64 (turns to be 1.66.0) complains about not supporting Clang 17
+            python -m pip install "conan<2.0.0"
+            conan config init --force
+            sed -i '' 's/"16.0"/"16.0", "17.0"/' ~/.conan/settings.yml
         run: cibuildwheel --output-dir wheelhouse
       - uses: actions/upload-artifact@v4
         with:
