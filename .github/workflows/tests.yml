@@ -236,7 +236,7 @@ jobs:
           rm -rf qiskit_aer
           stestr run --slowest
         shell: bash
-    tests_windows:
+  tests_windows:
     runs-on: windows-latest
     name: Windows Python ${{ matrix.python-version }}
     needs: ["lint", "sdist"]
