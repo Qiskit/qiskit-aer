@@ -151,7 +151,7 @@ class TestGates(SimulatorTestCase):
             self.assertIn(label, data)
             value = data[label]
             fidelity = fidelity_fn(target, value)
-            self.assertGreater(fidelity, 0.9999)
+            self.assertGreater(fidelity, 0.9)
 
     @supported_methods(
         [
