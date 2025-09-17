@@ -49,7 +49,7 @@ features:
     Adds :class:`qiskit.providers.aer.library.SaveProbabilities` and
     :class:`qiskit.providers.aer.library.SaveProbabilitiesDict` quantum
     circuit instruction for saving all measurement outcome probabilities for
-    Z-basis measurements of the simualtor state. These instruction can be
+    Z-basis measurements of the simulator state. These instruction can be
     appended to a quantum circuit by using the
     :class:`~qiskit.providers.aer.library.save_probabilities` and
     :class:`~qiskit.providers.aer.library.save_probabilities_dict` circuit
