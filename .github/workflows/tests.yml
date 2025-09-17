@@ -236,64 +236,63 @@ jobs:
           rm -rf qiskit_aer
           stestr run --slowest
         shell: bash
-  # disable Windows for now https://github.com/Qiskit/qiskit-aer/pull/2361#issuecomment-3227442312
-  # tests_windows:
-  #   runs-on: windows-2019
-  #   name: Windows Python ${{ matrix.python-version }}
-  #   needs: ["lint", "sdist"]
-  #   timeout-minutes: 60
-  #   strategy:
-  #     matrix:
-  #       python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
-  #   env:
-  #     AER_THRUST_BACKEND: OMP
-  #     QISKIT_TEST_CAPTURE_STREAMS: 1
-  #     # Needed to suppress a warning in jupyter-core 5.x by eagerly migrating to
-  #     # a new internal interface that will be the default in jupyter-core 6.x.
-  #     # This variable should become redundant on release of jupyter-core 6.
-  #     JUPYTER_PLATFORM_DIRS: 1
-  #   steps:
-  #     - uses: actions/checkout@v4
-  #     - name: Set up Python ${{ matrix.python-version }}
-  #       uses: actions/setup-python@v5
-  #       with:
-  #         python-version: ${{ matrix.python-version }}
-  #     - name: Pip cache
-  #       uses: actions/cache@v4
-  #       with:
-  #         path: ~\AppData\Local\pip\Cache
-  #         key: ${{ runner.os }}-${{ matrix.python-version}}-pip-test-${{ hashFiles('setup.py','requirements-dev.txt','constraints.txt') }}
-  #         restore-keys: |
-  #           ${{ runner.os }}-${{ matrix.python-version}}-pip-test-
-  #           ${{ runner.os }}-${{ matrix.python-version}}-pip-
-  #           ${{ runner.os }}-${{ matrix.python-version}}-
-  #     - name: Add msbuild to PATH
-  #       uses: microsoft/setup-msbuild@v2
-  #     - name: Build Aer Windows
-  #       env:
-  #         CMAKE_GENERATOR: "Visual Studio 16 2019"
-  #       run: |
-  #         set -e
-  #         pip install build
-  #         python -I -m build --wheel
-  #       shell: bash
-  #     - name: Install Aer and dependencies
-  #       run: |
-  #         set -e
-  #         shopt -s failglob
-  #         pip install -U \
-  #           -c constraints.txt \
-  #           -r requirements-dev.txt \
-  #           dist/*.whl
-  #       shell: bash
-  #     - name: Run Tests
-  #       env:
-  #         LANG: 'C.UTF-8'
-  #         PYTHONIOENCODING: 'utf-8:backslashreplace'
-  #       run: |
-  #         set -e
-  #         chcp.com 65001
-  #         pip check
-  #         rm -rf qiskit_aer
-  #         stestr run --slowest
-  #       shell: bash
+  tests_windows:
+    runs-on: windows-latest
+    name: Windows Python ${{ matrix.python-version }}
+    needs: ["lint", "sdist"]
+    timeout-minutes: 60
+    strategy:
+      matrix:
+        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
+    env:
+      AER_THRUST_BACKEND: OMP
+      QISKIT_TEST_CAPTURE_STREAMS: 1
+      # Needed to suppress a warning in jupyter-core 5.x by eagerly migrating to
+      # a new internal interface that will be the default in jupyter-core 6.x.
+      # This variable should become redundant on release of jupyter-core 6.
+      JUPYTER_PLATFORM_DIRS: 1
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Pip cache
+        uses: actions/cache@v4
+        with:
+          path: ~\AppData\Local\pip\Cache
+          key: ${{ runner.os }}-${{ matrix.python-version}}-pip-test-${{ hashFiles('setup.py','requirements-dev.txt','constraints.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ matrix.python-version}}-pip-test-
+            ${{ runner.os }}-${{ matrix.python-version}}-pip-
+            ${{ runner.os }}-${{ matrix.python-version}}-
+      - name: Add msbuild to PATH
+        uses: microsoft/setup-msbuild@v2
+      - name: Build Aer Windows
+        env:
+          CMAKE_GENERATOR: "Visual Studio 17 2022"
+        run: |
+          set -e
+          pip install build
+          python -I -m build --wheel
+        shell: bash
+      - name: Install Aer and dependencies
+        run: |
+          set -e
+          shopt -s failglob
+          pip install -U \
+            -c constraints.txt \
+            -r requirements-dev.txt \
+            dist/*.whl
+        shell: bash
+      - name: Run Tests
+        env:
+          LANG: 'C.UTF-8'
+          PYTHONIOENCODING: 'utf-8:backslashreplace'
+        run: |
+          set -e
+          chcp.com 65001
+          pip check
+          rm -rf qiskit_aer
+          stestr run --slowest
+        shell: bash

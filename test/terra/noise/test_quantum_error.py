@@ -345,7 +345,7 @@ class TestQuantumError(QiskitAerTestCase):
         with self.assertRaises(NoiseError):
             error_unitary = QuantumError.from_dict(error_dict_probabilities)
 
-    def test_from_dict_raise_if_len_probabilites_is_not_len_instructions(self):
+    def test_from_dict_raise_if_len_probabilities_is_not_len_instructions(self):
         """Test exception is raised by from_dict if length of probabilities does not meet length of instructions"""
         # test more probabilities than instructions
         error_quantum = QuantumError(UnitaryGate(np.eye(2)))
