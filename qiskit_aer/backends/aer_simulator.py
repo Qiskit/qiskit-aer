@@ -370,7 +370,7 @@ class AerSimulator(AerBackend):
         is sparse. The overall runtime scales as Sn^{2}.
 
       - ``"norm_estimation"``: An alternative sampling method using
-        random state inner products to estimate outcome probabilites. This
+        random state inner products to estimate outcome probabilities. This
         method requires twice as much memory, and significantly longer
         runtimes, but gives accurate results on circuits with sparse
         output distributions. The overall runtime scales as Sn^{3}m^{3}.
@@ -943,7 +943,7 @@ class AerSimulator(AerBackend):
                             self.name += f"_{value}".lower()
 
     def _basis_gates(self):
-        """Return simualtor basis gates.
+        """Return simulator basis gates.
 
         This will be the option value of basis gates if it was set,
         otherwise it will be the intersection of the configuration, noise model
