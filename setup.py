@@ -6,6 +6,7 @@ Main setup file for qiskit-aer
 import os
 import platform
 
+import subprocess
 import setuptools
 from skbuild import setup
 
@@ -85,8 +86,24 @@ README_PATH = os.path.join(os.path.abspath(os.path.dirname(__file__)), "README.m
 with open(README_PATH) as readme_file:
     README = readme_file.read()
 
+# run Conan
+BUILD_DIR = os.path.join(os.path.dirname(__file__), "build")
+os.makedirs(BUILD_DIR, exist_ok=True)
+try:
+    subprocess.check_call(["conan", "profile", "detect"], cwd=BUILD_DIR)
+except subprocess.CalledProcessError:
+    pass
+
+subprocess.check_call([
+        "conan", "install", os.path.dirname(__file__),
+        "--output-folder=build",
+        "--build=missing"
+    ])
+
+CONAN_TOOLCHAIN_FILE = os.path.join(BUILD_DIR, "conan_toolchain.cmake")
 
 cmake_args = []
+cmake_args.append(f"-DCMAKE_TOOLCHAIN_FILE={CONAN_TOOLCHAIN_FILE}")
 is_win_32_bit = platform.system() == "Windows" and platform.architecture()[0] == "32bit"
 if is_win_32_bit:
     cmake_args.append("-DCMAKE_GENERATOR_PLATFORM=Win32")

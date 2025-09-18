@@ -48,6 +48,11 @@ endif()
 include(CheckLanguage)
 project(qasm_simulator VERSION ${VERSION_NUM} LANGUAGES CXX C ${EXTRA_LANGUAGES} )
 
+# load Conan packages
+find_package(nlohmann_json REQUIRED)
+find_package(spdlog REQUIRED)
+find_package(fmt REQUIRED)
+find_package(OpenBLAS REQUIRED)
 
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
 list(APPEND CMAKE_PREFIX_PATH ${CMAKE_SOURCE_DIR}/cmake)
@@ -90,8 +95,6 @@ endif()
 include(CTest)
 include(compiler_utils)
 include(Linter)
-include(findBLASInSpecificPath)
-include(dependency_utils)
 
 # Get version information
 get_version(${VERSION_NUM})
@@ -176,7 +179,6 @@ endif()
 # Looking for external libraries
 #
 set(BACKEND_REDIST_DEPS "") # List of redistributable dependencies
-setup_dependencies()
 
 # If we do not set them with a space CMake fails afterwards if nothing is set for this vars!
 set(AER_LINKER_FLAGS " ")
@@ -225,41 +227,9 @@ if(STATIC_LINKING)
 	set(BLA_STATIC TRUE)
 endif()
 
-if(AER_BLAS_LIB_PATH)
-	find_BLAS_in_specific_path(${AER_BLAS_LIB_PATH})
-else()
-	if(APPLE)
-		message(STATUS  "Looking for Apple BLAS & Lapack library...")
-		set(BLA_VENDOR "Apple")
-	else()
-		message(STATUS "Looking for OpenBLAS library...")
-		if(NOT BLA_VENDOR)
-		  set(BLA_VENDOR "OpenBLAS")
-		endif()
-	endif()
-	if(WIN32 AND USE_BUNDLED_BLAS_WIN)
-		message(STATUS "Uncompressing OpenBLAS static library...")
-		set(WIN_ARCH "win64" )
-		if("${CMAKE_SIZEOF_VOID_P}" STREQUAL "4") # Checking if win32 build
-			set(WIN_ARCH "win32")
-		endif()
-		execute_process(COMMAND ${CMAKE_COMMAND} -E tar "xvfj" "${AER_SIMULATOR_CPP_SRC_DIR}/third-party/${WIN_ARCH}/lib/openblas.7z" WORKING_DIRECTORY  "${AER_SIMULATOR_CPP_SRC_DIR}/third-party/${WIN_ARCH}/lib/")
-		set(BACKEND_REDIST_DEPS ${BACKEND_REDIST_DEPS} "${AER_SIMULATOR_CPP_SRC_DIR}/third-party/${WIN_ARCH}/lib/libopenblas.dll")
-		set(BLAS_LIBRARIES "${AER_SIMULATOR_CPP_SRC_DIR}/third-party/${WIN_ARCH}/lib/libopenblas.dll.a") # Seems CMake is unable to find it on its own
-		set(BLAS_FOUND True)
-	else()
-		find_package(BLAS QUIET)
-	endif()
-	if(NOT BLAS_FOUND)
-		message(STATUS "OpenBLAS not found. Looking for any other BLAS & Lapack libraries...")
-		unset(BLA_VENDOR)
-		find_package(BLAS REQUIRED)
-		find_package(LAPACK REQUIRED)
-		set(BLAS_LIBRARIES "${BLAS_LIBRARIES};${LAPACK_LIBRARIES}")
-	endif()
-endif()
-
-message(STATUS "BLAS library found: ${BLAS_LIBRARIES}")
+find_package(OpenBLAS REQUIRED)
+set(BLAS_LIBRARIES OpenBLAS::OpenBLAS)
+message(STATUS "Using Conan-provided OpenBLAS: ${BLAS_LIBRARIES}")
 
 if(CMAKE_HOST_SYSTEM_PROCESSOR STREQUAL "x86_64" OR CMAKE_HOST_SYSTEM_PROCESSOR STREQUAL "AMD64" OR CMAKE_HOST_SYSTEM_PROCESSOR STREQUAL "amd64")
     if(APPLE OR UNIX)
@@ -535,8 +505,8 @@ endif()
 set(AER_LIBRARIES
 	${AER_LIBRARIES}
 	${BLAS_LIBRARIES}
-	AER_DEPENDENCY_PKG::nlohmann_json
-	AER_DEPENDENCY_PKG::spdlog
+	nlohmann_json::nlohmann_json
+	spdlog::spdlog
 	Threads::Threads
 	${CMAKE_DL_LIBS})
 
