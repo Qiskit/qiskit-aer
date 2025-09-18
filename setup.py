@@ -94,11 +94,9 @@ try:
 except subprocess.CalledProcessError:
     pass
 
-subprocess.check_call([
-        "conan", "install", os.path.dirname(__file__),
-        "--output-folder=build",
-        "--build=missing"
-    ])
+subprocess.check_call(
+    ["conan", "install", os.path.dirname(__file__), "--output-folder=build", "--build=missing"]
+)
 
 CONAN_TOOLCHAIN_FILE = os.path.join(BUILD_DIR, "conan_toolchain.cmake")
 

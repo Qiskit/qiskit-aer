@@ -1,3 +1,6 @@
+[settings]
+compiler.cppstd=17
+
 [requires]
 llvm-openmp/20.1.6
 openblas/0.3.30
