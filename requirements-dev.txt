@@ -2,7 +2,7 @@ sympy
 qiskit>=2.0.0
 stestr>=2.5.0
 cmake!=3.17.1,!=3.17.0
-conan<2.0.0
+conan>=2.0.0
 scikit-build>=0.11.0
 asv
 cvxpy<1.6.0
