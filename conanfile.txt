@@ -1,4 +1,5 @@
 [requires]
+llvm-openmp/20.1.6
 openblas/0.3.30
 nlohmann_json/3.11.3
 spdlog/1.13.0

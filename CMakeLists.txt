@@ -49,6 +49,7 @@ include(CheckLanguage)
 project(qasm_simulator VERSION ${VERSION_NUM} LANGUAGES CXX C ${EXTRA_LANGUAGES} )
 
 # load Conan packages
+find_package(OpenMP REQUIRED)
 find_package(nlohmann_json REQUIRED)
 find_package(spdlog REQUIRED)
 find_package(fmt REQUIRED)
@@ -505,6 +506,7 @@ endif()
 set(AER_LIBRARIES
 	${AER_LIBRARIES}
 	${BLAS_LIBRARIES}
+	OpenMP::OpenMP
 	nlohmann_json::nlohmann_json
 	spdlog::spdlog
 	Threads::Threads
