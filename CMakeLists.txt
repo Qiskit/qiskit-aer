@@ -57,16 +57,16 @@ find_package(OpenBLAS REQUIRED)
 
 # In apple need to explicitly copy libomp
 if(APPLE AND TARGET OpenMP::OpenMP)
-  get_target_property(_omp_lib OpenMP::OpenMP IMPORTED_LOCATION_RELEASE)
-  if(NOT _omp_lib)
-    get_target_property(_omp_lib OpenMP::OpenMP IMPORTED_LOCATION)
-  endif()
+  find_library(_omp_dylib
+    NAMES libomp.dylib omp.dylib
+    PATHS ${CMAKE_PREFIX_PATH} PATH_SUFFIXES lib
+  )
 
-  if(_omp_lib)
-    message(STATUS "Installing OpenMP runtime from ${_omp_lib}")
-    install(FILES ${_omp_lib} DESTINATION qiskit_aer/backends)
+  if(_omp_dylib)
+    message(STATUS "Installing OpenMP runtime from ${_omp_dylib}")
+    install(FILES ${_omp_dylib} DESTINATION qiskit_aer/backends)
   else()
-    message(WARNING "Could not determine OpenMP library path from Conan target")
+    message(WARNING "Could not find dynamic OpenMP runtime (.dylib). Conan may only provide libomp.a")
   endif()
 endif()
 
@@ -530,7 +530,7 @@ set(AER_LIBRARIES
 if (TARGET OpenMP::OpenMP)
     list(APPEND AER_LIBRARIES OpenMP::OpenMP)
 elseif (MSVC AND OpenMP_CXX_FOUND)
-    target_compile_options(${PROJECT_NAME} INTERFACE ${OpenMP_CXX_FLAGS})
+    list(APPEND AER_COMPILER_FLAGS "${OpenMP_CXX_FLAGS}")
 endif()
 
 set(AER_COMPILER_DEFINITIONS ${AER_COMPILER_DEFINITIONS} ${CONAN_DEFINES})
