@@ -57,16 +57,12 @@ find_package(OpenBLAS REQUIRED)
 
 # In apple need to explicitly copy libomp.dylib
 if(APPLE)
-  get_target_property(_omp_lib OpenMP::OpenMP IMPORTED_LOCATION_RELEASE)
-  if(NOT _omp_lib)
-    get_target_property(_omp_lib OpenMP::OpenMP IMPORTED_LOCATION)
-  endif()
-
+  find_library(_omp_lib NAMES omp libomp PATHS ${CMAKE_PREFIX_PATH} PATH_SUFFIXES lib)
   if(_omp_lib)
     message(STATUS "Installing libomp.dylib from ${_omp_lib}")
     install(FILES ${_omp_lib} DESTINATION qiskit_aer/backends)
   else()
-    message(WARNING "Could not determine path to libomp.dylib")
+    message(WARNING "Could not find libomp.dylib in Conan’s llvm-openmp package")
   endif()
 endif()
 
