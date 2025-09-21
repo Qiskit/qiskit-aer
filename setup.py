@@ -104,6 +104,8 @@ subprocess.check_call(
         "--build=missing",
         "-s",
         "compiler.cppstd=17",
+        "-v",
+        "debug",
     ]
 )
 
@@ -111,6 +113,9 @@ CONAN_TOOLCHAIN_FILE = os.path.join(BUILD_DIR, "conan_toolchain.cmake")
 
 cmake_args = []
 cmake_args.append(f"-DCMAKE_TOOLCHAIN_FILE={CONAN_TOOLCHAIN_FILE}")
+# try to be as verbose as possible
+cmake_args.append(f"-DCMAKE_VERBOSE_MAKEFILE:BOOL=ON")
+cmake_args.append(f"-DCMAKE_MESSAGE_LOG_LEVEL=STATUS")
 is_win_32_bit = platform.system() == "Windows" and platform.architecture()[0] == "32bit"
 if is_win_32_bit:
     cmake_args.append("-DCMAKE_GENERATOR_PLATFORM=Win32")

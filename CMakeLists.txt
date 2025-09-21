@@ -57,15 +57,17 @@ find_package(OpenBLAS REQUIRED)
 
 # In apple need to explicitly copy libomp.dylib
 if(APPLE)
-  find_package(OpenMP REQUIRED)
+  if (DEFINED llvm-openmp_ROOT)
+    file(GLOB OMP_LIB "${llvm-openmp_ROOT}/lib/libomp.dylib")
 
-  get_target_property(OMP_LIB OpenMP::OpenMP_CXX IMPORTED_LOCATION_RELEASE)
-
-  if (OMP_LIB)
-    message(STATUS "Copying libomp from ${OMP_LIB}")
-    install(FILES ${OMP_LIB} DESTINATION qiskit_aer/backends)
+    if (OMP_LIB)
+      message(STATUS "Installing libomp.dylib from ${OMP_LIB}")
+      install(FILES ${OMP_LIB} DESTINATION qiskit_aer/backends)
+    else()
+      message(WARNING "libomp.dylib not found in ${llvm-openmp_ROOT}/lib")
+    endif()
   else()
-    message(WARNING "Could not locate libomp.dylib")
+    message(WARNING "llvm-openmp_ROOT not defined, cannot install libomp.dylib")
   endif()
 endif()
 
