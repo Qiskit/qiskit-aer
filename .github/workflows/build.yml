@@ -50,6 +50,7 @@ jobs:
         env:
           PYTHONUNBUFFERED: "1"
           CIBW_ARCHS_MACOS: arm64
+          CIBW_BUILD_VERBOSITY: 3
         run: cibuildwheel --output-dir wheelhouse
       - uses: actions/upload-artifact@v4
         with:
