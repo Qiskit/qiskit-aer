@@ -9,8 +9,7 @@
 # be linked statically per Apple's indications.
 
 cmake_minimum_required(VERSION 3.8 FATAL_ERROR)
-cmake_policy(SET CMP0091 NEW)  # Required for MSVC
-file(STRINGS "qiskit_aer/VER	SION.txt" VERSION_NUM)
+file(STRINGS "qiskit_aer/VERSION.txt" VERSION_NUM)
 
 # For ROCm builds we need to make sure the CXX and HIP compilers match and are clang.
 # We should do this before the project() call to make sure the compiler options are
