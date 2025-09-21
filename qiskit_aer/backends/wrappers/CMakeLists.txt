@@ -61,7 +61,7 @@ else()
 endif()
 target_include_directories(controller_wrappers PRIVATE ${AER_SIMULATOR_CPP_SRC_DIR}
                                                PRIVATE ${AER_SIMULATOR_CPP_EXTERNAL_LIBS})
-target_link_libraries(controller_wrappers ${AER_LIBRARIES})
+target_link_libraries(controller_wrappers PRIVATE ${AER_LIBRARIES})
 target_compile_definitions(controller_wrappers PRIVATE ${AER_COMPILER_DEFINITIONS})
 install(TARGETS controller_wrappers LIBRARY DESTINATION qiskit_aer/backends)
 
