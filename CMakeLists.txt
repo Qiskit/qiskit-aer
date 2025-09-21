@@ -55,6 +55,20 @@ find_package(spdlog REQUIRED)
 find_package(fmt REQUIRED)
 find_package(OpenBLAS REQUIRED)
 
+# In apple need to explicitly copy libomp.dylib
+if(APPLE)
+  find_package(OpenMP REQUIRED)
+
+  get_target_property(OMP_LIB OpenMP::OpenMP_CXX IMPORTED_LOCATION_RELEASE)
+
+  if (OMP_LIB)
+    message(STATUS "Copying libomp from ${OMP_LIB}")
+    install(FILES ${OMP_LIB} DESTINATION qiskit_aer/backends)
+  else()
+    message(WARNING "Could not locate libomp.dylib")
+  endif()
+endif()
+
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
 list(APPEND CMAKE_PREFIX_PATH ${CMAKE_SOURCE_DIR}/cmake)
 
