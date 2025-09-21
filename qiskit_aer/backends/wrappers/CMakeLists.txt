@@ -21,7 +21,7 @@ if(CMAKE_HOST_SYSTEM_PROCESSOR STREQUAL "x86_64" OR CMAKE_HOST_SYSTEM_PROCESSOR 
 endif()
 
 set(AER_SIMULATOR_SOURCES "bindings.cc" "${SIMD_SOURCE_FILE}")
-basic_pybind11_add_module(controller_wrappers "${AER_SIMULATOR_SOURCES}")
+pybind11_add_module(controller_wrappers "${AER_SIMULATOR_SOURCES}")
 
 if(AER_THRUST_BACKEND STREQUAL "CUDA")
     include(nvcc_add_compiler_options)
