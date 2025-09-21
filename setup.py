@@ -119,7 +119,7 @@ cmake_args.append(f"-DCMAKE_MESSAGE_LOG_LEVEL=STATUS")
 
 if platform.system() == "Windows":
     cmake_args.append(f"-DCMAKE_POLICY_DEFAULT_CMP0091=NEW")
-    if platform.architecture()[0] == "32bit"
+    if platform.architecture()[0] == "32bit":
         cmake_args.append("-DCMAKE_GENERATOR_PLATFORM=Win32")
 
 
