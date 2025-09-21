@@ -15,7 +15,9 @@ class AerConan(ConanFile):
 
     def generate(self):
         tc = CMakeToolchain(self)
-        tc.variables["CMAKE_POLICY_DEFAULT_CMP0091"] = "NEW"
+        tc.preprocessor_definitions["CMAKE_POLICY_DEFAULT_CMP0091"] = "NEW"
+        if self.settings.get_safe("os") == "Windows":
+            tc.variables["CMAKE_MSVC_RUNTIME_LIBRARY"] = "MultiThreadedDLL"
         tc.generate()
 
         deps = CMakeDeps(self)
