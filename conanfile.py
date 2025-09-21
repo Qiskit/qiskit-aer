@@ -9,6 +9,7 @@ class AerConan(ConanFile):
         self.requires("nlohmann_json/3.11.3")
         self.requires("spdlog/1.13.0")
         self.requires("fmt/10.2.1")
+        self.requires("pybind11/2.11.1")
 
         if self.settings.os in ["Linux", "Macos"]:
             self.requires("llvm-openmp/20.1.6")

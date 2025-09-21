@@ -15,7 +15,6 @@
 #ifndef _aer_controller_execute_hpp_
 #define _aer_controller_execute_hpp_
 
-#include "misc/hacks.hpp"
 #include <string>
 
 #include "framework/config.hpp"

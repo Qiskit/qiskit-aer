@@ -54,21 +54,7 @@ find_package(nlohmann_json REQUIRED)
 find_package(spdlog REQUIRED)
 find_package(fmt REQUIRED)
 find_package(OpenBLAS REQUIRED)
-
-# In apple need to explicitly copy libomp
-if(APPLE AND TARGET OpenMP::OpenMP)
-  find_library(_omp_dylib
-    NAMES libomp.dylib omp.dylib
-    PATHS ${CMAKE_PREFIX_PATH} PATH_SUFFIXES lib
-  )
-
-  if(_omp_dylib)
-    message(STATUS "Installing OpenMP runtime from ${_omp_dylib}")
-    install(FILES ${_omp_dylib} DESTINATION qiskit_aer/backends)
-  else()
-    message(WARNING "Could not find dynamic OpenMP runtime (.dylib). Conan may only provide libomp.a")
-  endif()
-endif()
+find_package(pybind11 REQUIRED)
 
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
 list(APPEND CMAKE_PREFIX_PATH ${CMAKE_SOURCE_DIR}/cmake)
