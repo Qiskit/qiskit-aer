@@ -3,7 +3,6 @@ from conan.tools.cmake import CMakeToolchain, CMakeDeps
 
 class AerConan(ConanFile):
     settings = "os", "compiler", "build_type", "arch"
-    generators = "CMakeDeps", "CMakeToolchain"
 
     def requirements(self):
         self.requires("openblas/0.3.30")
