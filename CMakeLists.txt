@@ -9,7 +9,8 @@
 # be linked statically per Apple's indications.
 
 cmake_minimum_required(VERSION 3.8 FATAL_ERROR)
-file(STRINGS "qiskit_aer/VERSION.txt" VERSION_NUM)
+cmake_policy(SET CMP0091 NEW)  # Required for MSVC
+file(STRINGS "qiskit_aer/VER	SION.txt" VERSION_NUM)
 
 # For ROCm builds we need to make sure the CXX and HIP compilers match and are clang.
 # We should do this before the project() call to make sure the compiler options are
@@ -57,17 +58,16 @@ find_package(OpenBLAS REQUIRED)
 
 # In apple need to explicitly copy libomp.dylib
 if(APPLE)
-  if (DEFINED llvm-openmp_ROOT)
-    file(GLOB OMP_LIB "${llvm-openmp_ROOT}/lib/libomp.dylib")
+  get_target_property(_omp_lib OpenMP::OpenMP IMPORTED_LOCATION_RELEASE)
+  if(NOT _omp_lib)
+    get_target_property(_omp_lib OpenMP::OpenMP IMPORTED_LOCATION)
+  endif()
 
-    if (OMP_LIB)
-      message(STATUS "Installing libomp.dylib from ${OMP_LIB}")
-      install(FILES ${OMP_LIB} DESTINATION qiskit_aer/backends)
-    else()
-      message(WARNING "libomp.dylib not found in ${llvm-openmp_ROOT}/lib")
-    endif()
+  if(_omp_lib)
+    message(STATUS "Installing libomp.dylib from ${_omp_lib}")
+    install(FILES ${_omp_lib} DESTINATION qiskit_aer/backends)
   else()
-    message(WARNING "llvm-openmp_ROOT not defined, cannot install libomp.dylib")
+    message(WARNING "Could not determine path to libomp.dylib")
   endif()
 endif()
 
