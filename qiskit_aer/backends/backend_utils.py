@@ -15,6 +15,7 @@
 Aer simulator backend utils
 """
 import os
+import json
 from math import log2
 
 from types import SimpleNamespace
@@ -438,7 +439,7 @@ def cpp_execute_circuits(controller, aer_circuits, noise_model, config):
     config.library_dir = LIBRARY_DIR
 
     noise_model = noise_model.to_dict(serializable=True) if noise_model else {}
-
+    noise_model = json.dumps(noise_model)
     return controller.execute(aer_circuits, noise_model, config)
 
 

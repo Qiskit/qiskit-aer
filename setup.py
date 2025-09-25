@@ -10,6 +10,7 @@ import subprocess
 import setuptools
 from skbuild import setup
 
+DEBUG_MODE = os.environ.get("DEBUG") is not None
 PACKAGE_NAME = os.getenv("QISKIT_AER_PACKAGE_NAME", "qiskit-aer")
 CUDA_MAJOR = os.getenv("QISKIT_AER_CUDA_MAJOR", "12")
 
@@ -104,6 +105,8 @@ subprocess.check_call(
         "--build=missing",
         "-s",
         "compiler.cppstd=17",
+        "-s",
+        f"build_type={'Debug' if DEBUG_MODE else 'Release'}",
         "-v",
         "debug",
     ]
@@ -116,6 +119,9 @@ cmake_args.append(f"-DCMAKE_TOOLCHAIN_FILE={CONAN_TOOLCHAIN_FILE}")
 # try to be as verbose as possible
 cmake_args.append(f"-DCMAKE_VERBOSE_MAKEFILE:BOOL=ON")
 cmake_args.append(f"-DCMAKE_MESSAGE_LOG_LEVEL=STATUS")
+
+if DEBUG_MODE:
+    cmake_args.append(f"-DCMAKE_BUILD_TYPE=Debug")
 
 if platform.system() == "Windows":
     cmake_args.append(f"-DCMAKE_POLICY_DEFAULT_CMP0091=NEW")

@@ -91,8 +91,12 @@ void bind_aer_controller(MODULE m) {
                           std::vector<std::shared_ptr<Circuit>> &circuits,
                           py::object noise_model, AER::Config &config) {
                  Noise::NoiseModel noise_model_native;
-                 if (noise_model)
-                   noise_model_native.load_from_json(noise_model);
+                 if (noise_model) {
+                  if (py::isinstance<py::str>(noise_model)) {
+                    auto noise_model_string = noise_model.cast<std::string>();
+                    noise_model_native.load_from_json(json_t::parse(noise_model_string));
+                 }
+                }                 
 
                  return self.execute(circuits, noise_model_native, config);
                });

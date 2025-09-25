@@ -21,7 +21,7 @@ if(CMAKE_HOST_SYSTEM_PROCESSOR STREQUAL "x86_64" OR CMAKE_HOST_SYSTEM_PROCESSOR 
 endif()
 
 set(AER_SIMULATOR_SOURCES "bindings.cc" "${SIMD_SOURCE_FILE}")
-pybind11_add_module(controller_wrappers "${AER_SIMULATOR_SOURCES}")
+pybind11_add_module(controller_wrappers bindings.cc "${AER_SIMULATOR_SOURCES}")
 
 if(AER_THRUST_BACKEND STREQUAL "CUDA")
     include(nvcc_add_compiler_options)
@@ -61,7 +61,7 @@ else()
 endif()
 target_include_directories(controller_wrappers PRIVATE ${AER_SIMULATOR_CPP_SRC_DIR}
                                                PRIVATE ${AER_SIMULATOR_CPP_EXTERNAL_LIBS})
-target_link_libraries(controller_wrappers PRIVATE ${AER_LIBRARIES})
+target_link_libraries(controller_wrappers PRIVATE pybind11::headers pybind11::module ${AER_LIBRARIES})
 target_compile_definitions(controller_wrappers PRIVATE ${AER_COMPILER_DEFINITIONS})
 install(TARGETS controller_wrappers LIBRARY DESTINATION qiskit_aer/backends)
 

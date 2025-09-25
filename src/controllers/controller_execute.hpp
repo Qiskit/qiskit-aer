@@ -28,7 +28,7 @@
 
 namespace AER {
 
-  template <class controller_t>
+template <class controller_t>
 Result controller_execute(std::vector<std::shared_ptr<Circuit>> &input_circs,
                           AER::Noise::NoiseModel &noise_model,
                           AER::Config &config) {
