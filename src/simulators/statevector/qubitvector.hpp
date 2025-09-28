@@ -2324,8 +2324,8 @@ double QubitVector<data_t>::expval_pauli(const reg_t &qubits,
     return std::real(apply_reduction_lambda(std::move(lambda)));
   }
 
-  const uint_t mask_u = ~MASKS[x_max + 1];
-  const uint_t mask_l = MASKS[x_max];
+  uint_t mask_u = ~MASKS[x_max + 1];
+  uint_t mask_l = MASKS[x_max];
   auto lambda = [&](const int_t i, double &val_re, double &val_im) -> void {
     (void)val_im; // unused
     int_t idxs[2];
@@ -2415,8 +2415,8 @@ void QubitVector<data_t>::apply_pauli(const reg_t &qubits,
     return;
   }
 
-  const uint_t mask_u = ~MASKS[x_max + 1];
-  const uint_t mask_l = MASKS[x_max];
+  uint_t mask_u = ~MASKS[x_max + 1];
+  uint_t mask_l = MASKS[x_max];
   auto lambda = [&](const int_t i) -> void {
     int_t idxs[2];
     idxs[0] = ((i << 1) & mask_u) | (i & mask_l);
