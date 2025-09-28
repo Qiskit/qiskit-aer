@@ -82,7 +82,13 @@ def _method_device(methods):
     # add special test device for cuStateVec if available
     cuStateVec = check_cuStateVec(available_devices)
 
-    gpu_methods = ["statevector", "density_matrix", "unitary", "tensor_network"]
+    gpu_methods = [
+        "statevector",
+        "density_matrix",
+        "unitary",
+        "tensor_network",
+        "matrix_product_state",
+    ]
     batchable_methods = ["statevector", "density_matrix"]
     data_args = []
     for method in methods:
@@ -102,7 +108,11 @@ def _method_device(methods):
                     # add test cases for cuStateVec if available using special device = 'GPU_cuStateVec'
                     #'GPU_cuStateVec' is used only inside tests not available in Aer
                     # and this is converted to "device='GPU'" and option "cuStateVec_enalbe = True" is added
-                    if cuStateVec and "tensor_network" != method:
+                    if (
+                        cuStateVec
+                        and "tensor_network" != method
+                        and "matrix_product_state" != method
+                    ):
                         data_args.append((method, "GPU_cuStateVec"))
             else:
                 data_args.append((method, "CPU"))
