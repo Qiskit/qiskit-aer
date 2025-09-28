@@ -82,6 +82,7 @@ class TestSaveExpectationValueTests(SimulatorTestCase):
             "density_matrix",
             "matrix_product_state",
             "tensor_network",
+            "extended_stabilizer",
         ],
         PAULI2,
     )
@@ -102,6 +103,7 @@ class TestSaveExpectationValueTests(SimulatorTestCase):
             "density_matrix",
             "matrix_product_state",
             "tensor_network",
+            "extended_stabilizer",
         ],
         PAULI2,
     )
@@ -121,6 +123,7 @@ class TestSaveExpectationValueTests(SimulatorTestCase):
             "density_matrix",
             "matrix_product_state",
             "tensor_network",
+            "extended_stabilizer",
         ],
         PAULI2,
     )
@@ -140,6 +143,7 @@ class TestSaveExpectationValueTests(SimulatorTestCase):
             "density_matrix",
             "matrix_product_state",
             "tensor_network",
+            "extended_stabilizer",
         ],
         [[0, 1], [1, 0], [0, 2], [2, 0], [1, 2], [2, 1]],
     )
@@ -158,6 +162,7 @@ class TestSaveExpectationValueTests(SimulatorTestCase):
             "density_matrix",
             "matrix_product_state",
             "tensor_network",
+            "extended_stabilizer",
         ],  # , 'extended_stabilizer'],
         [[0, 1], [1, 0], [0, 2], [2, 0], [1, 2], [2, 1]],
     )
@@ -169,7 +174,14 @@ class TestSaveExpectationValueTests(SimulatorTestCase):
         self._test_save_expval(circ, oper, qubits, True, method=method, device=device)
 
     @supported_methods(
-        ["automatic", "statevector", "density_matrix", "matrix_product_state", "tensor_network"],
+        [
+            "automatic",
+            "statevector",
+            "density_matrix",
+            "matrix_product_state",
+            "tensor_network",
+            "extended_stabilizer",
+        ],
         PAULI2,
     )
     def test_save_expval_nonstabilizer_pauli(self, method, device, pauli):
