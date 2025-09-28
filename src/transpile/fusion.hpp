@@ -579,6 +579,9 @@ int DiagonalFusion::get_next_diagonal_end(
     const oplist_t &ops, const int from, const int end,
     std::set<uint_t> &fusing_qubits) const {
 
+  if (ops.size() <= from)
+    return -1;
+
   if (is_diagonal_op(ops[from])) {
     for (const auto qubit : ops[from].qubits)
       fusing_qubits.insert(qubit);
