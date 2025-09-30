@@ -20,8 +20,9 @@ if(CMAKE_HOST_SYSTEM_PROCESSOR STREQUAL "x86_64" OR CMAKE_HOST_SYSTEM_PROCESSOR 
     endif()
 endif()
 
+set(PYBIND11_FINDPYTHON ON)
 if (NOT COMMAND Python_add_library AND NOT COMMAND python_add_library)
-  find_package(Python COMPONENTS Interpreter Development REQUIRED)
+  find_package(Python COMPONENTS Interpreter REQUIRED)
 endif()
 
 set(AER_SIMULATOR_SOURCES "bindings.cc" "${SIMD_SOURCE_FILE}")
