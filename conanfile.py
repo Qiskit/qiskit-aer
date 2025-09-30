@@ -10,6 +10,7 @@ class AerConan(ConanFile):
         self.requires("spdlog/1.13.0")
         self.requires("fmt/10.2.1")
         self.requires("pybind11/2.11.1")
+        self.requires("thrust/1.16.0")
 
         if self.settings.os in ["Linux", "Macos"]:
             self.requires("llvm-openmp/20.1.6")
