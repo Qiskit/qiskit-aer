@@ -70,8 +70,8 @@ endif()
 if(AER_THRUST_BACKEND STREQUAL "CUDA")
   include(nvcc_add_compiler_options)
   set(CUDA_FOUND TRUE)
-  #include(FindCUDA) # for cuda_select_nvcc_arch_flags, CUDA_FOUND
-  include(FindCUDA/select_compute_arch)
+  enable_language(CUDA)
+  find_package(CUDAToolkit REQUIRED)
 else()
   # idiosyncrasy of CMake that it still creates a reference to this
   set(CMAKE_CUDA_COMPILE_WHOLE_COMPILATION "")

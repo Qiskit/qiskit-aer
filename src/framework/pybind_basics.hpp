@@ -187,7 +187,8 @@ py::array_t<T, py::array::f_style> to_numpy(matrix<T> &&src) {
   auto capsule = py::capsule(
       src_ptr, [](void *p) { delete reinterpret_cast<matrix<T> *>(p); });
   std::array<py::ssize_t, 2> strides{
-      sizeof(T), sizeof(T) * static_cast<py::ssize_t>(src_ptr->GetRows())};
+      static_cast<py::ssize_t>(sizeof(T)),
+      static_cast<py::ssize_t>(sizeof(T) * src_ptr->GetRows())};
   return py::array_t<T, py::array::f_style>(shape, strides, src_ptr->data(),
                                             capsule);
 }
