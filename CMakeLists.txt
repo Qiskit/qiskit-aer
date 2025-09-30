@@ -11,6 +11,9 @@
 cmake_minimum_required(VERSION 3.8 FATAL_ERROR)
 file(STRINGS "qiskit_aer/VERSION.txt" VERSION_NUM)
 
+set(PYBIND11_FINDPYTHON ON)
+find_package(Python COMPONENTS Interpreter REQUIRED)
+
 # For ROCm builds we need to make sure the CXX and HIP compilers match and are clang.
 # We should do this before the project() call to make sure the compiler options are
 # properly assessed.
