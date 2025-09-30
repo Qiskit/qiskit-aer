@@ -1,6 +1,7 @@
 include MANIFEST.in
 include README.md
 include pyproject.toml
+include conanfile.py
 recursive-include qiskit_aer *cpp
 recursive-include qiskit_aer *hpp
 graft src

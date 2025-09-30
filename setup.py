@@ -4,11 +4,14 @@
 Main setup file for qiskit-aer
 """
 import os
+import pathlib
 import platform
 
+import subprocess
 import setuptools
 from skbuild import setup
 
+DEBUG_MODE = os.environ.get("DEBUG") is not None
 PACKAGE_NAME = os.getenv("QISKIT_AER_PACKAGE_NAME", "qiskit-aer")
 CUDA_MAJOR = os.getenv("QISKIT_AER_CUDA_MAJOR", "12")
 
@@ -85,11 +88,53 @@ README_PATH = os.path.join(os.path.abspath(os.path.dirname(__file__)), "README.m
 with open(README_PATH) as readme_file:
     README = readme_file.read()
 
+# run Conan
+BUILD_DIR = os.path.join(os.path.dirname(__file__), "build")
+os.makedirs(BUILD_DIR, exist_ok=True)
+try:
+    subprocess.check_call(["conan", "profile", "detect"], cwd=BUILD_DIR)
+    print("CONAN: New profile generated")
+except subprocess.CalledProcessError:
+    print("CONAN: profile already exists")
+
+conan_profile_path = pathlib.Path.home() / ".conan2" / "profiles" / "default"
+if conan_profile_path.exists():
+    print(f"CONAN: Profile found:")
+    print(conan_profile_path.read_text())
+else:
+    print(f"CONAN: Profile not found")
+
+subprocess.check_call(
+    [
+        "conan",
+        "install",
+        os.path.dirname(__file__),
+        "--output-folder=build",
+        "--build=missing",
+        "-s",
+        "compiler.cppstd=17",
+        "-s",
+        f"build_type={'Debug' if DEBUG_MODE else 'Release'}",
+        "-v",
+        "debug",
+    ]
+)
+
+CONAN_TOOLCHAIN_FILE = os.path.join(BUILD_DIR, "conan_toolchain.cmake")
 
 cmake_args = []
-is_win_32_bit = platform.system() == "Windows" and platform.architecture()[0] == "32bit"
-if is_win_32_bit:
-    cmake_args.append("-DCMAKE_GENERATOR_PLATFORM=Win32")
+cmake_args.append(f"-DCMAKE_TOOLCHAIN_FILE={CONAN_TOOLCHAIN_FILE}")
+# try to be as verbose as possible
+cmake_args.append(f"-DCMAKE_VERBOSE_MAKEFILE:BOOL=ON")
+cmake_args.append(f"-DCMAKE_MESSAGE_LOG_LEVEL=STATUS")
+
+if DEBUG_MODE:
+    cmake_args.append(f"-DCMAKE_BUILD_TYPE=Debug")
+
+if platform.system() == "Windows":
+    cmake_args.append(f"-DCMAKE_POLICY_DEFAULT_CMP0091=NEW")
+    if platform.architecture()[0] == "32bit":
+        cmake_args.append("-DCMAKE_GENERATOR_PLATFORM=Win32")
 
 
 setup(
