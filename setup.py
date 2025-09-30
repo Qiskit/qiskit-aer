@@ -4,6 +4,7 @@
 Main setup file for qiskit-aer
 """
 import os
+import pathlib
 import platform
 
 import subprocess
@@ -92,9 +93,16 @@ BUILD_DIR = os.path.join(os.path.dirname(__file__), "build")
 os.makedirs(BUILD_DIR, exist_ok=True)
 try:
     subprocess.check_call(["conan", "profile", "detect"], cwd=BUILD_DIR)
+    print("CONAN: New profile generated")
 except subprocess.CalledProcessError:
-    pass
+    print("CONAN: profile already exists")
 
+conan_profile_path = pathlib.Path.home() / ".conan2" / "profiles" / "default"
+if conan_profile_path.exists():
+    print(f"CONAN: Profile found:")
+    print(conan_profile_path.read_text())
+else:
+    print(f"CONAN: Profile not found")
 
 subprocess.check_call(
     [
