@@ -86,20 +86,20 @@ void bind_aer_controller(MODULE m) {
                [aer_ctrl](const ControllerExecutor<Controller> &self) {
                  return py::make_tuple(aer_ctrl, py::tuple());
                });
-  aer_ctrl.def("execute",
-               [aer_ctrl](ControllerExecutor<Controller> &self,
-                          std::vector<std::shared_ptr<Circuit>> &circuits,
-                          py::object noise_model, AER::Config &config) {
-                 Noise::NoiseModel noise_model_native;
-                 if (noise_model) {
-                  if (py::isinstance<py::str>(noise_model)) {
-                    auto noise_model_string = noise_model.cast<std::string>();
-                    noise_model_native.load_from_json(json_t::parse(noise_model_string));
-                 }
-                }                 
+  aer_ctrl.def("execute", [aer_ctrl](
+                              ControllerExecutor<Controller> &self,
+                              std::vector<std::shared_ptr<Circuit>> &circuits,
+                              py::object noise_model, AER::Config &config) {
+    Noise::NoiseModel noise_model_native;
+    if (noise_model) {
+      if (py::isinstance<py::str>(noise_model)) {
+        auto noise_model_string = noise_model.cast<std::string>();
+        noise_model_native.load_from_json(json_t::parse(noise_model_string));
+      }
+    }
 
-                 return self.execute(circuits, noise_model_native, config);
-               });
+    return self.execute(circuits, noise_model_native, config);
+  });
 
   aer_ctrl.def("available_devices",
                [aer_ctrl](ControllerExecutor<Controller> &self) {
