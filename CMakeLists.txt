@@ -8,7 +8,7 @@
 # For Mac, statically linking only happens with user libraries, system libraries cannot
 # be linked statically per Apple's indications.
 
-cmake_minimum_required(VERSION 3.15 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.25 FATAL_ERROR)
 file(STRINGS "qiskit_aer/VERSION.txt" VERSION_NUM)
 
 set(PYBIND11_FINDPYTHON ON)
