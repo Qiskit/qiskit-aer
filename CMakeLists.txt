@@ -249,10 +249,7 @@ if(CMAKE_HOST_SYSTEM_PROCESSOR STREQUAL "x86_64" OR CMAKE_HOST_SYSTEM_PROCESSOR 
 	endif()
 endif()
 
-find_package(OpenMP)
-if (OpenMP_CXX_FOUND)
-    target_link_libraries(your_target PRIVATE OpenMP::OpenMP_CXX)
-endif()
+
 set(AER_THRUST_SUPPORTED TRUE)
 if(AER_THRUST_SUPPORTED)
 	if(AER_THRUST_BACKEND STREQUAL "CUDA")
