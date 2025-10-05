@@ -76,4 +76,30 @@ __device__ T __shfl_aux(T var, int lane) {
 #define cudaStream_t hipStream_t
 #define cudaSuccess hipSuccess
 
+// ROCm 6.0+ Memory Management APIs
+#ifdef AER_ROCM_6_PLUS
+#define cudaMallocManaged hipMallocManaged
+#define cudaMemPrefetchAsync hipMemPrefetchAsync
+#define cudaMemAdvise hipMemAdvise
+#define cudaMemAdviseSetReadMostly hipMemAdviseSetReadMostly
+#define cudaMemAdviseSetPreferredLocation hipMemAdviseSetPreferredLocation
+#define cudaMemAdviseSetAccessedBy hipMemAdviseSetAccessedBy
+#define cudaDeviceGetP2PAttribute hipDeviceGetP2PAttribute
+#define cudaDevP2PAttrLinkType hipDevP2PAttrLinkType
+#define cudaDevP2PAttrHdpMemFlushCntl hipDevP2PAttrHdpMemFlushCntl
+#endif
+
+// ROCm 7.0+ HIP Graph APIs
+#ifdef AER_ROCM_7_PLUS
+#define cudaGraph_t hipGraph_t
+#define cudaGraphExec_t hipGraphExec_t
+#define cudaStreamBeginCapture hipStreamBeginCapture
+#define cudaStreamEndCapture hipStreamEndCapture
+#define cudaGraphInstantiate hipGraphInstantiate
+#define cudaGraphLaunch hipGraphLaunch
+#define cudaGraphDestroy hipGraphDestroy
+#define cudaGraphExecDestroy hipGraphExecDestroy
+#define cudaStreamCaptureModeGlobal hipStreamCaptureModeGlobal
+#endif
+
 #endif //__HIPIFY_H__
