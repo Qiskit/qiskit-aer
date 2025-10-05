@@ -45,6 +45,70 @@ that have CUDA support, you will have to build from source. You can refer to
 the [contributing guide](CONTRIBUTING.md#building-with-gpu-support)
 for instructions on doing this.
 
+### AMD ROCm GPU Support
+
+Qiskit Aer also supports AMD GPUs via ROCm (5.0+). To use AMD GPUs, you need to build from source:
+
+#### Prerequisites
+- ROCm 5.0 or newer (ROCm 7.x recommended for latest features)
+- AMD GPU: MI100/MI200/MI300 (data center) or RX 6000/7000 series (consumer)
+- Ubuntu 20.04/22.04 or compatible Linux distribution
+
+#### Quick Start with Auto-Detection
+```bash
+# 1. Install ROCm (if not already installed)
+# Follow: https://rocm.docs.amd.com/
+
+# 2. Detect your GPU and generate build script
+./tools/detect_rocm.sh
+
+# 3. Run the generated build script
+bash /tmp/qiskit_aer_rocm_build.sh
+```
+
+#### Manual Build
+```bash
+export ROCM_PATH=/opt/rocm
+export AER_THRUST_BACKEND=ROCM
+export AER_ROCM_ARCH=gfx90a  # Your GPU architecture (see table below)
+
+python3 -m pip install -r requirements-dev.txt
+QISKIT_AER_PACKAGE_NAME='qiskit-aer-gpu-rocm' \
+    python3 setup.py bdist_wheel -- \
+        -DAER_THRUST_BACKEND=ROCM \
+        -DAER_ROCM_ARCH=gfx90a
+python3 -m pip install --force-reinstall dist/qiskit_aer_gpu_rocm-*.whl
+```
+
+#### Supported AMD GPU Architectures
+
+| GPU Family | Architecture | Example GPUs | Recommended blocking_qubits |
+|------------|-------------|--------------|------------------------------|
+| MI300 | gfx940, gfx941, gfx942 | MI300A/X | 28 (192GB HBM3) |
+| MI200 | gfx90a | MI210, MI250X | 27 (64-128GB HBM2e) |
+| MI100 | gfx908 | MI100 | 25 (32GB HBM2) |
+| RX 7000 | gfx1100 | RX 7900 XTX | 25 (24GB GDDR6) |
+| RX 6000 | gfx1030 | RX 6900 XT | 24 (16GB GDDR6) |
+
+#### Usage Example
+```python
+from qiskit_aer import AerSimulator
+
+# Create GPU simulator
+sim = AerSimulator(method='statevector', device='GPU')
+
+# Check available devices
+print(sim.available_devices())  # Should show GPU
+
+# Run with memory management
+result = sim.run(circuit, 
+                 blocking_enable=True,
+                 blocking_qubits=27,  # Adjust for your GPU
+                 shots=1000).result()
+```
+
+For detailed ROCm build instructions, see the [contributing guide](CONTRIBUTING.md#building-with-rocm-support).
+
 ## Simulating your first Qiskit circuit with Aer
 Now that you have Aer installed, you can start simulating quantum circuits using primitives and noise models. Here is a basic example:
 
