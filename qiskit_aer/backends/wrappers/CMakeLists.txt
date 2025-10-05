@@ -1,4 +1,5 @@
 include(Linter)
+find_package(Python3 COMPONENTS Interpreter Development.Module REQUIRED)
 find_package(pybind11 CONFIG REQUIRED)
 
 # We need to remove the -static flag, because Python Extension system only supports
