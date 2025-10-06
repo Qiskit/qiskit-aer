@@ -169,6 +169,13 @@ function(conan_cmake_settings result)
         if(${_CONAN_SETTING_COMPILER} STREQUAL clang AND ${MAJOR} GREATER 7)
             set(_CONAN_SETTING_COMPILER_VERSION ${MAJOR})
         endif()
+        # Workaround for Conan 1.x: Clang versions > 17 are not recognized
+        # ROCm 7.0+ ships with Clang 20.0, but Conan 1.x only supports up to Clang 17
+        # The ABI is compatible, so we can safely report version 17
+        if(${_CONAN_SETTING_COMPILER} STREQUAL clang AND ${MAJOR} GREATER 17)
+            message(STATUS "Conan: Detected Clang ${MAJOR}, but Conan 1.x only supports up to version 17. Using version 17 (ABI compatible).")
+            set(_CONAN_SETTING_COMPILER_VERSION 17)
+        endif()
         if (USING_CXX)
             conan_cmake_detect_unix_libcxx(_LIBCXX)
             set(_CONAN_SETTING_COMPILER_LIBCXX ${_LIBCXX})
