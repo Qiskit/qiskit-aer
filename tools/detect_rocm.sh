@@ -61,8 +61,9 @@ detect_gpus() {
         exit 1
     fi
     
-    # Extract unique architectures
-    GPU_ARCHS=$(echo "$GPU_LIST" | awk '{print $2}' | sort -u)
+    # Extract unique architectures (filter to simple gfx format only)
+    # This filters out verbose names like "amdgcn-amd-amdhsa--gfx942:sramecc+:xnack-"
+    GPU_ARCHS=$(echo "$GPU_LIST" | awk '{print $2}' | grep -oE '^gfx[0-9a-f]+$' | sort -u)
     
     echo -e "${GREEN}✓ Found AMD GPU(s):${NC}"
     for arch in $GPU_ARCHS; do
@@ -103,25 +104,44 @@ generate_build_cmd() {
     
     ARCH_LIST=$(echo "$GPU_ARCHS" | tr '\n' ' ' | xargs)
     
-    cat > /tmp/qiskit_aer_rocm_build.sh <<EOF
+    cat > /tmp/qiskit_aer_rocm_build.sh <<'EOF'
 #!/bin/bash
 # Generated ROCm build script for Qiskit Aer
-# GPU Architectures: ${ARCH_LIST}
-# Generated: $(date)
+# GPU Architectures: ARCH_LIST_PLACEHOLDER
+# Generated: DATE_PLACEHOLDER
 
 set -e
 
 # Set environment variables
 export ROCM_PATH=/opt/rocm
 export AER_THRUST_BACKEND=ROCM
-export AER_ROCM_ARCH="${ARCH_LIST}"
-export CMAKE_CXX_COMPILER=\${ROCM_PATH}/llvm/bin/clang++
-export CMAKE_HIP_COMPILER=\${ROCM_PATH}/llvm/bin/clang++
+export AER_ROCM_ARCH="ARCH_LIST_PLACEHOLDER"
+export CMAKE_CXX_COMPILER=${ROCM_PATH}/llvm/bin/clang++
+export CMAKE_HIP_COMPILER=${ROCM_PATH}/llvm/bin/clang++
 
 # Ensure we're in the qiskit-aer directory
 if [ ! -f "setup.py" ] || [ ! -f "CMakeLists.txt" ]; then
     echo "Error: Please run this script from the qiskit-aer root directory"
     exit 1
+fi
+
+# Detect Clang version and configure Conan if needed
+CLANG_VERSION=$($CMAKE_CXX_COMPILER --version | grep -oP 'clang version \K[0-9]+' | head -1)
+echo "Detected Clang version: $CLANG_VERSION"
+
+# Workaround for Conan 1.x with Clang > 17 (ROCm 7.0+)
+if [ "$CLANG_VERSION" -gt 17 ] 2>/dev/null; then
+    echo "Note: Clang $CLANG_VERSION detected. Configuring Conan for compatibility..."
+    
+    # Update Conan profile to use Clang 17 (closest supported version)
+    if [ ! -f ~/.conan/profiles/default ]; then
+        conan profile new default --detect 2>/dev/null || true
+    fi
+    
+    # Modify the Conan profile to use Clang 17
+    conan profile update settings.compiler.version=17 default 2>/dev/null || true
+    
+    echo "Conan profile updated to use Clang 17 for compatibility"
 fi
 
 # Install Python dependencies
@@ -130,10 +150,10 @@ python3 -m pip install -r requirements-dev.txt
 
 # Build wheel
 echo "Building qiskit-aer-gpu-rocm wheel..."
-QISKIT_AER_PACKAGE_NAME='qiskit-aer-gpu-rocm' \\
-    python3 setup.py bdist_wheel -- \\
-        -DAER_THRUST_BACKEND=ROCM \\
-        -DAER_ROCM_ARCH="${ARCH_LIST}" \\
+QISKIT_AER_PACKAGE_NAME='qiskit-aer-gpu-rocm' \
+    python3 setup.py bdist_wheel -- \
+        -DAER_THRUST_BACKEND=ROCM \
+        -DAER_ROCM_ARCH="ARCH_LIST_PLACEHOLDER" \
         -DCMAKE_BUILD_TYPE=Release
 
 # Install
@@ -146,6 +166,10 @@ echo ""
 echo "Test with:"
 echo "  python3 -c 'from qiskit_aer import AerSimulator; sim = AerSimulator(device=\"GPU\"); print(\"GPU available:\", sim.available_devices())'"
 EOF
+
+    # Replace placeholders
+    sed -i "s/ARCH_LIST_PLACEHOLDER/${ARCH_LIST}/g" /tmp/qiskit_aer_rocm_build.sh
+    sed -i "s/DATE_PLACEHOLDER/$(date)/g" /tmp/qiskit_aer_rocm_build.sh
 
     chmod +x /tmp/qiskit_aer_rocm_build.sh
     
@@ -187,18 +211,18 @@ show_next_steps() {
     echo -e "${BLUE}╚════════════════════════════════════════════════════════╝${NC}"
     echo ""
     echo "1. Review the generated build script:"
-    echo "   ${GREEN}cat /tmp/qiskit_aer_rocm_build.sh${NC}"
+    echo -e "   ${GREEN}cat /tmp/qiskit_aer_rocm_build.sh${NC}"
     echo ""
     echo "2. Run the build from qiskit-aer directory:"
-    echo "   ${GREEN}bash /tmp/qiskit_aer_rocm_build.sh${NC}"
+    echo -e "   ${GREEN}bash /tmp/qiskit_aer_rocm_build.sh${NC}"
     echo ""
     echo "3. Or copy environment variables:"
-    echo "   ${GREEN}export ROCM_PATH=/opt/rocm${NC}"
-    echo "   ${GREEN}export AER_THRUST_BACKEND=ROCM${NC}"
-    echo "   ${GREEN}export AER_ROCM_ARCH=\"${ARCH_LIST}\"${NC}"
+    echo -e "   ${GREEN}export ROCM_PATH=/opt/rocm${NC}"
+    echo -e "   ${GREEN}export AER_THRUST_BACKEND=ROCM${NC}"
+    echo -e "   ${GREEN}export AER_ROCM_ARCH=\"${ARCH_LIST}\"${NC}"
     echo ""
     echo "4. Quick test after installation:"
-    echo "   ${GREEN}python3 -c 'from qiskit_aer import AerSimulator; sim = AerSimulator(device=\"GPU\"); print(sim.available_devices())'${NC}"
+    echo -e "   ${GREEN}python3 -c 'from qiskit_aer import AerSimulator; sim = AerSimulator(device=\"GPU\"); print(sim.available_devices())'${NC}"
     echo ""
 }
 
