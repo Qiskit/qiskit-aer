@@ -51,31 +51,49 @@ macro(setup_conan)
     endif()
     if (CMAKE_OSX_ARCHITECTURES STREQUAL "arm64")
         # ARM macOS build - force GCC for dependencies if using ROCM/CUDA
-        set(CONAN_SETTINGS)
         if(AER_THRUST_BACKEND STREQUAL "ROCM" OR AER_THRUST_BACKEND STREQUAL "CUDA")
             execute_process(COMMAND gcc --version OUTPUT_VARIABLE GCC_VERSION_OUTPUT)
             string(REGEX MATCH "gcc \\(.*\\) ([0-9]+)\\.([0-9]+)" GCC_VERSION_MATCH "${GCC_VERSION_OUTPUT}")
             if(GCC_VERSION_MATCH)
                 set(GCC_MAJOR ${CMAKE_MATCH_1})
                 message(STATUS "Conan: Using system GCC ${GCC_MAJOR} for building dependencies (ROCm/CUDA build)")
-                set(CONAN_SETTINGS SETTINGS compiler=gcc SETTINGS compiler.version=${GCC_MAJOR} SETTINGS compiler.libcxx=libstdc++11)
+                conan_cmake_run(REQUIRES ${REQUIREMENTS}
+                                OPTIONS ${CONAN_OPTIONS}
+                                SETTINGS compiler=gcc
+                                SETTINGS compiler.version=${GCC_MAJOR}
+                                SETTINGS compiler.libcxx=libstdc++11
+                                ENV CONAN_CMAKE_PROGRAM=${CMAKE_COMMAND}
+                                BASIC_SETUP COMPILER_ARGS="-DCONAN_DISABLE_CHECK_COMPILER=ON"
+                                CMAKE_TARGETS
+                                KEEP_RPATHS
+                                ARCH armv8
+                                SETTINGS arch_build=armv8
+                                BUILD missing)
+            else()
+                conan_cmake_run(REQUIRES ${REQUIREMENTS}
+                                OPTIONS ${CONAN_OPTIONS}
+                                ENV CONAN_CMAKE_PROGRAM=${CMAKE_COMMAND}
+                                BASIC_SETUP
+                                CMAKE_TARGETS
+                                KEEP_RPATHS
+                                ARCH armv8
+                                SETTINGS arch_build=armv8
+                                BUILD missing)
             endif()
+        else()
+            conan_cmake_run(REQUIRES ${REQUIREMENTS}
+                            OPTIONS ${CONAN_OPTIONS}
+                            ENV CONAN_CMAKE_PROGRAM=${CMAKE_COMMAND}
+                            BASIC_SETUP
+                            CMAKE_TARGETS
+                            KEEP_RPATHS
+                            ARCH armv8
+                            SETTINGS arch_build=armv8
+                            BUILD missing)
         endif()
-        
-        conan_cmake_run(REQUIRES ${REQUIREMENTS}
-                        OPTIONS ${CONAN_OPTIONS}
-                        ${CONAN_SETTINGS}
-                        ENV CONAN_CMAKE_PROGRAM=${CMAKE_COMMAND}
-                        BASIC_SETUP
-                        CMAKE_TARGETS
-                        KEEP_RPATHS
-                        ARCH armv8
-                        SETTINGS arch_build=armv8
-                        BUILD missing)
     else()
         # When using ROCm or CUDA, force Conan to use system GCC for building dependencies
         # This avoids issues where Conan detects ROCm Clang but system uses GCC
-        set(CONAN_SETTINGS)
         if(AER_THRUST_BACKEND STREQUAL "ROCM" OR AER_THRUST_BACKEND STREQUAL "CUDA")
             # Find system GCC version for Conan
             execute_process(COMMAND gcc --version OUTPUT_VARIABLE GCC_VERSION_OUTPUT)
@@ -83,18 +101,37 @@ macro(setup_conan)
             if(GCC_VERSION_MATCH)
                 set(GCC_MAJOR ${CMAKE_MATCH_1})
                 message(STATUS "Conan: Using system GCC ${GCC_MAJOR} for building dependencies (ROCm/CUDA build)")
-                set(CONAN_SETTINGS SETTINGS compiler=gcc SETTINGS compiler.version=${GCC_MAJOR} SETTINGS compiler.libcxx=libstdc++11)
+                # Override Conan's auto-detection by explicitly setting compiler to GCC
+                conan_cmake_run(REQUIRES ${REQUIREMENTS}
+                                OPTIONS ${CONAN_OPTIONS}
+                                SETTINGS compiler=gcc
+                                SETTINGS compiler.version=${GCC_MAJOR}
+                                SETTINGS compiler.libcxx=libstdc++11
+                                ENV CONAN_CMAKE_PROGRAM=${CMAKE_COMMAND}
+                                BASIC_SETUP COMPILER_ARGS="-DCONAN_DISABLE_CHECK_COMPILER=ON"
+                                CMAKE_TARGETS
+                                KEEP_RPATHS
+                                BUILD missing)
+            else()
+                # Fallback to normal build if GCC detection fails
+                conan_cmake_run(REQUIRES ${REQUIREMENTS}
+                                OPTIONS ${CONAN_OPTIONS}
+                                ENV CONAN_CMAKE_PROGRAM=${CMAKE_COMMAND}
+                                BASIC_SETUP
+                                CMAKE_TARGETS
+                                KEEP_RPATHS
+                                BUILD missing)
             endif()
+        else()
+            # Normal CPU build - let Conan auto-detect
+            conan_cmake_run(REQUIRES ${REQUIREMENTS}
+                            OPTIONS ${CONAN_OPTIONS}
+                            ENV CONAN_CMAKE_PROGRAM=${CMAKE_COMMAND}
+                            BASIC_SETUP
+                            CMAKE_TARGETS
+                            KEEP_RPATHS
+                            BUILD missing)
         endif()
-        
-        conan_cmake_run(REQUIRES ${REQUIREMENTS}
-                        OPTIONS ${CONAN_OPTIONS}
-                        ${CONAN_SETTINGS}
-                        ENV CONAN_CMAKE_PROGRAM=${CMAKE_COMMAND}
-                        BASIC_SETUP
-                        CMAKE_TARGETS
-                        KEEP_RPATHS
-                        BUILD missing)
     endif()
 
     # Headers includes
