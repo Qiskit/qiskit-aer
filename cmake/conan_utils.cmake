@@ -57,13 +57,16 @@ macro(setup_conan)
             if(GCC_VERSION_MATCH)
                 set(GCC_MAJOR ${CMAKE_MATCH_1})
                 message(STATUS "Conan: Using system GCC ${GCC_MAJOR} for building dependencies (ROCm/CUDA build)")
+                set(ENV{CONAN_DISABLE_CHECK_COMPILER} "TRUE")
                 conan_cmake_run(REQUIRES ${REQUIREMENTS}
                                 OPTIONS ${CONAN_OPTIONS}
+                                PROFILE_AUTO NONE
                                 SETTINGS compiler=gcc
                                 SETTINGS compiler.version=${GCC_MAJOR}
                                 SETTINGS compiler.libcxx=libstdc++11
+                                SETTINGS build_type=Release
                                 ENV CONAN_CMAKE_PROGRAM=${CMAKE_COMMAND}
-                                BASIC_SETUP COMPILER_ARGS="-DCONAN_DISABLE_CHECK_COMPILER=ON"
+                                BASIC_SETUP
                                 CMAKE_TARGETS
                                 KEEP_RPATHS
                                 ARCH armv8
@@ -101,14 +104,19 @@ macro(setup_conan)
             if(GCC_VERSION_MATCH)
                 set(GCC_MAJOR ${CMAKE_MATCH_1})
                 message(STATUS "Conan: Using system GCC ${GCC_MAJOR} for building dependencies (ROCm/CUDA build)")
+                # Set environment variable to disable compiler check in conanbuildinfo.cmake
+                set(ENV{CONAN_DISABLE_CHECK_COMPILER} "TRUE")
                 # Override Conan's auto-detection by explicitly setting compiler to GCC
+                # Use PROFILE_AUTO=NONE to prevent auto-detection
                 conan_cmake_run(REQUIRES ${REQUIREMENTS}
                                 OPTIONS ${CONAN_OPTIONS}
+                                PROFILE_AUTO NONE
                                 SETTINGS compiler=gcc
                                 SETTINGS compiler.version=${GCC_MAJOR}
                                 SETTINGS compiler.libcxx=libstdc++11
+                                SETTINGS build_type=Release
                                 ENV CONAN_CMAKE_PROGRAM=${CMAKE_COMMAND}
-                                BASIC_SETUP COMPILER_ARGS="-DCONAN_DISABLE_CHECK_COMPILER=ON"
+                                BASIC_SETUP
                                 CMAKE_TARGETS
                                 KEEP_RPATHS
                                 BUILD missing)
