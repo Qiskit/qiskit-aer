@@ -267,7 +267,8 @@ else()
 		set(BACKEND_REDIST_DEPS ${BACKEND_REDIST_DEPS} "${AER_SIMULATOR_CPP_SRC_DIR}/third-party/${WIN_ARCH}/lib/libopenblas.dll")
 		set(BLAS_LIBRARIES "${AER_SIMULATOR_CPP_SRC_DIR}/third-party/${WIN_ARCH}/lib/libopenblas.dll.a") # Seems CMake is unable to find it on its own
 		set(BLAS_FOUND True)
-	else()
+	elseif(NOT (AER_THRUST_BACKEND STREQUAL "ROCM" AND BLAS_FOUND))
+		# Skip find_package(BLAS) if rocBLAS was already found for ROCm builds
 		find_package(BLAS QUIET)
 	endif()
 	if(NOT BLAS_FOUND)
