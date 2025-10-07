@@ -600,6 +600,8 @@ if(AER_THRUST_SUPPORTED)
     list(TRANSFORM ROCM_EXTRA_DEFS PREPEND -D)
     add_definitions(${ROCM_EXTRA_DEFS})
     list(APPEND ROCM_EXTRA_FLAGS ${ROCM_EXTRA_DEFS})
+    # CRITICAL: rocPRIM (used by Thrust) requires C++17 minimum
+    list(APPEND ROCM_EXTRA_FLAGS -std=c++17)
     list(APPEND ROCM_EXTRA_FLAGS -isystem${ROCM_PATH}/include; -I${AER_SIMULATOR_CPP_SRC_DIR} ; -isystem${AER_SIMULATOR_CPP_SRC_DIR}/third-party/headers; -ffast-math; -fPIC)
 
     if(CMAKE_BUILD_TYPE STREQUAL "Debug")
