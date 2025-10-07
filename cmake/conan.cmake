@@ -518,7 +518,7 @@ macro(conan_cmake_run)
     endif()
 
     if(ARGUMENTS_BASIC_SETUP)
-        foreach(_option CMAKE_TARGETS KEEP_RPATHS NO_OUTPUT_DIRS SKIP_STD)
+        foreach(_option CMAKE_TARGETS KEEP_RPATHS NO_OUTPUT_DIRS SKIP_STD SKIP_COMPILER_CHECK)
             if(ARGUMENTS_${_option})
                 if(${_option} STREQUAL "CMAKE_TARGETS")
                     list(APPEND _setup_options "TARGETS")
