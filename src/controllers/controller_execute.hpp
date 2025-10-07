@@ -87,9 +87,6 @@ Result controller_execute(std::vector<std::shared_ptr<Circuit>> &input_circs,
         circs.push_back(circ);
         template_circs.push_back(circ);
       } else {
-        // Get base circuit without truncation
-        circ->set_params(false);
-        circ->set_metadata(config, truncate);
         // Load different parameterizations of the initial circuit
         const auto &circ_params = param_table[i];
         const size_t num_params = circ_params[0].second.size();
@@ -134,14 +131,9 @@ Result controller_execute(std::vector<std::shared_ptr<Circuit>> &input_circs,
               op.params[param_pos + stride * j] = params.second[j];
           }
           // Run truncation.
-          // TODO: Truncation should be performed and parameters should be
-          // resolved after it. However, parameters are associated with indices
-          // of instructions, which can be changed in truncation. Therefore,
-          // current implementation performs truncation for each parameter set.
-          if (truncate) {
-            param_circ->set_params(true);
-            param_circ->set_metadata(config, true);
-          }
+          param_circ->set_params(truncate);
+          param_circ->set_metadata(config, truncate);
+
           circs.push_back(param_circ);
           for (size_t j = 0; j < num_params; j++)
             template_circs.push_back(circ);
@@ -178,15 +170,9 @@ Result controller_execute(std::vector<std::shared_ptr<Circuit>> &input_circs,
               }
             }
             // Run truncation.
-            // TODO: Truncation should be performed and parameters should be
-            // resolved after it. However, parameters are associated with
-            // indices of instructions, which can be changed in truncation.
-            // Therefore, current implementation performs truncation for each
-            // parameter set.
-            if (truncate) {
-              param_circ->set_params(true);
-              param_circ->set_metadata(config, true);
-            }
+            param_circ->set_params(truncate);
+            param_circ->set_metadata(config, truncate);
+
             circs.push_back(param_circ);
             template_circs.push_back(circ);
           }

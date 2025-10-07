@@ -30,7 +30,7 @@ class SaveData(Instruction):
         """Create new save data instruction.
 
         Args:
-            name (str): the name of hte save instruction.
+            name (str): the name of the save instruction.
             num_qubits (int): the number of qubits for the snapshot type.
             label (str): the key for retrieving saved data from results.
             subtype (str): the data subtype for the instruction [Default: 'single'].
@@ -79,7 +79,7 @@ class SaveAverageData(SaveData):
         """Create new save data instruction.
 
         Args:
-            name (str): the name of hte save instruction.
+            name (str): the name of the save instruction.
             num_qubits (int): the number of qubits for the snapshot type.
             label (str): the key for retrieving saved data from results.
             unnormalized (bool): If True return save the unnormalized accumulated
