@@ -43,6 +43,8 @@ if(AER_THRUST_BACKEND STREQUAL "ROCM")
   set(CMAKE_CXX_STANDARD 17)
   set(CMAKE_CXX_STANDARD_REQUIRED ON)
   set(CMAKE_CXX_EXTENSIONS OFF)
+  # Also set explicit compiler flag for HIP device code
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17")
 endif()
 
 # Add CUDA to the project if needed.
