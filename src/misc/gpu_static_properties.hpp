@@ -18,9 +18,11 @@
 #include <hip/hip_runtime.h>
 // In ROCm warpSize is a constexpr so the operations it is part for can be
 // optimized as such.
-#define _WS warpSize
+// CRITICAL: Use constexpr instead of #define for HIP/Clang compatibility
+// Clang requires true constant expressions for __shared__ array sizes
+constexpr int _WS = warpSize;
 // Maximum number of threads in a block.
-#define _MAX_THD 1024
+constexpr int _MAX_THD = 1024;
 #endif // AER_THRUST_ROCM
 
 #ifdef AER_THRUST_CUDA
