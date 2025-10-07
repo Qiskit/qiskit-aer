@@ -66,7 +66,7 @@ macro(setup_conan)
                                 SETTINGS compiler.libcxx=libstdc++11
                                 SETTINGS build_type=Release
                                 ENV CONAN_CMAKE_PROGRAM=${CMAKE_COMMAND}
-                                BASIC_SETUP
+                                BASIC_SETUP SKIP_COMPILER_CHECK
                                 CMAKE_TARGETS
                                 KEEP_RPATHS
                                 ARCH armv8
@@ -116,7 +116,7 @@ macro(setup_conan)
                                 SETTINGS compiler.libcxx=libstdc++11
                                 SETTINGS build_type=Release
                                 ENV CONAN_CMAKE_PROGRAM=${CMAKE_COMMAND}
-                                BASIC_SETUP
+                                BASIC_SETUP SKIP_COMPILER_CHECK
                                 CMAKE_TARGETS
                                 KEEP_RPATHS
                                 BUILD missing)
