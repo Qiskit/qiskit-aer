@@ -57,7 +57,7 @@ macro(setup_conan)
             if(GCC_VERSION_MATCH)
                 set(GCC_MAJOR ${CMAKE_MATCH_1})
                 message(STATUS "Conan: Using system GCC ${GCC_MAJOR} for building dependencies (ROCm/CUDA build)")
-                set(ENV{CONAN_DISABLE_CHECK_COMPILER} "TRUE")
+                set(ENV{CONAN_DISABLE_CHECK_COMPILER} 1)
                 conan_cmake_run(REQUIRES ${REQUIREMENTS}
                                 OPTIONS ${CONAN_OPTIONS}
                                 PROFILE_AUTO NONE
@@ -105,7 +105,7 @@ macro(setup_conan)
                 set(GCC_MAJOR ${CMAKE_MATCH_1})
                 message(STATUS "Conan: Using system GCC ${GCC_MAJOR} for building dependencies (ROCm/CUDA build)")
                 # Set environment variable to disable compiler check in conanbuildinfo.cmake
-                set(ENV{CONAN_DISABLE_CHECK_COMPILER} "TRUE")
+                set(ENV{CONAN_DISABLE_CHECK_COMPILER} 1)
                 # Override Conan's auto-detection by explicitly setting compiler to GCC
                 # Use PROFILE_AUTO=NONE to prevent auto-detection
                 conan_cmake_run(REQUIRES ${REQUIREMENTS}
