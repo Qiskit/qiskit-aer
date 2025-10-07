@@ -37,6 +37,12 @@ if(AER_THRUST_BACKEND STREQUAL "ROCM")
       set(CMAKE_CXX_COMPILER "${CMAKE_HIP_COMPILER}")
     endif()
   endif()
+  
+  # ROCm 7.0+ requires C++17 minimum (for rocPRIM and other libraries)
+  # Must be set BEFORE project() call
+  set(CMAKE_CXX_STANDARD 17)
+  set(CMAKE_CXX_STANDARD_REQUIRED ON)
+  set(CMAKE_CXX_EXTENSIONS OFF)
 endif()
 
 # Add CUDA to the project if needed.
@@ -436,10 +442,6 @@ if(AER_THRUST_SUPPORTED)
       "The compiler for ROCm builds must be Clang. Set CMAKE_CXX_COMPILER to <ROCm path>/llvm/bin/clang++")
     endif()
     
-    # ROCm 7.0+ requires C++17 minimum (for rocPRIM and other libraries)
-    set(CMAKE_CXX_STANDARD 17)
-    set(CMAKE_CXX_STANDARD_REQUIRED ON)
-    set(CMAKE_CXX_EXTENSIONS OFF)
     message(STATUS "ROCm build using C++${CMAKE_CXX_STANDARD}")
     
     # GDB debug information is what is needed for runs enabled with ROCm.
