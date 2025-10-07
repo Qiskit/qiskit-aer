@@ -1,20 +1,7 @@
 include(conan)
 
 macro(_rename_conan_lib package)
-    add            if(GCC_VERSION_MATCH)
-                set(GCC_MAJOR ${CMAKE_MATCH_1})
-                message(STATUS "Conan: Using system GCC ${GCC_MAJOR} for building dependencies (ROCm/CUDA build)")
-                # Pass CONAN_DISABLE_CHECK_COMPILER=1 to disable compiler mismatch check
-                conan_cmake_run(REQUIRES ${REQUIREMENTS}
-                                OPTIONS ${CONAN_OPTIONS}
-                                PROFILE_AUTO NONE
-                                SETTINGS compiler=gcc
-                                SETTINGS compiler.version=${GCC_MAJOR}
-                                SETTINGS compiler.libcxx=libstdc++11
-                                SETTINGS build_type=Release
-                                ENV CONAN_CMAKE_PROGRAM=${CMAKE_COMMAND}
-                                ENV CONAN_DISABLE_CHECK_COMPILER=1
-                                BASIC_SETUPDEPENDENCY_PKG::${package} INTERFACE IMPORTED)
+    add_library(AER_DEPENDENCY_PKG::${package} INTERFACE IMPORTED)
     target_link_libraries(AER_DEPENDENCY_PKG::${package} PUBLIC INTERFACE CONAN_PKG::${package})
 endmacro()
 
@@ -117,9 +104,10 @@ macro(setup_conan)
             if(GCC_VERSION_MATCH)
                 set(GCC_MAJOR ${CMAKE_MATCH_1})
                 message(STATUS "Conan: Using system GCC ${GCC_MAJOR} for building dependencies (ROCm/CUDA build)")
+                # Set environment variable to disable compiler check in conanbuildinfo.cmake
+                set(ENV{CONAN_DISABLE_CHECK_COMPILER} 1)
                 # Override Conan's auto-detection by explicitly setting compiler to GCC
                 # Use PROFILE_AUTO=NONE to prevent auto-detection
-                # Pass CONAN_DISABLE_CHECK_COMPILER=1 to disable compiler mismatch check
                 conan_cmake_run(REQUIRES ${REQUIREMENTS}
                                 OPTIONS ${CONAN_OPTIONS}
                                 PROFILE_AUTO NONE
@@ -128,7 +116,6 @@ macro(setup_conan)
                                 SETTINGS compiler.libcxx=libstdc++11
                                 SETTINGS build_type=Release
                                 ENV CONAN_CMAKE_PROGRAM=${CMAKE_COMMAND}
-                                ENV CONAN_DISABLE_CHECK_COMPILER=1
                                 BASIC_SETUP
                                 CMAKE_TARGETS
                                 KEEP_RPATHS
