@@ -233,9 +233,15 @@ function(conan_cmake_settings result)
         set(_SETTINGS ${_SETTINGS} -pr=${ARG})
     endforeach()
 
-    if(NOT _SETTINGS OR ARGUMENTS_PROFILE_AUTO STREQUAL "ALL")
-        set(ARGUMENTS_PROFILE_AUTO arch build_type compiler compiler.version
-                                   compiler.runtime compiler.libcxx compiler.toolset)
+    # Check if PROFILE_AUTO is explicitly set to NONE to disable auto-detection
+    if(NOT ARGUMENTS_PROFILE_AUTO STREQUAL "NONE")
+        if(NOT _SETTINGS OR ARGUMENTS_PROFILE_AUTO STREQUAL "ALL")
+            set(ARGUMENTS_PROFILE_AUTO arch build_type compiler compiler.version
+                                       compiler.runtime compiler.libcxx compiler.toolset)
+        endif()
+    else()
+        # PROFILE_AUTO=NONE means no auto-detection
+        set(ARGUMENTS_PROFILE_AUTO "")
     endif()
 
     # Automatic from CMake
