@@ -471,11 +471,11 @@ macro(conan_load_buildinfo)
     # important that it is macro, so variables defined at parent scope
     if(EXISTS "${_CONANBUILDINFOFOLDER}/${_CONANBUILDINFO}")
       message(STATUS "Conan: Loading ${_CONANBUILDINFO}")
-      # Set environment variable to disable compiler check before loading
+      # Set CMake variable to disable compiler check before loading
       # This is needed when CMake compiler differs from Conan's compiler (e.g., ROCm Clang vs GCC)
-      set(ENV{CONAN_DISABLE_CHECK_COMPILER} "1")
+      set(CONAN_DISABLE_CHECK_COMPILER TRUE)
       include(${_CONANBUILDINFOFOLDER}/${_CONANBUILDINFO})
-      unset(ENV{CONAN_DISABLE_CHECK_COMPILER})
+      unset(CONAN_DISABLE_CHECK_COMPILER)
     else()
       message(FATAL_ERROR "${_CONANBUILDINFO} doesn't exist in ${CMAKE_CURRENT_BINARY_DIR}")
     endif()
