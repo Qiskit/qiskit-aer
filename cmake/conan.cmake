@@ -474,8 +474,18 @@ macro(conan_load_buildinfo)
       
       # Patch the generated file to disable compiler check
       # This is needed when CMake compiler differs from Conan's compiler (e.g., ROCm Clang vs GCC)
-      include(${CMAKE_CURRENT_LIST_DIR}/patch_conan_buildinfo.cmake)
-      patch_conan_buildinfo("${_CONANBUILDINFOFOLDER}/${_CONANBUILDINFO}")
+      # CMAKE_CURRENT_LIST_DIR points to the cmake/ directory where this file lives
+      set(_PATCH_SCRIPT "${CMAKE_CURRENT_LIST_DIR}/patch_conan_buildinfo.cmake")
+      if(NOT EXISTS "${_PATCH_SCRIPT}")
+        # Fallback: try from project root
+        set(_PATCH_SCRIPT "${CMAKE_SOURCE_DIR}/cmake/patch_conan_buildinfo.cmake")
+      endif()
+      if(EXISTS "${_PATCH_SCRIPT}")
+        include("${_PATCH_SCRIPT}")
+        patch_conan_buildinfo("${_CONANBUILDINFOFOLDER}/${_CONANBUILDINFO}")
+      else()
+        message(WARNING "Could not find patch_conan_buildinfo.cmake at ${_PATCH_SCRIPT}")
+      endif()
       
       include(${_CONANBUILDINFOFOLDER}/${_CONANBUILDINFO})
     else()
