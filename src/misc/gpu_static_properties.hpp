@@ -16,11 +16,13 @@
 
 #ifdef AER_THRUST_ROCM
 #include <hip/hip_runtime.h>
-// In ROCm warpSize is a constexpr so the operations it is part for can be
-// optimized as such.
-// CRITICAL: Use constexpr instead of #define for HIP/Clang compatibility
-// Clang requires true constant expressions for __shared__ array sizes
-constexpr int _WS = warpSize;
+// AMD GPU wavefront sizes:
+// - CDNA (MI100/MI200/MI300): 64
+// - RDNA (RX 6000/7000): 32
+// We use 64 for CDNA as it's the most common data center GPU.
+// CRITICAL: Must be a true compile-time constant for __shared__ array declarations
+// warpSize in ROCm is a runtime builtin, not usable in constant expressions
+constexpr int _WS = 64;
 // Maximum number of threads in a block.
 constexpr int _MAX_THD = 1024;
 #endif // AER_THRUST_ROCM
