@@ -28,9 +28,9 @@ print("✓ GPU is available!")
 print()
 
 # Create a simple quantum circuit
-qc = QuantumCircuit(20)
-qc.h(range(20))
-for i in range(19):
+qc = QuantumCircuit(25)
+qc.h(range(25))
+for i in range(24):
     qc.cx(i, i + 1)
 qc.measure_all()
 
