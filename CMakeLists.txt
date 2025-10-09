@@ -252,7 +252,11 @@ else()
 		# Try to find rocSOLVER (provides LAPACK functions)
 		find_library(ROCSOLVER_LIBRARY NAMES rocsolver PATHS ${ROCM_PATH}/lib ${ROCM_PATH}/rocsolver/lib)
 		# Try to find system LAPACK (provides auxiliary functions like dlamch_)
-		find_library(SYSTEM_LAPACK_LIBRARY NAMES lapack PATHS /usr/lib/x86_64-linux-gnu /usr/lib64 /usr/lib)
+		# Search for versioned library names as well
+		find_library(SYSTEM_LAPACK_LIBRARY 
+			NAMES lapack lapack.so.3 liblapack.so.3
+			PATHS /usr/lib/x86_64-linux-gnu /usr/lib/x86_64-linux-gnu/lapack /usr/lib64 /usr/lib
+			NO_DEFAULT_PATH)
 		
 		if(ROCBLAS_LIBRARY AND ROCSOLVER_LIBRARY)
 			message(STATUS "Found rocBLAS: ${ROCBLAS_LIBRARY}")
