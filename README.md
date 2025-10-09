@@ -107,7 +107,7 @@ result = sim.run(circuit,
                  shots=1000).result()
 ```
 
-For detailed ROCm build instructions, see the [contributing guide](CONTRIBUTING.md#building-with-rocm-support).
+For detailed ROCm build instructions and troubleshooting, see [BUILDING_ROCM.md](BUILDING_ROCM.md).
 
 ## Simulating your first Qiskit circuit with Aer
 Now that you have Aer installed, you can start simulating quantum circuits using primitives and noise models. Here is a basic example:
