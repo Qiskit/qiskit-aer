@@ -68,29 +68,50 @@ def run_benchmark(device, num_qubits, shots=1024, method='statevector'):
         method (str): Simulation method
         
     Returns:
-        tuple: (execution_time, result)
+        tuple: (execution_time, result, error_message)
     """
-    # Create simulator
-    sim = AerSimulator(device=device, method=method)
-    
-    # Create and transpile circuit
-    circuit = create_benchmark_circuit(num_qubits)
-    transpiled = transpile(circuit, sim)
-    
-    # For very large circuits (>35 qubits) on GPU, enable blocking
-    run_options = {'shots': shots}
-    if device == 'GPU' and num_qubits > 35:
-        run_options['blocking_enable'] = True
-        run_options['blocking_qubits'] = 27  # Optimal for most GPUs
-    
-    # Run simulation and measure time
-    start_time = time.time()
-    result = sim.run(transpiled, **run_options).result()
-    end_time = time.time()
-    
-    execution_time = end_time - start_time
-    
-    return execution_time, result
+    try:
+        # Create simulator with explicit configuration
+        if device == 'GPU':
+            # For GPU, use method='statevector' explicitly
+            sim = AerSimulator(device='GPU', method='statevector')
+        else:
+            sim = AerSimulator(device='CPU', method='statevector')
+        
+        # Create and transpile circuit
+        circuit = create_benchmark_circuit(num_qubits)
+        transpiled = transpile(circuit, sim)
+        
+        # Configure run options
+        run_options = {'shots': shots}
+        
+        # For large circuits on GPU, enable blocking
+        if device == 'GPU' and num_qubits >= 33:
+            run_options['blocking_enable'] = True
+            run_options['blocking_qubits'] = 25  # Conservative blocking size
+        
+        # Run simulation and measure time
+        start_time = time.time()
+        result = sim.run(transpiled, **run_options).result()
+        end_time = time.time()
+        
+        execution_time = end_time - start_time
+        
+        return execution_time, result, None
+        
+    except Exception as e:
+        error_msg = str(e)
+        # Extract key error message
+        if 'bad_alloc' in error_msg:
+            error_msg = "Out of memory"
+        elif 'hipError' in error_msg:
+            error_msg = "GPU configuration error"
+        elif 'greater than' in error_msg:
+            error_msg = "Circuit too large"
+        else:
+            error_msg = error_msg[:60]  # Truncate long errors
+        
+        return None, None, error_msg
 
 
 def get_gpu_memory():
@@ -105,23 +126,22 @@ def get_gpu_memory():
                               capture_output=True, text=True, timeout=5)
         if result.returncode == 0:
             # Parse output to find VRAM size
+            # Format: "GPU[0]          : VRAM Total Memory (B): 206141652992"
             lines = result.stdout.split('\n')
             for line in lines:
-                if 'VRAM Total Memory' in line or 'Total' in line:
-                    # Extract number (in MB typically)
-                    parts = line.split()
-                    for i, part in enumerate(parts):
-                        if part.replace('.', '').isdigit():
-                            mem_mb = float(part)
-                            # Check if next part indicates units
-                            if i + 1 < len(parts):
-                                unit = parts[i + 1].lower()
-                                if 'gb' in unit:
-                                    return mem_mb
-                                elif 'mb' in unit:
-                                    return mem_mb / 1024
-                            # Assume MB if > 1000, otherwise GB
-                            return mem_mb / 1024 if mem_mb > 1000 else mem_mb
+                if 'VRAM Total Memory' in line and 'GPU[0]' in line:
+                    # Extract the bytes value
+                    parts = line.split(':')
+                    if len(parts) >= 3:
+                        # Get the number after the last colon
+                        bytes_str = parts[-1].strip()
+                        try:
+                            memory_bytes = float(bytes_str)
+                            # Convert bytes to GB
+                            memory_gb = memory_bytes / (1024 ** 3)
+                            return memory_gb
+                        except ValueError:
+                            continue
     except Exception as e:
         print(f"Warning: Could not detect GPU memory: {e}")
     
@@ -132,7 +152,7 @@ def calculate_max_qubits(gpu_memory_gb):
     """
     Calculate maximum qubits based on GPU memory.
     Formula: memory_needed = 2^n * 16 bytes (complex128)
-    Use 80% of GPU memory as safe limit.
+    Use 70% of GPU memory as safe limit (accounting for overhead).
     
     Args:
         gpu_memory_gb (float): GPU memory in GB
@@ -143,15 +163,16 @@ def calculate_max_qubits(gpu_memory_gb):
     if gpu_memory_gb is None:
         return 28  # Conservative default
     
-    # Use 80% of GPU memory for safety
-    usable_memory_bytes = gpu_memory_gb * 0.8 * (1024 ** 3)
+    # Use 70% of GPU memory for safety (GPU ops need overhead)
+    usable_memory_bytes = gpu_memory_gb * 0.7 * (1024 ** 3)
     
     # 2^n * 16 = usable_memory_bytes
     # n = log2(usable_memory_bytes / 16)
     max_qubits = int(np.log2(usable_memory_bytes / 16))
     
-    # Cap at 45 as requested, minimum 25
-    return min(max(max_qubits, 25), 45)
+    # Conservative cap at 36 for stability (192GB GPU supports ~36 qubits safely)
+    # Minimum 25 for meaningful benchmarks
+    return min(max(max_qubits, 25), 36)
 
 
 def print_device_info():
@@ -206,40 +227,61 @@ def run_comparison(num_qubits_list=[10, 15, 20, 25], shots=1024):
     """
     print(f"Running benchmarks with {shots} shots per circuit...")
     print()
-    print("-" * 70)
-    print(f"{'Qubits':<10} {'CPU Time (s)':<15} {'GPU Time (s)':<15} {'Speedup':<15}")
-    print("-" * 70)
+    print("-" * 75)
+    print(f"{'Qubits':<8} {'CPU Time (s)':<14} {'GPU Time (s)':<14} {'Speedup':<12} {'Status':<20}")
+    print("-" * 75)
     
     results = []
+    consecutive_failures = 0
     
     for num_qubits in num_qubits_list:
-        try:
-            # For circuits > 30 qubits, skip CPU benchmark (would take too long)
-            if num_qubits > 30:
-                print(f"{num_qubits:<10} {'Skipped':<15} ", end='', flush=True)
-                
-                # GPU benchmark only
-                gpu_time, gpu_result = run_benchmark('GPU', num_qubits, shots)
-                
-                print(f"{gpu_time:<15.4f} {'GPU only':<15}")
-                
+        # For circuits > 30 qubits, skip CPU benchmark (would take too long)
+        if num_qubits > 30:
+            print(f"{num_qubits:<8} {'Skipped':<14} ", end='', flush=True)
+            
+            # GPU benchmark only
+            gpu_time, gpu_result, gpu_error = run_benchmark('GPU', num_qubits, shots)
+            
+            if gpu_error:
+                print(f"{'Failed':<14} {'-':<12} {gpu_error:<20}")
+                consecutive_failures += 1
+                if consecutive_failures >= 3:
+                    print(f"\n⚠ Stopping benchmark after 3 consecutive failures")
+                    print(f"  Maximum stable qubit count: {num_qubits - 3}")
+                    break
+            else:
+                print(f"{gpu_time:<14.4f} {'GPU only':<12} {'✓':<20}")
+                consecutive_failures = 0
                 results.append({
                     'qubits': num_qubits,
                     'cpu_time': None,
                     'gpu_time': gpu_time,
                     'speedup': None
                 })
+        else:
+            # CPU benchmark
+            cpu_time, cpu_result, cpu_error = run_benchmark('CPU', num_qubits, shots)
+            
+            if cpu_error:
+                print(f"{num_qubits:<8} {'Failed':<14} {'-':<14} {'-':<12} {cpu_error:<20}")
+                continue
+            
+            # GPU benchmark
+            gpu_time, gpu_result, gpu_error = run_benchmark('GPU', num_qubits, shots)
+            
+            if gpu_error:
+                print(f"{num_qubits:<8} {cpu_time:<14.4f} {'Failed':<14} {'-':<12} {gpu_error:<20}")
+                consecutive_failures += 1
+                if consecutive_failures >= 3:
+                    print(f"\n⚠ GPU failing consistently, stopping benchmark")
+                    break
             else:
-                # CPU benchmark
-                cpu_time, cpu_result = run_benchmark('CPU', num_qubits, shots)
-                
-                # GPU benchmark
-                gpu_time, gpu_result = run_benchmark('GPU', num_qubits, shots)
-                
                 # Calculate speedup
                 speedup = cpu_time / gpu_time if gpu_time > 0 else 0
+                status = "✓" if speedup > 1 else "⚠ CPU faster"
                 
-                print(f"{num_qubits:<10} {cpu_time:<15.4f} {gpu_time:<15.4f} {speedup:<15.2f}x")
+                print(f"{num_qubits:<8} {cpu_time:<14.4f} {gpu_time:<14.4f} {speedup:<12.2f}x {status:<20}")
+                consecutive_failures = 0
                 
                 results.append({
                     'qubits': num_qubits,
@@ -247,15 +289,8 @@ def run_comparison(num_qubits_list=[10, 15, 20, 25], shots=1024):
                     'gpu_time': gpu_time,
                     'speedup': speedup
                 })
-            
-        except MemoryError as e:
-            print(f"{num_qubits:<10} Memory Error - Too large for available memory")
-            print(f"             Stopping benchmark at {num_qubits} qubits")
-            break
-        except Exception as e:
-            print(f"{num_qubits:<10} Error: {str(e)[:50]}")
     
-    print("-" * 70)
+    print("-" * 75)
     print()
     
     return results
@@ -266,11 +301,11 @@ def detailed_comparison_example():
     Run a detailed comparison showing circuit details and results.
     """
     print("\n" + "=" * 70)
-    print("Detailed Example: 20-Qubit Circuit")
+    print("Detailed Example: 25-Qubit Circuit")
     print("=" * 70)
     print()
     
-    num_qubits = 20
+    num_qubits = 25
     shots = 2048
     
     # Create circuit
@@ -284,37 +319,47 @@ def detailed_comparison_example():
     
     # CPU execution
     print("Running on CPU...")
-    cpu_time, cpu_result = run_benchmark('CPU', num_qubits, shots)
-    cpu_counts = cpu_result.get_counts()
-    print(f"  ✓ Completed in {cpu_time:.4f} seconds")
-    print(f"  - Total outcomes: {len(cpu_counts)}")
-    print(f"  - Top 3 outcomes:")
-    for i, (state, count) in enumerate(sorted(cpu_counts.items(), 
-                                               key=lambda x: x[1], 
-                                               reverse=True)[:3]):
-        print(f"    {i+1}. |{state}⟩: {count} ({100*count/shots:.1f}%)")
+    cpu_time, cpu_result, cpu_error = run_benchmark('CPU', num_qubits, shots)
+    if cpu_error:
+        print(f"  ✗ Failed: {cpu_error}")
+    else:
+        cpu_counts = cpu_result.get_counts()
+        print(f"  ✓ Completed in {cpu_time:.4f} seconds")
+        print(f"  - Total outcomes: {len(cpu_counts)}")
+        print(f"  - Top 3 outcomes:")
+        for i, (state, count) in enumerate(sorted(cpu_counts.items(), 
+                                                   key=lambda x: x[1], 
+                                                   reverse=True)[:3]):
+            print(f"    {i+1}. |{state}⟩: {count} ({100*count/shots:.1f}%)")
     print()
     
     # GPU execution
     print("Running on GPU...")
-    gpu_time, gpu_result = run_benchmark('GPU', num_qubits, shots)
-    gpu_counts = gpu_result.get_counts()
-    print(f"  ✓ Completed in {gpu_time:.4f} seconds")
-    print(f"  - Total outcomes: {len(gpu_counts)}")
-    print(f"  - Top 3 outcomes:")
-    for i, (state, count) in enumerate(sorted(gpu_counts.items(), 
-                                               key=lambda x: x[1], 
-                                               reverse=True)[:3]):
-        print(f"    {i+1}. |{state}⟩: {count} ({100*count/shots:.1f}%)")
+    gpu_time, gpu_result, gpu_error = run_benchmark('GPU', num_qubits, shots)
+    if gpu_error:
+        print(f"  ✗ Failed: {gpu_error}")
+    else:
+        gpu_counts = gpu_result.get_counts()
+        print(f"  ✓ Completed in {gpu_time:.4f} seconds")
+        print(f"  - Total outcomes: {len(gpu_counts)}")
+        print(f"  - Top 3 outcomes:")
+        for i, (state, count) in enumerate(sorted(gpu_counts.items(), 
+                                                   key=lambda x: x[1], 
+                                                   reverse=True)[:3]):
+            print(f"    {i+1}. |{state}⟩: {count} ({100*count/shots:.1f}%)")
     print()
     
     # Performance summary
-    speedup = cpu_time / gpu_time
-    print(f"Performance Summary:")
-    print(f"  - CPU Time: {cpu_time:.4f} seconds")
-    print(f"  - GPU Time: {gpu_time:.4f} seconds")
-    print(f"  - Speedup: {speedup:.2f}x")
-    print(f"  - Time saved: {cpu_time - gpu_time:.4f} seconds ({(1-gpu_time/cpu_time)*100:.1f}%)")
+    if not cpu_error and not gpu_error:
+        speedup = cpu_time / gpu_time
+        print(f"Performance Summary:")
+        print(f"  - CPU Time: {cpu_time:.4f} seconds")
+        print(f"  - GPU Time: {gpu_time:.4f} seconds")
+        print(f"  - Speedup: {speedup:.2f}x")
+        if speedup > 1:
+            print(f"  - Time saved: {cpu_time - gpu_time:.4f} seconds ({(1-gpu_time/cpu_time)*100:.1f}%)")
+        else:
+            print(f"  - Note: GPU slower due to small circuit size and overhead")
     print()
 
 
@@ -354,9 +399,9 @@ def memory_usage_comparison(max_qubits=45):
     
     print("-" * 70)
     print()
-    print("Note: GPU memory requirements also include intermediate storage")
-    print("      for gate operations and measurement sampling.")
-    print("      Actual memory usage may be 1.2-1.5x the statevector size.")
+    print("Note: Actual GPU memory usage is 1.3-1.5x the statevector size")
+    print("      due to intermediate storage for gate operations.")
+    print(f"      Safe limit uses 70% of total GPU memory.")
     print()
 
 
@@ -379,17 +424,20 @@ def main():
     print("=" * 70)
     print()
     
-    # Generate qubit list from 10 to max_qubits
-    if max_qubits and max_qubits >= 30:
-        # For large memory GPUs, test more points
-        num_qubits_list = [10, 15, 20, 25, 28, 30, 32, 35]
-        # Add remaining points up to max_qubits
-        current = 38
-        while current <= max_qubits:
-            num_qubits_list.append(current)
-            current += 2
+    # Generate smart qubit list based on GPU capability
+    if max_qubits and max_qubits >= 35:
+        # Large GPU - test comprehensively but carefully
+        num_qubits_list = [10, 15, 20, 25, 28, 30, 32, 33, 34, 35]
+        # Add points to max_qubits, but stop at reasonable limit
+        if max_qubits >= 36:
+            num_qubits_list.append(36)
+    elif max_qubits and max_qubits >= 30:
+        # Medium GPU - test up to safe limit
+        num_qubits_list = [10, 15, 20, 25, 28, 30, 32]
+        if max_qubits >= 33:
+            num_qubits_list.append(33)
     elif max_qubits:
-        # For smaller memory, test conservatively
+        # Smaller GPU - conservative testing
         num_qubits_list = [10, 15, 20, 25]
         if max_qubits >= 28:
             num_qubits_list.append(28)
@@ -400,7 +448,7 @@ def main():
         num_qubits_list = [10, 15, 20, 25]
     
     print(f"Testing qubit counts: {num_qubits_list}")
-    print(f"Maximum qubits to test: {max(num_qubits_list)}")
+    print(f"Estimated maximum: {max_qubits} qubits (70% GPU memory)")
     print()
     
     results = run_comparison(num_qubits_list, shots=1024)
@@ -438,12 +486,14 @@ def main():
         print("✓ Benchmark complete!")
         print()
         print("Tips for optimal GPU performance:")
-        print("  - Use larger circuits (>20 qubits) for best GPU utilization")
-        print("  - Enable blocking for very large circuits (>35 qubits):")
-        print("    sim.run(circuit, blocking_enable=True, blocking_qubits=27)")
+        print("  - GPU shows best speedup for circuits with >23 qubits")
+        print("  - For <20 qubits, CPU may be faster due to GPU overhead")
+        print("  - Enable blocking for circuits >32 qubits:")
+        print("    sim.run(circuit, blocking_enable=True, blocking_qubits=25)")
         
-        if max_qubits and max_qubits >= 40:
-            print(f"  - Your GPU can handle up to ~{max_qubits} qubits!")
+        if max_qubits and max_qubits >= 35:
+            print(f"  - Your GPU supports up to ~{max_qubits} qubits safely (70% memory)")
+            print(f"  - For larger circuits, consider using blocking or distributed simulation")
         elif max_qubits and max_qubits >= 30:
             print(f"  - Your GPU supports up to ~{max_qubits} qubits")
         
