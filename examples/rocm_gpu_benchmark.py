@@ -220,6 +220,7 @@ def print_device_info():
 def run_comparison(num_qubits_list=[10, 15, 20, 25], shots=1024):
     """
     Run comparison between CPU and GPU for different qubit counts.
+    Only show successful benchmarks in the table.
     
     Args:
         num_qubits_list (list): List of qubit counts to test
@@ -237,20 +238,20 @@ def run_comparison(num_qubits_list=[10, 15, 20, 25], shots=1024):
     for num_qubits in num_qubits_list:
         # For circuits > 30 qubits, skip CPU benchmark (would take too long)
         if num_qubits > 30:
-            print(f"{num_qubits:<8} {'Skipped':<14} ", end='', flush=True)
-            
             # GPU benchmark only
             gpu_time, gpu_result, gpu_error = run_benchmark('GPU', num_qubits, shots)
             
             if gpu_error:
-                print(f"{'Failed':<14} {'-':<12} {gpu_error:<20}")
+                # Don't print error records, just track failures
                 consecutive_failures += 1
-                if consecutive_failures >= 3:
-                    print(f"\n⚠ Stopping benchmark after 3 consecutive failures")
-                    print(f"  Maximum stable qubit count: {num_qubits - 3}")
+                if consecutive_failures >= 2:
+                    print(f"\n⚠ GPU memory limit reached at {num_qubits} qubits")
+                    print(f"  Maximum stable qubit count: {num_qubits - consecutive_failures}")
                     break
+                continue  # Skip to next qubit count
             else:
-                print(f"{gpu_time:<14.4f} {'GPU only':<12} {'✓':<20}")
+                # Successful GPU-only benchmark
+                print(f"{num_qubits:<8} {'Skipped':<14} {gpu_time:<14.4f} {'GPU only':<12} {'✓':<20}")
                 consecutive_failures = 0
                 results.append({
                     'qubits': num_qubits,
@@ -263,18 +264,19 @@ def run_comparison(num_qubits_list=[10, 15, 20, 25], shots=1024):
             cpu_time, cpu_result, cpu_error = run_benchmark('CPU', num_qubits, shots)
             
             if cpu_error:
-                print(f"{num_qubits:<8} {'Failed':<14} {'-':<14} {'-':<12} {cpu_error:<20}")
+                # Skip failed CPU benchmarks
                 continue
             
             # GPU benchmark
             gpu_time, gpu_result, gpu_error = run_benchmark('GPU', num_qubits, shots)
             
             if gpu_error:
-                print(f"{num_qubits:<8} {cpu_time:<14.4f} {'Failed':<14} {'-':<12} {gpu_error:<20}")
+                # Skip failed GPU benchmarks
                 consecutive_failures += 1
                 if consecutive_failures >= 3:
                     print(f"\n⚠ GPU failing consistently, stopping benchmark")
                     break
+                continue
             else:
                 # Calculate speedup
                 speedup = cpu_time / gpu_time if gpu_time > 0 else 0

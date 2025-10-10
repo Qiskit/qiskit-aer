@@ -16,20 +16,22 @@ def get_gpu_memory():
             print(result.stdout)
             print()
             
+            # Parse output to find VRAM size in bytes
+            # Format: "GPU[0]          : VRAM Total Memory (B): 206141652992"
             lines = result.stdout.split('\n')
             for line in lines:
-                if 'VRAM Total Memory' in line or 'Total' in line:
-                    parts = line.split()
-                    for i, part in enumerate(parts):
-                        if part.replace('.', '').isdigit():
-                            mem_mb = float(part)
-                            if i + 1 < len(parts):
-                                unit = parts[i + 1].lower()
-                                if 'gb' in unit:
-                                    return mem_mb
-                                elif 'mb' in unit:
-                                    return mem_mb / 1024
-                            return mem_mb / 1024 if mem_mb > 1000 else mem_mb
+                if 'VRAM Total Memory (B)' in line and 'GPU[0]' in line:
+                    # Extract the bytes value after the last colon
+                    parts = line.split(':')
+                    if len(parts) >= 3:
+                        bytes_str = parts[-1].strip()
+                        try:
+                            memory_bytes = float(bytes_str)
+                            # Convert bytes to GB
+                            memory_gb = memory_bytes / (1024 ** 3)
+                            return memory_gb
+                        except ValueError:
+                            continue
     except Exception as e:
         print(f"Error: {e}")
     
@@ -41,20 +43,20 @@ def calculate_max_qubits(gpu_memory_gb):
     if gpu_memory_gb is None:
         return 28
     
-    usable_memory_bytes = gpu_memory_gb * 0.8 * (1024 ** 3)
+    # Use 70% of GPU memory for safety (accounting for overhead)
+    usable_memory_bytes = gpu_memory_gb * 0.7 * (1024 ** 3)
     max_qubits = int(np.log2(usable_memory_bytes / 16))
     return min(max(max_qubits, 25), 45)
 
 
-def print_memory_table(max_qubits):
+def print_memory_table(max_qubits, gpu_memory_gb):
     """Print memory requirements."""
     print("Memory Requirements:")
     print("-" * 60)
     print(f"{'Qubits':<10} {'Memory Required':<20} {'Fits in GPU'}")
     print("-" * 60)
     
-    gpu_mem = get_gpu_memory()
-    gpu_bytes = gpu_mem * (1024 ** 3) if gpu_mem else 0
+    gpu_bytes = gpu_memory_gb * (1024 ** 3) if gpu_memory_gb else 0
     
     for q in range(10, min(max_qubits + 5, 46), 5):
         mem_bytes = (2 ** q) * 16
@@ -66,7 +68,8 @@ def print_memory_table(max_qubits):
         else:
             mem_str = f"{mem_gb:.2f} GB"
         
-        fits = "✓" if mem_bytes < gpu_bytes * 0.8 else "✗"
+        # Use 70% threshold for safety
+        fits = "✓" if mem_bytes < gpu_bytes * 0.7 else "✗"
         print(f"{q:<10} {mem_str:<20} {fits}")
     
     print("-" * 60)
@@ -86,10 +89,10 @@ if __name__ == "__main__":
         
         max_qubits = calculate_max_qubits(gpu_memory)
         print(f"✓ Estimated Max Qubits: {max_qubits}")
-        print(f"  (Using 80% of GPU memory as safe limit)")
+        print(f"  (Using 70% of GPU memory as safe limit)")
         print()
         
-        print_memory_table(max_qubits)
+        print_memory_table(max_qubits, gpu_memory)
         print()
         
         print("Recommended benchmark range:")
