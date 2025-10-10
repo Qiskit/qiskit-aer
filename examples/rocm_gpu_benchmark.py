@@ -85,8 +85,8 @@ def run_benchmark(device, num_qubits, shots=1024, method='statevector'):
         # Configure run options
         run_options = {'shots': shots}
         
-        # For large circuits on GPU, enable blocking
-        if device == 'GPU' and num_qubits >= 33:
+        # For large circuits on GPU, enable blocking (start at 32 qubits = 64 GB)
+        if device == 'GPU' and num_qubits >= 32:
             run_options['blocking_enable'] = True
             run_options['blocking_qubits'] = 25  # Conservative blocking size
         
@@ -303,11 +303,11 @@ def detailed_comparison_example():
     Run a detailed comparison showing circuit details and results.
     """
     print("\n" + "=" * 70)
-    print("Detailed Example: 25-Qubit Circuit")
+    print("Detailed Example: 30-Qubit Circuit")
     print("=" * 70)
     print()
     
-    num_qubits = 25
+    num_qubits = 30
     shots = 2048
     
     # Create circuit
@@ -451,6 +451,9 @@ def main():
     
     print(f"Testing qubit counts: {num_qubits_list}")
     print(f"Estimated maximum: {max_qubits} qubits (70% GPU memory)")
+    print()
+    print("Note: Qiskit Aer may print error messages for failed benchmarks.")
+    print("      These are handled gracefully and won't appear in the results table.")
     print()
     
     results = run_comparison(num_qubits_list, shots=1024)
