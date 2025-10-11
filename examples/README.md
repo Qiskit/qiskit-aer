@@ -1,204 +1,123 @@
 # Qiskit Aer ROCm Examples
 
-This directory contains example scripts demonstrating AMD GPU acceleration with ROCm.
+**Last Updated:** October 10, 2025  
+**Status:** ✅ Production Ready (Validated on AMD MI300X)
 
-## Quick Start
+Organized examples demonstrating AMD GPU acceleration with ROCm for quantum circuit simulation.
 
-### 1. Quick GPU Test
-A simple script to verify GPU functionality:
+---
 
+## 📁 Directory Structure
+
+```
+examples/
+├── single_gpu/          ← Single GPU examples (up to 31 qubits)
+│   ├── quick_test.py       Fast GPU verification (~10 sec)
+│   ├── benchmark.py        Comprehensive benchmarking (~2-3 min)
+│   └── README.md           Single GPU documentation
+│
+├── multi_gpu/           ← Multi-GPU examples (32-40 qubits) ⭐
+│   ├── quick_test.py       Fast multi-GPU verification (~20 sec)
+│   ├── benchmark.py        Scaling & performance analysis (~5-10 min)
+│   ├── validation.py       Complete validation suite (30-35q, ~2-5 min)
+│   └── README.md           Multi-GPU documentation
+│
+└── archive/             ← Historical versions and old scripts
+    ├── test_*.py           Obsolete test scripts
+    └── docs/               Iterative debugging documentation
+```
+
+---
+
+## 🚀 Quick Start
+
+### Step 1: Verify Single GPU
 ```bash
-cd /home/ysha/playground/qiskit-aer/examples
-python3 quick_gpu_test.py
+cd single_gpu
+python3 quick_test.py
 ```
 
-**Output:**
-- Confirms GPU is detected
-- Runs a small benchmark comparing CPU vs GPU
-- Shows speedup factor
+**Expected:** GPU detection and basic performance test (~10 seconds)
 
-**Time:** ~5-10 seconds
-
-### 2. Comprehensive Benchmark
-Detailed performance comparison across multiple circuit sizes:
-
+### Step 2: Test Multi-GPU (if available)
 ```bash
-python3 rocm_gpu_benchmark.py
+cd multi_gpu
+python3 quick_test.py
 ```
 
-**Features:**
-- Memory requirements table
-- Performance comparison for 10, 15, 20, 25 qubit circuits
-- Detailed 20-qubit example with measurement outcomes
-- Average speedup calculation
-- Performance optimization tips
+**Expected:** Multi-GPU confirmation with 32-qubit circuit (~20 seconds)
 
-**Time:** ~2-3 minutes
-
-## Expected Performance
-
-### Speedup Factors (Typical)
-
-| Qubits | Circuit Depth | Expected Speedup | Notes |
-|--------|---------------|------------------|-------|
-| 10 | ~50 | 1-2x | CPU overhead dominates |
-| 15 | ~70 | 2-4x | GPU starts to show benefit |
-| 20 | ~100 | 5-10x | GPU clearly faster |
-| 25 | ~120 | 10-20x | Excellent GPU utilization |
-| 28 | ~140 | 15-30x | Near memory limits |
-
-*Note: Actual speedup depends on GPU model, circuit structure, and number of shots.*
-
-### AMD GPU Performance
-
-| GPU | Memory | Max Qubits* | Expected Performance |
-|-----|--------|-------------|---------------------|
-| MI300X | 192 GB | 28 | Best performance |
-| MI250X | 128 GB | 27 | Excellent |
-| MI210 | 64 GB | 26 | Very good |
-| MI100 | 32 GB | 25 | Good |
-| RX 7900 XTX | 24 GB | 24-25 | Good for consumer GPU |
-
-*With `blocking_enable=True`
-
-## Running from Source Directory
-
-**Important:** If running from the qiskit-aer source directory, use this approach:
-
+### Step 3: Run Full Validation (recommended)
 ```bash
-# Change to a different directory first
-cd /tmp
-
-# Then run with full path
-python3 /home/ysha/playground/qiskit-aer/examples/quick_gpu_test.py
+cd multi_gpu
+python3 validation.py
 ```
 
-Or use the installed package:
+**Expected:** Complete test suite (30-35 qubits) with pass/fail summary
 
-```bash
-# Activate your virtual environment
-source ~/amd/qiskit-aer/venv/bin/activate
+---
 
-# Change directory
-cd ~
+## 📊 Single GPU Examples
 
-# Run the script
-python3 /home/ysha/playground/qiskit-aer/examples/quick_gpu_test.py
-```
+### quick_test.py
+- Quick GPU verification (~10 sec)
+- CPU vs GPU comparison (20q circuit)
+- Use for: First-time setup, health checks
 
-## Custom Examples
+### benchmark.py
+- Comprehensive performance analysis (~2-3 min)
+- Tests 10, 15, 20, 25 qubit circuits
+- Memory requirements and speedup metrics
+- Use for: Performance tuning, baseline measurements
 
-### Example 1: Statevector Simulation
+See `single_gpu/README.md` for detailed documentation.
 
-```python
-from qiskit import QuantumCircuit
-from qiskit_aer import AerSimulator
+---
 
-# Create circuit
-qc = QuantumCircuit(25)
-qc.h(range(25))
-qc.cx(0, range(1, 25))
-qc.measure_all()
+## 🎯 Multi-GPU Examples ⭐
 
-# Simulate on GPU
-sim = AerSimulator(device='GPU', method='statevector')
-result = sim.run(qc, shots=1000).result()
-print(result.get_counts())
-```
+### quick_test.py
+- Fast multi-GPU test (~20 sec)
+- 32q circuit on 2 GPUs
+- Requires: 2+ GPUs with 64GB+ each
 
-### Example 2: Large Circuit with Memory Blocking
+### benchmark.py
+- Scaling analysis (~5-10 min)
+- Tests 30-34 qubit circuits
+- Performance metrics across 1-8 GPUs
 
-```python
-from qiskit import QuantumCircuit
-from qiskit_aer import AerSimulator
+### validation.py (Main Test)
+- Complete validation suite (~2-5 min)
+- Tests 30q-35q configurations
+- Auto-detects available GPUs
+- **Validated Results:**
+  - ✅ 30-31q: 1 GPU
+  - ✅ 32q: 2 GPUs
+  - ✅ 33q: 4 GPUs
+  - ✅ 34q: 8 GPUs
 
-# Create large circuit
-qc = QuantumCircuit(27)
-# ... build your circuit ...
+See `multi_gpu/README.md` for detailed documentation.
 
-# Use blocking for memory efficiency
-sim = AerSimulator(device='GPU', method='statevector')
-result = sim.run(qc, 
-                 blocking_enable=True,
-                 blocking_qubits=27,  # Adjust based on GPU memory
-                 shots=1000).result()
-```
+---
 
-### Example 3: Density Matrix Simulation
+## ⚠️ Critical Constraints
 
-```python
-from qiskit import QuantumCircuit
-from qiskit_aer import AerSimulator
+1. **blocking_qubits ≤ 27** (2GB chunks maximum)
+2. **Single GPU limit: 31 qubits**
+3. **Metadata location:** `metadata['cacheblocking']['chunk_parallel_gpus']`
+4. **Parameter location:** `target_gpus` in `run()`, not constructor
 
-# Density matrix method (useful for noise simulation)
-qc = QuantumCircuit(15)
-qc.h(range(15))
-qc.measure_all()
+---
 
-sim = AerSimulator(device='GPU', method='density_matrix')
-result = sim.run(qc, shots=1000).result()
-```
+## 📚 Documentation
 
-## Troubleshooting
+- **[MULTI_GPU_FINAL_RESULTS.md](../MULTI_GPU_FINAL_RESULTS.md)** - Complete validation results
+- **[ROCM_MULTI_GPU_GUIDE.md](../ROCM_MULTI_GPU_GUIDE.md)** - Comprehensive guide
+- **[QUICKSTART_MULTI_GPU.md](../QUICKSTART_MULTI_GPU.md)** - 5-minute start
+- **Single GPU:** `single_gpu/README.md`
+- **Multi-GPU:** `multi_gpu/README.md`
 
-### GPU Not Detected
+---
 
-```python
-from qiskit_aer import AerSimulator
-sim = AerSimulator()
-print("Devices:", sim.available_devices())
-```
-
-If GPU is missing:
-1. Check ROCm installation: `rocminfo`
-2. Verify GPU is visible: `/opt/rocm/bin/rocm-smi`
-3. Check environment: `echo $ROCM_PATH`
-4. Rebuild qiskit-aer with ROCm support
-
-### Import Errors
-
-If you get `ModuleNotFoundError: No module named 'qiskit_aer.backends.controller_wrappers'`:
-- You're in the source directory
-- Run from a different directory (see above)
-
-### Out of Memory Errors
-
-If simulation fails with memory errors:
-- Reduce number of qubits
-- Enable memory blocking:
-  ```python
-  result = sim.run(qc, blocking_enable=True, blocking_qubits=25)
-  ```
-- Use fewer shots
-
-### Poor Performance
-
-If GPU is slower than expected:
-- Try larger circuits (25+ qubits)
-- Increase number of shots (more parallelism)
-- Check GPU is not being used by other processes: `rocm-smi`
-
-## Performance Tips
-
-1. **Circuit Size**: GPU acceleration is most beneficial for ≥20 qubits
-2. **Batch Jobs**: Run multiple circuits in parallel
-3. **Memory Management**: Use `blocking_enable=True` for large circuits
-4. **Shot Count**: Higher shot counts (≥1000) improve GPU utilization
-5. **Method Selection**: 
-   - `statevector`: Best for pure state simulation
-   - `density_matrix`: For noisy circuits
-   - `automatic`: Let Aer choose
-
-## Additional Resources
-
-- [Qiskit Aer Documentation](https://qiskit.org/ecosystem/aer/)
-- [ROCm Documentation](https://rocm.docs.amd.com/)
-- [Building with ROCm](../BUILDING_ROCM.md)
-
-## Contributing Examples
-
-Have a great example? Submit a PR with:
-1. Working code
-2. Clear comments
-3. Expected output
-4. Performance notes
+**Validation Status:** Complete (30-34 qubits on AMD MI300X)  
+**Ready for:** Production use, research, further development
