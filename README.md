@@ -148,24 +148,48 @@ print(f"GPUs used: {cacheblocking['chunk_parallel_gpus']}")  # Should show: 4
 2. Single GPU limit: 31 qubits
 3. GPU count: Use `ceil(2^(qubits-27) / 16)` GPUs for qubits > 31
 
-📚 **Complete Guide:** See [MULTI_GPU_FINAL_RESULTS.md](MULTI_GPU_FINAL_RESULTS.md) and [ROCM_MULTI_GPU_GUIDE.md](ROCM_MULTI_GPU_GUIDE.md)
+📚 **Complete Guide:**
 
+**Quick Verification:**
+```bash
+# Single GPU test
+python3 examples/single_gpu/quick_test.py
+
+# Multi-GPU test (requires 2+ GPUs)
+python3 examples/multi_gpu/quick_test.py
+
+# Full validation (30-35 qubits)
+python3 examples/multi_gpu/validation.py
+```
+
+**Advanced Usage:**
+```python
 # Large circuit with state distribution
-result = sim.run(large_circuit,
-                 blocking_enable=True,      # Distribute state across GPUs
-                 blocking_qubits=26,        # Chunk size per GPU
-                 shots=1000).result()
+result = backend.run(large_circuit,
+                     blocking_enable=True,      # Distribute state across GPUs
+                     blocking_qubits=27,        # Chunk size per GPU (max 27)
+                     target_gpus=[0,1,2,3],     # Select specific GPUs
+                     shots=1000).result()
 
 # High-shot simulation with shot parallelization
-result = sim.run(circuit,
-                 batched_shots_gpu=True,    # Distribute shots across GPUs
-                 shots=10000).result()
+result = backend.run(circuit,
+                     batched_shots_gpu=True,    # Distribute shots across GPUs
+                     shots=10000).result()
 ```
 
 **Resources:**
-- **Multi-GPU Guide**: [ROCM_MULTI_GPU_GUIDE.md](ROCM_MULTI_GPU_GUIDE.md) - Complete usage documentation
 - **Build Instructions**: [BUILDING_ROCM.md](BUILDING_ROCM.md) - ROCm build guide
-- **Examples**: `examples/rocm_multi_gpu_benchmark.py` - Performance benchmarks
+
+**Examples:**
+- **Single GPU**: `examples/single_gpu/` - Quick tests and benchmarks for single GPU
+  - `quick_test.py` - Verify GPU functionality (~10 seconds)
+  - `benchmark.py` - Performance comparison CPU vs GPU (~2-3 minutes)
+- **Multi-GPU**: `examples/multi_gpu/` - Multi-GPU examples (validated on MI300X)
+  - `quick_test.py` - Quick multi-GPU verification (~30 seconds)
+  - `benchmark.py` - Comprehensive multi-GPU benchmarks (~5-10 minutes)
+  - `validation.py` - Complete validation (30-35 qubits, requires 1-16 GPUs)
+
+📚 See [examples/README.md](examples/README.md) for detailed usage instructions.
 
 ## Simulating your first Qiskit circuit with Aer
 Now that you have Aer installed, you can start simulating quantum circuits using primitives and noise models. Here is a basic example:
