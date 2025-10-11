@@ -107,7 +107,65 @@ result = sim.run(circuit,
                  shots=1000).result()
 ```
 
-For detailed ROCm build instructions and troubleshooting, see [BUILDING_ROCM.md](BUILDING_ROCM.md).
+#### Multi-GPU Support ✨ NEW - Validated on MI300X
+
+Leverage multiple AMD GPUs for larger circuits (32-40 qubits on single node):
+
+```python
+from qiskit_aer import AerSimulator
+from qiskit.circuit.library import quantum_volume
+
+backend = AerSimulator(method='statevector', device='GPU')
+
+# 33-qubit circuit on 4 GPUs
+circuit = quantum_volume(33, depth=10, seed=42)
+circuit.measure_all()
+
+# Run with validated configuration
+result = backend.run(
+    circuit,
+    shots=100,
+    blocking_enable=True,
+    blocking_qubits=27,        # ⚠️ CRITICAL: Max 27 (2GB chunks)
+    target_gpus=[0, 1, 2, 3],  # Must be in run(), not constructor
+    batched_shots_gpu=True,
+    batched_shots_gpu_max_qubits=33
+).result()
+
+# Verify multi-GPU usage
+cacheblocking = result.results[0].metadata['cacheblocking']
+print(f"GPUs used: {cacheblocking['chunk_parallel_gpus']}")  # Should show: 4
+```
+
+**Validated Configurations (AMD MI300X):**
+- ✅ **30-31 qubits:** 1 GPU (no blocking needed)
+- ✅ **32 qubits:** 2 GPUs with blocking=27
+- ✅ **33 qubits:** 4 GPUs with blocking=27
+- ✅ **34 qubits:** 8 GPUs with blocking=27
+
+**Critical Constraints:**
+1. `blocking_qubits ≤ 27` (2GB chunk maximum)
+2. Single GPU limit: 31 qubits
+3. GPU count: Use `ceil(2^(qubits-27) / 16)` GPUs for qubits > 31
+
+📚 **Complete Guide:** See [MULTI_GPU_FINAL_RESULTS.md](MULTI_GPU_FINAL_RESULTS.md) and [ROCM_MULTI_GPU_GUIDE.md](ROCM_MULTI_GPU_GUIDE.md)
+
+# Large circuit with state distribution
+result = sim.run(large_circuit,
+                 blocking_enable=True,      # Distribute state across GPUs
+                 blocking_qubits=26,        # Chunk size per GPU
+                 shots=1000).result()
+
+# High-shot simulation with shot parallelization
+result = sim.run(circuit,
+                 batched_shots_gpu=True,    # Distribute shots across GPUs
+                 shots=10000).result()
+```
+
+**Resources:**
+- **Multi-GPU Guide**: [ROCM_MULTI_GPU_GUIDE.md](ROCM_MULTI_GPU_GUIDE.md) - Complete usage documentation
+- **Build Instructions**: [BUILDING_ROCM.md](BUILDING_ROCM.md) - ROCm build guide
+- **Examples**: `examples/rocm_multi_gpu_benchmark.py` - Performance benchmarks
 
 ## Simulating your first Qiskit circuit with Aer
 Now that you have Aer installed, you can start simulating quantum circuits using primitives and noise models. Here is a basic example:
