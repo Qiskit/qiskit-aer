@@ -47,10 +47,10 @@ for instructions on doing this.
 
 ### AMD ROCm GPU Support
 
-Qiskit Aer also supports AMD GPUs via ROCm (5.0+). To use AMD GPUs, you need to build from source:
+Qiskit Aer also supports AMD GPUs via ROCm (7.0 or newer). To use AMD GPUs, you need to build from source:
 
 #### Prerequisites
-- ROCm 5.0 or newer (ROCm 7.x recommended for latest features)
+- ROCm 7.0 or newer
 - AMD GPU: MI100/MI200/MI300 (data center) or RX 6000/7000 series (consumer)
 - Ubuntu 20.04/22.04 or compatible Linux distribution
 
