@@ -55,6 +55,7 @@ project(qasm_simulator VERSION ${VERSION_NUM} LANGUAGES CXX C ${EXTRA_LANGUAGES}
 set(PYBIND11_FINDPYTHON ON)
 find_package(Python COMPONENTS Interpreter Development.Module REQUIRED)
 find_package(OpenMP REQUIRED)
+find_package(llvm-openmp REQUIRED)
 find_package(nlohmann_json REQUIRED)
 find_package(spdlog REQUIRED)
 find_package(fmt REQUIRED)
