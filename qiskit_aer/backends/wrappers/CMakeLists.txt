@@ -22,9 +22,9 @@ endif()
 set(AER_SIMULATOR_SOURCES "bindings.cc" "${SIMD_SOURCE_FILE}")
 pybind11_add_module(controller_wrappers bindings.cc "${AER_SIMULATOR_SOURCES}")
 
-target_link_libraries(controller_wrappers PRIVATE llvm-openmp::llvm-openmp)
 if (OpenMP_CXX_FOUND)
-    target_link_libraries(controller_wrappers  PRIVATE OpenMP::OpenMP_CXX)
+    target_link_libraries(controller_wrappers PRIVATE OpenMP::OpenMP_CXX)
+    target_link_libraries(controller_wrappers PRIVATE llvm-openmp::llvm-openmp)
 endif()
 
 if(AER_THRUST_BACKEND STREQUAL "CUDA")
