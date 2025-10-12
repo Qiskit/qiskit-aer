@@ -27,20 +27,24 @@ if (OpenMP_CXX_FOUND)
 endif()
 
 if(AER_THRUST_BACKEND STREQUAL "CUDA")
-    include(nvcc_add_compiler_options)
+    enable_language(CUDA)
     set_source_files_properties(bindings.cc PROPERTIES LANGUAGE CUDA)
-    set_source_files_properties(bindings.cc PROPERTIES COMPILE_FLAGS "${CUDA_NVCC_FLAGS}")
-
     if(DEFINED SIMD_SOURCE_FILE)
-       set_source_files_properties(${SIMD_SOURCE_FILE} PROPERTIES LANGUAGE CUDA)
-       nvcc_add_compiler_options_list("${SIMD_FLAGS_LIST}" SIMD_FLAGS_OUT)
-       set_source_files_properties(${SIMD_SOURCE_FILE} PROPERTIES COMPILE_FLAGS "${CUDA_NVCC_FLAGS} ${SIMD_FLAGS_OUT}")
+        set_source_files_properties(${SIMD_SOURCE_FILE} PROPERTIES LANGUAGE CUDA)
     endif()
 
-    string(STRIP ${AER_COMPILER_FLAGS} AER_COMPILER_FLAGS_STRIPPED)
-    nvcc_add_compiler_options(${AER_COMPILER_FLAGS_STRIPPED} AER_COMPILER_FLAGS_OUT)
-    set_target_properties(controller_wrappers PROPERTIES COMPILE_FLAGS "${AER_COMPILER_FLAGS_OUT}")
-    enable_language(CUDA)
+    set(CUDA_FLAGS "${CUDA_NVCC_FLAGS}")
+
+    if(DEFINED SIMD_FLAGS_LIST)
+        string (REPLACE ";" " " SIMD_FLAGS_OUT "${SIMD_FLAGS_LIST}")
+        set_source_files_properties(${SIMD_SOURCE_FILE}
+            PROPERTIES COMPILE_FLAGS "${CUDA_FLAGS} ${SIMD_FLAGS_OUT}")
+    endif()
+
+    string(STRIP "${AER_COMPILER_FLAGS}" AER_COMPILER_FLAGS_STRIPPED)
+    target_compile_options(controller_wrappers PRIVATE
+        $<$<COMPILE_LANGUAGE:CUDA>:${AER_COMPILER_FLAGS_STRIPPED}>)
+
 elseif(AER_THRUST_BACKEND STREQUAL "ROCM")
 
     if(NOT DEFINED SIMD_SOURCE_FILE)

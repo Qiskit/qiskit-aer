@@ -73,7 +73,6 @@ if(NOT DEFINED AER_THRUST_BACKEND AND DEFINED ENV{AER_THRUST_BACKEND})
 endif()
 
 if(AER_THRUST_BACKEND STREQUAL "CUDA")
-  include(nvcc_add_compiler_options)
   set(CUDA_FOUND TRUE)
   enable_language(CUDA)
   find_package(CUDAToolkit REQUIRED)
