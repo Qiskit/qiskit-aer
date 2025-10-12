@@ -114,6 +114,8 @@ subprocess.check_call(
         "-s",
         "compiler.cppstd=17",
         "-s",
+        "arch=x86_64",
+        "-s",
         f"build_type={'Debug' if DEBUG_MODE else 'Release'}",
         "-v",
         "debug",
