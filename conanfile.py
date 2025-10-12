@@ -12,10 +12,8 @@ class AerConan(ConanFile):
         self.requires("pybind11/2.11.1")
         self.requires("thrust/1.17.2")
 
-        if self.settings.compiler == "clang":
+        if self.settings.os in ["Linux", "Macos"]:
             self.requires("llvm-openmp/20.1.6")
-        elif self.settings.compiler == "gcc":
-            self.requires("openmp/system")
 
     def generate(self):
         tc = CMakeToolchain(self)
