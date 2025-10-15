@@ -30,6 +30,8 @@ jobs:
           CIBW_ARCHS_WINDOWS: AMD64
           AER_CMAKE_OPENMP_BUILD: 1
           CONAN_SETTINGS_ARCH: x86_64
+          CC: ${{ runner.os == 'Linux' && '/usr/bin/gcc' || '' }}
+          CXX: ${{ runner.os == 'Linux' && '/usr/bin/g++' || '' }}
         run: cibuildwheel --output-dir wheelhouse
       - uses: actions/upload-artifact@v4
         with:

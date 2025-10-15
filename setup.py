@@ -102,6 +102,9 @@ try:
     print(f"Detected GCC machine triple: {result.stdout.strip()}", flush=True)
 except Exception as e:
     print(f"Failed to run 'gcc -dumpmachine':", flush=True)
+print("PATH:", os.environ.get("PATH"), flush=True)
+print("CC:", os.environ.get("CC"), flush=True)
+print("CXX:", os.environ.get("CXX"), flush=True)
 try:
     subprocess.check_call(["conan", "profile", "detect", "--force"], cwd=BUILD_DIR)
     print("CONAN: New profile generated", flush=True)
