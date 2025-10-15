@@ -92,17 +92,28 @@ with open(README_PATH) as readme_file:
 BUILD_DIR = os.path.join(os.path.dirname(__file__), "build")
 os.makedirs(BUILD_DIR, exist_ok=True)
 try:
+    result = subprocess.run(
+        ["gcc", "-dumpmachine"],
+        check=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+    print(f"Detected GCC machine triple: {result.stdout.strip()}", flush=True)
+except Exception as e:
+    print(f"Failed to run 'gcc -dumpmachine':", flush=True)
+try:
     subprocess.check_call(["conan", "profile", "detect", "--force"], cwd=BUILD_DIR)
-    print("CONAN: New profile generated")
+    print("CONAN: New profile generated", flush=True)
 except subprocess.CalledProcessError:
-    print("CONAN: profile already exists")
+    print("CONAN: profile already exists", flush=True)
 
 conan_profile_path = pathlib.Path.home() / ".conan2" / "profiles" / "default"
 if conan_profile_path.exists():
-    print(f"CONAN: Profile found:")
-    print(conan_profile_path.read_text())
+    print(f"CONAN: Profile found:", flush=True)
+    print(conan_profile_path.read_text(), flush=True)
 else:
-    print(f"CONAN: Profile not found")
+    print(f"CONAN: Profile not found", flush=True)
 
 subprocess.check_call(
     [
