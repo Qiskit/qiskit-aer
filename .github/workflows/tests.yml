@@ -271,6 +271,7 @@ jobs:
       - name: Run Conan
         run: |
           pip install conan==2.*
+          conan profile detect --force
           conan install . --output-folder=build --build=missing -s:h arch=x86_64 -s:b arch=x86_64 -s compiler.cppstd=17 -s build_type=Release
       - name: Build Aer Windows
         env:
