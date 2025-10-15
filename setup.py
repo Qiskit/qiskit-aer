@@ -92,7 +92,7 @@ with open(README_PATH) as readme_file:
 BUILD_DIR = os.path.join(os.path.dirname(__file__), "build")
 os.makedirs(BUILD_DIR, exist_ok=True)
 try:
-    subprocess.check_call(["conan", "profile", "detect"], cwd=BUILD_DIR)
+    subprocess.check_call(["conan", "profile", "detect", "--force"], cwd=BUILD_DIR)
     print("CONAN: New profile generated")
 except subprocess.CalledProcessError:
     print("CONAN: profile already exists")
@@ -131,6 +131,7 @@ cmake_args.append(f"-DCMAKE_TOOLCHAIN_FILE={CONAN_TOOLCHAIN_FILE}")
 # try to be as verbose as possible
 cmake_args.append(f"-DCMAKE_VERBOSE_MAKEFILE:BOOL=ON")
 cmake_args.append(f"-DCMAKE_MESSAGE_LOG_LEVEL=STATUS")
+cmake_args.append(f"-DCMAKE_EXPORT_COMPILE_COMMANDS=ON")
 
 if DEBUG_MODE:
     cmake_args.append(f"-DCMAKE_BUILD_TYPE=Debug")
