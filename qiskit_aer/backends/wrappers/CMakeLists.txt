@@ -27,6 +27,7 @@ if (OpenMP_CXX_FOUND)
 endif()
 
 if(AER_THRUST_BACKEND STREQUAL "CUDA")
+    target_compile_definitions(controller_wrappers PRIVATE AER_THRUST_CUDA)
     enable_language(CUDA)
     set_source_files_properties(bindings.cc PROPERTIES LANGUAGE CUDA)
     if(DEFINED SIMD_SOURCE_FILE)
