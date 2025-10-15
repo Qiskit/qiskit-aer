@@ -101,6 +101,7 @@ jobs:
 
     env:
       AER_THRUST_BACKEND: OMP
+      AER_CMAKE_OPENMP_BUILD: 1
       QISKIT_TEST_CAPTURE_STREAMS: 1
       # Needed to suppress a warning in jupyter-core 5.x by eagerly migrating to
       # a new internal interface that will be the default in jupyter-core 6.x.
