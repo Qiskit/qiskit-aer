@@ -91,6 +91,9 @@ with open(README_PATH) as readme_file:
 # run Conan
 BUILD_DIR = os.path.join(os.path.dirname(__file__), "build")
 os.makedirs(BUILD_DIR, exist_ok=True)
+print("PATH:", os.environ.get("PATH"), flush=True)
+print("CC:", os.environ.get("CC"), flush=True)
+print("CXX:", os.environ.get("CXX"), flush=True)
 try:
     result = subprocess.run(
         ["gcc", "-dumpmachine"],
@@ -100,11 +103,25 @@ try:
         text=True,
     )
     print(f"Detected GCC machine triple: {result.stdout.strip()}", flush=True)
+    result = subprocess.run(
+        ["gcc", "--version"],
+        check=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+    print(f"gcc --version gives: {result.stdout.strip()}", flush=True)
+    result = subprocess.run(
+        [os.environ.get("CC"), "--version"],
+        check=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+    print(f"{os.environ.get("CC")} --version gives: {result.stdout.strip()}", flush=True)
+    
 except Exception as e:
     print(f"Failed to run 'gcc -dumpmachine':", flush=True)
-print("PATH:", os.environ.get("PATH"), flush=True)
-print("CC:", os.environ.get("CC"), flush=True)
-print("CXX:", os.environ.get("CXX"), flush=True)
 try:
     subprocess.check_call(["conan", "profile", "detect", "--force"], cwd=BUILD_DIR)
     print("CONAN: New profile generated", flush=True)
