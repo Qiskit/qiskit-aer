@@ -11,7 +11,6 @@ build-backend = "setuptools.build_meta"
 
 [tool.cibuildwheel]
 manylinux-x86_64-image = "manylinux2014"
-manylinux-i686-image = "manylinux2014"
 skip = "pp* cp36* cp37* cp38* *musllinux*"
 test-skip = "cp3*-win32 cp3*-manylinux_i686"
 test-command = "python {project}/tools/verify_wheels.py"
