@@ -96,29 +96,31 @@ print("CC:", os.environ.get("CC"), flush=True)
 print("CXX:", os.environ.get("CXX"), flush=True)
 try:
     result = subprocess.run(
+        ["which", "-a", "gcc"],
+        check=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+    print(f"which -a gcc result: {result.stdout.strip()}", flush=True)
+    result = subprocess.run(
         ["gcc", "-dumpmachine"],
         check=True,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         text=True,
     )
-    print(f"Detected GCC machine triple: {result.stdout.strip()}", flush=True)
+    print(f"gcc -dumpmachine gives: {result.stdout.strip()}", flush=True)
+    
     result = subprocess.run(
-        ["gcc", "--version"],
+        ["gcc", "-dumpversion"],
         check=True,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         text=True,
     )
-    print(f"gcc --version gives: {result.stdout.strip()}", flush=True)
-    result = subprocess.run(
-        [os.environ.get("CC"), "--version"],
-        check=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        text=True,
-    )
-    print(f"{os.environ.get("CC")} --version gives: {result.stdout.strip()}", flush=True)
+    
+    print(f"gcc -dumpversion gives: {result.stdout.strip()}", flush=True)
     
 except Exception as e:
     print(f"Failed to run 'gcc -dumpmachine':", flush=True)
