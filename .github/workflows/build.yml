@@ -23,7 +23,7 @@ jobs:
         uses: microsoft/setup-msbuild@v2
         if: runner.os == 'Windows'
       - name: Install deps
-        run: python -m pip install -U cibuildwheel==2.22.0
+        run: python -m pip install -U cibuildwheel==3.2.1
       - name: Build Wheels
         env:
           AER_CMAKE_OPENMP_BUILD: 1
@@ -45,7 +45,7 @@ jobs:
           python-version: '3.13'
           architecture: arm64
       - name: Install deps
-        run: python -m pip install -U cibuildwheel==2.22.0
+        run: python -m pip install -U cibuildwheel==3.2.1
       - name: Build Wheels
         env:
           CIBW_ARCHS_MACOS: arm64
@@ -77,7 +77,7 @@ jobs:
           python-version: '3.13'
       - name: Install cibuildwheel
         run: |
-          python -m pip install cibuildwheel==2.22.0
+          python -m pip install cibuildwheel==3.2.1
       - name: Build wheels
         env:
           CIBW_BEFORE_ALL: "sed -i -e 's/^mirrorlist/#mirrorlist/' -e 's/^#baseurl/baseurl/' -e 's/mirror.centos.org/vault.centos.org/' /etc/yum.repos.d/*.repo && yum install -y yum-utils wget && wget -q https://developer.download.nvidia.com/compute/cuda/11.8.0/local_installers/cuda-repo-rhel7-11-8-local-11.8.0_520.61.05-1.x86_64.rpm && rpm -i cuda-repo-rhel7-11-8-local-11.8.0_520.61.05-1.x86_64.rpm && yum clean all && yum -y install cuda && yum -y install openblas-devel && yum-config-manager --add-repo https://developer.download.nvidia.com/compute/cuda/repos/rhel7/x86_64/cuda-rhel7.repo && yum clean all"
@@ -110,7 +110,7 @@ jobs:
           python-version: '3.13'
       - name: Install cibuildwheel
         run: |
-          python -m pip install cibuildwheel==2.22.0
+          python -m pip install cibuildwheel==3.2.1
       - name: Build wheels
         env:
           CIBW_BEFORE_ALL: "sed -i -e 's/^mirrorlist/#mirrorlist/' -e 's/^#baseurl/baseurl/' -e 's/mirror.centos.org/vault.centos.org/' /etc/yum.repos.d/*.repo && yum install -y yum-utils wget && wget -q https://developer.download.nvidia.com/compute/cuda/12.5.1/local_installers/cuda-repo-rhel8-12-5-local-12.5.1_555.42.06-1.x86_64.rpm && rpm -i cuda-repo-rhel8-12-5-local-12.5.1_555.42.06-1.x86_64.rpm && yum clean all && yum -y install cuda-toolkit-12-5 && yum -y install openblas-devel && yum clean all"
