@@ -124,3 +124,75 @@ jobs:
         with:
           path: ./wheelhouse/*.whl
           name: artifact-${{ github.job }}
+  wheel-gpu-rocm:
+    runs-on: "ubuntu-latest"
+    steps:
+      - name: Maximize build space
+        uses: easimon/maximize-build-space@master
+        with:
+          root-reserve-mb: 30000
+          swap-size-mb: 1024
+          remove-dotnet: 'true'
+          remove-android: 'true'
+          remove-haskell: 'true'
+          remove-codeql: 'true'
+
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        name: Install Python
+        with:
+          python-version: '3.13'
+
+      - name: Install ROCm Dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y rocm-dev rocm-libs rocblas rocm-llvm
+          echo "/opt/rocm/bin" >> $GITHUB_PATH
+
+      - name: Install cibuildwheel
+        run: |
+          python -m pip install cibuildwheel==2.22.0
+
+      - name: Build ROCm wheels
+        env:
+          CIBW_BEFORE_ALL: "yum install -y openblas-devel"
+          CIBW_SKIP: "*-manylinux_i686 pp* cp36* cp37* cp38* cp39* cp310* cp311* *musllinux*"
+          CIBW_ENVIRONMENT: QISKIT_AER_PACKAGE_NAME=qiskit-aer-gpu-rocm AER_THRUST_BACKEND=ROCM AER_ROCM_ARCH="gfx900 gfx906 gfx908 gfx90a gfx1030"
+          CIBW_REPAIR_WHEEL_COMMAND: 'auditwheel repair --exclude librocblas.so.0 --exclude librocm-runtime.so.1 -w {dest_dir} {wheel}'
+        run: |
+          python -m cibuildwheel --output-dir wheelhouse
+
+      - uses: actions/upload-artifact@v4
+        with:
+          path: ./wheelhouse/*.whl
+          name: artifact-${{ github.job }}
+  test-rocm:
+    runs-on: ubuntu-latest
+    needs: wheel-gpu-rocm  # Ensures the ROCm wheels are built before testing
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Install ROCm Dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y rocm-dev rocm-libs rocblas rocm-llvm
+          echo "/opt/rocm/bin" >> $GITHUB_PATH
+
+      - name: Install Test Dependencies
+        run: |
+          pip install -r requirements-dev.txt pytest
+
+      - name: Install ROCm Build
+        run: |
+          pip install ./wheelhouse/qiskit_aer_gpu_rocm*.whl
+
+      - name: Run Unit Tests for ROCm
+        env:
+          AER_THRUST_BACKEND: ROCM
+        run: |
+          pytest -v tests --disable-warnings
