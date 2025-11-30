@@ -15,7 +15,6 @@
 #ifndef _aer_controller_execute_hpp_
 #define _aer_controller_execute_hpp_
 
-#include "misc/hacks.hpp"
 #include <string>
 
 #include "framework/config.hpp"
@@ -28,12 +27,6 @@
 //=========================================================================
 
 namespace AER {
-
-void initialize_libraries(const std::string &lib_dir) {
-  // Fix for MacOS and OpenMP library double initialization crash.
-  // Issue: https://github.com/Qiskit/qiskit-aer/issues/1
-  Hacks::maybe_load_openmp(lib_dir);
-}
 
 template <class controller_t>
 Result controller_execute(std::vector<std::shared_ptr<Circuit>> &input_circs,

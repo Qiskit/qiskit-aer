@@ -1,5 +1,4 @@
 include(Linter)
-find_package(Pybind11 REQUIRED)
 
 # We need to remove the -static flag, because Python Extension system only supports
 # dynamic linked libraries, but we want to build a shared libraries with the least
@@ -19,23 +18,32 @@ if(CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64" OR CMAKE_SYSTEM_PROCESSOR STREQUAL "
 endif()
 
 set(AER_SIMULATOR_SOURCES "bindings.cc" "${SIMD_SOURCE_FILE}")
-basic_pybind11_add_module(controller_wrappers "${AER_SIMULATOR_SOURCES}")
+pybind11_add_module(controller_wrappers bindings.cc "${AER_SIMULATOR_SOURCES}")
+
+if (OpenMP_CXX_FOUND)
+    target_link_libraries(controller_wrappers PRIVATE OpenMP::OpenMP_CXX)
+endif()
 
 if(AER_THRUST_BACKEND STREQUAL "CUDA")
-    include(nvcc_add_compiler_options)
+    target_compile_definitions(controller_wrappers PRIVATE AER_THRUST_CUDA)
+    enable_language(CUDA)
     set_source_files_properties(bindings.cc PROPERTIES LANGUAGE CUDA)
-    set_source_files_properties(bindings.cc PROPERTIES COMPILE_FLAGS "${CUDA_NVCC_FLAGS}")
-
     if(DEFINED SIMD_SOURCE_FILE)
-       set_source_files_properties(${SIMD_SOURCE_FILE} PROPERTIES LANGUAGE CUDA)
-       nvcc_add_compiler_options_list("${SIMD_FLAGS_LIST}" SIMD_FLAGS_OUT)
-       set_source_files_properties(${SIMD_SOURCE_FILE} PROPERTIES COMPILE_FLAGS "${CUDA_NVCC_FLAGS} ${SIMD_FLAGS_OUT}")
+        set_source_files_properties(${SIMD_SOURCE_FILE} PROPERTIES LANGUAGE CUDA)
     endif()
 
-    string(STRIP ${AER_COMPILER_FLAGS} AER_COMPILER_FLAGS_STRIPPED)
-    nvcc_add_compiler_options(${AER_COMPILER_FLAGS_STRIPPED} AER_COMPILER_FLAGS_OUT)
-    set_target_properties(controller_wrappers PROPERTIES COMPILE_FLAGS "${AER_COMPILER_FLAGS_OUT}")
-    enable_language(CUDA)
+    set(CUDA_FLAGS "${CUDA_NVCC_FLAGS}")
+
+    if(DEFINED SIMD_FLAGS_LIST)
+        string (REPLACE ";" " " SIMD_FLAGS_OUT "${SIMD_FLAGS_LIST}")
+        set_source_files_properties(${SIMD_SOURCE_FILE}
+            PROPERTIES COMPILE_FLAGS "${CUDA_FLAGS} ${SIMD_FLAGS_OUT}")
+    endif()
+
+    string(STRIP "${AER_COMPILER_FLAGS}" AER_COMPILER_FLAGS_STRIPPED)
+    target_compile_options(controller_wrappers PRIVATE
+        $<$<COMPILE_LANGUAGE:CUDA>:${AER_COMPILER_FLAGS_STRIPPED}>)
+
 elseif(AER_THRUST_BACKEND STREQUAL "ROCM")
 
     if(NOT DEFINED SIMD_SOURCE_FILE)
@@ -59,7 +67,7 @@ else()
 endif()
 target_include_directories(controller_wrappers PRIVATE ${AER_SIMULATOR_CPP_SRC_DIR}
                                                PRIVATE ${AER_SIMULATOR_CPP_EXTERNAL_LIBS})
-target_link_libraries(controller_wrappers ${AER_LIBRARIES})
+target_link_libraries(controller_wrappers PRIVATE pybind11::headers pybind11::module ${AER_LIBRARIES})
 target_compile_definitions(controller_wrappers PRIVATE ${AER_COMPILER_DEFINITIONS})
 install(TARGETS controller_wrappers LIBRARY DESTINATION qiskit_aer/backends)
 

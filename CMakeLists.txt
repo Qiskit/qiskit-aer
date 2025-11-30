@@ -8,8 +8,11 @@
 # For Mac, statically linking only happens with user libraries, system libraries cannot
 # be linked statically per Apple's indications.
 
-cmake_minimum_required(VERSION 3.8 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.25 FATAL_ERROR)
 file(STRINGS "qiskit_aer/VERSION.txt" VERSION_NUM)
+
+set(PYBIND11_FINDPYTHON ON)
+find_package(Python COMPONENTS Interpreter REQUIRED)
 
 # For ROCm builds we need to make sure the CXX and HIP compilers match and are clang.
 # We should do this before the project() call to make sure the compiler options are
@@ -48,6 +51,15 @@ endif()
 include(CheckLanguage)
 project(qasm_simulator VERSION ${VERSION_NUM} LANGUAGES CXX C ${EXTRA_LANGUAGES} )
 
+# load Conan packages
+set(PYBIND11_FINDPYTHON ON)
+find_package(Python COMPONENTS Interpreter Development.Module REQUIRED)
+find_package(OpenMP REQUIRED)
+find_package(nlohmann_json REQUIRED)
+find_package(spdlog REQUIRED)
+find_package(fmt REQUIRED)
+find_package(OpenBLAS REQUIRED)
+find_package(pybind11 REQUIRED)
 
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
 list(APPEND CMAKE_PREFIX_PATH ${CMAKE_SOURCE_DIR}/cmake)
@@ -61,10 +73,9 @@ if(NOT DEFINED AER_THRUST_BACKEND AND DEFINED ENV{AER_THRUST_BACKEND})
 endif()
 
 if(AER_THRUST_BACKEND STREQUAL "CUDA")
-  include(nvcc_add_compiler_options)
   set(CUDA_FOUND TRUE)
-  #include(FindCUDA) # for cuda_select_nvcc_arch_flags, CUDA_FOUND
-  include(FindCUDA/select_compute_arch)
+  enable_language(CUDA)
+  find_package(CUDAToolkit REQUIRED)
 else()
   # idiosyncrasy of CMake that it still creates a reference to this
   set(CMAKE_CUDA_COMPILE_WHOLE_COMPILATION "")
@@ -90,8 +101,6 @@ endif()
 include(CTest)
 include(compiler_utils)
 include(Linter)
-include(findBLASInSpecificPath)
-include(dependency_utils)
 
 # Get version information
 get_version(${VERSION_NUM})
@@ -176,7 +185,6 @@ endif()
 # Looking for external libraries
 #
 set(BACKEND_REDIST_DEPS "") # List of redistributable dependencies
-setup_dependencies()
 
 # If we do not set them with a space CMake fails afterwards if nothing is set for this vars!
 set(AER_LINKER_FLAGS " ")
@@ -225,41 +233,9 @@ if(STATIC_LINKING)
 	set(BLA_STATIC TRUE)
 endif()
 
-if(AER_BLAS_LIB_PATH)
-	find_BLAS_in_specific_path(${AER_BLAS_LIB_PATH})
-else()
-	if(APPLE)
-		message(STATUS  "Looking for Apple BLAS & Lapack library...")
-		set(BLA_VENDOR "Apple")
-	else()
-		message(STATUS "Looking for OpenBLAS library...")
-		if(NOT BLA_VENDOR)
-		  set(BLA_VENDOR "OpenBLAS")
-		endif()
-	endif()
-	if(WIN32 AND USE_BUNDLED_BLAS_WIN)
-		message(STATUS "Uncompressing OpenBLAS static library...")
-		set(WIN_ARCH "win64" )
-		if("${CMAKE_SIZEOF_VOID_P}" STREQUAL "4") # Checking if win32 build
-			set(WIN_ARCH "win32")
-		endif()
-		execute_process(COMMAND ${CMAKE_COMMAND} -E tar "xvfj" "${AER_SIMULATOR_CPP_SRC_DIR}/third-party/${WIN_ARCH}/lib/openblas.7z" WORKING_DIRECTORY  "${AER_SIMULATOR_CPP_SRC_DIR}/third-party/${WIN_ARCH}/lib/")
-		set(BACKEND_REDIST_DEPS ${BACKEND_REDIST_DEPS} "${AER_SIMULATOR_CPP_SRC_DIR}/third-party/${WIN_ARCH}/lib/libopenblas.dll")
-		set(BLAS_LIBRARIES "${AER_SIMULATOR_CPP_SRC_DIR}/third-party/${WIN_ARCH}/lib/libopenblas.dll.a") # Seems CMake is unable to find it on its own
-		set(BLAS_FOUND True)
-	else()
-		find_package(BLAS QUIET)
-	endif()
-	if(NOT BLAS_FOUND)
-		message(STATUS "OpenBLAS not found. Looking for any other BLAS & Lapack libraries...")
-		unset(BLA_VENDOR)
-		find_package(BLAS REQUIRED)
-		find_package(LAPACK REQUIRED)
-		set(BLAS_LIBRARIES "${BLAS_LIBRARIES};${LAPACK_LIBRARIES}")
-	endif()
-endif()
-
-message(STATUS "BLAS library found: ${BLAS_LIBRARIES}")
+find_package(OpenBLAS REQUIRED)
+set(BLAS_LIBRARIES OpenBLAS::OpenBLAS)
+message(STATUS "Using Conan-provided OpenBLAS: ${BLAS_LIBRARIES}")
 
 if(CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64" OR CMAKE_SYSTEM_PROCESSOR STREQUAL "AMD64" OR CMAKE_SYSTEM_PROCESSOR STREQUAL "amd64")
     if(APPLE OR UNIX)
@@ -269,6 +245,7 @@ if(CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64" OR CMAKE_SYSTEM_PROCESSOR STREQUAL "
 		set(SIMD_FLAGS_LIST "/arch:AVX2")
 	endif()
 endif()
+
 
 set(AER_THRUST_SUPPORTED TRUE)
 if(AER_THRUST_SUPPORTED)
@@ -292,16 +269,29 @@ if(AER_THRUST_SUPPORTED)
 		set(CMAKE_CUDA_ARCHITECTURES "${AER_CUDA_ARCHITECTURES}")
 		message(STATUS "CMAKE_CUDA_ARCHITECTURES = ${CMAKE_CUDA_ARCHITECTURES}")
 
+		if(NOT DEFINED AER_PYTHON_CUDA_ROOT)
+			execute_process(
+				COMMAND "${Python_EXECUTABLE}" -c "import site; print(site.getsitepackages()[0])"
+				OUTPUT_VARIABLE AER_PYTHON_CUDA_ROOT
+				OUTPUT_STRIP_TRAILING_WHITESPACE
+			)
+			message(STATUS "Detected AER_PYTHON_CUDA_ROOT = ${AER_PYTHON_CUDA_ROOT}")
+		endif()
 		if(NOT DEFINED AER_PYTHON_CUDA_ROOT AND DEFINED ENV{AER_PYTHON_CUDA_ROOT})
 			set(AER_PYTHON_CUDA_ROOT $ENV{AER_PYTHON_CUDA_ROOT})
 		endif()
+
 		if(NOT DEFINED AER_CIBUILD AND DEFINED ENV{AER_CIBUILD})
 			set(AER_CIBUILD $ENV{AER_CIBUILD})
 		endif()
 		if(AER_PYTHON_CUDA_ROOT)
 			find_package(Python)
 			if(AER_CIBUILD)
-				set(PYTHON_SITE_PATH ${AER_PYTHON_CUDA_ROOT}/cpython-${Python_VERSION_MAJOR}.${Python_VERSION_MINOR}.${Python_VERSION_PATCH}/lib/python${Python_VERSION_MAJOR}.${Python_VERSION_MINOR}/site-packages)
+				if(EXISTS "${AER_PYTHON_CUDA_ROOT}/cuquantum/include")
+      				set(PYTHON_SITE_PATH "${AER_PYTHON_CUDA_ROOT}")
+    			else()
+					set(PYTHON_SITE_PATH ${AER_PYTHON_CUDA_ROOT}/cpython-${Python_VERSION_MAJOR}.${Python_VERSION_MINOR}.${Python_VERSION_PATCH}/lib/python${Python_VERSION_MAJOR}.${Python_VERSION_MINOR}/site-packages)
+				endif()
 				set(STR_ORIGIN "\$$ORIGIN")
 			else()
 				set(PYTHON_SITE_PATH ${AER_PYTHON_CUDA_ROOT}/lib/python${Python_VERSION_MAJOR}.${Python_VERSION_MINOR}/site-packages)
@@ -320,6 +310,10 @@ if(AER_THRUST_SUPPORTED)
 			set(CUDA_NVCC_FLAGS "${AER_CUDA_ARCH_FLAGS_EXPAND} -DAER_THRUST_GPU -DAER_THRUST_CUDA -I${AER_SIMULATOR_CPP_SRC_DIR} -isystem ${AER_SIMULATOR_CPP_SRC_DIR}/third-party/headers -use_fast_math --expt-extended-lambda")
 			set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -I${PYTHON_SITE_PATH}/cuquantum/include")
 			set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -I${PYTHON_SITE_PATH}/cutensor/include")
+			include_directories(
+ 		    	${PYTHON_SITE_PATH}/cuquantum/include
+    			${PYTHON_SITE_PATH}/cutensor/include
+			)
 			set(THRUST_DEPENDANT_LIBS "${THRUST_DEPENDANT_LIBS} -Wl,--disable-new-dtags")
 			set(THRUST_DEPENDANT_LIBS "${THRUST_DEPENDANT_LIBS} -Wl,-rpath,'${STR_ORIGIN}/../../nvidia/cublas/lib'")
 			set(THRUST_DEPENDANT_LIBS "${THRUST_DEPENDANT_LIBS} -Wl,-rpath,'${STR_ORIGIN}/../../nvidia/cusolver/lib'")
@@ -500,7 +494,10 @@ if(AER_THRUST_SUPPORTED)
 	if(MSVC)
 		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /bigobj")
 	endif()
+message(STATUS "CUDA include dirs: ${CUDAToolkit_INCLUDE_DIRS}")
 endif()
+
+
 
 if(AER_THRUST_SUPPORTED)
 	set(AER_COMPILER_DEFINITIONS ${AER_COMPILER_DEFINITIONS} AER_THRUST_SUPPORTED=TRUE)
@@ -533,10 +530,17 @@ endif()
 set(AER_LIBRARIES
 	${AER_LIBRARIES}
 	${BLAS_LIBRARIES}
-	AER_DEPENDENCY_PKG::nlohmann_json
-	AER_DEPENDENCY_PKG::spdlog
+	nlohmann_json::nlohmann_json
+	spdlog::spdlog
 	Threads::Threads
 	${CMAKE_DL_LIBS})
+
+# Handle OpenMP differently depending on platform
+if (TARGET OpenMP::OpenMP)
+    list(APPEND AER_LIBRARIES OpenMP::OpenMP)
+elseif (MSVC AND OpenMP_CXX_FOUND)
+    list(APPEND AER_COMPILER_FLAGS "${OpenMP_CXX_FLAGS}")
+endif()
 
 set(AER_COMPILER_DEFINITIONS ${AER_COMPILER_DEFINITIONS} ${CONAN_DEFINES})
 

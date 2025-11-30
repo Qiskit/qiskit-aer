@@ -4,11 +4,14 @@
 Main setup file for qiskit-aer
 """
 import os
+import pathlib
 import platform
 
+import subprocess
 import setuptools
 from skbuild import setup
 
+DEBUG_MODE = os.environ.get("DEBUG") is not None
 PACKAGE_NAME = os.getenv("QISKIT_AER_PACKAGE_NAME", "qiskit-aer")
 CUDA_MAJOR = os.getenv("QISKIT_AER_CUDA_MAJOR", "12")
 
@@ -85,11 +88,91 @@ README_PATH = os.path.join(os.path.abspath(os.path.dirname(__file__)), "README.m
 with open(README_PATH) as readme_file:
     README = readme_file.read()
 
+# run Conan
+BUILD_DIR = os.path.join(os.path.dirname(__file__), "build")
+os.makedirs(BUILD_DIR, exist_ok=True)
+print("PATH:", os.environ.get("PATH"), flush=True)
+print("CC:", os.environ.get("CC"), flush=True)
+print("CXX:", os.environ.get("CXX"), flush=True)
+try:
+    result = subprocess.run(
+        ["which", "-a", "gcc"],
+        check=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+    print(f"which -a gcc result: {result.stdout.strip()}", flush=True)
+    result = subprocess.run(
+        ["gcc", "-dumpmachine"],
+        check=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+    print(f"gcc -dumpmachine gives: {result.stdout.strip()}", flush=True)
+    
+    result = subprocess.run(
+        ["gcc", "-dumpversion"],
+        check=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+    
+    print(f"gcc -dumpversion gives: {result.stdout.strip()}", flush=True)
+    
+except Exception as e:
+    print(f"Failed to run 'gcc -dumpmachine':", flush=True)
+try:
+    subprocess.check_call(["conan", "profile", "detect", "--force"], cwd=BUILD_DIR)
+    print("CONAN: New profile generated", flush=True)
+except subprocess.CalledProcessError:
+    print("CONAN: profile already exists", flush=True)
+
+conan_profile_path = pathlib.Path.home() / ".conan2" / "profiles" / "default"
+if conan_profile_path.exists():
+    print(f"CONAN: Profile found:", flush=True)
+    print(conan_profile_path.read_text(), flush=True)
+else:
+    print(f"CONAN: Profile not found", flush=True)
+
+subprocess.check_call(
+    [
+        "conan",
+        "install",
+        os.path.dirname(__file__),
+        "--output-folder=build",
+        "--build=missing",
+        "-s",
+        "compiler.cppstd=17",
+        "-s:h",
+        "arch=x86_64",
+        "-s:b",
+        "arch=x86_64",
+        "-s",
+        f"build_type={'Debug' if DEBUG_MODE else 'Release'}",
+        "-v",
+        "debug",
+    ]
+)
+
+CONAN_TOOLCHAIN_FILE = os.path.join(BUILD_DIR, "conan_toolchain.cmake")
 
 cmake_args = []
-is_win_32_bit = platform.system() == "Windows" and platform.architecture()[0] == "32bit"
-if is_win_32_bit:
-    cmake_args.append("-DCMAKE_GENERATOR_PLATFORM=Win32")
+cmake_args.append(f"-DCMAKE_TOOLCHAIN_FILE={CONAN_TOOLCHAIN_FILE}")
+# try to be as verbose as possible
+cmake_args.append(f"-DCMAKE_VERBOSE_MAKEFILE:BOOL=ON")
+cmake_args.append(f"-DCMAKE_MESSAGE_LOG_LEVEL=STATUS")
+cmake_args.append(f"-DCMAKE_EXPORT_COMPILE_COMMANDS=ON")
+
+if DEBUG_MODE:
+    cmake_args.append(f"-DCMAKE_BUILD_TYPE=Debug")
+
+if platform.system() == "Windows":
+    cmake_args.append(f"-DCMAKE_POLICY_DEFAULT_CMP0091=NEW")
+    if platform.architecture()[0] == "32bit":
+        cmake_args.append("-DCMAKE_GENERATOR_PLATFORM=Win32")
 
 
 setup(

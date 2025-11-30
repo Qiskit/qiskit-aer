@@ -186,7 +186,11 @@ py::array_t<T, py::array::f_style> to_numpy(matrix<T> &&src) {
   matrix<T> *src_ptr = new matrix<T>(std::move(src));
   auto capsule = py::capsule(
       src_ptr, [](void *p) { delete reinterpret_cast<matrix<T> *>(p); });
-  return py::array_t<T, py::array::f_style>(shape, src_ptr->data(), capsule);
+  std::array<py::ssize_t, 2> strides{
+      static_cast<py::ssize_t>(sizeof(T)),
+      static_cast<py::ssize_t>(sizeof(T) * src_ptr->GetRows())};
+  return py::array_t<T, py::array::f_style>(shape, strides, src_ptr->data(),
+                                            capsule);
 }
 
 template <typename T>
@@ -195,9 +199,10 @@ py::array_t<T> to_numpy(AER::Vector<T> &&src) {
   auto capsule = py::capsule(
       src_ptr, [](void *p) { delete reinterpret_cast<AER::Vector<T> *>(p); });
   return py::array_t<T>(
-      src_ptr->size(), // shape of array
-      src_ptr->data(), // c-style contiguous strides for vector
-      capsule          // numpy array references this parent
+      {src_ptr->size()}, // shape of array
+      {sizeof(T)},       // strides data (1 stride here)
+      src_ptr->data(),   // c-style contiguous strides for vector
+      capsule            // numpy array references this parent
   );
 }
 
@@ -207,9 +212,10 @@ py::array_t<T> to_numpy(std::vector<T> &&src) {
   auto capsule = py::capsule(
       src_ptr, [](void *p) { delete reinterpret_cast<std::vector<T> *>(p); });
   return py::array_t<T>(
-      src_ptr->size(), // shape of array
-      src_ptr->data(), // c-style contiguous strides for vector
-      capsule          // numpy array references this parent
+      {src_ptr->size()}, // shape of array
+      {sizeof(T)},       // strides data (1 stride here)
+      src_ptr->data(),   // c-style contiguous strides for vector
+      capsule            // numpy array references this parent
   );
 }
 

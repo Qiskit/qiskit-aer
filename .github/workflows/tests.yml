@@ -101,6 +101,7 @@ jobs:
 
     env:
       AER_THRUST_BACKEND: OMP
+      AER_CMAKE_OPENMP_BUILD: 1
       QISKIT_TEST_CAPTURE_STREAMS: 1
       # Needed to suppress a warning in jupyter-core 5.x by eagerly migrating to
       # a new internal interface that will be the default in jupyter-core 6.x.
@@ -268,9 +269,15 @@ jobs:
             ${{ runner.os }}-${{ matrix.python-version}}-
       - name: Add msbuild to PATH
         uses: microsoft/setup-msbuild@v2
+      - name: Run Conan
+        run: |
+          pip install conan==2.*
+          conan profile detect --force
+          conan install . --output-folder=build --build=missing -s:h arch=x86_64 -s:b arch=x86_64 -s compiler.cppstd=17 -s build_type=Release
       - name: Build Aer Windows
         env:
           CMAKE_GENERATOR: "Visual Studio 17 2022"
+          CMAKE_TOOLCHAIN_FILE: build/conan_toolchain.cmake
         run: |
           set -e
           pip install build
