@@ -16,7 +16,7 @@ Tests for utility functions to create device noise model.
 
 from test.terra.common import QiskitAerTestCase
 
-from qiskit.providers.aer.backends.controller_wrappers import *
+from qiskit_aer.backends.controller_wrappers import *
 
 
 class TestClassicalExpressions(QiskitAerTestCase):
