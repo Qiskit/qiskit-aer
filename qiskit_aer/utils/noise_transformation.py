@@ -416,9 +416,6 @@ def _transform_by_operator_list(
         constraints=[cvxpy.sum(x) <= 1, x >= 0, source_fids.T @ x <= target_fid],
     )
     # solve quadratic program
-    # A is a Gram matrix and therefore PSD by construction
-    # numerical noise can induce small negative eigenvalues which can 
-    # lead cvxpy's DCP check to fail. This can be circumvented by assume_PSD = True
     prob.solve(assume_PSD=True)
     probabilities = x.value
     return probabilities
