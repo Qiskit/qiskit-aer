@@ -412,14 +412,14 @@ def _transform_by_operator_list(
     # create quadratic program
     x = cvxpy.Variable(n)
     prob = cvxpy.Problem(
-        cvxpy.Minimize(cvxpy.quad_form(x, A) + b.T @ x),
+        # the matrix A in the quadratic program is a Gram matrix and therefore by construction PSD
+        # due to numerical noise small negative eigenvalues can occur causing a DCPError with prob.solve()
+        # as the PSD check might fail; assume_PSD=True tells cvxpy to not perform this check
+        cvxpy.Minimize(cvxpy.quad_form(x, A, assume_PSD=True) + b.T @ x),
         constraints=[cvxpy.sum(x) <= 1, x >= 0, source_fids.T @ x <= target_fid],
     )
     # solve quadratic program
-    # the matrix A in the quadratic program is a Gram matrix and therefore by construction PSD
-    # due to numerical noise small negative eigenvalues can occur causing a DCPError with prob.solve()
-    # as the PSD check might fail; assume_PSD=True tells cvxpy to not perform this check
-    prob.solve(assume_PSD=True)
+    prob.solve()
     probabilities = x.value
     return probabilities
 
