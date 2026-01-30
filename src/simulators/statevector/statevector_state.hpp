@@ -1033,11 +1033,11 @@ std::vector<SampleVector> State<statevec_t>::sample_measure(const reg_t &qubits,
   int_t npar = BaseState::threads_;
   if (npar > shots)
     npar = shots;
-  
+
   // Pre-allocate with proper size but avoid expensive default construction
   std::vector<SampleVector> all_samples;
   all_samples.reserve(shots);
-  
+
   // Create all SampleVectors efficiently
   for (i = 0; i < shots; ++i) {
     all_samples.emplace_back(qubits.size());
@@ -1046,15 +1046,16 @@ std::vector<SampleVector> State<statevec_t>::sample_measure(const reg_t &qubits,
   // Cache the num_qubits to avoid repeated member access in lambda
   const uint_t num_qubits = BaseState::qreg_.num_qubits();
 
-  auto convert_to_bit_lambda = [&allbit_samples, &all_samples, shots,
-                                &qubits, npar, num_qubits](int_t k) {
+  auto convert_to_bit_lambda = [&allbit_samples, &all_samples, shots, &qubits,
+                                npar, num_qubits](int_t k) {
     uint_t ishot, iend;
     ishot = shots * k / npar;
     iend = shots * (k + 1) / npar;
-    
-    // Pre-allocate temporary SampleVector once per thread to avoid repeated allocation
+
+    // Pre-allocate temporary SampleVector once per thread to avoid repeated
+    // allocation
     SampleVector allbit_sample(num_qubits);
-    
+
     for (; ishot < iend; ishot++) {
       allbit_sample.from_uint(allbit_samples[ishot], num_qubits);
       all_samples[ishot].map(allbit_sample, qubits);

@@ -241,7 +241,8 @@ void CacheBlocking::optimize_circuit(Circuit &circ, Noise::NoiseModel &noise,
       if ((1ull << (qubits_ - block_bits_)) < num_processes_) {
         // not enough distribution
         blocking_enabled_ = false;
-        // std::string error = "cache blocking : blocking_qubits is to large to "
+        // std::string error = "cache blocking : blocking_qubits is to large to
+        // "
         //                     "parallelize with " +
         //                     std::to_string(num_processes_) + " processes ";
         // throw std::runtime_error(error);

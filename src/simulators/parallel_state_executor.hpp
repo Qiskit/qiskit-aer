@@ -649,10 +649,10 @@ void ParallelStateExecutor<state_t>::measure_sampler(InputIterator first_meas,
     reg_t outcome_vec(1);
     reg_t memory_vec(1);
     reg_t register_vec(1);
-    
+
     // Initialize once and reuse
     creg.initialize(num_memory, num_registers);
-    
+
     while (!all_samples.empty()) {
       auto sample = all_samples.back();
       creg.reset_to_zero();
@@ -663,7 +663,7 @@ void ParallelStateExecutor<state_t>::measure_sampler(InputIterator first_meas,
         memory_vec[0] = pair.first;
         creg.store_measure(outcome_vec, memory_vec, reg_t());
       }
-      // process register bit measurements  
+      // process register bit measurements
       for (const auto &pair : register_map) {
         outcome_vec[0] = sample[pair.second];
         register_vec[0] = pair.first;
@@ -693,18 +693,18 @@ void ParallelStateExecutor<state_t>::measure_sampler(InputIterator first_meas,
       ClassicalRegister creg;
       // Pre-allocate vectors to avoid repeated allocations
       reg_t outcome_vec(1);
-      reg_t memory_vec(1);  
+      reg_t memory_vec(1);
       reg_t register_vec(1);
-      
+
       // Initialize once and reuse - avoid repeated string allocations
       creg.initialize(num_memory, num_registers);
-      
+
       uint_t is, ie;
       is = all_samples.size() * ip / npar;
       ie = all_samples.size() * (ip + 1) / npar;
       for (; is < ie; is++) {
         uint_t i = all_samples.size() - is - 1;
-        
+
         // Reset to all zeros instead of reinitializing
         creg.reset_to_zero();
 
