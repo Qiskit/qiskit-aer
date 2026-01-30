@@ -47,12 +47,22 @@ for instructions on doing this.
 
 ### AMD ROCm GPU Support
 
-Qiskit Aer also supports AMD GPUs via ROCm (7.0 or newer). To use AMD GPUs, you need to build from source:
+Qiskit Aer also supports AMD GPUs via ROCm (6.4 or 7.0+ newer recommended). To use AMD GPUs, you need to build from source:
 
 #### Prerequisites
-- ROCm 7.0 or newer
+- ROCm 6.4+ or 7.0+ (6.4.2 recommended for best stability)
 - AMD GPU: MI100/MI200/MI300 (data center) or RX 6000/7000 series (consumer)
 - Ubuntu 20.04/22.04 or compatible Linux distribution
+- System dependencies: `libomp-dev` (OpenMP library)
+
+#### System Requirements Installation
+```bash
+# Install OpenMP library (required)
+sudo apt-get update && sudo apt-get install -y libomp-dev
+
+# Install Qiskit separately (not included in qiskit-aer-gpu-rocm)
+pip install qiskit
+```
 
 #### Quick Start with Auto-Detection
 ```bash
@@ -66,19 +76,33 @@ Qiskit Aer also supports AMD GPUs via ROCm (7.0 or newer). To use AMD GPUs, you 
 bash /tmp/qiskit_aer_rocm_build.sh
 ```
 
-#### Manual Build
+#### Manual Build (Recommended for Full Control)
 ```bash
+# 1. Clean any previous build artifacts
+rm -rf _skbuild dist build
+
+# 2. Install build dependencies
+pip install pybind11
+pip install -r requirements-dev.txt
+
+# 3. Set environment variables
 export ROCM_PATH=/opt/rocm
 export AER_THRUST_BACKEND=ROCM
-export AER_ROCM_ARCH=gfx90a  # Your GPU architecture (see table below)
+export QISKIT_AER_PACKAGE_NAME='qiskit-aer-gpu-rocm'
 
-python3 -m pip install -r requirements-dev.txt
-QISKIT_AER_PACKAGE_NAME='qiskit-aer-gpu-rocm' \
-    python3 setup.py bdist_wheel -- \
-        -DAER_THRUST_BACKEND=ROCM \
-        -DAER_ROCM_ARCH=gfx90a
-python3 -m pip install --force-reinstall dist/qiskit_aer_gpu_rocm-*.whl
+# 4. Build with explicit compiler flags
+python3 setup.py bdist_wheel -- \
+  -DCMAKE_CXX_COMPILER=${ROCM_PATH}/llvm/bin/clang++ \
+  -DCMAKE_HIP_COMPILER=${ROCM_PATH}/llvm/bin/clang++ \
+  -DAER_THRUST_BACKEND=ROCM
+
+# 5. Install the wheel
+pip install dist/qiskit_aer_gpu_rocm-*.whl
 ```
+
+**Note on ROCm Versions:**
+- **ROCm 6.4.2**: Recommended for production use
+- **ROCm 7.2+**: Newer features
 
 #### Supported AMD GPU Architectures
 

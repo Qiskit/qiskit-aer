@@ -22,7 +22,40 @@ Comprehensive examples demonstrating GPU-accelerated quantum circuit simulation 
 
 ## 🚀 Quick Start
 
-### 1. Verify Single GPU (5-10 seconds)
+### Option A: Using the Unified Benchmark Runner (Recommended) ⭐
+
+The unified script automatically handles both single and multi-GPU scenarios:
+
+```bash
+# Auto-detect and run on single GPU
+./run_benchmark.sh --gpu 0 --script quick_test.py
+
+# Single GPU benchmark
+./run_benchmark.sh --single --gpu 0 --qubits 20,25,30,32
+
+# Multi-GPU benchmark (auto-detects all GPUs)
+./run_benchmark.sh --multi --qubits 32,33,34
+
+# Specify exact GPUs for multi-GPU
+./run_benchmark.sh --multi --gpu 0,1,2,3 --qubits 32,33,34
+
+# Run validation suite
+./run_benchmark.sh --multi --script validation.py
+
+# Get help
+./run_benchmark.sh --help
+```
+
+**Features:**
+- ✅ Auto-detects single vs multi-GPU systems
+- ✅ Automatically selects correct script directory
+- ✅ Sets proper environment variables (GPU visibility, stack size)
+- ✅ Colored output with clear status messages
+- ✅ Works in multi-GPU environments without conflicts
+
+### Option B: Direct Python Execution
+
+#### 1. Verify Single GPU (5-10 seconds)
 ```bash
 cd single_gpu
 python3 quick_test.py
@@ -30,7 +63,7 @@ python3 quick_test.py
 **Expected:** GPU detection and basic performance test  
 **Output:** CPU vs GPU comparison with speedup factor
 
-### 2. Test Multi-GPU (10-20 seconds) - If Available
+#### 2. Test Multi-GPU (10-20 seconds) - If Available
 ```bash
 cd multi_gpu
 python3 quick_test.py
@@ -38,7 +71,7 @@ python3 quick_test.py
 **Expected:** Multi-GPU confirmation with 32-qubit circuit  
 **Output:** Verification that multiple GPUs are working
 
-### 3. Run Full Validation (2-5 minutes) - Recommended
+#### 3. Run Full Validation (2-5 minutes) - Recommended
 ```bash
 cd multi_gpu
 python3 validation.py
@@ -52,18 +85,20 @@ python3 validation.py
 
 ```
 examples/
-├── README.md           ← You are here (comprehensive guide)
+├── README.md              ← You are here (comprehensive guide)
+├── run_benchmark.sh       ← 🆕 Unified runner (single & multi-GPU) ⭐
 │
-├── single_gpu/         ← Single GPU examples (up to 34 qubits)
-│   ├── quick_test.py      Fast GPU verification (~10 sec)
-│   ├── benchmark.py       Performance benchmarking (~5-15 min)
-│   └── README.md          Detailed single GPU guide
+├── single_gpu/            ← Single GPU examples (up to 34 qubits)
+│   ├── quick_test.py         Fast GPU verification (~10 sec)
+│   ├── benchmark.py          Performance benchmarking (~5-15 min)
+│   ├── run_benchmark.sh      Local single-GPU runner
+│   └── README.md             Detailed single GPU guide
 │
-└── multi_gpu/          ← Multi-GPU examples (32-35+ qubits) ⭐
-    ├── quick_test.py      Fast multi-GPU verification (~20 sec)
-    ├── benchmark.py       Scaling & performance analysis (~10-20 min)
-    ├── validation.py      Complete validation suite (~2-5 min)
-    └── README.md          Detailed multi-GPU guide
+└── multi_gpu/             ← Multi-GPU examples (32-35+ qubits) ⭐
+    ├── quick_test.py         Fast multi-GPU verification (~20 sec)
+    ├── benchmark.py          Scaling & performance analysis (~10-20 min)
+    ├── validation.py         Complete validation suite (~2-5 min)
+    └── README.md             Detailed multi-GPU guide
 ```
 
 ---
@@ -550,6 +585,50 @@ result = backend.run(
     batched_shots_gpu_max_qubits=qubits      # Match circuit size
 ).result()
 ```
+
+### Runtime Crashes in Multi-GPU Systems
+
+**Error:**
+```
+terminate called after throwing an instance of 'std::runtime_error'
+Aborted (core dumped)
+```
+
+**Cause:** On systems with multiple GPUs (e.g., 8x MI300X), qiskit-aer may have issues with GPU selection without explicit configuration. This happens due to:
+1. **Multi-GPU confusion**: qiskit-aer may try to initialize all GPUs without proper configuration
+2. **Stack size limits**: Large quantum circuits (32+ qubits) require more stack space
+3. **HIP configuration**: The blocking mechanism needs proper GPU setup
+
+**Solution 1: Use the unified benchmark runner (recommended)**
+```bash
+# Automatically handles GPU selection and environment
+./run_benchmark.sh --single --gpu 0 --qubits 20,25,30,32
+./run_benchmark.sh --multi --gpu 0,1,2,3 --qubits 32,33,34
+```
+
+**Solution 2: Set environment variables manually**
+```bash
+# Restrict to single GPU
+export ROCR_VISIBLE_DEVICES=0
+export HIP_VISIBLE_DEVICES=0
+ulimit -s unlimited
+python3 benchmark.py
+
+# Or select specific GPU (change 0 to 1-7 for other GPUs)
+export ROCR_VISIBLE_DEVICES=1
+export HIP_VISIBLE_DEVICES=1
+```
+
+**Solution 3: Add to shell profile (persistent)**
+
+Add to `~/.bashrc` or `~/.bash_profile`:
+```bash
+# For qiskit-aer in multi-GPU environment
+export ROCR_VISIBLE_DEVICES=0
+export HIP_VISIBLE_DEVICES=0
+```
+
+Then always run with: `ulimit -s unlimited && python3 benchmark.py`
 
 ### Environment Variable Issues
 
