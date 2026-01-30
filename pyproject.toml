@@ -22,6 +22,15 @@ before-test = "pip install --only-binary=numpy,scipy numpy scipy"
 [tool.cibuildwheel.linux]
 before-all = "dnf install -y openblas-devel"
 
+[tool.cibuildwheel.macos]
+# The macOS images we use have a newer clang than the ancient version of conan
+# knows about, but it's similar enough that the build still works if we force it.
+before-build = [
+    "python -m pip install 'conan<2.0.0'",
+    "conan config init --force",
+    "sed -i '' 's/\"16.0\"/\"16.0\", \"17.0\"/' ~/.conan/settings.yml",
+]
+
 [tool.cibuildwheel.windows]
 environment = { CMAKE_GENERATOR = "Visual Studio 17 2022"}
 
