@@ -85,7 +85,7 @@ def _observable_key(observable: SparsePauliOp) -> tuple:
 
 class Estimator(BaseEstimatorV1):
     """
-    Aer implmentation of Estimator.
+    Aer implementation of Estimator.
 
     :Run Options:
         - **shots** (None or int) --

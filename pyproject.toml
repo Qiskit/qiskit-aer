@@ -25,7 +25,7 @@ before-test = "pip install --only-binary=numpy,scipy numpy scipy"
 before-all = "sed -i -e 's/^mirrorlist/#mirrorlist/' -e 's/^#baseurl/baseurl/' -e 's/mirror.centos.org/vault.centos.org/' /etc/yum.repos.d/*.repo && yum install -y openblas-devel"
 
 [tool.cibuildwheel.windows]
-environment = { CMAKE_GENERATOR = "Visual Studio 16 2019"}
+environment = { CMAKE_GENERATOR = "Visual Studio 17 2022"}
 
 [[tool.cibuildwheel.overrides]]
 select = "cp3{9,10,11,12,13}-manylinux_i686"

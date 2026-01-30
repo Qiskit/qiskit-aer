@@ -20,7 +20,7 @@
 
 namespace AerToPy {
 
-// Move an ExperimentResult metdata object to a Python dict
+// Move an ExperimentResult metadata object to a Python dict
 template <>
 py::object to_python(AER::Metadata &&metadata);
 
