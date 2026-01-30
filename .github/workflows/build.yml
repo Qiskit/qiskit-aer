@@ -12,7 +12,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: ["macos-13", "ubuntu-latest", "windows-latest"]
+        os: ["macos-15-intel", "ubuntu-latest", "windows-latest"]
     steps:
       - uses: actions/checkout@v4
       - name: Set up Python Python '3.13'
