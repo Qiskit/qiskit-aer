@@ -11,7 +11,7 @@ build-backend = "setuptools.build_meta"
 
 [tool.cibuildwheel]
 manylinux-x86_64-image = "manylinux_2_28"
-skip = "pp* *musllinux* *i686* *win32* cp38-* cp3??t-*"
+skip = "pp* *musllinux* *i686* *win32* cp38-* cp39-* cp3??t-*"
 test-command = "python {project}/tools/verify_wheels.py"
 # We need to use pre-built versions of Numpy and Scipy in the tests; they have a
 # tendency to crash if they're installed from source by `pip install`, and since
