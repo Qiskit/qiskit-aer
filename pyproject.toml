@@ -10,10 +10,8 @@ requires = [
 build-backend = "setuptools.build_meta"
 
 [tool.cibuildwheel]
-manylinux-x86_64-image = "manylinux2014"
-manylinux-i686-image = "manylinux2014"
-skip = "pp* cp36* cp37* cp38* *musllinux*"
-test-skip = "cp3*-win32 cp3*-manylinux_i686"
+manylinux-x86_64-image = "manylinux_2_28"
+skip = "pp* *musllinux* *i686* *win32* cp38-* cp39-* cp3??t-*"
 test-command = "python {project}/tools/verify_wheels.py"
 # We need to use pre-built versions of Numpy and Scipy in the tests; they have a
 # tendency to crash if they're installed from source by `pip install`, and since
@@ -22,15 +20,23 @@ test-command = "python {project}/tools/verify_wheels.py"
 before-test = "pip install --only-binary=numpy,scipy numpy scipy"
 
 [tool.cibuildwheel.linux]
-before-all = "sed -i -e 's/^mirrorlist/#mirrorlist/' -e 's/^#baseurl/baseurl/' -e 's/mirror.centos.org/vault.centos.org/' /etc/yum.repos.d/*.repo && yum install -y openblas-devel"
+before-all = "dnf install -y openblas-devel"
+
+[tool.cibuildwheel.macos]
+# The macOS images we use have a newer clang than the ancient version of conan
+# knows about, but it's similar enough that the build still works if we force it.
+#
+# TODO: We should fix the build to use a modern version of conan.  This hack is
+# duplicated in the macOS CI test runner.
+before-build = [
+    "python -m pip install 'conan<2.0.0'",
+    "conan config init --force",
+    "sed -i '' 's/\"16.0\"/\"16.0\", \"17.0\"/' ~/.conan/settings.yml",
+]
 
 [tool.cibuildwheel.windows]
 environment = { CMAKE_GENERATOR = "Visual Studio 17 2022"}
 
-[[tool.cibuildwheel.overrides]]
-select = "cp3{9,10,11,12,13}-manylinux_i686"
-before-all = "sed -i -e 's/^mirrorlist/#mirrorlist/' -e 's/^#baseurl/baseurl/' -e 's/mirror.centos.org/vault.centos.org/' /etc/yum.repos.d/*.repo && yum install -y libatomic && yum install -y wget && bash {project}/tools/install_openblas_i686.sh && bash {project}/tools/install_rust.sh"
-
 [tool.black]
 line-length = 100
-target-version = ['py39', 'py310', 'py311', 'py312', 'py313']
+target-version = ['py310', 'py311', 'py312', 'py313']

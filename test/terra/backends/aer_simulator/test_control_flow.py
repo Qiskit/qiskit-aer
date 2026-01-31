@@ -622,6 +622,7 @@ class TestControlFlow(SimulatorTestCase):
         self.assertEqual(result.get_counts(), {"010": 100})
 
     @data("statevector", "density_matrix", "matrix_product_state", "stabilizer")
+    @unittest.skip("Fails on Qiskit 2.3.0 due to Qiskit/qiskit#15579")
     def test_transpile_break_and_continue_loop(self, method):
         """Test that transpiler can transpile break_loop and continue_loop with AerSimulator"""
 
