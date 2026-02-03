@@ -49,7 +49,7 @@ jobs:
     needs: ["lint"]
     strategy:
       matrix:
-        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
+        python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
         platform: [
           { os: "ubuntu-latest", python-architecture: "x64" },
         ]
@@ -93,7 +93,7 @@ jobs:
     timeout-minutes: 60
     strategy:
       matrix:
-        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
+        python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
         qiskit-extra: [""]
         include:
           - python-version: "3.10"
@@ -192,13 +192,13 @@ jobs:
           stestr run --slowest
         shell: bash
   tests_macos:
-    runs-on: macos-13
+    runs-on: macos-latest
     name: macOS Python ${{ matrix.python-version }}
     needs: [sdist, lint]
     timeout-minutes: 60
     strategy:
       matrix:
-        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
+        python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
     env:
       AER_THRUST_BACKEND: OMP
       QISKIT_TEST_CAPTURE_STREAMS: 1
@@ -221,6 +221,19 @@ jobs:
             ${{ runner.os }}-${{ matrix.python-version}}-pip-test-
             ${{ runner.os }}-${{ matrix.python-version}}-pip-
             ${{ runner.os }}-${{ matrix.python-version}}-
+
+      # The macOS images we use have a newer clang than the ancient version of conan
+      # knows about, but it's similar enough that the build still works if we force it.
+      #
+      # TODO: We should fix the build to use a modern version of conan.  This hack is
+      # duplicated in `pyproject.toml` for cibuildwheel.
+      - name: Hack ancient conan to accept a recent apple-clang
+        run: |
+          set -e
+          python -m pip install 'conan<2.0.0'
+          conan config init --force
+          sed -i '' 's/"16.0"/"16.0", "17.0"/' ~/.conan/settings.yml
+
       - name: Install Aer and dependencies
         run: |
           set -e
@@ -243,7 +256,7 @@ jobs:
     timeout-minutes: 60
     strategy:
       matrix:
-        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
+        python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
     env:
       AER_THRUST_BACKEND: OMP
       QISKIT_TEST_CAPTURE_STREAMS: 1
