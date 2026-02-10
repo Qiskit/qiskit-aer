@@ -142,8 +142,7 @@ protected:
 
   // Compute and save amplitudes squared for some outcomes
   void apply_save_amplitudes_sq(const Operations::Op &op,
-                                ExperimentResult &result,
-                                RngEngine &rng);
+                                ExperimentResult &result, RngEngine &rng);
 
   // Compute and save the expval for the current simulator state
   void apply_save_expval(const Operations::Op &op, ExperimentResult &result,
@@ -805,10 +804,9 @@ void State::apply_save_amplitudes_sq(const Operations::Op &op,
   rvector_t amps_sq(op.int_params.size(),
                     1.0); // Must be initialized in 1 for helper func
   for (size_t i = 0; i < op.int_params.size(); i++) {
-    amps_sq[i] = BaseState::qreg_.get_probability(op.int_params[i],
-                                                  norm_estimation_samples_,
-                                                  norm_estimation_repetitions_,
-                                                  rng);
+    amps_sq[i] = BaseState::qreg_.get_probability(
+        op.int_params[i], norm_estimation_samples_,
+        norm_estimation_repetitions_, rng);
   }
   result.save_data_average(creg(), op.string_params[0], std::move(amps_sq),
                            op.type, op.save_type);
