@@ -69,7 +69,14 @@ class TestSaveAmplitudes(SimulatorTestCase):
         self._test_save_amplitudes(QFT(3), params, False, method=method, device=device)
 
     @supported_methods(
-        ["automatic", "statevector", "matrix_product_state", "density_matrix", "tensor_network"],
+        [
+            "automatic",
+            "statevector",
+            "matrix_product_state",
+            "density_matrix",
+            "tensor_network",
+            "extended_stabilizer",
+        ],
         AMPLITUDES,
     )
     def test_save_amplitudes_squared(self, method, device, params):
@@ -80,6 +87,7 @@ class TestSaveAmplitudes(SimulatorTestCase):
         [
             "automatic",
             "stabilizer",
+            "extended_stabilizer",
             "statevector",
             "matrix_product_state",
             "density_matrix",
@@ -110,7 +118,7 @@ class TestSaveAmplitudes(SimulatorTestCase):
             max_parallel_threads=1,
         )
 
-    @supported_methods(["statevector", "density_matrix"], AMPLITUDES)
+    @supported_methods(["statevector", "density_matrix", "extended_stabilizer"], AMPLITUDES)
     def test_save_amplitudes_squared_cache_blocking(self, method, device, params):
         """Test save_amplitudes_squared instruction"""
         self._test_save_amplitudes(
