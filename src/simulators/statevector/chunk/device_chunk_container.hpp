@@ -668,7 +668,7 @@ void DeviceChunkContainer<data_t>::CopyIn(Chunk<data_t> &src, uint_t iChunk) {
                       cudaMemcpyDeviceToDevice, stream(iChunk));
     } else {
       cudaMemcpyPeerAsync(chunk_pointer(iChunk), device_id_, src.pointer(),
-                          src.device(), size, stream(iChunk));
+                          src.device(), size * sizeof(thrust::complex<data_t>), stream(iChunk));
     }
   } else {
     cudaMemcpyAsync(chunk_pointer(iChunk), src.pointer(),
@@ -700,7 +700,7 @@ void DeviceChunkContainer<data_t>::CopyOut(Chunk<data_t> &dest, uint_t iChunk) {
                       cudaMemcpyDeviceToDevice, stream(iChunk));
     } else {
       cudaMemcpyPeerAsync(dest.pointer(), dest.device(), chunk_pointer(iChunk),
-                          device_id_, size, stream(iChunk));
+                          device_id_, size * sizeof(thrust::complex<data_t>), stream(iChunk));
     }
   } else {
     cudaMemcpyAsync(dest.pointer(), chunk_pointer(iChunk),

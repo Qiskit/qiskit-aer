@@ -237,7 +237,7 @@ void UnitaryMatrixThrust<data_t>::initialize() {
   uint_t idx;
   int_t i;
 
-#pragma omp parallel private(idx) if (BaseVector::num_qubits_ >                \
+#pragma omp parallel for private(idx) if (BaseVector::num_qubits_ >                \
                                           BaseVector::omp_threshold_ &&        \
                                       BaseVector::omp_threads_ > 1)            \
     num_threads(BaseVector::omp_threads_)
