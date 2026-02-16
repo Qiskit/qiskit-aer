@@ -1,0 +1,17 @@
+---
+upgrade:
+  - |
+    Aer now provides wheels for Python 3.14 on its supported platforms.
+  - |
+    Aer no longer provides wheels for Python 3.9, following the end of life of that vesion of Python in October 2025.
+  - |
+    Aer now builds on the `manylinux_2_28 image <https://github.com/pypa/manylinux?tab=readme-ov-file#manylinux_2_28-almalinux-8-based>`__,
+    which effectively increases the required version of ``glibc`` on Linux hosts to 2.28, up from 2.17.
+    This should be supported on Debian 10+ (buster), Ubuntu 18.10+ (cosmic), Fedora 29+ and RHEL 8+.
+
+    This change was made to simplify Aer's build infrastructure, in line with changes in NumPy's
+    platform support.
+  - |
+    Aer no longer published wheels for Linux i686 or Windows 32-bit.  Qiskit SDK also does not provide
+    wheels for these platforms, so, in practice, Aer was already not actually supported on them, due
+    to a lack of support for its primary dependency.
