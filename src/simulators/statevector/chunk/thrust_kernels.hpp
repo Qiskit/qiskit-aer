@@ -27,25 +27,6 @@ DISABLE_WARNING_PUSH
 DISABLE_WARNING_POP
 
 #include "misc/wrap_thrust.hpp"
-#include <thrust/version.h>
-
-// Compatibility shim: thrust::unary_function and thrust::binary_function
-// were removed in Thrust 2.x (bundled with CUDA 12+). Restore them here.
-#if THRUST_VERSION >= 200000
-namespace thrust {
-  template<typename Arg, typename Result>
-  struct unary_function {
-    typedef Arg argument_type;
-    typedef Result result_type;
-  };
-  template<typename Arg1, typename Arg2, typename Result>
-  struct binary_function {
-    typedef Arg1 first_argument_type;
-    typedef Arg2 second_argument_type;
-    typedef Result result_type;
-  };
-}
-#endif
 
 #include <algorithm>
 #include <array>
@@ -294,8 +275,9 @@ class strided_range {
 public:
   typedef typename thrust::iterator_difference<Iterator>::type difference_type;
 
-  struct stride_functor
-      : public thrust::unary_function<difference_type, difference_type> {
+  struct stride_functor {
+    typedef difference_type argument_type;
+    typedef difference_type result_type;
     difference_type stride;
 
     stride_functor(difference_type _stride) : stride(_stride) {}
@@ -346,9 +328,9 @@ protected:
 };
 
 template <typename data_t>
-struct complex_dot_scan
-    : public thrust::unary_function<thrust::complex<data_t>,
-                                    thrust::complex<data_t>> {
+struct complex_dot_scan {
+  typedef thrust::complex<data_t> argument_type;
+  typedef thrust::complex<data_t> result_type;
   __host__ __device__ thrust::complex<data_t>
   operator()(thrust::complex<data_t> x) {
     return thrust::complex<data_t>(x.real() * x.real() + x.imag() * x.imag(),
@@ -357,8 +339,9 @@ struct complex_dot_scan
 };
 
 template <typename data_t>
-struct complex_norm : public thrust::unary_function<thrust::complex<data_t>,
-                                                    thrust::complex<data_t>> {
+struct complex_norm {
+  typedef thrust::complex<data_t> argument_type;
+  typedef thrust::complex<data_t> result_type;
   __host__ __device__ thrust::complex<double>
   operator()(thrust::complex<data_t> x) {
     return thrust::complex<double>((double)x.real() * (double)x.real(),
