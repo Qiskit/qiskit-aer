@@ -283,13 +283,20 @@ if(AER_THRUST_SUPPORTED)
 				set(AER_CUDA_ARCH "Auto")
 			endif()
 		endif()
-		cuda_select_nvcc_arch_flags(AER_CUDA_ARCH_FLAGS ${AER_CUDA_ARCH})
-
-		string(REPLACE ";" " "  AER_CUDA_ARCH_FLAGS_EXPAND "${AER_CUDA_ARCH_FLAGS}")
-
-		string(REGEX MATCHALL "sm_[0-9][0-9]" CUDA_SM "${AER_CUDA_ARCH_FLAGS}")
-		string(REPLACE "sm_" ""  AER_CUDA_ARCHITECTURES "${CUDA_SM}")
-		set(CMAKE_CUDA_ARCHITECTURES "${AER_CUDA_ARCHITECTURES}")
+		# If CMAKE_CUDA_ARCHITECTURES is passed explicitly (e.g. -DCMAKE_CUDA_ARCHITECTURES=120
+		# for Blackwell/sm_120, or 89 for Ada Lovelace, 86 for Ampere, etc.) use it directly.
+		# cuda_select_nvcc_arch_flags does not support CC 12.0+, so newer architectures must be
+		# specified explicitly. Falls back to auto-detection for older/known architectures.
+		if(DEFINED CMAKE_CUDA_ARCHITECTURES AND NOT CMAKE_CUDA_ARCHITECTURES STREQUAL "")
+			set(AER_CUDA_ARCH_FLAGS "-gencode arch=compute_${CMAKE_CUDA_ARCHITECTURES},code=sm_${CMAKE_CUDA_ARCHITECTURES}")
+			set(AER_CUDA_ARCH_FLAGS_EXPAND "${AER_CUDA_ARCH_FLAGS}")
+		else()
+			cuda_select_nvcc_arch_flags(AER_CUDA_ARCH_FLAGS ${AER_CUDA_ARCH})
+			string(REPLACE ";" " " AER_CUDA_ARCH_FLAGS_EXPAND "${AER_CUDA_ARCH_FLAGS}")
+			string(REGEX MATCHALL "sm_[0-9]+" CUDA_SM "${AER_CUDA_ARCH_FLAGS}")
+			string(REPLACE "sm_" "" AER_CUDA_ARCHITECTURES "${CUDA_SM}")
+			set(CMAKE_CUDA_ARCHITECTURES "${AER_CUDA_ARCHITECTURES}")
+		endif()
 		message(STATUS "CMAKE_CUDA_ARCHITECTURES = ${CMAKE_CUDA_ARCHITECTURES}")
 
 		if(NOT DEFINED AER_PYTHON_CUDA_ROOT AND DEFINED ENV{AER_PYTHON_CUDA_ROOT})
