@@ -584,14 +584,36 @@ Before building Aer with cuQuantum support, install required components via pip 
     qiskit-aer$ pip install nvidia-cuda-runtime-cu11 nvidia-cublas-cu11 nvidia-cusolver-cu11 nvidia-cusparse-cu11 cuquantum-cu11
 
 This example is for CUDA 11. Please replace cu11 to cu12 if your system has CUDA 12.
+For CUDA 13 and newer, use the `cuquantum` and `cutensor` packages directly:
+
+    qiskit-aer$ pip install cuquantum cutensor
 
 Then to build with cuQuantum support, set the value `AER_PYTHON_CUDA_ROOT=<root of Python env>` as following example.
 
     qiskit-aer$ python ./setup.py bdist_wheel -- -DAER_THRUST_BACKEND=CUDA -DAER_PYTHON_CUDA_ROOT=qiskit-aer-venv --
 
+Alternatively, if cuQuantum and cuTENSOR are installed inside a virtualenv (e.g. via pip into a venv),
+you can point to them directly using `CUQUANTUM_ROOT` and `CUTENSOR_ROOT` with `AER_ENABLE_CUQUANTUM`.
+This is the recommended approach for CUDA 13+ builds where versioned lib subdirectories may differ:
+
+    qiskit-aer$ CUQUANTUM=<venv>/lib/python3.x/site-packages/cuquantum
+    qiskit-aer$ CUTENSOR=<venv>/lib/python3.x/site-packages/cutensor
+    qiskit-aer$ python ./setup.py bdist_wheel -- \
+        -DAER_THRUST_BACKEND=CUDA \
+        -DCMAKE_CUDA_COMPILER=/usr/local/cuda-13.x/bin/nvcc \
+        -DCMAKE_CUDA_ARCHITECTURES=<your_sm> \
+        -DCMAKE_CXX_STANDARD=17 \
+        -DCMAKE_CUDA_STANDARD=17 \
+        -DAER_ENABLE_CUQUANTUM=TRUE \
+        -DCUQUANTUM_ROOT=$CUQUANTUM \
+        -DCUTENSOR_ROOT=$CUTENSOR \
+        "-DCMAKE_CUDA_FLAGS=-I$CUQUANTUM/include -I$CUTENSOR/include" \
+        "-DCMAKE_CXX_FLAGS=-I$CUQUANTUM/include -I$CUTENSOR/include" \
+        -- -j$(nproc)
+
 
 If you want to link cuQuantum library statically, cuQuantum SDK and cuTENSOR should be installed in your system from NVIDIA®.
-Then set `CUQUANTUM_ROOT` `CUTENSOR_ROOT` and `CUQUANTUM_STATIC` to setup.py. 
+Then set `CUQUANTUM_ROOT` `CUTENSOR_ROOT` and `CUQUANTUM_STATIC` to setup.py.
 
 For example,
 
@@ -900,6 +922,12 @@ These are the flags:
     Values:  Auto | Common | All | List of valid CUDA architecture(s).
     Default: Auto
     Example: ``python ./setup.py bdist_wheel -- -DAER_THRUST_BACKEND=CUDA -DAER_CUDA_ARCH="5.2; 5.3"``
+
+    Note: `AER_CUDA_ARCH` relies on `cuda_select_nvcc_arch_flags` which does not support
+    Compute Capability 12.0+ (e.g. NVIDIA Blackwell, sm_120). For these newer architectures,
+    use `-DCMAKE_CUDA_ARCHITECTURES` directly instead:
+
+    Example: ``python ./setup.py bdist_wheel -- -DAER_THRUST_BACKEND=CUDA -DCMAKE_CUDA_ARCHITECTURES=120``
 
 * DISABLE_CONAN
 
