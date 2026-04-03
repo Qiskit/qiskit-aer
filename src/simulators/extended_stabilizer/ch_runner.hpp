@@ -154,6 +154,9 @@ public:
   // Utilities for the state-vector snapshot.
   complex_t amplitude(uint_t x_measure);
   AER::Vector<complex_t> statevector();
+  // Return the probability of an outcome bitstring.
+  double get_probability(uint_t outcome, uint_t default_samples,
+                         uint_t repetitions, AER::RngEngine &rng);
 };
 
 //=========================================================================
@@ -651,6 +654,19 @@ complex_t Runner::amplitude(uint_t x_measure) {
     imag_part += amplitude.imag();
   }
   return {real_part, imag_part};
+}
+
+double Runner::get_probability(uint_t outcome, uint_t default_samples,
+                               uint_t repetitions, AER::RngEngine &rng) {
+
+  uint_t n_samples = std::llrint(0.5 * std::pow(n_qubits_, 2));
+  if (n_samples < default_samples) {
+    n_samples = default_samples;
+  }
+  double norm = norm_estimation(n_samples, repetitions, rng);
+  complex_t amp = amplitude(outcome);
+  double prob = (amp.real() * amp.real() + amp.imag() * amp.imag()) / norm;
+  return prob;
 }
 
 AER::Vector<complex_t> Runner::statevector() {

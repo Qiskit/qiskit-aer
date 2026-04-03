@@ -42,6 +42,7 @@ const Operations::OpSet StateOpSet(
         Operations::OpType::bfunc,
         Operations::OpType::qerror_loc,
         Operations::OpType::save_statevec,
+        Operations::OpType::save_amps_sq,
     }, // Operations::OpType::save_expval, Operations::OpType::save_expval_var},
     // Gates
     {"CX", "u0",  "u1",  "p",   "cx",    "cz",    "swap", "id",
@@ -138,6 +139,10 @@ protected:
   // Compute and save the statevector for the current simulator state
   void apply_save_statevector(const Operations::Op &op,
                               ExperimentResult &result);
+
+  // Compute and save amplitudes squared for some outcomes
+  void apply_save_amplitudes_sq(const Operations::Op &op,
+                                ExperimentResult &result, RngEngine &rng);
 
   // Compute and save the expval for the current simulator state
   void apply_save_expval(const Operations::Op &op, ExperimentResult &result,
@@ -334,6 +339,7 @@ bool State::check_measurement_opt(InputIterator first,
     if (op->type == Operations::OpType::measure ||
         op->type == Operations::OpType::bfunc ||
         op->type == Operations::OpType::save_statevec ||
+        op->type == Operations::OpType::save_amps_sq ||
         op->type == Operations::OpType::save_expval) {
       return false;
     }
@@ -419,6 +425,9 @@ void State::apply_ops(InputIterator first, InputIterator last,
             break;
           case Operations::OpType::save_statevec:
             apply_save_statevector(op, result);
+            break;
+          case Operations::OpType::save_amps_sq:
+            apply_save_amplitudes_sq(op, result, rng);
             break;
           // Disabled until can fix bug in expval
           // case Operations::OpType::save_expval:
@@ -544,6 +553,9 @@ void State::apply_stabilizer_circuit(InputIterator first, InputIterator last,
         break;
       case Operations::OpType::save_statevec:
         apply_save_statevector(op, result);
+        break;
+      case Operations::OpType::save_amps_sq:
+        apply_save_amplitudes_sq(op, result, rng);
         break;
       case Operations::OpType::save_expval:
       case Operations::OpType::save_expval_var:
@@ -779,6 +791,24 @@ void State::apply_save_statevector(const Operations::Op &op,
     statevec *= BaseState::global_phase_;
   }
   result.save_data_pershot(creg(), op.string_params[0], std::move(statevec),
+                           op.type, op.save_type);
+}
+
+void State::apply_save_amplitudes_sq(const Operations::Op &op,
+                                     ExperimentResult &result, RngEngine &rng) {
+  if (op.int_params.empty()) {
+    throw std::invalid_argument(
+        "Invalid save_amplitudes_sq instructions (empty params).");
+  }
+  uint_t num_qubits = op.qubits.size();
+  rvector_t amps_sq(op.int_params.size(),
+                    1.0); // Must be initialized in 1 for helper func
+  for (size_t i = 0; i < op.int_params.size(); i++) {
+    amps_sq[i] = BaseState::qreg_.get_probability(
+        op.int_params[i], norm_estimation_samples_,
+        norm_estimation_repetitions_, rng);
+  }
+  result.save_data_average(creg(), op.string_params[0], std::move(amps_sq),
                            op.type, op.save_type);
 }
 
