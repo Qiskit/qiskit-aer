@@ -70,7 +70,7 @@ struct Parser<py::handle> {
 
   static void convert_to_json(json_t &var, const py::handle &po) {
     if (py::hasattr(po, "to_dict")) {
-      std::to_json(var, po.attr("to_dict")());
+      JSON::py_to_json(var, po.attr("to_dict")());
     } else if (py::isinstance<py::list>(po)) {
       var = nl::json::array();
       for (auto item : po) {
@@ -79,7 +79,7 @@ struct Parser<py::handle> {
         var.push_back(item_js);
       }
     } else {
-      std::to_json(var, po);
+        JSON::py_to_json(var, po);
     }
   }
 

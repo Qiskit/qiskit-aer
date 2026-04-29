@@ -108,7 +108,7 @@ py::object to_python(T &&obj) {
 template <>
 py::object to_python(json_t &&obj) {
   py::object pydata;
-  from_json(obj, pydata);
+  JSON::py_from_json(obj, pydata);
   return pydata;
 }
 

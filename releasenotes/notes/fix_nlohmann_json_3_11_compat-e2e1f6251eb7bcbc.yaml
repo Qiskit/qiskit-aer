@@ -1,0 +1,10 @@
+---
+fixes:
+  - |
+    Fixed an incompatibility with nlohmann_json >= 3.11 that caused noisy
+    simulation to fail with ``ValueError: Invalid noise_params JSON: not an
+    object.`` when aer was built from source against a system-provided
+    nlohmann_json 3.11.x (the version shipped in current-generation Linux
+    distributions). The Python-to-JSON conversion now uses
+    ``nlohmann::adl_serializer`` specializations, which is the documented
+    extension point and is stable across nlohmann_json releases.
