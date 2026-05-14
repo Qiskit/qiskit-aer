@@ -35,7 +35,7 @@ before-build = [
 ]
 
 [tool.cibuildwheel.windows]
-environment = { CMAKE_GENERATOR = "Visual Studio 18 2026"}
+environment = { CMAKE_GENERATOR = "Visual Studio 17 2022"}
 
 [tool.black]
 line-length = 100
