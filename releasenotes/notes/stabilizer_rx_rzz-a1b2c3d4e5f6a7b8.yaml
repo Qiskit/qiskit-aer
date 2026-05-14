@@ -1,0 +1,11 @@
+---
+upgrade:
+  - |
+    Added support for ``rx`` and ``rzz`` gates to the ``stabilizer`` and
+    ``extended_stabilizer`` simulation methods when the gate angle is a
+    multiple of ``pi/2`` (i.e. a Clifford angle).
+    ``rx(k*pi/2)`` is decomposed as ``H RZ(k*pi/2) H``, and
+    ``rzz(k*pi/2)`` is decomposed as ``CX (I x RZ(k*pi/2)) CX``.
+    When ``method=automatic`` (the default), circuits containing only
+    Clifford-angle ``rx`` and ``rzz`` gates will automatically select
+    the ``stabilizer`` method.

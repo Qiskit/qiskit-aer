@@ -219,6 +219,8 @@ BASIS_GATES = {
             "pauli",
             "ecr",
             "rz",
+            "rx",
+            "rzz",
             "store",
         ]
     ),
@@ -246,6 +248,8 @@ BASIS_GATES = {
             "pauli",
             "ecr",
             "rz",
+            "rx",
+            "rzz",
             "store",
         ]
     ),
