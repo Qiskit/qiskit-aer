@@ -319,15 +319,15 @@ def rx_gate_clifford_counts(shots, hex_counts=True):
     """RX-gate Clifford circuits reference counts."""
     targets = []
     if hex_counts:
-        targets.append({"0x1": shots})   # pi/2: |1>
-        targets.append({"0x1": shots})   # pi:   |1>
-        targets.append({"0x0": shots})   # 3*pi/2: |0>
-        targets.append({"0x0": shots})   # 4*pi/2 = I: |0>
+        targets.append({"0x1": shots})  # pi/2: |1>
+        targets.append({"0x1": shots})  # pi:   |1>
+        targets.append({"0x0": shots})  # 3*pi/2: |0>
+        targets.append({"0x0": shots})  # 4*pi/2 = I: |0>
     else:
-        targets.append({"1": shots})   # pi/2: |1>
-        targets.append({"1": shots})   # pi:   |1>
-        targets.append({"0": shots})   # 3*pi/2: |0>
-        targets.append({"0": shots})   # 4*pi/2 = I: |0>
+        targets.append({"1": shots})  # pi/2: |1>
+        targets.append({"1": shots})  # pi:   |1>
+        targets.append({"0": shots})  # 3*pi/2: |0>
+        targets.append({"0": shots})  # 4*pi/2 = I: |0>
     return targets
 
 
@@ -406,15 +406,15 @@ def rzz_gate_clifford_counts(shots, hex_counts=True):
     """RZZ-gate Clifford circuits reference counts."""
     targets = []
     if hex_counts:
-        targets.append({"0x0": shots})   # pi/2: qubit0=0, qubit1=0 -> |00>
-        targets.append({"0x3": shots})   # pi:   |11>
-        targets.append({"0x1": shots})   # 3*pi/2: qubit0=1, qubit1=0 -> |01>
-        targets.append({"0x0": shots})   # 4*pi/2 = I: |00>
+        targets.append({"0x0": shots})  # pi/2: qubit0=0, qubit1=0 -> |00>
+        targets.append({"0x3": shots})  # pi:   |11>
+        targets.append({"0x1": shots})  # 3*pi/2: qubit0=1, qubit1=0 -> |01>
+        targets.append({"0x0": shots})  # 4*pi/2 = I: |00>
     else:
-        targets.append({"00": shots})    # pi/2: |00>
-        targets.append({"11": shots})    # pi:   |11>
-        targets.append({"01": shots})    # 3*pi/2: qubit0=1 -> "01"
-        targets.append({"00": shots})    # 4*pi/2 = I: |00>
+        targets.append({"00": shots})  # pi/2: |00>
+        targets.append({"11": shots})  # pi:   |11>
+        targets.append({"01": shots})  # 3*pi/2: qubit0=1 -> "01"
+        targets.append({"00": shots})  # 4*pi/2 = I: |00>
     return targets
 
 
@@ -478,15 +478,15 @@ def ry_gate_clifford_counts(shots, hex_counts=True):
     """RY-gate Clifford circuits reference counts."""
     targets = []
     if hex_counts:
-        targets.append({"0x0": shots})   # pi/2:   |0>
-        targets.append({"0x1": shots})   # pi:     |1>
-        targets.append({"0x1": shots})   # 3*pi/2: |1>
-        targets.append({"0x0": shots})   # 4*pi/2 = I: |0>
+        targets.append({"0x0": shots})  # pi/2:   |0>
+        targets.append({"0x1": shots})  # pi:     |1>
+        targets.append({"0x1": shots})  # 3*pi/2: |1>
+        targets.append({"0x0": shots})  # 4*pi/2 = I: |0>
     else:
-        targets.append({"0": shots})   # pi/2:   |0>
-        targets.append({"1": shots})   # pi:     |1>
-        targets.append({"1": shots})   # 3*pi/2: |1>
-        targets.append({"0": shots})   # 4*pi/2 = I: |0>
+        targets.append({"0": shots})  # pi/2:   |0>
+        targets.append({"1": shots})  # pi:     |1>
+        targets.append({"1": shots})  # 3*pi/2: |1>
+        targets.append({"0": shots})  # 4*pi/2 = I: |0>
     return targets
 
 
@@ -555,15 +555,15 @@ def rxx_gate_clifford_counts(shots, hex_counts=True):
     """RXX-gate Clifford circuits reference counts."""
     targets = []
     if hex_counts:
-        targets.append({"0x0": shots})   # pi/2:   |00>
-        targets.append({"0x3": shots})   # pi:     |11>
-        targets.append({"0x1": shots})   # 3*pi/2: qubit0=1, qubit1=0 -> 0x1
-        targets.append({"0x0": shots})   # 4*pi/2 = I: |00>
+        targets.append({"0x0": shots})  # pi/2:   |00>
+        targets.append({"0x3": shots})  # pi:     |11>
+        targets.append({"0x1": shots})  # 3*pi/2: qubit0=1, qubit1=0 -> 0x1
+        targets.append({"0x0": shots})  # 4*pi/2 = I: |00>
     else:
-        targets.append({"00": shots})    # pi/2:   |00>
-        targets.append({"11": shots})    # pi:     |11>
-        targets.append({"01": shots})    # 3*pi/2: qubit0=1 -> "01"
-        targets.append({"00": shots})    # 4*pi/2 = I: |00>
+        targets.append({"00": shots})  # pi/2:   |00>
+        targets.append({"11": shots})  # pi:     |11>
+        targets.append({"01": shots})  # 3*pi/2: qubit0=1 -> "01"
+        targets.append({"00": shots})  # 4*pi/2 = I: |00>
     return targets
 
 
@@ -632,15 +632,15 @@ def ryy_gate_clifford_counts(shots, hex_counts=True):
     """RYY-gate Clifford circuits reference counts."""
     targets = []
     if hex_counts:
-        targets.append({"0x1": shots})   # pi/2:   qubit0=1, qubit1=0 -> 0x1
-        targets.append({"0x3": shots})   # pi:     |11>
-        targets.append({"0x0": shots})   # 3*pi/2: |00>
-        targets.append({"0x0": shots})   # 4*pi/2 = I: |00>
+        targets.append({"0x1": shots})  # pi/2:   qubit0=1, qubit1=0 -> 0x1
+        targets.append({"0x3": shots})  # pi:     |11>
+        targets.append({"0x0": shots})  # 3*pi/2: |00>
+        targets.append({"0x0": shots})  # 4*pi/2 = I: |00>
     else:
-        targets.append({"01": shots})    # pi/2:   qubit0=1 -> "01"
-        targets.append({"11": shots})    # pi:     |11>
-        targets.append({"00": shots})    # 3*pi/2: |00>
-        targets.append({"00": shots})    # 4*pi/2 = I: |00>
+        targets.append({"01": shots})  # pi/2:   qubit0=1 -> "01"
+        targets.append({"11": shots})  # pi:     |11>
+        targets.append({"00": shots})  # 3*pi/2: |00>
+        targets.append({"00": shots})  # 4*pi/2 = I: |00>
     return targets
 
 
@@ -707,13 +707,13 @@ def rzx_gate_clifford_counts(shots, hex_counts=True):
     """RZX-gate Clifford circuits reference counts."""
     targets = []
     if hex_counts:
-        targets.append({"0x2": shots})   # pi/2:   qubit1=1 -> 0x2
-        targets.append({"0x2": shots})   # pi:     qubit1=1 -> 0x2
-        targets.append({"0x0": shots})   # 3*pi/2: |00>
-        targets.append({"0x0": shots})   # 4*pi/2 = I: |00>
+        targets.append({"0x2": shots})  # pi/2:   qubit1=1 -> 0x2
+        targets.append({"0x2": shots})  # pi:     qubit1=1 -> 0x2
+        targets.append({"0x0": shots})  # 3*pi/2: |00>
+        targets.append({"0x0": shots})  # 4*pi/2 = I: |00>
     else:
-        targets.append({"10": shots})    # pi/2:   qubit1=1 -> "10"
-        targets.append({"10": shots})    # pi:     qubit1=1 -> "10"
-        targets.append({"00": shots})    # 3*pi/2: |00>
-        targets.append({"00": shots})    # 4*pi/2 = I: |00>
+        targets.append({"10": shots})  # pi/2:   qubit1=1 -> "10"
+        targets.append({"10": shots})  # pi:     qubit1=1 -> "10"
+        targets.append({"00": shots})  # 3*pi/2: |00>
+        targets.append({"00": shots})  # 4*pi/2 = I: |00>
     return targets

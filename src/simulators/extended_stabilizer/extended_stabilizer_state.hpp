@@ -48,7 +48,7 @@ const Operations::OpSet StateOpSet(
     {"CX", "u0",  "u1",  "p",   "cx",    "cz",    "swap", "id",
      "x",  "y",   "z",   "h",   "s",     "sdg",   "sx",   "sxdg",
      "t",  "tdg", "ccx", "ccz", "delay", "pauli", "ecr",  "rz",
-     "rx", "ry",  "rzz", "rxx", "ryy",  "rzx"});
+     "rx", "ry",  "rzz", "rxx", "ryy",   "rzx"});
 
 using chpauli_t = CHSimulator::pauli_t;
 using chstate_t = CHSimulator::Runner;
@@ -359,8 +359,8 @@ bool State::validate_parameters(const std::vector<Operations::Op> &ops) const {
     if (ops[i].type == OpType::gate) {
       // check parameter of rotation gates: only k * pi/2 angles are Clifford
       const auto &name = ops[i].name;
-      if (name == "rz" || name == "rx" || name == "ry" ||
-          name == "rzz" || name == "rxx" || name == "ryy" || name == "rzx") {
+      if (name == "rz" || name == "rx" || name == "ry" || name == "rzz" ||
+          name == "rxx" || name == "ryy" || name == "rzx") {
         double pi2 = std::real(ops[i].params[0]) * 2.0 / M_PI;
         double pi2_int = (double)std::round(pi2);
 
