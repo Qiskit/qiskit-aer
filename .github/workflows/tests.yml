@@ -282,6 +282,8 @@ jobs:
       - name: Add msbuild to PATH
         uses: microsoft/setup-msbuild@v2
       - name: Build Aer Windows
+        env:
+          CMAKE_GENERATOR: "Visual Studio 18 2025"
         run: |
           set -e
           pip install build
