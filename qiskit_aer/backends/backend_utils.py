@@ -220,7 +220,11 @@ BASIS_GATES = {
             "ecr",
             "rz",
             "rx",
+            "ry",
             "rzz",
+            "rxx",
+            "ryy",
+            "rzx",
             "store",
         ]
     ),
@@ -249,7 +253,11 @@ BASIS_GATES = {
             "ecr",
             "rz",
             "rx",
+            "ry",
             "rzz",
+            "rxx",
+            "ryy",
+            "rzx",
             "store",
         ]
     ),
