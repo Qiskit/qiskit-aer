@@ -283,7 +283,7 @@ jobs:
         uses: microsoft/setup-msbuild@v2
       - name: Build Aer Windows
         env:
-          CMAKE_GENERATOR: "Visual Studio 18 2025"
+          CMAKE_GENERATOR: "Visual Studio 18 2026"
         run: |
           set -e
           pip install build
