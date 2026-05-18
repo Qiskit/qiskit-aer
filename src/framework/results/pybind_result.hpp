@@ -15,8 +15,8 @@
 #ifndef _aer_framework_result_pybind_result_hpp_
 #define _aer_framework_result_pybind_result_hpp_
 
-#include "framework/results/data/pybind_data.hpp"
 #include "framework/pybind_json.hpp"
+#include "framework/results/data/pybind_data.hpp"
 #include "framework/results/data/pybind_metadata.hpp"
 #include "framework/results/result.hpp"
 

@@ -79,7 +79,7 @@ struct Parser<py::handle> {
         var.push_back(item_js);
       }
     } else {
-        JSON::py_to_json(var, po);
+      JSON::py_to_json(var, po);
     }
   }
 
