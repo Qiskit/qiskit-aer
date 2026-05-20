@@ -1,0 +1,23 @@
+---
+features:
+  - |
+    Added support for building qiskit-aer with CUDA 12+ and NVIDIA GPUs of
+    compute capability 12.0+ (Blackwell architecture, e.g. RTX PRO 4500/5000/6000).
+    The build system now respects ``CMAKE_CUDA_ARCHITECTURES`` when set
+    explicitly, allowing users to target architectures newer than those
+    known to the bundled ``cuda_select_nvcc_arch_flags`` helper.
+fixes:
+  - |
+    Fixed a Thrust 2.x compatibility issue where ``thrust::unary_function``
+    inheritance produced ambiguous-symbol errors with CUDA 12.6+ (which
+    ships Thrust 2.5 with the deprecated symbol still present). Replaced
+    with inline ``argument_type`` / ``result_type`` typedefs that work
+    regardless of the Thrust version.
+  - |
+    Fixed cuQuantum and cuTENSOR library path detection on CUDA 12+
+    installations.
+upgrade:
+  - |
+    Building with CUDA support now requires a compiler with C++17 support;
+    pass ``-DCMAKE_CXX_STANDARD=17 -DCMAKE_CUDA_STANDARD=17`` when invoking
+    the build (CUDA 12+ Thrust requires C++17).

@@ -1015,7 +1015,7 @@ void Executor<state_t>::run_circuit_with_parameter_binding(
     } else {
       top = *op;
     }
-    if (sample_noise) {
+    if (sample_noise && noise != nullptr) {
       ops = noise->sample_noise_at_runtime(top, rng);
     } else {
       ops.push_back(top);
