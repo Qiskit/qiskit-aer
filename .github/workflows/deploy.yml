@@ -45,9 +45,6 @@ jobs:
         name: Install Python
         with:
           python-version: '3.10'
-      - uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
         with:
@@ -99,8 +96,8 @@ jobs:
     permissions:
       id-token: write
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         name: Install Python
         with:
           python-version: '3.13'
@@ -137,8 +134,8 @@ jobs:
           remove-android: 'true'
           remove-haskell: 'true'
           remove-codeql: 'true'
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         name: Install Python
         with:
           python-version: '3.13'
@@ -188,11 +185,11 @@ jobs:
           remove-android: 'true'
           remove-haskell: 'true'
           remove-codeql: 'true'
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         name: Install Python
         with:
-          python-version: '3.10'
+          python-version: '3.13'
       - name: Install cibuildwheel
         run: |
           python -m pip install cibuildwheel==3.2.1
@@ -236,9 +233,6 @@ jobs:
         name: Install Python
         with:
           python-version: '3.10'
-      - uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
         with:
@@ -274,15 +268,12 @@ jobs:
         name: Install Python
         with:
           python-version: '3.13'
-      - uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
         with:
           platforms: all
       - name: Build wheels
-        uses: pypa/cibuildwheel@v2.19.2
+        uses: pypa/cibuildwheel@v3.2.1
         env:
           CIBW_BEFORE_ALL: "sed -i -e 's/^mirrorlist/#mirrorlist/' -e 's/^#baseurl/baseurl/' -e 's/mirror.centos.org/vault.centos.org/' /etc/yum.repos.d/*.repo && yum install -y https://dl.fedoraproject.org/pub/archive/epel/7/ppc64le/Packages/e/epel-release-7-14.noarch.rpm && yum install -y openblas-devel"
           CIBW_ARCHS_LINUX: ppc64le
