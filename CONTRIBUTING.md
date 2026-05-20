@@ -466,13 +466,14 @@ environment instead.
 
 #### <a name="win-dependencies"> Dependencies </a>
 
-On Windows, you must have *Anaconda3* installed. We also recommend installing
-*Visual Studio 2017 Community Edition* or *Visual Studio 2019 Community Edition*.
+On Windows you need a Python distribution (we recommend *Anaconda3*) and a
+working *Visual Studio* C++ toolchain (2022 or later — earlier versions are
+no longer tested).
 
->*Anaconda 3* can be installed from their web:
+>*Anaconda 3* can be installed from:
 >https://www.anaconda.com/distribution/#download-section
 >
->*Visual Studio 2017/2019 Community Edition* can be installed from:
+>*Visual Studio Community Edition* can be installed from:
 >https://visualstudio.microsoft.com/vs/community/
 
 Once you have *Anaconda3* and *Visual Studio Community Edition* installed, you have to open a new cmd terminal and
@@ -482,11 +483,12 @@ create an Anaconda virtual environment or activate it if you already have create
     > conda activate QiskitDevEnv
     (QiskitDevEnv) >_
 
-We only support *Visual Studio* compilers on Windows, so if you have others installed in your machine (MinGW, TurboC)
-you have to make sure that the path to the *Visual Studio* tools has precedence over others so that the build system
-can get the correct one.
-There's a (recommended) way to force the build system to use the one you want by using CMake `-G` parameter. We will talk
-about this and other parameters later.
+The build uses the **Ninja** generator on Windows (driven by scikit-build-core),
+so you don't need to pick a specific *Visual Studio* version via CMake's ``-G``
+flag — scikit-build-core auto-detects whichever VS install is available via
+``vswhere`` and activates it.  If you have multiple toolchains installed (MinGW
+etc.), make sure the *Visual Studio* tools take precedence on ``PATH`` or run
+the build from a *Developer Command Prompt for VS*.
 
 #### <a name="win-build"> Build </a>
 
@@ -522,9 +524,12 @@ flags to the build tool (e.g. ``ninja``, ``msbuild``).  A list of *CMake* option
 available [here](https://cmake.org/cmake/help/latest/manual/cmake.1.html#options).
 For example,
 
-    (QiskitDevEnv) qiskit-aer > python -I -m build --wheel -Ccmake.build-type=Debug -Ccmake.args="-GVisual Studio 17 2022"
+    (QiskitDevEnv) qiskit-aer > python -I -m build --wheel -Ccmake.build-type=Debug
 
-This requests a Debug build and forces the Visual Studio 2022 generator (which selects the matching MSVC toolchain).
+This requests a Debug build.  scikit-build-core will use the Ninja generator
+and auto-activate the Visual Studio toolchain it finds via ``vswhere``.  If you
+need to force a specific generator (e.g. to debug build issues), pass
+``-Ccmake.args="-GNinja"`` or ``-Ccmake.args="-GVisual Studio 17 2022"``.
 
 After this command is executed successfully, we will have a wheel package into
 the `dist/` directory, so next step is installing it:
