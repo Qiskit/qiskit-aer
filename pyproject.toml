@@ -91,9 +91,6 @@ before-all = "curl -fsSL https://mac.r-project.org/openmp/openmp-18.1.8-darwin20
 # target. arm64 has never supported pre-11.0 anyway.
 environment = { OpenMP_ROOT = "/usr/local", MACOSX_DEPLOYMENT_TARGET = "11.0" }
 
-[tool.cibuildwheel.windows]
-environment = { CMAKE_GENERATOR = "Visual Studio 17 2022" }
-
 [tool.black]
 line-length = 100
 target-version = ['py310', 'py311', 'py312', 'py313', 'py314']

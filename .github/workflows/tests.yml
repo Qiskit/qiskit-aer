@@ -243,7 +243,7 @@ jobs:
           stestr run --slowest
         shell: bash
   tests_windows:
-    runs-on: windows-2022
+    runs-on: windows-latest
     name: Windows Python ${{ matrix.python-version }}
     needs: ["lint", "sdist"]
     timeout-minutes: 60
@@ -272,11 +272,7 @@ jobs:
             ${{ runner.os }}-${{ matrix.python-version}}-pip-test-
             ${{ runner.os }}-${{ matrix.python-version}}-pip-
             ${{ runner.os }}-${{ matrix.python-version}}-
-      - name: Add msbuild to PATH
-        uses: microsoft/setup-msbuild@v2
       - name: Build Aer Windows
-        env:
-          CMAKE_GENERATOR: "Visual Studio 17 2022"
         run: |
           set -e
           pip install build
