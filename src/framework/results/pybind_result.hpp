@@ -16,6 +16,7 @@
 #define _aer_framework_result_pybind_result_hpp_
 
 #include "framework/results/data/pybind_data.hpp"
+#include "framework/pybind_json.hpp"
 #include "framework/results/data/pybind_metadata.hpp"
 #include "framework/results/result.hpp"
 
@@ -66,7 +67,7 @@ py::object AerToPy::to_python(AER::ExperimentResult &&result) {
 
   if (result.header.empty() == false) {
     py::object tmp;
-    from_json(result.header, tmp);
+    JSON::py_from_json(result.header, tmp);
     pyexperiment["header"] = std::move(tmp);
   }
   return std::move(pyexperiment);
@@ -91,7 +92,7 @@ py::object AerToPy::to_python(AER::Result &&result) {
   //   bc these are assumed to be small relative to the ExperimentResults
   if (result.header.empty() == false) {
     py::object tmp;
-    from_json(result.header, tmp);
+    JSON::py_from_json(result.header, tmp);
     pyresult["header"] = std::move(tmp);
   }
   pyresult["success"] = (result.status == AER::Result::Status::completed);

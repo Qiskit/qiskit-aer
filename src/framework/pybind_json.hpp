@@ -55,24 +55,57 @@ using json_t = nlohmann::json;
 // Nlohman JSON <--> Python Conversion
 //------------------------------------------------------------------------------
 
-namespace std {
+namespace JSON {
 
 /**
  * Convert a python object to a json.
  * @param js a json_t object to contain converted type.
- * @param o is a python object to convert.
+ * @param obj is a python object to convert.
  */
-void to_json(json_t &js, const py::handle &o);
+void py_to_json(json_t &js, const py::handle &obj);
 
 /**
- * Create a python object from a json
- * @param js a json_t object
- * @param o is a reference to an existing (empty) python object
+ * Create a python object from a json.
+ * @param js a json_t object.
+ * @param o is a reference to a python object to populate.
  */
-void from_json(const json_t &js, py::object &o);
+void py_from_json(const json_t &js, py::object &o);
 
-} // end namespace std.
+} // end namespace JSON.
 
+namespace nlohmann {
+
+/**
+ * adl_serializer specialization for pybind11::handle.
+ *
+ * Provides version-stable Python -> JSON conversion through nlohmann's
+ * documented extension point. Avoids relying on free-function ADL of
+ * to_json, which became non-discoverable starting with nlohmann_json 3.11.
+ */
+template <>
+struct adl_serializer<pybind11::handle> {
+  static void to_json(nlohmann::json &js, const pybind11::handle &obj) {
+    JSON::py_to_json(js, obj);
+  }
+};
+
+/**
+ * adl_serializer specialization for pybind11::object.
+ *
+ * Delegates to_json to the handle version (object derives from handle), and
+ * provides JSON -> Python conversion.
+ */
+template <>
+struct adl_serializer<pybind11::object> {
+  static void to_json(nlohmann::json &js, const pybind11::object &obj) {
+    JSON::py_to_json(js, obj);
+  }
+  static void from_json(const nlohmann::json &js, pybind11::object &o) {
+    JSON::py_from_json(js, o);
+  }
+};
+
+} // end namespace nlohmann.
 //------------------------------------------------------------------------------
 // Python->JSON Conversion
 //------------------------------------------------------------------------------
@@ -218,7 +251,7 @@ json_t JSON::iterable_to_json_list(const py::handle &obj) {
   return js;
 }
 
-void std::to_json(json_t &js, const py::handle &obj) {
+void JSON::py_to_json(json_t &js, const py::handle &obj) {
   static py::object PyNoiseModel =
       py::module::import("qiskit_aer.noise.noise_model").attr("NoiseModel");
   static py::object PyCircuitHeader =
@@ -236,7 +269,9 @@ void std::to_json(json_t &js, const py::handle &obj) {
     js = JSON::iterable_to_json_list(obj);
   } else if (py::isinstance<py::dict>(obj)) {
     for (auto item : py::cast<py::dict>(obj)) {
-      js[item.first.cast<nl::json::string_t>()] = item.second;
+      json_t tmp;
+      JSON::py_to_json(tmp, item.second);
+      js[item.first.cast<nl::json::string_t>()] = std::move(tmp);
     }
   } else if (py::isinstance<py::array_t<double>>(obj)) {
     js = JSON::numpy_to_json(
@@ -247,9 +282,9 @@ void std::to_json(json_t &js, const py::handle &obj) {
   } else if (obj.is_none()) {
     return;
   } else if (py::isinstance(obj, PyNoiseModel)) {
-    std::to_json(js, obj.attr("to_dict")());
+    JSON::py_to_json(js, obj.attr("to_dict")());
   } else if (py::isinstance(obj, PyCircuitHeader)) {
-    std::to_json(js, obj.attr("to_dict")());
+    JSON::py_to_json(js, obj.attr("to_dict")());
   } else {
     auto type_str = std::string(py::str(obj.get_type()));
     if (type_str == "<class \'complex\'>" ||
@@ -278,7 +313,7 @@ void std::to_json(json_t &js, const py::handle &obj) {
   }
 }
 
-void std::from_json(const json_t &js, py::object &o) {
+void JSON::py_from_json(const json_t &js, py::object &o) {
   if (js.is_boolean()) {
     o = py::bool_(js.get<nl::json::boolean_t>());
   } else if (js.is_number()) {
@@ -295,7 +330,7 @@ void std::from_json(const json_t &js, py::object &o) {
     std::vector<py::object> obj(js.size());
     for (size_t i = 0; i < js.size(); i++) {
       py::object tmp;
-      from_json(js[i], tmp);
+      JSON::py_from_json(js[i], tmp);
       obj[i] = tmp;
     }
     o = py::cast(obj);
@@ -303,7 +338,7 @@ void std::from_json(const json_t &js, py::object &o) {
     py::dict obj;
     for (json_t::const_iterator it = js.cbegin(); it != js.cend(); ++it) {
       py::object tmp;
-      from_json(it.value(), tmp);
+      JSON::py_from_json(it.value(), tmp);
       obj[py::str(it.key())] = tmp;
     }
     o = std::move(obj);
@@ -314,7 +349,6 @@ void std::from_json(const json_t &js, py::object &o) {
                              js.dump());
   }
 }
-
 //------------------------------------------------------------------------------
 
 #endif
