@@ -5,8 +5,14 @@
 [![Tests](https://github.com/Qiskit/qiskit-aer/actions/workflows/tests.yml/badge.svg?branch=main)](https://github.com/Qiskit/qiskit-aer/actions/workflows/tests.yml)
 [![](https://img.shields.io/github/release/Qiskit/qiskit-aer.svg?style=popout-square)](https://github.com/Qiskit/qiskit-aer/releases)
 [![](https://img.shields.io/pypi/dm/qiskit-aer.svg?style=popout-square)](https://pypi.org/project/qiskit-aer/)
+[![Qiskit Ecosystem](https://qisk.it/e-474599a7)](https://qisk.it/e)
 
 **Aer** is a high performance simulator for quantum circuits written in Qiskit, that includes realistic noise models.
+
+| :exclamation:  **Reduced Maintenance Mode**  |
+|----------------------------------------------|
+| Aer is currently operating under **reduced maintenance**. The maintainers are only able to address **critical bug fixes**. Feature requests and non-critical enhancements have been placed in the backlog and will be revisited as capacity allows. |
+
 
 ## Installation
 
