@@ -1,4 +1,12 @@
-find_package(PythonLibs)
+# Locate the Python interpreter and the headers/libs needed to build a Python
+# extension module. `Development.Module` is enough for pybind11 modules: it
+# pulls in the Python::Module target (which on Windows hints the right
+# pythonNNN.lib for the linker) without requiring the embeddable Python::Python.
+# Mirror the results into the legacy PYTHON_* names that the rest of this
+# file consumes.
+find_package(Python REQUIRED COMPONENTS Interpreter Development.Module)
+set(PYTHON_EXECUTABLE "${Python_EXECUTABLE}")
+set(PYTHON_INCLUDE_DIRS "${Python_INCLUDE_DIRS}")
 
 message(STATUS ${PYTHON_INCLUDE_DIRS})
 message(STATUS "PYTHON EXECUTABLE: ${PYTHON_EXECUTABLE}")
@@ -51,8 +59,9 @@ function(basic_pybind11_add_module target_name)
     target_include_directories(${target_name} PRIVATE ${PYBIND_INCLUDE_DIRS})
 
     if(WIN32 OR CYGWIN)
-        # Link against the Python shared library on Windows
-        target_link_libraries(${target_name} ${PYTHON_LIBRARIES})
+        # Windows requires Python extension modules to link against pythonNNN.lib;
+        # Python::Module supplies the right path.
+        target_link_libraries(${target_name} Python::Module)
     elseif(APPLE)
         # It's quite common to have multiple copies of the same Python version
         # installed on one's system. E.g.: one copy from the OS and another copy

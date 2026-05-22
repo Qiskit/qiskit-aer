@@ -365,32 +365,34 @@ This is also the way we will choose to change default `Aer` behavior by passing 
 
 As `Aer` is meant to be executed in many configurations and platforms, there is a complex underlying build system that offers a lot of options you can tune by setting some parameters.
 
-We are using [*scikit-build*](https://scikit-build.readthedocs.io/en/latest/index.html) as a substitute for *setuptools*. This is
-basically the glue between *setuptools* and *CMake*, so there are various
-options to pass variables to *CMake*, and the underlying build system
-(depending on your platform). The way to pass variables is:
+We are using [*scikit-build-core*](https://scikit-build-core.readthedocs.io/) as the build backend.
+It is the glue between PEP 517 build tooling (e.g. ``python -m build``, ``pip install``) and
+*CMake*. CMake configuration options and build-tool flags are passed via standard
+`PEP 517 config settings <https://peps.python.org/pep-0517/>`__ (``-C key=value``):
 
-    qiskit-aer$ python ./setup.py bdist_wheel [skbuild_opts] \
-    [-- [cmake_opts] [-- build_tool_opts]]
+    qiskit-aer$ python -I -m build --wheel [config_settings (-Ckey=value)]
 
-where the elements within square brackets `[]` are optional, and
-*`skbuild_opts`*, *`cmake_opts`*, *`build_tool_opts`* are to be replaced by
-flags of your choice. A list of *CMake* options is available
-[here](https://cmake.org/cmake/help/v3.6/manual/cmake.1.html#options). For
-example,
+``cmake.build-type`` selects the CMake build type, ``cmake.define.X=Y`` sets a
+``-DX=Y`` define on the CMake configure line, and ``build.tool-args="..."`` forwards
+flags to the build tool (e.g. ``ninja``, ``msbuild``).  A list of *CMake* options is
+available [here](https://cmake.org/cmake/help/latest/manual/cmake.1.html#options).
+For example,
 
-    qiskit-aer$ python ./setup.py bdist_wheel --build-type=Debug -- -DCMAKE_CXX_COMPILER=g++-9 -- -j8
+    qiskit-aer$ python -I -m build --wheel -Ccmake.build-type=Debug -Ccmake.define.CMAKE_CXX_COMPILER=g++-9 -Cbuild.tool-args="-j8"
 
-This is passing the `--build-type` option with `Debug` parameter to scikit-build, so we are telling it to perform a debug build. The `-DCMAKE_CXX_COMPILER=g++-9` option is being passed to `CMake` so it forces the use of `g++-9` compiler, and the `-j8` flag is telling the underlying build system, which in this case is *Makefile*, to build in parallel using 8 processes.
+This requests a Debug build, forces ``g++-9`` as the C++ compiler, and tells the
+underlying build tool (e.g. ``ninja`` or ``make``) to build with 8 parallel jobs.
 
 After this command is executed successfully, we will have a wheel package into
 the `dist/` directory, so next step is installing it:
 
     qiskit-aer/dist$ pip install -U dist/qiskit_aer*.whl
 
-As we are using *scikit-build* and we need some *Python* dependencies to be present before compiling the C++ code, 
-we install those dependencies outside the regular setuptools *mechanism*. If you want to avoid automatic installation 
-of these packages set the environment variable DISABLE_DEPENDENCY_INSTALL (ON or 1).
+Build-time *Python* dependencies (such as ``pybind11``) are declared in
+``pyproject.toml`` and installed automatically by ``pip``/``build`` into an
+isolated environment via PEP 517.  Pass ``--no-build-isolation`` to ``pip
+install`` if you want to use the dependencies already present in your
+environment instead.
 
 
 ### macOS
@@ -421,7 +423,7 @@ This will build and install `Aer` with the default options which is probably sui
 There's another Pythonic approach to building and installing software: build the wheels distributable file.
 
 
-    qiskit-aer$ python ./setup.py bdist_wheel
+    qiskit-aer$ python -I -m build --wheel
 
 
 This is also the way we will choose to change default `Aer` behavior by passing parameters to the build system.
@@ -430,31 +432,34 @@ This is also the way we will choose to change default `Aer` behavior by passing 
 
 As `Aer` is meant to be executed in many configurations and platforms, there is a complex underlying build system that offers a lot of options you can tune by setting some parameters.
 
-We are using [*scikit-build*](https://scikit-build.readthedocs.io/en/latest/index.html) as a substitute for *setuptools*. This is
-basically the glue between *setuptools* and *CMake*, so there are various
-options to pass variables to *CMake*, and the underlying build system
-(depending on your platform). The way to pass variables is:
+We are using [*scikit-build-core*](https://scikit-build-core.readthedocs.io/) as the build backend.
+It is the glue between PEP 517 build tooling (e.g. ``python -m build``, ``pip install``) and
+*CMake*. CMake configuration options and build-tool flags are passed via standard
+`PEP 517 config settings <https://peps.python.org/pep-0517/>`__ (``-C key=value``):
 
-    qiskit-aer$ python ./setup.py bdist_wheel [skbuild_opts] [-- [cmake_opts] [-- build_tool_opts]]
+    qiskit-aer$ python -I -m build --wheel [config_settings (-Ckey=value)]
 
-where the elements within square brackets `[]` are optional, and
-*`skbuild_opts`*, *`cmake_opts`*, *`build_tool_opts`* are to be replaced by
-flags of your choice. A list of *CMake* options is available
-[here](https://cmake.org/cmake/help/v3.6/manual/cmake.1.html#options). For
-example,
+``cmake.build-type`` selects the CMake build type, ``cmake.define.X=Y`` sets a
+``-DX=Y`` define on the CMake configure line, and ``build.tool-args="..."`` forwards
+flags to the build tool (e.g. ``ninja``, ``msbuild``).  A list of *CMake* options is
+available [here](https://cmake.org/cmake/help/latest/manual/cmake.1.html#options).
+For example,
 
-    qiskit-aer$ python ./setup.py bdist_wheel --build-type=Debug -- -DCMAKE_CXX_COMPILER=g++-9 -- -j8
+    qiskit-aer$ python -I -m build --wheel -Ccmake.build-type=Debug -Ccmake.define.CMAKE_CXX_COMPILER=g++-9 -Cbuild.tool-args="-j8"
 
-This is passing the `--build-type` option with `Debug` parameter to scikit-build, so we are telling it to perform a debug build. The `-DCMAKE_CXX_COMPILER=g++-9` option is being passed to `CMake` so it forces the use of `g++-9` compiler, and the `-j8` flag is telling the underlying build system, which in this case is *Makefile*, to build in parallel using 8 processes.
+This requests a Debug build, forces ``g++-9`` as the C++ compiler, and tells the
+underlying build tool (e.g. ``ninja`` or ``make``) to build with 8 parallel jobs.
 
 After this command is executed successfully, we will have a wheel package into
 the `dist/` directory, so next step is installing it:
 
     qiskit-aer/dist$ pip install -U dist/qiskit_aer*.whl
 
-As we are using *scikit-build* and we need some *Python* dependencies to be present before compiling the C++ code,
-we install those dependencies outside the regular setuptools *mechanism*. If you want to avoid automatic installation
-of these packages set the environment variable DISABLE_DEPENDENCY_INSTALL (ON or 1).
+Build-time *Python* dependencies (such as ``pybind11``) are declared in
+``pyproject.toml`` and installed automatically by ``pip``/``build`` into an
+isolated environment via PEP 517.  Pass ``--no-build-isolation`` to ``pip
+install`` if you want to use the dependencies already present in your
+environment instead.
 
 
 ### Windows
@@ -495,7 +500,7 @@ This will build and install `Aer` with the default options which is probably sui
 There's another Pythonic approach to building and installing software: build the wheels distributable file.
 
 
-    (QiskitDevEnv) qiskit-aer > python ./setup.py bdist_wheel
+    (QiskitDevEnv) qiskit-aer > python -I -m build --wheel
 
 
 This is also the way we will choose to change default `Aer` behavior by passing parameters to the build system.
@@ -504,31 +509,33 @@ This is also the way we will choose to change default `Aer` behavior by passing 
 
 As `Aer` is meant to be executed in many configurations and platforms, there is a complex underlying build system that offers a lot of options you can tune by setting some parameters.
 
-We are using [*scikit-build*](https://scikit-build.readthedocs.io/en/latest/index.html) as a substitute for *setuptools*. This is
-basically the glue between *setuptools* and *CMake*, so there are various
-options to pass variables to *CMake*, and the underlying build system
-(depending on your platform). The way to pass variables is:
+We are using [*scikit-build-core*](https://scikit-build-core.readthedocs.io/) as the build backend.
+It is the glue between PEP 517 build tooling (e.g. ``python -m build``, ``pip install``) and
+*CMake*. CMake configuration options and build-tool flags are passed via standard
+`PEP 517 config settings <https://peps.python.org/pep-0517/>`__ (``-C key=value``):
 
-    qiskit-aer > python ./setup.py bdist_wheel [skbuild_opts] [-- [cmake_opts] [-- build_tool_opts]]
+    qiskit-aer > python -I -m build --wheel [config_settings (-Ckey=value)]
 
-where the elements within square brackets `[]` are optional, and
-*`skbuild_opts`*, *`cmake_opts`*, *`build_tool_opts`* are to be replaced by
-flags of your choice. A list of *CMake* options is available
-[here](https://cmake.org/cmake/help/v3.6/manual/cmake.1.html#options). For
-example,
+``cmake.build-type`` selects the CMake build type, ``cmake.define.X=Y`` sets a
+``-DX=Y`` define on the CMake configure line, and ``build.tool-args="..."`` forwards
+flags to the build tool (e.g. ``ninja``, ``msbuild``).  A list of *CMake* options is
+available [here](https://cmake.org/cmake/help/latest/manual/cmake.1.html#options).
+For example,
 
-    (QiskitDevEnv) qiskit-aer > python ./setup.py bdist_wheel --build-type=Debug -- -G "Visual Studio 15 2017"
+    (QiskitDevEnv) qiskit-aer > python -I -m build --wheel -Ccmake.build-type=Debug -Ccmake.args="-GVisual Studio 17 2022"
 
-This is passing the `--build-type` option with `Debug` parameter to scikit-build, so we are telling it to perform a debug build. The `-G "Visual Studio 15 2017"` option is being passed to `CMake` so it forces the use of `Visual Studio 2017` C++ compiler to drive the build.
+This requests a Debug build and forces the Visual Studio 2022 generator (which selects the matching MSVC toolchain).
 
 After this command is executed successfully, we will have a wheel package into
 the `dist/` directory, so next step is installing it:
 
     (QiskitDevEnv) qiskit-aer\dist$ pip install -U dist\qiskit_aer*.whl
 
-As we are using *scikit-build* and we need some *Python* dependencies to be present before compiling the C++ code,
-we install those dependencies outside the regular setuptools *mechanism*. If you want to avoid automatic installation
-of these packages set the environment variable DISABLE_DEPENDENCY_INSTALL (ON or 1).
+Build-time *Python* dependencies (such as ``pybind11``) are declared in
+``pyproject.toml`` and installed automatically by ``pip``/``build`` into an
+isolated environment via PEP 517.  Pass ``--no-build-isolation`` to ``pip
+install`` if you want to use the dependencies already present in your
+environment instead.
 
 
 ### Building with GPU support
@@ -548,18 +555,18 @@ AER_THRUST_BACKEND=CUDA
 
 For example,
 
-    qiskit-aer$ python ./setup.py bdist_wheel -- -DAER_THRUST_BACKEND=CUDA --
+    qiskit-aer$ python -I -m build --wheel -Ccmake.define.AER_THRUST_BACKEND=CUDA
 
 If you want to specify the CUDA® architecture instead of letting the build system 
 auto detect it, you can use the AER_CUDA_ARCH flag (can also be set as an ENV variable
 with the same name, although the flag takes precedence). For example:
 
-    qiskit-aer$ python ./setup.py bdist_wheel -- -DAER_THRUST_BACKEND=CUDA -DAER_CUDA_ARCH="7.0" --
+    qiskit-aer$ python -I -m build --wheel -Ccmake.define.AER_THRUST_BACKEND=CUDA -Ccmake.define.AER_CUDA_ARCH="7.0"
 
 or
 
     qiskit-aer$ export AER_CUDA_ARCH="7.0"
-    qiskit-aer$ python ./setup.py bdist_wheel -- -DAER_THRUST_BACKEND=CUDA --
+    qiskit-aer$ python -I -m build --wheel -Ccmake.define.AER_THRUST_BACKEND=CUDA
 
 This will reduce the amount of compilation time when, for example, the architecture auto detection
 fails and the build system compiles all common architectures.
@@ -583,15 +590,15 @@ This example is for CUDA 11. Please replace cu11 to cu12 if your system has CUDA
 
 Then to build with cuQuantum support, set the value `AER_PYTHON_CUDA_ROOT=<root of Python env>` as following example.
 
-    qiskit-aer$ python ./setup.py bdist_wheel -- -DAER_THRUST_BACKEND=CUDA -DAER_PYTHON_CUDA_ROOT=qiskit-aer-venv --
+    qiskit-aer$ python -I -m build --wheel -Ccmake.define.AER_THRUST_BACKEND=CUDA -Ccmake.define.AER_PYTHON_CUDA_ROOT=qiskit-aer-venv
 
 
 If you want to link cuQuantum library statically, cuQuantum SDK and cuTENSOR should be installed in your system from NVIDIA®.
-Then set `CUQUANTUM_ROOT` `CUTENSOR_ROOT` and `CUQUANTUM_STATIC` to setup.py. 
+Then pass `CUQUANTUM_ROOT`, `CUTENSOR_ROOT`, and `CUQUANTUM_STATIC` to the build via `-Ccmake.define.<NAME>=...`.
 
 For example,
 
-    qiskit-aer$ python ./setup.py bdist_wheel -- -DAER_THRUST_BACKEND=CUDA -DCUQUANTUM_ROOT=path_to_cuQuantum -DCUTENSOR_ROOT=path_to_cuTENSOR -DAER_ENABLE_CUQUANTUM=true -DCUQUANTUM_STATIC=true --
+    qiskit-aer$ python -I -m build --wheel -Ccmake.define.AER_THRUST_BACKEND=CUDA -Ccmake.define.CUQUANTUM_ROOT=path_to_cuQuantum -Ccmake.define.CUTENSOR_ROOT=path_to_cuTENSOR -Ccmake.define.AER_ENABLE_CUQUANTUM=true -Ccmake.define.CUQUANTUM_STATIC=true
 
 
 To run with cuStateVec, set `device='GPU'` to AerSimulator option and set `cuStateVec_enable=True` to option in execute method.
@@ -617,7 +624,7 @@ You can create a Python wheel file that you can install as part of your Python e
 cd <qiskit-aer source folder>
 
 QISKIT_AER_PACKAGE_NAME='qiskit-aer-gpu-rocm' \
-   python3 setup.py bdist_wheel -- \
+   python3 -I -m build --wheel \
       -DAER_THRUST_BACKEND=ROCM \
       -DAER_MPI=<set to ON or OFF depending on whether to activate MPI support> \
       -DAER_ROCM_ARCH=<target AMD GPU list, white-space separated, e.g. 'gfx90a gfx908'>
@@ -665,7 +672,7 @@ AER_MPI=True
 
 For example,
 
-    qiskit-aer$ python ./setup.py bdist_wheel -- -DAER_MPI=True
+    qiskit-aer$ python -I -m build --wheel -Ccmake.define.AER_MPI=True
 
 By default GPU direct RDMA is enable to exchange data between GPUs installed on the different nodes of a cluster. If the system does not support GPU direct RDMA the following flag disables this.
 
@@ -675,7 +682,7 @@ AER_DISABLE_GDR=True
 
 For example,
 
-    qiskit-aer$ python ./setup.py bdist_wheel -- -DAER_MPI=True -DAER_DISABLE_GDR=True --
+    qiskit-aer$ python -I -m build --wheel -Ccmake.define.AER_MPI=True -Ccmake.define.AER_DISABLE_GDR=True
 
 ### Running with multiple-GPUs and/or multiple nodes
 
@@ -759,7 +766,7 @@ Thus, here we present instructions which are known to work under Linux.
 In general, the workflow is:
 1. Compile a wheel
 ```
-    qiskit-aer$ python ./setup.py bdist_wheel
+    qiskit-aer$ python -I -m build --wheel
 ```
 2. Repair it with [auditwheel](https://github.com/pypa/auditwheel)
 ```
@@ -827,7 +834,7 @@ In the case of building the Qiskit Python extension, you have to pass these flag
 ``--`` at the end of the python command line, eg:
 
 ```
-qiskit-aer$ python ./setup.py bdist_wheel -- -DUSEFUL_FLAG=Value
+qiskit-aer$ python -I -m build --wheel -Ccmake.define.USEFUL_FLAG=Value
 ```
 
 These are the flags:
@@ -838,7 +845,7 @@ These are the flags:
 
     Values: An absolute path.
     Default: No value.
-    Example: ``python ./setup.py bdist_wheel -- -DUSER_LIB_PATH=C:\path\to\openblas\libopenblas.so``
+    Example: ``python -I -m build --wheel -Ccmake.define.USER_LIB_PATH=C:\path\to\openblas\libopenblas.so``
 
 * AER_BLAS_LIB_PATH
 
@@ -848,7 +855,7 @@ These are the flags:
 
     Values: An absolute path.
     Default: No value.
-    Example: ``python ./setup.py bdist_wheel -- -DAER_BLAS_LIB_PATH=/path/to/look/for/blas/``
+    Example: ``python -I -m build --wheel -Ccmake.define.AER_BLAS_LIB_PATH=/path/to/look/for/blas/``
 
 * USE_BUNDLED_BLAS_WIN
 
@@ -858,7 +865,7 @@ These are the flags:
 
     Values: True|False
     Default: True
-    Example: ``python ./setup.py bdist_wheel -- -DUSE_BUNDLED_BLAS_WIN=FALSE``
+    Example: ``python -I -m build --wheel -Ccmake.define.USE_BUNDLED_BLAS_WIN=FALSE``
 
 * BUILD_TESTS
 
@@ -866,7 +873,7 @@ These are the flags:
 
     Values: True|False
     Default: False
-    Example: ``python ./setup.py bdist_wheel -- -DBUILD_TESTS=True``
+    Example: ``python -I -m build --wheel -Ccmake.define.BUILD_TESTS=True``
 
 * CMAKE_CXX_COMPILER
 
@@ -875,7 +882,7 @@ These are the flags:
 
     Values: g++|clang++|g++-8
     Default: Depends on the running platform and the toolchains installed
-    Example: ``python ./setup.py bdist_wheel -- -DCMAKE_CXX_COMPILER=g++``
+    Example: ``python -I -m build --wheel -Ccmake.define.CMAKE_CXX_COMPILER=g++``
 
 * AER_THRUST_BACKEND
 
@@ -886,7 +893,7 @@ These are the flags:
 
     Values: CUDA|OMP|TBB
     Default: No value
-    Example: ``python ./setup.py bdist_wheel -- -DAER_THRUST_BACKEND=CUDA``
+    Example: ``python -I -m build --wheel -Ccmake.define.AER_THRUST_BACKEND=CUDA``
 
 * AER_CUDA_ARCH
 
@@ -895,7 +902,7 @@ These are the flags:
 
     Values:  Auto | Common | All | List of valid CUDA architecture(s).
     Default: Auto
-    Example: ``python ./setup.py bdist_wheel -- -DAER_THRUST_BACKEND=CUDA -DAER_CUDA_ARCH="5.2; 5.3"``
+    Example: ``python -I -m build --wheel -Ccmake.define.AER_THRUST_BACKEND=CUDA -Ccmake.define.AER_CUDA_ARCH="5.2; 5.3"``
 
 * AER_USE_SYSTEM_LIBS
 
@@ -910,7 +917,7 @@ These are the flags:
 
     Values: ON | OFF
     Default: OFF
-    Example: ``python ./setup.py bdist_wheel -- -DAER_USE_SYSTEM_LIBS=ON``
+    Example: ``python -I -m build --wheel -Ccmake.define.AER_USE_SYSTEM_LIBS=ON``
 
 * AER_MPI
 
@@ -921,7 +928,7 @@ These are the flags:
 
     Values: True|False
     Default: False
-    Example: ``python ./setup.py bdist_wheel -- -DAER_MPI=True``
+    Example: ``python -I -m build --wheel -Ccmake.define.AER_MPI=True``
 
 * AER_DISABLE_GDR
 
@@ -933,7 +940,7 @@ These are the flags:
 
     Values: True|False
     Default: False
-    Example: ``python ./setup.py bdist_wheel -- -DAER_MPI=True -DAER_DISABLE_GDR=True``
+    Example: ``python -I -m build --wheel -Ccmake.define.AER_MPI=True -Ccmake.define.AER_DISABLE_GDR=True``
 
 ## Tests
 
@@ -961,7 +968,7 @@ Catch2 framework documentation can be found [here](https://github.com/catchorg/C
 Then, in any case, build Aer with the extra cmake argument BUILD_TESTS set to true:
 
 ```
-python ./setup.py bdist_wheel --build-type=Debug -- -DBUILD_TESTS=True -- -j4 2>&1 |tee build.log
+python -I -m build --wheel -Ccmake.build-type=Debug -Ccmake.define.BUILD_TESTS=True -Cbuild.tool-args="-j4" 2>&1 |tee build.log
 ```
 
 The test executable will be placed into the source test directory and can be run by:
@@ -985,7 +992,7 @@ You have to build in debug mode if you want to start a debugging session with to
 To create a Debug build for all platforms, you just need to pass a parameter while invoking the build to
 create the wheel file:
 
-    qiskit-aer$> python ./setup.py bdist_wheel --build-type=Debug
+    qiskit-aer$> python -I -m build --wheel -Ccmake.build-type=Debug
 
 There are three different build configurations: `Release`, `Debug`, and `Release with Debug Symbols`, whose parameters are:
 `Release`, `Debug`, `RelWithDebInfo` respectively.
@@ -994,12 +1001,12 @@ We recommend building in verbose mode and dump all the output to a file so it's 
 
 On Linux and Mac:
 
-    qiskit-aer$ VERBOSE=1 python ./setup.py bdist_wheel --build-type=Debug 2>&1|tee build.log
+    qiskit-aer$ VERBOSE=1 python -I -m build --wheel -Ccmake.build-type=Debug 2>&1|tee build.log
 
 On Windows:
 
     qisikt-aer> set VERBOSE=1
-    qiskit-aer> python ./setup.py bdist_wheel --build-type=Debug 1> build.log 2>&1
+    qiskit-aer> python -I -m build --wheel -Ccmake.build-type=Debug 1> build.log 2>&1
 
 We encourage you to always send the whole `build.log` file when reporting a build issue, otherwise we will ask for it :)
 

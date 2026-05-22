@@ -2,11 +2,11 @@ sympy
 qiskit>=2.0.0
 stestr>=2.5.0
 cmake>=3.24
-scikit-build>=0.11.0
+build
 asv
 cvxpy<1.6.0
 pylint
-black[jupyter]~=24.1
+black[jupyter]~=25.1
 clang-format~=15.0.7
 Sphinx>=1.8.3
 jupyter-sphinx
