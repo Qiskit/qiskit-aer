@@ -237,7 +237,6 @@ void std::to_json(json_t &js, const py::handle &obj) {
   } else if (py::isinstance<py::tuple>(obj) || py::isinstance<py::list>(obj)) {
     js = JSON::iterable_to_json_list(obj);
   } else if (py::isinstance<py::dict>(obj)) {
-
     js = nl::json::object();
     for (auto item : py::cast<py::dict>(obj)) {
       auto key = item.first.cast<nl::json::string_t>();
