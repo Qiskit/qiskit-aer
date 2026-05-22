@@ -222,17 +222,10 @@ jobs:
             ${{ runner.os }}-${{ matrix.python-version}}-pip-
             ${{ runner.os }}-${{ matrix.python-version}}-
 
-      # The macOS images we use have a newer clang than the ancient version of conan
-      # knows about, but it's similar enough that the build still works if we force it.
-      #
-      # TODO: We should fix the build to use a modern version of conan.  This hack is
-      # duplicated in `pyproject.toml` for cibuildwheel.
-      - name: Hack ancient conan to accept a recent apple-clang
-        run: |
-          set -e
-          python -m pip install 'conan<2.0.0'
-          conan config init --force
-          sed -i '' 's/"16.0"/"16.0", "17.0"/' ~/.conan/settings.yml
+      # Apple's clang doesn't ship libomp; install via Homebrew so find_package(OpenMP)
+      # succeeds at CMake configure time.
+      - name: Install libomp
+        run: brew install libomp
 
       - name: Install Aer and dependencies
         run: |
