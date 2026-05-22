@@ -17,6 +17,7 @@
 
 #include "misc/warnings.hpp"
 DISABLE_WARNING_PUSH
+#include <pybind11/native_enum.h>
 #include <pybind11/pybind11.h>
 DISABLE_WARNING_POP
 #if defined(_MSC_VER)
@@ -41,12 +42,14 @@ using namespace AER;
 template <typename MODULE>
 void bind_aer_circuit(MODULE m) {
 
-  py::enum_<Operations::UnaryOp>(m, "AerUnaryOp", py::arithmetic())
+  py::native_enum<Operations::UnaryOp>(m, "AerUnaryOp", "enum.Enum",
+                                       "Internal Aer UnaryOp class")
       .value("BitNot", Operations::UnaryOp::BitNot)
       .value("LogicNot", Operations::UnaryOp::LogicNot)
-      .export_values();
+      .finalize();
 
-  py::enum_<Operations::BinaryOp>(m, "AerBinaryOp", py::arithmetic())
+  py::native_enum<Operations::BinaryOp>(m, "AerBinaryOp", "enum.Enum",
+                                        "Internal Aer BinaryOp class")
       .value("BitAnd", Operations::BinaryOp::BitAnd)
       .value("BitOr", Operations::BinaryOp::BitOr)
       .value("BitXor", Operations::BinaryOp::BitXor)
@@ -58,7 +61,7 @@ void bind_aer_circuit(MODULE m) {
       .value("LessEqual", Operations::BinaryOp::LessEqual)
       .value("Greater", Operations::BinaryOp::Greater)
       .value("GreaterEqual", Operations::BinaryOp::GreaterEqual)
-      .export_values();
+      .finalize();
 
   py::class_<Operations::ScalarType, std::shared_ptr<Operations::ScalarType>>
       aer_scalar_type(m, "AerScalarType");
