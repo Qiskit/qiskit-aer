@@ -136,14 +136,14 @@ print(f"counts for parameterized circuit : {job_result[0].data.meas.get_counts()
 # Simulating with noise model from actual hardware
 # --------------------------------------------------
 from qiskit_ibm_runtime import QiskitRuntimeService
-provider = QiskitRuntimeService(channel='ibm_quantum', token="set your own token here")
-backend = provider.get_backend("ibm_kyoto")
+provider = QiskitRuntimeService()
+backend = provider.least_busy()
 
 # create sampler from the actual backend
 sampler = SamplerV2.from_backend(backend)
 
 # run a sampler job on the parameterized circuits with noise model of the actual hardware
-bell_t = transpile(bell, AerSimulator(basis_gates=["ecr", "id", "rz", "sx"]), optimization_level=0)
+bell_t = transpile(bell, AerSimulator(basis_gates=backend.basis_gates), optimization_level=0)
 job3 = sampler.run([bell_t], shots=128)
 job_result = job3.result()
 print(f"counts for Bell circuit w/noise: {job_result[0].data.meas.get_counts()}")
