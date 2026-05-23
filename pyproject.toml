@@ -68,7 +68,13 @@ input = "qiskit_aer/VERSION.txt"
 regex = "(?P<value>\\S+)"
 
 [tool.cibuildwheel]
-manylinux-x86_64-image = "manylinux_2_28"
+# Pin every Linux arch to the AlmaLinux 8-based manylinux image so all
+# before-all scripts can share the same dnf incantation and target the
+# same glibc baseline (2.28).
+manylinux-x86_64-image  = "manylinux_2_28"
+manylinux-aarch64-image = "manylinux_2_28"
+manylinux-ppc64le-image = "manylinux_2_28"
+manylinux-s390x-image   = "manylinux_2_28"
 skip = "pp* *musllinux* *i686* *win32* cp38-* cp39-* cp3??t-*"
 test-command = "python {project}/tools/verify_wheels.py"
 # We need to use pre-built versions of Numpy and Scipy in the tests; they have a

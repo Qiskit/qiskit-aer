@@ -1,0 +1,13 @@
+---
+upgrade:
+  - |
+    The Linux wheel jobs in :code:`.github/workflows/deploy.yml` are now
+    unified on the AlmaLinux 8-based :code:`manylinux_2_28` image for
+    every architecture (x86_64, aarch64, ppc64le, s390x). The CUDA 11
+    wheel build, which was previously installing the :code:`cuda-repo-rhel7`
+    RPM into a :code:`manylinux_2_28` container — a latent mismatch since
+    whenever the x86_64 image was last bumped — now installs the matching
+    :code:`cuda-repo-rhel8` RPM. Each :code:`CIBW_BEFORE_ALL` was rewritten
+    to use :code:`dnf` directly, and patches AlmaLinux 8's repo files to
+    use the explicit :code:`baseurl` instead of the (sometimes failing)
+    mirror list lookup. The wheel ABI promise (glibc 2.28) is unchanged.
