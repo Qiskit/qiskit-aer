@@ -6,7 +6,7 @@ recursive-include qiskit_aer *hpp
 graft src
 graft contrib
 include qiskit_aer/backends/wrappers/CMakeLists.txt
-include qiskit_aer/backends/wrappers/bindings.cc
+include qiskit_aer/backends/wrappers/bindings.cc.in
 include qiskit_aer/VERSION.txt
 include qiskit_aer/library/instructions_table.csv
 include CMakeLists.txt
