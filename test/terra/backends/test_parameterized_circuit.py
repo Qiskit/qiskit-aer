@@ -355,9 +355,12 @@ class TestParameterizedCircuit(common.QiskitAerTestCase):
         circuit = QuantumCircuit(3, 3)
         theta = Parameter("theta")
         phi = Parameter("phi")
-        circuit.rx(theta, 0).c_if(1, False)
-        circuit.rx(theta, 1).c_if(2, False)
-        circuit.rx(theta, 2).c_if(0, False)
+        with circuit.if_test((1, False)):
+            circuit.rx(theta, 0)
+        with circuit.if_test((2, False)):
+            circuit.rx(theta, 1)
+        with circuit.if_test((0, False)):
+            circuit.rx(theta, 2)
         circuit.rx(phi, 0)
         circuit.rx(phi, 1)
         circuit.rx(phi, 2)

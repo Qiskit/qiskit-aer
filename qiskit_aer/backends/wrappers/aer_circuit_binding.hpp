@@ -17,6 +17,7 @@
 
 #include "misc/warnings.hpp"
 DISABLE_WARNING_PUSH
+#include <pybind11/native_enum.h>
 #include <pybind11/pybind11.h>
 DISABLE_WARNING_POP
 #if defined(_MSC_VER)
@@ -41,12 +42,14 @@ using namespace AER;
 template <typename MODULE>
 void bind_aer_circuit(MODULE m) {
 
-  py::enum_<Operations::UnaryOp>(m, "AerUnaryOp", py::arithmetic())
+  py::native_enum<Operations::UnaryOp>(m, "AerUnaryOp", "enum.Enum",
+                                       "Internal Aer UnaryOp class")
       .value("BitNot", Operations::UnaryOp::BitNot)
       .value("LogicNot", Operations::UnaryOp::LogicNot)
-      .export_values();
+      .finalize();
 
-  py::enum_<Operations::BinaryOp>(m, "AerBinaryOp", py::arithmetic())
+  py::native_enum<Operations::BinaryOp>(m, "AerBinaryOp", "enum.Enum",
+                                        "Internal Aer BinaryOp class")
       .value("BitAnd", Operations::BinaryOp::BitAnd)
       .value("BitOr", Operations::BinaryOp::BitOr)
       .value("BitXor", Operations::BinaryOp::BitXor)
@@ -58,7 +61,7 @@ void bind_aer_circuit(MODULE m) {
       .value("LessEqual", Operations::BinaryOp::LessEqual)
       .value("Greater", Operations::BinaryOp::Greater)
       .value("GreaterEqual", Operations::BinaryOp::GreaterEqual)
-      .export_values();
+      .finalize();
 
   py::class_<Operations::ScalarType, std::shared_ptr<Operations::ScalarType>>
       aer_scalar_type(m, "AerScalarType");
@@ -66,13 +69,12 @@ void bind_aer_circuit(MODULE m) {
   py::class_<Operations::Uint, Operations::ScalarType,
              std::shared_ptr<Operations::Uint>>
       aer_uint(m, "AerUint");
-  aer_uint.def(
-      py::init([](const uint_t width) { return new Operations::Uint(width); }));
+  aer_uint.def(py::init<uint_t>(), py::arg("width"));
 
   py::class_<Operations::Bool, Operations::ScalarType,
              std::shared_ptr<Operations::Bool>>
       aer_bool(m, "AerBool");
-  aer_bool.def(py::init([]() { return new Operations::Bool(); }));
+  aer_bool.def(py::init<>());
 
   py::class_<Operations::CExpr, std::shared_ptr<Operations::CExpr>> aer_expr(
       m, "AerExpr");
@@ -83,20 +85,16 @@ void bind_aer_circuit(MODULE m) {
   py::class_<Operations::CastExpr, Operations::CExpr,
              std::shared_ptr<Operations::CastExpr>>
       aer_cast_expr(m, "AerCast");
-  aer_cast_expr.def(
-      py::init([](const std::shared_ptr<Operations::ScalarType> type,
-                  const std::shared_ptr<Operations::CExpr> expr) {
-        return new Operations::CastExpr(type, expr);
-      }));
+  aer_cast_expr.def(py::init<const std::shared_ptr<Operations::ScalarType>,
+                             const std::shared_ptr<Operations::CExpr>>(),
+                    py::arg("type"), py::arg("expr"));
 
   py::class_<Operations::VarExpr, Operations::CExpr,
              std::shared_ptr<Operations::VarExpr>>
       aer_var_expr(m, "AerVar");
-  aer_var_expr.def(
-      py::init([](const std::shared_ptr<Operations::ScalarType> type,
-                  const std::vector<uint_t> cbit_idxs) {
-        return new Operations::VarExpr(type, cbit_idxs);
-      }));
+  aer_var_expr.def(py::init<const std::shared_ptr<Operations::ScalarType>,
+                            const std::vector<uint_t>>(),
+                   py::arg("type"), py::arg("cbit_idxs"));
 
   py::class_<Operations::ValueExpr, Operations::CExpr,
              std::shared_ptr<Operations::ValueExpr>>
@@ -105,34 +103,28 @@ void bind_aer_circuit(MODULE m) {
   py::class_<Operations::UintValue, Operations::ValueExpr,
              std::shared_ptr<Operations::UintValue>>
       aer_uint_expr(m, "AerUintValue");
-  aer_uint_expr.def(py::init([](const size_t width, const uint_t val) {
-    return new Operations::UintValue(width, val);
-  }));
+  aer_uint_expr.def(py::init<const size_t, const uint_t>(), py::arg("width"),
+                    py::arg("val"));
 
   py::class_<Operations::BoolValue, Operations::ValueExpr,
              std::shared_ptr<Operations::BoolValue>>
       aer_bool_expr(m, "AerBoolValue");
-  aer_bool_expr.def(
-      py::init([](const bool val) { return new Operations::BoolValue(val); }));
+  aer_bool_expr.def(py::init<const bool>(), py::arg("val"));
 
   py::class_<Operations::UnaryExpr, Operations::CExpr,
              std::shared_ptr<Operations::UnaryExpr>>
       aer_unary_expr(m, "AerUnaryExpr");
-  aer_unary_expr.def(
-      py::init([](const Operations::UnaryOp op,
-                  const std::shared_ptr<Operations::CExpr> expr) {
-        return new Operations::UnaryExpr(op, expr);
-      }));
+  aer_unary_expr.def(py::init<const Operations::UnaryOp,
+                              const std::shared_ptr<Operations::CExpr>>(),
+                     py::arg("op"), py::arg("expr"));
 
   py::class_<Operations::BinaryExpr, Operations::CExpr,
              std::shared_ptr<Operations::BinaryExpr>>
       aer_binary_expr(m, "AerBinaryExpr");
-  aer_binary_expr.def(
-      py::init([](const Operations::BinaryOp op,
-                  const std::shared_ptr<Operations::CExpr> left,
-                  const std::shared_ptr<Operations::CExpr> right) {
-        return new Operations::BinaryExpr(op, left, right);
-      }));
+  aer_binary_expr.def(py::init<const Operations::BinaryOp,
+                               const std::shared_ptr<Operations::CExpr>,
+                               const std::shared_ptr<Operations::CExpr>>(),
+                      py::arg("op"), py::arg("left"), py::arg("right"));
 
   py::class_<Circuit, std::shared_ptr<Circuit>> aer_circuit(m, "AerCircuit");
   aer_circuit.def(py::init());

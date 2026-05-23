@@ -1,6 +1,10 @@
+merge_queue:
+  max_parallel_checks: 1
+
 queue_rules:
   - name: automerge
-    conditions: []  # No additional rules, because branch-protection does them.
+    merge_method: squash
+    batch_size: 1
 
 pull_request_rules:
   - name: automatic merge on CI success and review
@@ -20,4 +24,3 @@ pull_request_rules:
     actions:
       queue:
         name: automerge
-        method: squash

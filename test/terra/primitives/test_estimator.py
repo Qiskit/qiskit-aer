@@ -319,13 +319,15 @@ class TestEstimator(QiskitAerTestCase):
 
         param = Parameter("a")
         qc2 = QuantumCircuit(1)
-        qc2.ry(np.pi / 2 * param, 0)
+        qc2.ry(np.pi * param, 0)
         qc2.measure_all()
 
-        estimator = Estimator(approximation=True)
+        estimator = Estimator(
+            approximation=True, skip_transpilation=True, run_options={"shots": None}
+        )
         job = estimator.run([qc1, qc2, qc1, qc1, qc2], ["Z"] * 5, [[], [1], [], [], [1]])
         result = job.result()
-        np.testing.assert_allclose(result.values, [1, 0, 1, 1, 0], atol=1e-10)
+        np.testing.assert_allclose(result.values, [1, -1, 1, 1, -1], atol=1e-10)
 
 
 if __name__ == "__main__":

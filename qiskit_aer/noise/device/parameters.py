@@ -12,6 +12,8 @@
 
 """
 Functions to extract device error parameters from backend properties.
+
+We assume the structure of the class `BackendProperties` in `qiskit-ibm-runtime`.
 """
 
 from numpy import inf
@@ -27,6 +29,7 @@ def gate_param_values(properties):
 
     Args:
         properties (BackendProperties): device backend properties
+            We assume the structure of the class `BackendProperties` in `qiskit-ibm-runtime`
 
     Returns:
         list: A list of tuples ``(name, qubits, time, error)``. If gate
@@ -61,6 +64,7 @@ def gate_error_values(properties):
 
     Args:
         properties (BackendProperties): device backend properties
+            We assume the structure of the class `BackendProperties` in `qiskit-ibm-runtime`
 
     Returns:
         list: A list of tuples ``(name, qubits, value)``. If gate
@@ -85,6 +89,7 @@ def gate_length_values(properties):
 
     Args:
         properties (BackendProperties): device backend properties
+            We assume the structure of the class `BackendProperties` in `qiskit-ibm-runtime`
 
     Returns:
         list: A list of tuples ``(name, qubits, value)``. If gate length
@@ -114,6 +119,7 @@ def readout_error_values(properties):
 
     Args:
         properties (BackendProperties): device backend properties
+            We assume the structure of the class `BackendProperties` in `qiskit-ibm-runtime`
 
     Returns:
         list: A list of readout error values for qubits. If readout
@@ -142,6 +148,7 @@ def thermal_relaxation_values(properties):
 
     Args:
         properties (BackendProperties): device backend properties
+            We assume the structure of the class `BackendProperties` in `qiskit-ibm-runtime`
 
     Returns:
         list: A list of tuples ``(T1, T2, freq)`` for each qubit in the device.

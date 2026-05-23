@@ -12,7 +12,7 @@
 """
 StatevectorSimulator Integration Tests
 """
-
+import unittest
 from ddt import ddt
 from numpy import exp, pi
 
@@ -24,7 +24,7 @@ from test.terra.reference import ref_1q_clifford
 from test.terra.reference import ref_unitary_gate
 from test.terra.reference import ref_diagonal_gate
 
-from qiskit import transpile
+from qiskit import transpile, __version__ as qiskit_version
 from qiskit_aer import StatevectorSimulator, AerError
 from test.terra.backends.simulator_test_case import SimulatorTestCase, supported_devices
 
@@ -105,6 +105,10 @@ class TestStatevectorSimulator(SimulatorTestCase):
     # ---------------------------------------------------------------------
     # Test conditional
     # ---------------------------------------------------------------------
+    @unittest.skipUnless(
+        qiskit_version.startswith("0.") or qiskit_version.startswith("1."),
+        reason="c_if support was removed in Qiskit >= 2.0",
+    )
     @supported_devices
     def test_conditional_gate_1bit(self, device):
         """Test conditional gates on 1-bit conditional register."""
@@ -116,6 +120,10 @@ class TestStatevectorSimulator(SimulatorTestCase):
         self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
 
+    @unittest.skipUnless(
+        qiskit_version.startswith("0.") or qiskit_version.startswith("1."),
+        reason="c_if support was removed in Qiskit >= 2.0",
+    )
     @supported_devices
     def test_conditional_unitary_1bit(self, device):
         """Test conditional unitaries on 1-bit conditional register."""
@@ -128,6 +136,10 @@ class TestStatevectorSimulator(SimulatorTestCase):
         self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
 
+    @unittest.skipUnless(
+        qiskit_version.startswith("0.") or qiskit_version.startswith("1."),
+        reason="c_if support was removed in Qiskit >= 2.0",
+    )
     @supported_devices
     def test_conditional_gate_2bit(self, device):
         """Test conditional gates on 2-bit conditional register."""
@@ -139,6 +151,10 @@ class TestStatevectorSimulator(SimulatorTestCase):
         self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
 
+    @unittest.skipUnless(
+        qiskit_version.startswith("0.") or qiskit_version.startswith("1."),
+        reason="c_if support was removed in Qiskit >= 2.0",
+    )
     @supported_devices
     def test_conditional_unitary_2bit(self, device):
         """Test conditional unitary on 2-bit conditional register."""
@@ -151,6 +167,10 @@ class TestStatevectorSimulator(SimulatorTestCase):
         self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
 
+    @unittest.skipUnless(
+        qiskit_version.startswith("0.") or qiskit_version.startswith("1."),
+        reason="c_if support was removed in Qiskit >= 2.0",
+    )
     @supported_devices
     def test_conditional_gate_64bit(self, device):
         """Test conditional gates on 64-bit conditional register."""
@@ -165,6 +185,10 @@ class TestStatevectorSimulator(SimulatorTestCase):
         self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
 
+    @unittest.skipUnless(
+        qiskit_version.startswith("0.") or qiskit_version.startswith("1."),
+        reason="c_if support was removed in Qiskit >= 2.0",
+    )
     @supported_devices
     def test_conditional_unitary_64bit(self, device):
         """Test conditional unitary on 64-bit conditional register."""
@@ -178,6 +202,10 @@ class TestStatevectorSimulator(SimulatorTestCase):
         self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
 
+    @unittest.skipUnless(
+        qiskit_version.startswith("0.") or qiskit_version.startswith("1."),
+        reason="c_if support was removed in Qiskit >= 2.0",
+    )
     @supported_devices
     def test_conditional_gate_132bit(self, device):
         """Test conditional gates on 132-bit conditional register."""
@@ -192,6 +220,10 @@ class TestStatevectorSimulator(SimulatorTestCase):
         self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
 
+    @unittest.skipUnless(
+        qiskit_version.startswith("0.") or qiskit_version.startswith("1."),
+        reason="c_if support was removed in Qiskit >= 2.0",
+    )
     @supported_devices
     def test_conditional_unitary_132bit(self, device):
         """Test conditional unitary on 132-bit conditional register."""

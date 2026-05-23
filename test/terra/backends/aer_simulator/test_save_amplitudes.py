@@ -69,7 +69,13 @@ class TestSaveAmplitudes(SimulatorTestCase):
         self._test_save_amplitudes(QFT(3), params, False, method=method, device=device)
 
     @supported_methods(
-        ["automatic", "statevector", "matrix_product_state", "density_matrix", "tensor_network"],
+        [
+            "automatic",
+            "statevector",
+            "matrix_product_state",
+            "density_matrix",
+            "tensor_network",
+        ],
         AMPLITUDES,
     )
     def test_save_amplitudes_squared(self, method, device, params):

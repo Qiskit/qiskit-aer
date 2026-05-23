@@ -14,7 +14,6 @@
 Test circuits and reference outputs for conditional gates.
 """
 
-import math
 import numpy as np
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.circuit import Instruction

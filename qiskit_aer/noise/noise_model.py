@@ -23,8 +23,6 @@ import numpy as np
 from qiskit.circuit import QuantumCircuit, Instruction, Delay, Reset
 from qiskit.circuit.library.generalized_gates import PauliGate, UnitaryGate
 from qiskit.providers import QubitProperties
-from qiskit.providers.exceptions import BackendPropertyError
-from qiskit.providers.models.backendproperties import BackendProperties
 from qiskit.transpiler import PassManager
 from qiskit.utils import apply_prefix
 from .device.models import _excited_population, _truncate_t2_value
@@ -435,7 +433,7 @@ class NoiseModel:
                     _excited_population(freq=q.frequency, temperature=temperature)
                     for q in all_qubit_properties
                 ]
-            except BackendPropertyError:
+            except ValueError:
                 excited_state_populations = None
             try:
                 t1s = [prop.t1 for prop in all_qubit_properties]
@@ -446,9 +444,10 @@ class NoiseModel:
                     dt=dt,
                     op_types=Delay,
                     excited_state_populations=excited_state_populations,
+                    target=target,
                 )
                 noise_model._custom_noise_passes.append(delay_pass)
-            except BackendPropertyError:
+            except ValueError:
                 # Device does not have the required T1 or T2 information
                 # in its properties
                 pass
@@ -458,7 +457,7 @@ class NoiseModel:
     @classmethod
     def from_backend_properties(
         cls,
-        backend_properties: BackendProperties,
+        backend_properties: "BackendProperties",
         gate_error: bool = True,
         readout_error: bool = True,
         thermal_relaxation: bool = True,
@@ -468,6 +467,7 @@ class NoiseModel:
         dt: Optional[float] = None,
     ):
         """Return a noise model derived from a backend properties.
+        We assume the structure of the class `BackendProperties` in `qiskit-ibm-runtime`
 
         This method basically generates a noise model in the same way as
         :meth:`~.NoiseModel.from_backend`. One small difference is that the ``dt`` option is
@@ -479,6 +479,7 @@ class NoiseModel:
 
         Args:
             backend_properties (BackendProperties): The property of backend.
+                We assume the structure of the class `BackendProperties` in `qiskit-ibm-runtime`
             gate_error (Bool): Include depolarizing gate errors (Default: True).
             readout_error (Bool): Include readout errors in model (Default: True).
             thermal_relaxation (Bool): Include thermal relaxation errors (Default: True).
@@ -506,10 +507,11 @@ class NoiseModel:
         Raises:
             NoiseError: If the input backend properties are not valid.
         """
-        if not isinstance(backend_properties, BackendProperties):
-            raise NoiseError(
-                "{} is not a Qiskit backend or" " BackendProperties".format(backend_properties)
-            )
+        for required_field in ["gates", "qubits", "frequency", "t1", "t2"]:
+            if not hasattr(backend_properties, required_field):
+                raise NoiseError(
+                    f"Backend properties are missing the required field '{required_field}'"
+                )
         basis_gates = set()
         for prop in backend_properties.gates:
             basis_gates.add(prop.gate)
@@ -542,7 +544,7 @@ class NoiseModel:
                     )
                     for q in range(num_qubits)
                 ]
-            except BackendPropertyError:
+            except ValueError:
                 excited_state_populations = None
             try:
                 delay_pass = RelaxationNoisePass(
@@ -556,7 +558,7 @@ class NoiseModel:
                     excited_state_populations=excited_state_populations,
                 )
                 noise_model._custom_noise_passes.append(delay_pass)
-            except BackendPropertyError:
+            except ValueError:
                 # Device does not have the required T1 or T2 information
                 # in its properties
                 pass

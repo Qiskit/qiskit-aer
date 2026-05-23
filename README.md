@@ -5,8 +5,14 @@
 [![Tests](https://github.com/Qiskit/qiskit-aer/actions/workflows/tests.yml/badge.svg?branch=main)](https://github.com/Qiskit/qiskit-aer/actions/workflows/tests.yml)
 [![](https://img.shields.io/github/release/Qiskit/qiskit-aer.svg?style=popout-square)](https://github.com/Qiskit/qiskit-aer/releases)
 [![](https://img.shields.io/pypi/dm/qiskit-aer.svg?style=popout-square)](https://pypi.org/project/qiskit-aer/)
+[![Qiskit Ecosystem](https://qisk.it/e-474599a7)](https://qisk.it/e)
 
 **Aer** is a high performance simulator for quantum circuits written in Qiskit, that includes realistic noise models.
+
+| :exclamation:  **Reduced Maintenance Mode**  |
+|----------------------------------------------|
+| Aer is currently operating under **reduced maintenance**. The maintainers are only able to address **critical bug fixes**. Feature requests and non-critical enhancements have been placed in the backlog and will be revisited as capacity allows. |
+
 
 ## Installation
 
@@ -31,7 +37,7 @@ If you want to install our GPU supported simulators, you have to install this ot
 pip install qiskit-aer-gpu
 ```
 
-The package above is for CUDA&reg 12, so if your system has CUDA&reg; 11 installed, install separate package:
+The package above is for CUDA&reg; 12, so if your system has CUDA&reg; 11 installed, install separate package:
 ```bash
 pip install qiskit-aer-gpu-cu11
 ```
@@ -130,14 +136,14 @@ print(f"counts for parameterized circuit : {job_result[0].data.meas.get_counts()
 # Simulating with noise model from actual hardware
 # --------------------------------------------------
 from qiskit_ibm_runtime import QiskitRuntimeService
-provider = QiskitRuntimeService(channel='ibm_quantum', token="set your own token here")
-backend = provider.get_backend("ibm_kyoto")
+provider = QiskitRuntimeService()
+backend = provider.least_busy()
 
 # create sampler from the actual backend
 sampler = SamplerV2.from_backend(backend)
 
 # run a sampler job on the parameterized circuits with noise model of the actual hardware
-bell_t = transpile(bell, AerSimulator(basis_gates=["ecr", "id", "rz", "sx"]), optimization_level=0)
+bell_t = transpile(bell, AerSimulator(basis_gates=backend.basis_gates), optimization_level=0)
 job3 = sampler.run([bell_t], shots=128)
 job_result = job3.result()
 print(f"counts for Bell circuit w/noise: {job_result[0].data.meas.get_counts()}")
