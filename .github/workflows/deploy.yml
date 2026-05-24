@@ -3,6 +3,7 @@ on:
   push:
     tags:
       - '*'
+  workflow_dispatch:
 jobs:
   wheel-build:
     name: Build qiskit-aer wheels
@@ -62,6 +63,7 @@ jobs:
           path: ./wheelhouse/*.whl
           name: aer-deploy-separate-build_wheels_aarch64-${{ matrix.os }}
       - name: Publish package distributions to PyPI
+        if: startsWith(github.ref, 'refs/tags/')
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           packages-dir: wheelhouse
@@ -117,6 +119,7 @@ jobs:
           path: ./dist/qiskit*
           name: aer-deploy-separate-sdist-${{ matrix.os }}
       - name: Publish package distributions to PyPI
+        if: startsWith(github.ref, 'refs/tags/')
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           packages-dir: dist
@@ -162,6 +165,7 @@ jobs:
           path: ./wheelhouse/*.whl
           name: aer-deploy-separate-gpu-build-cuda11-${{ matrix.os }}
       - name: Publish package distributions to PyPI
+        if: startsWith(github.ref, 'refs/tags/')
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           packages-dir: wheelhouse
@@ -207,6 +211,7 @@ jobs:
           path: ./wheelhouse/*.whl
           name: aer-deploy-separate-gpu-build-cuda12-${{ matrix.os }}
       - name: Publish package distributions to PyPI
+        if: startsWith(github.ref, 'refs/tags/')
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           packages-dir: wheelhouse
@@ -244,6 +249,7 @@ jobs:
           path: ./wheelhouse/*.whl
           name: aer-deploy-separate-build_wheels_s390x-${{ matrix.os }}
       - name: Publish package distributions to PyPI
+        if: startsWith(github.ref, 'refs/tags/')
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           packages-dir: wheelhouse
@@ -281,6 +287,7 @@ jobs:
           path: ./wheelhouse/*.whl
           name: aer-deploy-separate-build_wheels_ppc64le-${{ matrix.os }}
       - name: Publish package distributions to PyPI
+        if: startsWith(github.ref, 'refs/tags/')
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           packages-dir: wheelhouse
@@ -298,6 +305,7 @@ jobs:
           pattern: 'aer-deploy-shared-*'
           merge-multiple: true
       - name: Publish package distributions to PyPI
+        if: startsWith(github.ref, 'refs/tags/')
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           packages-dir: deploy
