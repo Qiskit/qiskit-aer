@@ -169,6 +169,13 @@ function(conan_cmake_settings result)
         if(${_CONAN_SETTING_COMPILER} STREQUAL clang AND ${MAJOR} GREATER 7)
             set(_CONAN_SETTING_COMPILER_VERSION ${MAJOR})
         endif()
+        # Workaround for Conan 1.x: Clang versions > 17 are not recognized
+        # ROCm 7.0+ ships with Clang 20.0, but Conan 1.x only supports up to Clang 17
+        # The ABI is compatible, so we can safely report version 17
+        if(${_CONAN_SETTING_COMPILER} STREQUAL clang AND ${MAJOR} GREATER 17)
+            message(STATUS "Conan: Detected Clang ${MAJOR}, but Conan 1.x only supports up to version 17. Using version 17 (ABI compatible).")
+            set(_CONAN_SETTING_COMPILER_VERSION 17)
+        endif()
         if (USING_CXX)
             conan_cmake_detect_unix_libcxx(_LIBCXX)
             set(_CONAN_SETTING_COMPILER_LIBCXX ${_LIBCXX})
@@ -226,9 +233,15 @@ function(conan_cmake_settings result)
         set(_SETTINGS ${_SETTINGS} -pr=${ARG})
     endforeach()
 
-    if(NOT _SETTINGS OR ARGUMENTS_PROFILE_AUTO STREQUAL "ALL")
-        set(ARGUMENTS_PROFILE_AUTO arch build_type compiler compiler.version
-                                   compiler.runtime compiler.libcxx compiler.toolset)
+    # Check if PROFILE_AUTO is explicitly set to NONE to disable auto-detection
+    if(NOT ARGUMENTS_PROFILE_AUTO STREQUAL "NONE")
+        if(NOT _SETTINGS OR ARGUMENTS_PROFILE_AUTO STREQUAL "ALL")
+            set(ARGUMENTS_PROFILE_AUTO arch build_type compiler compiler.version
+                                       compiler.runtime compiler.libcxx compiler.toolset)
+        endif()
+    else()
+        # PROFILE_AUTO=NONE means no auto-detection
+        set(ARGUMENTS_PROFILE_AUTO "")
     endif()
 
     # Automatic from CMake
@@ -458,6 +471,22 @@ macro(conan_load_buildinfo)
     # important that it is macro, so variables defined at parent scope
     if(EXISTS "${_CONANBUILDINFOFOLDER}/${_CONANBUILDINFO}")
       message(STATUS "Conan: Loading ${_CONANBUILDINFO}")
+      
+      # Patch the generated file to disable compiler check
+      # This is needed when CMake compiler differs from Conan's compiler (e.g., ROCm Clang vs GCC)
+      # CMAKE_CURRENT_LIST_DIR points to the cmake/ directory where this file lives
+      set(_PATCH_SCRIPT "${CMAKE_CURRENT_LIST_DIR}/patch_conan_buildinfo.cmake")
+      if(NOT EXISTS "${_PATCH_SCRIPT}")
+        # Fallback: try from project root
+        set(_PATCH_SCRIPT "${CMAKE_SOURCE_DIR}/cmake/patch_conan_buildinfo.cmake")
+      endif()
+      if(EXISTS "${_PATCH_SCRIPT}")
+        include("${_PATCH_SCRIPT}")
+        patch_conan_buildinfo("${_CONANBUILDINFOFOLDER}/${_CONANBUILDINFO}")
+      else()
+        message(WARNING "Could not find patch_conan_buildinfo.cmake at ${_PATCH_SCRIPT}")
+      endif()
+      
       include(${_CONANBUILDINFOFOLDER}/${_CONANBUILDINFO})
     else()
       message(FATAL_ERROR "${_CONANBUILDINFO} doesn't exist in ${CMAKE_CURRENT_BINARY_DIR}")
@@ -505,7 +534,7 @@ macro(conan_cmake_run)
     endif()
 
     if(ARGUMENTS_BASIC_SETUP)
-        foreach(_option CMAKE_TARGETS KEEP_RPATHS NO_OUTPUT_DIRS SKIP_STD)
+        foreach(_option CMAKE_TARGETS KEEP_RPATHS NO_OUTPUT_DIRS SKIP_STD SKIP_COMPILER_CHECK)
             if(ARGUMENTS_${_option})
                 if(${_option} STREQUAL "CMAKE_TARGETS")
                     list(APPEND _setup_options "TARGETS")

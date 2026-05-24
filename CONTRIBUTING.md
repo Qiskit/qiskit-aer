@@ -614,30 +614,76 @@ results = execute(circuit,sim,cuStateVec_enable=True).result()
 ROCm® support has been added matching the CUDA® implementation based
 on the `thrust` library. This enables Aer to run on AMD® GPUs,
 including the AMD® Instinct GPU line based on the CDNA architecture. 
-ROCm® only support linux platforms.
+ROCm® only supports Linux platforms.
 
-You can create a Python wheel file that you can install as part of your Python environemnt:
-```
+**Supported ROCm Versions:**
+- ROCm 5.0+ (minimum required)
+- ROCm 6.x (full feature support)
+- ROCm 7.x (latest, with enhanced features)
+
+**Supported GPU Architectures:**
+- **Data Center GPUs**: MI100 (gfx908), MI210/MI250/MI250X (gfx90a), MI300A/MI300X (gfx940/941/942)
+- **Consumer GPUs**: RX 6000 series (gfx1030), RX 7000 series (gfx1100)
+
+##### Option 1: Automatic Detection (Recommended)
+
+The build system now automatically detects your AMD GPU and ROCm version. Use the detection helper:
+
+```bash
 cd <qiskit-aer source folder>
 
+# Detect GPU and generate build script
+./tools/detect_rocm.sh
+
+# Run the generated build script
+bash /tmp/qiskit_aer_rocm_build.sh
+```
+
+The auto-detection will:
+- ✓ Detect your GPU architecture automatically via `rocminfo`
+- ✓ Check ROCm version and enable version-specific features
+- ✓ Provide architecture-specific performance recommendations
+- ✓ Generate a complete build script with optimized settings
+
+##### Option 2: Manual Build
+
+If you prefer manual control or auto-detection is unavailable:
+
+```bash
+cd <qiskit-aer source folder>
+
+# Install dependencies
+pip install -r requirements-dev.txt
+
+# Set environment (optional, CMake will detect if not set)
+export ROCM_PATH=/opt/rocm
+export AER_ROCM_ARCH="gfx90a"  # Your GPU architecture
+
+# Build wheel
 QISKIT_AER_PACKAGE_NAME='qiskit-aer-gpu-rocm' \
    python3 setup.py bdist_wheel -- \
       -DAER_THRUST_BACKEND=ROCM \
-      -DAER_MPI=<set to ON or OFF depending on whether to activate MPI support> \
-      -DAER_ROCM_ARCH=<target AMD GPU list, white-space separated, e.g. 'gfx90a gfx908'>
+      -DAER_MPI=OFF \
+      -DAER_ROCM_ARCH=gfx90a
 
+# Install
 pip install --force-reinstall dist/qiskit_aer_gpu_rocm-*.whl
 ```
-  
-In both cases, the host system needs to have a functional ROCm® instalation and 
-the environment variable `ROCM_PATH` set pointing to the ROCm® instalation folder if
-that is not the default `/opt/rocm`.
-Depending on how your Python environment is set, you might need to install
-Aer's required development modules:
-```
-cd <qiskit-aer source folder>
-pip install -r requirements-dev.txt
-```
+
+**Note**: If `AER_ROCM_ARCH` is not specified, CMake will attempt to auto-detect your GPU architecture.
+
+##### Environment Variables
+
+- `ROCM_PATH`: ROCm installation directory (default: `/opt/rocm`)
+- `AER_ROCM_ARCH`: Target GPU architecture(s), space-separated (e.g., `gfx90a gfx908`)
+- `AER_THRUST_BACKEND`: Must be set to `ROCM` for AMD GPU builds
+
+##### Build Options
+
+- `-DAER_THRUST_BACKEND=ROCM`: Enable ROCm backend (required)
+- `-DAER_ROCM_ARCH=<arch>`: Specify GPU architecture (optional with auto-detection)
+- `-DAER_MPI=ON/OFF`: Enable MPI support for multi-GPU clusters
+- `-DCMAKE_BUILD_TYPE=Release`: Build type (Release recommended for performance)
 
 To leverage the ROCm® implementations no code changes are needed on top of one
 already does for CUDA®. Running with cuStateVec, for instance, requires set 
