@@ -8,7 +8,7 @@
 # For Mac, statically linking only happens with user libraries, system libraries cannot
 # be linked statically per Apple's indications.
 
-cmake_minimum_required(VERSION 3.8 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.24 FATAL_ERROR)
 file(STRINGS "qiskit_aer/VERSION.txt" VERSION_NUM)
 
 # For ROCm builds we need to make sure the CXX and HIP compilers match and are clang.
@@ -81,10 +81,19 @@ option(BUILD_TESTS "Specify whether we want to build tests or not" FALSE)
 option(USE_BUNDLED_BLAS_WIN "Use the bundled openblas library on Windows when
 							not using AER_BLAS_LIB_PATH" TRUE)
 
-# Allow disabling conan for downstream package managers. Requires all libraries to be present in path
-# Default is value of environment variable if defined or ON
-if(NOT DEFINED DISABLE_CONAN AND DEFINED ENV{DISABLE_CONAN})
-	set(DISABLE_CONAN $ENV{DISABLE_CONAN})
+# Force use of system-installed C++ dependencies (no FetchContent downloads).
+# Required by downstream packagers (e.g. conda-forge) where deps must come from
+# the package manager rather than from network downloads at build time.
+# Defaults to the AER_USE_SYSTEM_LIBS environment variable, or to the legacy
+# DISABLE_CONAN cache var / env var if set (kept for backward compatibility).
+if(NOT DEFINED AER_USE_SYSTEM_LIBS)
+	if(DEFINED ENV{AER_USE_SYSTEM_LIBS})
+		set(AER_USE_SYSTEM_LIBS $ENV{AER_USE_SYSTEM_LIBS})
+	elseif(DEFINED DISABLE_CONAN)
+		set(AER_USE_SYSTEM_LIBS ${DISABLE_CONAN})
+	elseif(DEFINED ENV{DISABLE_CONAN})
+		set(AER_USE_SYSTEM_LIBS $ENV{DISABLE_CONAN})
+	endif()
 endif()
 
 include(CTest)
@@ -185,32 +194,50 @@ if(MSVC)
   set(AER_COMPILER_FLAGS " /bigobj")
 endif ()
 
-if(NOT OPENMP_FOUND) # Could already be setup for macos with conan
-	message(STATUS "Looking for OpenMP support...")
-	find_package(OpenMP QUIET)
-	if(OPENMP_FOUND)
-		set(AER_COMPILER_FLAGS "${AER_COMPILER_FLAGS} ${OpenMP_CXX_FLAGS}")
-		set(AER_LINKER_FLAGS "${AER_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS} ${OpenMP_CXX_FLAGS}")
-		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
-		set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
-		if(APPLE)
-			set(AER_SIMULATOR_CPP_EXTERNAL_LIBS ${AER_SIMULATOR_CPP_EXTERNAL_LIBS} ${OpenMP_CXX_INCLUDE_DIRS})
-			# On Apple and clang, we do need to link against the library unless we are building
-			# the Terra Addon, see issue: https://github.com/Qiskit/qiskit-aer/issues/1
-			if(NOT SKBUILD)
-				set(AER_LIBRARIES "${AER_LIBRARIES}" "${OpenMP_${OpenMP_CXX_LIB_NAMES}_LIBRARY}")
-				message(STATUS "Adding Clang: ${OpenMP_${OpenMP_CXX_LIB_NAMES}_LIBRARY}")
-			else()
-				get_filename_component(OPENMP_LIB_TO_COPY ${OpenMP_${OpenMP_CXX_LIB_NAMES}_LIBRARY} REALPATH) #Needed to follow symlinks
-				set(BACKEND_REDIST_DEPS ${BACKEND_REDIST_DEPS} ${OPENMP_LIB_TO_COPY})
-			endif()
+message(STATUS "Looking for OpenMP support...")
+# Apple's clang does not enable OpenMP by default and CMake's FindOpenMP cannot
+# locate Homebrew's libomp without a hint. Query `brew --prefix libomp` and feed
+# the result through OpenMP_ROOT so find_package(OpenMP) succeeds on macOS hosts
+# that have `brew install libomp`. Skip if the user already provided OpenMP_ROOT.
+if(APPLE AND CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND NOT DEFINED OpenMP_ROOT AND NOT DEFINED ENV{OpenMP_ROOT})
+	find_program(_AER_BREW_EXECUTABLE brew)
+	if(_AER_BREW_EXECUTABLE)
+		execute_process(
+			COMMAND "${_AER_BREW_EXECUTABLE}" --prefix libomp
+			OUTPUT_VARIABLE _AER_BREW_LIBOMP_PREFIX
+			OUTPUT_STRIP_TRAILING_WHITESPACE
+			RESULT_VARIABLE _AER_BREW_LIBOMP_RESULT
+			ERROR_QUIET
+		)
+		if(_AER_BREW_LIBOMP_RESULT EQUAL 0 AND IS_DIRECTORY "${_AER_BREW_LIBOMP_PREFIX}")
+			set(OpenMP_ROOT "${_AER_BREW_LIBOMP_PREFIX}")
+			message(STATUS "Using Homebrew libomp at ${OpenMP_ROOT}")
 		endif()
-		message(STATUS "OpenMP found!")
-		message(STATUS "OpenMP_CXX_FLAGS = ${OpenMP_CXX_FLAGS}")
-		message(STATUS "OpenMP_EXE_LINKER_FLAGS = ${OpenMP_EXE_LINKER_FLAGS}")
-	else()
-		message(STATUS "WARNING: No OpenMP support found!")
 	endif()
+endif()
+find_package(OpenMP QUIET)
+if(OPENMP_FOUND)
+	set(AER_COMPILER_FLAGS "${AER_COMPILER_FLAGS} ${OpenMP_CXX_FLAGS}")
+	set(AER_LINKER_FLAGS "${AER_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS} ${OpenMP_CXX_FLAGS}")
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+	set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
+	if(APPLE)
+		set(AER_SIMULATOR_CPP_EXTERNAL_LIBS ${AER_SIMULATOR_CPP_EXTERNAL_LIBS} ${OpenMP_CXX_INCLUDE_DIRS})
+		# On Apple and clang, we do need to link against the library unless we are building
+		# the Terra Addon, see issue: https://github.com/Qiskit/qiskit-aer/issues/1
+		if(NOT SKBUILD)
+			set(AER_LIBRARIES "${AER_LIBRARIES}" "${OpenMP_${OpenMP_CXX_LIB_NAMES}_LIBRARY}")
+			message(STATUS "Adding Clang: ${OpenMP_${OpenMP_CXX_LIB_NAMES}_LIBRARY}")
+		else()
+			get_filename_component(OPENMP_LIB_TO_COPY ${OpenMP_${OpenMP_CXX_LIB_NAMES}_LIBRARY} REALPATH) #Needed to follow symlinks
+			set(BACKEND_REDIST_DEPS ${BACKEND_REDIST_DEPS} ${OPENMP_LIB_TO_COPY})
+		endif()
+	endif()
+	message(STATUS "OpenMP found!")
+	message(STATUS "OpenMP_CXX_FLAGS = ${OpenMP_CXX_FLAGS}")
+	message(STATUS "OpenMP_EXE_LINKER_FLAGS = ${OpenMP_EXE_LINKER_FLAGS}")
+else()
+	message(STATUS "WARNING: No OpenMP support found!")
 endif()
 
 if(STATIC_LINKING)
@@ -393,13 +420,13 @@ if(AER_THRUST_SUPPORTED)
 	elseif(AER_THRUST_BACKEND STREQUAL "TBB")
 		message(STATUS "TBB Support found!")
 		set(THRUST_DEPENDENT_LIBS AER_DEPENDENCY_PKG::tbb)
-		set(AER_COMPILER_DEFINITIONS ${AER_COMPILER_DEFINITIONS} AER_THRUST_CPU=TRUE)
+		set(AER_COMPILER_DEFINITIONS ${AER_COMPILER_DEFINITIONS} AER_THRUST_CPU=TRUE THRUST_DEVICE_SYSTEM=THRUST_DEVICE_SYSTEM_TBB)
 	elseif(AER_THRUST_BACKEND STREQUAL "OMP")
 		message(STATUS "Thrust library: Setting OMP backend")
 		if(NOT OPENMP_FOUND)
 			message(FATAL_ERROR "There's no OMP support. We cannot set Thrust backend to OMP!!")
 		endif()
-		set(AER_COMPILER_DEFINITIONS ${AER_COMPILER_DEFINITIONS} AER_THRUST_CPU=TRUE)
+		set(AER_COMPILER_DEFINITIONS ${AER_COMPILER_DEFINITIONS} AER_THRUST_CPU=TRUE THRUST_DEVICE_SYSTEM=THRUST_DEVICE_SYSTEM_OMP)
 		# We don't need to add OMP because it's already an AER dependency
 		set(THRUST_DEPENDENT_LIBS "")
 	elseif(AER_THRUST_BACKEND STREQUAL "ROCM")
@@ -495,6 +522,11 @@ if(AER_THRUST_SUPPORTED)
 	else()
 		message(STATUS "No Thrust supported backend")
 		set(AER_THRUST_SUPPORTED FALSE)
+		# Pin Thrust's device system to CPP when no backend is selected: simulator
+		# headers transitively include Thrust, and Thrust's headers default to
+		# CUDA when THRUST_DEVICE_SYSTEM is unset, which fails on hosts without
+		# a CUDA toolkit (cibuildwheel manylinux/macOS).
+		set(AER_COMPILER_DEFINITIONS ${AER_COMPILER_DEFINITIONS} THRUST_DEVICE_SYSTEM=THRUST_DEVICE_SYSTEM_CPP)
 	endif()
 
 	if(MSVC)
@@ -537,8 +569,6 @@ set(AER_LIBRARIES
 	AER_DEPENDENCY_PKG::spdlog
 	Threads::Threads
 	${CMAKE_DL_LIBS})
-
-set(AER_COMPILER_DEFINITIONS ${AER_COMPILER_DEFINITIONS} ${CONAN_DEFINES})
 
 add_subdirectory(qiskit_aer/backends/wrappers)
 

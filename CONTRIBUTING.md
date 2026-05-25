@@ -284,19 +284,14 @@ window
     $ pip install -r requirements-dev.txt
 ```
 
-This will also install [**Conan**](https://conan.io/), a C/C++ package manager written in Python. This tool will handle
-most of the dependencies needed by the C++ source code. Internet connection may be needed for the first build or
-when dependencies are added/updated, in order to download the required packages if they are not in your **Conan** local
-repository.
+C++ dependencies (`nlohmann_json`, `spdlog`, optionally `thrust` and `Catch2`) are
+fetched automatically by CMake's `FetchContent` at configure time. An internet
+connection is needed for the first build to download these dependencies; CMake
+caches them in the build tree thereafter.
 
->  Note: Conan use can be disabled with the flag or environment variable ``DISABLE_CONAN=ON``.  The Python package `conan`
-> is still required as a build dependency, it just will not called or used.
-
-This is useful for building from source offline, or to reuse the installed package dependencies.
-
-**Conan**:
-
-    $ pip install conan
+> Note: Downstream packagers can set the flag or environment variable
+> ``AER_USE_SYSTEM_LIBS=ON`` to disable downloads entirely and require all
+> C++ dependencies to be provided by the system package manager.
 
 You're now ready to build from source! Follow the instructions for your platform: [Linux](#linux-build) | [macOS](#mac-build) | [Windows](#win-build)
 
@@ -404,9 +399,10 @@ of these packages set the environment variable DISABLE_DEPENDENCY_INSTALL (ON or
 
 #### <a name="mac-dependencies"> Dependencies </a>
 
-We recommend installing *OpenBLAS*, which is our default choice:
+We recommend installing *OpenBLAS*, which is our default choice, and *libomp*
+for OpenMP support (Apple's clang does not ship libomp by default):
 
-    $ brew install openblas
+    $ brew install openblas libomp
 
 The *CMake* build system will search for other *BLAS* implementation
 alternatives if *OpenBLAS* is not installed in the system.
@@ -903,23 +899,20 @@ These are the flags:
     Default: Auto
     Example: ``python ./setup.py bdist_wheel -- -DAER_THRUST_BACKEND=CUDA -DAER_CUDA_ARCH="5.2; 5.3"``
 
-* DISABLE_CONAN
+* AER_USE_SYSTEM_LIBS
 
-    This flag allows disabling the Conan package manager. This will force CMake to look for
-    the libraries in use on your system path, relying on FindPackage CMake mechanism and
-    the appropriate configuration of libraries in order to use it.
-    If a specific version is not found, the build system will look for any version available,
-    although this may produce build errors or incorrect behaviour.
+    This flag forces the build to use system-installed C++ dependencies instead of
+    fetching them with CMake's ``FetchContent``. With this set, the build will only
+    succeed if every required dependency (nlohmann_json, spdlog, etc.) is already
+    available on the system via ``find_package``. This is intended for downstream
+    packagers (e.g. conda-forge) that need fully reproducible offline builds.
 
-    __WARNING__: This is not the official procedure to build AER. Thus, the user is responsible
-    of providing all needed libraries and corresponding files to make them findable to CMake.
-
-    This is also available as the environment variable ``DISABLE_CONAN``, which overrides
-    the CMake flag of the same name.
+    This is also available as the environment variable ``AER_USE_SYSTEM_LIBS``.
+    The legacy name ``DISABLE_CONAN`` is still accepted for backward compatibility.
 
     Values: ON | OFF
     Default: OFF
-    Example: ``python ./setup.py bdist_wheel -- -DDISABLE_CONAN=ON``
+    Example: ``python ./setup.py bdist_wheel -- -DAER_USE_SYSTEM_LIBS=ON``
 
 * AER_MPI
 
