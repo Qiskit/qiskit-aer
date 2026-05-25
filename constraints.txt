@@ -4,4 +4,4 @@ astroid==2.14.2
 # Jinja2 3.1.0 is incompatible with sphinx and/or jupyter until they are updated
 # to work with the new jinja version (the jinja maintainers aren't going to
 # fix things) pin to the previous working version.
-jinja2==3.0.3
+jinja2==3.1.6
