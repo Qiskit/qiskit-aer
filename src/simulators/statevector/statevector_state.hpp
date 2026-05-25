@@ -1018,30 +1018,46 @@ std::vector<SampleVector> State<statevec_t>::sample_measure(const reg_t &qubits,
                                                             uint_t shots,
                                                             RngEngine &rng) {
   uint_t i;
-  // Generate flat register for storing
+  // Generate flat register for storing - pre-allocate to avoid reallocation
   std::vector<double> rnds;
   rnds.reserve(shots);
-  reg_t allbit_samples(shots, 0);
+  reg_t allbit_samples;
+  allbit_samples.reserve(shots);
 
   for (i = 0; i < shots; ++i)
     rnds.push_back(rng.rand(0, 1));
 
   allbit_samples = BaseState::qreg_.sample_measure(rnds);
 
-  // Convert to SampleVector format
+  // Convert to SampleVector format - avoid default initialization
   int_t npar = BaseState::threads_;
   if (npar > shots)
     npar = shots;
-  std::vector<SampleVector> all_samples(shots, SampleVector(qubits.size()));
 
-  auto convert_to_bit_lambda = [this, &allbit_samples, &all_samples, shots,
-                                qubits, npar](int_t k) {
+  // Pre-allocate with proper size but avoid expensive default construction
+  std::vector<SampleVector> all_samples;
+  all_samples.reserve(shots);
+
+  // Create all SampleVectors efficiently
+  for (i = 0; i < shots; ++i) {
+    all_samples.emplace_back(qubits.size());
+  }
+
+  // Cache the num_qubits to avoid repeated member access in lambda
+  const uint_t num_qubits = BaseState::qreg_.num_qubits();
+
+  auto convert_to_bit_lambda = [&allbit_samples, &all_samples, shots, &qubits,
+                                npar, num_qubits](int_t k) {
     uint_t ishot, iend;
     ishot = shots * k / npar;
     iend = shots * (k + 1) / npar;
+
+    // Pre-allocate temporary SampleVector once per thread to avoid repeated
+    // allocation
+    SampleVector allbit_sample(num_qubits);
+
     for (; ishot < iend; ishot++) {
-      SampleVector allbit_sample;
-      allbit_sample.from_uint(allbit_samples[ishot], qubits.size());
+      allbit_sample.from_uint(allbit_samples[ishot], num_qubits);
       all_samples[ishot].map(allbit_sample, qubits);
     }
   };
