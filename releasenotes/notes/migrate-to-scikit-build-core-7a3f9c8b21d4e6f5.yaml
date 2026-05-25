@@ -1,0 +1,43 @@
+---
+upgrade:
+  - |
+    Aer's build backend has been migrated from `scikit-build
+    <https://scikit-build.readthedocs.io/>`__ to `scikit-build-core
+    <https://scikit-build-core.readthedocs.io/>`__, the modern
+    actively-maintained successor.  As part of this migration, ``setup.py``
+    has been removed entirely; all build configuration and project metadata
+    now lives in ``pyproject.toml``.
+
+    For users invoking ``pip install`` or ``python -m build`` this is a
+    transparent change.  Users who were passing options to the build via
+    the legacy ``setup.py bdist_wheel -- -DFOO=BAR`` form must switch to
+    the ``-C key=value`` PEP 517 config-settings syntax.  The CMake
+    ``-DFOO=BAR`` define becomes ``-Ccmake.define.FOO=BAR``, and
+    ``--build-type=Debug`` becomes ``-Ccmake.build-type=Debug``::
+
+        # before:
+        python setup.py bdist_wheel --build-type=Debug -- -DBUILD_TESTS=True -- -j4
+
+        # after:
+        python -I -m build --wheel \\
+            -Ccmake.build-type=Debug \\
+            -Ccmake.define.BUILD_TESTS=True \\
+            -Cbuild.tool-args="-j4"
+
+    See ``CONTRIBUTING.md`` for full details.
+  - |
+    Aer no longer claims compatibility with Python 3.7-3.9.  The
+    ``[project] requires-python`` constraint has been raised to
+    ``>=3.10``, matching the published ``classifiers`` and the build
+    matrix that has been in effect for several releases.
+deprecations:
+  - |
+    Direct invocation of ``setup.py`` (e.g. ``python setup.py bdist_wheel``)
+    is no longer supported because ``setup.py`` has been removed.  Use
+    ``python -m build`` or ``pip install`` instead.  CUDA-enabled wheels
+    that previously selected their PyPI distribution name via the
+    ``QISKIT_AER_PACKAGE_NAME`` and ``QISKIT_AER_CUDA_MAJOR`` environment
+    variables continue to work, but in CI those wheels are now produced
+    by invoking ``tools/configure_package_name.py`` (which patches the
+    ``[project].name`` field of ``pyproject.toml`` in place) before
+    ``cibuildwheel``.

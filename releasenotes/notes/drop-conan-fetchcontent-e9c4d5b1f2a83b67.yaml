@@ -1,0 +1,32 @@
+---
+upgrade:
+  - |
+    Aer's C++ dependencies (``nlohmann_json``, ``spdlog``, ``thrust`` for non-CUDA
+    Thrust backends, and ``Catch2`` for ``BUILD_TESTS=ON``) are now fetched at
+    CMake configure time using `FetchContent
+    <https://cmake.org/cmake/help/latest/module/FetchContent.html>`__ instead of
+    being managed by `Conan <https://conan.io/>`__.  ``conan`` is no longer
+    required to build Aer from source.
+
+    If a system install of any of these dependencies is available and satisfies
+    the version requirement, it will be used in preference to a fresh download.
+    Downstream packagers can set the CMake flag or environment variable
+    ``AER_USE_SYSTEM_LIBS=ON`` to disable downloads entirely and require all
+    dependencies to come from the system package manager.  The legacy
+    ``DISABLE_CONAN`` flag is still accepted as an alias for
+    ``AER_USE_SYSTEM_LIBS`` for backward compatibility.
+
+    The minimum version of CMake required to build Aer has been raised from
+    3.8 to 3.24, which is needed by ``FetchContent``'s ``FIND_PACKAGE_ARGS``
+    integration.
+
+    The dependency versions used by ``FetchContent`` have been bumped:
+
+    * ``nlohmann_json`` 3.1.1 → 3.11.3
+    * ``spdlog`` 1.9.2 → 1.14.1
+    * ``Thrust`` 1.9.5 → 1.17.2
+    * ``Catch2`` 2.13.6 → 3.7.1
+
+    On macOS, Apple's clang does not ship libomp.  Source builds now require
+    ``libomp`` to be installed via Homebrew (``brew install libomp``); the
+    pre-built wheels continue to bundle ``libomp.dylib`` automatically.
