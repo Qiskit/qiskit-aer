@@ -116,7 +116,7 @@ specific to Qiskit Aer.
 
       .. code:: sh
 
-         qiskit-aer$ python ./setup.py bdist_wheel -- -DAER_THRUST_BACKEND=CUDA
+         qiskit-aer$ python -I -m build --wheel -Ccmake.define.AER_THRUST_BACKEND=CUDA
 
       See `here <https://github.com/Qiskit/qiskit-aer/blob/main/CONTRIBUTING.md>`__ 
       for detailed GPU support information.
@@ -149,7 +149,7 @@ specific to Qiskit Aer.
 
       .. code:: sh
 
-         qiskit-aer$ python ./setup.py bdist_wheel -- -DAER_MPI=True
+         qiskit-aer$ python -I -m build --wheel -Ccmake.define.AER_MPI=True
 
       See `here <https://github.com/Qiskit/qiskit-aer/blob/main/CONTRIBUTING.md>`__ 
       for detailed MPI support information.
