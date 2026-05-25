@@ -43,12 +43,12 @@
         "return-code=any python -mpip uninstall -y {project}"
     ],
     "build_command": [
-        "python -mpip install -U scikit-build",
+        "python -mpip install -U build",
         "pip install git+https://github.com/Qiskit/qiskit",
         "pip install git+https://github.com/Qiskit/qiskit-aqua",
         "pip install pyscf",
         "pip install matplotlib",
-        "python setup.py bdist_wheel --dist-dir={build_cache_dir} -- -DCMAKE_CXX_COMPILER=g++ -DAER_THRUST_BACKEND=CUDA -- -j"
+        "python -I -m build --wheel --outdir={build_cache_dir} -Ccmake.define.CMAKE_CXX_COMPILER=g++ -Ccmake.define.AER_THRUST_BACKEND=CUDA"
     ],
 
     // List of branches to benchmark. If not provided, defaults to "main"

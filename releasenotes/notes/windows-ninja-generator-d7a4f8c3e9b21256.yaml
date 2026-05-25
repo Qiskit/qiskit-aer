@@ -1,0 +1,24 @@
+---
+upgrade:
+  - |
+    Windows builds now use the Ninja CMake generator instead of the
+    pinned ``Visual Studio 17 2022`` multi-config generator.  This makes
+    Aer's build forward-compatible with newer Visual Studio releases
+    (2025 and beyond) on the GitHub Actions ``windows-latest`` runner
+    and removes the dependency on a specific VS major version being
+    present.  scikit-build-core auto-detects a suitable Visual Studio
+    toolchain via ``vswhere`` and activates it for the Ninja build,
+    so users do not need to pass ``-G`` themselves.
+
+    The ``CMAKE_GENERATOR = "Visual Studio 17 2022"`` environment
+    override has been removed from ``[tool.cibuildwheel.windows]`` in
+    ``pyproject.toml`` and from the Windows test job in
+    ``.github/workflows/tests.yml``.  The ``microsoft/setup-msbuild``
+    step has been dropped from the Windows test and wheel-build jobs:
+    Ninja does not need MSBuild on ``PATH``, and cibuildwheel /
+    scikit-build-core handle the Visual Studio toolchain activation
+    automatically.
+
+    Users building from source on Windows can pass
+    ``-Ccmake.args="-GVisual Studio 17 2022"`` to opt back into the
+    multi-config generator if they prefer.

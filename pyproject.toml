@@ -1,13 +1,71 @@
 [build-system]
-requires = [
-  "setuptools",
-  "conan<2.0.0",
-  "scikit-build>=0.11.0",
-  "cmake!=3.17.1,!=3.17.0",
-  "ninja",
-  "pybind11>=3.0",
+requires = ["scikit-build-core>=0.10", "pybind11>=3.0"]
+build-backend = "scikit_build_core.build"
+
+[project]
+name = "qiskit-aer"
+description = "Aer - High performance simulators for Qiskit"
+readme = "README.md"
+license = { text = "Apache 2.0" }
+requires-python = ">=3.10"
+authors = [
+  { name = "AER Development Team", email = "qiskit@us.ibm.com" },
 ]
-build-backend = "setuptools.build_meta"
+keywords = ["qiskit", "simulator", "quantum computing", "backend"]
+classifiers = [
+  "Environment :: Console",
+  "License :: OSI Approved :: Apache Software License",
+  "Intended Audience :: Developers",
+  "Intended Audience :: Science/Research",
+  "Operating System :: Microsoft :: Windows",
+  "Operating System :: MacOS",
+  "Operating System :: POSIX :: Linux",
+  "Programming Language :: C++",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
+  "Topic :: Scientific/Engineering",
+]
+dependencies = [
+  "qiskit>=1.1.0",
+  "numpy>=1.16.3",
+  "scipy>=1.0",
+  "psutil>=5",
+  "python-dateutil>=2.8.0",
+]
+dynamic = ["version"]
+
+[project.urls]
+Homepage = "https://github.com/Qiskit/qiskit-aer"
+Repository = "https://github.com/Qiskit/qiskit-aer"
+Documentation = "https://qiskit.org/ecosystem/aer/"
+
+# CUDA-enabled wheels are published under separate package names
+# (qiskit-aer-gpu, qiskit-aer-gpu-cu11) by tools/configure_package_name.py
+# rewriting this file in CI before invocation of cibuildwheel.
+
+[tool.scikit-build]
+minimum-version = "build-system.requires"
+cmake.version = ">=3.24"
+cmake.build-type = "Release"
+wheel.packages = ["qiskit_aer"]
+sdist.exclude = [
+  ".github",
+  ".tox",
+  "build",
+  "dist",
+  "docs",
+  "test",
+  "_skbuild",
+]
+
+[tool.scikit-build.metadata.version]
+provider = "scikit_build_core.metadata.regex"
+input = "qiskit_aer/VERSION.txt"
+regex = "(?P<value>\\S+)"
 
 [tool.cibuildwheel]
 manylinux-x86_64-image = "manylinux_2_28"
@@ -23,20 +81,16 @@ before-test = "pip install --only-binary=numpy,scipy numpy scipy"
 before-all = "dnf install -y openblas-devel"
 
 [tool.cibuildwheel.macos]
-# The macOS images we use have a newer clang than the ancient version of conan
-# knows about, but it's similar enough that the build still works if we force it.
-#
-# TODO: We should fix the build to use a modern version of conan.  This hack is
-# duplicated in the macOS CI test runner.
-before-build = [
-    "python -m pip install 'conan<2.0.0'",
-    "conan config init --force",
-    "sed -i '' 's/\"16.0\"/\"16.0\", \"17.0\"/' ~/.conan/settings.yml",
-]
-
-[tool.cibuildwheel.windows]
-environment = { CMAKE_GENERATOR = "Visual Studio 17 2022"}
+# Apple's clang doesn't ship libomp, so the wheel must bundle one. Install the
+# R-project's prebuilt LLVM OpenMP into /usr/local: it's a universal (arm64 +
+# x86_64) library with a Big Sur (darwin20 / macOS 11) minimum target, which
+# matches the wheel deployment target set below and lets delocate accept it.
+# OpenMP_ROOT=/usr/local skips the CMake-side `brew --prefix libomp` probe.
+before-all = "curl -fsSL https://mac.r-project.org/openmp/openmp-18.1.8-darwin20-Release.tar.gz | sudo tar -xz -C /"
+# Pin both wheel arches to macOS 11.0 to match the bundled libomp's minimum
+# target. arm64 has never supported pre-11.0 anyway.
+environment = { OpenMP_ROOT = "/usr/local", MACOSX_DEPLOYMENT_TARGET = "11.0" }
 
 [tool.black]
 line-length = 100
-target-version = ['py310', 'py311', 'py312', 'py313']
+target-version = ['py310', 'py311', 'py312', 'py313', 'py314']
