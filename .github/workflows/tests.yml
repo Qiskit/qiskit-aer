@@ -23,7 +23,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.cache/pip
-          key: ${{ runner.os }}-${{ matrix.python-version}}-pip-lint-${{ hashFiles('setup.py','requirements-dev.txt','constraints.txt') }}
+          key: ${{ runner.os }}-${{ matrix.python-version}}-pip-lint-${{ hashFiles('pyproject.toml','requirements-dev.txt','constraints.txt') }}
           restore-keys: |
             ${{ runner.os }}-${{ matrix.python-version}}-pip-lint-
             ${{ runner.os }}-${{ matrix.python-version}}-pip-
@@ -42,7 +42,7 @@ jobs:
       - name: Run Lint
         run: |
           set -e
-          black --check qiskit_aer test tools setup.py
+          black --check qiskit_aer test tools
           pylint -j 2 -rn qiskit_aer
   sdist:
     runs-on: ${{ matrix.platform.os }}
@@ -63,13 +63,13 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.cache/pip
-          key: ${{ runner.os }}-${{ matrix.python-version}}-pip-sdist-${{ hashFiles('setup.py','requirements-dev.txt','constraints.txt') }}
+          key: ${{ runner.os }}-${{ matrix.python-version}}-pip-sdist-${{ hashFiles('pyproject.toml','requirements-dev.txt','constraints.txt') }}
           restore-keys: |
             ${{ runner.os }}-${{ matrix.python-version}}-pip-sdist-
             ${{ runner.os }}-${{ matrix.python-version}}-pip-
             ${{ runner.os }}-${{ matrix.python-version}}-
       - name: Install Deps
-        run: python -m pip install -U setuptools wheel virtualenv build
+        run: python -m pip install -U build virtualenv
       - name: Install openblas
         run: |
           set -e
@@ -116,7 +116,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.cache/pip
-          key: ${{ runner.os }}-${{ matrix.python-version}}-pip-test-${{ hashFiles('setup.py','requirements-dev.txt','constraints.txt') }}
+          key: ${{ runner.os }}-${{ matrix.python-version}}-pip-test-${{ hashFiles('pyproject.toml','requirements-dev.txt','constraints.txt') }}
           restore-keys: |
             ${{ runner.os }}-${{ matrix.python-version}}-pip-test-
             ${{ runner.os }}-${{ matrix.python-version}}-pip-
@@ -166,7 +166,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.cache/pip
-          key: ${{ runner.os }}-${{ matrix.python-version}}-pip-test-${{ hashFiles('setup.py','requirements-dev.txt','constraints.txt') }}
+          key: ${{ runner.os }}-${{ matrix.python-version}}-pip-test-${{ hashFiles('pyproject.toml','requirements-dev.txt','constraints.txt') }}
           restore-keys: |
             ${{ runner.os }}-${{ matrix.python-version}}-pip-test-
             ${{ runner.os }}-${{ matrix.python-version}}-pip-
@@ -182,7 +182,7 @@ jobs:
       - name: Install Aer
         run: |
           set -e
-          python -I -m build --wheel --config-setting=--build-option=-DTEST_JSON=1
+          python -I -m build --wheel -C cmake.define.TEST_JSON=1
           pip install -U dist/*.whl
       - name: Run Tests
         run: |
@@ -216,23 +216,16 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.cache/pip
-          key: ${{ runner.os }}-${{ matrix.python-version}}-pip-test-${{ hashFiles('setup.py','requirements-dev.txt','constraints.txt') }}
+          key: ${{ runner.os }}-${{ matrix.python-version}}-pip-test-${{ hashFiles('pyproject.toml','requirements-dev.txt','constraints.txt') }}
           restore-keys: |
             ${{ runner.os }}-${{ matrix.python-version}}-pip-test-
             ${{ runner.os }}-${{ matrix.python-version}}-pip-
             ${{ runner.os }}-${{ matrix.python-version}}-
 
-      # The macOS images we use have a newer clang than the ancient version of conan
-      # knows about, but it's similar enough that the build still works if we force it.
-      #
-      # TODO: We should fix the build to use a modern version of conan.  This hack is
-      # duplicated in `pyproject.toml` for cibuildwheel.
-      - name: Hack ancient conan to accept a recent apple-clang
-        run: |
-          set -e
-          python -m pip install 'conan<2.0.0'
-          conan config init --force
-          sed -i '' 's/"16.0"/"16.0", "17.0"/' ~/.conan/settings.yml
+      # Apple's clang doesn't ship libomp; install via Homebrew so find_package(OpenMP)
+      # succeeds at CMake configure time.
+      - name: Install libomp
+        run: brew install libomp
 
       - name: Install Aer and dependencies
         run: |
@@ -250,7 +243,7 @@ jobs:
           stestr run --slowest
         shell: bash
   tests_windows:
-    runs-on: windows-2022
+    runs-on: windows-latest
     name: Windows Python ${{ matrix.python-version }}
     needs: ["lint", "sdist"]
     timeout-minutes: 60
@@ -274,16 +267,12 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~\AppData\Local\pip\Cache
-          key: ${{ runner.os }}-${{ matrix.python-version}}-pip-test-${{ hashFiles('setup.py','requirements-dev.txt','constraints.txt') }}
+          key: ${{ runner.os }}-${{ matrix.python-version}}-pip-test-${{ hashFiles('pyproject.toml','requirements-dev.txt','constraints.txt') }}
           restore-keys: |
             ${{ runner.os }}-${{ matrix.python-version}}-pip-test-
             ${{ runner.os }}-${{ matrix.python-version}}-pip-
             ${{ runner.os }}-${{ matrix.python-version}}-
-      - name: Add msbuild to PATH
-        uses: microsoft/setup-msbuild@v2
       - name: Build Aer Windows
-        env:
-          CMAKE_GENERATOR: "Visual Studio 17 2022"
         run: |
           set -e
           pip install build
