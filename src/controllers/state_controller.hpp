@@ -1381,6 +1381,9 @@ double AerState::probability(const uint_t outcome) {
   op.int_params.push_back(outcome);
   op.save_type = Operations::DataSubType::list;
 
+  for (uint_t i = 0; i < num_of_qubits_; ++i)
+    op.qubits.push_back(i);
+
   last_result_ = ExperimentResult();
   state_->apply_op(op, last_result_, rng_);
 
