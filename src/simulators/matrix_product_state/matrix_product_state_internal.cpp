@@ -19,6 +19,7 @@
 #include "stdlib.h"
 #include "string.h"
 #include <iostream>
+#include <string>
 #include <utility>
 
 #include "framework/linalg/almost_equal.hpp"
@@ -45,6 +46,9 @@ double MPS::json_chop_threshold_ = 1E-8;
 std::stringstream MPS::logging_str_;
 bool MPS::mps_log_data_ = 0;
 bool MPS::mps_lapack_ = false;
+#ifdef AER_THRUST_CUDA
+std::string MPS::mps_device_;
+#endif // AER_THRUST_CUDA
 
 //------------------------------------------------------------------------
 // local function declarations
@@ -627,8 +631,14 @@ void MPS::common_apply_2_qubit_gate(
   if (A + 1 != num_qubits_ - 1)
     q_reg_[A + 1].mul_Gamma_by_right_Lambda(lambda_reg_[A + 1]);
 
+#ifdef AER_THRUST_CUDA
+  MPS_Tensor temp =
+      MPS_Tensor::contract(q_reg_[A], lambda_reg_[A], q_reg_[A + 1],
+                           MPS::mps_device_, num_qubits_, cublas_handle);
+#else
   MPS_Tensor temp =
       MPS_Tensor::contract(q_reg_[A], lambda_reg_[A], q_reg_[A + 1]);
+#endif // AER_THRUST_CUDA
 
   switch (gate_type) {
   case cx:
@@ -663,8 +673,14 @@ void MPS::common_apply_2_qubit_gate(
 
   MPS_Tensor left_gamma, right_gamma;
   rvector_t lambda;
+#ifdef AER_THRUST_CUDA
+  double discarded_value = MPS_Tensor::Decompose(
+      temp, left_gamma, lambda, right_gamma, MPS::mps_lapack_, MPS::mps_device_,
+      num_qubits_, cuda_stream, cutensor_handle);
+#else
   double discarded_value = MPS_Tensor::Decompose(temp, left_gamma, lambda,
                                                  right_gamma, MPS::mps_lapack_);
+#endif // AER_THRUST_CUDA
 
   if (discarded_value > json_chop_threshold_)
     MPS::print_to_log("discarded_value=", discarded_value, ", ");
@@ -1291,6 +1307,7 @@ MPS_Tensor MPS::state_vec_as_MPS(const reg_t &qubits) {
 }
 
 MPS_Tensor MPS::state_vec_as_MPS(uint_t first_index, uint_t last_index) const {
+
   MPS_Tensor temp = q_reg_[first_index];
 
   if (first_index != 0)
@@ -1303,8 +1320,14 @@ MPS_Tensor MPS::state_vec_as_MPS(uint_t first_index, uint_t last_index) const {
   }
 
   for (uint_t i = first_index + 1; i < last_index + 1; i++) {
+#ifdef AER_THRUST_CUDA
+    temp = MPS_Tensor::contract(temp, lambda_reg_[i - 1], q_reg_[i],
+                                MPS::mps_device_, num_qubits_, cublas_handle);
+#else
     temp = MPS_Tensor::contract(temp, lambda_reg_[i - 1], q_reg_[i]);
+#endif // AER_THRUST_CUDA
   }
+
   // now temp is a tensor of 2^n matrices
   if (last_index != num_qubits_ - 1)
     temp.mul_Gamma_by_right_Lambda(lambda_reg_[last_index]);
@@ -1799,7 +1822,34 @@ void MPS::initialize_from_matrix(uint_t num_qubits, const cmatrix_t &mat) {
     // step 2 - SVD
     S.clear();
     S.resize(std::min(reshaped_matrix.GetRows(), reshaped_matrix.GetColumns()));
+
+#ifdef AER_THRUST_CUDA
+    // Before offloading to the GPU, we need to make sure the size of
+    // matrices to be operated on should be big enough to make
+    // the time taken by the initialization of `cutensornet` worth it.
+    // Size of matrices involved for qubits < 13 is too small to be
+    // considered to offload to the GPU.
+    // Even if num_qubits involved in the operation is > 13, still
+    // a lot of the matrices are too small to be offloaded, so to determine
+    // the size of matrices to offload, we can look at the number of elements
+    // it has. The number of elements `8401` and num_qubits > 13 has been
+    // obtained not on any theoretical basis, but on trial and error.
+    // The number of elements and number of qubits depends solely on
+    // difference between the speed of CPU and GPU involved. Even if matrices
+    // are big, they are not big enough to make speed of PICe a bottleneck.
+    // In this particular case CPU was `Zen+` and GPU was `NVIDIA Ampere`.
+    if ((num_qubits_ > 13) && (MPS::mps_device_.compare("GPU") == 0) &&
+        ((reshaped_matrix.GetRows() * reshaped_matrix.GetColumns()) > 8401)) {
+
+      cutensor_csvd_wrapper(reshaped_matrix, U, S, V, cuda_stream,
+                            cutensor_handle);
+    } else {
+      csvd_wrapper(reshaped_matrix, U, S, V, MPS::mps_lapack_);
+    }
+#else
     csvd_wrapper(reshaped_matrix, U, S, V, MPS::mps_lapack_);
+#endif // AER_THRUST_CUDA
+
     reduce_zeros(U, S, V, MPS_Tensor::get_max_bond_dimension(),
                  MPS_Tensor::get_truncation_threshold(), MPS::mps_lapack_);
 
