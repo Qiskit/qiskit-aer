@@ -1,0 +1,10 @@
+---
+prelude: >
+    AerState::probability and AerState::amplitude returned the wrong states
+    for the MPS simulator.
+fixes:
+  - |
+    Added a function that provides the correct states, ``reorder_qubits_rev``,
+    which is called now by ``MPS::get_amplitude_vector``.
+    For more details, refer to:
+    `#2235 <https://github.com/Qiskit/qiskit-aer/issues/2235>`
