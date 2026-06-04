@@ -1066,6 +1066,10 @@ inline Op make_multiplexer(const reg_t &qubits,
                            const std::shared_ptr<CExpr> &expr = nullptr,
                            const std::string &label = "") {
 
+  // Check if at least one matrice exists
+  if (mats.empty()) {
+    throw std::invalid_argument("multiplexer matrices vector is empty.");
+  }
   // Check matrices are N-qubit
   auto dim = mats[0].GetRows();
   auto num_targets = static_cast<uint_t>(std::log2(dim));
