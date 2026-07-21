@@ -1,0 +1,10 @@
+---
+fixes:
+  - |
+    Fixed parameter binding for natively supported parameterized controlled
+    gates passed to :class:`.EstimatorV2` and :class:`.SamplerV2` through a
+    PUB, including gates with open controls. Previously, gates such as
+    :class:`~qiskit.circuit.library.CPhaseGate` could be simulated without
+    applying their bound parameter. See `#2403
+    <https://github.com/Qiskit/qiskit-aer/issues/2403>`__ and `#2391
+    <https://github.com/Qiskit/qiskit-aer/issues/2391>`__.

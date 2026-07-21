@@ -15,7 +15,6 @@ Compier to convert Qiskit control-flow to Aer backend.
 
 import collections
 import itertools
-from copy import copy
 from typing import List
 from warnings import warn
 from concurrent.futures import Executor
@@ -747,7 +746,8 @@ def assemble_circuit(circuit: QuantumCircuit, basis_gates=None):
         elif hasattr(inst.operation, "condition_expr") and inst.operation.condition_expr:
             conditional_expr = inst.operation.condition_expr
 
-        num_of_aer_ops += _assemble_op(
+        # This expanded-operation index handling was prepared with Codex (GPT-5) and reviewed.
+        num_of_added_aer_ops, aer_op_offset = _assemble_op(
             circuit,
             aer_circ,
             inst,
@@ -758,7 +758,8 @@ def assemble_circuit(circuit: QuantumCircuit, basis_gates=None):
             conditional_expr,
             basis_gates,
         )
-        index_map.append(num_of_aer_ops - 1)
+        index_map.append(num_of_aer_ops + aer_op_offset)
+        num_of_aer_ops += num_of_added_aer_ops
 
     return aer_circ, index_map
 
@@ -894,7 +895,7 @@ def _assemble_op(
     for i, param in enumerate(params):
         if isinstance(param, ParameterExpression) and len(param.parameters) > 0:
             if not copied:
-                params = copy(params)
+                params = list(params)
                 copied = True
             params[i] = 0.0
 
@@ -908,6 +909,7 @@ def _assemble_op(
         gate_name = name
 
     num_of_aer_ops = 1
+    aer_op_offset = 0
     # fmt: off
     if (gate_name in {
         "ccx", "ccz", "cp", "cswap", "csx", "cx", "cy", "cz", "delay", "ecr", "h",
@@ -923,15 +925,16 @@ def _assemble_op(
             for i in range(len(qubits)-1):
                 if (ctrl_state >> i) & 1 == 0:
                     qubits_i = [qubits[i]]
-                    aer_circ.gate("x", qubits_i, params, [], conditional_reg, aer_cond_expr,
+                    aer_circ.gate("x", qubits_i, [], [], conditional_reg, aer_cond_expr,
                                   label if label else "x")
                     num_of_aer_ops += 1
+                    aer_op_offset += 1
             aer_circ.gate(gate_name, qubits, params, [], conditional_reg, aer_cond_expr,
                           label if label else gate_name)
             for i in range(len(qubits)-1):
                 if (ctrl_state >> i) & 1 == 0:
                     qubits_i = [qubits[i]]
-                    aer_circ.gate("x", qubits_i, params, [], conditional_reg, aer_cond_expr,
+                    aer_circ.gate("x", qubits_i, [], [], conditional_reg, aer_cond_expr,
                                   label if label else "x")
                     num_of_aer_ops += 1
         else:
@@ -1021,6 +1024,7 @@ def _assemble_op(
     elif name == "barrier":
         _check_no_conditional(name, conditional_reg)
         num_of_aer_ops = 0
+        aer_op_offset = -1
     elif name == "jump":
         aer_circ.jump(qubits, params, conditional_reg, aer_cond_expr)
     elif name == "mark":
@@ -1047,7 +1051,7 @@ def _assemble_op(
     else:
         raise AerError(f"unknown instruction: {name}")
 
-    return num_of_aer_ops
+    return num_of_aer_ops, aer_op_offset
 
 
 def assemble_circuits(circuits: List[QuantumCircuit], basis_gates: list = None) -> List[AerCircuit]:

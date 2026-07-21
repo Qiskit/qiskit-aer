@@ -20,7 +20,7 @@ from test.terra.common import QiskitAerTestCase
 import numpy as np
 from qiskit import transpile
 from qiskit.circuit import Parameter, QuantumCircuit
-from qiskit.circuit.library import RealAmplitudes
+from qiskit.circuit.library import CUGate, MCPhaseGate, RealAmplitudes
 from qiskit.primitives import StatevectorEstimator
 from qiskit.primitives.containers.bindings_array import BindingsArray
 from qiskit.primitives.containers.estimator_pub import EstimatorPub
@@ -155,6 +155,89 @@ class TestEstimatorV2(QiskitAerTestCase):
         observable = self.observable.apply_layout(circuit.layout)
         result = est.run([(circuit, observable)]).result()
         np.testing.assert_allclose(result[0].data.evs, [-1.284366511861733], rtol=self._rtol)
+
+    # These controlled-gate regressions were prepared with Codex (GPT-5) and reviewed.
+    def test_controlled_gate_parameter_binding(self):
+        """Test PUB parameter binding for controlled gates."""
+        parameter = Parameter("p")
+        circuit = QuantumCircuit(2)
+        circuit.h(0)
+        circuit.cx(0, 1)
+        circuit.cp(parameter, 0, 1)
+        circuit.cx(0, 1)
+        circuit.h(0)
+
+        observable = SparsePauliOp("IZ")
+        estimator = EstimatorV2(options={"default_precision": 0.0})
+        result = estimator.run([(circuit, observable, {parameter: np.pi})]).result()
+
+        np.testing.assert_allclose(result[0].data.evs, -1.0)
+
+    def test_open_controlled_gate_parameter_binding(self):
+        """Test PUB parameter binding for open-controlled gates."""
+        parameter = Parameter("p")
+        phase_circuit = QuantumCircuit(2)
+        phase_circuit.h(1)
+        phase_circuit.cp(parameter, 0, 1, ctrl_state=0)
+
+        parameters = [Parameter(name) for name in ("theta", "phi", "lam", "gamma")]
+        u_circuit = QuantumCircuit(2)
+        u_circuit.cu(*parameters, 0, 1, ctrl_state=0)
+
+        tests = [
+            (
+                phase_circuit,
+                SparsePauliOp("XI"),
+                {parameter: np.pi},
+                ("automatic", "statevector", "matrix_product_state"),
+            ),
+            (
+                u_circuit,
+                SparsePauliOp("ZI"),
+                dict(zip(parameters, [np.pi, 0.0, 0.0, 0.0])),
+                ("automatic", "statevector"),
+            ),
+        ]
+        for circuit, observable, binds, methods in tests:
+            for method in methods:
+                with self.subTest(method=method, gate=circuit.data[-1].operation.name):
+                    estimator = EstimatorV2(
+                        options={
+                            "backend_options": {"method": method},
+                            "default_precision": 0.0,
+                        }
+                    )
+                    result = estimator.run([(circuit, observable, binds)]).result()
+
+                    np.testing.assert_allclose(result[0].data.evs, -1.0)
+
+    def test_controlled_gate_parameter_binding_variants(self):
+        """Test PUB binding for multi-controlled and multi-parameter gates."""
+        parameter = Parameter("p")
+        multi_controlled = QuantumCircuit(3)
+        multi_controlled.x([0, 1])
+        multi_controlled.h(2)
+        multi_controlled.append(MCPhaseGate(parameter, 2), [0, 1, 2])
+
+        parameters = [Parameter(name) for name in ("theta", "phi", "lam", "gamma")]
+        multi_parameter = QuantumCircuit(2)
+        multi_parameter.x(0)
+        multi_parameter.append(CUGate(*parameters), [0, 1])
+
+        estimator = EstimatorV2(options={"default_precision": 0.0})
+        tests = [
+            (multi_controlled, SparsePauliOp("XII"), {parameter: np.pi}),
+            (
+                multi_parameter,
+                SparsePauliOp("ZI"),
+                dict(zip(parameters, [np.pi, 0.0, 0.0, 0.0])),
+            ),
+        ]
+        for circuit, observable, binds in tests:
+            with self.subTest(gate=circuit.data[-1].operation.name):
+                result = estimator.run([(circuit, observable, binds)]).result()
+
+                np.testing.assert_allclose(result[0].data.evs, -1.0)
 
     def test_run_single_circuit_observable(self):
         """Test for single circuit and single observable case."""

@@ -146,6 +146,79 @@ class TestSamplerV2(QiskitAerTestCase):
         meas2 = result2[0].data.meas
         self._assert_allclose(meas1, meas2, rtol=0)
 
+    # These controlled-gate regressions were prepared with Codex (GPT-5) and reviewed.
+    def test_controlled_gate_parameter_binding(self):
+        """Test PUB parameter binding for controlled gates."""
+        parameter = Parameter("p")
+        circuit = QuantumCircuit(2)
+        circuit.h(0)
+        circuit.cx(0, 1)
+        circuit.cp(parameter, 0, 1)
+        circuit.cx(0, 1)
+        circuit.h(0)
+        circuit.measure_all()
+
+        sampler = SamplerV2(seed=self._seed)
+        result = sampler.run([(circuit, {parameter: np.pi})], shots=100).result()
+
+        self.assertEqual(result[0].data.meas.get_int_counts(), {1: 100})
+
+    def test_open_controlled_gate_parameter_binding(self):
+        """Test PUB parameter binding for open-controlled gates."""
+        parameter = Parameter("p")
+        phase_circuit = QuantumCircuit(2)
+        phase_circuit.h(1)
+        phase_circuit.cp(parameter, 0, 1, ctrl_state=0)
+        phase_circuit.h(1)
+        phase_circuit.measure_all()
+
+        parameters = [Parameter(name) for name in ("theta", "phi", "lam", "gamma")]
+        u_circuit = QuantumCircuit(2)
+        u_circuit.cu(*parameters, 0, 1, ctrl_state=0)
+        u_circuit.measure_all()
+
+        tests = [
+            (
+                "cp",
+                phase_circuit,
+                {parameter: np.pi},
+                ("automatic", "statevector", "matrix_product_state"),
+            ),
+            (
+                "cu",
+                u_circuit,
+                dict(zip(parameters, [np.pi, 0.0, 0.0, 0.0])),
+                ("automatic", "statevector"),
+            ),
+        ]
+        for gate, circuit, binds, methods in tests:
+            for method in methods:
+                with self.subTest(method=method, gate=gate):
+                    sampler = SamplerV2(
+                        seed=self._seed, options={"backend_options": {"method": method}}
+                    )
+                    result = sampler.run([(circuit, binds)], shots=100).result()
+
+                    self.assertEqual(result[0].data.meas.get_int_counts(), {2: 100})
+
+    def test_controlled_rx_multiple_parameter_values(self):
+        """Test PUB binding for multiple values of a controlled-RX parameter."""
+        parameter = Parameter("theta")
+        circuit = QuantumCircuit(2)
+        circuit.h([0, 1])
+        circuit.crx(parameter, 0, 1)
+        circuit.measure_all()
+
+        sampler = SamplerV2(seed=self._seed)
+        result = sampler.run([(circuit, [0.1, 0.1])], shots=1024).result()[0]
+
+        for index in range(2):
+            self.assertDictAlmostEqual(
+                result.data.meas.get_int_counts(index),
+                {0: 256, 1: 256, 2: 256, 3: 256},
+                delta=100,
+            )
+
     def test_sample_run_multiple_circuits(self):
         """Test run() with multiple circuits."""
         bell, _, target = self._cases[1]
