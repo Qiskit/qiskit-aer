@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Fixed a crash when running an inverse
+    :class:`~qiskit.circuit.library.StatePreparation` whose transpiled
+    multiplexer instruction has no matrix parameters. Definition-backed
+    multiplexers are now inlined before assembly, and malformed empty
+    multiplexers raise an exception instead of terminating Python.

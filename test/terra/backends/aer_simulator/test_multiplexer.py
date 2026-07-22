@@ -13,9 +13,16 @@
 AerSimulator Integration Tests
 """
 
-from qiskit import transpile
+import math
+
+import numpy as np
+from qiskit import QuantumCircuit, transpile
+from qiskit.circuit import Gate
+from qiskit.circuit.library import StatePreparation
 from test.terra.reference import ref_multiplexer
 from test.terra.backends.simulator_test_case import SimulatorTestCase, supported_methods
+
+from qiskit_aer.backends.aer_compiler import AerCompiler, assemble_circuit
 
 
 class TestMultiplexer(SimulatorTestCase):
@@ -82,3 +89,46 @@ class TestMultiplexer(SimulatorTestCase):
         self.assertSuccess(result)
         for actual, target in zip(counts, targets):
             self.assertDictAlmostEqual(actual, target, delta=0.05 * shots)
+
+    def test_state_preparation_inverse_with_empty_multiplexer_params(self):
+        """Test a definition-backed multiplexer without matrix parameters."""
+        backend = self.backend()
+        circuit = QuantumCircuit(1)
+        circuit.append(StatePreparation([0.5, math.sqrt(0.75)]).inverse(), [0])
+        circuit.save_statevector()
+
+        circuit = transpile(circuit, backend)
+        self.assertIn(
+            ("multiplexer", 0), [(op.operation.name, len(op.operation.params)) for op in circuit]
+        )
+
+        result = backend.run(circuit).result()
+        self.assertSuccess(result)
+        np.testing.assert_allclose(result.get_statevector(), [0.5, -math.sqrt(0.75)])
+
+    def test_empty_multiplexer_params_inside_control_flow(self):
+        """Test a definition-backed multiplexer in a control-flow body."""
+        backend = self.backend()
+        circuit = QuantumCircuit(1, 1)
+        with circuit.if_test((circuit.clbits[0], False)):
+            circuit.append(StatePreparation([0.5, math.sqrt(0.75)]).inverse(), [0])
+        circuit.save_statevector()
+
+        circuit = transpile(circuit, backend)
+        compiled = AerCompiler().compile(circuit)[0]
+        self.assertNotIn(
+            ("multiplexer", 0),
+            [(op.operation.name, len(op.operation.params)) for op in compiled],
+        )
+
+        result = backend.run(circuit).result()
+        self.assertSuccess(result)
+        np.testing.assert_allclose(result.get_statevector(), [0.5, -math.sqrt(0.75)])
+
+    def test_empty_multiplexer_is_rejected(self):
+        """Test an empty native multiplexer raises instead of crashing."""
+        circuit = QuantumCircuit(1)
+        circuit.append(Gate("multiplexer", 1, []), [0])
+
+        with self.assertRaisesRegex(ValueError, "multiplexer matrices cannot be empty"):
+            assemble_circuit(circuit)

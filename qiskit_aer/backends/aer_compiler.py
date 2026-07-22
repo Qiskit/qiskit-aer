@@ -96,6 +96,11 @@ class AerCompiler:
             for idx, circuit in enumerate(circuits):
                 # Resolve initialize
                 circuit = self._inline_initialize(circuit, compiled_optypes[idx])
+                # Resolve definition-backed multiplexers without matrix parameters.
+                compiled_circuit = self._inline_empty_multiplexers(circuit)
+                if compiled_circuit is not circuit:
+                    circuit = compiled_circuit
+                    compiled_optypes[idx] = circuit_optypes(circuit)
                 if self._is_dynamic(circuit, compiled_optypes[idx]):
                     pm = PassManager([Decompose(["mark", "jump"])])
                     compiled_circ = pm.run(self._inline_circuit(circuit, None, None))
@@ -144,6 +149,27 @@ class AerCompiler:
         return new_circ
 
     @staticmethod
+    def _inline_empty_multiplexers(circ):
+        """Inline multiplexers whose matrices are stored only in their definition."""
+        for datum in circ.data:
+            inst = datum.operation
+            if inst.name == "multiplexer" and not inst.params and inst.definition is not None:
+                break
+        else:
+            return circ
+
+        new_circ = circ.copy()
+        new_circ.data = []
+        for datum in circ.data:
+            inst, qargs, cargs = datum.operation, datum.qubits, datum.clbits
+            if inst.name == "multiplexer" and not inst.params and inst.definition is not None:
+                new_circ.compose(inst.definition, qargs, cargs, inplace=True)
+            else:
+                new_circ._append(inst, qargs, cargs)
+
+        return new_circ
+
+    @staticmethod
     def _is_dynamic(circuit, optype=None):
         """check whether a circuit contains control-flow instructions"""
         if not isinstance(circuit, QuantumCircuit):
@@ -182,6 +208,7 @@ class AerCompiler:
         Returns:
             QuantumCircuit: QuantumCircuit without control-flow instructions
         """
+        circ = self._inline_empty_multiplexers(circ)
         ret = circ.copy_empty_like()
         bit_map = {bit: bit for bit in itertools.chain(ret.qubits, ret.clbits)}
 
