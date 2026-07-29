@@ -289,3 +289,85 @@ class TestSaveExpectationValueTests(SimulatorTestCase):
         oper = qi.Pauli("ZZ")
         qubits = [1, 2]  # qubit 0 will be truncated
         self._test_save_expval(circ, oper, qubits, False, method=method, device=device)
+
+    @supported_methods(["statevector"])
+    def test_save_expval_truncation_padding(self, method, device):
+        """Verify truncation pads Pauli strings with 'I' for removed qubits"""
+        # 4-qubit circuit but only qubit 2 is used -> truncation should remove unused qubits
+        circ = QuantumCircuit(4)
+        circ.x(2)
+
+        # Operator defined over all 4 qubits (will be truncated/padded)
+        full_op = qi.SparsePauliOp("ZZZZ")
+        qubits = [0, 1, 2, 3]
+
+        base = circ.copy()
+        # Expected: equivalent to applying 'ZZ' on qubits [2,3] (unused qubits act as identity)
+        expected = qi.Statevector(base).expectation_value(qi.SparsePauliOp("ZZ"), [2, 3]).real
+
+        circ.save_expectation_value(full_op, qubits, label="padded")
+
+        backend = self.backend(method=method, device=device, enable_truncation=True)
+        result = backend.run(transpile(circ, backend, optimization_level=0), shots=1).result()
+        self.assertTrue(getattr(result, "success", False))
+        simdata = result.data(0)
+        self.assertIn("padded", simdata)
+        val = simdata["padded"].real
+
+        self.assertAlmostEqual(val, expected)
+
+    @supported_methods(["statevector"])
+    def test_save_expval_suffix_truncation(self, method, device):
+        """Test that truncation pads/remaps pauli strings (non-suffix kept qubits)."""
+        # 5-qubit circuit but only qubits 0 and 2 are used -> truncation should
+        # remove unused qubits and remap pauli string accordingly. A naive
+        # suffix-trim would take the last 2 chars, which is incorrect here.
+        circ = QuantumCircuit(5)
+        circ.x(0)
+        circ.x(2)
+
+        # Operator defined over all 5 qubits with non-identity on qubits 0 and 2
+        full_op = qi.SparsePauliOp("ZIZII")
+        qubits = [0, 1, 2, 3, 4]
+
+        # Reference expectation computed directly on the full state
+        expected = qi.Statevector(circ).expectation_value(full_op, qubits).real
+
+        circ.save_expectation_value(full_op, qubits, label="suffix_test")
+
+        backend = self.backend(method=method, device=device, enable_truncation=True)
+        result = backend.run(transpile(circ, backend, optimization_level=0), shots=1).result()
+        self.assertTrue(getattr(result, "success", False))
+        simdata = result.data(0)
+        self.assertIn("suffix_test", simdata)
+        val = simdata["suffix_test"].real
+
+        self.assertAlmostEqual(val, expected)
+
+    @supported_methods(["statevector"])
+    def test_save_expval_subsystem_consistency(self, method, device):
+        """Reproduction test issue 2442: compare Statevector expectation_value with save_expectation_value on a subsystem"""
+
+        circ = QuantumCircuit(12)
+        circ.h(0)
+        for t in [3, 5, 4, 8, 9, 10]:
+            circ.cx(0, t)
+        circ.cx(5, 11)
+        circ.cx(10, 11)
+
+        # Reference using Statevector
+        base = circ.copy()
+        truth = qi.Statevector(base).expectation_value(qi.SparsePauliOp("Z"), [11]).real
+
+        # Use backend save_expectation_value on subsystem (label 'sub')
+        sub = base.copy()
+        sub.save_expectation_value(qi.SparsePauliOp("Z"), [11], label="sub")
+
+        backend = self.backend(method=method, device=device)
+        result = backend.run(transpile(sub, backend, optimization_level=0), shots=1).result()
+        self.assertTrue(getattr(result, "success", False))
+        simdata = result.data(0)
+        self.assertIn("sub", simdata)
+        sub_ev = simdata["sub"].real
+
+        self.assertAlmostEqual(sub_ev, truth)
