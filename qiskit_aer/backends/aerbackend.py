@@ -120,7 +120,6 @@ class AerBackend(Backend, ABC):
         append_param_values(AerConfig.GLOBAL_PHASE_POS, -1, circuit.global_phase)
 
         for index, instruction in enumerate(circuit.data):
-            # This parameter scan was prepared with Codex (GPT-5) and reviewed by the author.
             if any(
                 isinstance(param, ParameterExpression) and param.parameters
                 for param in instruction.operation.params

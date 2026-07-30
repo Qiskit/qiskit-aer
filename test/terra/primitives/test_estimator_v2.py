@@ -156,7 +156,6 @@ class TestEstimatorV2(QiskitAerTestCase):
         result = est.run([(circuit, observable)]).result()
         np.testing.assert_allclose(result[0].data.evs, [-1.284366511861733], rtol=self._rtol)
 
-    # These controlled-gate regressions were prepared with Codex (GPT-5) and reviewed.
     def test_controlled_gate_parameter_binding(self):
         """Test PUB parameter binding for controlled gates."""
         parameter = Parameter("p")

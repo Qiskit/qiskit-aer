@@ -146,7 +146,6 @@ class TestSamplerV2(QiskitAerTestCase):
         meas2 = result2[0].data.meas
         self._assert_allclose(meas1, meas2, rtol=0)
 
-    # These controlled-gate regressions were prepared with Codex (GPT-5) and reviewed.
     def test_controlled_gate_parameter_binding(self):
         """Test PUB parameter binding for controlled gates."""
         parameter = Parameter("p")

@@ -746,7 +746,6 @@ def assemble_circuit(circuit: QuantumCircuit, basis_gates=None):
         elif hasattr(inst.operation, "condition_expr") and inst.operation.condition_expr:
             conditional_expr = inst.operation.condition_expr
 
-        # This expanded-operation index handling was prepared with Codex (GPT-5) and reviewed.
         num_of_added_aer_ops, aer_op_offset = _assemble_op(
             circuit,
             aer_circ,
