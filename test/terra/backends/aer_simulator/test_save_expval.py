@@ -345,6 +345,38 @@ class TestSaveExpectationValueTests(SimulatorTestCase):
         self.assertAlmostEqual(val, expected)
 
     @supported_methods(["statevector"])
+    def test_save_expval_suffix_truncation_permuted_qubits(self, method, device):
+        """Test truncation with a non-standard qubits ordering in the op list."""
+        # Construct a case where only qubits 0 and 1 are used in the circuit,
+        # but the save op is defined over 4 qubits with the target qubits
+        # placed at the end of the list.
+        # A naive suffix-trim will keep the last 2 Pauli chars and the first 2
+        # qubits from the op (i.e., qubits [2,3]) which is incorrect.
+        circ = QuantumCircuit(4)
+        circ.x(0)
+        circ.x(1)
+
+        # Pauli string maps right-to-left onto the operation's qubit list
+        full_op = qi.SparsePauliOp("ZZII")
+        # Place the target qubits at the end of the list so the left-most
+        # pauli characters act on those qubits.
+        qubits = [2, 3, 0, 1]
+
+        # Reference expectation computed directly on the full state
+        expected = qi.Statevector(circ).expectation_value(full_op, qubits).real
+
+        circ.save_expectation_value(full_op, qubits, label="suffix_test_perm")
+
+        backend = self.backend(method=method, device=device, enable_truncation=True)
+        result = backend.run(transpile(circ, backend, optimization_level=0), shots=1).result()
+        self.assertTrue(getattr(result, "success", False))
+        simdata = result.data(0)
+        self.assertIn("suffix_test_perm", simdata)
+        val = simdata["suffix_test_perm"].real
+
+        self.assertAlmostEqual(val, expected)
+
+    @supported_methods(["statevector"])
     def test_save_expval_subsystem_consistency(self, method, device):
         """Reproduction test issue 2442: compare Statevector expectation_value with save_expectation_value on a subsystem"""
 

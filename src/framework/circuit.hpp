@@ -602,21 +602,9 @@ void Circuit::set_params(bool truncation) {
       // Skip if not ancestor
       continue;
     }
-    if (remapped_qubits) {
+    if (remapped_qubits ||
+        (truncation && qubitmap_.size() < ops[pos].qubits.size())) {
       remap_qubits(ops[pos]);
-    } else if (truncation && qubitmap_.size() < ops[pos].qubits.size()) {
-      // truncate save_expval here when remap is not needed
-      if (ops[pos].type == OpType::save_expval ||
-          ops[pos].type == OpType::save_expval_var) {
-        int_t nparams = ops[pos].expval_params.size();
-        for (int_t i = 0; i < nparams; i++) {
-          std::string &pauli = std::get<0>(ops[pos].expval_params[i]);
-          std::string new_pauli;
-          new_pauli.assign(pauli.end() - qubitmap_.size(), pauli.end());
-          pauli = new_pauli;
-        }
-        ops[pos].qubits.resize(qubitmap_.size());
-      }
     }
     if (pos != op_idx) {
       ops[op_idx] = std::move(ops[pos]);
