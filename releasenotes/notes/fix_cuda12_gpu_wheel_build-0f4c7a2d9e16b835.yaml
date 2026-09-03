@@ -2,6 +2,4 @@
 fixes:
   - |
     Fixed CUDA-enabled builds with recent GCC versions by compiling the
-    host-only AVX2 source with the C++ compiler instead of ``nvcc``. The CUDA
-    12 wheel workflow now also installs its cuQuantum dependency with a
-    correctly quoted version specifier.
+    host-only AVX2 source with the C++ compiler instead of ``nvcc``.
