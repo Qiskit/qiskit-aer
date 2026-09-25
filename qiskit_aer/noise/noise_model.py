@@ -660,6 +660,9 @@ class NoiseModel:
                           list[Instruction]): the instructions error applies to.
         """
         for name, _ in self._instruction_names_labels(instructions):
+            if name.startswith("measure_"):
+                self._basis_gates.add(name)
+                continue
             # If the instruction is in the default basis gates for the
             # AerSimulator we add it to the basis gates.
             if name in BASIS_GATES["automatic"]:

@@ -1,0 +1,23 @@
+---
+features:
+  - |
+    Added support for targeting a :class:`~qiskit_aer.noise.QuantumError` at
+    a single, specific measurement instruction (including mid-circuit
+    measurements) rather than at every measurement in a circuit. To target
+    a measurement, give it a label via
+    ``circuit.append(Measure(label="my_label"), [qubit], [clbit])`` and then
+    add the error to the noise model under the name ``measure_<label>``, for
+    example::
+
+        from qiskit.circuit import Measure
+        from qiskit_aer.noise import NoiseModel, pauli_error
+
+        circuit.append(Measure(label="mcm0"), [0], [0])
+
+        noise_model = NoiseModel()
+        noise_model.add_quantum_error(
+            pauli_error([("X", 1.0)]), "measure_mcm0", [0]
+        )
+
+    The error is applied immediately before the labeled measurement only;
+    all other (unlabeled) measurements in the circuit are unaffected.

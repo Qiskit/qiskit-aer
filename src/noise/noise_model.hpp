@@ -1072,17 +1072,26 @@ void NoiseModel::load_from_json(const json_t &js) {
       std::vector<reg_t> noise_qubits;
       JSON::get_value(noise_qubits, "noise_qubits", gate_js);
 
-      // We treat measure as a separate error op so that it can be applied
-      // before the measure operation, rather than after like the other gates
-      if (ops.find("measure") != ops.end() && type != "roerror") {
-        ops.erase("measure"); // remove measure from set of ops
+      // We treat measure/measure_* as a separate error op so that it can be
+      // applied before the measure operation, rather than after like other
+      // gates
+      stringset_t measure_ops;
+      for (auto it = ops.begin(); it != ops.end();) {
+        if (*it == "measure" || it->compare(0, 8, "measure_") == 0) {
+          measure_ops.insert(*it);
+          it = ops.erase(it);
+        } else {
+          ++it;
+        }
+      }
+      if (!measure_ops.empty() && type != "roerror") {
         if (!is_qerror)
           throw std::invalid_argument("NoiseModel: Invalid noise type (" +
                                       type + ")");
         QuantumError error;
         error.load_from_json(gate_js);
         error.set_errors_before(); // set errors before the op
-        add_quantum_error(error, {"measure"}, gate_qubits, noise_qubits);
+        add_quantum_error(error, measure_ops, gate_qubits, noise_qubits);
       }
       // Load the remaining ops as errors that come after op
       if (is_qerror) {
