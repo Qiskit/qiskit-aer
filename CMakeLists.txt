@@ -305,7 +305,7 @@ if(AER_THRUST_SUPPORTED)
 				set(STR_ORIGIN "\$$ORIGIN")
 			else()
 				set(PYTHON_SITE_PATH ${AER_PYTHON_CUDA_ROOT}/lib/python${Python_VERSION_MAJOR}.${Python_VERSION_MINOR}/site-packages)
-				set(STR_ORIGIN "$ORIGIN")
+				set(STR_ORIGIN "\$$ORIGIN")
 			endif()
 
 			message(STATUS "PYTHON_SITE_PATH = ${PYTHON_SITE_PATH}")
