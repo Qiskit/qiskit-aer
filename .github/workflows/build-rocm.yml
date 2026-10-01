@@ -1,0 +1,235 @@
+name: ROCm GPU Builds
+
+on:
+  push:
+    branches: ['main', 'stable/*', '**/amd-rocm*']
+  pull_request:
+    branches: ['main', 'stable/*']
+  workflow_dispatch:
+    inputs:
+      rocm_version:
+        description: 'ROCm version to test'
+        required: false
+        default: '6.0'
+      python_version:
+        description: 'Python version'
+        required: false
+        default: '3.11'
+
+jobs:
+  # Job 1: Build on different ROCm versions
+  build-rocm-wheels:
+    runs-on: ubuntu-20.04
+    strategy:
+      fail-fast: false
+      matrix:
+        rocm_version: ['5.7', '6.0', '6.2', '7.0']
+        python_version: ['3.9', '3.10', '3.11', '3.12']
+    
+    container:
+      image: rocm/dev-ubuntu-20.04:${{ matrix.rocm_version }}
+      options: --device=/dev/kfd --device=/dev/dri --group-add video --cap-add=SYS_PTRACE --security-opt seccomp=unconfined
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Install ROCm development packages
+        run: |
+          apt-get update
+          apt-get install -y \
+            rocm-dev \
+            rocm-libs \
+            hip-dev \
+            rocm-cmake \
+            rocblas-dev \
+            rocrand-dev \
+            rocsparse-dev \
+            rocsolver-dev \
+            openblas-dev \
+            git \
+            wget
+          
+      - name: Set up Python ${{ matrix.python_version }}
+        run: |
+          apt-get install -y software-properties-common
+          add-apt-repository ppa:deadsnakes/ppa -y
+          apt-get update
+          apt-get install -y \
+            python${{ matrix.python_version }} \
+            python${{ matrix.python_version }}-dev \
+            python${{ matrix.python_version }}-venv \
+            python3-pip
+          
+          # Set as default python3
+          update-alternatives --install /usr/bin/python3 python3 /usr/bin/python${{ matrix.python_version }} 1
+          
+      - name: Verify ROCm installation
+        run: |
+          rocm-smi || echo "No GPU detected (expected in CI)"
+          rocminfo || echo "rocminfo not available"
+          if [ -f /opt/rocm/.info/version ]; then
+            echo "ROCm version: $(cat /opt/rocm/.info/version)"
+          fi
+          
+      - name: Install Python dependencies
+        run: |
+          python3 -m pip install --upgrade pip setuptools wheel
+          python3 -m pip install -r requirements-dev.txt
+          
+      - name: Build ROCm wheel
+        env:
+          ROCM_PATH: /opt/rocm
+          AER_THRUST_BACKEND: ROCM
+          # Build for common architectures (no GPU in CI for auto-detection)
+          AER_ROCM_ARCH: "gfx908 gfx90a gfx940 gfx1030 gfx1100"
+          CMAKE_CXX_COMPILER: /opt/rocm/llvm/bin/clang++
+          CMAKE_HIP_COMPILER: /opt/rocm/llvm/bin/clang++
+          QISKIT_AER_PACKAGE_NAME: qiskit-aer-gpu-rocm
+        run: |
+          echo "Building for ROCm ${{ matrix.rocm_version }}, Python ${{ matrix.python_version }}"
+          python3 setup.py bdist_wheel -- \
+            -DAER_THRUST_BACKEND=ROCM \
+            -DAER_ROCM_ARCH="${AER_ROCM_ARCH}" \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DBUILD_TESTS=False
+            
+      - name: List built wheels
+        run: |
+          ls -lh dist/
+          
+      - name: Upload wheel artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: rocm-${{ matrix.rocm_version }}-py${{ matrix.python_version }}-wheel
+          path: dist/*.whl
+          retention-days: 30
+          
+      - name: Save build metadata
+        run: |
+          cat > dist/build-info.json <<EOF
+          {
+            "rocm_version": "${{ matrix.rocm_version }}",
+            "python_version": "${{ matrix.python_version }}",
+            "build_date": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+            "git_commit": "${{ github.sha }}",
+            "git_ref": "${{ github.ref }}",
+            "architectures": "${AER_ROCM_ARCH}"
+          }
+          EOF
+          cat dist/build-info.json
+          
+      - name: Upload build metadata
+        uses: actions/upload-artifact@v4
+        with:
+          name: rocm-${{ matrix.rocm_version }}-py${{ matrix.python_version }}-metadata
+          path: dist/build-info.json
+          retention-days: 30
+
+  # Job 2: Test installation (without GPU)
+  test-wheel-installation:
+    needs: build-rocm-wheels
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        rocm_version: ['6.0', '7.0']
+        python_version: ['3.11']
+    
+    steps:
+      - name: Set up Python ${{ matrix.python_version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python_version }}
+          
+      - name: Download wheel
+        uses: actions/download-artifact@v4
+        with:
+          name: rocm-${{ matrix.rocm_version }}-py${{ matrix.python_version }}-wheel
+          path: dist/
+          
+      - name: Test wheel installation
+        run: |
+          pip install dist/*.whl
+          python -c "import qiskit_aer; print('Qiskit Aer version:', qiskit_aer.__version__)"
+          python -c "from qiskit_aer import AerSimulator; sim = AerSimulator(); print('AerSimulator created successfully')"
+          
+  # Job 3: Generate build report
+  build-report:
+    needs: build-rocm-wheels
+    runs-on: ubuntu-latest
+    if: always()
+    
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts/
+          
+      - name: Generate build report
+        run: |
+          cat > build-report.md <<'EOF'
+          # ROCm Build Report
+          
+          **Build Date**: $(date -u +"%Y-%m-%d %H:%M:%S UTC")
+          **Commit**: ${{ github.sha }}
+          **Ref**: ${{ github.ref }}
+          
+          ## Build Matrix Results
+          
+          | ROCm Version | Python Version | Status | Wheel Size |
+          |--------------|----------------|--------|------------|
+          EOF
+          
+          # List all built wheels with sizes
+          find artifacts/ -name "*.whl" | while read wheel; do
+            SIZE=$(du -h "$wheel" | cut -f1)
+            DIRNAME=$(dirname "$wheel")
+            echo "Found wheel: $wheel (Size: $SIZE)"
+          done >> build-report.md
+          
+          echo "" >> build-report.md
+          echo "## Artifacts" >> build-report.md
+          echo "" >> build-report.md
+          echo '```' >> build-report.md
+          ls -lhR artifacts/ >> build-report.md
+          echo '```' >> build-report.md
+          
+          cat build-report.md
+          
+      - name: Upload build report
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-report
+          path: build-report.md
+          retention-days: 90
+
+  # Job 4: Performance benchmarks (if GPU available)
+  benchmark-rocm:
+    runs-on: self-hosted
+    if: false  # Enable when self-hosted runner with AMD GPU is available
+    needs: build-rocm-wheels
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Download wheel
+        uses: actions/download-artifact@v4
+        with:
+          name: rocm-6.0-py3.11-wheel
+          path: dist/
+          
+      - name: Install wheel
+        run: |
+          pip install dist/*.whl
+          
+      - name: Run benchmarks
+        run: |
+          python test/benchmark/rocm_benchmark.py
+          
+      - name: Upload benchmark results
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-results
+          path: benchmark-results.json

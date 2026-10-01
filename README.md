@@ -51,6 +51,176 @@ that have CUDA support, you will have to build from source. You can refer to
 the [contributing guide](CONTRIBUTING.md#building-with-gpu-support)
 for instructions on doing this.
 
+### AMD ROCm GPU Support
+
+Qiskit Aer also supports AMD GPUs via ROCm (6.4 or 7.0+ newer recommended). To use AMD GPUs, you need to build from source:
+
+#### Prerequisites
+- ROCm 6.4+ or 7.0+ (6.4.2 recommended for best stability)
+- AMD GPU: MI100/MI200/MI300 (data center) or RX 6000/7000 series (consumer)
+- Ubuntu 20.04/22.04 or compatible Linux distribution
+- System dependencies: `libomp-dev` (OpenMP library)
+
+#### System Requirements Installation
+```bash
+# Install OpenMP library (required)
+sudo apt-get update && sudo apt-get install -y libomp-dev
+
+# Install Qiskit separately (not included in qiskit-aer-gpu-rocm)
+pip install qiskit
+```
+
+#### Quick Start with Auto-Detection
+```bash
+# 1. Install ROCm (if not already installed)
+# Follow: https://rocm.docs.amd.com/
+
+# 2. Detect your GPU and generate build script
+./tools/detect_rocm.sh
+
+# 3. Run the generated build script
+bash /tmp/qiskit_aer_rocm_build.sh
+```
+
+#### Manual Build (Recommended for Full Control)
+```bash
+# 1. Clean any previous build artifacts
+rm -rf _skbuild dist build
+
+# 2. Install build dependencies
+pip install pybind11
+pip install -r requirements-dev.txt
+
+# 3. Set environment variables
+export ROCM_PATH=/opt/rocm
+export AER_THRUST_BACKEND=ROCM
+export QISKIT_AER_PACKAGE_NAME='qiskit-aer-gpu-rocm'
+
+# 4. Build with explicit compiler flags
+python3 setup.py bdist_wheel -- \
+  -DCMAKE_CXX_COMPILER=${ROCM_PATH}/llvm/bin/clang++ \
+  -DCMAKE_HIP_COMPILER=${ROCM_PATH}/llvm/bin/clang++ \
+  -DAER_THRUST_BACKEND=ROCM
+
+# 5. Install the wheel
+pip install dist/qiskit_aer_gpu_rocm-*.whl
+```
+
+**Note on ROCm Versions:**
+- **ROCm 6.4.2**: Recommended for production use
+- **ROCm 7.2+**: Newer features
+
+#### Supported AMD GPU Architectures
+
+| GPU Family | Architecture | Example GPUs | Recommended blocking_qubits |
+|------------|-------------|--------------|------------------------------|
+| MI300 | gfx940, gfx941, gfx942 | MI300A/X | 28 (192GB HBM3) |
+| MI200 | gfx90a | MI210, MI250X | 27 (64-128GB HBM2e) |
+| MI100 | gfx908 | MI100 | 25 (32GB HBM2) |
+| RX 7000 | gfx1100 | RX 7900 XTX | 25 (24GB GDDR6) |
+| RX 6000 | gfx1030 | RX 6900 XT | 24 (16GB GDDR6) |
+
+#### Usage Example
+```python
+from qiskit_aer import AerSimulator
+
+# Create GPU simulator
+sim = AerSimulator(method='statevector', device='GPU')
+
+# Check available devices
+print(sim.available_devices())  # Should show GPU
+
+# Run with memory management
+result = sim.run(circuit, 
+                 blocking_enable=True,
+                 blocking_qubits=27,  # Adjust for your GPU
+                 shots=1000).result()
+```
+
+#### Multi-GPU Support ✨ NEW - Validated on MI300X
+
+Leverage multiple AMD GPUs for larger circuits (32-40 qubits on single node):
+
+```python
+from qiskit_aer import AerSimulator
+from qiskit.circuit.library import quantum_volume
+
+backend = AerSimulator(method='statevector', device='GPU')
+
+# 33-qubit circuit on 4 GPUs
+circuit = quantum_volume(33, depth=10, seed=42)
+circuit.measure_all()
+
+# Run with validated configuration
+result = backend.run(
+    circuit,
+    shots=100,
+    blocking_enable=True,
+    blocking_qubits=27,        # ⚠️ CRITICAL: Max 27 (2GB chunks)
+    target_gpus=[0, 1, 2, 3],  # Must be in run(), not constructor
+    batched_shots_gpu=True,
+    batched_shots_gpu_max_qubits=33
+).result()
+
+# Verify multi-GPU usage
+cacheblocking = result.results[0].metadata['cacheblocking']
+print(f"GPUs used: {cacheblocking['chunk_parallel_gpus']}")  # Should show: 4
+```
+
+**Validated Configurations (AMD MI300X):**
+- ✅ **30-31 qubits:** 1 GPU (no blocking needed)
+- ✅ **32 qubits:** 2 GPUs with blocking=27
+- ✅ **33 qubits:** 4 GPUs with blocking=27
+- ✅ **34 qubits:** 8 GPUs with blocking=27
+
+**Critical Constraints:**
+1. `blocking_qubits ≤ 27` (2GB chunk maximum)
+2. Single GPU limit: 31 qubits
+3. GPU count: Use `ceil(2^(qubits-27) / 16)` GPUs for qubits > 31
+
+📚 **Complete Guide:**
+
+**Quick Verification:**
+```bash
+# Single GPU test
+python3 examples/single_gpu/quick_test.py
+
+# Multi-GPU test (requires 2+ GPUs)
+python3 examples/multi_gpu/quick_test.py
+
+# Full validation (30-35 qubits)
+python3 examples/multi_gpu/validation.py
+```
+
+**Advanced Usage:**
+```python
+# Large circuit with state distribution
+result = backend.run(large_circuit,
+                     blocking_enable=True,      # Distribute state across GPUs
+                     blocking_qubits=27,        # Chunk size per GPU (max 27)
+                     target_gpus=[0,1,2,3],     # Select specific GPUs
+                     shots=1000).result()
+
+# High-shot simulation with shot parallelization
+result = backend.run(circuit,
+                     batched_shots_gpu=True,    # Distribute shots across GPUs
+                     shots=10000).result()
+```
+
+**Resources:**
+- **Build Instructions**: [BUILDING_ROCM.md](BUILDING_ROCM.md) - ROCm build guide
+
+**Examples:**
+- **Single GPU**: `examples/single_gpu/` - Quick tests and benchmarks for single GPU
+  - `quick_test.py` - Verify GPU functionality (~10 seconds)
+  - `benchmark.py` - Performance comparison CPU vs GPU (~2-3 minutes)
+- **Multi-GPU**: `examples/multi_gpu/` - Multi-GPU examples (validated on MI300X)
+  - `quick_test.py` - Quick multi-GPU verification (~30 seconds)
+  - `benchmark.py` - Comprehensive multi-GPU benchmarks (~5-10 minutes)
+  - `validation.py` - Complete validation (30-35 qubits, requires 1-16 GPUs)
+
+📚 See [examples/README.md](examples/README.md) for detailed usage instructions.
+
 ## Simulating your first Qiskit circuit with Aer
 Now that you have Aer installed, you can start simulating quantum circuits using primitives and noise models. Here is a basic example:
 
