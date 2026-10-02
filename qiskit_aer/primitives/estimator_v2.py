@@ -135,12 +135,15 @@ class EstimatorV2(BaseEstimatorV2):
         ).result()
 
         # calculate expectation values (evs) and standard errors (stds)
-        flat_indices = list(param_indices.ravel())
+        flat_index_map = {tup: i for i, tup in enumerate(param_indices.ravel())}
         evs = np.zeros_like(bc_param_ind, dtype=float)
         stds = np.full(bc_param_ind.shape, precision)
         for index in np.ndindex(*bc_param_ind.shape):
             param_index = bc_param_ind[index]
-            flat_index = flat_indices.index(param_index)
+            if bc_param_ind.shape == param_shape: # if it is 1d passthrough
+                flat_index = param_index[0] if isinstance(param_index, tuple) else int(param_index)
+            else:
+                flat_index = flat_index_map[param_index]
             for pauli, coeff in bc_obs[index].items():
                 expval = result.data(flat_index)[pauli]
                 evs[index] += expval * coeff
