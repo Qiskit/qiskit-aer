@@ -17,10 +17,10 @@ manylinux-ppc64le-image = "manylinux_2_28"
 skip = "pp* *musllinux* *i686* *win32* cp38-* cp39-* cp3??t-*"
 test-command = "python {project}/tools/verify_wheels.py"
 # We need to use pre-built versions of Numpy and Scipy in the tests; they have a
-# tendency to crash if they're installed from source by `pip install`, and since
-# Numpy 1.22 there are no i686 wheels, so we force pip to use older ones without
-# restricting any dependencies that Numpy and Scipy might have.
-before-test = "pip install --only-binary=numpy,scipy numpy scipy"
+# tendency to crash if they're installed from source by `pip install`.
+#
+# Install dill from its main branch for now. See comment in constraints.txt
+before-test = "pip install --only-binary=numpy,scipy numpy scipy git+https://github.com/uqfoundation/dill@e862cad2041c05f812791bb4998aa4ae5ba74fb3"
 
 [tool.cibuildwheel.linux]
 before-all = "dnf install -y openblas-devel"

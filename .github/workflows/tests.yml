@@ -81,7 +81,7 @@ jobs:
         run: |
           set -e
           mkdir out; cd out; virtualenv aer-test
-          aer-test/bin/pip install ../dist/*tar.gz
+          aer-test/bin/pip install ../dist/*tar.gz 'dill @ git+https://github.com/uqfoundation/dill@e862cad2041c05f812791bb4998aa4ae5ba74fb3'
           aer-test/bin/python ../tools/verify_wheels.py
           aer-test/bin/pip check
         shell: bash
