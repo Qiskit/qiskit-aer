@@ -1,11 +1,6 @@
 pylint==4.1.2
 astroid==4.3.3
 
-# Jinja2 3.1.0 is incompatible with sphinx and/or jupyter until they are updated
-# to work with the new jinja version (the jinja maintainers aren't going to
-# fix things) pin to the previous working version.
-jinja2==3.0.3
-
 # dill's main branch has been updated for Python 3.15 but no release has made from it yet
 # This can be remvoed when the following PR is in a dill release:
 # https://github.com/uqfoundation/dill/pull/755
