@@ -14,7 +14,7 @@ manylinux-x86_64-image = "manylinux_2_28"
 manylinux-aarch64-image = "manylinux_2_28"
 manylinux-s390x-image = "manylinux_2_28"
 manylinux-ppc64le-image = "manylinux_2_28"
-skip = "pp* *musllinux* *i686* *win32* cp38-* cp39-* cp3??t-*"
+skip = "*musllinux* *i686* *win32* cp3??t-*"
 test-command = "python {project}/tools/verify_wheels.py"
 # We need to use pre-built versions of Numpy and Scipy in the tests; they have a
 # tendency to crash if they're installed from source by `pip install`.
@@ -42,6 +42,9 @@ before-build = [
 [tool.cibuildwheel.windows]
 environment = { CMAKE_GENERATOR = "Visual Studio 17 2022"}
 before-build = "bash {project}/tools/wheels/append_bundled_licenses.sh {project}"
+# The build already installs the bundled libopenblas.dll next to the extension
+# module, so tell delvewheel to leave DLLs that are already in the wheel alone.
+repair-wheel-command = "delvewheel repair --ignore-existing -w {dest_dir} {wheel}"
 
 [tool.black]
 line-length = 100
