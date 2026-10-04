@@ -13,6 +13,7 @@
 """
 Tests for utility functions to create device noise model.
 """
+
 import numpy as np
 from test.terra.common import QiskitAerTestCase
 

@@ -14,7 +14,6 @@
 Estimator class tests
 """
 
-
 import unittest
 from test.terra.common import QiskitAerTestCase
 

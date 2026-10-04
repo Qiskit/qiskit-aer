@@ -12,6 +12,7 @@
 """
 Aer backend properties
 """
+
 import copy
 import datetime
 import warnings
@@ -19,7 +20,6 @@ from typing import Any, Iterable, Tuple, Union, Dict
 import dateutil.parser
 from qiskit.utils.units import apply_prefix
 from qiskit.transpiler.target import Target
-
 
 PropertyT = Tuple[Any, datetime.datetime]
 

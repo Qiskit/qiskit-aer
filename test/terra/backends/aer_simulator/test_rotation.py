@@ -12,6 +12,7 @@
 """
 AerSimulator Integration Tests
 """
+
 from ddt import ddt
 from test.terra.reference import ref_rotation
 from qiskit import transpile

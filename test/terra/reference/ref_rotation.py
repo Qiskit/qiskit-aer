@@ -17,7 +17,6 @@ Test circuits and reference outputs for rotation gate instructions.
 import numpy as np
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 
-
 # ==========================================================================
 # RX-gate
 # ==========================================================================

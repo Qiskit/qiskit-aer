@@ -12,6 +12,7 @@
 """
 AerSimulator Integration Tests
 """
+
 # pylint: disable=no-member
 import copy
 import numpy as np

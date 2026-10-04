@@ -12,6 +12,7 @@
 """
 Base quantum error class for Aer noise model
 """
+
 import copy
 import uuid
 from abc import abstractmethod

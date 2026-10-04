@@ -12,6 +12,7 @@
 """
 Circuit Generator
 """
+
 import numpy as np
 
 from qiskit.circuit.library import *
