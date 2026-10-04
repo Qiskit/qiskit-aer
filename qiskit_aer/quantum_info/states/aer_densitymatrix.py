@@ -21,9 +21,9 @@ from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.states import DensityMatrix
 from qiskit.quantum_info.operators.predicates import is_hermitian_matrix
 
-from qiskit_aer import AerSimulator
 from .aer_statevector import AerStatevector
 from .aer_state import AerState
+from ...backends.aer_simulator import AerSimulator
 from ...backends.aerbackend import AerError
 from ...backends.backend_utils import BASIS_GATES
 
