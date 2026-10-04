@@ -81,23 +81,6 @@ class BaseQuantumError(BaseOperator):
     def expand(self, other):
         return other.tensor(self)
 
-    def __rmul__(self, other):
-        raise NotImplementedError(
-            f"'{type(self).__name__}' does not support scalar multiplication."
-        )
-
-    def __truediv__(self, other):
-        raise NotImplementedError(f"'{type(self).__name__}' does not support division.")
-
-    def __add__(self, other):
-        raise NotImplementedError(f"'{type(self).__name__}' does not support addition.")
-
-    def __sub__(self, other):
-        raise NotImplementedError(f"'{type(self).__name__}' does not support subtraction.")
-
-    def __neg__(self):
-        raise NotImplementedError(f"'{type(self).__name__}' does not support negation.")
-
 
 class QuantumChannelInstruction(Instruction):
     """Container instruction for adding BaseQuantumError to circuit"""
