@@ -301,7 +301,9 @@ if(AER_THRUST_SUPPORTED)
 		if(AER_PYTHON_CUDA_ROOT)
 			find_package(Python)
 			if(AER_CIBUILD)
-				set(PYTHON_SITE_PATH ${AER_PYTHON_CUDA_ROOT}/cpython-${Python_VERSION_MAJOR}.${Python_VERSION_MINOR}.${Python_VERSION_PATCH}/lib/python${Python_VERSION_MAJOR}.${Python_VERSION_MINOR}/site-packages)
+				# cibuildwheel installs into the base interpreter so use its site-packages
+                # layout instead of a virtual environment's site-packages
+				set(PYTHON_SITE_PATH ${Python_STDLIB}/site-packages)
 				set(STR_ORIGIN "\$$ORIGIN")
 			else()
 				set(PYTHON_SITE_PATH ${AER_PYTHON_CUDA_ROOT}/lib/python${Python_VERSION_MAJOR}.${Python_VERSION_MINOR}/site-packages)

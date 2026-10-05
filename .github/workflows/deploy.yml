@@ -132,15 +132,6 @@ jobs:
     permissions:
       id-token: write
     steps:
-      - name: Maximize build space
-        uses: easimon/maximize-build-space@master
-        with:
-          root-reserve-mb: 32000
-          swap-size-mb: 1024
-          remove-dotnet: 'true'
-          remove-android: 'true'
-          remove-haskell: 'true'
-          remove-codeql: 'true'
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
         name: Install Python
@@ -151,9 +142,10 @@ jobs:
           python -m pip install cibuildwheel==3.2.1
       - name: Build wheels
         env:
-          CIBW_BEFORE_ALL: "sed -i -e 's/^mirrorlist/#mirrorlist/' -e 's/^#baseurl/baseurl/' -e 's/mirror.centos.org/vault.centos.org/' /etc/yum.repos.d/*.repo && yum install -y yum-utils wget && wget -q https://developer.download.nvidia.com/compute/cuda/11.8.0/local_installers/cuda-repo-rhel7-11-8-local-11.8.0_520.61.05-1.x86_64.rpm && rpm -i cuda-repo-rhel7-11-8-local-11.8.0_520.61.05-1.x86_64.rpm && yum clean all && yum -y install cuda && yum -y install openblas-devel && yum-config-manager --add-repo https://developer.download.nvidia.com/compute/cuda/repos/rhel7/x86_64/cuda-rhel7.repo && yum clean all"
+          CIBW_BEFORE_ALL: "sed -i -e 's/^mirrorlist/#mirrorlist/' -e 's/^#baseurl/baseurl/' -e 's/mirror.centos.org/vault.centos.org/' /etc/yum.repos.d/CentOS-*.repo && yum install -y yum-utils && yum-config-manager --add-repo https://developer.download.nvidia.com/compute/cuda/repos/rhel7/x86_64/cuda-rhel7.repo && rpm --import https://developer.download.nvidia.com/compute/cuda/repos/rhel7/x86_64/D42D0685.pub && yum -y install cuda-toolkit-11-8 openblas-devel && yum clean all"
           CIBW_BEFORE_BUILD : "pip install nvidia-cuda-runtime-cu11 nvidia-cublas-cu11 nvidia-cusolver-cu11 nvidia-cusparse-cu11 'cuquantum-cu11<24.11.0'"
           CIBW_SKIP: "*-manylinux_i686 pp* cp36* cp37* cp38* *musllinux*"
+          CIBW_MANYLINUX_X86_64_IMAGE: manylinux2014
           CIBW_TEST_SKIP: "*"
           CIBW_ENVIRONMENT: QISKIT_AER_PACKAGE_NAME=qiskit-aer-gpu-cu11 QISKIT_AER_CUDA_MAJOR=11 CMAKE_VERBOSE_MAKEFILE=true AER_THRUST_BACKEND=CUDA CUDACXX=/usr/local/cuda/bin/nvcc AER_CUDA_ARCH="7.0 7.2 7.5 8.0 8.6 8.7" AER_PYTHON_CUDA_ROOT=/opt/_internal AER_CIBUILD=true
           CIBW_REPAIR_WHEEL_COMMAND: 'auditwheel repair --exclude libcudart.so.11.0 --exclude libcustatevec.so.1 --exclude libcutensornet.so.2 --exclude libcutensor.so.1 --exclude libcutensorMg.so.1 --exclude libcusolver.so.11 --exclude libcusolverMg.so.11 --exclude libcusparse.so.11 --exclude libcublas.so.11 --exclude libcublasLt.so.11 -w {dest_dir} {wheel}'
@@ -178,15 +170,6 @@ jobs:
     permissions:
       id-token: write
     steps:
-      - name: Maximize build space
-        uses: easimon/maximize-build-space@master
-        with:
-          root-reserve-mb: 32000
-          swap-size-mb: 1024
-          remove-dotnet: 'true'
-          remove-android: 'true'
-          remove-haskell: 'true'
-          remove-codeql: 'true'
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
         name: Install Python
@@ -197,11 +180,12 @@ jobs:
           python -m pip install cibuildwheel==3.2.1
       - name: Build wheels
         env:
-          CIBW_BEFORE_ALL: "sed -i -e 's/^mirrorlist/#mirrorlist/' -e 's/^#baseurl/baseurl/' -e 's/mirror.centos.org/vault.centos.org/' /etc/yum.repos.d/*.repo && yum install -y yum-utils wget && wget -q https://developer.download.nvidia.com/compute/cuda/12.5.1/local_installers/cuda-repo-rhel8-12-5-local-12.5.1_555.42.06-1.x86_64.rpm && rpm -i cuda-repo-rhel8-12-5-local-12.5.1_555.42.06-1.x86_64.rpm && yum clean all && yum -y install cuda-toolkit-12-5 && yum -y install openblas-devel && yum clean all"
-          CIBW_BEFORE_BUILD : "pip install nvidia-cuda-runtime-cu12 nvidia-nvjitlink-cu12 nvidia-cublas-cu12 nvidia-cusolver-cu12 nvidia-cusparse-cu12 'cuquantum-cu12<24.11.0"
+          CIBW_BEFORE_ALL: "dnf install -y dnf-plugins-core && dnf config-manager --add-repo https://developer.download.nvidia.com/compute/cuda/repos/rhel8/x86_64/cuda-rhel8.repo && rpm --import https://developer.download.nvidia.com/compute/cuda/repos/rhel8/x86_64/D42D0685.pub && dnf -y install gcc-toolset-12 cuda-toolkit-12-5 openblas-devel && dnf clean all"
+          CIBW_BEFORE_BUILD : "pip install nvidia-cuda-runtime-cu12 nvidia-nvjitlink-cu12 nvidia-cublas-cu12 nvidia-cusolver-cu12 nvidia-cusparse-cu12 'cuquantum-cu12<24.11.0'"
+          CIBW_MANYLINUX_X86_64_IMAGE: manylinux_2_28
           CIBW_SKIP: "*-manylinux_i686 pp* cp36* cp37* cp38* *musllinux*"
           CIBW_TEST_SKIP: "*"
-          CIBW_ENVIRONMENT: QISKIT_AER_PACKAGE_NAME=qiskit-aer-gpu QISKIT_AER_CUDA_MAJOR=12 CMAKE_VERBOSE_MAKEFILE=true AER_THRUST_BACKEND=CUDA CUDACXX=/usr/local/cuda/bin/nvcc AER_CUDA_ARCH="7.0 7.2 7.5 8.0 8.6 8.7 9.0" AER_PYTHON_CUDA_ROOT=/opt/_internal AER_CIBUILD=true
+          CIBW_ENVIRONMENT: QISKIT_AER_PACKAGE_NAME=qiskit-aer-gpu QISKIT_AER_CUDA_MAJOR=12 CC=/opt/rh/gcc-toolset-12/root/usr/bin/gcc CXX=/opt/rh/gcc-toolset-12/root/usr/bin/g++ CUDAHOSTCXX=/opt/rh/gcc-toolset-12/root/usr/bin/g++ CMAKE_VERBOSE_MAKEFILE=true AER_THRUST_BACKEND=CUDA CUDACXX=/usr/local/cuda/bin/nvcc AER_CUDA_ARCH="7.0 7.2 7.5 8.0 8.6 8.7 9.0" AER_PYTHON_CUDA_ROOT=/opt/_internal AER_CIBUILD=true
           CIBW_REPAIR_WHEEL_COMMAND: 'auditwheel repair --exclude libcudart.so.12 --exclude libcustatevec.so.1 --exclude libcutensornet.so.2 --exclude libcutensor.so.1 --exclude libcutensorMg.so.1 --exclude libcusolver.so.11 --exclude libcusolverMg.so.11 --exclude libcusolver.so.12 --exclude libcusolverMg.so.12 --exclude libcusparse.so.12 --exclude libcublas.so.12 --exclude libcublasLt.so.12 --exclude libnvJitLink.so.12 -w {dest_dir} {wheel}'
         run: |
           python -m cibuildwheel --output-dir wheelhouse
