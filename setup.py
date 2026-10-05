@@ -3,6 +3,7 @@
 """
 Main setup file for qiskit-aer
 """
+
 import os
 import platform
 

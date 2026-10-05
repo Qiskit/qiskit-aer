@@ -13,6 +13,7 @@
 """
 DensityMatrix quantum state class.
 """
+
 import copy
 import numpy as np
 

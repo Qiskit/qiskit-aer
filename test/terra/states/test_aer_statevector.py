@@ -41,7 +41,6 @@ from qiskit_aer.quantum_info.states import AerStatevector
 
 from test.terra import common
 
-
 logger = logging.getLogger(__name__)
 
 

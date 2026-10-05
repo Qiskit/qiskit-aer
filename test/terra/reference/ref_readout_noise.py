@@ -19,7 +19,6 @@ from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.circuit import Instruction
 from qiskit_aer.noise import NoiseModel
 
-
 # ==========================================================================
 #  Readout error
 # ==========================================================================

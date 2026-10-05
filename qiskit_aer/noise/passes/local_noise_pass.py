@@ -12,6 +12,7 @@
 """
 Local noise addition pass.
 """
+
 from typing import Optional, Union, Sequence, Callable, Iterable
 
 from qiskit.circuit import Instruction, QuantumCircuit
