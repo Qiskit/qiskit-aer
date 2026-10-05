@@ -143,13 +143,6 @@ jobs:
         os: [ubuntu-latest]
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-python@v7
-        name: Install Python
-        with:
-          python-version: '3.13'
-      - uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v4
         with:
@@ -180,13 +173,6 @@ jobs:
         os: [ubuntu-latest]
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-python@v7
-        name: Install Python
-        with:
-          python-version: '3.13'
-      - uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v4
         with:
