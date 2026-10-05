@@ -13,8 +13,8 @@ jobs:
     runs-on: ${{ matrix.os }}
     environment: release
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         name: Install Python
         with:
           python-version: '3.13'
@@ -25,7 +25,7 @@ jobs:
         env:
           AER_CMAKE_OPENMP_BUILD: 1
         run: python -m cibuildwheel --output-dir wheelhouse
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           path: ./wheelhouse/*.whl
           name: aer-deploy-shared-wheel-build-${{ matrix.os }}
@@ -37,8 +37,8 @@ jobs:
     permissions:
       id-token: write
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         name: Install Python
         with:
           python-version: '3.13'
@@ -48,7 +48,7 @@ jobs:
         run: |
           python setup.py sdist
         shell: bash
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           path: ./dist/qiskit*
           name: aer-deploy-separate-sdist-${{ matrix.os }}
@@ -67,8 +67,8 @@ jobs:
     permissions:
       id-token: write
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         name: Install Python
         with:
           python-version: '3.13'
@@ -85,7 +85,7 @@ jobs:
           CIBW_REPAIR_WHEEL_COMMAND: 'auditwheel repair --exclude libcudart.so.11.0 --exclude libcustatevec.so.1 --exclude libcutensornet.so.2 --exclude libcutensor.so.1 --exclude libcutensorMg.so.1 --exclude libcusolver.so.11 --exclude libcusolverMg.so.11 --exclude libcusparse.so.11 --exclude libcublas.so.11 --exclude libcublasLt.so.11 -w {dest_dir} {wheel}'
         run: |
           python -m cibuildwheel --output-dir wheelhouse
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           path: ./wheelhouse/*.whl
           name: aer-deploy-separate-gpu-build-cuda11-${{ matrix.os }}
@@ -104,8 +104,8 @@ jobs:
     permissions:
       id-token: write
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         name: Install Python
         with:
           python-version: '3.13'
@@ -122,7 +122,7 @@ jobs:
           CIBW_REPAIR_WHEEL_COMMAND: 'auditwheel repair --exclude libcudart.so.12 --exclude libcustatevec.so.1 --exclude libcutensornet.so.2 --exclude libcutensor.so.1 --exclude libcutensorMg.so.1 --exclude libcusolver.so.11 --exclude libcusolverMg.so.11 --exclude libcusolver.so.12 --exclude libcusolverMg.so.12 --exclude libcusparse.so.12 --exclude libcublas.so.12 --exclude libcublasLt.so.12 --exclude libnvJitLink.so.12 -w {dest_dir} {wheel}'
         run: |
           python -m cibuildwheel --output-dir wheelhouse
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           path: ./wheelhouse/*.whl
           name: aer-deploy-separate-gpu-build-cuda12-${{ matrix.os }}
@@ -142,8 +142,8 @@ jobs:
       matrix:
         os: [ubuntu-latest]
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         name: Install Python
         with:
           python-version: '3.13'
@@ -151,7 +151,7 @@ jobs:
         with:
           toolchain: stable
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
+        uses: docker/setup-qemu-action@v4
         with:
           platforms: all
       - name: Build wheels
@@ -159,7 +159,7 @@ jobs:
         env:
           CIBW_ARCHS_LINUX: s390x
           CIBW_TEST_SKIP: "cp*"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           path: ./wheelhouse/*.whl
           name: aer-deploy-separate-build_wheels_s390x-${{ matrix.os }}
@@ -179,8 +179,8 @@ jobs:
       matrix:
         os: [ubuntu-latest]
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         name: Install Python
         with:
           python-version: '3.13'
@@ -188,7 +188,7 @@ jobs:
         with:
           toolchain: stable
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
+        uses: docker/setup-qemu-action@v4
         with:
           platforms: all
       - name: Build wheels
@@ -196,7 +196,7 @@ jobs:
         env:
           CIBW_ARCHS_LINUX: ppc64le
           CIBW_TEST_SKIP: "cp*"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           path: ./wheelhouse/*.whl
           name: aer-deploy-separate-build_wheels_ppc64le-${{ matrix.os }}
@@ -213,7 +213,7 @@ jobs:
     permissions:
       id-token: write
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           path: deploy
           pattern: 'aer-deploy-shared-*'
