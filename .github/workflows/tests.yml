@@ -8,6 +8,34 @@ concurrency:
   group: ${{ github.repository }}-${{ github.ref }}-${{ github.head_ref }}-${{ github.workflow }}
   cancel-in-progress: true
 jobs:
+
+  # This 'finalize' job is a no-op; its sole purpose is to depend on all the other jobs and provide
+  # a single in-code determination of whether the branch-protection rules have been passed.  The
+  # branch-protection rules in the GitHub web interface can then depend only on this job.
+  finalize:
+    name: Finalize tests
+    runs-on: 'ubuntu-latest'
+    # This list should contain every other job in this file.
+    needs:
+      - lint
+      - sdist
+      - tests_linux
+      - tests_macos
+      - tests_windows
+    # This job needs to trigger even if its predecessors failed and return the same status.  By
+    # default, GitHub Actions will "skip" the job if a requirement failed, but that counts as a
+    # "success" state, which is not acceptable for a branch-protection rule.  We don't use `always`
+    # because we don't want `cancelled` to trigger this.
+    if: success() || failure()
+    steps:
+      - run: |
+          echo "Successful run."
+        if: ${{ !contains(needs.*.result, 'failure') }}
+      - run: |
+          echo "Predecessor jobs failed.  See GitHub Actions logs." >&2
+          exit 1
+        if: ${{ contains(needs.*.result, 'failure') }}
+
   lint:
     runs-on: ubuntu-latest
     env:
