@@ -789,13 +789,22 @@ void MPS::apply_multi_qubit_gate(const reg_t &qubits, const cmatrix_t &mat,
   // change qubit order in the matrix - instead of doing swaps on the qubits
   uint_t nqubits = qubits.size();
   uint_t sidelen = 1 << nqubits;
-  cmatrix_t new_mat(sidelen, sidelen);
-  for (uint_t col = 0; col < sidelen; ++col) {
-    for (uint_t row = 0; row < sidelen; ++row) {
-      if (row == col)
-        new_mat(new_vec[row], new_vec[row]) = mat(row, row);
-      else
+  cmatrix_t new_mat(is_diagonal ? 1 : sidelen, sidelen);
+
+  if (is_diagonal) {
+    for (uint_t col = 0; col < sidelen; ++col) {
+      new_mat(0, new_vec[col]) =
+          mat.GetRows() == 1
+              ? mat(0, col)
+              : mat(col,
+                    col); // this is just in case something passes a matrix
+                          // instead of a vector even if is_diagonal is true
+    }
+  } else {
+    for (uint_t col = 0; col < sidelen; ++col) {
+      for (uint_t row = 0; row < sidelen; ++row) {
         new_mat(new_vec[row], new_vec[col]) = mat(row, col);
+      }
     }
   }
 
