@@ -14,7 +14,6 @@
 Test circuits and reference outputs for measure instruction.
 """
 
-
 import numpy as np
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.quantum_info.random import random_unitary

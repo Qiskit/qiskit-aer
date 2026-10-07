@@ -41,7 +41,6 @@ from qiskit_aer.quantum_info.states import AerStatevector
 
 from test.terra import common
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -300,7 +299,7 @@ class TestAerStatevector(common.QiskitAerTestCase):
                 sv1 = sv1.data
             if not isinstance(sv2, np.ndarray):
                 sv2 = sv2.data
-            return np.isclose(np.cross(sv1, sv2), 0)
+            return np.isclose(sv1[0] * sv2[1] - sv1[1] * sv2[0], 0)
 
         circuit = QuantumCircuit(1)
         circuit.h(0)

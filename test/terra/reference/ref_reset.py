@@ -17,7 +17,6 @@ Test circuits and reference outputs for reset instruction.
 from numpy import array, sqrt
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 
-
 # ==========================================================================
 # Deterministic output
 # ==========================================================================

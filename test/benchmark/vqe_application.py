@@ -12,6 +12,7 @@
 """
 Base class of Qiskit Aer Benchmarking
 """
+
 import sys
 import numpy as np
 import multiprocessing

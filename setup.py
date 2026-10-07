@@ -3,6 +3,7 @@
 """
 Main setup file for qiskit-aer
 """
+
 import os
 import platform
 
@@ -20,7 +21,7 @@ ADD_CUDA_REQUIREMENTS = (
 )
 
 requirements = [
-    "qiskit>=1.1.0",
+    "qiskit>=1.1.0,<3",
     "numpy>=1.16.3",
     "scipy>=1.0",
     "psutil>=5",
@@ -104,7 +105,7 @@ setup(
     author_email="qiskit@us.ibm.com",
     license="Apache 2.0",
     classifiers=classifiers,
-    python_requires=">=3.7",
+    python_requires=">=3.10",
     install_requires=requirements,
     include_package_data=False,
     package_data={"qiskit_aer": ["VERSION.txt"], "qiskit_aer.library": ["*.csv"]},

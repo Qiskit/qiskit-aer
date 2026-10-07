@@ -20,7 +20,6 @@ from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit_aer.noise import NoiseModel
 from qiskit_aer.noise.errors.standard_errors import amplitude_damping_error
 
-
 # ==========================================================================
 # Amplitude damping error
 # ==========================================================================

@@ -12,6 +12,7 @@
 """
 AerSimulator Integration Tests
 """
+
 from math import sqrt
 from ddt import ddt
 import unittest

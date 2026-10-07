@@ -12,6 +12,7 @@
 """
 Integration Tests for jump/mark instructions
 """
+
 from ddt import ddt, data
 import unittest
 import numpy

@@ -34,7 +34,6 @@ from qiskit_aer.aererror import AerError
 from qiskit_aer.noise import pauli_error
 from qiskit_aer.quantum_info.states import AerDensityMatrix, AerStatevector
 
-
 logger = logging.getLogger(__name__)
 
 
