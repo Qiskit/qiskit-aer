@@ -11,6 +11,9 @@ build-backend = "setuptools.build_meta"
 
 [tool.cibuildwheel]
 manylinux-x86_64-image = "manylinux_2_28"
+manylinux-aarch64-image = "manylinux_2_28"
+manylinux-s390x-image = "manylinux_2_28"
+manylinux-ppc64le-image = "manylinux_2_28"
 skip = "pp* *musllinux* *i686* *win32* cp38-* cp39-* cp3??t-*"
 test-command = "python {project}/tools/verify_wheels.py"
 # We need to use pre-built versions of Numpy and Scipy in the tests; they have a
@@ -31,7 +34,7 @@ before-all = "dnf install -y openblas-devel"
 before-build = [
     "python -m pip install 'conan<2.0.0'",
     "conan config init --force",
-    "sed -i '' 's/\"16.0\"/\"16.0\", \"17.0\"/' ~/.conan/settings.yml",
+    "sed -i '' 's/\"16.0\"/\"16.0\", \"17.0\", \"18.0\", \"19.0\", \"20.0\", \"21.0\"/' ~/.conan/settings.yml",
 ]
 
 [tool.cibuildwheel.windows]
@@ -39,4 +42,4 @@ environment = { CMAKE_GENERATOR = "Visual Studio 17 2022"}
 
 [tool.black]
 line-length = 100
-target-version = ['py310', 'py311', 'py312', 'py313']
+target-version = ['py310', 'py311', 'py312', 'py313', 'py314']

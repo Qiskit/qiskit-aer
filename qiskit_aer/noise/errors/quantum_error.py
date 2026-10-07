@@ -12,6 +12,7 @@
 """
 Quantum error class for Aer noise model
 """
+
 import numbers
 from typing import Iterable
 import numpy as np

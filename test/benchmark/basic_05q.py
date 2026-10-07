@@ -12,6 +12,7 @@
 """
 Basic Circuit Benchmarking with 5 qubits
 """
+
 from qiskit.circuit.library import IntegerComparator, WeightedAdder, QuadraticForm
 
 from benchmark.simulator_benchmark import SimulatorBenchmarkSuite

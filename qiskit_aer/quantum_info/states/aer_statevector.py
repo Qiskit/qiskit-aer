@@ -13,14 +13,15 @@
 """
 Statevector quantum state class.
 """
+
 import copy
 import numpy as np
 
 from qiskit.circuit import QuantumCircuit, Instruction
 from qiskit.quantum_info.states import Statevector
 
-from qiskit_aer import AerSimulator
 from .aer_state import AerState
+from ...backends.aer_simulator import AerSimulator
 from ...backends.aerbackend import AerError
 from ...backends.backend_utils import BASIS_GATES
 

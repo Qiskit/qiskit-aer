@@ -244,7 +244,9 @@ The release automation processes will be triggered by the new tag and will perfo
 the following steps:
 
 1.  Create a stable branch for the new minor version from the release tag
-    on the `main` branch
+    on the `main` branch. The stable branch **must** follow the `stable/X.Y`
+    format. Otherwise, the documentation `[source]` links in the API docs will get
+    broken. 
 2.  Build and upload binary wheels to pypi
 3.  Create a GitHub release page with a generated changelog
 4.  Generate a PR on the meta-repository to bump the Aer version and

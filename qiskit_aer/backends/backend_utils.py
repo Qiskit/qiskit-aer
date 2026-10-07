@@ -14,6 +14,7 @@
 """
 Aer simulator backend utils
 """
+
 import os
 from math import log2
 

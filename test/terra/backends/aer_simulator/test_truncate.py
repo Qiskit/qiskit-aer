@@ -8,6 +8,7 @@
 """
 AerSimulator Integration Tests
 """
+
 from ddt import ddt
 
 import qiskit

@@ -12,6 +12,7 @@
 """
 Noise model class for Aer simulators.
 """
+
 import copy
 import json
 import logging

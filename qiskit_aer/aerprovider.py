@@ -13,7 +13,6 @@
 # pylint: disable=invalid-name
 """Provider for Aer backends."""
 
-
 from qiskit.providers import QiskitBackendNotFoundError
 from qiskit.providers.providerutils import filter_backends
 

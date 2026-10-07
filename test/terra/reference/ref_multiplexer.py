@@ -13,6 +13,7 @@
 """
 Test circuits and reference outputs for multiplexer gates.
 """
+
 import numpy as np
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, transpile
 from test.terra.utils.multiplexer import multiplexer_multi_controlled_x

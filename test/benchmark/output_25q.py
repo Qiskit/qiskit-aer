@@ -12,6 +12,7 @@
 """
 Output Benchmarking with 25 qubits
 """
+
 from benchmark.simulator_benchmark import SimulatorBenchmarkSuite
 from benchmark.output import OutputSimulatorBenchmarkSuite
 

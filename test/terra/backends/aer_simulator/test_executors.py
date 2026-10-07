@@ -12,6 +12,7 @@
 """
 AerSimulator options tests
 """
+
 import json
 import concurrent.futures
 import pickle
