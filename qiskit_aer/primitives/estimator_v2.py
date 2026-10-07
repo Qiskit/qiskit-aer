@@ -140,7 +140,7 @@ class EstimatorV2(BaseEstimatorV2):
         stds = np.full(bc_param_ind.shape, precision)
         for index in np.ndindex(*bc_param_ind.shape):
             param_index = bc_param_ind[index]
-            if bc_param_ind.shape == param_shape: # if it is 1d passthrough
+            if bc_param_ind.shape == param_shape:  # if it is 1d passthrough
                 flat_index = param_index[0] if isinstance(param_index, tuple) else int(param_index)
             else:
                 flat_index = flat_index_map[param_index]
