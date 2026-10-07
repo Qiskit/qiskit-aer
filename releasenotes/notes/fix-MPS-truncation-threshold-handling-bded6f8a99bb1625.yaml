@@ -1,0 +1,8 @@
+---
+issues:
+  - |
+    Fixed a bug in the MPS simulator where the truncation threshold was not
+    being handled correctly. The truncation threshold is now applied
+    correctly when removing Schmidt coefficients, ensuring that the sum of
+    the squares of the removed coefficients is less than the specified
+    threshold. For details, see #2450.
