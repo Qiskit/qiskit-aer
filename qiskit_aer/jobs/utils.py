@@ -12,12 +12,25 @@
 
 """Utility functions for Aer job management."""
 
+import os
+import sys
 from functools import singledispatch, update_wrapper, wraps
 from concurrent.futures import ThreadPoolExecutor
 
 from qiskit.providers import JobError
 
 DEFAULT_EXECUTOR = ThreadPoolExecutor(max_workers=1)
+
+
+def _reset_executor_in_child():
+    # Threads do not survive os.fork(): the inherited DEFAULT_EXECUTOR has a
+    # queue but no live worker, so the child's first submit() would never run.
+    # Replace it with a fresh executor in every forked child.
+    sys.modules[__name__].DEFAULT_EXECUTOR = ThreadPoolExecutor(max_workers=1)
+
+
+if hasattr(os, "register_at_fork"):
+    os.register_at_fork(after_in_child=_reset_executor_in_child)
 
 
 def requires_submit(func):
