@@ -35,7 +35,8 @@ class AerJump(Instruction):
         """Set condition to perform this jump instruction.
 
         Args:
-            cond (Expr or tuple): `Expr` to call `eval_bool` or tuple for `c_if`
+            cond (Expr or tuple): `Expr` to call `eval_bool`, or a
+                ``(ClassicalRegister | Clbit, int)`` equality condition
 
         Returns:
             AerJump: jump instruction added specified condition
