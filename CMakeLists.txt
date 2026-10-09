@@ -302,7 +302,7 @@ if(AER_THRUST_SUPPORTED)
 			find_package(Python)
 			if(AER_CIBUILD)
 				# cibuildwheel installs into the base interpreter so use its site-packages
-                # layout instead of a virtual environment's site-packages
+				# layout instead of a virtual environment's site-packages
 				set(PYTHON_SITE_PATH ${Python_STDLIB}/site-packages)
 				set(STR_ORIGIN "\$$ORIGIN")
 			else()
