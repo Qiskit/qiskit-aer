@@ -61,6 +61,12 @@ enum class Gates {
   pauli,
   ecr,
   rz,
+  rx,
+  ry,
+  rzz,
+  rxx,
+  ryy,
+  rzx,
 };
 
 enum class Gatetypes { pauli, clifford, non_clifford };
@@ -83,12 +89,18 @@ const AER::stringmap_t<Gatetypes> gate_types_ = {
     {"u1", Gatetypes::non_clifford},  // zero-X90 pulse waltz gate
     {"p", Gatetypes::non_clifford},   // zero-X90 pulse waltz gate
     {"rz", Gatetypes::clifford},      // RZ gate (only support k * pi/2 cases)
+    {"rx", Gatetypes::clifford},      // RX gate (only support k * pi/2 cases)
+    {"ry", Gatetypes::clifford},      // RY gate (only support k * pi/2 cases)
     // Two-qubit gates
     {"CX", Gatetypes::clifford},   // Controlled-X gate (CNOT)
     {"cx", Gatetypes::clifford},   // Controlled-X gate (CNOT)
     {"cz", Gatetypes::clifford},   // Controlled-Z gate
     {"swap", Gatetypes::clifford}, // SWAP gate
     {"ecr", Gatetypes::clifford},  // ECR Gate
+    {"rzz", Gatetypes::clifford},  // RZZ gate (only support k * pi/2 cases)
+    {"rxx", Gatetypes::clifford},  // RXX gate (only support k * pi/2 cases)
+    {"ryy", Gatetypes::clifford},  // RYY gate (only support k * pi/2 cases)
+    {"rzx", Gatetypes::clifford},  // RZX gate (only support k * pi/2 cases)
     // Three-qubit gates
     {"ccx", Gatetypes::non_clifford}, // Controlled-CX gate (Toffoli)
     {"ccz", Gatetypes::non_clifford}, // Controlled-CZ gate (H3 Toff H3)
