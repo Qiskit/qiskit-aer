@@ -86,12 +86,6 @@ with open(README_PATH) as readme_file:
     README = readme_file.read()
 
 
-cmake_args = []
-is_win_32_bit = platform.system() == "Windows" and platform.architecture()[0] == "32bit"
-if is_win_32_bit:
-    cmake_args.append("-DCMAKE_GENERATOR_PLATFORM=Win32")
-
-
 setup(
     name=PACKAGE_NAME,
     version=VERSION,
@@ -109,7 +103,6 @@ setup(
     install_requires=requirements,
     include_package_data=False,
     package_data={"qiskit_aer": ["VERSION.txt"], "qiskit_aer.library": ["*.csv"]},
-    cmake_args=cmake_args,
     keywords="qiskit, simulator, quantum computing, backend",
     zip_safe=False,
 )
