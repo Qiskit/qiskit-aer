@@ -6,7 +6,6 @@
 # the LICENSE.txt file in the root directory of this source tree.
 
 import pathlib
-import sys
 
 import numpy as np
 
@@ -365,36 +364,52 @@ def compare_unitary(result, circuits, targets, ignore_phase=False, atol=1e-8, rt
 
 
 def verify_bundled_licenses():
-    """Check that the wheel carries the licenses of the libraries it bundles.
+    """Check that a wheel carries the licenses of the libraries it bundles.
 
-    The wheels bundle shared libraries that are not part of the Aer source
-    tree, and whose licenses require their terms to accompany the binaries.
-    Those notices are appended to LICENSE.txt at build time by
+    The binary wheels bundle shared libraries that are not part of the Aer
+    source tree, and whose licenses require their terms to accompany the
+    binaries.  Those notices are appended to LICENSE.txt at build time by
     tools/wheels/append_bundled_licenses.sh; this checks that they survived
     into the installed distribution.
+
+    A build from the sdist links against the system libraries instead and so
+    bundles nothing, in which case there is nothing to check.
     """
     import qiskit_aer
 
-    site_packages = pathlib.Path(qiskit_aer.__file__).parent.parent
+    package = pathlib.Path(qiskit_aer.__file__).parent
+    site_packages = package.parent
+
+    # auditwheel and delocate place the libraries they vendor in a sibling
+    # <package>.libs directory or alongside the extension modules.  Each entry
+    # is the name a library is given in the "Name:" field of the notices.
+    bundled = {
+        "OpenBLAS": ["libopenblas*"],
+        "GCC runtime library": ["libgfortran*", "libgomp*"],
+        "libquadmath": ["libquadmath*"],
+        "LLVM OpenMP runtime library": ["libomp.dylib"],
+    }
+    search_dirs = [site_packages / f"{package.name}.libs", package / "backends"]
+    expected = sorted(
+        name
+        for name, patterns in bundled.items()
+        if any(
+            any(directory.glob(pattern))
+            for directory in search_dirs
+            if directory.is_dir()
+            for pattern in patterns
+        )
+    )
+    if not expected:
+        print("no bundled libraries found; skipping license check")
+        return
+
     # The distribution is named qiskit_aer for CPU builds and qiskit_aer_gpu*
     # for the CUDA ones, depending on QISKIT_AER_PACKAGE_NAME.
     dist_infos = sorted(site_packages.glob("qiskit_aer*.dist-info"))
     assert dist_infos, f"no qiskit_aer dist-info found in {site_packages}"
-
     licenses = [path for dist_info in dist_infos for path in dist_info.glob("**/LICENSE.txt")]
     assert licenses, f"no LICENSE.txt found in {dist_infos}"
-
-    # Libraries bundled on each platform, as the names they are given in the
-    # "Name:" field of the notices.
-    if sys.platform.startswith("linux"):
-        expected = ["OpenBLAS", "GCC runtime library", "libquadmath"]
-    elif sys.platform == "darwin":
-        expected = ["LLVM OpenMP runtime library"]
-    elif sys.platform == "win32":
-        expected = ["OpenBLAS"]
-    else:
-        print(f"unrecognized platform {sys.platform}; skipping license check")
-        return
 
     for path in licenses:
         text = path.read_text(encoding="utf-8")
@@ -404,7 +419,7 @@ def verify_bundled_licenses():
         for name in expected:
             assert f"Name: {name}" in text, f"{path} is missing the notice for {name}"
 
-    print(f"bundled-library licenses verified in {len(licenses)} file(s)")
+    print(f"licenses for {', '.join(expected)} verified in {len(licenses)} file(s)")
 
 
 if __name__ == "__main__":
