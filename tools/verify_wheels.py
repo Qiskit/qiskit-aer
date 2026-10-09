@@ -5,6 +5,9 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
+import pathlib
+import sys
+
 import numpy as np
 
 from qiskit import ClassicalRegister
@@ -361,7 +364,52 @@ def compare_unitary(result, circuits, targets, ignore_phase=False, atol=1e-8, rt
         raise Exception(msg)
 
 
+def verify_bundled_licenses():
+    """Check that the wheel carries the licenses of the libraries it bundles.
+
+    The wheels bundle shared libraries that are not part of the Aer source
+    tree, and whose licenses require their terms to accompany the binaries.
+    Those notices are appended to LICENSE.txt at build time by
+    tools/wheels/append_bundled_licenses.sh; this checks that they survived
+    into the installed distribution.
+    """
+    import qiskit_aer
+
+    site_packages = pathlib.Path(qiskit_aer.__file__).parent.parent
+    # The distribution is named qiskit_aer for CPU builds and qiskit_aer_gpu*
+    # for the CUDA ones, depending on QISKIT_AER_PACKAGE_NAME.
+    dist_infos = sorted(site_packages.glob("qiskit_aer*.dist-info"))
+    assert dist_infos, f"no qiskit_aer dist-info found in {site_packages}"
+
+    licenses = [path for dist_info in dist_infos for path in dist_info.glob("**/LICENSE.txt")]
+    assert licenses, f"no LICENSE.txt found in {dist_infos}"
+
+    # Libraries bundled on each platform, as the names they are given in the
+    # "Name:" field of the notices.
+    if sys.platform.startswith("linux"):
+        expected = ["OpenBLAS", "GCC runtime library", "libquadmath"]
+    elif sys.platform == "darwin":
+        expected = ["LLVM OpenMP runtime library"]
+    elif sys.platform == "win32":
+        expected = ["OpenBLAS"]
+    else:
+        print(f"unrecognized platform {sys.platform}; skipping license check")
+        return
+
+    for path in licenses:
+        text = path.read_text(encoding="utf-8")
+        assert (
+            "This binary distribution of Qiskit Aer bundles" in text
+        ), f"{path} is missing the bundled-library license notices"
+        for name in expected:
+            assert f"Name: {name}" in text, f"{path} is missing the notice for {name}"
+
+    print(f"bundled-library licenses verified in {len(licenses)} file(s)")
+
+
 if __name__ == "__main__":
+    verify_bundled_licenses()
+
     # Run Aer simulator
     shots = 4000
     circuits = grovers_circuit(final_measure=True, allow_sampling=True)

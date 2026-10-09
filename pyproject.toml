@@ -24,6 +24,7 @@ before-test = "pip install --only-binary=numpy,scipy numpy scipy"
 
 [tool.cibuildwheel.linux]
 before-all = "dnf install -y openblas-devel"
+before-build = "bash {project}/tools/wheels/append_bundled_licenses.sh {project}"
 
 [tool.cibuildwheel.macos]
 # The macOS images we use have a newer clang than the ancient version of conan
@@ -35,10 +36,12 @@ before-build = [
     "python -m pip install 'conan<2.0.0'",
     "conan config init --force",
     "sed -i '' 's/\"16.0\"/\"16.0\", \"17.0\", \"18.0\", \"19.0\", \"20.0\", \"21.0\"/' ~/.conan/settings.yml",
+    "bash {project}/tools/wheels/append_bundled_licenses.sh {project}",
 ]
 
 [tool.cibuildwheel.windows]
 environment = { CMAKE_GENERATOR = "Visual Studio 17 2022"}
+before-build = "bash {project}/tools/wheels/append_bundled_licenses.sh {project}"
 
 [tool.black]
 line-length = 100
