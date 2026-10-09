@@ -5,6 +5,8 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
+import pathlib
+
 import numpy as np
 
 from qiskit import ClassicalRegister
@@ -361,7 +363,68 @@ def compare_unitary(result, circuits, targets, ignore_phase=False, atol=1e-8, rt
         raise Exception(msg)
 
 
+def verify_bundled_licenses():
+    """Check that a wheel carries the licenses of the libraries it bundles.
+
+    The binary wheels bundle shared libraries that are not part of the Aer
+    source tree, and whose licenses require their terms to accompany the
+    binaries.  Those notices are appended to LICENSE.txt at build time by
+    tools/wheels/append_bundled_licenses.sh; this checks that they survived
+    into the installed distribution.
+
+    A build from the sdist links against the system libraries instead and so
+    bundles nothing, in which case there is nothing to check.
+    """
+    import qiskit_aer
+
+    package = pathlib.Path(qiskit_aer.__file__).parent
+    site_packages = package.parent
+
+    # auditwheel and delocate place the libraries they vendor in a sibling
+    # <package>.libs directory or alongside the extension modules.  Each entry
+    # is the name a library is given in the "Name:" field of the notices.
+    bundled = {
+        "OpenBLAS": ["libopenblas*"],
+        "GCC runtime library": ["libgfortran*", "libgomp*"],
+        "libquadmath": ["libquadmath*"],
+        "LLVM OpenMP runtime library": ["libomp.dylib"],
+    }
+    search_dirs = [site_packages / f"{package.name}.libs", package / "backends"]
+    expected = sorted(
+        name
+        for name, patterns in bundled.items()
+        if any(
+            any(directory.glob(pattern))
+            for directory in search_dirs
+            if directory.is_dir()
+            for pattern in patterns
+        )
+    )
+    if not expected:
+        print("no bundled libraries found; skipping license check")
+        return
+
+    # The distribution is named qiskit_aer for CPU builds and qiskit_aer_gpu*
+    # for the CUDA ones, depending on QISKIT_AER_PACKAGE_NAME.
+    dist_infos = sorted(site_packages.glob("qiskit_aer*.dist-info"))
+    assert dist_infos, f"no qiskit_aer dist-info found in {site_packages}"
+    licenses = [path for dist_info in dist_infos for path in dist_info.glob("**/LICENSE.txt")]
+    assert licenses, f"no LICENSE.txt found in {dist_infos}"
+
+    for path in licenses:
+        text = path.read_text(encoding="utf-8")
+        assert (
+            "This binary distribution of Qiskit Aer bundles" in text
+        ), f"{path} is missing the bundled-library license notices"
+        for name in expected:
+            assert f"Name: {name}" in text, f"{path} is missing the notice for {name}"
+
+    print(f"licenses for {', '.join(expected)} verified in {len(licenses)} file(s)")
+
+
 if __name__ == "__main__":
+    verify_bundled_licenses()
+
     # Run Aer simulator
     shots = 4000
     circuits = grovers_circuit(final_measure=True, allow_sampling=True)
