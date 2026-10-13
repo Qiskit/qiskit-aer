@@ -28,6 +28,7 @@
 #include <stdlib.h>
 
 namespace AER {
+
 // default values
 constexpr auto mul_factor = 1e2;
 constexpr long double tiny_factor = 1e30;
@@ -666,5 +667,160 @@ void lapack_csvd_wrapper(cmatrix_t &A, cmatrix_t &U, rvector_t &S,
     throw std::runtime_error(ss.str());
   }
 }
+
+#ifdef AER_THRUST_CUDA
+void cutensor_csvd_wrapper(cmatrix_t &A, cmatrix_t &U, rvector_t &S,
+                           cmatrix_t &V, cudaStream_t &stream,
+                           cutensornetHandle_t &handle) {
+  bool transposed = false;
+
+  const int64_t rows = A.GetRows(), cols = A.GetColumns();
+
+  if (rows < cols) {
+    transposed = true;
+    A = AER::Utils::dagger(A);
+  }
+  cmatrix_t A_cpy = A;
+
+  const int64_t min_dim = std::min(rows, cols);
+  const int64_t lda = std::max(rows, cols);
+
+  U.resize(lda, min_dim);
+  V.resize(min_dim, min_dim);
+  S.resize(min_dim);
+
+  size_t sizeA = A.size() * sizeof(complex_t);
+  size_t sizeU = U.size() * sizeof(complex_t);
+  size_t sizeS = S.size() * sizeof(double);
+  size_t sizeV = V.size() * sizeof(complex_t);
+
+  complex_t *cutensor_A = A.move_to_buffer(), *cutensor_U = U.move_to_buffer(),
+            *cutensor_V = V.move_to_buffer();
+
+  cudaDataType_t typeData = CUDA_C_64F;
+
+  std::vector<int32_t> modesA{'m', 'n'};
+  std::vector<int32_t> modesU{'m', 'x'};
+  std::vector<int32_t> modesV{'x', 'n'};
+
+  double *cutensor_S = (double *)malloc(sizeS);
+
+  void *D_A;
+  void *D_U;
+  void *D_S;
+  void *D_V;
+
+  HANDLE_CUDA_ERROR(cudaMalloc((void **)&D_A, sizeA));
+  HANDLE_CUDA_ERROR(cudaMalloc((void **)&D_U, sizeU));
+  HANDLE_CUDA_ERROR(cudaMalloc((void **)&D_S, sizeS));
+  HANDLE_CUDA_ERROR(cudaMalloc((void **)&D_V, sizeV));
+
+  HANDLE_CUDA_ERROR(cudaMemcpy(D_A, cutensor_A, sizeA, cudaMemcpyHostToDevice));
+
+  cutensornetTensorDescriptor_t descTensorA;
+  cutensornetTensorDescriptor_t descTensorU;
+  cutensornetTensorDescriptor_t descTensorV;
+
+  const int32_t numModesA = modesA.size();
+  const int32_t numModesU = modesU.size();
+  const int32_t numModesV = modesV.size();
+
+  std::vector<int64_t> extentA{lda, min_dim};     // shape of A
+  std::vector<int64_t> extentU{lda, min_dim};     // shape of U :)
+  std::vector<int64_t> extentV{min_dim, min_dim}; // shape of V
+
+  const int64_t *strides =
+      NULL; // matrices stores the entries in column-major-order.
+
+  HANDLE_ERROR(cutensornetCreateTensorDescriptor(
+      handle, numModesA, extentA.data(), strides, modesA.data(), typeData,
+      &descTensorA));
+  HANDLE_ERROR(cutensornetCreateTensorDescriptor(
+      handle, numModesU, extentU.data(), strides, modesU.data(), typeData,
+      &descTensorU));
+  HANDLE_ERROR(cutensornetCreateTensorDescriptor(
+      handle, numModesV, extentV.data(), strides, modesV.data(), typeData,
+      &descTensorV));
+
+  cutensornetWorkspaceDescriptor_t workDesc;
+  HANDLE_ERROR(cutensornetCreateWorkspaceDescriptor(handle, &workDesc));
+  HANDLE_ERROR(cutensornetWorkspaceComputeSVDSizes(
+      handle, descTensorA, descTensorU, descTensorV, NULL, workDesc));
+  int64_t hostWorkspaceSize, deviceWorkspaceSize;
+  // for tensor SVD, it does not matter which cutensornetWorksizePref_t we pick
+  HANDLE_ERROR(cutensornetWorkspaceGetMemorySize(
+      handle, workDesc, CUTENSORNET_WORKSIZE_PREF_RECOMMENDED,
+      CUTENSORNET_MEMSPACE_DEVICE, CUTENSORNET_WORKSPACE_SCRATCH,
+      &deviceWorkspaceSize));
+  HANDLE_ERROR(cutensornetWorkspaceGetMemorySize(
+      handle, workDesc, CUTENSORNET_WORKSIZE_PREF_RECOMMENDED,
+      CUTENSORNET_MEMSPACE_HOST, CUTENSORNET_WORKSPACE_SCRATCH,
+      &hostWorkspaceSize));
+
+  void *devWork = nullptr, *hostWork = nullptr;
+  if (deviceWorkspaceSize > 0) {
+    HANDLE_CUDA_ERROR(cudaMalloc(&devWork, deviceWorkspaceSize));
+  }
+  if (hostWorkspaceSize > 0) {
+    hostWork = malloc(hostWorkspaceSize);
+  }
+  HANDLE_ERROR(cutensornetWorkspaceSetMemory(
+      handle, workDesc, CUTENSORNET_MEMSPACE_DEVICE,
+      CUTENSORNET_WORKSPACE_SCRATCH, devWork, deviceWorkspaceSize));
+  HANDLE_ERROR(cutensornetWorkspaceSetMemory(
+      handle, workDesc, CUTENSORNET_MEMSPACE_HOST,
+      CUTENSORNET_WORKSPACE_SCRATCH, hostWork, hostWorkspaceSize));
+
+  // Requesting for Exact SVD.
+  HANDLE_ERROR(cutensornetTensorSVD(handle, descTensorA, D_A, descTensorU, D_U,
+                                    D_S, descTensorV, D_V, NULL, NULL, workDesc,
+                                    stream));
+
+  HANDLE_CUDA_ERROR(
+      cudaMemcpyAsync(cutensor_U, D_U, sizeU, cudaMemcpyDeviceToHost));
+  HANDLE_CUDA_ERROR(
+      cudaMemcpyAsync(cutensor_S, D_S, sizeS, cudaMemcpyDeviceToHost));
+  HANDLE_CUDA_ERROR(
+      cudaMemcpyAsync(cutensor_V, D_V, sizeV, cudaMemcpyDeviceToHost));
+
+  S.clear();
+  for (int i = 0; i < min_dim; i++)
+    S.push_back(cutensor_S[i]);
+
+  A = cmatrix_t::move_from_buffer(lda, min_dim, cutensor_A);
+  U = cmatrix_t::move_from_buffer(lda, min_dim, cutensor_U);
+  V = cmatrix_t::move_from_buffer(min_dim, min_dim, cutensor_V);
+
+  V = AER::Utils::dagger(V);
+  validate_SVD_result(A_cpy, U, S, V);
+  if (transposed) {
+    std::swap(U, V);
+  }
+
+  /***************
+   * Free resources
+   ****************/
+
+  HANDLE_ERROR(cutensornetDestroyTensorDescriptor(descTensorA));
+  HANDLE_ERROR(cutensornetDestroyTensorDescriptor(descTensorU));
+  HANDLE_ERROR(cutensornetDestroyTensorDescriptor(descTensorV));
+  HANDLE_ERROR(cutensornetDestroyWorkspaceDescriptor(workDesc));
+
+  if (cutensor_S)
+    free(cutensor_S);
+  if (D_A)
+    cudaFree(D_A);
+  if (D_U)
+    cudaFree(D_U);
+  if (D_S)
+    cudaFree(D_S);
+  if (D_V)
+    cudaFree(D_V);
+  if (devWork)
+    cudaFree(devWork);
+  if (hostWork)
+    free(hostWork);
+}
+#endif // AER_THRUST_CUDA
 
 } // namespace AER

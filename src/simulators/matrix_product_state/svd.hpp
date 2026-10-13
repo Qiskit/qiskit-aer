@@ -55,6 +55,41 @@ void validate_SVD_result(const cmatrix_t &A, const cmatrix_t &U,
 void validate_SVdD_result(const cmatrix_t &A, const cmatrix_t &U,
                           const rvector_t &S, const cmatrix_t &V);
 
+#ifdef AER_THRUST_CUDA
+
+#include <cuda.h>
+#include <cuda_runtime.h>
+#include <cutensornet.h>
+#include <vector>
+
+#define HANDLE_ERROR(x)                                                        \
+  {                                                                            \
+    const auto err = x;                                                        \
+    if (err != CUTENSORNET_STATUS_SUCCESS) {                                   \
+      std::stringstream str;                                                   \
+      str << "ERROR TensorNet::contractor : "                                  \
+          << cutensornetGetErrorString(err);                                   \
+      throw std::runtime_error(str.str());                                     \
+    }                                                                          \
+  };
+
+#define HANDLE_CUDA_ERROR(x)                                                   \
+  {                                                                            \
+    const auto err = x;                                                        \
+    if (err != cudaSuccess) {                                                  \
+      std::stringstream str;                                                   \
+      str << "ERROR TensorNet::contractor : " << cudaGetErrorString(err);      \
+      throw std::runtime_error(str.str());                                     \
+    }                                                                          \
+  };
+
+// cutensor call
+void cutensor_csvd_wrapper(cmatrix_t &C, cmatrix_t &U, rvector_t &S,
+                           cmatrix_t &V, cudaStream_t &stream,
+                           cutensornetHandle_t &handle);
+
+#endif // AER_THRUST_CUDA
+
 //-------------------------------------------------------------------------
 } // end namespace AER
 //-------------------------------------------------------------------------
