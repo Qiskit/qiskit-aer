@@ -81,7 +81,9 @@ jobs:
         run: |
           set -e
           mkdir out; cd out; virtualenv aer-test
-          aer-test/bin/pip install ../dist/*tar.gz 'dill @ git+https://github.com/uqfoundation/dill@e862cad2041c05f812791bb4998aa4ae5ba74fb3'
+          # The dill requirement is only needed on Python 3.15; see the comment
+          # in constraints.txt for when it can be dropped.
+          aer-test/bin/pip install ../dist/*tar.gz 'dill @ git+https://github.com/uqfoundation/dill@e862cad2041c05f812791bb4998aa4ae5ba74fb3 ; python_version >= "3.15"'
           aer-test/bin/python ../tools/verify_wheels.py
           aer-test/bin/pip check
         shell: bash

@@ -18,9 +18,15 @@ skip = "*musllinux* *i686* *win32* cp3??t-*"
 test-command = "python {project}/tools/verify_wheels.py"
 # We need to use pre-built versions of Numpy and Scipy in the tests; they have a
 # tendency to crash if they're installed from source by `pip install`.
-#
-# Install dill from its main branch for now. See comment in constraints.txt
-before-test = "pip install --only-binary=numpy,scipy numpy scipy git+https://github.com/uqfoundation/dill@e862cad2041c05f812791bb4998aa4ae5ba74fb3"
+before-test = "pip install --only-binary=numpy,scipy numpy scipy"
+
+# Only Python 3.15 needs the unreleased dill fix.  This override
+# is the cibuildwheel equivalent of the `python_version >= "3.15"` marker in
+# constraints.txt; see the comment there for when it can be dropped.
+[[tool.cibuildwheel.overrides]]
+select = "cp315-*"
+inherit.before-test = "append"
+before-test = "pip install git+https://github.com/uqfoundation/dill@e862cad2041c05f812791bb4998aa4ae5ba74fb3"
 
 [tool.cibuildwheel.linux]
 before-all = "dnf install -y openblas-devel"

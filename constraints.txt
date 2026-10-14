@@ -9,4 +9,4 @@ astroid==4.3.3
 #
 # NOTE: when removing this, also remove the equivalents in pyproject.toml (for
 # cibuildwheel) and in the sdist job of .github/workflows/tests.yml.
-dill @ git+https://github.com/uqfoundation/dill@e862cad2041c05f812791bb4998aa4ae5ba74fb3
+dill @ git+https://github.com/uqfoundation/dill@e862cad2041c05f812791bb4998aa4ae5ba74fb3 ; python_version >= "3.15"
