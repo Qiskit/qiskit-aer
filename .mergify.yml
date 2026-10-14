@@ -18,9 +18,9 @@ pull_request_rules:
       # This section is just a sanity check before the PR can enter the main
       # queue.
       - or:
-        - check-success=tests_linux (3.10, ubuntu-latest)
-        - check-neutral=tests_linux (3.10, ubuntu-latest)
-        - check-skipped=tests_linux (3.10, ubuntu-latest)
+        - check-success=Finalize tests
+        - check-neutral=Finalize tests
+        - check-skipped=Finalize tests
     actions:
       queue:
         name: automerge
