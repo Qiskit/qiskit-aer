@@ -10,7 +10,7 @@ requires = [
 build-backend = "setuptools.build_meta"
 
 [dependency-groups]
-wheel = ["cibuildwheel>=4.2,<5"]
+wheel = ["cibuildwheel~=4.3.0"]
 
 [tool.cibuildwheel]
 manylinux-x86_64-image = "manylinux_2_28"
