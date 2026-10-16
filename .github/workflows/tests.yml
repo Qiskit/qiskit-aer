@@ -116,6 +116,11 @@ jobs:
           aer-test/bin/python ../tools/verify_wheels.py
           aer-test/bin/pip check
         shell: bash
+        env:
+          # Starting with Python 3.15 and Qiskit 2.6.0, glibc in the GitHub
+          # runner does not leave thread local storage (TLS) space for loading
+          # libgomp
+          GLIBC_TUNABLES: glibc.rtld.optional_static_tls=4096
   tests_linux:
     runs-on: ubuntu-latest
     name: Linux Python ${{ matrix.python-version }}${{ matrix.qiskit-extra && format(' ({0})', matrix.qiskit-extra) }}
@@ -133,6 +138,10 @@ jobs:
       # a new internal interface that will be the default in jupyter-core 6.x.
       # This variable should become redundant on release of jupyter-core 6.
       JUPYTER_PLATFORM_DIRS: 1
+      # Starting with Python 3.15 and Qiskit 2.6.0, glibc in the GitHub
+      # runner does not leave thread local storage (TLS) space for loading
+      # libgomp
+      GLIBC_TUNABLES: glibc.rtld.optional_static_tls=4096
     steps:
       - uses: actions/checkout@v7
       - name: Set up Python ${{ matrix.python-version }}
