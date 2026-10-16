@@ -1,0 +1,10 @@
+---
+fixes:
+  - |
+    Fixed simulation of controlled gates with more than one target qubit,
+    such as :class:`~qiskit.circuit.library.CSwapGate`, when a non-default
+    ``ctrl_state`` is used (for example ``SwapGate().control(1, ctrl_state=0)``).
+    The X gates that implement the open controls were applied to the first
+    ``len(qubits) - 1`` qubits, which for these gates included a target qubit.
+    They are now applied only to the control qubits.
+    Fixed `#2342 <https://github.com/Qiskit/qiskit-aer/issues/2342>`__.
