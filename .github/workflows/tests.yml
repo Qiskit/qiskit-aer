@@ -8,25 +8,54 @@ concurrency:
   group: ${{ github.repository }}-${{ github.ref }}-${{ github.head_ref }}-${{ github.workflow }}
   cancel-in-progress: true
 jobs:
+
+  # This 'finalize' job is a no-op; its sole purpose is to depend on all the other jobs and provide
+  # a single in-code determination of whether the branch-protection rules have been passed.  The
+  # branch-protection rules in the GitHub web interface can then depend only on this job.
+  finalize:
+    name: Finalize tests
+    runs-on: 'ubuntu-latest'
+    # This list should contain every other job in this file.
+    needs:
+      - lint
+      - sdist
+      - tests_linux
+      - tests_macos
+      - tests_windows
+    # This job needs to trigger even if its predecessors failed and return the same status.  By
+    # default, GitHub Actions will "skip" the job if a requirement failed, but that counts as a
+    # "success" state, which is not acceptable for a branch-protection rule.  We don't use `always`
+    # because we don't want `cancelled` to trigger this.
+    if: success() || failure()
+    steps:
+      - run: |
+          echo "Successful run."
+        if: ${{ !contains(needs.*.result, 'failure') }}
+      - run: |
+          echo "Predecessor jobs failed.  See GitHub Actions logs." >&2
+          exit 1
+        if: ${{ contains(needs.*.result, 'failure') }}
+
   lint:
     runs-on: ubuntu-latest
-    env:
-      LINT_PYTHON_VERSION: '3.13'
+    strategy:
+      matrix:
+        python-version: ['3.13']
     steps:
-      - uses: actions/checkout@v4
-      - name: Set up Python ${{ env.LINT_PYTHON_VERSION }}
-        uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v7
         with:
-          python-version: ${{ env.LINT_PYTHON_VERSION }}
+          python-version: ${{ matrix.python-version }}
       - name: Pip cache
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.cache/pip
-          key: ${{ runner.os }}-${{ env.LINT_PYTHON_VERSION }}-pip-lint-${{ hashFiles('setup.py','requirements-dev.txt','constraints.txt') }}
+          key: ${{ runner.os }}-${{ matrix.python-version}}-pip-test-${{ hashFiles('setup.py','requirements-dev.txt','constraints.txt') }}
           restore-keys: |
-            ${{ runner.os }}-${{ env.LINT_PYTHON_VERSION }}-pip-lint-
-            ${{ runner.os }}-${{ env.LINT_PYTHON_VERSION }}-pip-
-            ${{ runner.os }}-${{ env.LINT_PYTHON_VERSION }}-
+            ${{ runner.os }}-${{ matrix.python-version}}-pip-test-
+            ${{ runner.os }}-${{ matrix.python-version}}-pip-
+            ${{ runner.os }}-${{ matrix.python-version}}-
       - name: Install deps
         run: |
           set -e
@@ -53,13 +82,13 @@ jobs:
           { os: "ubuntu-latest", python-architecture: "x64" },
         ]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.python-version }}
       - name: Pip cache
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-${{ matrix.python-version}}-pip-sdist-${{ hashFiles('setup.py','requirements-dev.txt','constraints.txt') }}
@@ -87,6 +116,11 @@ jobs:
           aer-test/bin/python ../tools/verify_wheels.py
           aer-test/bin/pip check
         shell: bash
+        env:
+          # Starting with Python 3.15 and Qiskit 2.6.0, glibc in the GitHub
+          # runner does not leave thread local storage (TLS) space for loading
+          # libgomp
+          GLIBC_TUNABLES: glibc.rtld.optional_static_tls=4096
   tests_linux:
     runs-on: ubuntu-latest
     name: Linux Python ${{ matrix.python-version }}${{ matrix.qiskit-extra && format(' ({0})', matrix.qiskit-extra) }}
@@ -104,14 +138,18 @@ jobs:
       # a new internal interface that will be the default in jupyter-core 6.x.
       # This variable should become redundant on release of jupyter-core 6.
       JUPYTER_PLATFORM_DIRS: 1
+      # Starting with Python 3.15 and Qiskit 2.6.0, glibc in the GitHub
+      # runner does not leave thread local storage (TLS) space for loading
+      # libgomp
+      GLIBC_TUNABLES: glibc.rtld.optional_static_tls=4096
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.python-version }}
       - name: Pip cache
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-${{ matrix.python-version}}-pip-test-${{ hashFiles('setup.py','requirements-dev.txt','constraints.txt') }}
@@ -139,56 +177,6 @@ jobs:
           rm -rf qiskit_aer
           stestr run --slowest
         shell: bash
-  tests-json-input:
-    runs-on: ${{ matrix.os }}
-    needs: [sdist, lint]
-    timeout-minutes: 60
-    strategy:
-      matrix:
-        python-version: ['3.11']
-        os: ["ubuntu-latest"]
-    env:
-      AER_THRUST_BACKEND: OMP
-      QISKIT_TEST_CAPTURE_STREAMS: 1
-      # Needed to suppress a warning in jupyter-core 5.x by eagerly migrating to
-      # a new internal interface that will be the default in jupyter-core 6.x.
-      # This variable should become redundant on release of jupyter-core 6.
-      JUPYTER_PLATFORM_DIRS: 1
-    steps:
-      - uses: actions/checkout@v4
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.python-version }}
-      - name: Pip cache
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-${{ matrix.python-version}}-pip-test-${{ hashFiles('setup.py','requirements-dev.txt','constraints.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-${{ matrix.python-version}}-pip-test-
-            ${{ runner.os }}-${{ matrix.python-version}}-pip-
-            ${{ runner.os }}-${{ matrix.python-version}}-
-      - name: Install Deps
-        run: python -m pip install -U -c constraints.txt -r requirements-dev.txt wheel build
-      - name: Install openblas
-        run: |
-          set -e
-          sudo apt-get update
-          sudo apt-get install -y libopenblas-dev
-        shell: bash
-      - name: Install Aer
-        run: |
-          set -e
-          python -I -m build --wheel --config-setting=--build-option=-DTEST_JSON=1
-          pip install -U dist/*.whl
-      - name: Run Tests
-        run: |
-          set -e
-          pip check
-          rm -rf qiskit_aer
-          stestr run --slowest
-        shell: bash
   tests_macos:
     runs-on: macos-latest
     name: macOS Python ${{ matrix.python-version }}
@@ -205,13 +193,13 @@ jobs:
       # This variable should become redundant on release of jupyter-core 6.
       JUPYTER_PLATFORM_DIRS: 1
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.python-version }}
       - name: Pip cache
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-${{ matrix.python-version}}-pip-test-${{ hashFiles('setup.py','requirements-dev.txt','constraints.txt') }}
@@ -263,13 +251,13 @@ jobs:
       # This variable should become redundant on release of jupyter-core 6.
       JUPYTER_PLATFORM_DIRS: 1
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.python-version }}
       - name: Pip cache
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~\AppData\Local\pip\Cache
           key: ${{ runner.os }}-${{ matrix.python-version}}-pip-test-${{ hashFiles('setup.py','requirements-dev.txt','constraints.txt') }}
@@ -278,7 +266,7 @@ jobs:
             ${{ runner.os }}-${{ matrix.python-version}}-pip-
             ${{ runner.os }}-${{ matrix.python-version}}-
       - name: Add msbuild to PATH
-        uses: microsoft/setup-msbuild@v2
+        uses: microsoft/setup-msbuild@v3
       - name: Build Aer Windows
         env:
           CMAKE_GENERATOR: "Visual Studio 17 2022"
