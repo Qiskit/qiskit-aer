@@ -12,6 +12,7 @@
 """
 Quantum error class for Aer noise model
 """
+
 import numbers
 from typing import Iterable
 import numpy as np
@@ -319,8 +320,9 @@ class QuantumError(BaseQuantumError, TolerancesMixin):
                     inst_dict["params"] = inst.operation.params
                 if inst.operation.label:
                     inst_dict["label"] = inst.operation.label
-                if inst.operation.condition:
-                    inst_dict["condition"] = inst.operation.condition
+                condition = getattr(inst.operation, "condition", None)
+                if condition:
+                    inst_dict["condition"] = condition
                 circ_inst.append(inst_dict)
             instructions.append(circ_inst)
         # Construct error dict

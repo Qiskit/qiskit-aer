@@ -12,6 +12,7 @@
 """
 AerSimulator Integration Tests
 """
+
 from ddt import ddt
 from test.terra.reference import ref_1q_clifford
 from test.terra.reference import ref_2q_clifford

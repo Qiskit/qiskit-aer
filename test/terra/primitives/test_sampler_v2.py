@@ -588,8 +588,10 @@ class TestSamplerV2(QiskitAerTestCase):
         c2 = ClassicalRegister(1, "c2")
 
         qc = QuantumCircuit(q, c1, c2)
-        qc.z(2).c_if(c1, 1)
-        qc.x(2).c_if(c2, 1)
+        with qc.if_test((c1, 1)):
+            qc.z(2)
+        with qc.if_test((c2, 1)):
+            qc.x(2)
         qc2 = QuantumCircuit(5, 5)
         qc2.compose(qc, [0, 2, 3], [2, 4], inplace=True)
         # Note: qc2 has aliased cregs, c0 -> c[2] and c1 -> c[4].

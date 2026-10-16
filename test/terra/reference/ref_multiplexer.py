@@ -13,6 +13,7 @@
 """
 Test circuits and reference outputs for multiplexer gates.
 """
+
 import numpy as np
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, transpile
 from test.terra.utils.multiplexer import multiplexer_multi_controlled_x
@@ -26,6 +27,7 @@ from test.terra.reference.ref_non_clifford import (
 )
 from qiskit.quantum_info.states import Statevector
 from qiskit.circuit.library import Isometry, UCGate
+from qiskit.transpiler import Target
 
 
 def multiplexer_cx_gate_circuits_deterministic(final_measure=True):
@@ -301,4 +303,9 @@ def multiplexer_no_control_qubits(final_measure=True):
 
     if final_measure:
         qc.measure(0, 0)
-    return [transpile(qc, basis_gates=["multiplexer", "measure"])]
+
+    target = Target.from_configuration(
+        basis_gates=["multiplexer", "measure"], custom_name_mapping={"multiplexer": None}
+    )
+
+    return [transpile(qc, target=target)]

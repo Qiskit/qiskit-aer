@@ -29,6 +29,7 @@ class AerJump(Instruction):
     def __init__(self, jump_to, num_qubits, num_clbits=0):
         super().__init__("jump", num_qubits, num_clbits, [jump_to])
         self.condition_expr = None
+        self.condition = None
 
     def set_conditional(self, cond):
         """Set condition to perform this jump instruction.
@@ -42,5 +43,5 @@ class AerJump(Instruction):
         if isinstance(cond, Expr):
             self.condition_expr = cond
         else:
-            self.c_if(*cond)
+            self.condition = cond
         return self

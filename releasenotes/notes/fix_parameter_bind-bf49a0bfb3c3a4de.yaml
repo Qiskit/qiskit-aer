@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Calling `Circuit::set_params` after binding parameters, because `set_params`
+    changes order of operations that causes failure of parameter binding.
+    This fixes issue #2367

@@ -1,0 +1,13 @@
+---
+features:
+  - |
+    Enabled `save_amplitudes_sq` for the extended_stabilizer simulation
+    method. This allows computing the probability of a particular outcome
+    without resorting to computing the value for all outcomes, as was
+    the case for `save_statevector` (which does not scale beyond
+    a handful of qubits).
+
+    For example by adding
+    `circuit.save_amplitudes_squared([0], label="p0")` to the circuit,
+    the probability of the all-zero outcome bitstring is saved in the
+    result object under the "p0" label.
