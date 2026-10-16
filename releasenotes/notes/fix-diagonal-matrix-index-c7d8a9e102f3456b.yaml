@@ -1,0 +1,10 @@
+---
+fixes:
+  - |
+    Fixed an issue in ``Transformer::apply_diagonal_matrix_1`` where single-qubit
+    diagonal matrices of the form :math:`\text{diag}(\pm i, 1)` incorrectly applied
+    the phase to qubit state index :math:`|1\rangle` instead of :math:`|0\rangle`
+    in the fast-path branches. This could cause incorrect results during statevector
+    and unitary simulation when applying such matrices directly or when gate fusion
+    combined gates into :math:`\text{diag}(\pm i, 1)`.
+    Fixed `#2475 <https://github.com/Qiskit/qiskit-aer/issues/2475>`__.
