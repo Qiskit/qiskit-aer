@@ -13,19 +13,17 @@
 StatevectorSimulator Integration Tests
 """
 
-import unittest
 from ddt import ddt
 from numpy import exp, pi
 
 from test.terra.reference import ref_measure
 from test.terra.reference import ref_reset
 from test.terra.reference import ref_initialize
-from test.terra.reference import ref_conditionals
 from test.terra.reference import ref_1q_clifford
 from test.terra.reference import ref_unitary_gate
 from test.terra.reference import ref_diagonal_gate
 
-from qiskit import transpile, __version__ as qiskit_version
+from qiskit import transpile
 from qiskit_aer import StatevectorSimulator, AerError
 from test.terra.backends.simulator_test_case import SimulatorTestCase, supported_devices
 
@@ -100,141 +98,6 @@ class TestStatevectorSimulator(SimulatorTestCase):
         circuits = transpile(circuits, backend, optimization_level=1)
         result = backend.run(circuits, shots=1).result()
         targets = ref_measure.measure_statevector_deterministic()
-        self.assertSuccess(result)
-        self.compare_statevector(result, circuits, targets)
-
-    # ---------------------------------------------------------------------
-    # Test conditional
-    # ---------------------------------------------------------------------
-    @unittest.skipUnless(
-        qiskit_version.startswith("0.") or qiskit_version.startswith("1."),
-        reason="c_if support was removed in Qiskit >= 2.0",
-    )
-    @supported_devices
-    def test_conditional_gate_1bit(self, device):
-        """Test conditional gates on 1-bit conditional register."""
-        backend = self.backend(device=device)
-        circuits = ref_conditionals.conditional_circuits_1bit(final_measure=False)
-        circuits = transpile(circuits, backend, optimization_level=1)
-        result = backend.run(circuits, shots=1).result()
-        targets = ref_conditionals.conditional_statevector_1bit()
-        self.assertSuccess(result)
-        self.compare_statevector(result, circuits, targets)
-
-    @unittest.skipUnless(
-        qiskit_version.startswith("0.") or qiskit_version.startswith("1."),
-        reason="c_if support was removed in Qiskit >= 2.0",
-    )
-    @supported_devices
-    def test_conditional_unitary_1bit(self, device):
-        """Test conditional unitaries on 1-bit conditional register."""
-        backend = self.backend(device=device)
-        circuits = ref_conditionals.conditional_circuits_1bit(
-            final_measure=False, conditional_type="unitary"
-        )
-        result = backend.run(circuits, shots=1).result()
-        targets = ref_conditionals.conditional_statevector_1bit()
-        self.assertSuccess(result)
-        self.compare_statevector(result, circuits, targets)
-
-    @unittest.skipUnless(
-        qiskit_version.startswith("0.") or qiskit_version.startswith("1."),
-        reason="c_if support was removed in Qiskit >= 2.0",
-    )
-    @supported_devices
-    def test_conditional_gate_2bit(self, device):
-        """Test conditional gates on 2-bit conditional register."""
-        backend = self.backend(device=device)
-        circuits = ref_conditionals.conditional_circuits_2bit(final_measure=False)
-        circuits = transpile(circuits, backend, optimization_level=1)
-        result = backend.run(circuits, shots=1).result()
-        targets = ref_conditionals.conditional_statevector_2bit()
-        self.assertSuccess(result)
-        self.compare_statevector(result, circuits, targets)
-
-    @unittest.skipUnless(
-        qiskit_version.startswith("0.") or qiskit_version.startswith("1."),
-        reason="c_if support was removed in Qiskit >= 2.0",
-    )
-    @supported_devices
-    def test_conditional_unitary_2bit(self, device):
-        """Test conditional unitary on 2-bit conditional register."""
-        backend = self.backend(device=device)
-        circuits = ref_conditionals.conditional_circuits_2bit(
-            final_measure=False, conditional_type="unitary"
-        )
-        result = backend.run(circuits, shots=1).result()
-        targets = ref_conditionals.conditional_statevector_2bit()
-        self.assertSuccess(result)
-        self.compare_statevector(result, circuits, targets)
-
-    @unittest.skipUnless(
-        qiskit_version.startswith("0.") or qiskit_version.startswith("1."),
-        reason="c_if support was removed in Qiskit >= 2.0",
-    )
-    @supported_devices
-    def test_conditional_gate_64bit(self, device):
-        """Test conditional gates on 64-bit conditional register."""
-        backend = self.backend(device=device)
-        cases = ref_conditionals.conditional_cases_64bit()
-        circuits = ref_conditionals.conditional_circuits_nbit(
-            64, cases, final_measure=False, conditional_type="gate"
-        )
-        circuits = transpile(circuits, backend, optimization_level=1)
-        result = backend.run(circuits, shots=1).result()
-        targets = ref_conditionals.conditional_statevector_nbit(cases)
-        self.assertSuccess(result)
-        self.compare_statevector(result, circuits, targets)
-
-    @unittest.skipUnless(
-        qiskit_version.startswith("0.") or qiskit_version.startswith("1."),
-        reason="c_if support was removed in Qiskit >= 2.0",
-    )
-    @supported_devices
-    def test_conditional_unitary_64bit(self, device):
-        """Test conditional unitary on 64-bit conditional register."""
-        backend = self.backend(device=device)
-        cases = ref_conditionals.conditional_cases_64bit()
-        circuits = ref_conditionals.conditional_circuits_nbit(
-            64, cases, final_measure=False, conditional_type="unitary"
-        )
-        result = backend.run(circuits, shots=1).result()
-        targets = ref_conditionals.conditional_statevector_nbit(cases)
-        self.assertSuccess(result)
-        self.compare_statevector(result, circuits, targets)
-
-    @unittest.skipUnless(
-        qiskit_version.startswith("0.") or qiskit_version.startswith("1."),
-        reason="c_if support was removed in Qiskit >= 2.0",
-    )
-    @supported_devices
-    def test_conditional_gate_132bit(self, device):
-        """Test conditional gates on 132-bit conditional register."""
-        backend = self.backend(device=device)
-        cases = ref_conditionals.conditional_cases_132bit()
-        circuits = ref_conditionals.conditional_circuits_nbit(
-            132, cases, final_measure=False, conditional_type="gate"
-        )
-        circuits = transpile(circuits, backend, optimization_level=1)
-        result = backend.run(circuits, shots=1).result()
-        targets = ref_conditionals.conditional_statevector_nbit(cases)
-        self.assertSuccess(result)
-        self.compare_statevector(result, circuits, targets)
-
-    @unittest.skipUnless(
-        qiskit_version.startswith("0.") or qiskit_version.startswith("1."),
-        reason="c_if support was removed in Qiskit >= 2.0",
-    )
-    @supported_devices
-    def test_conditional_unitary_132bit(self, device):
-        """Test conditional unitary on 132-bit conditional register."""
-        backend = self.backend(device=device)
-        cases = ref_conditionals.conditional_cases_132bit()
-        circuits = ref_conditionals.conditional_circuits_nbit(
-            132, cases, final_measure=False, conditional_type="unitary"
-        )
-        result = backend.run(circuits, shots=1).result()
-        targets = ref_conditionals.conditional_statevector_nbit(cases)
         self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
 

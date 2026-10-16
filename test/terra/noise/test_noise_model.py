@@ -29,7 +29,6 @@ from qiskit_aer.noise.errors.standard_errors import reset_error
 from qiskit_aer.noise.errors.standard_errors import thermal_relaxation_error
 from qiskit_aer.utils.noise_transformation import transform_noise_model
 
-import qiskit
 from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.circuit.library.standard_gates import IGate, XGate
 from qiskit.circuit.library.generalized_gates import PauliGate
@@ -37,23 +36,12 @@ from qiskit.compiler import transpile
 from qiskit.transpiler import CouplingMap, Target
 from qiskit.providers import QubitProperties, BackendV2, Options
 
-if qiskit.__version__.startswith("0."):
-    from qiskit.providers.fake_provider import (
-        FakeLagosV2,
-    )
+from qiskit.providers.fake_provider import GenericBackendV2
 
-    def fake_7q_v2():
-        """Generate a dummy 7q V2 backend."""
-        return FakeLagosV2()
 
-else:
-    from qiskit.providers.fake_provider import (
-        GenericBackendV2,
-    )
-
-    def fake_7q_v2():
-        """Generate a dummy 7q V2 backend."""
-        return GenericBackendV2(num_qubits=7, coupling_map=CouplingMap.from_ring(7), seed=0)
+def fake_7q_v2():
+    """Generate a dummy 7q V2 backend."""
+    return GenericBackendV2(num_qubits=7, coupling_map=CouplingMap.from_ring(7), seed=0)
 
 
 from test.terra.common import QiskitAerTestCase
