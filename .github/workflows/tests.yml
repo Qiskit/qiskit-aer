@@ -38,23 +38,24 @@ jobs:
 
   lint:
     runs-on: ubuntu-latest
-    env:
-      LINT_PYTHON_VERSION: '3.13'
+    strategy:
+      matrix:
+        python-version: ['3.13']
     steps:
       - uses: actions/checkout@v7
-      - name: Set up Python ${{ env.LINT_PYTHON_VERSION }}
+      - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v7
         with:
-          python-version: ${{ env.LINT_PYTHON_VERSION }}
+          python-version: ${{ matrix.python-version }}
       - name: Pip cache
         uses: actions/cache@v6
         with:
           path: ~/.cache/pip
-          key: ${{ runner.os }}-${{ env.LINT_PYTHON_VERSION }}-pip-lint-${{ hashFiles('setup.py','requirements-dev.txt','constraints.txt') }}
+          key: ${{ runner.os }}-${{ matrix.python-version}}-pip-docs-${{ hashFiles('setup.py','requirements-dev.txt','constraints.txt') }}
           restore-keys: |
-            ${{ runner.os }}-${{ env.LINT_PYTHON_VERSION }}-pip-lint-
-            ${{ runner.os }}-${{ env.LINT_PYTHON_VERSION }}-pip-
-            ${{ runner.os }}-${{ env.LINT_PYTHON_VERSION }}-
+            ${{ runner.os }}-${{ matrix.python-version}}-pip-docs-
+            ${{ runner.os }}-${{ matrix.python-version}}-pip-
+            ${{ runner.os }}-${{ matrix.python-version}}-
       - name: Install deps
         run: |
           set -e
