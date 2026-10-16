@@ -1,0 +1,8 @@
+---
+prelude: >
+    MPS simulator had global bond dimension and singular values truncation threshold
+fixes:
+  - |
+    Each MPS simulator has now its own settings for the bond dimension and singular values
+    truncation threshold. Refer to `#2286 <https://github.com/Qiskit/qiskit-aer/issues/2286>`
+    for more information.
