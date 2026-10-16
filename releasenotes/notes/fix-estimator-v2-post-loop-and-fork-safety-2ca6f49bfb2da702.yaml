@@ -1,0 +1,19 @@
+---
+fixes:
+  - |
+    Fixed an O(N²) post-processing loop in
+    :class:`~qiskit_aer.primitives.EstimatorV2` that dominated wall time on
+    large parameter sweeps. The previous implementation used
+    ``list.index()`` to look up each parameter index inside the inner loop,
+    making the cost grow quadratically with the number of parameter rows.
+    Replaced with a dict lookup plus a fast path for the common 1D case;
+    numerical results are unchanged.
+  - |
+    Fixed a silent fork-safety hazard in the module-scope
+    ``DEFAULT_EXECUTOR`` (``qiskit_aer.jobs.utils``). The executor's worker
+    thread does not survive ``os.fork()``; in long-lived Python processes
+    (e.g. Jupyter kernels) where the executor was warmed before fork,
+    forked children inherited a broken executor and their first
+    ``submit()`` would raise during setup, silently producing zero useful
+    work. The executor is now reset automatically in every forked child
+    via ``os.register_at_fork``.

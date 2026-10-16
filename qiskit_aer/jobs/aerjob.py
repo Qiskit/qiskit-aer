@@ -18,7 +18,8 @@ import logging
 
 from qiskit.providers import JobV1 as Job
 from qiskit.providers import JobStatus, JobError
-from .utils import DEFAULT_EXECUTOR, requires_submit
+from . import utils
+from .utils import requires_submit
 
 LOGGER = logging.getLogger(__name__)
 
@@ -58,7 +59,7 @@ class AerJob(Job):
         self._circuits = circuits
         self._parameter_binds = parameter_binds
         self._run_options = run_options
-        self._executor = executor or DEFAULT_EXECUTOR
+        self._executor = executor or utils.DEFAULT_EXECUTOR
         self._future = None
 
     def submit(self):
