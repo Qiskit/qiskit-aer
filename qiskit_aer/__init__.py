@@ -51,6 +51,18 @@ Exceptions
    AerError
 """
 
+__lazy_modules__ = [
+    "qiskit_aer.aerprovider",
+    "qiskit_aer.jobs",
+    "qiskit_aer.aererror",
+    "qiskit_aer.backends",
+    "qiskit_aer.library",
+    "qiskit_aer.quantum_info",
+    "qiskit_aer.noise",
+    "qiskit_aer.utils",
+    "qiskit_aer.version",
+]
+
 import platform
 
 # https://github.com/Qiskit/qiskit-aer/issues/1
@@ -63,15 +75,28 @@ if platform.system() == "Darwin":
 # ... ¯\_(ツ)_/¯
 
 # pylint: disable=wrong-import-position
+# The following imports are "import X as X" rather tham "from ... import X"
+# because the latter doesn't work for lazily importing module references into
+# other modules (e.g. "library" into "qiskit_aer").
+# pylint: disable=consider-using-from-import
+import qiskit_aer.library as library
+import qiskit_aer.quantum_info as quantum_info
+import qiskit_aer.noise as noise
+import qiskit_aer.utils as utils
+# pylint: enable=consider-using-from-import
 from qiskit_aer.aerprovider import AerProvider
 from qiskit_aer.jobs import AerJob
 from qiskit_aer.aererror import AerError
-from qiskit_aer.backends import *
-from qiskit_aer import library
-from qiskit_aer import quantum_info
-from qiskit_aer import noise
-from qiskit_aer import utils
+from qiskit_aer.backends import AerSimulator, QasmSimulator, StatevectorSimulator, UnitarySimulator
 from qiskit_aer.version import __version__
 
-# Global instance to be used as the entry point for convenience.
-Aer = AerProvider()  # pylint: disable=invalid-name
+
+def __getattr__(name):
+    # __getattr__ allows global Aer reference without triggering the resolution
+    # of lazy imports
+    if name == "Aer":
+        aer = AerProvider()
+        # Global instance to be used as the entry point for convenience.
+        globals()["Aer"] = aer
+        return aer
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
