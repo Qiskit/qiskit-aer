@@ -13,7 +13,7 @@ jobs:
   # a single in-code determination of whether the branch-protection rules have been passed.  The
   # branch-protection rules in the GitHub web interface can then depend only on this job.
   finalize:
-    name: Finalize docs
+    name: Finalize build
     runs-on: 'ubuntu-latest'
     # This list should contain every other job in this file.
     needs:
