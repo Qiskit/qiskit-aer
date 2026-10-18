@@ -1,0 +1,10 @@
+---
+prelude: |
+  The Qiskit Aer 0.18.0 release highlights are:
+
+  * Official support for Python 3.14 and 3.15, with support for 3.9 and 3.10 discontinued.
+
+  * Support for using :meth:`.save_amplitudes_squared` with
+    the ``"extended_stabilizer"`` simulation method.
+
+  * Several other fixes and improvements.

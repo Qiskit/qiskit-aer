@@ -237,8 +237,21 @@ merged to it are bugfixes.
 
 When it is time to release a new minor version of `qiskit-aer`, we will:
 
-1.  Create a new tag with the version number and push it to github
-2.  Change the `main` version to the next release version.
+1.  Create a pull request that does the following:
+
+    1.  Increment the version number in `qiskit_aer/VERSION.txt` to the new
+        version number.
+    2.  Make a new directory in `releasenotes/notes/` named `<major>.<minor>`
+        (e.g. `0.17`) for the new version.
+    3.  Move all outstanding notes files in `releasenotes/notes` into the
+        `releasenotes/notes/<major>.<minor>` directory for the new version. This
+        is also a final chance to fix any formatting or wording of the release
+        notes before the release.
+    4.  Add a new release note in the `releasenotes/notes/<major>.<minor>`
+        directory with a prelude for the new release.
+
+2.  Tag the the merge commit associated with the pull request with the new
+    version number on the `main` branch on GitHub.
 
 The release automation processes will be triggered by the new tag and will perform
 the following steps:
@@ -246,14 +259,41 @@ the following steps:
 1.  Create a stable branch for the new minor version from the release tag
     on the `main` branch. The stable branch **must** follow the `stable/X.Y`
     format. Otherwise, the documentation `[source]` links in the API docs will get
-    broken. 
+    broken. The branch should be created by the Qiskit bot, not the repo's
+    GitHub Actions.
 2.  Build and upload binary wheels to pypi
 3.  Create a GitHub release page with a generated changelog
-4.  Generate a PR on the meta-repository to bump the Aer version and
-    meta-package version.
 
 The `stable/*` branches should only receive changes in the form of bug
-fixes.
+fixes which are committed to the `main` branch first and then backported to the
+`stable/*` branch.
+
+When creating a new patch release, the process is:
+
+1. Merge a new pull request to the `stable/*` branch that increments
+   `VERSION.txt`. This pull request can also add a short prelude section to the
+   release notes and make any final adjustments to the release notes.
+2. Tag the commit on `stable/*` that incremented the version with that version
+   number. This tag should trigger the wheel and documentation automation.
+
+The release notes files for a patch release can go into the
+`releasenotes/notes/X.Y` folder for release being patched (both when the patch
+is made on `main` and when it is backported to `stable/X.Y`).
+
+Note that with the way `reno` attributes release notes to release versions this
+workflow will result in all patch release notes being rolled forward into the
+next minor version's release notes. For example, after 0.17 (or 0.17.0) is
+tagged, a bug fix with a release note backported to `stable/0.17` will be
+attributed to the 0.17.1 version when it is tagged. Back on the `main` branch,
+when release notes are moved for 0.18 and the release is tagged, that
+0.17.1 patch note will now show up under 0.18 and only the 0.17.0 notes will be
+attributed to the 0.17 release. `reno` was designed assuming concurrent minor
+release versions with their own release notes. For modeling releases in a
+linear format (e.g. the final `0.17.x` release would be released before the
+`0.18.0` release and the `0.18.0` release notes would not include the notes
+from the `0.17` series), the release notes management scripts of [Qiskit
+Experiments](https://github.com/qiskit-community/qiskit-experiments) can be
+used as a reference.
 
 
 ## Install from Source
