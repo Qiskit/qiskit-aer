@@ -57,4 +57,9 @@ jobs:
           rm -rf qiskit_aer
           stestr run --slowest
         shell: bash
+        env:
+          # Starting with Python 3.15 and Qiskit 2.6.0, glibc in the GitHub
+          # runner does not leave thread local storage (TLS) space for loading
+          # libgomp
+          GLIBC_TUNABLES: glibc.rtld.optional_static_tls=4096
         
