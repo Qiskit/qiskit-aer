@@ -250,7 +250,7 @@ When it is time to release a new minor version of `qiskit-aer`, we will:
     4.  Add a new release note in the `releasenotes/notes/<major>.<minor>`
         directory with a prelude for the new release.
 
-2.  Tag the the merge commit associated with the pull request with the new
+2.  Tag the merge commit associated with the pull request with the new
     version number on the `main` branch on GitHub.
 
 The release automation processes will be triggered by the new tag and will perform
