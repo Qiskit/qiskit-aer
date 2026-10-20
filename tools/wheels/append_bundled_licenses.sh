@@ -20,6 +20,12 @@ case "$(uname -s)" in
     *) echo "unrecognized platform: $(uname -s)" >&2; exit 1 ;;
 esac
 
+# auditwheel names the directory it vendors libraries into after the
+# distribution, which is qiskit_aer for the CPU wheels and qiskit_aer_gpu* for
+# the CUDA ones.  Substitute it so the "Files:" paths in the notices match the
+# wheel actually being built.
+libs_dir="$(echo "${QISKIT_AER_PACKAGE_NAME:-qiskit-aer}" | tr - _).libs"
+
 # Guard against running twice over the same checkout, which cibuildwheel does
 # when it builds several wheels in a row.
 if grep -q "^This binary distribution of Qiskit Aer bundles" "$LICENSE_FILE"; then
@@ -29,7 +35,7 @@ fi
 
 {
     printf '\n\n----\n\n'
-    cat "$PROJECT_DIR/tools/wheels/$notices"
+    sed "s|@LIBS_DIR@|$libs_dir|g" "$PROJECT_DIR/tools/wheels/$notices"
 } >> "$LICENSE_FILE"
 
-echo "appended $notices to $LICENSE_FILE"
+echo "appended $notices to $LICENSE_FILE (libraries directory: $libs_dir)"
