@@ -64,8 +64,24 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y build-essential libopenblas-dev pandoc
         shell: bash
+      # The Ubuntu images we use have a newer gcc than the ancient version of conan
+      # knows about, but it's similar enough that the build still works if we force it.
+      #
+      # TODO: We should fix the build to use a modern version of conan.  This hack is
+      # duplicated in the other Linux CI jobs.
+      - name: Hack ancient conan to accept a recent gcc
+        run: |
+          set -e
+          python -m pip install 'conan<2.0.0'
+          conan config init --force
+          sed -i 's/"14", "14.1"/"14", "14.1", "14.2", "14.3", "15", "15.1", "15.2", "16", "16.1"/' ~/.conan/settings.yml
       - name: Run Docs Build
         run: tox -edocs
+        env:
+          # Starting with Python 3.15 and Qiskit 2.6.0, glibc in the GitHub
+          # runner does not leave thread local storage (TLS) space for loading
+          # libgomp
+          GLIBC_TUNABLES: glibc.rtld.optional_static_tls=4096
       - uses: actions/upload-artifact@v7
         with:
           name: html_docs
@@ -91,6 +107,17 @@ jobs:
             ${{ runner.os }}-${{ matrix.python-version}}-pip-tutorials-
             ${{ runner.os }}-${{ matrix.python-version}}-pip-
             ${{ runner.os }}-${{ matrix.python-version}}-
+      # The Ubuntu images we use have a newer gcc than the ancient version of conan
+      # knows about, but it's similar enough that the build still works if we force it.
+      #
+      # TODO: We should fix the build to use a modern version of conan.  This hack is
+      # duplicated in the other Linux CI jobs.
+      - name: Hack ancient conan to accept a recent gcc
+        run: |
+          set -e
+          python -m pip install 'conan<2.0.0'
+          conan config init --force
+          sed -i 's/"14", "14.1"/"14", "14.1", "14.2", "14.3", "15", "15.1", "15.2", "16", "16.1"/' ~/.conan/settings.yml
       - name: Setup tutorials job
         run: |
           set -e
@@ -108,6 +135,11 @@ jobs:
           cd qiskit-tutorials
           rm -rf tutorials/circuits tutorials/circuits_advanced tutorials/algorithms tutorials/operators
           sphinx-build -b html . _build/html
+        env:
+          # Starting with Python 3.15 and Qiskit 2.6.0, glibc in the GitHub
+          # runner does not leave thread local storage (TLS) space for loading
+          # libgomp
+          GLIBC_TUNABLES: glibc.rtld.optional_static_tls=4096
       - uses: actions/upload-artifact@v7
         with:
           name: tutorials_html

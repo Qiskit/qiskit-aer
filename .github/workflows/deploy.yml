@@ -8,8 +8,8 @@ jobs:
   wheel-build:
     name: Build qiskit-aer wheels
     strategy:
+      fail-fast: false
       matrix:
-          fast-fail: false
         os: ["macos-latest", "macos-15-intel", "ubuntu-latest", "ubuntu-26.04-arm", "windows-2022"]
     runs-on: ${{ matrix.os }}
     environment: release
