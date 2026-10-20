@@ -19,7 +19,6 @@ UnitarySimulator
    .. autoattribute:: UnitarySimulator.dt
    .. autoattribute:: UnitarySimulator.dtm
    .. autoattribute:: UnitarySimulator.instruction_durations
-   .. autoattribute:: UnitarySimulator.instruction_schedule_map
    .. autoattribute:: UnitarySimulator.instructions
    .. autoattribute:: UnitarySimulator.max_circuits
    .. autoattribute:: UnitarySimulator.meas_map
@@ -41,14 +40,10 @@ UnitarySimulator
    
    .. rubric:: Methods
    
-   .. automethod:: UnitarySimulator.acquire_channel
    .. automethod:: UnitarySimulator.available_devices
    .. automethod:: UnitarySimulator.available_methods
    .. automethod:: UnitarySimulator.clear_options
    .. automethod:: UnitarySimulator.configuration
-   .. automethod:: UnitarySimulator.control_channel
-   .. automethod:: UnitarySimulator.drive_channel
-   .. automethod:: UnitarySimulator.measure_channel
    .. automethod:: UnitarySimulator.properties
    .. automethod:: UnitarySimulator.qubit_properties
    .. automethod:: UnitarySimulator.run

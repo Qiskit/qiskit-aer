@@ -5,15 +5,15 @@
     <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
 <link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" /><link rel="next" title="The Extended Stabilizer Simulator" href="6_extended_stabilizer_tutorial.html" /><link rel="prev" title="Applying noise to custom unitary gates" href="4_custom_gate_noise.html" />
 
-    <!-- Generated with Sphinx 7.1.2 and Furo 2024.01.29 -->
-        <title>Noise Transformation - Qiskit Aer 0.17.1</title>
+    <!-- Generated with Sphinx 7.4.7 and Furo 2024.01.29 -->
+        <title>Noise Transformation - Qiskit Aer 0.18.0</title>
       <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=135e06be" />
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=3ee1c6c6" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/qiskit-sphinx-theme.css?v=fe84956c" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/qiskit-ecosystem.css?v=745c5aa7" />
     <link rel="stylesheet" type="text/css" href="../_static/jupyter-sphinx.css" />
     <link rel="stylesheet" type="text/css" href="../_static/plot_directive.css" />
-    <link rel="stylesheet" type="text/css" href="../_static/design-style.1e8bd061cd6da7fc9cf755528e8ffc24.min.css?v=0a3b3ea7" />
+    <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
     <link rel="stylesheet" type="text/css" href="../_static/nbsphinx-code-cells.css?v=2aa19091" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/furo-extensions.css?v=36a5483c" />
     
@@ -146,7 +146,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../index.html"><div class="brand">Qiskit Aer 0.17.1</div></a>
+      <a href="../index.html"><div class="brand">Qiskit Aer 0.18.0</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -173,7 +173,7 @@
     </div>
   </a>
   
-  <span class="sidebar-brand-text">Qiskit Aer 0.17.1</span>
+  <span class="sidebar-brand-text">Qiskit Aer 0.18.0</span>
 </div><form class="sidebar-search-container" method="get" action="../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
   <input type="hidden" name="check_keywords" value="yes">
@@ -341,9 +341,9 @@
         </div>
         <article role="main">
           <section id="Noise-Transformation">
-<h1>Noise Transformation<a class="headerlink" href="#Noise-Transformation" title="Permalink to this heading">#</a></h1>
+<h1>Noise Transformation<a class="headerlink" href="#Noise-Transformation" title="Link to this heading">¶</a></h1>
 <section id="Introduction">
-<h2>Introduction<a class="headerlink" href="#Introduction" title="Permalink to this heading">#</a></h2>
+<h2>Introduction<a class="headerlink" href="#Introduction" title="Link to this heading">¶</a></h2>
 <p>This notebook shows how to use the Qiskit Aer utility functions <code class="docutils literal notranslate"><span class="pre">approximate_quantum_error</span></code> and <code class="docutils literal notranslate"><span class="pre">approximate_noise_model</span></code> to transform quantum noise channels into a different, more suitable, noise channel.</p>
 <p>Our guiding example is Clifford simulation. A Clifford simulator can efficiently simulate quantum computations which include gates only from a limited, non-universal set of gates (the Clifford gates). Not all quantum noises can be added to such simulations; hence, we aim to find a “close” noise channel which can be simulated in a Clifford simulator.</p>
 <p>We begin by importing the transformation functions from the Aer provider utilities</p>
@@ -372,7 +372,7 @@
 </div>
 </section>
 <section id="Overview">
-<h2>Overview<a class="headerlink" href="#Overview" title="Permalink to this heading">#</a></h2>
+<h2>Overview<a class="headerlink" href="#Overview" title="Link to this heading">¶</a></h2>
 <p>A 1-qubit quantum channel is a function <span class="math notranslate nohighlight">\(\mathcal{C}:\mathbb{C}^{2\times2}\to\mathbb{C}^{2\times2}\)</span> mapping density operators to density operators (to ensure the image is a density operator <span class="math notranslate nohighlight">\(\mathcal{C}\)</span> is required to be completely positive and trace preserving, <strong>CPTP</strong>).</p>
 <p>Given quantum channels <span class="math notranslate nohighlight">\(\mathcal{E}_{1},\dots,\mathcal{E}_{r}\)</span>, and probabilities <span class="math notranslate nohighlight">\(p_1, p_2, \dots, p_r\)</span> such that <span class="math notranslate nohighlight">\(0\le p_i \le 1\)</span> and <span class="math notranslate nohighlight">\(p_1+\dots +p_r = 1\)</span>, a new quantum channel <span class="math notranslate nohighlight">\(\mathcal{C}_\mathcal{E}\)</span> can be constructed such that <span class="math notranslate nohighlight">\(\mathcal{C}_\mathcal{E}(\rho)\)</span> has the effect of choosing the channel <span class="math notranslate nohighlight">\(\mathcal{E}_i\)</span> with probability <span class="math notranslate nohighlight">\(p_i\)</span> and applying it to <span class="math notranslate nohighlight">\(\rho\)</span>.</p>
 <p>The noise transformation function solves the following optimization problem: Given a channel <span class="math notranslate nohighlight">\(\mathcal{C}\)</span> (“goal”) and a list of channels <span class="math notranslate nohighlight">\(\mathcal{E}_{1},\dots,\mathcal{E}_{r}\)</span>, find the probabilities <span class="math notranslate nohighlight">\(p_1, p_2, \dots, p_r\)</span> minimizing <span class="math notranslate nohighlight">\(D(\mathcal{C}, \mathcal{C}_\mathcal{E})\)</span> according to some distance metric <span class="math notranslate nohighlight">\(D\)</span> (the Hilbert-Schmidt metric is currently used).</p>
@@ -384,7 +384,7 @@
 <p>Where <span class="math notranslate nohighlight">\(\text{F}\)</span> is a fidelity measure and <span class="math notranslate nohighlight">\(I\)</span> is the identity channel.</p>
 </section>
 <section id="Example:-Approximating-amplitude-damping-noise-with-reset-noise.">
-<h2>Example: Approximating amplitude damping noise with reset noise.<a class="headerlink" href="#Example:-Approximating-amplitude-damping-noise-with-reset-noise." title="Permalink to this heading">#</a></h2>
+<h2>Example: Approximating amplitude damping noise with reset noise.<a class="headerlink" href="#Example:-Approximating-amplitude-damping-noise-with-reset-noise." title="Link to this heading">¶</a></h2>
 <p><strong>Amplitude damping</strong> noise is described by a single parameter <span class="math notranslate nohighlight">\(0\le \gamma \le 1\)</span> and given by the Kraus operators:</p>
 <div class="math-wrapper docutils container">
 <div class="math notranslate nohighlight">
@@ -425,7 +425,7 @@
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">gamma</span> <span class="o">=</span> <span class="mf">0.23</span>
 <span class="n">error</span> <span class="o">=</span> <span class="n">amplitude_damping_error</span><span class="p">(</span><span class="n">gamma</span><span class="p">)</span>
-<span class="n">results</span> <span class="o">=</span> <span class="n">approximate_quantum_error</span><span class="p">(</span><span class="n">error</span><span class="p">,</span> <span class="n">operator_string</span><span class="o">=</span><span class="s2">&quot;reset&quot;</span><span class="p">)</span>
+<span class="n">results</span> <span class="o">=</span> <span class="n">approximate_quantum_error</span><span class="p">(</span><span class="n">error</span><span class="p">,</span> <span class="n">operator_string</span><span class="o">=</span><span class="s2">"reset"</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -439,11 +439,11 @@
 <span class="n">p</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="n">gamma</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">gamma</span><span class="p">))</span> <span class="o">/</span> <span class="mi">2</span>
 <span class="n">q</span> <span class="o">=</span> <span class="mi">0</span>
 
-<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Expected results:&quot;</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;P(0) = </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="mi">1</span><span class="o">-</span><span class="p">(</span><span class="n">p</span><span class="o">+</span><span class="n">q</span><span class="p">)))</span>
-<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;P(1) = </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">p</span><span class="p">))</span>
-<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;P(2) = </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">q</span><span class="p">))</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">""</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">"Expected results:"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">"P(0) = </span><span class="si">{}</span><span class="s2">"</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="mi">1</span><span class="o">-</span><span class="p">(</span><span class="n">p</span><span class="o">+</span><span class="n">q</span><span class="p">)))</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">"P(1) = </span><span class="si">{}</span><span class="s2">"</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">p</span><span class="p">))</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">"P(2) = </span><span class="si">{}</span><span class="s2">"</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">q</span><span class="p">))</span>
 </pre></div>
 </div>
 </div>
@@ -475,7 +475,7 @@ P(2) = 0
 <p>We got the results predicted analytically.</p>
 </section>
 <section id="Different-input-types">
-<h2>Different input types<a class="headerlink" href="#Different-input-types" title="Permalink to this heading">#</a></h2>
+<h2>Different input types<a class="headerlink" href="#Different-input-types" title="Link to this heading">¶</a></h2>
 <p>The approximation function is given two inputs: The error channel to approximate, and a set of error channels that can be used in constructing the approximation.</p>
 <p>The <strong>error channel</strong> to approximate can be given as any input that can be converted to the <code class="docutils literal notranslate"><span class="pre">QuantumError</span></code> object.</p>
 <p>As an example, we explicitly construct the Kraus matrices of amplitude damping and pass to the same approximation function as before:</p>
@@ -486,7 +486,7 @@ P(2) = 0
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">gamma</span> <span class="o">=</span> <span class="mf">0.23</span>
 <span class="n">K0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">],[</span><span class="mi">0</span><span class="p">,</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">1</span><span class="o">-</span><span class="n">gamma</span><span class="p">)]])</span>
 <span class="n">K1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mi">0</span><span class="p">,</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">gamma</span><span class="p">)],[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">]])</span>
-<span class="n">results</span> <span class="o">=</span> <span class="n">approximate_quantum_error</span><span class="p">(</span><span class="n">Kraus</span><span class="p">([</span><span class="n">K0</span><span class="p">,</span> <span class="n">K1</span><span class="p">]),</span> <span class="n">operator_string</span><span class="o">=</span><span class="s2">&quot;reset&quot;</span><span class="p">)</span>
+<span class="n">results</span> <span class="o">=</span> <span class="n">approximate_quantum_error</span><span class="p">(</span><span class="n">Kraus</span><span class="p">([</span><span class="n">K0</span><span class="p">,</span> <span class="n">K1</span><span class="p">]),</span> <span class="n">operator_string</span><span class="o">=</span><span class="s2">"reset"</span><span class="p">)</span>
 <span class="nb">print</span><span class="p">(</span><span class="n">results</span><span class="p">)</span>
 </pre></div>
 </div>
@@ -600,13 +600,13 @@ q: ┤ kraus ├
         <div class="bottom-of-page">
           <div class="left-details">
             <div class="copyright">
-                Copyright &#169; 2017-2025, Qiskit Development Team
+                Copyright &#169; 2017-2026, Qiskit Development Team
             </div>
             Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
             
             <a href="https://github.com/pradyunsg/furo">Furo</a>
             <div class="last-updated">
-              Last updated on 2025/06/04</div>
+              Last updated on 2026/10/20</div>
           </div>
           <div class="right-details">
             
@@ -645,13 +645,13 @@ q: ┤ kraus ├
   </div>
 </div><script src="../_static/jquery.js?v=5d32c60e"></script>
     <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-    <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js?v=d060e3e0"></script>
-    <script src="../_static/doctools.js?v=888ff710"></script>
-    <script src="../_static/sphinx_highlight.js?v=4825356b"></script>
+    <script src="../_static/documentation_options.js?v=ba2e7b09"></script>
+    <script src="../_static/doctools.js?v=9a2dae69"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../_static/scripts/qiskit-sphinx-theme.js?v=4d77b8ca"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@jupyter-widgets/html-manager@^1.0.1/dist/embed-amd.js"></script>
-    <script src="../_static/design-tabs.js?v=36754332"></script>
+    <script src="../_static/design-tabs.js?v=f930bc37"></script>
     <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
     <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
     <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>

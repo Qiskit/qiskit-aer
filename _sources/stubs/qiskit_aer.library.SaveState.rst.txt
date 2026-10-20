@@ -16,18 +16,14 @@ SaveState
    .. rubric:: Attributes
       
    .. autoattribute:: SaveState.base_class
-   .. autoattribute:: SaveState.condition
-   .. autoattribute:: SaveState.condition_bits
    .. autoattribute:: SaveState.decompositions
    .. autoattribute:: SaveState.definition
-   .. autoattribute:: SaveState.duration
    .. autoattribute:: SaveState.label
    .. autoattribute:: SaveState.mutable
    .. autoattribute:: SaveState.name
    .. autoattribute:: SaveState.num_clbits
    .. autoattribute:: SaveState.num_qubits
    .. autoattribute:: SaveState.params
-   .. autoattribute:: SaveState.unit
    
 
 
@@ -36,9 +32,7 @@ SaveState
    .. rubric:: Methods
    
    .. automethod:: SaveState.add_decomposition
-   .. automethod:: SaveState.assemble
    .. automethod:: SaveState.broadcast_arguments
-   .. automethod:: SaveState.c_if
    .. automethod:: SaveState.copy
    .. automethod:: SaveState.inverse
    .. automethod:: SaveState.is_parameterized

@@ -16,18 +16,14 @@ SetDensityMatrix
    .. rubric:: Attributes
       
    .. autoattribute:: SetDensityMatrix.base_class
-   .. autoattribute:: SetDensityMatrix.condition
-   .. autoattribute:: SetDensityMatrix.condition_bits
    .. autoattribute:: SetDensityMatrix.decompositions
    .. autoattribute:: SetDensityMatrix.definition
-   .. autoattribute:: SetDensityMatrix.duration
    .. autoattribute:: SetDensityMatrix.label
    .. autoattribute:: SetDensityMatrix.mutable
    .. autoattribute:: SetDensityMatrix.name
    .. autoattribute:: SetDensityMatrix.num_clbits
    .. autoattribute:: SetDensityMatrix.num_qubits
    .. autoattribute:: SetDensityMatrix.params
-   .. autoattribute:: SetDensityMatrix.unit
    
 
 
@@ -36,9 +32,7 @@ SetDensityMatrix
    .. rubric:: Methods
    
    .. automethod:: SetDensityMatrix.add_decomposition
-   .. automethod:: SetDensityMatrix.assemble
    .. automethod:: SetDensityMatrix.broadcast_arguments
-   .. automethod:: SetDensityMatrix.c_if
    .. automethod:: SetDensityMatrix.copy
    .. automethod:: SetDensityMatrix.inverse
    .. automethod:: SetDensityMatrix.is_parameterized

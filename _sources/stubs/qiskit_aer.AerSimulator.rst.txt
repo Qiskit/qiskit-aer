@@ -19,7 +19,6 @@ AerSimulator
    .. autoattribute:: AerSimulator.dt
    .. autoattribute:: AerSimulator.dtm
    .. autoattribute:: AerSimulator.instruction_durations
-   .. autoattribute:: AerSimulator.instruction_schedule_map
    .. autoattribute:: AerSimulator.instructions
    .. autoattribute:: AerSimulator.max_circuits
    .. autoattribute:: AerSimulator.meas_map
@@ -41,15 +40,11 @@ AerSimulator
    
    .. rubric:: Methods
    
-   .. automethod:: AerSimulator.acquire_channel
    .. automethod:: AerSimulator.available_devices
    .. automethod:: AerSimulator.available_methods
    .. automethod:: AerSimulator.clear_options
    .. automethod:: AerSimulator.configuration
-   .. automethod:: AerSimulator.control_channel
-   .. automethod:: AerSimulator.drive_channel
    .. automethod:: AerSimulator.from_backend
-   .. automethod:: AerSimulator.measure_channel
    .. automethod:: AerSimulator.properties
    .. automethod:: AerSimulator.qubit_properties
    .. automethod:: AerSimulator.run

@@ -5,15 +5,15 @@
     <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
 <link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" /><link rel="next" title="Building Noise Models" href="3_building_noise_models.html" /><link rel="prev" title="Simulators" href="1_aersimulator.html" />
 
-    <!-- Generated with Sphinx 7.1.2 and Furo 2024.01.29 -->
-        <title>Device backend noise model simulations - Qiskit Aer 0.17.1</title>
+    <!-- Generated with Sphinx 7.4.7 and Furo 2024.01.29 -->
+        <title>Device backend noise model simulations - Qiskit Aer 0.18.0</title>
       <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=135e06be" />
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=3ee1c6c6" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/qiskit-sphinx-theme.css?v=fe84956c" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/qiskit-ecosystem.css?v=745c5aa7" />
     <link rel="stylesheet" type="text/css" href="../_static/jupyter-sphinx.css" />
     <link rel="stylesheet" type="text/css" href="../_static/plot_directive.css" />
-    <link rel="stylesheet" type="text/css" href="../_static/design-style.1e8bd061cd6da7fc9cf755528e8ffc24.min.css?v=0a3b3ea7" />
+    <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
     <link rel="stylesheet" type="text/css" href="../_static/nbsphinx-code-cells.css?v=2aa19091" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/furo-extensions.css?v=36a5483c" />
     
@@ -146,7 +146,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../index.html"><div class="brand">Qiskit Aer 0.17.1</div></a>
+      <a href="../index.html"><div class="brand">Qiskit Aer 0.18.0</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -173,7 +173,7 @@
     </div>
   </a>
   
-  <span class="sidebar-brand-text">Qiskit Aer 0.17.1</span>
+  <span class="sidebar-brand-text">Qiskit Aer 0.18.0</span>
 </div><form class="sidebar-search-container" method="get" action="../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
   <input type="hidden" name="check_keywords" value="yes">
@@ -341,9 +341,9 @@
         </div>
         <article role="main">
           <section id="Device-backend-noise-model-simulations">
-<h1>Device backend noise model simulations<a class="headerlink" href="#Device-backend-noise-model-simulations" title="Permalink to this heading">#</a></h1>
+<h1>Device backend noise model simulations<a class="headerlink" href="#Device-backend-noise-model-simulations" title="Link to this heading">¶</a></h1>
 <section id="Introduction">
-<h2>Introduction<a class="headerlink" href="#Introduction" title="Permalink to this heading">#</a></h2>
+<h2>Introduction<a class="headerlink" href="#Introduction" title="Link to this heading">¶</a></h2>
 <p>This notebook shows how to use the Qiskit Aer <code class="docutils literal notranslate"><span class="pre">noise</span></code> module to automatically generate a basic noise model for an IBMQ hardware device, and use this model to do noisy simulations of <code class="docutils literal notranslate"><span class="pre">QuantumCircuits</span></code> to study the effects of errors which occur on real devices.</p>
 <p>Note, that these automatic models are only an <em>approximation</em> of the real errors that occur on actual devices, due to the fact that they must be build from a limited set of input parameters related to <em>average error rates</em> on gates. The study of quantum errors on real devices is an active area of research and we discuss the Qiskit Aer tools for configuring more detailed noise models in another notebook.</p>
 <div class="nbinput nblast docutils container">
@@ -358,7 +358,7 @@
 </div>
 </section>
 <section id="Device-Backend-Noise-Model">
-<h2>Device Backend Noise Model<a class="headerlink" href="#Device-Backend-Noise-Model" title="Permalink to this heading">#</a></h2>
+<h2>Device Backend Noise Model<a class="headerlink" href="#Device-Backend-Noise-Model" title="Link to this heading">¶</a></h2>
 <p>The <em>Qiskit Aer</em> device noise model automatically generates a simplified noise model for a real device. This model is generated using the calibration information reported in the properties of a device and takes into account</p>
 <ul class="simple">
 <li><p>The <em>gate_error</em> probability of each basis gate on each qubit.</p></li>
@@ -367,7 +367,7 @@
 <li><p>The readout error probability of each qubit.</p></li>
 </ul>
 <section id="Fake-Provider-Backends">
-<h3>Fake Provider Backends<a class="headerlink" href="#Fake-Provider-Backends" title="Permalink to this heading">#</a></h3>
+<h3>Fake Provider Backends<a class="headerlink" href="#Fake-Provider-Backends" title="Link to this heading">¶</a></h3>
 <p>We will use real noise data for an IBM Quantum device using the data stored in Qiskit Terra. Specifically, in this tutorial, the device is <code class="docutils literal notranslate"><span class="pre">ibmq_vigo</span></code>.</p>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
@@ -380,7 +380,7 @@
 </div>
 </section>
 <section id="Test-circuit-for-device-and-simulation-comparison">
-<h3>Test circuit for device and simulation comparison<a class="headerlink" href="#Test-circuit-for-device-and-simulation-comparison" title="Permalink to this heading">#</a></h3>
+<h3>Test circuit for device and simulation comparison<a class="headerlink" href="#Test-circuit-for-device-and-simulation-comparison" title="Link to this heading">¶</a></h3>
 <p>Now we construct a test circuit to compare the output of the real device with the noisy output simulated on the Qiskit Aer <code class="docutils literal notranslate"><span class="pre">AerSimulator</span></code>. We will prepare a 3-qubit GHZ state <span class="math notranslate nohighlight">\(\frac{1}{\sqrt2}(|0,0,0\rangle + |1,1,1\rangle)\)</span> on qubits 0, 1 and 2. Before running with noise or on the device we show the ideal expected output with no noise.</p>
 <div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
@@ -398,7 +398,7 @@
 <span class="c1"># Execute and get counts</span>
 <span class="n">result</span> <span class="o">=</span> <span class="n">sim_ideal</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">transpile</span><span class="p">(</span><span class="n">circ</span><span class="p">,</span> <span class="n">sim_ideal</span><span class="p">))</span><span class="o">.</span><span class="n">result</span><span class="p">()</span>
 <span class="n">counts</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">get_counts</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
-<span class="n">plot_histogram</span><span class="p">(</span><span class="n">counts</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="s1">&#39;Ideal counts for 3-qubit GHZ state&#39;</span><span class="p">)</span>
+<span class="n">plot_histogram</span><span class="p">(</span><span class="n">counts</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="s1">'Ideal counts for 3-qubit GHZ state'</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -413,7 +413,7 @@
 </section>
 </section>
 <section id="Generating-a-simulator-that-mimics-a-device">
-<h2>Generating a simulator that mimics a device<a class="headerlink" href="#Generating-a-simulator-that-mimics-a-device" title="Permalink to this heading">#</a></h2>
+<h2>Generating a simulator that mimics a device<a class="headerlink" href="#Generating-a-simulator-that-mimics-a-device" title="Link to this heading">¶</a></h2>
 <p>We call <code class="docutils literal notranslate"><span class="pre">from_backend</span></code> to create a simulator for <code class="docutils literal notranslate"><span class="pre">ibmq_vigo</span></code>:</p>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
@@ -433,7 +433,7 @@
 value from the backend properties.</p>
 <p>For the readout errors the probability that the recorded classical bit value will be flipped from the true outcome after a measurement is given by the qubit <code class="docutils literal notranslate"><span class="pre">readout_errors</span></code>.</p>
 <section id="Running-a-noise-simulation">
-<h3>Running a noise simulation<a class="headerlink" href="#Running-a-noise-simulation" title="Permalink to this heading">#</a></h3>
+<h3>Running a noise simulation<a class="headerlink" href="#Running-a-noise-simulation" title="Link to this heading">¶</a></h3>
 <p>Once we have created a noisy simulator backend based on a real device we can use it to run noisy simulations.</p>
 <p><strong>Important:</strong> When running noisy simulations it is <em>critical</em> to <code class="docutils literal notranslate"><span class="pre">transpile</span></code> the circuit for the backend so that the circuit is transpiled to the correct noisy basis gate set for the backend.</p>
 <div class="nbinput docutils container">
@@ -447,7 +447,7 @@ value from the backend properties.</p>
 <span class="n">result_noise</span> <span class="o">=</span> <span class="n">sim_vigo</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">tcirc</span><span class="p">)</span><span class="o">.</span><span class="n">result</span><span class="p">()</span>
 <span class="n">counts_noise</span> <span class="o">=</span> <span class="n">result_noise</span><span class="o">.</span><span class="n">get_counts</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
 <span class="n">plot_histogram</span><span class="p">(</span><span class="n">counts_noise</span><span class="p">,</span>
-               <span class="n">title</span><span class="o">=</span><span class="s2">&quot;Counts for 3-qubit GHZ state with device noise model&quot;</span><span class="p">)</span>
+               <span class="n">title</span><span class="o">=</span><span class="s2">"Counts for 3-qubit GHZ state with device noise model"</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -521,13 +521,13 @@ value from the backend properties.</p>
         <div class="bottom-of-page">
           <div class="left-details">
             <div class="copyright">
-                Copyright &#169; 2017-2025, Qiskit Development Team
+                Copyright &#169; 2017-2026, Qiskit Development Team
             </div>
             Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
             
             <a href="https://github.com/pradyunsg/furo">Furo</a>
             <div class="last-updated">
-              Last updated on 2025/06/04</div>
+              Last updated on 2026/10/20</div>
           </div>
           <div class="right-details">
             
@@ -572,13 +572,13 @@ value from the backend properties.</p>
   </div>
 </div><script src="../_static/jquery.js?v=5d32c60e"></script>
     <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-    <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js?v=d060e3e0"></script>
-    <script src="../_static/doctools.js?v=888ff710"></script>
-    <script src="../_static/sphinx_highlight.js?v=4825356b"></script>
+    <script src="../_static/documentation_options.js?v=ba2e7b09"></script>
+    <script src="../_static/doctools.js?v=9a2dae69"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../_static/scripts/qiskit-sphinx-theme.js?v=4d77b8ca"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@jupyter-widgets/html-manager@^1.0.1/dist/embed-amd.js"></script>
-    <script src="../_static/design-tabs.js?v=36754332"></script>
+    <script src="../_static/design-tabs.js?v=f930bc37"></script>
     <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
     <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
     <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>

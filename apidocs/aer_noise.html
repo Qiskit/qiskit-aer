@@ -5,15 +5,15 @@
     <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
 <link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" /><link rel="next" title="NoiseModel" href="../stubs/qiskit_aer.noise.NoiseModel.html" /><link rel="prev" title="save_unitary" href="../stubs/qiskit_aer.library.save_unitary.html" />
 
-    <!-- Generated with Sphinx 7.1.2 and Furo 2024.01.29 -->
-        <title>Noise Models (qiskit_aer.noise) - Qiskit Aer 0.17.1</title>
+    <!-- Generated with Sphinx 7.4.7 and Furo 2024.01.29 -->
+        <title>Noise Models (qiskit_aer.noise) - Qiskit Aer 0.18.0</title>
       <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=135e06be" />
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=3ee1c6c6" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/qiskit-sphinx-theme.css?v=fe84956c" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/qiskit-ecosystem.css?v=745c5aa7" />
     <link rel="stylesheet" type="text/css" href="../_static/jupyter-sphinx.css" />
     <link rel="stylesheet" type="text/css" href="../_static/plot_directive.css" />
-    <link rel="stylesheet" type="text/css" href="../_static/design-style.1e8bd061cd6da7fc9cf755528e8ffc24.min.css?v=0a3b3ea7" />
+    <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/furo-extensions.css?v=36a5483c" />
     
     
@@ -145,7 +145,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../index.html"><div class="brand">Qiskit Aer 0.17.1</div></a>
+      <a href="../index.html"><div class="brand">Qiskit Aer 0.18.0</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -172,7 +172,7 @@
     </div>
   </a>
   
-  <span class="sidebar-brand-text">Qiskit Aer 0.17.1</span>
+  <span class="sidebar-brand-text">Qiskit Aer 0.18.0</span>
 </div><form class="sidebar-search-container" method="get" action="../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
   <input type="hidden" name="check_keywords" value="yes">
@@ -339,18 +339,18 @@
           </label>
         </div>
         <article role="main">
-          <span class="target" id="module-qiskit_aer.noise"><span id="aer-noise"></span></span><section id="noise-models-qiskit-aer-noise">
-<h1>Noise Models (<a class="reference internal" href="#module-qiskit_aer.noise" title="qiskit_aer.noise"><code class="xref py py-mod docutils literal notranslate"><span class="pre">qiskit_aer.noise</span></code></a>)<a class="headerlink" href="#noise-models-qiskit-aer-noise" title="Permalink to this heading">#</a></h1>
+          <section id="noise-models-qiskit-aer-noise">
+<span id="module-qiskit_aer.noise"></span><span id="aer-noise"></span><h1>Noise Models (<a class="reference internal" href="#module-qiskit_aer.noise" title="qiskit_aer.noise"><code class="xref py py-mod docutils literal notranslate"><span class="pre">qiskit_aer.noise</span></code></a>)<a class="headerlink" href="#noise-models-qiskit-aer-noise" title="Link to this heading">¶</a></h1>
 <p>This module contains classes and functions to build a noise model for
 simulating a Qiskit quantum circuit in the presence of errors.</p>
 <section id="building-noise-models">
-<h2>Building Noise Models<a class="headerlink" href="#building-noise-models" title="Permalink to this heading">#</a></h2>
+<h2>Building Noise Models<a class="headerlink" href="#building-noise-models" title="Link to this heading">¶</a></h2>
 <p>The <a class="reference internal" href="../stubs/qiskit_aer.noise.NoiseModel.html#qiskit_aer.noise.NoiseModel" title="qiskit_aer.noise.NoiseModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">NoiseModel</span></code></a> class is used to represent noise model for the
 <a class="reference internal" href="../stubs/qiskit_aer.QasmSimulator.html#qiskit_aer.QasmSimulator" title="qiskit_aer.QasmSimulator"><code class="xref py py-class docutils literal notranslate"><span class="pre">QasmSimulator</span></code></a>. It can be used to construct
 custom noise models for simulator, to automatically generate a basic
 device noise model for an IBMQ or fake backend.</p>
 <section id="device-noise-models">
-<h3>Device Noise Models<a class="headerlink" href="#device-noise-models" title="Permalink to this heading">#</a></h3>
+<h3>Device Noise Models<a class="headerlink" href="#device-noise-models" title="Link to this heading">¶</a></h3>
 <p>A simplified approximate <a class="reference internal" href="../stubs/qiskit_aer.noise.NoiseModel.html#qiskit_aer.noise.NoiseModel" title="qiskit_aer.noise.NoiseModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">NoiseModel</span></code></a> can be generated automatically
 from the properties of real device backends from the IBMQ provider or
 fake backends of the <cite>fake_provider</cite> using the <a class="reference internal" href="../stubs/qiskit_aer.noise.NoiseModel.html#qiskit_aer.noise.NoiseModel.from_backend" title="qiskit_aer.noise.NoiseModel.from_backend"><code class="xref py py-meth docutils literal notranslate"><span class="pre">NoiseModel.from_backend()</span></code></a>
@@ -372,8 +372,8 @@ method. See the method documentation for details.</p>
 
 <span class="c1"># Get the noise model of ibmq_lima</span>
 <span class="n">provider</span> <span class="o">=</span> <span class="n">IBMQ</span><span class="o">.</span><span class="n">load_account</span><span class="p">()</span>
-<span class="n">provider</span> <span class="o">=</span> <span class="n">IBMQ</span><span class="o">.</span><span class="n">get_provider</span><span class="p">(</span><span class="n">hub</span><span class="o">=</span><span class="s1">&#39;ibm-q&#39;</span><span class="p">,</span> <span class="n">group</span><span class="o">=</span><span class="s1">&#39;open&#39;</span><span class="p">,</span> <span class="n">project</span><span class="o">=</span><span class="s1">&#39;main&#39;</span><span class="p">)</span>
-<span class="n">backend_lima</span> <span class="o">=</span> <span class="n">provider</span><span class="o">.</span><span class="n">get_backend</span><span class="p">(</span><span class="s1">&#39;ibmq_lima&#39;</span><span class="p">)</span>
+<span class="n">provider</span> <span class="o">=</span> <span class="n">IBMQ</span><span class="o">.</span><span class="n">get_provider</span><span class="p">(</span><span class="n">hub</span><span class="o">=</span><span class="s1">'ibm-q'</span><span class="p">,</span> <span class="n">group</span><span class="o">=</span><span class="s1">'open'</span><span class="p">,</span> <span class="n">project</span><span class="o">=</span><span class="s1">'main'</span><span class="p">)</span>
+<span class="n">backend_lima</span> <span class="o">=</span> <span class="n">provider</span><span class="o">.</span><span class="n">get_backend</span><span class="p">(</span><span class="s1">'ibmq_lima'</span><span class="p">)</span>
 <span class="n">noise_model</span> <span class="o">=</span> <span class="n">NoiseModel</span><span class="o">.</span><span class="n">from_backend</span><span class="p">(</span><span class="n">backend_lima</span><span class="p">)</span>
 
 <span class="c1"># Get coupling map from backend</span>
@@ -430,7 +430,7 @@ method. See the method documentation for details.</p>
 </div>
 </section>
 <section id="custom-noise-models">
-<h3>Custom Noise Models<a class="headerlink" href="#custom-noise-models" title="Permalink to this heading">#</a></h3>
+<h3>Custom Noise Models<a class="headerlink" href="#custom-noise-models" title="Link to this heading">¶</a></h3>
 <p>Custom noise models can be used by adding <a class="reference internal" href="../stubs/qiskit_aer.noise.QuantumError.html#qiskit_aer.noise.QuantumError" title="qiskit_aer.noise.QuantumError"><code class="xref py py-class docutils literal notranslate"><span class="pre">QuantumError</span></code></a> to circuit
 gate, reset or measure instructions, and <a class="reference internal" href="../stubs/qiskit_aer.noise.ReadoutError.html#qiskit_aer.noise.ReadoutError" title="qiskit_aer.noise.ReadoutError"><code class="xref py py-class docutils literal notranslate"><span class="pre">ReadoutError</span></code></a> to measure
 instructions. This module includes several helper functions for generating
@@ -453,8 +453,8 @@ documentation for the <a class="reference internal" href="../stubs/qiskit_aer.no
 
 <span class="c1"># Add errors to noise model</span>
 <span class="n">noise_model</span> <span class="o">=</span> <span class="n">noise</span><span class="o">.</span><span class="n">NoiseModel</span><span class="p">()</span>
-<span class="n">noise_model</span><span class="o">.</span><span class="n">add_all_qubit_quantum_error</span><span class="p">(</span><span class="n">error_1</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;u1&#39;</span><span class="p">,</span> <span class="s1">&#39;u2&#39;</span><span class="p">,</span> <span class="s1">&#39;u3&#39;</span><span class="p">])</span>
-<span class="n">noise_model</span><span class="o">.</span><span class="n">add_all_qubit_quantum_error</span><span class="p">(</span><span class="n">error_2</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;cx&#39;</span><span class="p">])</span>
+<span class="n">noise_model</span><span class="o">.</span><span class="n">add_all_qubit_quantum_error</span><span class="p">(</span><span class="n">error_1</span><span class="p">,</span> <span class="p">[</span><span class="s1">'u1'</span><span class="p">,</span> <span class="s1">'u2'</span><span class="p">,</span> <span class="s1">'u3'</span><span class="p">])</span>
+<span class="n">noise_model</span><span class="o">.</span><span class="n">add_all_qubit_quantum_error</span><span class="p">(</span><span class="n">error_2</span><span class="p">,</span> <span class="p">[</span><span class="s1">'cx'</span><span class="p">])</span>
 
 <span class="c1"># Get basis gates from noise model</span>
 <span class="n">basis_gates</span> <span class="o">=</span> <span class="n">noise_model</span><span class="o">.</span><span class="n">basis_gates</span>
@@ -480,7 +480,7 @@ documentation for the <a class="reference internal" href="../stubs/qiskit_aer.no
 </section>
 </section>
 <section id="classes">
-<h2>Classes<a class="headerlink" href="#classes" title="Permalink to this heading">#</a></h2>
+<h2>Classes<a class="headerlink" href="#classes" title="Link to this heading">¶</a></h2>
 <p>The following are the classes used to represented noise and error terms.</p>
 <div class="table-wrapper autosummary longtable docutils container">
 <table class="autosummary longtable docutils align-default">
@@ -502,7 +502,7 @@ documentation for the <a class="reference internal" href="../stubs/qiskit_aer.no
 </div>
 </section>
 <section id="quantum-error-functions">
-<h2>Quantum Error Functions<a class="headerlink" href="#quantum-error-functions" title="Permalink to this heading">#</a></h2>
+<h2>Quantum Error Functions<a class="headerlink" href="#quantum-error-functions" title="Link to this heading">¶</a></h2>
 <p>The following functions can be used to generate many common types of
 <a class="reference internal" href="../stubs/qiskit_aer.noise.QuantumError.html#qiskit_aer.noise.QuantumError" title="qiskit_aer.noise.QuantumError"><code class="xref py py-class docutils literal notranslate"><span class="pre">QuantumError</span></code></a> objects for inclusion in a <a class="reference internal" href="../stubs/qiskit_aer.noise.NoiseModel.html#qiskit_aer.noise.NoiseModel" title="qiskit_aer.noise.NoiseModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">NoiseModel</span></code></a>.</p>
 <div class="table-wrapper autosummary longtable docutils container">
@@ -543,7 +543,7 @@ documentation for the <a class="reference internal" href="../stubs/qiskit_aer.no
 </div>
 </section>
 <section id="noise-transpiler-passes">
-<h2>Noise Transpiler Passes<a class="headerlink" href="#noise-transpiler-passes" title="Permalink to this heading">#</a></h2>
+<h2>Noise Transpiler Passes<a class="headerlink" href="#noise-transpiler-passes" title="Link to this heading">¶</a></h2>
 <p>These transpiler passes can be used to build noise models that can be applied
 to circuits via transpilation.</p>
 <div class="table-wrapper autosummary longtable docutils container">
@@ -560,7 +560,7 @@ to circuits via transpilation.</p>
 </div>
 </section>
 <section id="device-noise-parameters">
-<h2>Device Noise Parameters<a class="headerlink" href="#device-noise-parameters" title="Permalink to this heading">#</a></h2>
+<h2>Device Noise Parameters<a class="headerlink" href="#device-noise-parameters" title="Link to this heading">¶</a></h2>
 <p>The following are utility functions which can be used for extracting error
 parameters and error objects from device <cite>BackendProperties</cite>.</p>
 <div class="table-wrapper autosummary longtable docutils container">
@@ -621,13 +621,13 @@ parameters and error objects from device <cite>BackendProperties</cite>.</p>
         <div class="bottom-of-page">
           <div class="left-details">
             <div class="copyright">
-                Copyright &#169; 2017-2025, Qiskit Development Team
+                Copyright &#169; 2017-2026, Qiskit Development Team
             </div>
             Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
             
             <a href="https://github.com/pradyunsg/furo">Furo</a>
             <div class="last-updated">
-              Last updated on 2025/06/04</div>
+              Last updated on 2026/10/20</div>
           </div>
           <div class="right-details">
             
@@ -671,13 +671,15 @@ parameters and error objects from device <cite>BackendProperties</cite>.</p>
   </div>
 </div><script src="../_static/jquery.js?v=5d32c60e"></script>
     <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-    <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js?v=d060e3e0"></script>
-    <script src="../_static/doctools.js?v=888ff710"></script>
-    <script src="../_static/sphinx_highlight.js?v=4825356b"></script>
+    <script src="../_static/documentation_options.js?v=ba2e7b09"></script>
+    <script src="../_static/doctools.js?v=9a2dae69"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../_static/scripts/qiskit-sphinx-theme.js?v=4d77b8ca"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@jupyter-widgets/html-manager@^1.0.1/dist/embed-amd.js"></script>
-    <script src="../_static/design-tabs.js?v=36754332"></script>
+    <script src="../_static/design-tabs.js?v=f930bc37"></script>
     <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     </body>
 </html>

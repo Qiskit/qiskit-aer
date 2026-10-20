@@ -5,15 +5,15 @@
     <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
 <link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" /><link rel="next" title="Qiskit Aer How-To Guides" href="../howtos/index.html" /><link rel="prev" title="The Extended Stabilizer Simulator" href="6_extended_stabilizer_tutorial.html" />
 
-    <!-- Generated with Sphinx 7.1.2 and Furo 2024.01.29 -->
-        <title>Matrix product state simulation method - Qiskit Aer 0.17.1</title>
+    <!-- Generated with Sphinx 7.4.7 and Furo 2024.01.29 -->
+        <title>Matrix product state simulation method - Qiskit Aer 0.18.0</title>
       <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=135e06be" />
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=3ee1c6c6" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/qiskit-sphinx-theme.css?v=fe84956c" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/qiskit-ecosystem.css?v=745c5aa7" />
     <link rel="stylesheet" type="text/css" href="../_static/jupyter-sphinx.css" />
     <link rel="stylesheet" type="text/css" href="../_static/plot_directive.css" />
-    <link rel="stylesheet" type="text/css" href="../_static/design-style.1e8bd061cd6da7fc9cf755528e8ffc24.min.css?v=0a3b3ea7" />
+    <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
     <link rel="stylesheet" type="text/css" href="../_static/nbsphinx-code-cells.css?v=2aa19091" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/furo-extensions.css?v=36a5483c" />
     
@@ -146,7 +146,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../index.html"><div class="brand">Qiskit Aer 0.17.1</div></a>
+      <a href="../index.html"><div class="brand">Qiskit Aer 0.18.0</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -173,7 +173,7 @@
     </div>
   </a>
   
-  <span class="sidebar-brand-text">Qiskit Aer 0.17.1</span>
+  <span class="sidebar-brand-text">Qiskit Aer 0.18.0</span>
 </div><form class="sidebar-search-container" method="get" action="../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
   <input type="hidden" name="check_keywords" value="yes">
@@ -341,15 +341,15 @@
         </div>
         <article role="main">
           <section id="Matrix-product-state-simulation-method">
-<h1>Matrix product state simulation method<a class="headerlink" href="#Matrix-product-state-simulation-method" title="Permalink to this heading">#</a></h1>
+<h1>Matrix product state simulation method<a class="headerlink" href="#Matrix-product-state-simulation-method" title="Link to this heading">¶</a></h1>
 <section id="Simulation-methods">
-<h2>Simulation methods<a class="headerlink" href="#Simulation-methods" title="Permalink to this heading">#</a></h2>
+<h2>Simulation methods<a class="headerlink" href="#Simulation-methods" title="Link to this heading">¶</a></h2>
 <p>The <code class="docutils literal notranslate"><span class="pre">AerSimulator</span></code> has several simulation methods including <code class="docutils literal notranslate"><span class="pre">statevector</span></code>, <code class="docutils literal notranslate"><span class="pre">stabilizer</span></code>, <code class="docutils literal notranslate"><span class="pre">extended_stabilizer</span></code> and <code class="docutils literal notranslate"><span class="pre">matrix_product_state</span></code>. Each of these determines the internal representation of the quantum circuit and the algorithms used to process the quantum operations. They each have advantages and disadvantages, and choosing the best method is a matter of investigation. In this tutorial, we focus on the <code class="docutils literal notranslate"><span class="pre">matrix</span> <span class="pre">product</span> <span class="pre">state</span> <span class="pre">simulation</span> <span class="pre">method</span></code>.</p>
 </section>
 <section id="id1">
-<h2>Matrix product state simulation method<a class="headerlink" href="#id1" title="Permalink to this heading">#</a></h2>
+<h2>Matrix product state simulation method<a class="headerlink" href="#id1" title="Link to this heading">¶</a></h2>
 <p>This simulation method is based on the concept of <code class="docutils literal notranslate"><span class="pre">matrix</span> <span class="pre">product</span> <span class="pre">states</span></code>. This structure was initially proposed in the paper <em>Efficient classical simulation of slightly entangled quantum computations</em> by Vidal in <a class="reference external" href="https://arxiv.org/abs/quant-ph/0301063">https://arxiv.org/abs/quant-ph/0301063</a>. There are additional papers that describe the structure in more detail, for example <em>The density-matrix renormalization group in the age of matrix product states</em> by Schollwoeck <a class="reference external" href="https://arxiv.org/abs/1008.3477">https://arxiv.org/abs/1008.3477</a>.</p>
-<p>A pure quantum state is usually described as a state vector, by the expression <span class="math notranslate nohighlight">\(|\psi\rangle = \sum_{i_1=0}^1 {\ldots} \sum_{i_n=0}^1 c_{i_1 \ldots i_n} |i_i\rangle {\otimes} {\ldots} {\otimes} |i_n\rangle\)</span>.</p>
+<p>A pure quantum state is usually described as a state vector, by the expression <span class="math notranslate nohighlight">\(|\psi\rangle =  \sum_{i_1=0}^1 {\ldots} \sum_{i_n=0}^1 c_{i_1 \ldots i_n} |i_i\rangle {\otimes} {\ldots} {\otimes} |i_n\rangle\)</span>.</p>
 <p>The state vector representation implies an exponential size representation, regardless of the actual circuit. Every quantum gate operating on this representation requires exponential time and memory.</p>
 <p>The matrix product state (MPS) representation offers a local representation, in the form: <span class="math notranslate nohighlight">\(\Gamma^{[1]} \lambda^{[1]} \Gamma^{[2]} \lambda^{[2]}\ldots \Gamma^{[1]} \lambda^{[n-1]} \Gamma^{[n]}\)</span>, such that all the information contained in the <span class="math notranslate nohighlight">\(c_{i_1 \ldots i_n}\)</span>, can be generated out of the MPS representation.</p>
 <p>Every <span class="math notranslate nohighlight">\(\Gamma^{[i]}\)</span> is a tensor of complex numbers that represents qubit <span class="math notranslate nohighlight">\(i\)</span>. Every <span class="math notranslate nohighlight">\(\lambda^{[i]}\)</span> is a matrix of real numbers that is used to normalize the amplitudes of qubits <span class="math notranslate nohighlight">\(i\)</span> and <span class="math notranslate nohighlight">\(i+1\)</span>. Single-qubit gates operate only on the relevant tensor.</p>
@@ -358,7 +358,7 @@ swap gates to bring the two qubits next to each other and then the reverse swaps
 <p>In the worst case, the tensors may grow exponentially. However, the size of the overall structure remains ‘small’ for circuits that do not have ‘many’ two-qubit gates. This allows much more efficient operations in circuits with relatively ‘low’ entanglement. Characterizing when to use this method over other methods is a subject of current research.</p>
 </section>
 <section id="Using-the-matrix-product-state-simulation-method">
-<h2>Using the matrix product state simulation method<a class="headerlink" href="#Using-the-matrix-product-state-simulation-method" title="Permalink to this heading">#</a></h2>
+<h2>Using the matrix product state simulation method<a class="headerlink" href="#Using-the-matrix-product-state-simulation-method" title="Link to this heading">¶</a></h2>
 <p>The matrix product state simulation method is invoked in the <code class="docutils literal notranslate"><span class="pre">AerSimulator</span></code> by setting the simulation method. Other than that, all operations are controlled by the <code class="docutils literal notranslate"><span class="pre">AerSimulator</span></code> itself, as in the following example:</p>
 <div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
@@ -377,7 +377,7 @@ swap gates to bring the two qubits next to each other and then the reverse swaps
 <span class="n">circ</span><span class="o">.</span><span class="n">measure</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">])</span>
 
 <span class="c1"># Select the AerSimulator from the Aer provider</span>
-<span class="n">simulator</span> <span class="o">=</span> <span class="n">AerSimulator</span><span class="p">(</span><span class="n">method</span><span class="o">=</span><span class="s1">&#39;matrix_product_state&#39;</span><span class="p">)</span>
+<span class="n">simulator</span> <span class="o">=</span> <span class="n">AerSimulator</span><span class="p">(</span><span class="n">method</span><span class="o">=</span><span class="s1">'matrix_product_state'</span><span class="p">)</span>
 
 <span class="c1"># Run and get counts, using the matrix_product_state method</span>
 <span class="n">tcirc</span> <span class="o">=</span> <span class="n">transpile</span><span class="p">(</span><span class="n">circ</span><span class="p">,</span> <span class="n">simulator</span><span class="p">)</span>
@@ -406,8 +406,8 @@ swap gates to bring the two qubits next to each other and then the reverse swaps
 <span class="n">circ</span><span class="o">.</span><span class="n">cx</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
 
 <span class="c1"># Define a snapshot that shows the current state vector</span>
-<span class="n">circ</span><span class="o">.</span><span class="n">save_statevector</span><span class="p">(</span><span class="n">label</span><span class="o">=</span><span class="s1">&#39;my_sv&#39;</span><span class="p">)</span>
-<span class="n">circ</span><span class="o">.</span><span class="n">save_matrix_product_state</span><span class="p">(</span><span class="n">label</span><span class="o">=</span><span class="s1">&#39;my_mps&#39;</span><span class="p">)</span>
+<span class="n">circ</span><span class="o">.</span><span class="n">save_statevector</span><span class="p">(</span><span class="n">label</span><span class="o">=</span><span class="s1">'my_sv'</span><span class="p">)</span>
+<span class="n">circ</span><span class="o">.</span><span class="n">save_matrix_product_state</span><span class="p">(</span><span class="n">label</span><span class="o">=</span><span class="s1">'my_mps'</span><span class="p">)</span>
 <span class="n">circ</span><span class="o">.</span><span class="n">measure</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">])</span>
 
 <span class="c1"># Execute and get saved data</span>
@@ -456,7 +456,7 @@ create an <code class="docutils literal notranslate"><span class="pre">EPR</span
 
 <span class="n">tcirc</span> <span class="o">=</span> <span class="n">transpile</span><span class="p">(</span><span class="n">circ</span><span class="p">,</span> <span class="n">simulator</span><span class="p">)</span>
 <span class="n">result</span> <span class="o">=</span> <span class="n">simulator</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">tcirc</span><span class="p">)</span><span class="o">.</span><span class="n">result</span><span class="p">()</span>
-<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Time taken: </span><span class="si">{}</span><span class="s2"> sec&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">time_taken</span><span class="p">))</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">"Time taken: </span><span class="si">{}</span><span class="s2"> sec"</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">time_taken</span><span class="p">))</span>
 <span class="n">result</span><span class="o">.</span><span class="n">get_counts</span><span class="p">()</span>
 </pre></div>
 </div>
@@ -540,13 +540,13 @@ Time taken: 0.31022214889526367 sec
         <div class="bottom-of-page">
           <div class="left-details">
             <div class="copyright">
-                Copyright &#169; 2017-2025, Qiskit Development Team
+                Copyright &#169; 2017-2026, Qiskit Development Team
             </div>
             Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
             
             <a href="https://github.com/pradyunsg/furo">Furo</a>
             <div class="last-updated">
-              Last updated on 2025/06/04</div>
+              Last updated on 2026/10/20</div>
           </div>
           <div class="right-details">
             
@@ -584,13 +584,13 @@ Time taken: 0.31022214889526367 sec
   </div>
 </div><script src="../_static/jquery.js?v=5d32c60e"></script>
     <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-    <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js?v=d060e3e0"></script>
-    <script src="../_static/doctools.js?v=888ff710"></script>
-    <script src="../_static/sphinx_highlight.js?v=4825356b"></script>
+    <script src="../_static/documentation_options.js?v=ba2e7b09"></script>
+    <script src="../_static/doctools.js?v=9a2dae69"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../_static/scripts/qiskit-sphinx-theme.js?v=4d77b8ca"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@jupyter-widgets/html-manager@^1.0.1/dist/embed-amd.js"></script>
-    <script src="../_static/design-tabs.js?v=36754332"></script>
+    <script src="../_static/design-tabs.js?v=f930bc37"></script>
     <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
     <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
     <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>

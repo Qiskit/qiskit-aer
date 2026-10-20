@@ -5,15 +5,15 @@
     <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
 <link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" /><link rel="next" title="Applying noise to custom unitary gates" href="4_custom_gate_noise.html" /><link rel="prev" title="Device backend noise model simulations" href="2_device_noise_simulation.html" />
 
-    <!-- Generated with Sphinx 7.1.2 and Furo 2024.01.29 -->
-        <title>Building Noise Models - Qiskit Aer 0.17.1</title>
+    <!-- Generated with Sphinx 7.4.7 and Furo 2024.01.29 -->
+        <title>Building Noise Models - Qiskit Aer 0.18.0</title>
       <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=135e06be" />
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=3ee1c6c6" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/qiskit-sphinx-theme.css?v=fe84956c" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/qiskit-ecosystem.css?v=745c5aa7" />
     <link rel="stylesheet" type="text/css" href="../_static/jupyter-sphinx.css" />
     <link rel="stylesheet" type="text/css" href="../_static/plot_directive.css" />
-    <link rel="stylesheet" type="text/css" href="../_static/design-style.1e8bd061cd6da7fc9cf755528e8ffc24.min.css?v=0a3b3ea7" />
+    <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
     <link rel="stylesheet" type="text/css" href="../_static/nbsphinx-code-cells.css?v=2aa19091" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/furo-extensions.css?v=36a5483c" />
     
@@ -146,7 +146,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../index.html"><div class="brand">Qiskit Aer 0.17.1</div></a>
+      <a href="../index.html"><div class="brand">Qiskit Aer 0.18.0</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -173,7 +173,7 @@
     </div>
   </a>
   
-  <span class="sidebar-brand-text">Qiskit Aer 0.17.1</span>
+  <span class="sidebar-brand-text">Qiskit Aer 0.18.0</span>
 </div><form class="sidebar-search-container" method="get" action="../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
   <input type="hidden" name="check_keywords" value="yes">
@@ -341,9 +341,9 @@
         </div>
         <article role="main">
           <section id="Building-Noise-Models">
-<h1>Building Noise Models<a class="headerlink" href="#Building-Noise-Models" title="Permalink to this heading">#</a></h1>
+<h1>Building Noise Models<a class="headerlink" href="#Building-Noise-Models" title="Link to this heading">¶</a></h1>
 <section id="Introduction">
-<h2>Introduction<a class="headerlink" href="#Introduction" title="Permalink to this heading">#</a></h2>
+<h2>Introduction<a class="headerlink" href="#Introduction" title="Link to this heading">¶</a></h2>
 <p>This notebook introduces how to use the Qiskit Aer <code class="docutils literal notranslate"><span class="pre">noise</span></code> module to build custom noise models for noisy simulations.</p>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
@@ -363,7 +363,7 @@
 </div>
 </section>
 <section id="Qiskit-Aer-Noise-Module">
-<h2>Qiskit Aer Noise Module<a class="headerlink" href="#Qiskit-Aer-Noise-Module" title="Permalink to this heading">#</a></h2>
+<h2>Qiskit Aer Noise Module<a class="headerlink" href="#Qiskit-Aer-Noise-Module" title="Link to this heading">¶</a></h2>
 <p>The Qiskit Aer <code class="docutils literal notranslate"><span class="pre">noise</span></code> module contains Python classes to build customized noise models for simulation. There are three key classes:</p>
 <ol class="arabic simple">
 <li><p>The <code class="docutils literal notranslate"><span class="pre">NoiseModel</span></code> class which stores a noise model used for noisy simulation.</p></li>
@@ -377,7 +377,7 @@
 </ol>
 </section>
 <section id="Quantum-Errors">
-<h2>Quantum Errors<a class="headerlink" href="#Quantum-Errors" title="Permalink to this heading">#</a></h2>
+<h2>Quantum Errors<a class="headerlink" href="#Quantum-Errors" title="Link to this heading">¶</a></h2>
 <p>Rather than deal with the <code class="docutils literal notranslate"><span class="pre">QuantumError</span></code> object directly, many helper functions exist to automatically generate a specific type of parameterized quantum error. These are contained in the <code class="docutils literal notranslate"><span class="pre">noise</span></code> module and include functions for many common errors types used in quantum computing research. The function names and the type of error they return are:</p>
 <div class="table-wrapper docutils container">
 <table class="docutils align-default">
@@ -421,7 +421,7 @@
 </table>
 </div>
 <section id="Combining-quantum-errors">
-<h3>Combining quantum errors<a class="headerlink" href="#Combining-quantum-errors" title="Permalink to this heading">#</a></h3>
+<h3>Combining quantum errors<a class="headerlink" href="#Combining-quantum-errors" title="Link to this heading">¶</a></h3>
 <p><code class="docutils literal notranslate"><span class="pre">QuantumError</span></code> instances can be combined by using composition, tensor product, and tensor expansion (reversed order tensor product) to produce new <code class="docutils literal notranslate"><span class="pre">QuantumErrors</span></code> as:</p>
 <ul class="simple">
 <li><p>Composition: <span class="math notranslate nohighlight">\(\cal{E}(\rho)=\cal{E_2}(\cal{E_1}(\rho))\)</span> as <code class="docutils literal notranslate"><span class="pre">error</span> <span class="pre">=</span> <span class="pre">error1.compose(error2)</span></code></p></li>
@@ -430,7 +430,7 @@
 </ul>
 </section>
 <section id="Example">
-<h3>Example<a class="headerlink" href="#Example" title="Permalink to this heading">#</a></h3>
+<h3>Example<a class="headerlink" href="#Example" title="Link to this heading">¶</a></h3>
 <p>For example to construct a 5% single-qubit Bit-flip error:</p>
 <div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
@@ -438,8 +438,8 @@
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Construct a 1-qubit bit-flip and phase-flip errors</span>
 <span class="n">p_error</span> <span class="o">=</span> <span class="mf">0.05</span>
-<span class="n">bit_flip</span> <span class="o">=</span> <span class="n">pauli_error</span><span class="p">([(</span><span class="s1">&#39;X&#39;</span><span class="p">,</span> <span class="n">p_error</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;I&#39;</span><span class="p">,</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">p_error</span><span class="p">)])</span>
-<span class="n">phase_flip</span> <span class="o">=</span> <span class="n">pauli_error</span><span class="p">([(</span><span class="s1">&#39;Z&#39;</span><span class="p">,</span> <span class="n">p_error</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;I&#39;</span><span class="p">,</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">p_error</span><span class="p">)])</span>
+<span class="n">bit_flip</span> <span class="o">=</span> <span class="n">pauli_error</span><span class="p">([(</span><span class="s1">'X'</span><span class="p">,</span> <span class="n">p_error</span><span class="p">),</span> <span class="p">(</span><span class="s1">'I'</span><span class="p">,</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">p_error</span><span class="p">)])</span>
+<span class="n">phase_flip</span> <span class="o">=</span> <span class="n">pauli_error</span><span class="p">([(</span><span class="s1">'Z'</span><span class="p">,</span> <span class="n">p_error</span><span class="p">),</span> <span class="p">(</span><span class="s1">'I'</span><span class="p">,</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">p_error</span><span class="p">)])</span>
 <span class="nb">print</span><span class="p">(</span><span class="n">bit_flip</span><span class="p">)</span>
 <span class="nb">print</span><span class="p">(</span><span class="n">phase_flip</span><span class="p">)</span>
 </pre></div>
@@ -549,7 +549,7 @@ q_1: ┤ I ├
 </div>
 </section>
 <section id="Converting-to-and-from-QuantumChannel-operators">
-<h3>Converting to and from QuantumChannel operators<a class="headerlink" href="#Converting-to-and-from-QuantumChannel-operators" title="Permalink to this heading">#</a></h3>
+<h3>Converting to and from QuantumChannel operators<a class="headerlink" href="#Converting-to-and-from-QuantumChannel-operators" title="Link to this heading">¶</a></h3>
 <p>We can also convert back and forth between <code class="docutils literal notranslate"><span class="pre">QuantumError</span></code> objects in Qiskit Aer and <code class="docutils literal notranslate"><span class="pre">QuantumChannel</span></code> objects in Qiskit Terra.</p>
 <div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
@@ -631,7 +631,7 @@ True
 </div>
 </section>
 <section id="Readout-Error">
-<h3>Readout Error<a class="headerlink" href="#Readout-Error" title="Permalink to this heading">#</a></h3>
+<h3>Readout Error<a class="headerlink" href="#Readout-Error" title="Link to this heading">¶</a></h3>
 <p>Classical readout errors are specified by a list of assignment probabilities vectors <span class="math notranslate nohighlight">\(P(A|B)\)</span>:</p>
 <ul class="simple">
 <li><p><span class="math notranslate nohighlight">\(A\)</span> is the <em>recorded</em> classical bit value</p></li>
@@ -664,14 +664,14 @@ ReadoutError([[0.95 0.05]
 </section>
 </section>
 <section id="Adding-errors-to-a-Noise-Model">
-<h2>Adding errors to a Noise Model<a class="headerlink" href="#Adding-errors-to-a-Noise-Model" title="Permalink to this heading">#</a></h2>
+<h2>Adding errors to a Noise Model<a class="headerlink" href="#Adding-errors-to-a-Noise-Model" title="Link to this heading">¶</a></h2>
 <p>When adding a quantum error to a noise model we must specify the type of <em>instruction</em> that it acts on, and what qubits to apply it to. There are two cases for Quantum Errors:</p>
 <ol class="arabic simple">
 <li><p>All-qubit quantum error</p></li>
 <li><p>Specific qubit quantum error</p></li>
 </ol>
 <section id="1.-All-qubit-quantum-error">
-<h3>1. All-qubit quantum error<a class="headerlink" href="#1.-All-qubit-quantum-error" title="Permalink to this heading">#</a></h3>
+<h3>1. All-qubit quantum error<a class="headerlink" href="#1.-All-qubit-quantum-error" title="Link to this heading">¶</a></h3>
 <p>This applies the same error to any occurrence of an instruction, regardless of which qubits it acts on.</p>
 <p>It is added as <code class="docutils literal notranslate"><span class="pre">noise_model.add_all_qubit_quantum_error(error,</span> <span class="pre">instructions)</span></code>:</p>
 <div class="nbinput docutils container">
@@ -683,7 +683,7 @@ ReadoutError([[0.95 0.05]
 
 <span class="c1"># Add depolarizing error to all single qubit u1, u2, u3 gates</span>
 <span class="n">error</span> <span class="o">=</span> <span class="n">depolarizing_error</span><span class="p">(</span><span class="mf">0.05</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
-<span class="n">noise_model</span><span class="o">.</span><span class="n">add_all_qubit_quantum_error</span><span class="p">(</span><span class="n">error</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;u1&#39;</span><span class="p">,</span> <span class="s1">&#39;u2&#39;</span><span class="p">,</span> <span class="s1">&#39;u3&#39;</span><span class="p">])</span>
+<span class="n">noise_model</span><span class="o">.</span><span class="n">add_all_qubit_quantum_error</span><span class="p">(</span><span class="n">error</span><span class="p">,</span> <span class="p">[</span><span class="s1">'u1'</span><span class="p">,</span> <span class="s1">'u2'</span><span class="p">,</span> <span class="s1">'u3'</span><span class="p">])</span>
 
 <span class="c1"># Print noise model info</span>
 <span class="nb">print</span><span class="p">(</span><span class="n">noise_model</span><span class="p">)</span>
@@ -703,7 +703,7 @@ NoiseModel:
 </div>
 </section>
 <section id="2.-Specific-qubit-quantum-error">
-<h3>2. Specific qubit quantum error<a class="headerlink" href="#2.-Specific-qubit-quantum-error" title="Permalink to this heading">#</a></h3>
+<h3>2. Specific qubit quantum error<a class="headerlink" href="#2.-Specific-qubit-quantum-error" title="Link to this heading">¶</a></h3>
 <p>This applies the error to any occurrence of an instruction acting on a specified list of qubits. Note that the order of the qubit matters: For a 2-qubit gate an error applied to qubits [0, 1] is different to one applied to qubits [1, 0] for example.</p>
 <p>It is added as <code class="docutils literal notranslate"><span class="pre">noise_model.add_quantum_error(error,</span> <span class="pre">instructions,</span> <span class="pre">qubits)</span></code>:</p>
 <div class="nbinput docutils container">
@@ -715,7 +715,7 @@ NoiseModel:
 
 <span class="c1"># Add depolarizing error to all single qubit u1, u2, u3 gates on qubit 0 only</span>
 <span class="n">error</span> <span class="o">=</span> <span class="n">depolarizing_error</span><span class="p">(</span><span class="mf">0.05</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
-<span class="n">noise_model</span><span class="o">.</span><span class="n">add_quantum_error</span><span class="p">(</span><span class="n">error</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;u1&#39;</span><span class="p">,</span> <span class="s1">&#39;u2&#39;</span><span class="p">,</span> <span class="s1">&#39;u3&#39;</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+<span class="n">noise_model</span><span class="o">.</span><span class="n">add_quantum_error</span><span class="p">(</span><span class="n">error</span><span class="p">,</span> <span class="p">[</span><span class="s1">'u1'</span><span class="p">,</span> <span class="s1">'u2'</span><span class="p">,</span> <span class="s1">'u3'</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">])</span>
 
 <span class="c1"># Print noise model info</span>
 <span class="nb">print</span><span class="p">(</span><span class="n">noise_model</span><span class="p">)</span>
@@ -736,16 +736,16 @@ NoiseModel:
 </div>
 </section>
 <section id="Note-on-non-local-qubit-quantum-error">
-<h3>Note on non-local qubit quantum error<a class="headerlink" href="#Note-on-non-local-qubit-quantum-error" title="Permalink to this heading">#</a></h3>
+<h3>Note on non-local qubit quantum error<a class="headerlink" href="#Note-on-non-local-qubit-quantum-error" title="Link to this heading">¶</a></h3>
 <p><code class="docutils literal notranslate"><span class="pre">NoiseModel</span></code> does not support addition of non-local qubit quantum errors. They should be handled outside of <code class="docutils literal notranslate"><span class="pre">NoiseModel</span></code>. That suggests you should write your own transpiler pass (<code class="docutils literal notranslate"><span class="pre">TransformationPass</span></code>) and run the pass just before running the simulator if you need to insert your quantum errors into your circuit under your own conditions. See <code class="docutils literal notranslate"><span class="pre">noise.passes.LocalNoisePass</span></code> for example of how to implement such a transpiler pass.</p>
 </section>
 <section id="Executing-a-noisy-simulation-with-a-noise-model">
-<h3>Executing a noisy simulation with a noise model<a class="headerlink" href="#Executing-a-noisy-simulation-with-a-noise-model" title="Permalink to this heading">#</a></h3>
+<h3>Executing a noisy simulation with a noise model<a class="headerlink" href="#Executing-a-noisy-simulation-with-a-noise-model" title="Link to this heading">¶</a></h3>
 <p>The command <code class="docutils literal notranslate"><span class="pre">AerSimulator(noise_model=noise_model)</span></code> returns a simulator configured to the given noise model. In addition to setting the simulator’s noise model, it also overrides the simulator’s basis gates, according to the gates of the noise model.</p>
 </section>
 </section>
 <section id="Noise-Model-Examples">
-<h2>Noise Model Examples<a class="headerlink" href="#Noise-Model-Examples" title="Permalink to this heading">#</a></h2>
+<h2>Noise Model Examples<a class="headerlink" href="#Noise-Model-Examples" title="Link to this heading">¶</a></h2>
 <p>We will now give some examples of noise models. For our demonstrations we will use a simple test circuit generating a n-qubit GHZ state:</p>
 <div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
@@ -783,7 +783,7 @@ meas: 4/════════════════════════
 </pre></div></div>
 </div>
 <section id="Ideal-Simulation">
-<h3>Ideal Simulation<a class="headerlink" href="#Ideal-Simulation" title="Permalink to this heading">#</a></h3>
+<h3>Ideal Simulation<a class="headerlink" href="#Ideal-Simulation" title="Link to this heading">¶</a></h3>
 <div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
 </pre></div>
@@ -806,7 +806,7 @@ meas: 4/════════════════════════
 </section>
 </section>
 <section id="Noise-Example-1:-Basic-bit-flip-error-noise-model">
-<h2>Noise Example 1: Basic bit-flip error noise model<a class="headerlink" href="#Noise-Example-1:-Basic-bit-flip-error-noise-model" title="Permalink to this heading">#</a></h2>
+<h2>Noise Example 1: Basic bit-flip error noise model<a class="headerlink" href="#Noise-Example-1:-Basic-bit-flip-error-noise-model" title="Link to this heading">¶</a></h2>
 <p>Lets consider a simple toy noise model example common in quantum information theory research:</p>
 <ul class="simple">
 <li><p>When applying a single qubit gate, flip the state of the qubit with probability <code class="docutils literal notranslate"><span class="pre">p_gate1</span></code>.</p></li>
@@ -824,17 +824,17 @@ meas: 4/════════════════════════
 <span class="n">p_gate1</span> <span class="o">=</span> <span class="mf">0.05</span>
 
 <span class="c1"># QuantumError objects</span>
-<span class="n">error_reset</span> <span class="o">=</span> <span class="n">pauli_error</span><span class="p">([(</span><span class="s1">&#39;X&#39;</span><span class="p">,</span> <span class="n">p_reset</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;I&#39;</span><span class="p">,</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">p_reset</span><span class="p">)])</span>
-<span class="n">error_meas</span> <span class="o">=</span> <span class="n">pauli_error</span><span class="p">([(</span><span class="s1">&#39;X&#39;</span><span class="p">,</span><span class="n">p_meas</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;I&#39;</span><span class="p">,</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">p_meas</span><span class="p">)])</span>
-<span class="n">error_gate1</span> <span class="o">=</span> <span class="n">pauli_error</span><span class="p">([(</span><span class="s1">&#39;X&#39;</span><span class="p">,</span><span class="n">p_gate1</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;I&#39;</span><span class="p">,</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">p_gate1</span><span class="p">)])</span>
+<span class="n">error_reset</span> <span class="o">=</span> <span class="n">pauli_error</span><span class="p">([(</span><span class="s1">'X'</span><span class="p">,</span> <span class="n">p_reset</span><span class="p">),</span> <span class="p">(</span><span class="s1">'I'</span><span class="p">,</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">p_reset</span><span class="p">)])</span>
+<span class="n">error_meas</span> <span class="o">=</span> <span class="n">pauli_error</span><span class="p">([(</span><span class="s1">'X'</span><span class="p">,</span><span class="n">p_meas</span><span class="p">),</span> <span class="p">(</span><span class="s1">'I'</span><span class="p">,</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">p_meas</span><span class="p">)])</span>
+<span class="n">error_gate1</span> <span class="o">=</span> <span class="n">pauli_error</span><span class="p">([(</span><span class="s1">'X'</span><span class="p">,</span><span class="n">p_gate1</span><span class="p">),</span> <span class="p">(</span><span class="s1">'I'</span><span class="p">,</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">p_gate1</span><span class="p">)])</span>
 <span class="n">error_gate2</span> <span class="o">=</span> <span class="n">error_gate1</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">error_gate1</span><span class="p">)</span>
 
 <span class="c1"># Add errors to noise model</span>
 <span class="n">noise_bit_flip</span> <span class="o">=</span> <span class="n">NoiseModel</span><span class="p">()</span>
-<span class="n">noise_bit_flip</span><span class="o">.</span><span class="n">add_all_qubit_quantum_error</span><span class="p">(</span><span class="n">error_reset</span><span class="p">,</span> <span class="s2">&quot;reset&quot;</span><span class="p">)</span>
-<span class="n">noise_bit_flip</span><span class="o">.</span><span class="n">add_all_qubit_quantum_error</span><span class="p">(</span><span class="n">error_meas</span><span class="p">,</span> <span class="s2">&quot;measure&quot;</span><span class="p">)</span>
-<span class="n">noise_bit_flip</span><span class="o">.</span><span class="n">add_all_qubit_quantum_error</span><span class="p">(</span><span class="n">error_gate1</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;u1&quot;</span><span class="p">,</span> <span class="s2">&quot;u2&quot;</span><span class="p">,</span> <span class="s2">&quot;u3&quot;</span><span class="p">])</span>
-<span class="n">noise_bit_flip</span><span class="o">.</span><span class="n">add_all_qubit_quantum_error</span><span class="p">(</span><span class="n">error_gate2</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;cx&quot;</span><span class="p">])</span>
+<span class="n">noise_bit_flip</span><span class="o">.</span><span class="n">add_all_qubit_quantum_error</span><span class="p">(</span><span class="n">error_reset</span><span class="p">,</span> <span class="s2">"reset"</span><span class="p">)</span>
+<span class="n">noise_bit_flip</span><span class="o">.</span><span class="n">add_all_qubit_quantum_error</span><span class="p">(</span><span class="n">error_meas</span><span class="p">,</span> <span class="s2">"measure"</span><span class="p">)</span>
+<span class="n">noise_bit_flip</span><span class="o">.</span><span class="n">add_all_qubit_quantum_error</span><span class="p">(</span><span class="n">error_gate1</span><span class="p">,</span> <span class="p">[</span><span class="s2">"u1"</span><span class="p">,</span> <span class="s2">"u2"</span><span class="p">,</span> <span class="s2">"u3"</span><span class="p">])</span>
+<span class="n">noise_bit_flip</span><span class="o">.</span><span class="n">add_all_qubit_quantum_error</span><span class="p">(</span><span class="n">error_gate2</span><span class="p">,</span> <span class="p">[</span><span class="s2">"cx"</span><span class="p">])</span>
 
 <span class="nb">print</span><span class="p">(</span><span class="n">noise_bit_flip</span><span class="p">)</span>
 </pre></div>
@@ -852,7 +852,7 @@ NoiseModel:
 </pre></div></div>
 </div>
 <section id="Executing-the-noisy-simulation">
-<h3>Executing the noisy simulation<a class="headerlink" href="#Executing-the-noisy-simulation" title="Permalink to this heading">#</a></h3>
+<h3>Executing the noisy simulation<a class="headerlink" href="#Executing-the-noisy-simulation" title="Link to this heading">¶</a></h3>
 <div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
 </pre></div>
@@ -883,7 +883,7 @@ NoiseModel:
 </section>
 </section>
 <section id="Example-2:-T1/T2-thermal-relaxation">
-<h2>Example 2: T1/T2 thermal relaxation<a class="headerlink" href="#Example-2:-T1/T2-thermal-relaxation" title="Permalink to this heading">#</a></h2>
+<h2>Example 2: T1/T2 thermal relaxation<a class="headerlink" href="#Example-2:-T1/T2-thermal-relaxation" title="Link to this heading">¶</a></h2>
 <p>Now consider a more realistic error model based on thermal relaxation with the qubit environment:</p>
 <ul class="simple">
 <li><p>Each qubit is parameterized by a thermal relaxation time constant <span class="math notranslate nohighlight">\(T_1\)</span> and a dephasing time constant <span class="math notranslate nohighlight">\(T_2\)</span>.</p></li>
@@ -928,13 +928,13 @@ NoiseModel:
 <span class="c1"># Add errors to noise model</span>
 <span class="n">noise_thermal</span> <span class="o">=</span> <span class="n">NoiseModel</span><span class="p">()</span>
 <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">4</span><span class="p">):</span>
-    <span class="n">noise_thermal</span><span class="o">.</span><span class="n">add_quantum_error</span><span class="p">(</span><span class="n">errors_reset</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="s2">&quot;reset&quot;</span><span class="p">,</span> <span class="p">[</span><span class="n">j</span><span class="p">])</span>
-    <span class="n">noise_thermal</span><span class="o">.</span><span class="n">add_quantum_error</span><span class="p">(</span><span class="n">errors_measure</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="s2">&quot;measure&quot;</span><span class="p">,</span> <span class="p">[</span><span class="n">j</span><span class="p">])</span>
-    <span class="n">noise_thermal</span><span class="o">.</span><span class="n">add_quantum_error</span><span class="p">(</span><span class="n">errors_u1</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="s2">&quot;u1&quot;</span><span class="p">,</span> <span class="p">[</span><span class="n">j</span><span class="p">])</span>
-    <span class="n">noise_thermal</span><span class="o">.</span><span class="n">add_quantum_error</span><span class="p">(</span><span class="n">errors_u2</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="s2">&quot;u2&quot;</span><span class="p">,</span> <span class="p">[</span><span class="n">j</span><span class="p">])</span>
-    <span class="n">noise_thermal</span><span class="o">.</span><span class="n">add_quantum_error</span><span class="p">(</span><span class="n">errors_u3</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="s2">&quot;u3&quot;</span><span class="p">,</span> <span class="p">[</span><span class="n">j</span><span class="p">])</span>
+    <span class="n">noise_thermal</span><span class="o">.</span><span class="n">add_quantum_error</span><span class="p">(</span><span class="n">errors_reset</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="s2">"reset"</span><span class="p">,</span> <span class="p">[</span><span class="n">j</span><span class="p">])</span>
+    <span class="n">noise_thermal</span><span class="o">.</span><span class="n">add_quantum_error</span><span class="p">(</span><span class="n">errors_measure</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="s2">"measure"</span><span class="p">,</span> <span class="p">[</span><span class="n">j</span><span class="p">])</span>
+    <span class="n">noise_thermal</span><span class="o">.</span><span class="n">add_quantum_error</span><span class="p">(</span><span class="n">errors_u1</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="s2">"u1"</span><span class="p">,</span> <span class="p">[</span><span class="n">j</span><span class="p">])</span>
+    <span class="n">noise_thermal</span><span class="o">.</span><span class="n">add_quantum_error</span><span class="p">(</span><span class="n">errors_u2</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="s2">"u2"</span><span class="p">,</span> <span class="p">[</span><span class="n">j</span><span class="p">])</span>
+    <span class="n">noise_thermal</span><span class="o">.</span><span class="n">add_quantum_error</span><span class="p">(</span><span class="n">errors_u3</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="s2">"u3"</span><span class="p">,</span> <span class="p">[</span><span class="n">j</span><span class="p">])</span>
     <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">4</span><span class="p">):</span>
-        <span class="n">noise_thermal</span><span class="o">.</span><span class="n">add_quantum_error</span><span class="p">(</span><span class="n">errors_cx</span><span class="p">[</span><span class="n">j</span><span class="p">][</span><span class="n">k</span><span class="p">],</span> <span class="s2">&quot;cx&quot;</span><span class="p">,</span> <span class="p">[</span><span class="n">j</span><span class="p">,</span> <span class="n">k</span><span class="p">])</span>
+        <span class="n">noise_thermal</span><span class="o">.</span><span class="n">add_quantum_error</span><span class="p">(</span><span class="n">errors_cx</span><span class="p">[</span><span class="n">j</span><span class="p">][</span><span class="n">k</span><span class="p">],</span> <span class="s2">"cx"</span><span class="p">,</span> <span class="p">[</span><span class="n">j</span><span class="p">,</span> <span class="n">k</span><span class="p">])</span>
 
 <span class="nb">print</span><span class="p">(</span><span class="n">noise_thermal</span><span class="p">)</span>
 </pre></div>
@@ -953,7 +953,7 @@ NoiseModel:
 </pre></div></div>
 </div>
 <section id="id1">
-<h3>Executing the noisy simulation<a class="headerlink" href="#id1" title="Permalink to this heading">#</a></h3>
+<h3>Executing the noisy simulation<a class="headerlink" href="#id1" title="Link to this heading">¶</a></h3>
 <div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[16]:
 </pre></div>
@@ -1034,13 +1034,13 @@ NoiseModel:
         <div class="bottom-of-page">
           <div class="left-details">
             <div class="copyright">
-                Copyright &#169; 2017-2025, Qiskit Development Team
+                Copyright &#169; 2017-2026, Qiskit Development Team
             </div>
             Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
             
             <a href="https://github.com/pradyunsg/furo">Furo</a>
             <div class="last-updated">
-              Last updated on 2025/06/04</div>
+              Last updated on 2026/10/20</div>
           </div>
           <div class="right-details">
             
@@ -1103,13 +1103,13 @@ NoiseModel:
   </div>
 </div><script src="../_static/jquery.js?v=5d32c60e"></script>
     <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-    <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js?v=d060e3e0"></script>
-    <script src="../_static/doctools.js?v=888ff710"></script>
-    <script src="../_static/sphinx_highlight.js?v=4825356b"></script>
+    <script src="../_static/documentation_options.js?v=ba2e7b09"></script>
+    <script src="../_static/doctools.js?v=9a2dae69"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../_static/scripts/qiskit-sphinx-theme.js?v=4d77b8ca"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@jupyter-widgets/html-manager@^1.0.1/dist/embed-amd.js"></script>
-    <script src="../_static/design-tabs.js?v=36754332"></script>
+    <script src="../_static/design-tabs.js?v=f930bc37"></script>
     <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
     <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
     <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>

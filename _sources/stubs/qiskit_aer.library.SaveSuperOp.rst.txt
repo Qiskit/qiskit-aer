@@ -16,18 +16,14 @@ SaveSuperOp
    .. rubric:: Attributes
       
    .. autoattribute:: SaveSuperOp.base_class
-   .. autoattribute:: SaveSuperOp.condition
-   .. autoattribute:: SaveSuperOp.condition_bits
    .. autoattribute:: SaveSuperOp.decompositions
    .. autoattribute:: SaveSuperOp.definition
-   .. autoattribute:: SaveSuperOp.duration
    .. autoattribute:: SaveSuperOp.label
    .. autoattribute:: SaveSuperOp.mutable
    .. autoattribute:: SaveSuperOp.name
    .. autoattribute:: SaveSuperOp.num_clbits
    .. autoattribute:: SaveSuperOp.num_qubits
    .. autoattribute:: SaveSuperOp.params
-   .. autoattribute:: SaveSuperOp.unit
    
 
 
@@ -36,9 +32,7 @@ SaveSuperOp
    .. rubric:: Methods
    
    .. automethod:: SaveSuperOp.add_decomposition
-   .. automethod:: SaveSuperOp.assemble
    .. automethod:: SaveSuperOp.broadcast_arguments
-   .. automethod:: SaveSuperOp.c_if
    .. automethod:: SaveSuperOp.copy
    .. automethod:: SaveSuperOp.inverse
    .. automethod:: SaveSuperOp.is_parameterized

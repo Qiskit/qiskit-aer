@@ -16,18 +16,14 @@ SaveProbabilitiesDict
    .. rubric:: Attributes
       
    .. autoattribute:: SaveProbabilitiesDict.base_class
-   .. autoattribute:: SaveProbabilitiesDict.condition
-   .. autoattribute:: SaveProbabilitiesDict.condition_bits
    .. autoattribute:: SaveProbabilitiesDict.decompositions
    .. autoattribute:: SaveProbabilitiesDict.definition
-   .. autoattribute:: SaveProbabilitiesDict.duration
    .. autoattribute:: SaveProbabilitiesDict.label
    .. autoattribute:: SaveProbabilitiesDict.mutable
    .. autoattribute:: SaveProbabilitiesDict.name
    .. autoattribute:: SaveProbabilitiesDict.num_clbits
    .. autoattribute:: SaveProbabilitiesDict.num_qubits
    .. autoattribute:: SaveProbabilitiesDict.params
-   .. autoattribute:: SaveProbabilitiesDict.unit
    
 
 
@@ -36,9 +32,7 @@ SaveProbabilitiesDict
    .. rubric:: Methods
    
    .. automethod:: SaveProbabilitiesDict.add_decomposition
-   .. automethod:: SaveProbabilitiesDict.assemble
    .. automethod:: SaveProbabilitiesDict.broadcast_arguments
-   .. automethod:: SaveProbabilitiesDict.c_if
    .. automethod:: SaveProbabilitiesDict.copy
    .. automethod:: SaveProbabilitiesDict.inverse
    .. automethod:: SaveProbabilitiesDict.is_parameterized

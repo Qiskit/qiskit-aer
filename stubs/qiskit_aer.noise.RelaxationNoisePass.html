@@ -5,15 +5,15 @@
     <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
 <link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" /><link rel="next" title="basic_device_readout_errors" href="qiskit_aer.noise.device.basic_device_readout_errors.html" /><link rel="prev" title="LocalNoisePass" href="qiskit_aer.noise.LocalNoisePass.html" />
 
-    <!-- Generated with Sphinx 7.1.2 and Furo 2024.01.29 -->
-        <title>RelaxationNoisePass - Qiskit Aer 0.17.1</title>
+    <!-- Generated with Sphinx 7.4.7 and Furo 2024.01.29 -->
+        <title>RelaxationNoisePass - Qiskit Aer 0.18.0</title>
       <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=135e06be" />
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=3ee1c6c6" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/qiskit-sphinx-theme.css?v=fe84956c" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/qiskit-ecosystem.css?v=745c5aa7" />
     <link rel="stylesheet" type="text/css" href="../_static/jupyter-sphinx.css" />
     <link rel="stylesheet" type="text/css" href="../_static/plot_directive.css" />
-    <link rel="stylesheet" type="text/css" href="../_static/design-style.1e8bd061cd6da7fc9cf755528e8ffc24.min.css?v=0a3b3ea7" />
+    <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/furo-extensions.css?v=36a5483c" />
     
     
@@ -145,7 +145,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../index.html"><div class="brand">Qiskit Aer 0.17.1</div></a>
+      <a href="../index.html"><div class="brand">Qiskit Aer 0.18.0</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -172,7 +172,7 @@
     </div>
   </a>
   
-  <span class="sidebar-brand-text">Qiskit Aer 0.17.1</span>
+  <span class="sidebar-brand-text">Qiskit Aer 0.18.0</span>
 </div><form class="sidebar-search-container" method="get" action="../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
   <input type="hidden" name="check_keywords" value="yes">
@@ -340,10 +340,10 @@
         </div>
         <article role="main">
           <section id="relaxationnoisepass">
-<h1>RelaxationNoisePass<a class="headerlink" href="#relaxationnoisepass" title="Permalink to this heading">#</a></h1>
+<h1>RelaxationNoisePass<a class="headerlink" href="#relaxationnoisepass" title="Link to this heading">¶</a></h1>
 <dl class="py class">
 <dt class="sig sig-object py" id="qiskit_aer.noise.RelaxationNoisePass">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">RelaxationNoisePass</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Qiskit/qiskit-aer/tree/stable/0.17/qiskit_aer/noise/passes/relaxation_noise_pass.py#L28-L137"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_aer.noise.RelaxationNoisePass" title="Permalink to this definition">#</a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">RelaxationNoisePass</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Qiskit/qiskit-aer/tree/main/qiskit_aer/noise/passes/relaxation_noise_pass.py#L29-L138"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_aer.noise.RelaxationNoisePass" title="Link to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="qiskit_aer.noise.LocalNoisePass.html#qiskit_aer.noise.LocalNoisePass" title="qiskit_aer.noise.passes.local_noise_pass.LocalNoisePass"><code class="xref py py-class docutils literal notranslate"><span class="pre">LocalNoisePass</span></code></a></p>
 <p>Add duration dependent thermal relaxation noise after instructions.</p>
 <p>Initialize RelaxationNoisePass.</p>
@@ -366,7 +366,7 @@ from the backend this will be set to 0 for each qubit.</p></li>
 <p class="rubric">Attributes</p>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="qiskit_aer.noise.RelaxationNoisePass.is_analysis_pass">
-<span class="sig-name descname"><span class="pre">is_analysis_pass</span></span><a class="headerlink" href="#qiskit_aer.noise.RelaxationNoisePass.is_analysis_pass" title="Permalink to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">is_analysis_pass</span></span><a class="headerlink" href="#qiskit_aer.noise.RelaxationNoisePass.is_analysis_pass" title="Link to this definition">¶</a></dt>
 <dd><p>Check if the pass is an analysis pass.</p>
 <p>If the pass is an AnalysisPass, that means that the pass can analyze the DAG and write
 the results of that analysis in the property set. Modifications on the DAG are not allowed
@@ -375,7 +375,7 @@ by this kind of pass.</p>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="qiskit_aer.noise.RelaxationNoisePass.is_transformation_pass">
-<span class="sig-name descname"><span class="pre">is_transformation_pass</span></span><a class="headerlink" href="#qiskit_aer.noise.RelaxationNoisePass.is_transformation_pass" title="Permalink to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">is_transformation_pass</span></span><a class="headerlink" href="#qiskit_aer.noise.RelaxationNoisePass.is_transformation_pass" title="Link to this definition">¶</a></dt>
 <dd><p>Check if the pass is a transformation pass.</p>
 <p>If the pass is a TransformationPass, that means that the pass can manipulate the DAG,
 but cannot modify the property set (but it can be read).</p>
@@ -384,18 +384,19 @@ but cannot modify the property set (but it can be read).</p>
 <p class="rubric">Methods</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="qiskit_aer.noise.RelaxationNoisePass.__call__">
-<span class="sig-name descname"><span class="pre">__call__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">circuit</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">QuantumCircuit</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">property_set</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">PropertySet</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">QuantumCircuit</span></span></span><a class="reference external" href="https://github.com/Qiskit/qiskit/tree/stable/0.17/qiskit/transpiler/basepasses.py#L120-L179"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_aer.noise.RelaxationNoisePass.__call__" title="Permalink to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">__call__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">circuit</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://quantum.cloud.ibm.com/docs/api/qiskit/qiskit.circuit.QuantumCircuit" title="(in Qiskit v2.5)"><span class="pre">QuantumCircuit</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">property_set</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://quantum.cloud.ibm.com/docs/api/qiskit/qiskit.passmanager.PropertySet" title="(in Qiskit v2.5)"><span class="pre">PropertySet</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://quantum.cloud.ibm.com/docs/api/qiskit/qiskit.circuit.QuantumCircuit" title="(in Qiskit v2.5)"><span class="pre">QuantumCircuit</span></a></span></span><a class="reference external" href="https://github.com/Qiskit/qiskit/tree/main/qiskit/transpiler/basepasses.py#L119-L152"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_aer.noise.RelaxationNoisePass.__call__" title="Link to this definition">¶</a></dt>
 <dd><p>Runs the pass on circuit.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>circuit</strong> – The dag on which the pass is run.</p></li>
-<li><p><strong>property_set</strong> – Input/output property set. An analysis pass
-might change the property set in-place.</p></li>
+<li><p><strong>property_set</strong> – Input/output property set. An analysis pass might change the property set
+in-place.  If not given, the existing <code class="docutils literal notranslate"><span class="pre">property_set</span></code> attribute of the pass will
+be used (if set).</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>If on transformation pass, the resulting QuantumCircuit.
+<dd class="field-even"><p>If a transformation pass, the resulting QuantumCircuit.
 If analysis pass, the input circuit.</p>
 </dd>
 </dl>
@@ -403,14 +404,14 @@ If analysis pass, the input circuit.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="qiskit_aer.noise.RelaxationNoisePass.execute">
-<span class="sig-name descname"><span class="pre">execute</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">passmanager_ir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">PassManagerIR</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">state</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">PassManagerState</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">callback</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Callable</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">PassManagerIR</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">PassManagerState</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference external" href="https://github.com/Qiskit/qiskit/tree/stable/0.17/qiskit/transpiler/basepasses.py#L189-L211"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_aer.noise.RelaxationNoisePass.execute" title="Permalink to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">execute</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">passmanager_ir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://quantum.cloud.ibm.com/docs/api/qiskit/qiskit.dagcircuit.DAGCircuit" title="(in Qiskit v2.5)"><span class="pre">DAGCircuit</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">state</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://quantum.cloud.ibm.com/docs/api/qiskit/qiskit.dagcircuit.DAGCircuit" title="(in Qiskit v2.5)"><span class="pre">DAGCircuit</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">callback</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://quantum.cloud.ibm.com/docs/api/qiskit/qiskit.passmanager.Task" title="(in Qiskit v2.5)"><span class="pre">Task</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://quantum.cloud.ibm.com/docs/api/qiskit/qiskit.dagcircuit.DAGCircuit" title="(in Qiskit v2.5)"><span class="pre">DAGCircuit</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://quantum.cloud.ibm.com/docs/api/qiskit/qiskit.passmanager.PropertySet" title="(in Qiskit v2.5)"><span class="pre">PropertySet</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">float</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">None</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://quantum.cloud.ibm.com/docs/api/qiskit/qiskit.dagcircuit.DAGCircuit" title="(in Qiskit v2.5)"><span class="pre">DAGCircuit</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://quantum.cloud.ibm.com/docs/api/qiskit/qiskit.passmanager.PassManagerState" title="(in Qiskit v2.5)"><span class="pre">PassManagerState</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference external" href="https://github.com/Qiskit/qiskit/tree/main/qiskit/transpiler/basepasses.py#L162-L181"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_aer.noise.RelaxationNoisePass.execute" title="Link to this definition">¶</a></dt>
 <dd><p>Execute optimization task for input Qiskit IR.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>passmanager_ir</strong> – Qiskit IR to optimize.</p></li>
 <li><p><strong>state</strong> – State associated with workflow execution by the pass manager itself.</p></li>
-<li><p><strong>callback</strong> – A callback function which is caller per execution of optimization task.</p></li>
+<li><p><strong>callback</strong> – A callback function which is called per execution of optimization task.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -421,13 +422,13 @@ If analysis pass, the input circuit.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="qiskit_aer.noise.RelaxationNoisePass.name">
-<span class="sig-name descname"><span class="pre">name</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="reference external" href="https://github.com/Qiskit/qiskit/tree/stable/0.17/qiskit/passmanager/base_tasks.py#L68-L70"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_aer.noise.RelaxationNoisePass.name" title="Permalink to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">name</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="reference external" href="https://github.com/Qiskit/qiskit/tree/main/qiskit/passmanager/base_tasks.py#L72-L74"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_aer.noise.RelaxationNoisePass.name" title="Link to this definition">¶</a></dt>
 <dd><p>Name of the pass.</p>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="qiskit_aer.noise.RelaxationNoisePass.run">
-<span class="sig-name descname"><span class="pre">run</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dag</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DAGCircuit</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">DAGCircuit</span></span></span><a class="reference external" href="https://github.com/Qiskit/qiskit-aer/tree/stable/0.17/qiskit_aer/noise/passes/local_noise_pass.py#L88-L160"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_aer.noise.RelaxationNoisePass.run" title="Permalink to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">run</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dag</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://quantum.cloud.ibm.com/docs/api/qiskit/qiskit.dagcircuit.DAGCircuit" title="(in Qiskit v2.5)"><span class="pre">DAGCircuit</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://quantum.cloud.ibm.com/docs/api/qiskit/qiskit.dagcircuit.DAGCircuit" title="(in Qiskit v2.5)"><span class="pre">DAGCircuit</span></a></span></span><a class="reference external" href="https://github.com/Qiskit/qiskit-aer/tree/main/qiskit_aer/noise/passes/local_noise_pass.py#L89-L161"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_aer.noise.RelaxationNoisePass.run" title="Link to this definition">¶</a></dt>
 <dd><p>Run the LocalNoisePass pass on <cite>dag</cite>.
 :param dag: DAG to be changed.</p>
 <dl class="field-list simple">
@@ -442,7 +443,7 @@ If analysis pass, the input circuit.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="qiskit_aer.noise.RelaxationNoisePass.update_status">
-<span class="sig-name descname"><span class="pre">update_status</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">state</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://quantum.cloud.ibm.com/docs/api/qiskit/qiskit.passmanager.PassManagerState" title="(in Qiskit v2.0)"><span class="pre">PassManagerState</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">run_state</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">RunState</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://quantum.cloud.ibm.com/docs/api/qiskit/qiskit.passmanager.PassManagerState" title="(in Qiskit v2.0)"><span class="pre">PassManagerState</span></a></span></span><a class="reference external" href="https://github.com/Qiskit/qiskit/tree/stable/0.17/qiskit/transpiler/basepasses.py#L213-L221"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_aer.noise.RelaxationNoisePass.update_status" title="Permalink to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">update_status</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">state</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://quantum.cloud.ibm.com/docs/api/qiskit/qiskit.passmanager.PassManagerState" title="(in Qiskit v2.5)"><span class="pre">PassManagerState</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">run_state</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">RunState</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://quantum.cloud.ibm.com/docs/api/qiskit/qiskit.passmanager.PassManagerState" title="(in Qiskit v2.5)"><span class="pre">PassManagerState</span></a></span></span><a class="reference external" href="https://github.com/Qiskit/qiskit/tree/main/qiskit/transpiler/basepasses.py#L183-L191"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qiskit_aer.noise.RelaxationNoisePass.update_status" title="Link to this definition">¶</a></dt>
 <dd><p>Update workflow status.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -489,13 +490,13 @@ If analysis pass, the input circuit.</p>
         <div class="bottom-of-page">
           <div class="left-details">
             <div class="copyright">
-                Copyright &#169; 2017-2025, Qiskit Development Team
+                Copyright &#169; 2017-2026, Qiskit Development Team
             </div>
             Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
             
             <a href="https://github.com/pradyunsg/furo">Furo</a>
             <div class="last-updated">
-              Last updated on 2025/06/04</div>
+              Last updated on 2026/10/20</div>
           </div>
           <div class="right-details">
             
@@ -540,13 +541,13 @@ If analysis pass, the input circuit.</p>
   </div>
 </div><script src="../_static/jquery.js?v=5d32c60e"></script>
     <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-    <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js?v=d060e3e0"></script>
-    <script src="../_static/doctools.js?v=888ff710"></script>
-    <script src="../_static/sphinx_highlight.js?v=4825356b"></script>
+    <script src="../_static/documentation_options.js?v=ba2e7b09"></script>
+    <script src="../_static/doctools.js?v=9a2dae69"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../_static/scripts/qiskit-sphinx-theme.js?v=4d77b8ca"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@jupyter-widgets/html-manager@^1.0.1/dist/embed-amd.js"></script>
-    <script src="../_static/design-tabs.js?v=36754332"></script>
+    <script src="../_static/design-tabs.js?v=f930bc37"></script>
     <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
     </body>
 </html>

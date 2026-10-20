@@ -5,15 +5,15 @@
     <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
 <link rel="index" title="Index" href="genindex.html" /><link rel="search" title="Search" href="search.html" /><link rel="next" title="Qiskit Aer API Reference" href="apidocs/aer.html" /><link rel="prev" title="Qiskit Aer documentation" href="index.html" />
 
-    <!-- Generated with Sphinx 7.1.2 and Furo 2024.01.29 -->
-        <title>Getting started - Qiskit Aer 0.17.1</title>
+    <!-- Generated with Sphinx 7.4.7 and Furo 2024.01.29 -->
+        <title>Getting started - Qiskit Aer 0.18.0</title>
       <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?v=135e06be" />
     <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=3ee1c6c6" />
     <link rel="stylesheet" type="text/css" href="_static/styles/qiskit-sphinx-theme.css?v=fe84956c" />
     <link rel="stylesheet" type="text/css" href="_static/styles/qiskit-ecosystem.css?v=745c5aa7" />
     <link rel="stylesheet" type="text/css" href="_static/jupyter-sphinx.css" />
     <link rel="stylesheet" type="text/css" href="_static/plot_directive.css" />
-    <link rel="stylesheet" type="text/css" href="_static/design-style.1e8bd061cd6da7fc9cf755528e8ffc24.min.css?v=0a3b3ea7" />
+    <link rel="stylesheet" type="text/css" href="_static/sphinx-design.min.css?v=95c83b7e" />
     <link rel="stylesheet" type="text/css" href="_static/styles/furo-extensions.css?v=36a5483c" />
     
     
@@ -145,7 +145,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="index.html"><div class="brand">Qiskit Aer 0.17.1</div></a>
+      <a href="index.html"><div class="brand">Qiskit Aer 0.18.0</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -172,7 +172,7 @@
     </div>
   </a>
   
-  <span class="sidebar-brand-text">Qiskit Aer 0.17.1</span>
+  <span class="sidebar-brand-text">Qiskit Aer 0.18.0</span>
 </div><form class="sidebar-search-container" method="get" action="search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
   <input type="hidden" name="check_keywords" value="yes">
@@ -340,9 +340,9 @@
         </div>
         <article role="main">
           <section id="getting-started">
-<h1>Getting started<a class="headerlink" href="#getting-started" title="Permalink to this heading">#</a></h1>
+<h1>Getting started<a class="headerlink" href="#getting-started" title="Link to this heading">¶</a></h1>
 <section id="installation">
-<h2>Installation<a class="headerlink" href="#installation" title="Permalink to this heading">#</a></h2>
+<h2>Installation<a class="headerlink" href="#installation" title="Link to this heading">¶</a></h2>
 <p>Qiskit Aer depends on the main Qiskit package which has its own
 <a class="reference external" href="https://quantum.cloud.ibm.com/docs/guides/install-qiskit">Qiskit Installation guide</a> detailing the
 installation options for Qiskit and its supported environments/platforms. You should refer to
@@ -350,7 +350,7 @@ that first. Then the information here can be followed which focuses on the addit
 specific to Qiskit Aer.</p>
 <div class="sd-tab-set docutils">
 <input checked="checked" id="sd-tab-item-0" name="sd-tab-set-0" type="radio">
-</input><label class="sd-tab-label" for="sd-tab-item-0">
+<label class="sd-tab-label" for="sd-tab-item-0">
 Start locally</label><div class="sd-tab-content docutils">
 <p>The simplest way to get started is to follow the installation guide for Qiskit <a class="reference external" href="https://quantum.cloud.ibm.com/docs/guides/install-qiskit">here</a></p>
 <p>In your virtual environment where you installed Qiskit, add <code class="docutils literal notranslate"><span class="pre">qiskit-aer</span></code>, e.g.:</p>
@@ -372,7 +372,7 @@ simulators: statevector, density matrix, and unitary.</p>
 For other platforms that have CUDA support you will have to build from source.</em></p>
 </div>
 <input id="sd-tab-item-1" name="sd-tab-set-0" type="radio">
-</input><label class="sd-tab-label" for="sd-tab-item-1">
+<label class="sd-tab-label" for="sd-tab-item-1">
 Install from source</label><div class="sd-tab-content docutils">
 <p>Installing Qiskit Aer from source allows you to access the most recently
 updated version under development instead of using the version in the Python Package
@@ -447,7 +447,7 @@ for detailed MPI support information.</p>
 </div>
 </section>
 <section id="simulating-your-first-quantum-program-with-qiskit-aer">
-<h2>Simulating your first quantum program with Qiskit Aer<a class="headerlink" href="#simulating-your-first-quantum-program-with-qiskit-aer" title="Permalink to this heading">#</a></h2>
+<h2>Simulating your first quantum program with Qiskit Aer<a class="headerlink" href="#simulating-your-first-quantum-program-with-qiskit-aer" title="Link to this heading">¶</a></h2>
 <p>Now that you have Qiskit Aer installed, you can start simulating a quantum circuit.
 Here is a basic example:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">qiskit</span>
@@ -467,12 +467,12 @@ Here is a basic example:</p>
 <span class="c1"># Perform an ideal simulation</span>
 <span class="n">result_ideal</span> <span class="o">=</span> <span class="n">job</span><span class="o">.</span><span class="n">result</span><span class="p">()</span>
 <span class="n">counts_ideal</span> <span class="o">=</span> <span class="n">result_ideal</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">meas</span><span class="o">.</span><span class="n">get_counts</span><span class="p">()</span>
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Counts(ideal):&#39;</span><span class="p">,</span> <span class="n">counts_ideal</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">'Counts(ideal):'</span><span class="p">,</span> <span class="n">counts_ideal</span><span class="p">)</span>
 </pre></div>
 </div>
 </section>
 <section id="ready-to-get-going">
-<h2>Ready to get going?…<a class="headerlink" href="#ready-to-get-going" title="Permalink to this heading">#</a></h2>
+<h2>Ready to get going?…<a class="headerlink" href="#ready-to-get-going" title="Link to this heading">¶</a></h2>
 <div class="tutorials-callout-container">
    <div class="row">
     <div class="qiskit-call-to-action-item">
@@ -512,13 +512,13 @@ Here is a basic example:</p>
         <div class="bottom-of-page">
           <div class="left-details">
             <div class="copyright">
-                Copyright &#169; 2017-2025, Qiskit Development Team
+                Copyright &#169; 2017-2026, Qiskit Development Team
             </div>
             Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
             
             <a href="https://github.com/pradyunsg/furo">Furo</a>
             <div class="last-updated">
-              Last updated on 2025/06/04</div>
+              Last updated on 2026/10/20</div>
           </div>
           <div class="right-details">
             
@@ -556,13 +556,13 @@ Here is a basic example:</p>
   </div>
 </div><script src="_static/jquery.js?v=5d32c60e"></script>
     <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-    <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js?v=d060e3e0"></script>
-    <script src="_static/doctools.js?v=888ff710"></script>
-    <script src="_static/sphinx_highlight.js?v=4825356b"></script>
+    <script src="_static/documentation_options.js?v=ba2e7b09"></script>
+    <script src="_static/doctools.js?v=9a2dae69"></script>
+    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="_static/scripts/qiskit-sphinx-theme.js?v=4d77b8ca"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@jupyter-widgets/html-manager@^1.0.1/dist/embed-amd.js"></script>
-    <script src="_static/design-tabs.js?v=36754332"></script>
+    <script src="_static/design-tabs.js?v=f930bc37"></script>
     <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
     </body>
 </html>

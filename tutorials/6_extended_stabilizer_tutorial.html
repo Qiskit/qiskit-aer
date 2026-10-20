@@ -5,15 +5,15 @@
     <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
 <link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" /><link rel="next" title="Matrix product state simulation method" href="7_matrix_product_state_method.html" /><link rel="prev" title="Noise Transformation" href="5_noise_transformation.html" />
 
-    <!-- Generated with Sphinx 7.1.2 and Furo 2024.01.29 -->
-        <title>The Extended Stabilizer Simulator - Qiskit Aer 0.17.1</title>
+    <!-- Generated with Sphinx 7.4.7 and Furo 2024.01.29 -->
+        <title>The Extended Stabilizer Simulator - Qiskit Aer 0.18.0</title>
       <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=135e06be" />
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=3ee1c6c6" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/qiskit-sphinx-theme.css?v=fe84956c" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/qiskit-ecosystem.css?v=745c5aa7" />
     <link rel="stylesheet" type="text/css" href="../_static/jupyter-sphinx.css" />
     <link rel="stylesheet" type="text/css" href="../_static/plot_directive.css" />
-    <link rel="stylesheet" type="text/css" href="../_static/design-style.1e8bd061cd6da7fc9cf755528e8ffc24.min.css?v=0a3b3ea7" />
+    <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
     <link rel="stylesheet" type="text/css" href="../_static/nbsphinx-code-cells.css?v=2aa19091" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/furo-extensions.css?v=36a5483c" />
     
@@ -146,7 +146,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../index.html"><div class="brand">Qiskit Aer 0.17.1</div></a>
+      <a href="../index.html"><div class="brand">Qiskit Aer 0.18.0</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -173,7 +173,7 @@
     </div>
   </a>
   
-  <span class="sidebar-brand-text">Qiskit Aer 0.17.1</span>
+  <span class="sidebar-brand-text">Qiskit Aer 0.18.0</span>
 </div><form class="sidebar-search-container" method="get" action="../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
   <input type="hidden" name="check_keywords" value="yes">
@@ -341,9 +341,9 @@
         </div>
         <article role="main">
           <section id="The-Extended-Stabilizer-Simulator">
-<h1>The Extended Stabilizer Simulator<a class="headerlink" href="#The-Extended-Stabilizer-Simulator" title="Permalink to this heading">#</a></h1>
+<h1>The Extended Stabilizer Simulator<a class="headerlink" href="#The-Extended-Stabilizer-Simulator" title="Link to this heading">¶</a></h1>
 <section id="Introduction">
-<h2>Introduction<a class="headerlink" href="#Introduction" title="Permalink to this heading">#</a></h2>
+<h2>Introduction<a class="headerlink" href="#Introduction" title="Link to this heading">¶</a></h2>
 <p>The Extended Simulator is a new method for classically simulating quantum circuits available in the latest release of <a class="reference external" href="https://github.com/qiskit/qiskit-aer">Qiskit-Aer</a>.</p>
 <p>This method is an implementation of the ideas published in the paper <em>Simulation of quantum circuits by low-rank stabilizer decompositions</em> by Bravyi, Browne, Calpin, Campbell, Gosset &amp; Howard, 2018, <a class="reference external" href="https://arxiv.org/abs/1808.00128">arXiv:1808.00128</a>.</p>
 <p>It uses a different representation of a quantum circuit, that gives it some unique capabilities. This notebook will give some examples of what the extended stabilizer method can do.</p>
@@ -393,15 +393,15 @@
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Create statevector method simulator</span>
-<span class="n">statevector_simulator</span> <span class="o">=</span> <span class="n">AerSimulator</span><span class="p">(</span><span class="n">method</span><span class="o">=</span><span class="s1">&#39;statevector&#39;</span><span class="p">)</span>
+<span class="n">statevector_simulator</span> <span class="o">=</span> <span class="n">AerSimulator</span><span class="p">(</span><span class="n">method</span><span class="o">=</span><span class="s1">'statevector'</span><span class="p">)</span>
 
 <span class="c1"># Transpile circuit for backend</span>
 <span class="n">tcirc</span> <span class="o">=</span> <span class="n">transpile</span><span class="p">(</span><span class="n">circ</span><span class="p">,</span> <span class="n">statevector_simulator</span><span class="p">)</span>
 
 <span class="c1"># Try and run circuit</span>
 <span class="n">statevector_result</span> <span class="o">=</span>  <span class="n">statevector_simulator</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">tcirc</span><span class="p">,</span> <span class="n">shots</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">result</span><span class="p">()</span>
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;This succeeded?: </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">statevector_result</span><span class="o">.</span><span class="n">success</span><span class="p">))</span>
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Why not? </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">statevector_result</span><span class="o">.</span><span class="n">status</span><span class="p">))</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">'This succeeded?: </span><span class="si">{}</span><span class="s1">'</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">statevector_result</span><span class="o">.</span><span class="n">success</span><span class="p">))</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">'Why not? </span><span class="si">{}</span><span class="s1">'</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">statevector_result</span><span class="o">.</span><span class="n">status</span><span class="p">))</span>
 </pre></div>
 </div>
 </div>
@@ -429,13 +429,13 @@ Why not? ERROR:  [Experiment 0] Insufficient memory to run circuit &#34;circuit-
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Create extended stabilizer method simulator</span>
-<span class="n">extended_stabilizer_simulator</span> <span class="o">=</span> <span class="n">AerSimulator</span><span class="p">(</span><span class="n">method</span><span class="o">=</span><span class="s1">&#39;extended_stabilizer&#39;</span><span class="p">)</span>
+<span class="n">extended_stabilizer_simulator</span> <span class="o">=</span> <span class="n">AerSimulator</span><span class="p">(</span><span class="n">method</span><span class="o">=</span><span class="s1">'extended_stabilizer'</span><span class="p">)</span>
 
 <span class="c1"># Transpile circuit for backend</span>
 <span class="n">tcirc</span> <span class="o">=</span> <span class="n">transpile</span><span class="p">(</span><span class="n">circ</span><span class="p">,</span> <span class="n">extended_stabilizer_simulator</span><span class="p">)</span>
 
 <span class="n">extended_stabilizer_result</span> <span class="o">=</span> <span class="n">extended_stabilizer_simulator</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">tcirc</span><span class="p">,</span> <span class="n">shots</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">result</span><span class="p">()</span>
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;This succeeded?: </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">extended_stabilizer_result</span><span class="o">.</span><span class="n">success</span><span class="p">))</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">'This succeeded?: </span><span class="si">{}</span><span class="s1">'</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">extended_stabilizer_result</span><span class="o">.</span><span class="n">success</span><span class="p">))</span>
 </pre></div>
 </div>
 </div>
@@ -449,7 +449,7 @@ This succeeded?: True
 </div>
 </section>
 <section id="How-does-this-work?">
-<h2>How does this work?<a class="headerlink" href="#How-does-this-work?" title="Permalink to this heading">#</a></h2>
+<h2>How does this work?<a class="headerlink" href="#How-does-this-work?" title="Link to this heading">¶</a></h2>
 <p>If you’re interested in how exactly we can handle such large circuits, then for a detailed explanation you can <a class="reference external" href="https://arxiv.org/abs/1808.00128">read the paper!</a></p>
 <p>For running circuits, however, it’s important to just understand the basics.</p>
 <p>The Extended Stabilizer method is made up of two parts. The first is a method of decomposing quantum circuits into <em>stabilizer circuits</em>, a special class of circuit that can be efficiently simulated classically. The second is then a way of combining these circuits to perform measurements.</p>
@@ -472,7 +472,7 @@ This succeeded?: True
 <span class="n">small_circ</span><span class="o">.</span><span class="n">t</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
 <span class="n">small_circ</span><span class="o">.</span><span class="n">measure</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
 <span class="c1"># This circuit should give 00 or 11 with equal probability...</span>
-<span class="n">expected_results</span> <span class="o">=</span><span class="p">{</span><span class="s1">&#39;00&#39;</span><span class="p">:</span> <span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;11&#39;</span><span class="p">:</span> <span class="mi">50</span><span class="p">}</span>
+<span class="n">expected_results</span> <span class="o">=</span><span class="p">{</span><span class="s1">'00'</span><span class="p">:</span> <span class="mi">50</span><span class="p">,</span> <span class="s1">'11'</span><span class="p">:</span> <span class="mi">50</span><span class="p">}</span>
 </pre></div>
 </div>
 </div>
@@ -484,7 +484,7 @@ This succeeded?: True
 <span class="n">result</span> <span class="o">=</span> <span class="n">extended_stabilizer_simulator</span><span class="o">.</span><span class="n">run</span><span class="p">(</span>
     <span class="n">tsmall_circ</span><span class="p">,</span> <span class="n">shots</span><span class="o">=</span><span class="mi">100</span><span class="p">)</span><span class="o">.</span><span class="n">result</span><span class="p">()</span>
 <span class="n">counts</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">get_counts</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;100 shots in </span><span class="si">{}</span><span class="s1">s&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">time_taken</span><span class="p">))</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">'100 shots in </span><span class="si">{}</span><span class="s1">s'</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">time_taken</span><span class="p">))</span>
 </pre></div>
 </div>
 </div>
@@ -501,7 +501,7 @@ This succeeded?: True
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">plot_histogram</span><span class="p">([</span><span class="n">expected_results</span><span class="p">,</span> <span class="n">counts</span><span class="p">],</span>
-               <span class="n">legend</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;Expected&#39;</span><span class="p">,</span> <span class="s1">&#39;Extended Stabilizer&#39;</span><span class="p">])</span>
+               <span class="n">legend</span><span class="o">=</span><span class="p">[</span><span class="s1">'Expected'</span><span class="p">,</span> <span class="s1">'Extended Stabilizer'</span><span class="p">])</span>
 </pre></div>
 </div>
 </div>
@@ -519,15 +519,15 @@ This succeeded?: True
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Add runtime options for extended stabilizer simulator</span>
-<span class="n">opts</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;extended_stabilizer_approximation_error&#39;</span><span class="p">:</span> <span class="mf">0.03</span><span class="p">}</span>
+<span class="n">opts</span> <span class="o">=</span> <span class="p">{</span><span class="s1">'extended_stabilizer_approximation_error'</span><span class="p">:</span> <span class="mf">0.03</span><span class="p">}</span>
 
 <span class="n">reduced_error</span> <span class="o">=</span> <span class="n">extended_stabilizer_simulator</span><span class="o">.</span><span class="n">run</span><span class="p">(</span>
     <span class="n">tsmall_circ</span><span class="p">,</span> <span class="n">shots</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="o">**</span><span class="n">opts</span><span class="p">)</span><span class="o">.</span><span class="n">result</span><span class="p">()</span>
 
 <span class="n">reduced_error_counts</span> <span class="o">=</span> <span class="n">reduced_error</span><span class="o">.</span><span class="n">get_counts</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;100 shots in </span><span class="si">{}</span><span class="s1">s&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">reduced_error</span><span class="o">.</span><span class="n">time_taken</span><span class="p">))</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">'100 shots in </span><span class="si">{}</span><span class="s1">s'</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">reduced_error</span><span class="o">.</span><span class="n">time_taken</span><span class="p">))</span>
 <span class="n">plot_histogram</span><span class="p">([</span><span class="n">expected_results</span><span class="p">,</span> <span class="n">reduced_error_counts</span><span class="p">],</span>
-               <span class="n">legend</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;Expected&#39;</span><span class="p">,</span> <span class="s1">&#39;Extended Stabilizer&#39;</span><span class="p">])</span>
+               <span class="n">legend</span><span class="o">=</span><span class="p">[</span><span class="s1">'Expected'</span><span class="p">,</span> <span class="s1">'Extended Stabilizer'</span><span class="p">])</span>
 </pre></div>
 </div>
 </div>
@@ -549,7 +549,7 @@ This succeeded?: True
 </div>
 </section>
 <section id="Simulator-Options">
-<h2>Simulator Options<a class="headerlink" href="#Simulator-Options" title="Permalink to this heading">#</a></h2>
+<h2>Simulator Options<a class="headerlink" href="#Simulator-Options" title="Link to this heading">¶</a></h2>
 <p>There are several other options you can tweak to control how the extended stabilizer method performs. What these options are and their explanation can all be found in the Qiskit Aer documentation. However, I want to highlight two important ones that can help to optimize your simulations.</p>
 <p>To perform measurements, the extended stabilizer method uses a Markov chain method to sample outcomes at random. This Markov chain has to be run for some time we call the ‘mixing time’ before it will start sampling, and has to be re-mixed for every circuit shot.</p>
 <p>If you expect your circuit output to be concentrated on just a few output states, then you can likely optimize your simulations by reducing the <code class="docutils literal notranslate"><span class="pre">extended_stabilizer_mixing_time</span></code> option.</p>
@@ -557,18 +557,18 @@ This succeeded?: True
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;The circuit above, with 100 shots at precision 0.03 &quot;</span>
-      <span class="s2">&quot;and default mixing time, needed </span><span class="si">{}</span><span class="s2">s&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">reduced_error</span><span class="o">.</span><span class="n">time_taken</span><span class="p">)))</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="nb">print</span><span class="p">(</span><span class="s2">"The circuit above, with 100 shots at precision 0.03 "</span>
+      <span class="s2">"and default mixing time, needed </span><span class="si">{}</span><span class="s2">s"</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">reduced_error</span><span class="o">.</span><span class="n">time_taken</span><span class="p">)))</span>
 
 <span class="n">opts</span> <span class="o">=</span> <span class="p">{</span>
-    <span class="s1">&#39;extended_stabilizer_approximation_error&#39;</span><span class="p">:</span> <span class="mf">0.03</span><span class="p">,</span>
-    <span class="s1">&#39;extended_stabilizer_mixing_time&#39;</span><span class="p">:</span> <span class="mi">100</span>
+    <span class="s1">'extended_stabilizer_approximation_error'</span><span class="p">:</span> <span class="mf">0.03</span><span class="p">,</span>
+    <span class="s1">'extended_stabilizer_mixing_time'</span><span class="p">:</span> <span class="mi">100</span>
 <span class="p">}</span>
 
 <span class="n">optimized</span> <span class="o">=</span> <span class="n">extended_stabilizer_simulator</span><span class="o">.</span><span class="n">run</span><span class="p">(</span>
     <span class="n">tsmall_circ</span><span class="p">,</span> <span class="n">shots</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="o">**</span><span class="n">opts</span><span class="p">)</span><span class="o">.</span><span class="n">result</span><span class="p">()</span>
 
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Dialing down the mixing time, we completed in just </span><span class="si">{}</span><span class="s1">s&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">optimized</span><span class="o">.</span><span class="n">time_taken</span><span class="p">))</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">'Dialing down the mixing time, we completed in just </span><span class="si">{}</span><span class="s1">s'</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">optimized</span><span class="o">.</span><span class="n">time_taken</span><span class="p">))</span>
 </pre></div>
 </div>
 </div>
@@ -588,11 +588,11 @@ Dialing down the mixing time, we completed in just 1.4710919857025146s
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># We set these options here only to make the example run more quickly.</span>
-<span class="n">opts</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;extended_stabilizer_mixing_time&#39;</span><span class="p">:</span> <span class="mi">100</span><span class="p">}</span>
+<span class="n">opts</span> <span class="o">=</span> <span class="p">{</span><span class="s1">'extended_stabilizer_mixing_time'</span><span class="p">:</span> <span class="mi">100</span><span class="p">}</span>
 
 <span class="n">multishot</span> <span class="o">=</span> <span class="n">extended_stabilizer_simulator</span><span class="o">.</span><span class="n">run</span><span class="p">(</span>
     <span class="n">tcirc</span><span class="p">,</span> <span class="n">shots</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="o">**</span><span class="n">opts</span><span class="p">)</span><span class="o">.</span><span class="n">result</span><span class="p">()</span>
-<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;100 shots took </span><span class="si">{}</span><span class="s2"> s&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">multishot</span><span class="o">.</span><span class="n">time_taken</span><span class="p">))</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">"100 shots took </span><span class="si">{}</span><span class="s2"> s"</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">multishot</span><span class="o">.</span><span class="n">time_taken</span><span class="p">))</span>
 </pre></div>
 </div>
 </div>
@@ -609,13 +609,13 @@ Dialing down the mixing time, we completed in just 1.4710919857025146s
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">opts</span> <span class="o">=</span> <span class="p">{</span>
-    <span class="s1">&#39;extended_stabilizer_measure_sampling&#39;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
-    <span class="s1">&#39;extended_stabilizer_mixing_time&#39;</span><span class="p">:</span> <span class="mi">100</span>
+    <span class="s1">'extended_stabilizer_measure_sampling'</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="s1">'extended_stabilizer_mixing_time'</span><span class="p">:</span> <span class="mi">100</span>
 <span class="p">}</span>
 
 <span class="n">measure_sampling</span> <span class="o">=</span> <span class="n">extended_stabilizer_simulator</span><span class="o">.</span><span class="n">run</span><span class="p">(</span>
     <span class="n">circ</span><span class="p">,</span> <span class="n">shots</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="o">**</span><span class="n">opts</span><span class="p">)</span><span class="o">.</span><span class="n">result</span><span class="p">()</span>
-<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;With the optimization, 100 shots took </span><span class="si">{}</span><span class="s2"> s&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">time_taken</span><span class="p">))</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">"With the optimization, 100 shots took </span><span class="si">{}</span><span class="s2"> s"</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">time_taken</span><span class="p">))</span>
 </pre></div>
 </div>
 </div>
@@ -629,7 +629,7 @@ With the optimization, 100 shots took 0.4958779811859131 s
 </div>
 </section>
 <section id="When-shall-I-use-it?">
-<h2>When shall I use it?<a class="headerlink" href="#When-shall-I-use-it?" title="Permalink to this heading">#</a></h2>
+<h2>When shall I use it?<a class="headerlink" href="#When-shall-I-use-it?" title="Link to this heading">¶</a></h2>
 <p>If you have smaller circuits with lots of non-Clifford gates, then the statevector method will likely perform better than the extended stabilizer. If however you want to look at circuits on many qubits, without needing access to high performance computation, then give this method a try!</p>
 <div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
@@ -692,13 +692,13 @@ With the optimization, 100 shots took 0.4958779811859131 s
         <div class="bottom-of-page">
           <div class="left-details">
             <div class="copyright">
-                Copyright &#169; 2017-2025, Qiskit Development Team
+                Copyright &#169; 2017-2026, Qiskit Development Team
             </div>
             Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
             
             <a href="https://github.com/pradyunsg/furo">Furo</a>
             <div class="last-updated">
-              Last updated on 2025/06/04</div>
+              Last updated on 2026/10/20</div>
           </div>
           <div class="right-details">
             
@@ -737,13 +737,13 @@ With the optimization, 100 shots took 0.4958779811859131 s
   </div>
 </div><script src="../_static/jquery.js?v=5d32c60e"></script>
     <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-    <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js?v=d060e3e0"></script>
-    <script src="../_static/doctools.js?v=888ff710"></script>
-    <script src="../_static/sphinx_highlight.js?v=4825356b"></script>
+    <script src="../_static/documentation_options.js?v=ba2e7b09"></script>
+    <script src="../_static/doctools.js?v=9a2dae69"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../_static/scripts/qiskit-sphinx-theme.js?v=4d77b8ca"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@jupyter-widgets/html-manager@^1.0.1/dist/embed-amd.js"></script>
-    <script src="../_static/design-tabs.js?v=36754332"></script>
+    <script src="../_static/design-tabs.js?v=f930bc37"></script>
     <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
     <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
     <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>

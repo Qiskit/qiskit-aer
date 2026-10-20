@@ -19,7 +19,6 @@ StatevectorSimulator
    .. autoattribute:: StatevectorSimulator.dt
    .. autoattribute:: StatevectorSimulator.dtm
    .. autoattribute:: StatevectorSimulator.instruction_durations
-   .. autoattribute:: StatevectorSimulator.instruction_schedule_map
    .. autoattribute:: StatevectorSimulator.instructions
    .. autoattribute:: StatevectorSimulator.max_circuits
    .. autoattribute:: StatevectorSimulator.meas_map
@@ -41,14 +40,10 @@ StatevectorSimulator
    
    .. rubric:: Methods
    
-   .. automethod:: StatevectorSimulator.acquire_channel
    .. automethod:: StatevectorSimulator.available_devices
    .. automethod:: StatevectorSimulator.available_methods
    .. automethod:: StatevectorSimulator.clear_options
    .. automethod:: StatevectorSimulator.configuration
-   .. automethod:: StatevectorSimulator.control_channel
-   .. automethod:: StatevectorSimulator.drive_channel
-   .. automethod:: StatevectorSimulator.measure_channel
    .. automethod:: StatevectorSimulator.properties
    .. automethod:: StatevectorSimulator.qubit_properties
    .. automethod:: StatevectorSimulator.run

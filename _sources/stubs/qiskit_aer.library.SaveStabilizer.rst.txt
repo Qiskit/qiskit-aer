@@ -16,18 +16,14 @@ SaveStabilizer
    .. rubric:: Attributes
       
    .. autoattribute:: SaveStabilizer.base_class
-   .. autoattribute:: SaveStabilizer.condition
-   .. autoattribute:: SaveStabilizer.condition_bits
    .. autoattribute:: SaveStabilizer.decompositions
    .. autoattribute:: SaveStabilizer.definition
-   .. autoattribute:: SaveStabilizer.duration
    .. autoattribute:: SaveStabilizer.label
    .. autoattribute:: SaveStabilizer.mutable
    .. autoattribute:: SaveStabilizer.name
    .. autoattribute:: SaveStabilizer.num_clbits
    .. autoattribute:: SaveStabilizer.num_qubits
    .. autoattribute:: SaveStabilizer.params
-   .. autoattribute:: SaveStabilizer.unit
    
 
 
@@ -36,9 +32,7 @@ SaveStabilizer
    .. rubric:: Methods
    
    .. automethod:: SaveStabilizer.add_decomposition
-   .. automethod:: SaveStabilizer.assemble
    .. automethod:: SaveStabilizer.broadcast_arguments
-   .. automethod:: SaveStabilizer.c_if
    .. automethod:: SaveStabilizer.copy
    .. automethod:: SaveStabilizer.inverse
    .. automethod:: SaveStabilizer.is_parameterized

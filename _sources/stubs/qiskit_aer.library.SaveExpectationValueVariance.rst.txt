@@ -16,18 +16,14 @@ SaveExpectationValueVariance
    .. rubric:: Attributes
       
    .. autoattribute:: SaveExpectationValueVariance.base_class
-   .. autoattribute:: SaveExpectationValueVariance.condition
-   .. autoattribute:: SaveExpectationValueVariance.condition_bits
    .. autoattribute:: SaveExpectationValueVariance.decompositions
    .. autoattribute:: SaveExpectationValueVariance.definition
-   .. autoattribute:: SaveExpectationValueVariance.duration
    .. autoattribute:: SaveExpectationValueVariance.label
    .. autoattribute:: SaveExpectationValueVariance.mutable
    .. autoattribute:: SaveExpectationValueVariance.name
    .. autoattribute:: SaveExpectationValueVariance.num_clbits
    .. autoattribute:: SaveExpectationValueVariance.num_qubits
    .. autoattribute:: SaveExpectationValueVariance.params
-   .. autoattribute:: SaveExpectationValueVariance.unit
    
 
 
@@ -36,9 +32,7 @@ SaveExpectationValueVariance
    .. rubric:: Methods
    
    .. automethod:: SaveExpectationValueVariance.add_decomposition
-   .. automethod:: SaveExpectationValueVariance.assemble
    .. automethod:: SaveExpectationValueVariance.broadcast_arguments
-   .. automethod:: SaveExpectationValueVariance.c_if
    .. automethod:: SaveExpectationValueVariance.copy
    .. automethod:: SaveExpectationValueVariance.inverse
    .. automethod:: SaveExpectationValueVariance.is_parameterized

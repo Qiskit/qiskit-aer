@@ -16,18 +16,14 @@ SaveDensityMatrix
    .. rubric:: Attributes
       
    .. autoattribute:: SaveDensityMatrix.base_class
-   .. autoattribute:: SaveDensityMatrix.condition
-   .. autoattribute:: SaveDensityMatrix.condition_bits
    .. autoattribute:: SaveDensityMatrix.decompositions
    .. autoattribute:: SaveDensityMatrix.definition
-   .. autoattribute:: SaveDensityMatrix.duration
    .. autoattribute:: SaveDensityMatrix.label
    .. autoattribute:: SaveDensityMatrix.mutable
    .. autoattribute:: SaveDensityMatrix.name
    .. autoattribute:: SaveDensityMatrix.num_clbits
    .. autoattribute:: SaveDensityMatrix.num_qubits
    .. autoattribute:: SaveDensityMatrix.params
-   .. autoattribute:: SaveDensityMatrix.unit
    
 
 
@@ -36,9 +32,7 @@ SaveDensityMatrix
    .. rubric:: Methods
    
    .. automethod:: SaveDensityMatrix.add_decomposition
-   .. automethod:: SaveDensityMatrix.assemble
    .. automethod:: SaveDensityMatrix.broadcast_arguments
-   .. automethod:: SaveDensityMatrix.c_if
    .. automethod:: SaveDensityMatrix.copy
    .. automethod:: SaveDensityMatrix.inverse
    .. automethod:: SaveDensityMatrix.is_parameterized

@@ -39,6 +39,7 @@ AerStatevector
    .. automethod:: AerStatevector.evolve
    .. automethod:: AerStatevector.expand
    .. automethod:: AerStatevector.expectation_value
+   .. automethod:: AerStatevector.from_circuit
    .. automethod:: AerStatevector.from_instruction
    .. automethod:: AerStatevector.from_int
    .. automethod:: AerStatevector.from_label
