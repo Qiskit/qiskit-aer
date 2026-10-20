@@ -12,6 +12,7 @@
 """
 Thermal relaxation noise pass.
 """
+
 import warnings
 from typing import Optional, Union, Sequence, List
 

@@ -12,6 +12,7 @@
 """
 LocalNoisePass class tests
 """
+
 from ddt import ddt, data
 from test.terra.common import QiskitAerTestCase
 
