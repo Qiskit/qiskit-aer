@@ -26,6 +26,9 @@ jobs:
         env:
           AER_CMAKE_OPENMP_BUILD: 1
         run: python -m cibuildwheel --output-dir wheelhouse
+      - name: Verify bundled licenses
+        run: |
+          python tools/verify_wheel_licenses.py wheelhouse/*.whl
       - uses: actions/upload-artifact@v7
         with:
           path: ./wheelhouse/*.whl
@@ -167,6 +170,9 @@ jobs:
           CIBW_TEST_SKIP: "cp*"
         run: |
           python -m cibuildwheel --output-dir wheelhouse
+      - name: Verify bundled licenses
+        run: |
+          python tools/verify_wheel_licenses.py wheelhouse/*.whl
       - uses: actions/upload-artifact@v7
         with:
           path: ./wheelhouse/*.whl
@@ -205,6 +211,9 @@ jobs:
           CIBW_TEST_SKIP: "cp*"
         run: |
           python -m cibuildwheel --output-dir wheelhouse
+      - name: Verify bundled licenses
+        run: |
+          python tools/verify_wheel_licenses.py wheelhouse/*.whl
       - uses: actions/upload-artifact@v7
         with:
           path: ./wheelhouse/*.whl

@@ -10,7 +10,15 @@
 This inspects the wheel archives directly, rather than an installed copy, so
 that it can run for wheels that cannot be imported on the build machine.  The
 GPU wheels need a CUDA device to import, so they skip cibuildwheel's test
-step and the equivalent check in tools/verify_wheels.py never runs for them.
+step, which is why this cannot be a check against an installed package.
+
+It therefore takes wheel paths and has to run from the workflow, after
+cibuildwheel has written them out, rather than as cibuildwheel's
+test-command: that runs from a temporary directory with the wheel already
+installed, and is given only the {package} and {project} placeholders, not a
+path to the wheel it built.  Reaching the archive from there would mean
+either locating it in the output directory by name or adding a separate
+audit-command, which does get {wheel}.
 
 Usage: python tools/verify_wheel_licenses.py wheelhouse/*.whl
 """
