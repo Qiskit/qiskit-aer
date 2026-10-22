@@ -295,6 +295,29 @@ from the `0.17` series), the release notes management scripts of [Qiskit
 Experiments](https://github.com/qiskit-community/qiskit-experiments) can be
 used as a reference.
 
+### Updating the supported Python versions
+
+Typically Aer adds support for new versions of Python when they are released
+and simultaneously drops support for the oldest previously supported version of
+Python.
+
+Typically updating the version of Python requires the following changes to the
+repository:
+
+1. Raise the version of `black` in `requirements-dev.txt` to a new enough
+   version to support the new version of Python and then add the new version to
+   `target-version` in `black`'s configuration in `pyproject.toml`.
+2. Update the version of `cibuildwheel` pinned in `pyproject.toml` to one that
+   supports the new version of Python.
+3. Add the new Python version and drop the old Python version from the
+   `classifiers` in `pyproject.toml`.
+4. Increment the `python_requires` minimum version in `setup.py` (or
+   `pyproject.toml` once it moves there).
+5. Update the Python versions in the GitHub workflows files such as the version
+   lists in `tests.yml` and the `CIBW_BUILD` selections in `build.yml`.
+6. Consider raising the Python version of other steps in the GitHub workflows
+   like the version used to build the docs or install `cibuildwheel`.
+
 
 ## Install from Source
 
