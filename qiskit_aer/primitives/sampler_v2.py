@@ -158,19 +158,23 @@ class SamplerV2(BaseSamplerV2):
         circuits = [pub.circuit for pub in pubs]
         parameter_binds = [_convert_parameter_bindings(pub) for pub in pubs]
 
-        # adjust run_options not to overwrite existings options
+        # adjust run_options not to overwrite existing options
         run_options = self.options.run_options.copy()
         for key in ["shots", "parameter_binds", "memory"]:
             if key in run_options:
                 del run_options[key]
-        if self._seed is not None and "seed_simulator" in run_options:
-            del run_options["seed_simulator"]
+        # self._seed takes precedence; if not set, fall back to run_options seed_simulator
+        seed = self._seed
+        if seed is None:
+            seed = run_options.pop("seed_simulator", None)
+        else:
+            run_options.pop("seed_simulator", None)
 
         # run circuits
         result = self._backend.run(
             circuits,
             shots=shots,
-            seed_simulator=self._seed,
+            seed_simulator=seed,
             parameter_binds=parameter_binds,
             memory=True,
             **run_options,
