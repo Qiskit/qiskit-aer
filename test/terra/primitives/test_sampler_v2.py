@@ -30,6 +30,7 @@ from qiskit.providers import JobStatus
 from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
 
 from qiskit_aer import AerSimulator
+from qiskit_aer.aererror import AerError
 from qiskit_aer.primitives import SamplerV2
 
 
@@ -714,6 +715,29 @@ class TestSamplerV2(QiskitAerTestCase):
         with self.subTest("set int"):
             sampler = SamplerV2(seed=self._seed)
             self.assertEqual(sampler.seed, self._seed)
+
+    def test_failed_experiment_raises_aer_error(self):
+        """Test that a failed Aer experiment raises AerError instead of a numpy ValueError"""
+        # A T gate is not supported by the stabilizer method, so Aer rejects the circuit
+        # up front. This is a cheap and deterministic way to get a real failed experiment.
+        qc = QuantumCircuit(1, 1)
+        qc.t(0)
+        qc.measure(0, 0)
+        backend_options = {"method": "stabilizer"}
+
+        # Get the failure exactly as Aer reports it (no assumption on the message text).
+        # If in the future the two following asserts fail, it means our previous
+        # circuit does not produce an error anymore and we will need to find
+        # another one that does, in order to check that SamplerV2 correctly
+        # raises it too.
+        exp = AerSimulator(**backend_options).run(qc, shots=8, memory=True).result().results[0]
+        self.assertFalse(exp.success)
+        self.assertEqual(exp.shots, 0)
+
+        sampler = SamplerV2(default_shots=8, options={"backend_options": backend_options})
+        with self.assertRaises(AerError) as ctx:
+            sampler.run([qc]).result()
+        self.assertIn(exp.status, str(ctx.exception))
 
 
 if __name__ == "__main__":

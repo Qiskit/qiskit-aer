@@ -41,6 +41,7 @@ from qiskit.primitives.primitive_job import PrimitiveJob
 from qiskit.result import Result
 
 from qiskit_aer import AerSimulator
+from qiskit_aer.aererror import AerError
 
 
 @dataclass
@@ -248,6 +249,8 @@ def _prepare_memory(result: Result) -> list[list[str]]:
     """There is no split of results due to max_experiments for Aer"""
     lst = []
     for exp in result.results:
+        if isinstance(exp.status, str) and exp.status.upper().startswith("ERROR"):
+            raise AerError(f"Aer simulation failed: {exp.status}")
         if hasattr(exp.data, "memory") and exp.data.memory:
             lst.append(exp.data.memory)
         else:
