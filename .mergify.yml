@@ -24,3 +24,10 @@ pull_request_rules:
     actions:
       queue:
         name: automerge
+  - name: backport
+    conditions:
+      - label=backport stable potential
+    actions:
+      backport:
+        branches:
+          - stable/0.18
