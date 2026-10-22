@@ -12,6 +12,7 @@
 """
 Base Class of Basic Circuit Benchmarking
 """
+
 from qiskit.circuit.library import IntegerComparator, WeightedAdder, QuadraticForm
 
 from benchmark.simulator_benchmark import SimulatorBenchmarkSuite

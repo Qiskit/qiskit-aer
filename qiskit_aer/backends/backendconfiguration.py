@@ -12,6 +12,7 @@
 """
 Aer backend configuration
 """
+
 import copy
 
 

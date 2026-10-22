@@ -1,0 +1,18 @@
+---
+fixes:
+  - |
+    Memory corruption in shot branching when simulating parameterized
+    circuits with ``shot_branching_enable=True``. An invalid iterator was
+    used when erasing parameter bookkeeping entries, which could crash the
+    simulator (e.g. ``free(): invalid pointer``) depending on the number of
+    OpenMP threads. This partially fixes `issue #2354
+    <https://github.com/Qiskit/qiskit-aer/issues/2354>`__.
+  - |
+    Out-of-bounds read in the ``matrix_product_state`` simulation method when
+    Schmidt coefficients are truncated (e.g. when using
+    ``matrix_product_state_max_bond_dimension`` or
+    ``matrix_product_state_truncation_threshold``). The discarded weight was
+    computed after the singular values had already been truncated, which is
+    undefined behavior and aborts when built with ``-D_GLIBCXX_ASSERTIONS``.
+    This partially fixes `issue #2354
+    <https://github.com/Qiskit/qiskit-aer/issues/2354>`__.
