@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    Fixed heap corruption (``free(): invalid size``) when combining
+    ``shot_branching_enable=True`` with ``runtime_parameter_bind_enable=True``
+    and a noise model with Kraus errors. When a branch ended up with no shots
+    for some parameter set, the simulator removed the entry from its per-branch
+    shot counts using an iterator from a different vector. This fixes
+    `#2491 <https://github.com/Qiskit/qiskit-aer/issues/2491>`__.
