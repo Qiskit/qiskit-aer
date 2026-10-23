@@ -353,6 +353,19 @@ public:
   reg_t apply_measure_internal(const reg_t &qubits, const rvector_t &rands);
   reg_t sample_measure(RngEngine &rng) const;
 
+  reg_t sample_measure_subset(const reg_t &qubits,const rvector_t &rnds) const;
+
+  reg_t sample_measure_subset_internal(const reg_t &qubits,
+                                       const rvector_t &rnds) const;
+
+  reg_t apply_measure_outcome(const reg_t &qubits, const reg_t &outcome_vector);
+  reg_t apply_measure_outcome_internal(const reg_t &qubits,
+                                       const reg_t &outcome_vector);
+
+  void apply_measure_internal_single_qubit_outcome(uint_t qubit,
+                                                   uint_t measurement,
+                                                   uint_t next_measured_qubit);
+
   //----------------------------------------------------------------
   // Function name: initialize_from_statevector_internal
   // Description: This function receives as input a state_vector and
@@ -503,6 +516,14 @@ private:
   void reset_internal(const reg_t &qubits, RngEngine &rng);
   void measure_reset_update_internal(const reg_t &qubits,
                                      const reg_t &meas_state);
+
+  // Direct marginal probability computation (no centralization)
+  rvector_t marginal_probabilities_direct(const reg_t &qubits) const;
+
+  // Transfer steps for contraction-based probability computation
+  cmatrix_t probability_transfer_step(const cmatrix_t &left_env, uint_t qubit, uint_t outcome) const;
+
+  cmatrix_t probability_transfer_step_sum(const cmatrix_t &left_env, uint_t qubit) const;
 
   //----------------------------------------------------------------
   // Function name: centralize_qubits

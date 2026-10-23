@@ -137,6 +137,41 @@ uint_t reverse_bits(uint_t num, uint_t len);
 
 std::vector<uint_t> calc_new_indices(const reg_t &indices);
 
+double trace_real(const cmatrix_t &mat) {
+  double tr = 0.0;
+  uint_t dim = std::min(mat.GetRows(), mat.GetColumns());
+  for (uint_t i = 0; i < dim; ++i) {
+    tr += std::real(mat(i, i));
+  }
+  return tr;
+}
+
+void multiply_by_left_lambda_inplace(cmatrix_t &mat, const rvector_t &lambda) {
+  for (uint_t row = 0; row < mat.GetRows(); ++row) {
+    for (uint_t col = 0; col < mat.GetColumns(); ++col) {
+      mat(row, col) *= lambda[row];
+    }
+  }
+}
+
+void multiply_by_right_lambda_inplace(cmatrix_t &mat, const rvector_t &lambda) {
+  for (uint_t row = 0; row < mat.GetRows(); ++row) {
+    for (uint_t col = 0; col < mat.GetColumns(); ++col) {
+      mat(row, col) *= lambda[col];
+    }
+  }
+}
+
+double clamp_probability(double p) {
+  if (p < 0.0) {
+    return 0.0;
+  }
+  if (p > 1.0) {
+    return 1.0;
+  }
+  return p;
+}
+
 // The following two functions are helper functions used by
 // initialize_from_statevector
 cmatrix_t reshape_matrix(const cmatrix_t &input_matrix);
@@ -1393,19 +1428,19 @@ void MPS::get_probabilities_vector(rvector_t &probvector,
 
 void MPS::get_probabilities_vector_internal(rvector_t &probvector,
                                             const reg_t &qubits) const {
-  cvector_t state_vec;
   uint_t num_qubits = qubits.size();
-  uint_t size = 1ULL << num_qubits; // length = pow(2, num_qubits)
+  uint_t size = 1ULL << num_qubits;
   probvector.resize(size);
 
-  // compute the probability vector assuming the qubits are in ascending order
-  rvector_t ordered_probvector = diagonal_of_density_matrix(qubits);
+  // Compute the probability vector in ascending internal-qubit order,
+  // without copying/centralizing the whole MPS.
+  rvector_t ordered_probvector = marginal_probabilities_direct(qubits);
 
-  // reorder the probabilities according to the specification in 'qubits'
+  // Reorder the probabilities according to the specification in 'qubits'
   rvector_t temp_probvector(size);
   reorder_all_qubits(ordered_probvector, qubits, temp_probvector);
 
-  // reverse to be consistent with qasm ordering
+  // Reverse to be consistent with qasm ordering
   probvector = reverse_all_bits(temp_probvector, num_qubits);
 }
 
@@ -1484,6 +1519,11 @@ double MPS::norm(const reg_t &qubits, const cmatrix_t &mat) const {
   return expectation_value(qubits, norm_mat);
 }
 
+reg_t MPS::sample_measure_subset(const reg_t &qubits, const rvector_t &rnds) const {
+  reg_t internal_qubits = get_internal_qubits(qubits);
+  return sample_measure_subset_internal(internal_qubits, rnds);
+}
+
 reg_t MPS::apply_measure(const reg_t &qubits, const rvector_t &rnds) {
   // Unlike other api methods, we do not call the respective internal method
   // with internal_qubits. apply_measure_internal will take care of the
@@ -1534,6 +1574,48 @@ reg_t MPS::apply_measure_internal(const reg_t &qubits, const rvector_t &rands) {
   return sorted_outcome_vector;
 }
 
+reg_t MPS::apply_measure_outcome(const reg_t &qubits,
+                                 const reg_t &outcome_vector) {
+  // Same convention as apply_measure(): let the internal method handle ordering.
+  return apply_measure_outcome_internal(qubits, outcome_vector);
+}
+
+reg_t MPS::apply_measure_outcome_internal(const reg_t &qubits,
+                                          const reg_t &outcome_vector) {
+  uint_t size = qubits.size();
+
+  // Sort the qubits into the order they appear in the internal MPS structure.
+  reg_t sub_ordering(size);
+  reg_t sorted_qubits = sort_qubits_by_ordering(qubits, sub_ordering);
+
+  // Reorder the supplied outcomes so they match sorted_qubits / sub_ordering.
+  reg_t sorted_outcome_vector(size, 0);
+  for (uint_t i = 0; i < size; i++) {
+    for (uint_t j = 0; j < size; j++) {
+      if (qubits[j] == sub_ordering[i]) {
+        sorted_outcome_vector[i] = outcome_vector[j];
+        break;
+      }
+    }
+  }
+
+  uint_t next_measured_qubit = num_qubits_ - 1;
+  for (uint_t i = 0; i < size; i++) {
+    if (i < size - 1) {
+      next_measured_qubit = sorted_qubits[i + 1];
+    } else {
+      next_measured_qubit = num_qubits_ - 1;
+    }
+
+    apply_measure_internal_single_qubit_outcome(sorted_qubits[i],
+                                                sorted_outcome_vector[i],
+                                                next_measured_qubit);
+  }
+
+  // Return values in the same ascending-order convention used elsewhere.
+  return sort_measured_values(sorted_outcome_vector, sub_ordering);
+}
+
 uint_t MPS::apply_measure_internal_single_qubit(uint_t qubit, const double rnd,
                                                 uint_t next_measured_qubit) {
   reg_t qubits_to_update;
@@ -1561,6 +1643,36 @@ uint_t MPS::apply_measure_internal_single_qubit(uint_t qubit, const double rnd,
     propagate_to_neighbors_internal(qubit, qubit, next_measured_qubit);
 
   return measurement;
+}
+
+void MPS::apply_measure_internal_single_qubit_outcome(uint_t qubit,
+                                                      uint_t measurement,
+                                                      uint_t next_measured_qubit) {
+  reg_t qubits_to_update;
+  qubits_to_update.push_back(qubit);
+
+  cmatrix_t dummy_mat;
+  double prob = get_prob_single_qubit_internal(qubit, measurement, dummy_mat);
+
+  if (Linalg::almost_equal(prob, 0.0)) {
+    std::stringstream ss;
+    ss << "error: attempted to collapse onto zero-probability measurement outcome";
+    throw std::runtime_error(ss.str());
+  }
+
+  cmatrix_t measurement_matrix(2, 2);
+  if (measurement == 0) {
+    measurement_matrix = zero_measure;
+  } else {
+    measurement_matrix = one_measure;
+  }
+
+  measurement_matrix = measurement_matrix * (1.0 / std::sqrt(prob));
+  apply_matrix_internal(qubits_to_update, measurement_matrix);
+
+  if (num_qubits_ > 1) {
+    propagate_to_neighbors_internal(qubit, qubit, next_measured_qubit);
+  }
 }
 
 void MPS::propagate_to_neighbors_internal(uint_t min_qubit, uint_t max_qubit,
@@ -1637,6 +1749,108 @@ reg_t MPS::sort_measured_values(const reg_t &input_outcome,
 //        probability. We then update 'mat' by contracting it with the suitable
 //        matrix (0 or 1).
 
+reg_t MPS::sample_measure_subset_internal(const reg_t &qubits,
+                                          const rvector_t &rnds) const {
+  reg_t outcome(qubits.size(), 0);
+
+  if (qubits.empty()) {
+    return outcome;
+  }
+
+  // The paper's subset algorithm measures from left to right in the MPS chain,
+  // so we sort by internal position.
+  reg_t sorted_qubits = qubits;
+  std::sort(sorted_qubits.begin(), sorted_qubits.end());
+
+  const uint_t qi = sorted_qubits.front();
+  const uint_t qf = sorted_qubits.back();
+
+  reg_t sorted_outcome(sorted_qubits.size(), 0);
+
+  cmatrix_t C;
+  double P = 1.0;
+  uint_t measured_index = 0;
+
+  auto build_site = [this](uint_t qubit, uint_t outcome_bit,
+                           bool include_left_lambda) -> cmatrix_t {
+    cmatrix_t site = q_reg_[qubit].get_data(outcome_bit);
+
+    if (include_left_lambda && qubit > 0) {
+      multiply_by_left_lambda_inplace(site, lambda_reg_[qubit - 1]);
+    }
+    if (qubit < num_qubits_ - 1) {
+      multiply_by_right_lambda_inplace(site, lambda_reg_[qubit]);
+    }
+    return site;
+  };
+
+  for (uint_t q = qi; q <= qf; ++q) {
+    const bool is_measured =
+        (measured_index < sorted_qubits.size() && sorted_qubits[measured_index] == q);
+
+    if (is_measured) {
+      const bool first_measured = (q == qi);
+
+      cmatrix_t A0 = build_site(q, 0, first_measured);
+      cmatrix_t A1 = build_site(q, 1, first_measured);
+
+      cmatrix_t C0;
+      cmatrix_t C1;
+
+      if (first_measured) {
+        C0 = AER::Utils::dagger(A0) * A0;
+        C1 = AER::Utils::dagger(A1) * A1;
+      } else {
+        C0 = AER::Utils::dagger(A0) * C * A0;
+        C1 = AER::Utils::dagger(A1) * C * A1;
+      }
+
+      double p0;
+      if (first_measured) {
+        p0 = trace_real(C0);
+      } else {
+        p0 = trace_real(C0) / P;
+      }
+      p0 = clamp_probability(p0);
+
+      const double rnd = rnds[measured_index];
+      const uint_t bit = (rnd < p0) ? 0U : 1U;
+
+      sorted_outcome[measured_index] = bit;
+
+      if (bit == 0) {
+        C = std::move(C0);
+        P *= p0;
+      } else {
+        C = std::move(C1);
+        P *= (1.0 - p0);
+      }
+
+      ++measured_index;
+    } else {
+      // Unmeasured qubit in the span: transport entanglement by contracting
+      // over the physical index.
+      cmatrix_t A0 = build_site(q, 0, false);
+      cmatrix_t A1 = build_site(q, 1, false);
+
+      C = AER::Utils::dagger(A0) * C * A0 +
+          AER::Utils::dagger(A1) * C * A1;
+    }
+  }
+
+  // Reorder sampled bits back to the caller's qubit order.
+  for (uint_t i = 0; i < qubits.size(); ++i) {
+    for (uint_t j = 0; j < sorted_qubits.size(); ++j) {
+      if (qubits[i] == sorted_qubits[j]) {
+        outcome[i] = sorted_outcome[j];
+        break;
+      }
+    }
+  }
+
+  return outcome;
+}
+
 reg_t MPS::sample_measure(RngEngine &rng) const {
   double prob = 1;
   reg_t current_measure(num_qubits_);
@@ -1692,6 +1906,105 @@ uint_t MPS::sample_measure_single_qubit(uint_t qubit, double &prob, double rnd,
         mat(row, col) *= lambda_reg_[qubit][col];
   }
   return measurement;
+}
+
+cmatrix_t MPS::probability_transfer_step(const cmatrix_t &left_env, uint_t qubit, uint_t outcome) const {
+  cmatrix_t site = q_reg_[qubit].get_data(outcome);
+
+  // Match the amplitude convention in get_single_amplitude():
+  // multiply by the right lambda after this site, unless this is the last site.
+  if (qubit < num_qubits_ - 1) {
+    for (uint_t row = 0; row < site.GetRows(); ++row) {
+      for (uint_t col = 0; col < site.GetColumns(); ++col) {
+        site(row, col) *= lambda_reg_[qubit][col];
+      }
+    }
+  }
+
+  // Propagate left environment:
+  // new_env = site^\dagger * left_env * site
+  return AER::Utils::dagger(site) * left_env * site;
+}
+
+cmatrix_t MPS::probability_transfer_step_sum(const cmatrix_t &left_env, uint_t qubit) const {
+  cmatrix_t env0 = probability_transfer_step(left_env, qubit, 0);
+  cmatrix_t env1 = probability_transfer_step(left_env, qubit, 1);
+  return env0 + env1;
+}
+
+rvector_t MPS::marginal_probabilities_direct(const reg_t &qubits) const {
+  uint_t num_measured = qubits.size();
+  uint_t num_outcomes = 1ULL << num_measured;
+
+  if (num_measured == 0) {
+    return rvector_t{1.0};
+  }
+
+  // Work in ascending internal-qubit order for the contraction.
+  reg_t sorted_qubits = qubits;
+  if (!is_ordered(sorted_qubits)) {
+    std::sort(sorted_qubits.begin(), sorted_qubits.end());
+  }
+
+  // frontier[i] stores the current left-environment matrix for the measured
+  // outcome prefix encoded by i over the measured qubits seen so far.
+  std::vector<cmatrix_t> frontier(1, cmatrix_t(1, 1));
+  frontier[0](0, 0) = 1.0;
+
+  uint_t meas_pos = 0;
+
+  for (uint_t qubit = 0; qubit < num_qubits_; ++qubit) {
+    bool is_measured = (meas_pos < num_measured && sorted_qubits[meas_pos] == qubit);
+
+    if (is_measured) {
+      std::vector<cmatrix_t> next_frontier(frontier.size() * 2);
+
+      for (uint_t i = 0; i < frontier.size(); ++i) {
+        next_frontier[2 * i] =
+            probability_transfer_step(frontier[i], qubit, 0);
+        next_frontier[2 * i + 1] =
+            probability_transfer_step(frontier[i], qubit, 1);
+      }
+
+      frontier = std::move(next_frontier);
+      ++meas_pos;
+    } else {
+      for (uint_t i = 0; i < frontier.size(); ++i) {
+        frontier[i] = probability_transfer_step_sum(frontier[i], qubit);
+      }
+    }
+  }
+
+  rvector_t probs(num_outcomes, 0.0);
+  for (uint_t i = 0; i < num_outcomes; ++i) {
+    // After the final site the bond dimension should be 1, so this is scalar.
+    // Sum defensively in case of representation edge cases.
+    double p = 0.0;
+    for (uint_t r = 0; r < frontier[i].GetRows(); ++r) {
+      for (uint_t c = 0; c < frontier[i].GetColumns(); ++c) {
+        if (r == c) {
+          p += std::real(frontier[i](r, c));
+        }
+      }
+    }
+    probs[i] = p;
+  }
+
+  // Numerical cleanup / renormalization
+  double total = 0.0;
+  for (double &p : probs) {
+    if (std::abs(p) < 1e-16) {
+      p = 0.0;
+    }
+    total += p;
+  }
+  if (total > 0.0 && !Linalg::almost_equal(total, 1.0)) {
+    for (double &p : probs) {
+      p /= total;
+    }
+  }
+
+  return probs;
 }
 
 double MPS::get_single_probability0(uint_t qubit, const cmatrix_t &mat) const {
