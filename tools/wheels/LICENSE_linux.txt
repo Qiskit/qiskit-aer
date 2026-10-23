@@ -2,7 +2,7 @@ This binary distribution of Qiskit Aer bundles the following software,
 which is covered by the licenses reproduced below.
 
 Name: OpenBLAS
-Files: qiskit_aer.libs/libopenblas*.so
+Files: @LIBS_DIR@/libopenblas*.so
 Description: bundled as a dynamically linked library
 Availability: https://github.com/OpenMathLib/OpenBLAS/
 License: BSD-3-Clause
@@ -37,7 +37,7 @@ License: BSD-3-Clause
   USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 Name: GCC runtime library (libgfortran, libgomp)
-Files: qiskit_aer.libs/libgfortran*.so*, qiskit_aer.libs/libgomp*.so*
+Files: @LIBS_DIR@/libgfortran*.so*, @LIBS_DIR@/libgomp*.so*
 Description: dynamically linked to the extension modules, and to OpenBLAS in
   the case of libgfortran
 Availability: https://gcc.gnu.org/git/?p=gcc.git;a=tree
@@ -791,7 +791,7 @@ License: GPL-3.0-or-later WITH GCC-exception-3.1
   requirements of the license of GCC.
 
 Name: libquadmath
-Files: qiskit_aer.libs/libquadmath*.so*
+Files: @LIBS_DIR@/libquadmath*.so*
 Description: dynamically linked to libgfortran.  Note that libquadmath is
   licensed under LGPL-2.1-or-later and, unlike libgfortran and libgomp, is
   not covered by the GCC Runtime Library Exception.  SciPy bundles libquadmath

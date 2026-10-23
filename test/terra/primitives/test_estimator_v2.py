@@ -472,6 +472,23 @@ class TestEstimatorV2(QiskitAerTestCase):
 
         self.assertAlmostEqual(ref_result[0].data.evs, res[0].data.evs)
 
+    def test_broadcast_params_and_observables(self):
+        """Test results match the reference when parameters and observables are broadcast"""
+        theta = Parameter("theta")
+        qc = QuantumCircuit(2)
+        qc.ry(theta, 0)
+        qc.cx(0, 1)
+        # The last axis of the parameter values indexes the circuit parameters
+        for param_shape in ((4,), (4, 2)):
+            with self.subTest(param_shape=param_shape):
+                params = np.linspace(0, 1, int(np.prod(param_shape))).reshape(*param_shape, 1)
+                obs = np.array(["ZZ", "XX", "ZI"]).reshape(3, *([1] * len(param_shape))).tolist()
+                pub = (qc, obs, params)
+                ref = StatevectorEstimator().run([pub]).result()[0].data.evs
+                res = EstimatorV2().run([pub]).result()[0].data.evs
+                self.assertEqual(res.shape, (3, *param_shape))
+                np.testing.assert_allclose(res, ref, atol=1e-8)
+
 
 if __name__ == "__main__":
     unittest.main()
