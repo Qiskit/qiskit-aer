@@ -360,6 +360,11 @@ void State::set_config(const Config &config) {
 
   // Set LAPACK SVD
   MPS::set_mps_lapack_svd(config.mps_lapack);
+
+  // Set device for SVD
+#ifdef AER_THRUST_CUDA
+  MPS::set_mps_device(config.device);
+#endif // AER_THRUST_CUDA
 }
 
 void State::add_metadata(ExperimentResult &result) const {
