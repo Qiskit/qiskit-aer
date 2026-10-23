@@ -77,11 +77,6 @@ jobs:
           sed -i 's/"14", "14.1"/"14", "14.1", "14.2", "14.3", "15", "15.1", "15.2", "16", "16.1"/' ~/.conan/settings.yml
       - name: Run Docs Build
         run: tox -edocs
-        env:
-          # Starting with Python 3.15 and Qiskit 2.6.0, glibc in the GitHub
-          # runner does not leave thread local storage (TLS) space for loading
-          # libgomp
-          GLIBC_TUNABLES: glibc.rtld.optional_static_tls=4096
       - uses: actions/upload-artifact@v7
         with:
           name: html_docs
@@ -135,11 +130,6 @@ jobs:
           cd qiskit-tutorials
           rm -rf tutorials/circuits tutorials/circuits_advanced tutorials/algorithms tutorials/operators
           sphinx-build -b html . _build/html
-        env:
-          # Starting with Python 3.15 and Qiskit 2.6.0, glibc in the GitHub
-          # runner does not leave thread local storage (TLS) space for loading
-          # libgomp
-          GLIBC_TUNABLES: glibc.rtld.optional_static_tls=4096
       - uses: actions/upload-artifact@v7
         with:
           name: tutorials_html
