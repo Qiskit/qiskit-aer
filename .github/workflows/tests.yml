@@ -130,7 +130,7 @@ jobs:
   tests_linux:
     runs-on: ubuntu-latest
     name: Linux Python ${{ matrix.python-version }}${{ matrix.qiskit-extra && format(' ({0})', matrix.qiskit-extra) }}
-    needs: [sdist, lint]
+    needs: [lint]
     timeout-minutes: 60
     strategy:
       matrix:
@@ -193,7 +193,7 @@ jobs:
   tests_macos:
     runs-on: macos-latest
     name: macOS Python ${{ matrix.python-version }}
-    needs: [sdist, lint]
+    needs: [lint]
     timeout-minutes: 60
     strategy:
       matrix:
@@ -251,7 +251,7 @@ jobs:
   tests_windows:
     runs-on: windows-2022
     name: Windows Python ${{ matrix.python-version }}
-    needs: ["lint", "sdist"]
+    needs: ["lint"]
     timeout-minutes: 60
     strategy:
       matrix:
