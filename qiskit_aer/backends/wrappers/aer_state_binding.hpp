@@ -170,6 +170,10 @@ void bind_aer_state(MODULE m) {
   aer_state.def("apply_cu", &AerState::apply_cu);
   aer_state.def("apply_mcu", &AerState::apply_mcu);
   aer_state.def("apply_mcswap", &AerState::apply_mcswap);
+  aer_state.def("apply_mcsx", &AerState::apply_mcsx);
+  aer_state.def("apply_mcrx", &AerState::apply_mcrx);
+  aer_state.def("apply_mcry", &AerState::apply_mcry);
+  aer_state.def("apply_mcrz", &AerState::apply_mcrz);
   aer_state.def("apply_measure", &AerState::apply_measure);
   aer_state.def("apply_reset", &AerState::apply_reset);
   aer_state.def("apply_kraus", &AER::AerState::apply_kraus);
