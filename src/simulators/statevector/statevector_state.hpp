@@ -273,13 +273,6 @@ protected:
   cmatrix_t vec2density(const reg_t &qubits, const T &vec);
 
   //-----------------------------------------------------------------------
-  // Single-qubit gate helpers
-  //-----------------------------------------------------------------------
-
-  // Optimize phase gate with diagonal [1, phase]
-  void apply_gate_phase(const uint_t qubit, const complex_t phase);
-
-  //-----------------------------------------------------------------------
   // Multi-controlled u3
   //-----------------------------------------------------------------------
 
@@ -487,6 +480,7 @@ auto State<statevec_t>::copy_to_vector(void) {
 //=========================================================================
 // Implementation: apply operations
 //=========================================================================
+
 template <class statevec_t>
 void State<statevec_t>::apply_op(const Operations::Op &op,
                                  ExperimentResult &result, RngEngine &rng,
@@ -768,7 +762,7 @@ void State<statevec_t>::apply_gate(const Operations::Op &op) {
     break;
   case Gates::mcz:
     // Includes Z, CZ, CCZ, etc
-    BaseState::qreg_.apply_mcphase(op.qubits, -1);
+    BaseState::qreg_.apply_mcz(op.qubits);
     break;
   case Gates::mcr:
     BaseState::qreg_.apply_mcu(op.qubits,
@@ -810,18 +804,16 @@ void State<statevec_t>::apply_gate(const Operations::Op &op) {
     apply_gate_mcu(op.qubits, M_PI / 2., 0., M_PI, 0.);
     break;
   case Gates::s:
-    apply_gate_phase(op.qubits[0], complex_t(0., 1.));
+    BaseState::qreg_.apply_s(uint_t(op.qubits[0]));
     break;
   case Gates::sdg:
-    apply_gate_phase(op.qubits[0], complex_t(0., -1.));
+    BaseState::qreg_.apply_sdg(uint_t(op.qubits[0]));
     break;
   case Gates::t: {
-    const double isqrt2{1. / std::sqrt(2)};
-    apply_gate_phase(op.qubits[0], complex_t(isqrt2, isqrt2));
+    BaseState::qreg_.apply_t(uint_t(op.qubits[0]));
   } break;
   case Gates::tdg: {
-    const double isqrt2{1. / std::sqrt(2)};
-    apply_gate_phase(op.qubits[0], complex_t(isqrt2, -isqrt2));
+    BaseState::qreg_.apply_tdg(uint_t(op.qubits[0]));
   } break;
   case Gates::mcswap:
     // Includes SWAP, CSWAP, etc
@@ -842,11 +834,11 @@ void State<statevec_t>::apply_gate(const Operations::Op &op) {
     apply_gate_mcu(op.qubits, M_PI / 2., std::real(op.params[0]),
                    std::real(op.params[1]), 0.);
     break;
-  case Gates::mcp:
-    // Includes u1, cu1, p, cp, mcp etc
+  case Gates::mcp: {
     BaseState::qreg_.apply_mcphase(op.qubits,
                                    std::exp(complex_t(0, 1) * op.params[0]));
     break;
+  }
   case Gates::mcsx:
     // Includes sx, csx, mcsx etc
     BaseState::qreg_.apply_mcu(op.qubits, Linalg::VMatrix::SX);
@@ -920,12 +912,6 @@ void State<statevec_t>::apply_gate_mcu(const reg_t &qubits, double theta,
                                        double gamma) {
   BaseState::qreg_.apply_mcu(qubits,
                              Linalg::VMatrix::u4(theta, phi, lambda, gamma));
-}
-
-template <class statevec_t>
-void State<statevec_t>::apply_gate_phase(uint_t qubit, complex_t phase) {
-  cvector_t diag = {{1., phase}};
-  apply_diagonal_matrix(reg_t({qubit}), diag);
 }
 
 //=========================================================================
