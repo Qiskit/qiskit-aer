@@ -83,7 +83,6 @@ jobs:
           path: docs/_build/html
   tutorials:
     runs-on: ubuntu-latest
-    needs: [docs]
     strategy:
       matrix:
         python-version: ['3.13']
