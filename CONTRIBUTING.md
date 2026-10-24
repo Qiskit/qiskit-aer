@@ -310,13 +310,14 @@ repository:
 2. Update the version of `cibuildwheel` pinned in `pyproject.toml` to one that
    supports the new version of Python.
 3. Add the new Python version and drop the old Python version from the
-   `classifiers` in `pyproject.toml`.
+   `classifiers` in `setup.py`.
 4. Increment the `python_requires` minimum version in `setup.py` (or
    `pyproject.toml` once it moves there).
 5. Update the Python versions in the GitHub workflows files such as the version
    lists in `tests.yml` and the `CIBW_BUILD` selections in `build.yml`.
 6. Consider raising the Python version of other steps in the GitHub workflows
    like the version used to build the docs or install `cibuildwheel`.
+7. Update the list of Python versions in `envlist` in `tox.ini`.
 
 
 ## Install from Source
