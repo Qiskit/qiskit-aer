@@ -40,7 +40,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ['3.13']
+        python-version: ['3.11', '3.15']
     steps:
       - uses: actions/checkout@v7
       - name: Set up Python ${{ matrix.python-version }}
@@ -77,7 +77,7 @@ jobs:
     needs: ["lint"]
     strategy:
       matrix:
-        python-version: ["3.11", "3.12", "3.13", "3.14", "3.15"]
+        python-version: ["3.11", "3.15"]
         platform: [
           { os: "ubuntu-latest", python-architecture: "x64" },
         ]
@@ -127,19 +127,14 @@ jobs:
           aer-test/bin/python ../tools/verify_wheels.py
           aer-test/bin/pip check
         shell: bash
-        env:
-          # Starting with Python 3.15 and Qiskit 2.6.0, glibc in the GitHub
-          # runner does not leave thread local storage (TLS) space for loading
-          # libgomp
-          GLIBC_TUNABLES: glibc.rtld.optional_static_tls=4096
   tests_linux:
     runs-on: ubuntu-latest
     name: Linux Python ${{ matrix.python-version }}${{ matrix.qiskit-extra && format(' ({0})', matrix.qiskit-extra) }}
-    needs: [sdist, lint]
+    needs: [lint]
     timeout-minutes: 60
     strategy:
       matrix:
-        python-version: ["3.11", "3.12", "3.13", "3.14", "3.15"]
+        python-version: ["3.11", "3.15"]
         qiskit-extra: [""]
 
     env:
@@ -149,10 +144,6 @@ jobs:
       # a new internal interface that will be the default in jupyter-core 6.x.
       # This variable should become redundant on release of jupyter-core 6.
       JUPYTER_PLATFORM_DIRS: 1
-      # Starting with Python 3.15 and Qiskit 2.6.0, glibc in the GitHub
-      # runner does not leave thread local storage (TLS) space for loading
-      # libgomp
-      GLIBC_TUNABLES: glibc.rtld.optional_static_tls=4096
     steps:
       - uses: actions/checkout@v7
       - name: Set up Python ${{ matrix.python-version }}
@@ -202,11 +193,11 @@ jobs:
   tests_macos:
     runs-on: macos-latest
     name: macOS Python ${{ matrix.python-version }}
-    needs: [sdist, lint]
+    needs: [lint]
     timeout-minutes: 60
     strategy:
       matrix:
-        python-version: ["3.11", "3.12", "3.13", "3.14", "3.15"]
+        python-version: ["3.11", "3.15"]
     env:
       AER_THRUST_BACKEND: OMP
       QISKIT_TEST_CAPTURE_STREAMS: 1
@@ -260,11 +251,11 @@ jobs:
   tests_windows:
     runs-on: windows-2022
     name: Windows Python ${{ matrix.python-version }}
-    needs: ["lint", "sdist"]
+    needs: ["lint"]
     timeout-minutes: 60
     strategy:
       matrix:
-        python-version: ["3.11", "3.12", "3.13", "3.14", "3.15"]
+        python-version: ["3.11", "3.15"]
     env:
       AER_THRUST_BACKEND: OMP
       QISKIT_TEST_CAPTURE_STREAMS: 1

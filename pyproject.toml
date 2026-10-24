@@ -34,9 +34,6 @@ before-test = "pip install git+https://github.com/uqfoundation/dill@e862cad2041c
 [tool.cibuildwheel.linux]
 before-all = "dnf install -y openblas-devel"
 before-build = "bash {project}/tools/wheels/append_bundled_licenses.sh {project}"
-# Starting with Python 3.15 and Qiskit 2.6.0, glibc does not leave enough
-# thread local storage (TLS) space for loading libgomp
-test-environment = { GLIBC_TUNABLES = "glibc.rtld.optional_static_tls=4096" }
 
 [tool.cibuildwheel.macos]
 # The macOS images we use have a newer clang than the ancient version of conan
