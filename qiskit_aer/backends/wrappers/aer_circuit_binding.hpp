@@ -182,7 +182,9 @@ void bind_aer_circuit(MODULE m) {
   aer_circuit.def("jump", &Circuit::jump);
   aer_circuit.def("mark", &Circuit::mark);
   aer_circuit.def("barrier", &Circuit::barrier);
-  aer_circuit.def("measure", &Circuit::measure);
+  aer_circuit.def("measure", &Circuit::measure, py::arg("qubits"),
+                  py::arg("memory"), py::arg("registers"),
+                  py::arg("name") = "measure");
   aer_circuit.def("reset", &Circuit::reset);
   aer_circuit.def("set_qerror_loc", &Circuit::set_qerror_loc);
   aer_circuit.def("store", &Circuit::store);

@@ -37,7 +37,8 @@ macro(_use_system_libraries)
 
 	if(APPLE)
 		# Fix linking. See https://stackoverflow.com/questions/54068035
-		link_directories(/usr/local/lib) #brew
+		link_directories(/usr/local/lib) #brew (Intel)
+		link_directories(/opt/homebrew/lib) #brew (Apple Silicon)
 		link_directories(/opt/local/lib) #ports
 	endif()
 endmacro()
