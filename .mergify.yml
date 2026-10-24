@@ -17,3 +17,11 @@ pull_request_rules:
     conditions: []
     actions:
       queue:
+        name: automerge
+  - name: backport
+    conditions:
+      - label=stable backport potential
+    actions:
+      backport:
+        branches:
+          - stable/0.18
