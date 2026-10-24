@@ -1,0 +1,13 @@
+fixes:
+  - |
+    Fixed an issue where the MPI controller would attempt to re-initialize MPI even if it was already initialized, which could cause crashes in certain HPC or embedded environments. The controller now checks ``MPI_Initialized`` before proceeding.
+  - |
+    Changed the behavior of Cache Blocking when an invalid or suboptimal configuration is detected. Previously, this raised a ``RuntimeError``; it now gracefully disables cache blocking and proceeds with the simulation.
+
+other:
+  - |
+    Implemented several C++ performance optimizations to reduce overhead during circuit execution and measurement:
+    
+    * Optimized ``bin2hex`` to use bitwise operations, removing ``stringstream`` overhead.
+    * Reduced memory re-allocations in ``ClassicalRegister``, ``ParallelStateExecutor``, and ``Statevector`` sampling routines.
+    * Improved integer-to-character conversion speed in measurement storage.
