@@ -95,7 +95,7 @@ jobs:
       - name: Pip cache
         uses: actions/cache@v6
         with:
-          path: ~\AppData\Local\pip\Cache
+          path: ~/.cache/pip
           key: ${{ runner.os }}-${{ matrix.python-version}}-pip-tutorials-${{ hashFiles('setup.py','requirements-dev.txt','constraints.txt') }}
           restore-keys: |
             ${{ runner.os }}-${{ matrix.python-version}}-pip-tutorials-
