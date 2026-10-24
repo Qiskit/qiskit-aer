@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fixed CUDA-enabled builds with recent GCC versions by compiling the
+    host-only AVX2 source with the C++ compiler instead of ``nvcc``.
