@@ -9,6 +9,7 @@ queue_rules:
 pull_request_rules:
   - name: automatic merge on CI success and review
     conditions:
+      - base~=^(main|stable/.*)$
       - "#approved-reviews-by>=1"
       - label=automerge
       - label!=on hold
