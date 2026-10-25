@@ -1,0 +1,9 @@
+---
+other:
+  - |
+    The ``extended_stabilizer`` method no longer calls ``std::pow`` to compute the
+    magnitude ``2^(p/2)`` of a stabilizer-state coefficient, which happens for every
+    stabilizer state at every Metropolis step. It now uses ``std::ldexp``, which gives
+    bit-identical values. On Linux x86 with glibc 2.28 this makes extended_stabilizer
+    sampling about 1.6x faster (8 qubits, 4 T gates: 276 to 173 ms per shot on one
+    thread). See #2502.
