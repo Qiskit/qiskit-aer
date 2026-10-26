@@ -1,0 +1,4 @@
+---
+prelude: >
+  The Qiskit Aer 0.18.1 release addresses several bugs leading to crashes and
+  poor performance.
