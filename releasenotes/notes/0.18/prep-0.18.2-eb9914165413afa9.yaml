@@ -1,0 +1,4 @@
+---
+prelude: >
+  Qiskit Aer 0.18.2 is a follow up to 0.18.1 to address an issue with
+  publishing 0.18.1. It contains all the fixes included in 0.18.1.
