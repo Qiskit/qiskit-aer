@@ -35,10 +35,6 @@ jobs:
     - name: Build docs
       env:
         QISKIT_DOCS_BUILD_TUTORIALS: 'always'
-        # Starting with Python 3.15 and Qiskit 2.6.0, glibc in the GitHub
-        # runner does not leave thread local storage (TLS) space for loading
-        # libgomp
-        GLIBC_TUNABLES: glibc.rtld.optional_static_tls=4096
       run: tox -edocs
     - name: Bypass Jekyll Processing # Necessary for setting the correct css path
       run: touch docs/_build/html/.nojekyll
