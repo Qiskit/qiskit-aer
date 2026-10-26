@@ -34,11 +34,7 @@ Classes
 
 """
 
-import qiskit
-
 from .estimator import Estimator
 from .sampler import Sampler
-
-if not qiskit.__version__.startswith("0."):
-    from .estimator_v2 import EstimatorV2
-    from .sampler_v2 import SamplerV2
+from .estimator_v2 import EstimatorV2
+from .sampler_v2 import SamplerV2
