@@ -111,10 +111,10 @@ struct scalar_t {
     if (eps == 0) {
       return {0., 0.};
     }
-    // 2^(p/2) for integer p without a general pow(), which is slow in some libm
-    // versions and is called for every stabilizer state at every Metropolis step.
+    // 2^(p/2) for integer p without a general pow(): slow in some libm builds,
+    // and called once per stabilizer state per Metropolis step.
     const bool odd = (p % 2) != 0;
-    const int half = (p - (odd ? 1 : 0)) / 2; // floor(p / 2), also for negative p
+    const int half = (p - (odd ? 1 : 0)) / 2; // floor(p/2), also negative p
     std::complex<double> mag(std::ldexp(odd ? SQRT2 : 1., half), 0.);
     std::complex<double> phase(RE_PHASE[e], IM_PHASE[e]);
     if (e % 2) {
