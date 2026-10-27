@@ -29,6 +29,7 @@ namespace CHSimulator {
 
 static const std::array<int, 8> RE_PHASE = {1, 1, 0, -1, -1, -1, 0, 1};
 static const std::array<int, 8> IM_PHASE = {0, 1, 1, 1, 0, -1, -1, -1};
+static constexpr double SQRT2 = 1.4142135623730951;
 
 using complex_t = std::complex<double>;
 using uint_t = uint_fast64_t;
@@ -114,11 +115,10 @@ struct scalar_t {
     // versions and is called for every stabilizer state at every Metropolis step.
     const bool odd = (p % 2) != 0;
     const int half = (p - (odd ? 1 : 0)) / 2; // floor(p / 2), also for negative p
-    std::complex<double> mag(std::ldexp(odd ? 1.4142135623730951 : 1., half),
-                             0.);
+    std::complex<double> mag(std::ldexp(odd ? SQRT2 : 1., half), 0.);
     std::complex<double> phase(RE_PHASE[e], IM_PHASE[e]);
     if (e % 2) {
-      phase /= std::sqrt(2);
+      phase /= SQRT2;
     }
     return mag * phase;
   }
