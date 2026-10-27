@@ -52,7 +52,13 @@ jobs:
       - name: Build Wheels
         env:
           AER_CMAKE_OPENMP_BUILD: 1
+          # Only build the oldest and newest supported Pythons in CI; deploy.yml builds the full set.
+          CIBW_BUILD: "cp311-* cp315-*"
         run: cibuildwheel --output-dir wheelhouse
+      - name: Verify bundled licenses
+        shell: bash
+        run: |
+          python tools/verify_wheel_licenses.py wheelhouse/*.whl
       - uses: actions/upload-artifact@v7
         with:
           path: ./wheelhouse/*.whl

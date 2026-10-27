@@ -7,7 +7,7 @@ fixes:
     ``list.index()`` to look up each parameter index inside the inner loop,
     making the cost grow quadratically with the number of parameter rows.
     It was replaced with a dictionary lookup; numerical results are unchanged.
-    This fixes `issue #2438
+    This fixes half of `issue #2438
     <https://github.com/Qiskit/qiskit-aer/issues/2438>`__.
   - |
     Fixed a silent fork-safety hazard in the module-scope
@@ -18,3 +18,5 @@ fixes:
     ``submit()`` would fail, silently producing no useful work. The executor
     is now reset automatically in every forked child via
     ``os.register_at_fork``.
+    This fixes half of `issue #2438
+    <https://github.com/Qiskit/qiskit-aer/issues/2438>`__.
