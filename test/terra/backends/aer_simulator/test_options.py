@@ -26,6 +26,8 @@ from qiskit.providers.fake_provider import GenericBackendV2
 
 from qiskit_aer import AerSimulator
 
+import re
+
 
 @ddt
 class TestOptions(SimulatorTestCase):
@@ -256,6 +258,55 @@ class TestOptions(SimulatorTestCase):
         # Check that the approximated result is not identical to the exact
         # result, because that could mean there was actually no approximation
         self.assertLessEqual(state_fidelity(sv_left, sv_approx), 0.999)
+
+    @supported_methods(
+        ["matrix_product_state"],
+        [0.0, 0.4, 0.9],
+        [(2, 4, 2), (2, 3, 2), (1, 1, 1)],
+        product=False,
+    )
+    def test_mps_truncation_threshold_option(self, method, device, threshold, expected_bd):
+        """Test MPS truncation threshold reduces bond dimensions as expected."""
+        qc = QuantumCircuit(4)
+        qc.h(1)
+        qc.cx(1, 2)
+        qc.swap(0, 1)
+        qc.swap(2, 3)
+        qc.h(1)
+        qc.cx(1, 2)
+        qc.measure_all()
+
+        backend = self.backend(
+            method=method,
+            device=device,
+            matrix_product_state_truncation_threshold=threshold,
+            mps_log_data=True,
+        )
+
+        result = backend.run(qc, shots=1).result()
+        log_data = result.results[0].metadata["MPS_log_data"]
+
+        matches = re.findall(
+            r"cx on qubits 1,2, BD=\[(\d+) (\d+) (\d+)\]",
+            log_data,
+        )
+
+        self.assertTrue(
+            matches,
+            msg=f"No matching CX operation found in MPS log: {log_data}",
+        )
+
+        actual_bd = tuple(int(value) for value in matches[-1])
+
+        self.assertEqual(
+            actual_bd,
+            expected_bd,
+            msg=(
+                f"Unexpected bond dimensions for truncation threshold {threshold}. "
+                f"Expected {expected_bd}, got {actual_bd}. "
+                f"MPS log: {log_data}"
+            ),
+        )
 
     def test_statevector_memory(self):
         """Test required memory is correctly checked in statevector"""

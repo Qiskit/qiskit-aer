@@ -12,6 +12,7 @@
 """
 AerSimulator Integration Tests
 """
+
 from ddt import ddt
 from qiskit import QuantumCircuit
 from test.terra.reference import ref_initialize

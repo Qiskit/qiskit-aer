@@ -1,22 +1,27 @@
+merge_queue:
+  max_parallel_checks: 1
+
 queue_rules:
   - name: automerge
+    merge_conditions: []  # No additional conditions besides branch protection
     merge_method: squash
-
-pull_request_rules:
-  - name: automatic merge on CI success and review
-    conditions:
-      - base=main
+    batch_size: 1
+    queue_conditions:
+      - base~=^(main|stable/.*)$
       - "#approved-reviews-by>=1"
       - label=automerge
       - label!=on hold
-      # GitHub branch-protection rules are automatically applied by mergify, so
-      # the queue can't actually merge things unless _all_ statuses are passed.
-      # This section is just a sanity check before the PR can enter the main
-      # queue.
-      - or:
-        - check-success=tests_linux (3.10, ubuntu-latest)
-        - check-neutral=tests_linux (3.10, ubuntu-latest)
-        - check-skipped=tests_linux (3.10, ubuntu-latest)
+
+pull_request_rules:
+  - name: automatic merge on CI success and review
+    conditions: []
     actions:
       queue:
         name: automerge
+  - name: backport
+    conditions:
+      - label=stable backport potential
+    actions:
+      backport:
+        branches:
+          - stable/0.18

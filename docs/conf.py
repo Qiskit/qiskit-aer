@@ -46,10 +46,12 @@ project = 'Qiskit Aer'
 copyright = f"2017-{datetime.date.today().year}, Qiskit Development Team"  # pylint: disable=redefined-builtin
 author = 'Qiskit Development Team'
 
-# The short X.Y version
-version = '0.17.2'
+REPO_ROOT = Path(__file__).resolve().parents[1]
+
 # The full version, including alpha/beta/rc tags
-release = '0.17.2'
+release = (REPO_ROOT / "qiskit_aer" / "VERSION.txt").read_text(encoding="utf-8").strip()
+# The short X.Y version
+version = ".".join(release.split(".")[:2])
 
 templates_path = ['_templates']
 
@@ -183,7 +185,6 @@ def determine_github_branch() -> str:
     )
 
 
-REPO_ROOT = Path(__file__).resolve().parents[1]
 GITHUB_BRANCH = determine_github_branch()
 
 

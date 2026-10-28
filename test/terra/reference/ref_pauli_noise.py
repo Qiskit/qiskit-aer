@@ -21,7 +21,6 @@ from qiskit_aer.noise import NoiseModel
 from qiskit_aer.noise.errors import QuantumError, PauliError
 from qiskit_aer.noise.errors.standard_errors import pauli_error
 
-
 # ==========================================================================
 # Pauli Gate Errors
 # ==========================================================================

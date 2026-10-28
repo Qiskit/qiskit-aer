@@ -41,6 +41,7 @@ from qiskit.primitives.primitive_job import PrimitiveJob
 from qiskit.result import Result
 
 from qiskit_aer import AerSimulator
+from qiskit_aer.aererror import AerError
 
 
 @dataclass
@@ -158,19 +159,23 @@ class SamplerV2(BaseSamplerV2):
         circuits = [pub.circuit for pub in pubs]
         parameter_binds = [_convert_parameter_bindings(pub) for pub in pubs]
 
-        # adjust run_options not to overwrite existings options
+        # adjust run_options not to overwrite existing options
         run_options = self.options.run_options.copy()
         for key in ["shots", "parameter_binds", "memory"]:
             if key in run_options:
                 del run_options[key]
-        if self._seed is not None and "seed_simulator" in run_options:
-            del run_options["seed_simulator"]
+        # self._seed takes precedence; if not set, fall back to run_options seed_simulator
+        seed = self._seed
+        if seed is None:
+            seed = run_options.pop("seed_simulator", None)
+        else:
+            run_options.pop("seed_simulator", None)
 
         # run circuits
         result = self._backend.run(
             circuits,
             shots=shots,
-            seed_simulator=self._seed,
+            seed_simulator=seed,
             parameter_binds=parameter_binds,
             memory=True,
             **run_options,
@@ -248,6 +253,8 @@ def _prepare_memory(result: Result) -> list[list[str]]:
     """There is no split of results due to max_experiments for Aer"""
     lst = []
     for exp in result.results:
+        if isinstance(exp.status, str) and exp.status.upper().startswith("ERROR"):
+            raise AerError(f"Aer simulation failed: {exp.status}")
         if hasattr(exp.data, "memory") and exp.data.memory:
             lst.append(exp.data.memory)
         else:
