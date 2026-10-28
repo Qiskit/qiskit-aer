@@ -23,6 +23,7 @@ from qiskit_aer.noise import NoiseModel
 from qiskit_aer.noise.device.models import _excited_population
 from qiskit_aer.noise.errors import QuantumError, PauliError, PauliLindbladError
 from qiskit_aer.noise.errors.standard_errors import amplitude_damping_error
+from qiskit_aer.noise.errors.standard_errors import depolarizing_error
 from qiskit_aer.noise.errors.standard_errors import kraus_error
 from qiskit_aer.noise.errors.standard_errors import pauli_error
 from qiskit_aer.noise.errors.standard_errors import reset_error
@@ -31,9 +32,11 @@ from qiskit_aer.utils.noise_transformation import transform_noise_model
 
 import qiskit
 from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit
+from qiskit.circuit.library import Initialize
 from qiskit.circuit.library.standard_gates import IGate, XGate
 from qiskit.circuit.library.generalized_gates import PauliGate
 from qiskit.compiler import transpile
+from qiskit.quantum_info import DensityMatrix, Kraus
 from qiskit.transpiler import CouplingMap, Target
 from qiskit.providers import QubitProperties, BackendV2, Options
 
@@ -86,6 +89,58 @@ class TestNoiseModel(QiskitAerTestCase):
         result = backend.run(circuit, shots=shots, noise_model=noise_model).result()
         self.assertSuccess(result)
         self.compare_counts(result, [circuit], [target], delta=0.05 * shots)
+
+    def test_kraus_method_with_degenerate_choi_matrix(self):
+        """Test Kraus conversion of an error whose Choi matrix has degenerate eigenvalues"""
+        depolarizing = depolarizing_error(0.1, 3)
+        damping = amplitude_damping_error(0.1)
+        noise_model = NoiseModel()
+        noise_model.add_all_qubit_quantum_error(depolarizing, ["ccx"])
+        noise_model.add_all_qubit_quantum_error(damping, ["x"])
+        target_circuit = QuantumCircuit(3)
+        target_circuit.x(0)
+        target_circuit.append(Kraus(damping), [0])
+        target_circuit.ccx(0, 1, 2)
+        target_circuit.append(Kraus(depolarizing), [0, 1, 2])
+        target = DensityMatrix(target_circuit).probabilities_dict()
+        circuit = QuantumCircuit(3)
+        circuit.x(0)
+        circuit.ccx(0, 1, 2)
+        circuit.measure_all()
+        shots = 2000
+        for threads in (1, 2):
+            with self.subTest(max_parallel_threads=threads):
+                backend = AerSimulator(method="statevector", max_parallel_threads=threads)
+                result = backend.run(
+                    circuit, shots=shots, noise_model=noise_model, seed_simulator=2455
+                ).result()
+                self.assertSuccess(result)
+                probs = {key: val / shots for key, val in result.get_counts().items()}
+                self.assertDictAlmostEqual(target, probs, delta=0.05)
+
+    def test_noise_conversion_reports_error(self):
+        """Test that an error raised in the conversion of a quantum error is reported"""
+        # The superoperator conversion does not support initialize.
+        initialize = QuantumCircuit(1)
+        initialize.append(Initialize([1, 0]), [0])
+        noise_model = NoiseModel()
+        noise_model.add_quantum_error(
+            QuantumError([(initialize, 0.5), (QuantumCircuit(1), 0.5)]), "x", [0]
+        )
+        # More than 10 quantum errors make the conversion run in parallel.
+        for qubit in range(1, 12):
+            noise_model.add_quantum_error(amplitude_damping_error(0.01 * qubit), "x", [qubit])
+        circuit = QuantumCircuit(1)
+        circuit.x(0)
+        circuit.measure_all()
+        # The statevector method converts the errors to Kraus operators and the
+        # density_matrix method converts them to superoperators.
+        for method in ("statevector", "density_matrix"):
+            for threads in (1, 2):
+                with self.subTest(method=method, max_parallel_threads=threads):
+                    backend = AerSimulator(method=method, max_parallel_threads=threads)
+                    with self.assertRaisesRegex(ValueError, "invalid instruction 'initialize'"):
+                        backend.run(circuit, noise_model=noise_model).result()
 
     def test_noise_model_basis_gates(self):
         """Test noise model basis_gates"""
