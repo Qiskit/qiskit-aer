@@ -117,6 +117,18 @@ void zheevx_(char *jobz, char *range, char *uplo, int *n,
              std::complex<double> *z, int *ldz, std::complex<double> *work,
              int *lwork, double *rwork, int *iwork, int *ifail, int *info);
 
+// Computes all eigenvalues and, optionally, eigenvectors
+// of a Single-Precison Complex Hermitian matrix A (divide and conquer)
+void cheevd_(char *jobz, char *uplo, int *n, std::complex<float> *a, int *lda,
+             float *w, std::complex<float> *work, int *lwork, float *rwork,
+             int *lrwork, int *iwork, int *liwork, int *info);
+
+// Computes all eigenvalues and, optionally, eigenvectors
+// of a Double-Precison Complex Hermitian matrix A (divide and conquer)
+void zheevd_(char *jobz, char *uplo, int *n, std::complex<double> *a, int *lda,
+             double *w, std::complex<double> *work, int *lwork, double *rwork,
+             int *lrwork, int *iwork, int *liwork, int *info);
+
 // Determines Single-Precision machine parameters.
 float slamch_(char *cmach);
 
