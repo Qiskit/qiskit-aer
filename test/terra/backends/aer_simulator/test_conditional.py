@@ -12,6 +12,7 @@
 """
 AerSimulator Integration Tests
 """
+
 from ddt import ddt
 import unittest
 from test.terra.reference import ref_conditionals

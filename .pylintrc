@@ -65,6 +65,7 @@ disable=spelling,       # way too noisy
     # disable the "too-many/few-..." refactoring hints
     too-many-lines, too-many-branches, too-many-locals, too-many-nested-blocks,
     too-many-statements, too-many-instance-attributes, too-many-arguments,
+    too-many-positional-arguments,
     too-many-public-methods, too-few-public-methods, too-many-ancestors,
     unnecessary-pass,   # allow for methods with just "pass", for clarity
     no-else-return,     # relax "elif" after a clause with a return

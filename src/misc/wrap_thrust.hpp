@@ -19,6 +19,15 @@
 #pragma GCC system_header
 #endif
 
+// Thrust depends on `_VSTD` being set, but for some reason it doesn't
+// seem to be on Apple compilers.
+//
+// TODO: This hack is almost certainly not correct; the true problem
+// is probably in our build or configuration somewhere.
+#if defined(__APPLE__) && !defined(_VSTD)
+#define _VSTD std
+#endif
+
 #include "misc/warnings.hpp"
 DISABLE_WARNING_PUSH
 #include <thrust/binary_search.h>

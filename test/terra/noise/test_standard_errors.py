@@ -35,7 +35,6 @@ from qiskit.circuit import QuantumCircuit, Reset
 from qiskit.circuit.library.generalized_gates import PauliGate
 from qiskit.circuit.library.standard_gates import IGate, XGate, YGate, ZGate
 
-
 # TODO: Test Kraus thermal relaxation error by comparing to amplitude damping channel
 
 

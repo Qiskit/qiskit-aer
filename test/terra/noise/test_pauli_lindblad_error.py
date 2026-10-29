@@ -12,6 +12,7 @@
 """
 PauliLindbladError class tests
 """
+
 from test.terra.common import QiskitAerTestCase
 
 import unittest
