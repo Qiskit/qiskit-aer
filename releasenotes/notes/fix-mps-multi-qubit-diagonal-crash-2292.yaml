@@ -1,0 +1,10 @@
+---
+fixes:
+  - |
+    Fixed a crash in ``MPS::apply_multi_qubit_gate`` when ``is_diagonal=True``
+    and the matrix argument was in 1-row vector format (as produced by
+    ``apply_diagonal_matrix``).  The previous code allocated an N×N result
+    matrix and accessed ``mat(row, col)`` on a 1×N matrix, causing an
+    out-of-bounds memory access.  The fix constructs a 1-row result matrix
+    when ``is_diagonal`` is true and reads only the diagonal elements.
+    Fixes `#2292 <https://github.com/Qiskit/qiskit-aer/issues/2292>`_.

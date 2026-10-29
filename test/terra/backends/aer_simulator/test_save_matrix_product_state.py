@@ -17,7 +17,7 @@ from ddt import ddt
 import math
 import numpy as np
 from qiskit import QuantumCircuit, transpile
-from qiskit.circuit.library import PauliEvolutionGate
+from qiskit.circuit.library import DiagonalGate, PauliEvolutionGate
 from qiskit.quantum_info import SparsePauliOp
 from qiskit.synthesis import SuzukiTrotter
 from test.terra.backends.simulator_test_case import SimulatorTestCase, supported_methods
@@ -93,3 +93,30 @@ class TestSaveMatrixProductStateTests(SimulatorTestCase):
         qc.save_matrix_product_state("mps")
         result = backend.run(qc).result().data(0)
         self.assertTrue("mps" in result)
+
+    @supported_methods(["matrix_product_state"])
+    def test_apply_multi_qubit_diagonal_gate(self, method, device):
+        """Regression test for issue #2292.
+        MPS::apply_multi_qubit_gate crashed when is_diagonal=True and the
+        matrix was a 1-row vector (diagonal representation).  The fix
+        constructs a 1-row result matrix when is_diagonal is true instead of
+        accessing mat(row, col) on a 1xN matrix as if it were NxN.
+        """
+        backend = self.backend(method=method, device=device)
+
+        # 3-qubit diagonal gate forces the apply_multi_qubit_gate code path
+        # (1-qubit and 2-qubit cases have dedicated handlers).
+        diag_3q = [1, -1, 1, -1, 1, -1, 1, -1]
+        qc = QuantumCircuit(4)
+        qc.h(0)
+        qc.h(1)
+        qc.h(2)
+        qc.append(DiagonalGate(diag_3q), [0, 1, 2])
+        qc.measure_all()
+
+        # Before the fix this would crash with a memory access violation.
+        result = backend.run(transpile(qc, backend, optimization_level=0), shots=100).result()
+        self.assertTrue(result.success)
+        counts = result.get_counts()
+        # All 8 computational basis states of qubits 0-2 should appear.
+        self.assertEqual(sum(counts.values()), 100)
