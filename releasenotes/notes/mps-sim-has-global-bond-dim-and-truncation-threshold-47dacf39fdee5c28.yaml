@@ -1,6 +1,4 @@
 ---
-prelude: >
-    MPS simulator had global bond dimension and singular values truncation threshold
 fixes:
   - |
     Each MPS simulator has now its own settings for the bond dimension and singular values
