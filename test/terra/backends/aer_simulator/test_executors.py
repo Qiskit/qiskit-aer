@@ -12,16 +12,21 @@
 """
 AerSimulator options tests
 """
+
 import json
 import concurrent.futures
+import multiprocessing
+import os
 import pickle
 import tempfile
+import unittest
 
 from ddt import ddt
 from qiskit import transpile
 from qiskit.circuit.random import random_circuit
 from qiskit.circuit.library import QuantumVolume
 from qiskit.quantum_info import Statevector
+from qiskit_aer.jobs import utils
 from qiskit_aer.noise.noise_model import AerJSONEncoder
 from test.terra.reference import ref_kraus_noise
 from qiskit_aer.backends.backend_utils import BASIS_GATES
@@ -54,6 +59,16 @@ def run_random_circuits(backend, shots=None, **run_options):
     return result, circuits, targets
 
 
+def _run_in_child(backend, circuit, parent_executor, queue):
+    """Run a circuit in a forked child and report whether the executor was reset"""
+    replaced = utils.DEFAULT_EXECUTOR is not parent_executor
+    try:
+        backend.run(circuit).result(timeout=30)
+        queue.put((replaced, True))
+    except Exception:  # pylint: disable=broad-except
+        queue.put((replaced, False))
+
+
 class TestResultSerialization(SimulatorTestCase):
     """Test seriallization of AerJob"""
 
@@ -78,6 +93,32 @@ class TestResultSerialization(SimulatorTestCase):
             result_copy = pickle.load(f)
 
         self.assertEqual(result.get_counts(), result_copy.get_counts())
+
+    @unittest.skipUnless(hasattr(os, "fork"), "requires os.fork")
+    def test_default_executor_fork_safe(self):
+        """Test that a forked child gets a working DEFAULT_EXECUTOR"""
+        circuit = QuantumVolume(4, seed=111)
+        circuit.measure_all()
+        backend = self.backend(method="statevector")
+        circuit = transpile(circuit, backend)
+        # Warm up the executor in the parent so that its worker thread exists before the fork
+        backend.run(circuit).result()
+        parent_executor = utils.DEFAULT_EXECUTOR
+
+        ctx = multiprocessing.get_context("fork")
+        queue = ctx.Queue()
+        proc = ctx.Process(target=_run_in_child, args=(backend, circuit, parent_executor, queue))
+        proc.start()
+        proc.join(timeout=60)
+        if proc.is_alive():
+            proc.terminate()
+            proc.join()
+            self.fail("Forked child did not finish; DEFAULT_EXECUTOR is not fork-safe")
+        self.assertEqual(proc.exitcode, 0)
+        child_executor_replaced, success = queue.get(timeout=5)
+        self.assertTrue(success)
+        self.assertTrue(child_executor_replaced)
+        self.assertIs(utils.DEFAULT_EXECUTOR, parent_executor)
 
 
 class CBFixture(SimulatorTestCase):

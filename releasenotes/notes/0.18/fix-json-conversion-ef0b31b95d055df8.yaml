@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Incompatibility with ``nlohmann_json``, a C++ build-time dependency of Aer,
+    has been addressed, allowing compilation with ``nlohmann_json`` version
+    3.10.3 and higher. For details, see `#2418
+    <https://github.com/Qiskit/qiskit-aer/pull/2418>`__.

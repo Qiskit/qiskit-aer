@@ -14,6 +14,7 @@ Noise model inserter module
 The goal of this module is to add QuantumError gates (Kraus gates) to a circuit
 based on a given noise model.
 """
+
 import qiskit.compiler
 
 

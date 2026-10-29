@@ -609,6 +609,7 @@ class AerSimulator(AerBackend):
                 "qerror_loc",
                 "roerror",
                 "save_statevector",
+                "save_amplitudes_sq",
                 "reset",
                 "delay",
             ]

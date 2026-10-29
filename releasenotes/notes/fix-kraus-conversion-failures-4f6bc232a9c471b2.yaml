@@ -1,0 +1,23 @@
+---
+fixes:
+  - |
+    Fixed the conversion of a quantum error to Kraus operators when the Choi
+    matrix of the error has a large cluster of equal eigenvalues. For example,
+    :func:`.depolarizing_error` on three or more qubits has such a Choi matrix.
+    The LAPACK routine ``?heevx`` did not converge for these errors on some
+    platforms, and the simulation stopped with the error
+    ``Something went wrong in heevx call within eigensystem_hermitian funcion``.
+    Aer now uses the routine ``?heevd`` when ``?heevx`` does not converge.
+    Errors that ``?heevx`` converts give the same Kraus operators as before.
+    Aer uses this conversion when the noise model has an error with Kraus
+    operators, for example :func:`.amplitude_damping_error`, and the method is
+    ``statevector`` or ``matrix_product_state``. Kraus gate fusion also uses
+    this conversion.
+    This fixes `issue #2455 <https://github.com/Qiskit/qiskit-aer/issues/2455>`__.
+  - |
+    Fixed an out-of-bounds write when Aer converts the quantum errors of a
+    noise model to Kraus operators or to superoperators. If the conversion
+    raised an error, Aer stored the error outside its error buffer. The error
+    was lost, and the simulation then failed with
+    ``QuantumError: Kraus is empty.``, or the process crashed. Aer now raises
+    the original error.
