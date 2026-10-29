@@ -46,7 +46,7 @@ class SetUnitary(Instruction):
 
 
 def set_unitary(self, state):
-    """Set the state state of the simulator.
+    """Set the state of the simulator.
 
     Args:
         state (Operator): A state matrix.

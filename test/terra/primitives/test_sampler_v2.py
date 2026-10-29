@@ -30,6 +30,7 @@ from qiskit.providers import JobStatus
 from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
 
 from qiskit_aer import AerSimulator
+from qiskit_aer.aererror import AerError
 from qiskit_aer.primitives import SamplerV2
 
 
@@ -714,6 +715,93 @@ class TestSamplerV2(QiskitAerTestCase):
         with self.subTest("set int"):
             sampler = SamplerV2(seed=self._seed)
             self.assertEqual(sampler.seed, self._seed)
+
+    def test_failed_experiment_raises_aer_error(self):
+        """Test that a failed Aer experiment raises AerError instead of a numpy ValueError"""
+        # A T gate is not supported by the stabilizer method, so Aer rejects the circuit
+        # up front. This is a cheap and deterministic way to get a real failed experiment.
+        qc = QuantumCircuit(1, 1)
+        qc.t(0)
+        qc.measure(0, 0)
+        backend_options = {"method": "stabilizer"}
+
+        # Get the failure exactly as Aer reports it (no assumption on the message text).
+        # If in the future the two following asserts fail, it means our previous
+        # circuit does not produce an error anymore and we will need to find
+        # another one that does, in order to check that SamplerV2 correctly
+        # raises it too.
+        exp = AerSimulator(**backend_options).run(qc, shots=8, memory=True).result().results[0]
+        self.assertFalse(exp.success)
+        self.assertEqual(exp.shots, 0)
+
+        sampler = SamplerV2(default_shots=8, options={"backend_options": backend_options})
+        with self.assertRaises(AerError) as ctx:
+            sampler.run([qc]).result()
+        self.assertIn(exp.status, str(ctx.exception))
+
+    def test_seed_simulator_in_run_options(self):
+        """Test that seed_simulator passed via run_options does not cause a duplicate
+        keyword argument error (regression test for issue #2453)."""
+        qc = QuantumCircuit(1)
+        qc.h(0)
+        qc.measure_all()
+        pm = generate_preset_pass_manager(optimization_level=0, backend=AerSimulator())
+        qc = pm.run(qc)
+
+        shots = 200
+
+        # Establish reference counts for seed 7 and seed 42 independently.
+        ref_seed7 = SamplerV2(seed=7).run([qc], shots=shots).result()[0].data.meas.get_counts()
+        ref_seed42 = SamplerV2(seed=42).run([qc], shots=shots).result()[0].data.meas.get_counts()
+        # Sanity: two different seeds should not produce the same counts on 200 shots.
+        self.assertNotEqual(ref_seed7, ref_seed42)
+
+        with self.subTest("seed_simulator in run_options, no constructor seed"):
+            # seed is None (default); seed_simulator from run_options must be used.
+            sampler = SamplerV2(
+                options={
+                    "backend_options": {"method": "statevector"},
+                    "run_options": {"seed_simulator": 7},
+                }
+            )
+            # Must not raise TypeError about duplicate keyword argument.
+            result = sampler.run([qc], shots=shots).result()
+            self.assertEqual(len(result), 1)
+            # Counts must match the seed-7 reference, not seed-42.
+            self.assertEqual(result[0].data.meas.get_counts(), ref_seed7)
+
+        with self.subTest("constructor seed takes precedence over run_options seed_simulator"):
+            # seed=42 wins; the seed_simulator=7 in run_options must be silently dropped.
+            sampler = SamplerV2(
+                seed=42,
+                options={
+                    "backend_options": {"method": "statevector"},
+                    "run_options": {"seed_simulator": 7},
+                },
+            )
+            # Must not raise TypeError about duplicate keyword argument.
+            result = sampler.run([qc], shots=shots).result()
+            self.assertEqual(len(result), 1)
+            # Counts must match the seed-42 reference, not seed-7.
+            self.assertEqual(result[0].data.meas.get_counts(), ref_seed42)
+
+        with self.subTest("constructor seed only, no run_options seed_simulator"):
+            # Baseline: no run_options seed at all; constructor seed must drive results.
+            # (test_sampler_run_multiple_times also uses a constructor seed but only checks
+            # approximate reproducibility; here we assert the exact counts against ref_seed42.)
+            sampler = SamplerV2(seed=42)
+            result = sampler.run([qc], shots=shots).result()
+            self.assertEqual(len(result), 1)
+            self.assertEqual(result[0].data.meas.get_counts(), ref_seed42)
+
+        with self.subTest("no seed at all"):
+            # No constructor seed and no run_options seed_simulator: seed_simulator=None
+            # is passed to backend.run(), which must not raise. We only assert that the
+            # result is structurally valid — asserting non-determinism is inherently flaky.
+            sampler = SamplerV2()
+            result = sampler.run([qc], shots=shots).result()
+            self.assertEqual(len(result), 1)
+            self.assertEqual(result[0].data.meas.num_shots, shots)
 
 
 if __name__ == "__main__":

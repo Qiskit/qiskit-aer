@@ -9,6 +9,10 @@ jobs:
   unit-tests-latest-qiskit:
     runs-on: ubuntu-latest
     timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12", "3.13", "3.14", "3.15"]
     env:
       AER_THRUST_BACKEND: OMP
       QISKIT_TEST_CAPTURE_STREAMS: 1
@@ -17,13 +21,13 @@ jobs:
       # This variable should become redundant on release of jupyter-core 6.
       JUPYTER_PLATFORM_DIRS: 1
     steps:
-      - uses: actions/checkout@v4
-      - name: Set up Python 3.11
-        uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - name: Set up ${{ matrix.python-version }}
+        uses: actions/setup-python@v7
         with:
-          python-version: 3.11
+          python-version: ${{ matrix.python-version }}
       - name: Pip cache
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-${{ matrix.python-version}}-pip-test-${{ hashFiles('setup.py','requirements-dev.txt','constraints.txt') }}
@@ -37,6 +41,17 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y libopenblas-dev
         shell: bash
+      # The Ubuntu images we use have a newer gcc than the ancient version of conan
+      # knows about, but it's similar enough that the build still works if we force it.
+      #
+      # TODO: We should fix the build to use a modern version of conan.  This hack is
+      # duplicated in the other Linux CI jobs.
+      - name: Hack ancient conan to accept a recent gcc
+        run: |
+          set -e
+          python -m pip install 'conan<2.0.0'
+          conan config init --force
+          sed -i 's/"14", "14.1"/"14", "14.1", "14.2", "14.3", "15", "15.1", "15.2", "16", "16.1"/' ~/.conan/settings.yml
       - name: Install dependencies and Aer
         run: |
           python -m pip install -U setuptools setuptools-rust wheel
@@ -52,4 +67,3 @@ jobs:
           rm -rf qiskit_aer
           stestr run --slowest
         shell: bash
-        

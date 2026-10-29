@@ -1,6 +1,6 @@
 ﻿Instruction,Automatic,Statevector,Density Matrix,MPS,Stabilizer,Ext. Stabilizer,Unitary,SuperOp
 :class:`SaveAmplitudes`,✔,✔,✘,✔,✘,✘,✘,✘
-:class:`SaveAmplitudesSquared`,✔,✔,✔,✔,✔,✘,✘,✘
+:class:`SaveAmplitudesSquared`,✔,✔,✔,✔,✔,✔,✘,✘
 :class:`SaveClifford`,✔,✘,✘,✘,✔,✘,✘,✘
 :class:`SaveDensityMatrix`,✔,✔,✔,✔,✘,✘,✘,✘
 :class:`SaveExpectationValue`,✔,✔,✔,✔,✔,✘,✘,✘
