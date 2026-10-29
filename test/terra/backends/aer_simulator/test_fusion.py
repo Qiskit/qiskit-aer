@@ -608,3 +608,36 @@ class TestGateFusion(SimulatorTestCase):
         expected = result.get_statevector(0)
 
         self.assertEqual(actual, expected)
+
+    def test_fusion_diagonal_no_crash_at_ops_boundary(self):
+        """Regression test for issue #2291.
+        DiagonalFusion::get_next_diagonal_end crashed when its `from`
+        parameter equalled ops.size() (out-of-bounds access).  This happens
+        when a circuit ends on a diagonal gate so that aggregate_operations
+        tries to start the next chunk exactly at the list end.
+        """
+        # Build a circuit whose ops list ends with a diagonal gate.
+        # Using 8 qubits with 110 phase gates ensures > 100 ops and that the
+        # last op is always diagonal, matching the conditions in the bug report.
+        num_qubits = 8
+        backend = self.backend(method="statevector")
+
+        circuit = QuantumCircuit(num_qubits)
+        for _ in range(110):
+            for i in range(num_qubits):
+                circuit.p(0.1, i)
+
+        circuit.save_statevector()
+        circuit = transpile(circuit, backend, optimization_level=0)
+
+        # Before the fix, running with diagonal fusion enabled would crash.
+        result = backend.run(
+            circuit,
+            fusion_threshold=1,
+            **{
+                "fusion_enable.diagonal": True,
+                "fusion_enable.cost_based": False,
+                "fusion_enable.n_qubits": False,
+            },
+        ).result()
+        self.assertTrue(result.success)

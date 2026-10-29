@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    Fixed a crash in ``DiagonalFusion::get_next_diagonal_end`` that occurred
+    when the ``from`` parameter equalled ``ops.size()`` (out-of-bounds access).
+    This happened when a circuit's last operation was a diagonal gate, causing
+    ``aggregate_operations`` to advance ``next_diagonal_start`` past the end of
+    the ops list.
+    Fixes `#2291 <https://github.com/Qiskit/qiskit-aer/issues/2291>`_.
