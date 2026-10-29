@@ -647,6 +647,33 @@ class TestAerState(common.QiskitAerTestCase):
         for i, amp in enumerate(actual):
             self.assertAlmostEqual(expected[i], amp)
 
+    def test_probability_stabilizer(self):
+        """Regression test for issue #2258.
+        AerState::probability must not throw when using the stabilizer method.
+        The bug was that op.qubits was left empty, causing the stabilizer
+        simulator to reject the save-amplitude-square operation with
+        'Save amplitude square must be defined on full width of qubits.'
+        """
+        num_qubits = 3
+        state = AerState(method="stabilizer")
+        state.allocate_qubits(num_qubits)
+        state.initialize()
+        # Apply X on qubit 0 so |001> has probability 1 (outcome index 1)
+        state.apply_x(0)
+
+        # Before the fix this raised:
+        # AerError: 'Save amplitude square must be defined on full width of qubits.'
+        total = 0.0
+        for outcome in range(2**num_qubits):
+            p = state.probability(outcome)
+            self.assertGreaterEqual(p, 0.0)
+            self.assertLessEqual(p, 1.0)
+            total += p
+        self.assertAlmostEqual(total, 1.0)
+        # |001> has probability 1, all others 0
+        self.assertAlmostEqual(state.probability(1), 1.0)
+        self.assertAlmostEqual(state.probability(0), 0.0)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    Fixed :class:`.AerState` ``probability()`` throwing
+    ``'Save amplitude square must be defined on full width of qubits'``
+    when used with the ``stabilizer`` (or any other) simulation method.
+    The bug was that ``op.qubits`` was left empty before dispatching the
+    save-amplitude-square operation to the simulator.
+    Fixes `#2258 <https://github.com/Qiskit/qiskit-aer/issues/2258>`_.
