@@ -12,6 +12,7 @@
 """
 Aer backend configuration
 """
+
 import copy
 
 
@@ -325,6 +326,7 @@ class AerBackendConfiguration:
             "max_shots": self.max_shots,
             "coupling_map": self.coupling_map,
             "dynamic_reprate_enabled": self.dynamic_reprate_enabled,
+            "open_pulse": self.open_pulse,
         }
 
         if hasattr(self, "supported_instructions"):

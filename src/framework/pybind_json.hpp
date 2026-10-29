@@ -213,7 +213,9 @@ json_t JSON::numpy_to_json(py::array_t<T, py::array::c_style> arr) {
 json_t JSON::iterable_to_json_list(const py::handle &obj) {
   json_t js = nl::json::array();
   for (py::handle value : obj) {
-    js.push_back(value);
+    json_t elem;
+    std::to_json(elem, value);
+    js.push_back(std::move(elem));
   }
   return js;
 }
@@ -235,8 +237,14 @@ void std::to_json(json_t &js, const py::handle &obj) {
   } else if (py::isinstance<py::tuple>(obj) || py::isinstance<py::list>(obj)) {
     js = JSON::iterable_to_json_list(obj);
   } else if (py::isinstance<py::dict>(obj)) {
+    js = nl::json::object();
     for (auto item : py::cast<py::dict>(obj)) {
-      js[item.first.cast<nl::json::string_t>()] = item.second;
+      auto key = item.first.cast<nl::json::string_t>();
+
+      json_t val;
+      std::to_json(val, item.second);
+
+      js[key] = std::move(val);
     }
   } else if (py::isinstance<py::array_t<double>>(obj)) {
     js = JSON::numpy_to_json(

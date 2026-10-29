@@ -8,31 +8,59 @@ concurrency:
   group: ${{ github.repository }}-${{ github.ref }}-${{ github.head_ref }}-${{ github.workflow }}
   cancel-in-progress: true
 jobs:
+
+  # This 'finalize' job is a no-op; its sole purpose is to depend on all the other jobs and provide
+  # a single in-code determination of whether the branch-protection rules have been passed.  The
+  # branch-protection rules in the GitHub web interface can then depend only on this job.
+  finalize:
+    name: Finalize tests
+    runs-on: 'ubuntu-latest'
+    # This list should contain every other job in this file.
+    needs:
+      - lint
+      - sdist
+      - tests_linux
+      - tests_macos
+      - tests_windows
+    # This job needs to trigger even if its predecessors failed and return the same status.  By
+    # default, GitHub Actions will "skip" the job if a requirement failed, but that counts as a
+    # "success" state, which is not acceptable for a branch-protection rule.  We don't use `always`
+    # because we don't want `cancelled` to trigger this.
+    if: success() || failure()
+    steps:
+      - run: |
+          echo "Successful run."
+        if: ${{ !contains(needs.*.result, 'failure') }}
+      - run: |
+          echo "Predecessor jobs failed.  See GitHub Actions logs." >&2
+          exit 1
+        if: ${{ contains(needs.*.result, 'failure') }}
+
   lint:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ['3.10']
+        python-version: ['3.11', '3.15']
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.python-version }}
       - name: Pip cache
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.cache/pip
-          key: ${{ runner.os }}-${{ matrix.python-version}}-pip-lint-${{ hashFiles('setup.py','requirements-dev.txt','constraints.txt') }}
+          key: ${{ runner.os }}-${{ matrix.python-version}}-pip-test-${{ hashFiles('setup.py','requirements-dev.txt','constraints.txt') }}
           restore-keys: |
-            ${{ runner.os }}-${{ matrix.python-version}}-pip-lint-
+            ${{ runner.os }}-${{ matrix.python-version}}-pip-test-
             ${{ runner.os }}-${{ matrix.python-version}}-pip-
             ${{ runner.os }}-${{ matrix.python-version}}-
       - name: Install deps
         run: |
           set -e
           pip install -U pip wheel
-          pip install -U -c constraints.txt -r requirements-dev.txt qiskit numpy scipy
+          pip install -U -c constraints.txt -r requirements-dev.txt
         shell: bash
       - name: Run clang-format
         run: |
@@ -49,18 +77,18 @@ jobs:
     needs: ["lint"]
     strategy:
       matrix:
-        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
+        python-version: ["3.11", "3.15"]
         platform: [
           { os: "ubuntu-latest", python-architecture: "x64" },
         ]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.python-version }}
       - name: Pip cache
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-${{ matrix.python-version}}-pip-sdist-${{ hashFiles('setup.py','requirements-dev.txt','constraints.txt') }}
@@ -76,28 +104,38 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y libopenblas-dev
         shell: bash
+      # The Ubuntu images we use have a newer gcc than the ancient version of conan
+      # knows about, but it's similar enough that the build still works if we force it.
+      #
+      # TODO: We should fix the build to use a modern version of conan.  This hack is
+      # duplicated in the other Linux CI jobs.
+      - name: Hack ancient conan to accept a recent gcc
+        run: |
+          set -e
+          python -m pip install 'conan<2.0.0'
+          conan config init --force
+          sed -i 's/"14", "14.1"/"14", "14.1", "14.2", "14.3", "15", "15.1", "15.2", "16", "16.1"/' ~/.conan/settings.yml
       - name: Build Sdist
         run: python -I -m build --sdist
       - name: Install from sdist and test
         run: |
           set -e
           mkdir out; cd out; virtualenv aer-test
-          aer-test/bin/pip install ../dist/*tar.gz
+          # The dill requirement is only needed on Python 3.15; see the comment
+          # in constraints.txt for when it can be dropped.
+          aer-test/bin/pip install ../dist/*tar.gz 'dill @ git+https://github.com/uqfoundation/dill@e862cad2041c05f812791bb4998aa4ae5ba74fb3 ; python_version >= "3.15"'
           aer-test/bin/python ../tools/verify_wheels.py
           aer-test/bin/pip check
         shell: bash
   tests_linux:
     runs-on: ubuntu-latest
     name: Linux Python ${{ matrix.python-version }}${{ matrix.qiskit-extra && format(' ({0})', matrix.qiskit-extra) }}
-    needs: [sdist, lint]
+    needs: [lint]
     timeout-minutes: 60
     strategy:
       matrix:
-        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
+        python-version: ["3.11", "3.15"]
         qiskit-extra: [""]
-        include:
-          - python-version: "3.10"
-            qiskit-extra: "'qiskit>=1.3.0b1'"
 
     env:
       AER_THRUST_BACKEND: OMP
@@ -107,13 +145,13 @@ jobs:
       # This variable should become redundant on release of jupyter-core 6.
       JUPYTER_PLATFORM_DIRS: 1
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.python-version }}
       - name: Pip cache
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-${{ matrix.python-version}}-pip-test-${{ hashFiles('setup.py','requirements-dev.txt','constraints.txt') }}
@@ -127,6 +165,17 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y libopenblas-dev
         shell: bash
+      # The Ubuntu images we use have a newer gcc than the ancient version of conan
+      # knows about, but it's similar enough that the build still works if we force it.
+      #
+      # TODO: We should fix the build to use a modern version of conan.  This hack is
+      # duplicated in the other Linux CI jobs.
+      - name: Hack ancient conan to accept a recent gcc
+        run: |
+          set -e
+          python -m pip install 'conan<2.0.0'
+          conan config init --force
+          sed -i 's/"14", "14.1"/"14", "14.1", "14.2", "14.3", "15", "15.1", "15.2", "16", "16.1"/' ~/.conan/settings.yml
       - name: Install Aer and dependencies
         run: |
           python -m pip install -U \
@@ -141,64 +190,14 @@ jobs:
           rm -rf qiskit_aer
           stestr run --slowest
         shell: bash
-  tests-json-input:
-    runs-on: ${{ matrix.os }}
-    needs: [sdist, lint]
-    timeout-minutes: 60
-    strategy:
-      matrix:
-        python-version: ['3.10']
-        os: ["ubuntu-latest"]
-    env:
-      AER_THRUST_BACKEND: OMP
-      QISKIT_TEST_CAPTURE_STREAMS: 1
-      # Needed to suppress a warning in jupyter-core 5.x by eagerly migrating to
-      # a new internal interface that will be the default in jupyter-core 6.x.
-      # This variable should become redundant on release of jupyter-core 6.
-      JUPYTER_PLATFORM_DIRS: 1
-    steps:
-      - uses: actions/checkout@v4
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.python-version }}
-      - name: Pip cache
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-${{ matrix.python-version}}-pip-test-${{ hashFiles('setup.py','requirements-dev.txt','constraints.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-${{ matrix.python-version}}-pip-test-
-            ${{ runner.os }}-${{ matrix.python-version}}-pip-
-            ${{ runner.os }}-${{ matrix.python-version}}-
-      - name: Install Deps
-        run: python -m pip install -U -c constraints.txt -r requirements-dev.txt wheel build
-      - name: Install openblas
-        run: |
-          set -e
-          sudo apt-get update
-          sudo apt-get install -y libopenblas-dev
-        shell: bash
-      - name: Install Aer
-        run: |
-          set -e
-          python -I -m build --wheel --config-setting=--build-option=-DTEST_JSON=1
-          pip install -U dist/*.whl
-      - name: Run Tests
-        run: |
-          set -e
-          pip check
-          rm -rf qiskit_aer
-          stestr run --slowest
-        shell: bash
   tests_macos:
-    runs-on: macos-13
+    runs-on: macos-latest
     name: macOS Python ${{ matrix.python-version }}
-    needs: [sdist, lint]
+    needs: [lint]
     timeout-minutes: 60
     strategy:
       matrix:
-        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
+        python-version: ["3.11", "3.15"]
     env:
       AER_THRUST_BACKEND: OMP
       QISKIT_TEST_CAPTURE_STREAMS: 1
@@ -207,13 +206,13 @@ jobs:
       # This variable should become redundant on release of jupyter-core 6.
       JUPYTER_PLATFORM_DIRS: 1
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.python-version }}
       - name: Pip cache
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-${{ matrix.python-version}}-pip-test-${{ hashFiles('setup.py','requirements-dev.txt','constraints.txt') }}
@@ -221,6 +220,19 @@ jobs:
             ${{ runner.os }}-${{ matrix.python-version}}-pip-test-
             ${{ runner.os }}-${{ matrix.python-version}}-pip-
             ${{ runner.os }}-${{ matrix.python-version}}-
+
+      # The macOS images we use have a newer clang than the ancient version of conan
+      # knows about, but it's similar enough that the build still works if we force it.
+      #
+      # TODO: We should fix the build to use a modern version of conan.  This hack is
+      # duplicated in `pyproject.toml` for cibuildwheel.
+      - name: Hack ancient conan to accept a recent apple-clang
+        run: |
+          set -e
+          python -m pip install 'conan<2.0.0'
+          conan config init --force
+          sed -i '' 's/"16.0"/"16.0", "17.0", "18.0", "19.0", "20.0", "21.0"/' ~/.conan/settings.yml
+
       - name: Install Aer and dependencies
         run: |
           set -e
@@ -237,13 +249,13 @@ jobs:
           stestr run --slowest
         shell: bash
   tests_windows:
-    runs-on: windows-2019
+    runs-on: windows-2022
     name: Windows Python ${{ matrix.python-version }}
-    needs: ["lint", "sdist"]
+    needs: ["lint"]
     timeout-minutes: 60
     strategy:
       matrix:
-        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
+        python-version: ["3.11", "3.15"]
     env:
       AER_THRUST_BACKEND: OMP
       QISKIT_TEST_CAPTURE_STREAMS: 1
@@ -252,13 +264,13 @@ jobs:
       # This variable should become redundant on release of jupyter-core 6.
       JUPYTER_PLATFORM_DIRS: 1
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.python-version }}
       - name: Pip cache
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~\AppData\Local\pip\Cache
           key: ${{ runner.os }}-${{ matrix.python-version}}-pip-test-${{ hashFiles('setup.py','requirements-dev.txt','constraints.txt') }}
@@ -267,10 +279,10 @@ jobs:
             ${{ runner.os }}-${{ matrix.python-version}}-pip-
             ${{ runner.os }}-${{ matrix.python-version}}-
       - name: Add msbuild to PATH
-        uses: microsoft/setup-msbuild@v2
+        uses: microsoft/setup-msbuild@v3
       - name: Build Aer Windows
         env:
-          CMAKE_GENERATOR: "Visual Studio 16 2019"
+          CMAKE_GENERATOR: "Visual Studio 17 2022"
         run: |
           set -e
           pip install build

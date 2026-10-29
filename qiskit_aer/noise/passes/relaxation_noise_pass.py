@@ -12,6 +12,7 @@
 """
 Thermal relaxation noise pass.
 """
+
 import warnings
 from typing import Optional, Union, Sequence, List
 
@@ -107,7 +108,7 @@ class RelaxationNoisePass(LocalNoisePass):
 
         if duration is None:
             warnings.warn(
-                r"Instruction duration not found for {op.name}. RelaxationNoisePass ignores "
+                f"Instruction duration not found for {op.name}. RelaxationNoisePass ignores "
                 "instructions without duration. "
                 "To avoid this warning, provide the corresponding duration information via `target`.",
                 UserWarning,

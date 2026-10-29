@@ -12,6 +12,7 @@
 """
 State class that handles internal C++ state safely
 """
+
 from enum import Enum
 import numpy as np
 

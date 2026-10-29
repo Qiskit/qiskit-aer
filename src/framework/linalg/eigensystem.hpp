@@ -17,12 +17,14 @@
 
 #include "framework/blas_protos.hpp"
 #include "framework/matrix.hpp"
+#include <cstdint>
+#include <limits>
 #include <type_traits>
 
 /**
  * Returns the eigenvalues and eigenvectors
  * of a Hermitian matrix.
- * Uses the blas function ?heevx
+ * Uses the lapack function ?heevx, and ?heevd if ?heevx does not converge.
  * @param hermitian_matrix: The Hermitian matrix.
  * @param eigenvalues: On output: vector with the eignevalues of the matrix
  * (input is overwritten)
@@ -43,20 +45,24 @@ template <>
 struct HeevxFuncs<double> {
   HeevxFuncs() = delete;
   static decltype(zheevx_) &heevx;
+  static decltype(zheevd_) &heevd;
   static decltype(dlamch_) &lamch;
 };
 
 decltype(zheevx_) &HeevxFuncs<double>::heevx = zheevx_;
+decltype(zheevd_) &HeevxFuncs<double>::heevd = zheevd_;
 decltype(dlamch_) &HeevxFuncs<double>::lamch = dlamch_;
 
 template <>
 struct HeevxFuncs<float> {
   HeevxFuncs() = delete;
   static decltype(cheevx_) &heevx;
+  static decltype(cheevd_) &heevd;
   static decltype(slamch_) &lamch;
 };
 
 decltype(cheevx_) &HeevxFuncs<float>::heevx = cheevx_;
+decltype(cheevd_) &HeevxFuncs<float>::heevd = cheevd_;
 decltype(slamch_) &HeevxFuncs<float>::lamch = slamch_;
 
 template <typename T>
@@ -92,9 +98,28 @@ void eigensystem_hermitian(const matrix<std::complex<T>> &hermitian_matrix,
                        work.data(), &lwork, rwork.data(), iwork.data(),
                        ifail.data(), &info);
 
+  // ?heevx computes the eigenvectors by inverse iteration, which can fail to
+  // converge for large clusters of equal eigenvalues. The Choi matrix of a
+  // depolarizing channel has one. ?heevd does not use inverse iteration.
+  // Its workspace sizes must fit in an int.
+  const int64_t n64 = n;
+  if (info > 0 &&
+      2 * n64 * n64 + 5 * n64 + 1 <= std::numeric_limits<int>::max()) {
+    eigenvectors = hermitian_matrix;
+    lwork = 2 * n + n * n;
+    int lrwork{1 + 5 * n + 2 * n * n}, liwork{3 + 5 * n};
+    work.assign(lwork, {0.0, 0.0});
+    rwork.assign(lrwork, 0.0);
+    iwork.assign(liwork, 0);
+    HeevxFuncs<T>::heevd(&AerBlas::Jobz[0], &AerBlas::UpLo[0], &n,
+                         eigenvectors.data(), &lda, eigenvalues.data(),
+                         work.data(), &lwork, rwork.data(), &lrwork,
+                         iwork.data(), &liwork, &info);
+  }
+
   if (info) {
-    throw std::runtime_error("Something went wrong in heevx call within "
-                             "eigensystem_hermitian funcion. "
+    throw std::runtime_error("Something went wrong in heevx or heevd call "
+                             "within eigensystem_hermitian function. "
                              "Check that input matrix is really hermitian");
   }
 }

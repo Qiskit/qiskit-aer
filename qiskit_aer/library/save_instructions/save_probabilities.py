@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 """
-Simulator instruction to save measurement outcome probabilites.
+Simulator instruction to save measurement outcome probabilities.
 """
 
 from qiskit.circuit import QuantumCircuit
