@@ -1,0 +1,12 @@
+---
+fixes:
+  - |
+    Fixed MPS simulator settings ``matrix_product_state_max_bond_dimension``
+    and ``matrix_product_state_truncation_threshold`` being process-global
+    (stored as ``static`` members of ``MPS_Tensor``) instead of per-instance.
+    This caused simulations run in parallel or sequentially in the same process
+    to interfere with each other's truncation settings.
+    Both settings are now instance members of ``MPS``, initialised to their
+    defaults (``UINT64_MAX`` and ``1e-16`` respectively) and set via
+    ``State::set_config`` on each individual simulator instance.
+    Fixes `#2286 <https://github.com/Qiskit/qiskit-aer/issues/2286>`_.

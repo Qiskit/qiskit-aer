@@ -292,6 +292,13 @@ public:
                                             reg_t &index_vec,
                                             const reg_t &qubits) const;
 
+  void set_max_bond_dimension(uint_t max_bond_dimension) {
+    max_bond_dimension_ = max_bond_dimension;
+  }
+  void set_truncation_threshold(double truncation_threshold) {
+    truncation_threshold_ = truncation_threshold;
+  }
+
   static void set_omp_threads(uint_t threads) {
     if (threads > 0)
       omp_threads_ = threads;
@@ -323,6 +330,9 @@ public:
   static void set_mps_lapack_svd(bool mps_lapack) { mps_lapack_ = mps_lapack; }
 
   static uint_t get_omp_threads() { return omp_threads_; }
+  uint_t get_max_bond_dimension() const { return max_bond_dimension_; }
+  double get_truncation_threshold() const { return truncation_threshold_; }
+
   static uint_t get_omp_threshold() { return omp_threshold_; }
   static double get_json_chop_threshold() { return json_chop_threshold_; }
   static Sample_measure_alg get_sample_measure_alg() {
@@ -570,6 +580,12 @@ private:
   static bool mps_log_data_;
   static MPS_swap_direction mps_swap_direction_;
   static bool mps_lapack_;
+
+  //-----------------------------------------------------------------------
+  // Config settings
+  //-----------------------------------------------------------------------
+  uint_t max_bond_dimension_ = UINT64_MAX;
+  double truncation_threshold_ = 1e-16;
 };
 
 inline std::ostream &operator<<(std::ostream &out, const rvector_t &vec) {
