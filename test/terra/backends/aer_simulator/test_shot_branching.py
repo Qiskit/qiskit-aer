@@ -12,6 +12,7 @@
 """
 AerSimulator Integration Tests
 """
+
 import unittest
 import platform
 

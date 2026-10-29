@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Binding of circuit parameters (e.g. when using
+    :class:`~qiskit_aer.primitives.SamplerV2`) was updated to avoid a crash.
+    This fixes `issue #2367
+    <https://github.com/Qiskit/qiskit-aer/issues/2367>`__.

@@ -18,7 +18,6 @@ from numpy import array
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.circuit import Instruction
 
-
 # ==========================================================================
 # Single-qubit measurements with deterministic output
 # ==========================================================================

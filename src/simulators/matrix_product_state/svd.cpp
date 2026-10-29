@@ -103,21 +103,13 @@ double reduce_zeros(cmatrix_t &U, rvector_t &S, cmatrix_t &V,
   // Remove the lowest Schmidt coefficients such that the sum of
   // their squares is less than trunction_threshold
   double sum_squares = 0;
-  for (int_t i = new_SV_num - 1; i > 0; i--) {
-    if (sum_squares + std::norm(S[i]) < truncation_threshold) {
+  for (int_t i = new_SV_num - 1; i >= 0; i--) {
+    if (sum_squares + std::norm(S[i]) < truncation_threshold && i > 0) {
       sum_squares += std::norm(S[i]);
     } else {
       new_SV_num = i + 1;
       break;
     }
-  }
-  U.resize(U.GetRows(), new_SV_num);
-  S.resize(new_SV_num);
-  // When using LAPACK function, V is V dagger
-  if (mps_lapack) {
-    V.resize(new_SV_num, V.GetColumns());
-  } else {
-    V.resize(V.GetRows(), new_SV_num);
   }
 
   // discarded_value is the sum of the squares of the Schmidt coeffients
@@ -129,6 +121,16 @@ double reduce_zeros(cmatrix_t &U, rvector_t &S, cmatrix_t &V,
       discarded_value += std::norm(S[i]);
     }
   }
+
+  U.resize(U.GetRows(), new_SV_num);
+  S.resize(new_SV_num);
+  // When using LAPACK function, V is V dagger
+  if (mps_lapack) {
+    V.resize(new_SV_num, V.GetColumns());
+  } else {
+    V.resize(V.GetRows(), new_SV_num);
+  }
+
   // Check if we need to re-normalize the values of S
   double new_sum_squares = 0;
   for (uint_t i = 0; i < S.size(); i++)

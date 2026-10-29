@@ -5,32 +5,56 @@ requires = [
   "scikit-build>=0.11.0",
   "cmake!=3.17.1,!=3.17.0",
   "ninja",
-  "pybind11>2.6",
+  "pybind11>=3.0",
 ]
 build-backend = "setuptools.build_meta"
 
+[dependency-groups]
+wheel = ["cibuildwheel~=4.3.0"]
+
 [tool.cibuildwheel]
-manylinux-x86_64-image = "manylinux2014"
-manylinux-i686-image = "manylinux2014"
-skip = "pp* cp36* cp37* cp38* *musllinux*"
-test-skip = "cp3*-win32 cp3*-manylinux_i686"
+manylinux-x86_64-image = "manylinux_2_28"
+manylinux-aarch64-image = "manylinux_2_28"
+manylinux-s390x-image = "manylinux_2_28"
+manylinux-ppc64le-image = "manylinux_2_28"
+skip = "*musllinux* *i686* *win32* cp3??t-*"
 test-command = "python {project}/tools/verify_wheels.py"
 # We need to use pre-built versions of Numpy and Scipy in the tests; they have a
-# tendency to crash if they're installed from source by `pip install`, and since
-# Numpy 1.22 there are no i686 wheels, so we force pip to use older ones without
-# restricting any dependencies that Numpy and Scipy might have.
+# tendency to crash if they're installed from source by `pip install`.
 before-test = "pip install --only-binary=numpy,scipy numpy scipy"
 
+# Only Python 3.15 needs the unreleased dill fix.  This override
+# is the cibuildwheel equivalent of the `python_version >= "3.15"` marker in
+# constraints.txt; see the comment there for when it can be dropped.
+[[tool.cibuildwheel.overrides]]
+select = "cp315-*"
+inherit.before-test = "append"
+before-test = "pip install git+https://github.com/uqfoundation/dill@e862cad2041c05f812791bb4998aa4ae5ba74fb3"
+
 [tool.cibuildwheel.linux]
-before-all = "sed -i -e 's/^mirrorlist/#mirrorlist/' -e 's/^#baseurl/baseurl/' -e 's/mirror.centos.org/vault.centos.org/' /etc/yum.repos.d/*.repo && yum install -y openblas-devel"
+before-all = "dnf install -y openblas-devel"
+before-build = "bash {project}/tools/wheels/append_bundled_licenses.sh {project}"
+
+[tool.cibuildwheel.macos]
+# The macOS images we use have a newer clang than the ancient version of conan
+# knows about, but it's similar enough that the build still works if we force it.
+#
+# TODO: We should fix the build to use a modern version of conan.  This hack is
+# duplicated in the macOS CI test runner.
+before-build = [
+    "python -m pip install 'conan<2.0.0'",
+    "conan config init --force",
+    "sed -i '' 's/\"16.0\"/\"16.0\", \"17.0\", \"18.0\", \"19.0\", \"20.0\", \"21.0\"/' ~/.conan/settings.yml",
+    "bash {project}/tools/wheels/append_bundled_licenses.sh {project}",
+]
 
 [tool.cibuildwheel.windows]
-environment = { CMAKE_GENERATOR = "Visual Studio 16 2019"}
-
-[[tool.cibuildwheel.overrides]]
-select = "cp3{9,10,11,12,13}-manylinux_i686"
-before-all = "sed -i -e 's/^mirrorlist/#mirrorlist/' -e 's/^#baseurl/baseurl/' -e 's/mirror.centos.org/vault.centos.org/' /etc/yum.repos.d/*.repo && yum install -y libatomic && yum install -y wget && bash {project}/tools/install_openblas_i686.sh && bash {project}/tools/install_rust.sh"
+environment = { CMAKE_GENERATOR = "Visual Studio 17 2022"}
+before-build = "bash {project}/tools/wheels/append_bundled_licenses.sh {project}"
+# The build already installs the bundled libopenblas.dll next to the extension
+# module, so tell delvewheel to leave DLLs that are already in the wheel alone.
+repair-wheel-command = "delvewheel repair --ignore-existing -w {dest_dir} {wheel}"
 
 [tool.black]
 line-length = 100
-target-version = ['py39', 'py310', 'py311', 'py312', 'py313']
+target-version = ['py311', 'py312', 'py313', 'py314', 'py315']

@@ -12,6 +12,7 @@
 """
 AerSimulator Integration Tests
 """
+
 from ddt import ddt
 from test.terra.reference import ref_non_clifford
 from qiskit import transpile

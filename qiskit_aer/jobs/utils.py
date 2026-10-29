@@ -11,12 +11,25 @@
 # that they have been altered from the originals.
 
 """Utility functions for Aer job management."""
+
+import os
 from functools import singledispatch, update_wrapper, wraps
 from concurrent.futures import ThreadPoolExecutor
 
 from qiskit.providers import JobError
 
 DEFAULT_EXECUTOR = ThreadPoolExecutor(max_workers=1)
+
+
+def _reset_executor_in_child():
+    """Worker threads do not survive ``os.fork()``, so create a fresh executor
+    in the child."""
+    global DEFAULT_EXECUTOR  # pylint: disable=global-statement
+    DEFAULT_EXECUTOR = ThreadPoolExecutor(max_workers=1)
+
+
+if hasattr(os, "register_at_fork"):
+    os.register_at_fork(after_in_child=_reset_executor_in_child)
 
 
 def requires_submit(func):
