@@ -183,6 +183,18 @@ jobs:
             -r requirements-dev.txt \
             ${{ matrix.qiskit-extra }} \
             .
+      - name: Run native LAPACK SVD regression tests
+        env:
+          ASAN_OPTIONS: detect_leaks=1:halt_on_error=1
+          UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
+        run: |
+          set -e
+          cmake -S test/unit -B "$RUNNER_TEMP/aer-native-svd-tests" \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DCMAKE_CXX_FLAGS="-fsanitize=address,undefined -fno-omit-frame-pointer"
+          cmake --build "$RUNNER_TEMP/aer-native-svd-tests" --parallel 2
+          ctest --test-dir "$RUNNER_TEMP/aer-native-svd-tests" --output-on-failure --timeout 90
+        shell: bash
       - name: Run Tests
         run: |
           set -e
