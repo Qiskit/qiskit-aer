@@ -12,12 +12,10 @@ set(AER_LIBRARIES
 	${THRUST_DEPENDANT_LIBS}
 	${MPI_DEPENDANT_LIBS})
 
-if(CMAKE_HOST_SYSTEM_PROCESSOR STREQUAL "x86_64" OR CMAKE_HOST_SYSTEM_PROCESSOR STREQUAL "AMD64" OR CMAKE_HOST_SYSTEM_PROCESSOR STREQUAL "amd64")
-    if (NOT CMAKE_OSX_ARCHITECTURES STREQUAL "arm64")
-      # We build SIMD filed separately, because they will be reached only if the
-      # machine running the code has SIMD support
-      set(SIMD_SOURCE_FILE "${PROJECT_SOURCE_DIR}/src/simulators/statevector/qv_avx2.cpp")
-    endif()
+if(CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64" OR CMAKE_SYSTEM_PROCESSOR STREQUAL "AMD64" OR CMAKE_SYSTEM_PROCESSOR STREQUAL "amd64")
+    # We build SIMD filed separately, because they will be reached only if the
+    # machine running the code has SIMD support
+    set(SIMD_SOURCE_FILE "${PROJECT_SOURCE_DIR}/src/simulators/statevector/qv_avx2.cpp")
 endif()
 
 set(AER_SIMULATOR_SOURCES "bindings.cc" "${SIMD_SOURCE_FILE}")

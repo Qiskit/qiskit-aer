@@ -3,6 +3,7 @@
 """
 Main setup file for qiskit-aer
 """
+
 import os
 import platform
 
@@ -20,7 +21,7 @@ ADD_CUDA_REQUIREMENTS = (
 )
 
 requirements = [
-    "qiskit>=1.1.0",
+    "qiskit>=1.1.0,<3",
     "numpy>=1.16.3",
     "scipy>=1.0",
     "psutil>=5",
@@ -37,12 +38,11 @@ classifiers = [
     "Operating System :: POSIX :: Linux",
     "Programming Language :: C++",
     "Programming Language :: Python :: 3 :: Only",
-    "Programming Language :: Python :: 3.7",
-    "Programming Language :: Python :: 3.8",
-    "Programming Language :: Python :: 3.9",
-    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Programming Language :: Python :: 3.15",
     "Topic :: Scientific/Engineering",
 ]
 
@@ -86,12 +86,6 @@ with open(README_PATH) as readme_file:
     README = readme_file.read()
 
 
-cmake_args = []
-is_win_32_bit = platform.system() == "Windows" and platform.architecture()[0] == "32bit"
-if is_win_32_bit:
-    cmake_args.append("-DCMAKE_GENERATOR_PLATFORM=Win32")
-
-
 setup(
     name=PACKAGE_NAME,
     version=VERSION,
@@ -105,11 +99,10 @@ setup(
     author_email="qiskit@us.ibm.com",
     license="Apache 2.0",
     classifiers=classifiers,
-    python_requires=">=3.7",
+    python_requires=">=3.11",
     install_requires=requirements,
     include_package_data=False,
     package_data={"qiskit_aer": ["VERSION.txt"], "qiskit_aer.library": ["*.csv"]},
-    cmake_args=cmake_args,
     keywords="qiskit, simulator, quantum computing, backend",
     zip_safe=False,
 )

@@ -12,6 +12,7 @@
 """
 AerSimulator Integration Tests
 """
+
 # pylint: disable=no-member
 import copy
 import numpy as np
@@ -20,6 +21,7 @@ from ddt import ddt
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.circuit.library import QuantumVolume, QFT, RealAmplitudes
 from qiskit.compiler import transpile
+from qiskit.quantum_info import DensityMatrix, Kraus
 from qiskit_aer.noise import NoiseModel
 from qiskit_aer.noise.errors import ReadoutError, depolarizing_error, amplitude_damping_error
 from test.terra.backends.simulator_test_case import SimulatorTestCase, supported_methods
@@ -244,6 +246,23 @@ class TestGateFusion(SimulatorTestCase):
         self.assertSuccess(result)
         self.assertTrue(meta.get("applied", False), msg="fusion should have been applied.")
         self.assertEqual(meta.get("method", None), target_method)
+
+    def test_kraus_fusion_with_degenerate_choi_matrix(self):
+        """Test Kraus fusion of a channel whose Choi matrix has degenerate eigenvalues"""
+        circuit = QuantumCircuit(3)
+        circuit.x(0)
+        circuit.append(Kraus(depolarizing_error(0.1, 3)), [0, 1, 2])
+        target = DensityMatrix(circuit).probabilities_dict()
+        circuit.measure_all()
+        shots = 2000
+        fusion_options = self.fusion_options(enabled=True, threshold=1)
+        backend = self.backend(method="statevector", fusion_max_qubit=3, **fusion_options)
+        result = backend.run(circuit, shots=shots).result()
+        self.assertSuccess(result)
+        meta = self.fusion_metadata(result)
+        self.assertTrue(meta.get("applied", False), msg="fusion should have been applied.")
+        probs = {key: val / shots for key, val in result.get_counts(0).items()}
+        self.assertDictAlmostEqual(target, probs, delta=0.05)
 
     @supported_methods(["statevector", "density_matrix"])
     def test_non_kraus_noise_fusion(self, method, device):

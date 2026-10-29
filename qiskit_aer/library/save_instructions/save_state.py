@@ -25,7 +25,7 @@ class SaveState(SaveSingleData):
     """
 
     def __init__(self, num_qubits, label=None, pershot=False, conditional=False):
-        """Create new instruction to save the simualtor state.
+        """Create new instruction to save the simulator state.
 
         The format of the saved state depends on the simulation method used.
 

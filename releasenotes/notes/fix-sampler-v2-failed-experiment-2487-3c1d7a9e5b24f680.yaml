@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    :class:`~qiskit_aer.primitives.SamplerV2` now raises an
+    :class:`~qiskit_aer.AerError` containing the backend failure status when
+    an experiment fails, instead of an opaque numpy ``ValueError`` about
+    broadcasting array shapes.
+    This fixes `issue #2487
+    <https://github.com/Qiskit/qiskit-aer/issues/2487>`__.
