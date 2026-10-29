@@ -13,14 +13,15 @@
 """
 Statevector quantum state class.
 """
+
 import copy
 import numpy as np
 
 from qiskit.circuit import QuantumCircuit, Instruction
 from qiskit.quantum_info.states import Statevector
 
-from qiskit_aer import AerSimulator
 from .aer_state import AerState
+from ...backends.aer_simulator import AerSimulator
 from ...backends.aerbackend import AerError
 from ...backends.backend_utils import BASIS_GATES
 
@@ -105,7 +106,7 @@ class AerStatevector(Statevector):
     def metadata(self):
         """Return result metadata of an operation that executed lastly."""
         if self._last_result() is None:
-            raise AerError("AerState was not used and metdata does not exist.")
+            raise AerError("AerState was not used and metadata does not exist.")
         return self._last_result()["metadata"]
 
     def __copy__(self):
