@@ -445,6 +445,50 @@ class TestEstimatorV2(QiskitAerTestCase):
             result_5[0].data["evs"][0], result_2[0].data["evs"][0], delta=self._rtol
         )
 
+    def test_truncate_large_backends(self):
+        """Test truncation allows us to run few-qubit circuits on many-qubit backends"""
+        N = 12
+        qc = QuantumCircuit(N)
+
+        qc.x(range(N))
+        qc.h(range(N))
+
+        for kk in range(N // 2, 0, -1):
+            qc.ch(kk, kk - 1)
+        for kk in range(N // 2, N - 1):
+            qc.ch(kk, kk + 1)
+
+        op = SparsePauliOp("Z" * N)
+        backend_127 = GenericBackendV2(num_qubits=127)
+        pm = generate_preset_pass_manager(backend=backend_127, optimization_level=1)
+        isa_circuit = pm.run(qc)
+        mapped_observable = op.apply_layout(isa_circuit.layout)
+
+        ref_est = StatevectorEstimator()
+        ref_result = ref_est.run(pubs=[(qc, op)]).result()
+
+        est = EstimatorV2()
+        res = est.run(pubs=[(isa_circuit, mapped_observable)]).result()
+
+        self.assertAlmostEqual(ref_result[0].data.evs, res[0].data.evs)
+
+    def test_broadcast_params_and_observables(self):
+        """Test results match the reference when parameters and observables are broadcast"""
+        theta = Parameter("theta")
+        qc = QuantumCircuit(2)
+        qc.ry(theta, 0)
+        qc.cx(0, 1)
+        # The last axis of the parameter values indexes the circuit parameters
+        for param_shape in ((4,), (4, 2)):
+            with self.subTest(param_shape=param_shape):
+                params = np.linspace(0, 1, int(np.prod(param_shape))).reshape(*param_shape, 1)
+                obs = np.array(["ZZ", "XX", "ZI"]).reshape(3, *([1] * len(param_shape))).tolist()
+                pub = (qc, obs, params)
+                ref = StatevectorEstimator().run([pub]).result()[0].data.evs
+                res = EstimatorV2().run([pub]).result()[0].data.evs
+                self.assertEqual(res.shape, (3, *param_shape))
+                np.testing.assert_allclose(res, ref, atol=1e-8)
+
 
 if __name__ == "__main__":
     unittest.main()

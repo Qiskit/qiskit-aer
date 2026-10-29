@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    The pybind11 Python bindings for several Aer classes implemented in C++ were
+    updated to use the classes' public constructors directly rather than
+    creating a new object through a lambda function. This change helps with
+    compiling Aer with gcc version 14 which, unlike prevous versions of gcc,
+    would fail when handling one of the lambda functions with a message about
+    encountering an "ambiguous template instantiation."

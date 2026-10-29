@@ -27,7 +27,6 @@ from qiskit.circuit.classical.expr import Expr, Unary, Binary, Var, Value, ExprV
 from qiskit.circuit.classical.types import Bool, Uint
 from qiskit.circuit.library import Initialize
 from qiskit.providers.options import Options
-from qiskit.pulse import Schedule, ScheduleBlock
 from qiskit.circuit import Store
 from qiskit.circuit.controlflow import (
     WhileLoopOp,
@@ -85,7 +84,7 @@ class AerCompiler:
                    compiled circuit optypes for each circuit if
                    optypes kwarg is not None.
         """
-        if isinstance(circuits, (QuantumCircuit, Schedule, ScheduleBlock)):
+        if isinstance(circuits, QuantumCircuit):
             circuits = [circuits]
         if optypes is None:
             compiled_optypes = len(circuits) * [None]
@@ -237,7 +236,8 @@ class AerCompiler:
             if isinstance(cond_tuple[0].var, Clbit):
                 expr = Var(bit_map[cond_tuple[0].var], cond_tuple[0].type)
             elif isinstance(cond_tuple[0].var, ClassicalRegister):
-                expr = Var([bit_map[clbit] for clbit in cond_tuple[0].var], cond_tuple[0].type)
+                reg = ClassicalRegister(bits=[bit_map[clbit] for clbit in cond_tuple[0].var])
+                expr = Var(reg, cond_tuple[0].type)
             else:
                 raise AerError(
                     f"jump condition does not support this tyep of Var: {cond_tuple[0]}."
@@ -259,6 +259,9 @@ class AerCompiler:
         """inline for_loop body while iterating its indexset"""
         qargs = [bit_map[q] for q in instruction.qubits]
         cargs = [bit_map[c] for c in instruction.clbits]
+        # to avoid wrong topological sorting of command with "empty" block
+        if len(qargs) == 0:
+            qargs = parent.qubits
         indexset, loop_parameter, body = instruction.operation.params
         inner_bit_map = {
             inner: bit_map[outer]
@@ -320,6 +323,9 @@ class AerCompiler:
         )
         qargs = [bit_map[q] for q in instruction.qubits]
         cargs = [bit_map[c] for c in instruction.clbits]
+        # to avoid wrong topological sorting of command with "empty" block
+        if len(qargs) == 0:
+            qargs = parent.qubits
 
         if isinstance(condition_tuple, Expr):
             mark_cargs = self._list_clbit_from_expr(bit_map, condition_tuple)
@@ -371,6 +377,13 @@ class AerCompiler:
 
         qargs = [bit_map[q] for q in instruction.qubits]
         cargs = [bit_map[c] for c in instruction.clbits]
+        # to avoid wrong topological sorting of command with "empty" block
+        if len(qargs) == 0:
+            qargs = parent.qubits
+
+        # to avoid wrong topological sorting of command with "empty" block
+        if len(qargs) == 0:
+            qargs = parent.qubits
 
         if isinstance(condition_tuple, Expr):
             mark_cargs = self._list_clbit_from_expr(bit_map, condition_tuple)
@@ -439,6 +452,9 @@ class AerCompiler:
 
         qargs = [bit_map[q] for q in instruction.qubits]
         cargs = [bit_map[c] for c in instruction.clbits]
+        # to avoid wrong topological sorting of command with "empty" block
+        if len(qargs) == 0:
+            qargs = parent.qubits
 
         if isinstance(instruction.operation.target, Clbit):
             target_clbits = {bit_map[instruction.operation.target]}
@@ -904,17 +920,17 @@ def _assemble_op(
         if ctrl_state_pos > 0:
             # Add x gates for ctrl qubits which state=0
             ctrl_state = int(name[ctrl_state_pos+2:len(name)])
-            for i in range(len(qubits)):
+            for i in range(len(qubits)-1):
                 if (ctrl_state >> i) & 1 == 0:
-                    qubits_i = [qubits[len(qubits) - 1 - i]]
+                    qubits_i = [qubits[i]]
                     aer_circ.gate("x", qubits_i, params, [], conditional_reg, aer_cond_expr,
                                   label if label else "x")
                     num_of_aer_ops += 1
             aer_circ.gate(gate_name, qubits, params, [], conditional_reg, aer_cond_expr,
                           label if label else gate_name)
-            for i in range(len(qubits)):
+            for i in range(len(qubits)-1):
                 if (ctrl_state >> i) & 1 == 0:
-                    qubits_i = [qubits[len(qubits) - 1 - i]]
+                    qubits_i = [qubits[i]]
                     aer_circ.gate("x", qubits_i, params, [], conditional_reg, aer_cond_expr,
                                   label if label else "x")
                     num_of_aer_ops += 1

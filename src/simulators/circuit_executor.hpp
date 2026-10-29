@@ -428,7 +428,7 @@ uint_t Executor<state_t>::get_max_parallel_shots(
     const Config &config, const Circuit &circ,
     const Noise::NoiseModel &noise) const {
   uint_t mem = required_memory_mb(config, circ, noise);
-  if (mem == 0)
+  if (mem == 0 || !check_required_memory_)
     return circ.shots * circ.num_bind_params;
 
   if (sim_device_ == Device::GPU && num_gpus_ > 0) {

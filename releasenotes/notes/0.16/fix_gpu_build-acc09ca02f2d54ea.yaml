@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    This fix limit the version of cuQuantum temporary to solve link issue
+    of GLIBC version containing in the latest cuQuantum.
+    Make sure to unlimit the version when cuQuantum will be fixed

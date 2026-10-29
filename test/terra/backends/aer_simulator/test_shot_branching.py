@@ -12,6 +12,7 @@
 """
 AerSimulator Integration Tests
 """
+
 import unittest
 import platform
 
@@ -25,7 +26,7 @@ from test.terra.reference import ref_readout_noise
 from test.terra.reference import ref_reset_noise
 from test.terra.reference import ref_conditionals
 
-from qiskit import QuantumCircuit
+from qiskit import QuantumCircuit, __version__ as qiskit_version
 from qiskit import transpile
 from qiskit_aer import AerSimulator
 from qiskit_aer.noise import NoiseModel
@@ -595,6 +596,10 @@ class TestShotBranching(SimulatorTestCase):
     # ---------------------------------------------------------------------
     # Test conditional
     # ---------------------------------------------------------------------
+    @unittest.skipUnless(
+        qiskit_version.startswith("0.") or qiskit_version.startswith("1."),
+        reason="c_if support was removed in Qiskit >= 2.0",
+    )
     @supported_methods(SUPPORTED_METHODS)
     def test_shot_branching_conditional_gates_1bit(self, method, device):
         """Test conditional gate operations on 1-bit conditional register."""
@@ -608,6 +613,10 @@ class TestShotBranching(SimulatorTestCase):
         self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0)
 
+    @unittest.skipUnless(
+        qiskit_version.startswith("0.") or qiskit_version.startswith("1."),
+        reason="c_if support was removed in Qiskit >= 2.0",
+    )
     @supported_methods(SUPPORTED_METHODS)
     def test_shot_branching_conditional_gates_2bit(self, method, device):
         """Test conditional gate operations on 2-bit conditional register."""
@@ -622,6 +631,10 @@ class TestShotBranching(SimulatorTestCase):
         self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0)
 
+    @unittest.skipUnless(
+        qiskit_version.startswith("0.") or qiskit_version.startswith("1."),
+        reason="c_if support was removed in Qiskit >= 2.0",
+    )
     @supported_methods(SUPPORTED_METHODS)
     def test_shot_branching_conditional_gates_64bit(self, method, device):
         """Test conditional gate operations on 64-bit conditional register."""
@@ -641,6 +654,10 @@ class TestShotBranching(SimulatorTestCase):
         self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, hex_counts=False, delta=0)
 
+    @unittest.skipUnless(
+        qiskit_version.startswith("0.") or qiskit_version.startswith("1."),
+        reason="c_if support was removed in Qiskit >= 2.0",
+    )
     @supported_methods(SUPPORTED_METHODS)
     def test_shot_branching_conditional_gates_132bit(self, method, device):
         """Test conditional gate operations on 132-bit conditional register."""
@@ -661,6 +678,10 @@ class TestShotBranching(SimulatorTestCase):
     # ---------------------------------------------------------------------
     # Test conditional
     # ---------------------------------------------------------------------
+    @unittest.skipUnless(
+        qiskit_version.startswith("0.") or qiskit_version.startswith("1."),
+        reason="c_if support was removed in Qiskit >= 2.0",
+    )
     @supported_methods(SUPPORTED_METHODS)
     def test_shot_branching_conditional_unitary_1bit(self, method, device):
         """Test conditional unitary operations on 1-bit conditional register."""
@@ -674,6 +695,10 @@ class TestShotBranching(SimulatorTestCase):
         self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0)
 
+    @unittest.skipUnless(
+        qiskit_version.startswith("0.") or qiskit_version.startswith("1."),
+        reason="c_if support was removed in Qiskit >= 2.0",
+    )
     @supported_methods(SUPPORTED_METHODS)
     def test_shot_branching_conditional_unitary_2bit(self, method, device):
         """Test conditional unitary operations on 2-bit conditional register."""
@@ -688,6 +713,10 @@ class TestShotBranching(SimulatorTestCase):
         self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0)
 
+    @unittest.skipUnless(
+        qiskit_version.startswith("0.") or qiskit_version.startswith("1."),
+        reason="c_if support was removed in Qiskit >= 2.0",
+    )
     @supported_methods(SUPPORTED_METHODS)
     def test_shot_branching_conditional_unitary_64bit(self, method, device):
         """Test conditional unitary operations on 64-bit conditional register."""
@@ -704,6 +733,10 @@ class TestShotBranching(SimulatorTestCase):
         self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, hex_counts=False, delta=0)
 
+    @unittest.skipUnless(
+        qiskit_version.startswith("0.") or qiskit_version.startswith("1."),
+        reason="c_if support was removed in Qiskit >= 2.0",
+    )
     @supported_methods(SUPPORTED_METHODS)
     def test_shot_branching_conditional_unitary_132bit(self, method, device):
         """Test conditional unitary operations on 132-bit conditional register."""
@@ -722,6 +755,10 @@ class TestShotBranching(SimulatorTestCase):
     # ---------------------------------------------------------------------
     # Test conditional
     # ---------------------------------------------------------------------
+    @unittest.skipUnless(
+        qiskit_version.startswith("0.") or qiskit_version.startswith("1."),
+        reason="c_if support was removed in Qiskit >= 2.0",
+    )
     @supported_methods(SUPPORTED_METHODS)
     def test_shot_branching_conditional_unitary_1bit(self, method, device):
         """Test conditional kraus operations on 1-bit conditional register."""
@@ -735,6 +772,10 @@ class TestShotBranching(SimulatorTestCase):
         self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0)
 
+    @unittest.skipUnless(
+        qiskit_version.startswith("0.") or qiskit_version.startswith("1."),
+        reason="c_if support was removed in Qiskit >= 2.0",
+    )
     @supported_methods(SUPPORTED_METHODS)
     def test_shot_branching_conditional_kraus_2bit(self, method, device):
         """Test conditional kraus operations on 2-bit conditional register."""
@@ -749,6 +790,10 @@ class TestShotBranching(SimulatorTestCase):
         self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0)
 
+    @unittest.skipUnless(
+        qiskit_version.startswith("0.") or qiskit_version.startswith("1."),
+        reason="c_if support was removed in Qiskit >= 2.0",
+    )
     @supported_methods(SUPPORTED_METHODS)
     def test_shot_branching_conditional_kraus_64bit(self, method, device):
         """Test conditional kraus operations on 64-bit conditional register."""
@@ -765,6 +810,10 @@ class TestShotBranching(SimulatorTestCase):
         self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, hex_counts=False, delta=0)
 
+    @unittest.skipUnless(
+        qiskit_version.startswith("0.") or qiskit_version.startswith("1."),
+        reason="c_if support was removed in Qiskit >= 2.0",
+    )
     @supported_methods(SUPPORTED_METHODS)
     def test_shot_branching_conditional_kraus_132bit(self, method, device):
         """Test conditional kraus operations on 132-bit conditional register."""

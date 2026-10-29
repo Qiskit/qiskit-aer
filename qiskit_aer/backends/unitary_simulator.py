@@ -14,6 +14,7 @@
 """
 Aer Unitary Simulator Backend.
 """
+
 import copy
 import logging
 from warnings import warn

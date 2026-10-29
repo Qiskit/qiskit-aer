@@ -16,9 +16,8 @@ Aer qasm simulator backend.
 import copy
 import logging
 from warnings import warn
-from qiskit.providers import convert_to_target
 from qiskit.providers.options import Options
-from qiskit.providers.backend import BackendV2, BackendV1
+from qiskit.providers.backend import BackendV2
 
 from ..version import __version__
 from ..aererror import AerError
@@ -35,7 +34,6 @@ from .backend_utils import (
 
 # pylint: disable=import-error, no-name-in-module, abstract-method
 from .controller_wrappers import aer_controller_execute
-from .name_mapping import NAME_MAPPING
 
 logger = logging.getLogger(__name__)
 
@@ -226,7 +224,7 @@ class QasmSimulator(AerBackend):
         is sparse. The overall runtime scales as Sn^{2}.
 
       - ``"norm_estimation"``: An alternative sampling method using
-        random state inner products to estimate outcome probabilites. This
+        random state inner products to estimate outcome probabilities. This
         method requires twice as much memory, and significantly longer
         runtimes, but gives accurate results on circuits with sparse
         output distributions. The overall runtime scales as Sn^{3}m^{3}.
@@ -552,28 +550,9 @@ class QasmSimulator(AerBackend):
             )
             properties = target_to_backend_properties(backend.target)
             target = backend.target
-        elif isinstance(backend, BackendV1):
-            # BackendV1 will be removed in Qiskit 2.0, so we will remove this soon
-            warn(
-                " from_backend using V1 based backend is deprecated as of Aer 0.15"
-                " and will be removed no sooner than 3 months from that release"
-                " date. Please use backends based on V2.",
-                DeprecationWarning,
-                stacklevel=2,
-            )
-            # Get configuration and properties from backend
-            configuration = backend.configuration()
-            properties = copy.copy(backend.properties())
-
-            # Customize configuration name
-            name = configuration.backend_name
-            configuration.backend_name = f"aer_simulator_from({name})"
-
-            target = convert_to_target(configuration, properties, None, NAME_MAPPING)
         else:
             raise TypeError(
-                "The backend argument requires a BackendV2 or BackendV1 object, "
-                f"not a {type(backend)} object"
+                "The backend argument requires a BackendV2 object, " f"not a {type(backend)} object"
             )
         # Use automatic noise model if none is provided
         if "noise_model" not in options:
@@ -636,7 +615,7 @@ class QasmSimulator(AerBackend):
             self._cached_basis_gates = self._basis_gates()
 
     def _basis_gates(self):
-        """Return simualtor basis gates.
+        """Return simulator basis gates.
 
         This will be the option value of basis gates if it was set,
         otherwise it will be the intersection of the configuration, noise model

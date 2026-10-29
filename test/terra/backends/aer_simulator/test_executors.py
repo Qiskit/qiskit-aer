@@ -10,24 +10,32 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 """
-AerSimualtor options tests
+AerSimulator options tests
 """
-import logging
+
 import json
-from math import ceil
 import concurrent.futures
+import multiprocessing
+import os
 import pickle
 import tempfile
+import unittest
 
 from ddt import ddt
-from qiskit import QuantumCircuit, transpile
+from qiskit import transpile
 from qiskit.circuit.random import random_circuit
 from qiskit.circuit.library import QuantumVolume
 from qiskit.quantum_info import Statevector
+from qiskit_aer.jobs import utils
 from qiskit_aer.noise.noise_model import AerJSONEncoder
 from test.terra.reference import ref_kraus_noise
-from qiskit_aer.jobs import AerJob
+from qiskit_aer.backends.backend_utils import BASIS_GATES
 from test.terra.backends.simulator_test_case import SimulatorTestCase, supported_methods
+
+# skip fractional gates in multiprocessing transpilation tests until
+# https://github.com/Qiskit/qiskit/issues/14002 is resolved
+FRACTIONAL_GATES = sorted(["rxx", "rzz", "ryy", "rzx", "cphase", "crx", "cry", "crz"])
+STATEVEC_BASIS_GATES = [gate for gate in BASIS_GATES["statevector"] if gate not in FRACTIONAL_GATES]
 
 
 def run_random_circuits(backend, shots=None, **run_options):
@@ -49,6 +57,16 @@ def run_random_circuits(backend, shots=None, **run_options):
     job = backend.run(circuits, shots=shots, **run_options)
     result = job.result()
     return result, circuits, targets
+
+
+def _run_in_child(backend, circuit, parent_executor, queue):
+    """Run a circuit in a forked child and report whether the executor was reset"""
+    replaced = utils.DEFAULT_EXECUTOR is not parent_executor
+    try:
+        backend.run(circuit).result(timeout=30)
+        queue.put((replaced, True))
+    except Exception:  # pylint: disable=broad-except
+        queue.put((replaced, False))
 
 
 class TestResultSerialization(SimulatorTestCase):
@@ -75,6 +93,32 @@ class TestResultSerialization(SimulatorTestCase):
             result_copy = pickle.load(f)
 
         self.assertEqual(result.get_counts(), result_copy.get_counts())
+
+    @unittest.skipUnless(hasattr(os, "fork"), "requires os.fork")
+    def test_default_executor_fork_safe(self):
+        """Test that a forked child gets a working DEFAULT_EXECUTOR"""
+        circuit = QuantumVolume(4, seed=111)
+        circuit.measure_all()
+        backend = self.backend(method="statevector")
+        circuit = transpile(circuit, backend)
+        # Warm up the executor in the parent so that its worker thread exists before the fork
+        backend.run(circuit).result()
+        parent_executor = utils.DEFAULT_EXECUTOR
+
+        ctx = multiprocessing.get_context("fork")
+        queue = ctx.Queue()
+        proc = ctx.Process(target=_run_in_child, args=(backend, circuit, parent_executor, queue))
+        proc.start()
+        proc.join(timeout=60)
+        if proc.is_alive():
+            proc.terminate()
+            proc.join()
+            self.fail("Forked child did not finish; DEFAULT_EXECUTOR is not fork-safe")
+        self.assertEqual(proc.exitcode, 0)
+        child_executor_replaced, success = queue.get(timeout=5)
+        self.assertTrue(success)
+        self.assertTrue(child_executor_replaced)
+        self.assertIs(utils.DEFAULT_EXECUTOR, parent_executor)
 
 
 class CBFixture(SimulatorTestCase):
@@ -111,7 +155,12 @@ class TestThreadPoolExecutor(CBFixture):
     def test_random_circuits_job(self, method, device, max_job_size):
         """Test random circuits with custom executor."""
         shots = 4000
-        backend = self.backend(method=method, device=device, max_job_size=max_job_size)
+        backend = self.backend(
+            method=method,
+            device=device,
+            max_job_size=max_job_size,
+            basis_gates=STATEVEC_BASIS_GATES,
+        )
         result, circuits, targets = run_random_circuits(backend, shots=shots)
         self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, hex_counts=False, delta=0.05 * shots)
@@ -138,7 +187,12 @@ class TestThreadPoolExecutor(CBFixture):
     def test_result_time_val(self, method, device, max_job_size):
         """Test random circuits with custom executor."""
         shots = 4000
-        backend = self.backend(method=method, device=device, max_job_size=max_job_size)
+        backend = self.backend(
+            method=method,
+            device=device,
+            max_job_size=max_job_size,
+            basis_gates=STATEVEC_BASIS_GATES,
+        )
         result, _, _ = run_random_circuits(backend, shots=shots)
         self.assertSuccess(result)
         self.assertGreaterEqual(result.time_taken, 0)

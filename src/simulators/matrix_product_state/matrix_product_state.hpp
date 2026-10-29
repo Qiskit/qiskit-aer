@@ -801,7 +801,7 @@ std::vector<SampleVector> State::sample_measure_all(uint_t shots,
 
 #pragma omp parallel for if (getenv("PRL_PROB_MEAS"))
   for (int_t i = 0; i < static_cast<int_t>(shots); i++) {
-    auto single_result = qreg_.sample_measure(shots, rng);
+    auto single_result = qreg_.sample_measure(rng);
     all_samples[i].from_vector(single_result);
   }
   return all_samples;

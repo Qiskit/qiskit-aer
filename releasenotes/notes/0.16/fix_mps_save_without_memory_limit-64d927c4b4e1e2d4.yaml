@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fixes a bug preventing the MPS simulator from running when its estimate
+    for the required memory is too large, even when `max_memory_mb=-1`.

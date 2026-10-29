@@ -17,7 +17,6 @@ Test circuits and reference outputs for 1-qubit Clifford gate instructions.
 import numpy as np
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 
-
 # ==========================================================================
 # H-gate
 # ==========================================================================
