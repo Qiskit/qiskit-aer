@@ -566,6 +566,27 @@ class TestAerState(common.QiskitAerTestCase):
         for idx in range(0, 2**5):
             self.assertAlmostEqual(state.probability(idx), expected[idx])
 
+    def test_probability_stabilizer(self):
+        """Test stabilizer outcome probabilities and preservation of the state."""
+        state = AerState(method="stabilizer")
+        state.allocate_qubits(3)
+        state.initialize()
+
+        # Prepare (|100> + |111>) / sqrt(2).
+        state.apply_h(0)
+        state.apply_cx(0, 1)
+        state.apply_x(2)
+
+        self.assertAlmostEqual(state.probability(0), 0.0)
+        self.assertAlmostEqual(state.probability(4), 0.5)
+        self.assertAlmostEqual(state.probability(7), 0.5)
+
+        # Undo preparation to check that probability queries preserve coherence.
+        state.apply_x(2)
+        state.apply_cx(0, 1)
+        state.apply_h(0)
+        self.assertAlmostEqual(state.probability(0), 1.0)
+
     def test_probabilities(self):
         """Test probabilities() of outcome"""
         init_state = random_statevector(2**5, seed=111)
