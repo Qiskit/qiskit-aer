@@ -1,0 +1,8 @@
+fixes:
+  - |
+    Fixed incorrect basis-state ordering in amplitudes and probabilities returned
+    by the matrix product state simulator after gates on nonadjacent qubits.
+    This affects ``save_amplitudes``, ``save_amplitudes_squared``, and the C++
+    ``AerState::amplitude`` and ``AerState::probability`` methods. Results now
+    follow the same little-endian basis-state ordering as the statevector
+    simulator. See `#2235 <https://github.com/Qiskit/qiskit-aer/issues/2235>`__.

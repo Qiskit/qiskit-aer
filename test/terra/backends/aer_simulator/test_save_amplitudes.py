@@ -83,6 +83,30 @@ class TestSaveAmplitudes(SimulatorTestCase):
         self._test_save_amplitudes(QFT(3), params, True, method=method, device=device)
 
     @supported_methods(
+        ["matrix_product_state"],
+        AMPLITUDES,
+        [False, True],
+        ["mps_swap_left", "mps_swap_right"],
+    )
+    def test_save_amplitudes_qubit_ordering(self, method, device, params, amp_squared, direction):
+        """Test basis-state ordering after an MPS internal swap (issue #2235)."""
+        circ = QuantumCircuit(3)
+        for qubit in range(3):
+            circ.ry(0.2 + 0.3 * qubit, qubit)
+            circ.rz(0.1 + 0.2 * qubit, qubit)
+        # Distinct amplitudes expose permutations caused by the nonadjacent CX.
+        circ.cx(0, 2)
+        self._test_save_amplitudes(
+            circ,
+            params,
+            amp_squared,
+            method=method,
+            device=device,
+            mps_swap_direction=direction,
+            fusion_enable=False,
+        )
+
+    @supported_methods(
         [
             "automatic",
             "stabilizer",
