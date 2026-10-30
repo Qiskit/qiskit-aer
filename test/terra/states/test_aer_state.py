@@ -580,6 +580,30 @@ class TestAerState(common.QiskitAerTestCase):
         for idx in range(0, 2**5):
             self.assertAlmostEqual(actual[idx], expected[idx])
 
+    def test_probabilities_mps(self):
+        """Test native MPS probabilities with no qubits specified (issue #2234)."""
+        # AerState.probabilities() supplies qubits, bypassing the C++ overload.
+        state = AerStateWrapper()
+        state.configure("method", "matrix_product_state")
+        state.allocate_qubits(3)
+        state.initialize()
+
+        expected = [1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+        actual = state.probabilities()
+        self.assertEqual(len(actual), len(expected))
+        for idx, probability in enumerate(expected):
+            self.assertAlmostEqual(actual[idx], probability)
+
+        state.apply_x(0)
+        state.apply_h(1)
+        state.apply_cx([1, 2])
+
+        expected = [0.0, 0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.5]
+        actual = state.probabilities()
+        self.assertEqual(len(actual), len(expected))
+        for idx, probability in enumerate(expected):
+            self.assertAlmostEqual(actual[idx], probability)
+
     def test_set_seed(self):
         """Test set_seed"""
         init_state = random_statevector(2**5, seed=111)
