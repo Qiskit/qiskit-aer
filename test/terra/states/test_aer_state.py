@@ -566,6 +566,30 @@ class TestAerState(common.QiskitAerTestCase):
         for idx in range(0, 2**5):
             self.assertAlmostEqual(state.probability(idx), expected[idx])
 
+    def test_mps_probability_qubit_ordering(self):
+        """Test probability() after internal MPS qubit reordering (issue #2235)."""
+        init_state = random_statevector(2**3, seed=111)
+        circuit = QuantumCircuit(3)
+        circuit.cx(0, 2)
+        expected = init_state.evolve(circuit).probabilities()
+
+        for swap_direction in ("mps_swap_left", "mps_swap_right"):
+            with self.subTest(swap_direction=swap_direction):
+                state = AerState(
+                    method="matrix_product_state",
+                    mps_swap_direction=swap_direction,
+                    fusion_enable=False,
+                )
+                state.allocate_qubits(3)
+                state.initialize(init_state.data)
+                # A nonadjacent CX changes the internal order of the MPS qubits.
+                state.apply_cx(0, 2)
+
+                for idx, probability in enumerate(expected):
+                    self.assertAlmostEqual(
+                        state.probability(idx), probability, msg=f"outcome={idx}"
+                    )
+
     def test_probabilities(self):
         """Test probabilities() of outcome"""
         init_state = random_statevector(2**5, seed=111)

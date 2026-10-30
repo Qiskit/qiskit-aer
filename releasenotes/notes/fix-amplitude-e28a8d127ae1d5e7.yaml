@@ -1,10 +1,8 @@
----
-prelude: >
-    AerState::probability and AerState::amplitude returned the wrong states
-    for the MPS simulator.
 fixes:
   - |
-    Added a function that provides the correct states, ``reorder_qubits_rev``,
-    which is called now by ``MPS::get_amplitude_vector``.
-    For more details, refer to:
-    `#2235 <https://github.com/Qiskit/qiskit-aer/issues/2235>`
+    Fixed incorrect basis-state ordering in amplitudes and probabilities returned
+    by the matrix product state simulator after gates on nonadjacent qubits.
+    This affects ``save_amplitudes``, ``save_amplitudes_squared``, and the C++
+    ``AerState::amplitude`` and ``AerState::probability`` methods. Results now
+    follow the same little-endian basis-state ordering as the statevector
+    simulator. See `#2235 <https://github.com/Qiskit/qiskit-aer/issues/2235>`__.
