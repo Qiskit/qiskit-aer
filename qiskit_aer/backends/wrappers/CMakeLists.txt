@@ -23,18 +23,25 @@ basic_pybind11_add_module(controller_wrappers "${AER_SIMULATOR_SOURCES}")
 
 if(AER_THRUST_BACKEND STREQUAL "CUDA")
     include(nvcc_add_compiler_options)
-    set_source_files_properties(bindings.cc PROPERTIES LANGUAGE CUDA)
-    set_source_files_properties(bindings.cc PROPERTIES COMPILE_FLAGS "${CUDA_NVCC_FLAGS}")
-
-    if(DEFINED SIMD_SOURCE_FILE)
-       set_source_files_properties(${SIMD_SOURCE_FILE} PROPERTIES LANGUAGE CUDA)
-       nvcc_add_compiler_options_list("${SIMD_FLAGS_LIST}" SIMD_FLAGS_OUT)
-       set_source_files_properties(${SIMD_SOURCE_FILE} PROPERTIES COMPILE_FLAGS "${CUDA_NVCC_FLAGS} ${SIMD_FLAGS_OUT}")
-    endif()
-
     string(STRIP ${AER_COMPILER_FLAGS} AER_COMPILER_FLAGS_STRIPPED)
     nvcc_add_compiler_options(${AER_COMPILER_FLAGS_STRIPPED} AER_COMPILER_FLAGS_OUT)
-    set_target_properties(controller_wrappers PROPERTIES COMPILE_FLAGS "${AER_COMPILER_FLAGS_OUT}")
+    set_source_files_properties(bindings.cc PROPERTIES LANGUAGE CUDA)
+    set_source_files_properties(
+      bindings.cc PROPERTIES COMPILE_FLAGS "${CUDA_NVCC_FLAGS} ${AER_COMPILER_FLAGS_OUT}")
+
+    if(DEFINED SIMD_SOURCE_FILE)
+       # This file contains host-only AVX2 intrinsics. Compiling it with nvcc
+       # makes the CUDA frontend parse newer GCC intrinsic headers that it does
+       # not support, even though none of the code runs on the GPU.
+       string(REPLACE ";" " " SIMD_FLAGS "${SIMD_FLAGS_LIST}")
+       set_source_files_properties(${SIMD_SOURCE_FILE} PROPERTIES LANGUAGE CXX)
+       set_source_files_properties(
+         ${SIMD_SOURCE_FILE} PROPERTIES COMPILE_FLAGS "${AER_COMPILER_FLAGS} ${SIMD_FLAGS}")
+    endif()
+
+    # Compiler flags are assigned per source above because this is a mixed
+    # CXX/CUDA target and nvcc's host-flag syntax is invalid for CXX sources.
+    set_target_properties(controller_wrappers PROPERTIES COMPILE_FLAGS "")
     enable_language(CUDA)
 elseif(AER_THRUST_BACKEND STREQUAL "ROCM")
 
