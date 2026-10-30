@@ -1,9 +1,6 @@
----
-prelude: >
-    DiagonalFusion::aggregate_operations could crash in some circumstances
 fixes:
   - |
-    Sometimes `DiagonalFuson::get_next_deagonal_end` had an invalid `from`
-    parameter. Now it has a check to return -1 in such a case. For more
-    details refer to: `#2291 <https://github.com/Qiskit/qiskit-aer/issues/2291>`
-
+    Fixed a possible simulator crash when diagonal gate fusion reached the end
+    of the buffered operations. The fusion pass now checks that an operation
+    index is within bounds before accessing it. See
+    `#2291 <https://github.com/Qiskit/qiskit-aer/issues/2291>`__.
