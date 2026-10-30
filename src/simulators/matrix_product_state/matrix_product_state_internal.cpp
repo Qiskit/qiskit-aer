@@ -793,13 +793,10 @@ void MPS::apply_multi_qubit_gate(const reg_t &qubits, const cmatrix_t &mat,
   cmatrix_t new_mat(is_diagonal ? 1 : sidelen, sidelen);
 
   if (is_diagonal) {
+    // Accept either a diagonal vector or a full matrix.
     for (uint_t col = 0; col < sidelen; ++col) {
       new_mat(0, new_vec[col]) =
-          mat.GetRows() == 1
-              ? mat(0, col)
-              : mat(col,
-                    col); // this is just in case something passes a matrix
-                          // instead of a vector even if is_diagonal is true
+          mat.GetRows() == 1 ? mat(0, col) : mat(col, col);
     }
   } else {
     for (uint_t col = 0; col < sidelen; ++col) {
