@@ -316,7 +316,7 @@ void Transformer<Container, data_t>::apply_diagonal_matrix_1(
       // [[-i, 0], [0, 1]]
       auto func = [&](const areg_t<2> &inds,
                       const cvector_t<data_t> &_mat) -> void {
-        const auto k = inds[1];
+        const auto k = inds[0];
         double cache = data[k].imag();
         data[k].imag(data[k].real() * -1.);
         data[k].real(cache);
@@ -329,7 +329,7 @@ void Transformer<Container, data_t>::apply_diagonal_matrix_1(
       // [[i, 0], [0, 1]]
       auto func = [&](const areg_t<2> &inds,
                       const cvector_t<data_t> &_mat) -> void {
-        const auto k = inds[1];
+        const auto k = inds[0];
         double cache = data[k].imag();
         data[k].imag(data[k].real());
         data[k].real(cache * -1.);
