@@ -1,0 +1,6 @@
+fixes:
+  - |
+    Fixed a possible simulator crash when diagonal gate fusion reached the end
+    of the buffered operations. The fusion pass now checks that an operation
+    index is within bounds before accessing it. See
+    `#2291 <https://github.com/Qiskit/qiskit-aer/issues/2291>`__.
