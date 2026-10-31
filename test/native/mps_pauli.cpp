@@ -12,6 +12,7 @@
 // matrix_product_state.hpp.
 #include "simulators/matrix_product_state/matrix_product_state_internal.cpp"
 
+#include <algorithm>
 #include <array>
 #include <cmath>
 #include <complex>
@@ -42,11 +43,11 @@ void check_close(Complex actual, Complex expected, const std::string &label) {
 
 // Contract the exported Gamma/lambda chain directly. This oracle does not use
 // MPS observable, probability, normalization, routing or statevector methods.
-std::array<Complex, 2>
-retained_norm_and_z3(const AER::mps_container_t &tensors) {
+std::array<Complex, 16>
+retained_amplitudes(const AER::mps_container_t &tensors) {
   if (tensors.first.size() != 4 || tensors.second.size() != 3)
     throw std::runtime_error("Expected a four-site fixture");
-  std::array<Complex, 2> result{};
+  std::array<Complex, 16> result{};
   for (unsigned basis = 0; basis < 16; ++basis) {
     std::vector<Complex> row{1};
     for (unsigned site = 0; site < 4; ++site) {
@@ -65,11 +66,85 @@ retained_norm_and_z3(const AER::mps_container_t &tensors) {
     }
     if (row.size() != 1)
       throw std::runtime_error("Retained contraction must end in a scalar");
-    const auto weight = std::norm(row.front());
+    result[basis] = row.front();
+  }
+  return result;
+}
+
+std::array<Complex, 2>
+retained_norm_and_z3(const AER::mps_container_t &tensors) {
+  const auto amplitudes = retained_amplitudes(tensors);
+  std::array<Complex, 2> result{};
+  for (unsigned basis = 0; basis < amplitudes.size(); ++basis) {
+    const auto weight = std::norm(amplitudes[basis]);
     result[0] += weight;
     result[1] += (basis & 8u) ? -weight : weight;
   }
   return result;
+}
+
+// Reduced from the R8 diagonal control: compare amplitudes, not Z readouts,
+// because a diagonal phase error can leave every computational probability
+// intact.
+void check_diagonal() {
+  MPS_Tensor::set_max_bond_dimension(
+      4); // No bond-cap truncation on four sites.
+  unsigned cases = 0;
+  long double maximum_error = 0;
+  for (const bool lapack : {false, true}) {
+    MPS::set_mps_lapack_svd(lapack);
+    AER::reg_t sites{3, 2, 0};
+    do {
+      MPS mps;
+      mps.initialize(4);
+      for (unsigned site = 0; site < 4; ++site)
+        mps.apply_u3(site, 0.43 + 0.19 * site, -0.31 + 0.13 * site,
+                     0.59 - 0.11 * site);
+      for (unsigned site = 0; site < 3; ++site)
+        mps.apply_cnot(site, site + 1);
+      MPS before(mps);
+      auto expected = retained_amplitudes(before.copy_to_mps_container());
+      AER::cvector_t phases(8);
+      for (unsigned value = 0; value < phases.size(); ++value)
+        phases[value] = std::polar(1.0, 0.13 * value + 0.07 * value * value);
+      bool changes_amplitude = false, distinguishes_reversed_order = false;
+      for (unsigned basis = 0; basis < expected.size(); ++basis) {
+        unsigned selected = 0, reversed = 0;
+        for (unsigned bit = 0; bit < sites.size(); ++bit) {
+          selected |= ((basis >> sites[bit]) & 1u) << bit;
+          reversed |= ((basis >> sites[sites.size() - 1 - bit]) & 1u) << bit;
+        }
+        const auto original = expected[basis];
+        expected[basis] *= widen(phases[selected]);
+        changes_amplitude |= std::abs(expected[basis] - original) > tolerance;
+        distinguishes_reversed_order |=
+            std::abs(expected[basis] - original * widen(phases[reversed])) >
+            tolerance;
+      }
+      if (!changes_amplitude || !distinguishes_reversed_order)
+        throw std::runtime_error(
+            "Diagonal fixture must distinguish phase/order");
+      // apply_diagonal_matrix supplies the public 1 x 2^n row representation.
+      // Let the production method perform its own gate permutation/routing.
+      const auto label = std::string(lapack ? "lapack" : "native") +
+                         " diagonal sites=" + std::to_string(sites[0]) + "," +
+                         std::to_string(sites[1]) + "," +
+                         std::to_string(sites[2]);
+      std::cout << label << std::endl;
+      mps.apply_diagonal_matrix(sites, phases);
+      MPS after(mps);
+      const auto actual = retained_amplitudes(after.copy_to_mps_container());
+      for (unsigned basis = 0; basis < actual.size(); ++basis) {
+        check_close(actual[basis], expected[basis],
+                    label + " amplitude " + std::to_string(basis));
+        maximum_error =
+            std::max(maximum_error, std::abs(actual[basis] - expected[basis]));
+      }
+      ++cases;
+    } while (std::prev_permutation(sites.begin(), sites.end()));
+  }
+  std::cout << std::setprecision(17) << "diagonal cases=" << cases
+            << " maximum_amplitude_error=" << maximum_error << '\n';
 }
 
 void check_queries(const MPS &mps, Complex norm, Complex z,
@@ -159,10 +234,13 @@ int main(int argc, char **argv) {
     MPS_Tensor::set_chop_threshold(1e-16);
     if (argc == 3 && std::string(argv[1]) == "circuit")
       check_circuit();
+    else if (argc == 3 && std::string(argv[1]) == "diagonal")
+      check_diagonal();
     else if (argc == 3 && std::string(argv[1]) == "retained")
       check_retained(argv[2]);
     else
-      throw std::runtime_error("Expected circuit|retained and fixture path");
+      throw std::runtime_error(
+          "Expected circuit|retained|diagonal and fixture path");
     return 0;
   } catch (const std::exception &error) {
     std::cerr << error.what() << '\n';
