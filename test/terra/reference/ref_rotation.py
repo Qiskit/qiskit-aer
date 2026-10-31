@@ -716,3 +716,42 @@ def rzx_gate_clifford_counts(shots, hex_counts=True):
         targets.append({"00": shots})  # 3*pi/2: |00>
         targets.append({"00": shots})  # 4*pi/2 = I: |00>
     return targets
+
+
+# ==========================================================================
+# Global phase of Clifford-angle rotations
+# ==========================================================================
+
+# Rotation gates that the stabilizer methods support at Clifford angles, with
+# the number of qubits each one acts on.
+CLIFFORD_ROTATION_GATES = ["rz", "rx", "ry", "rzz", "rxx", "ryy", "rzx"]
+
+_GATE_NUM_QUBITS = {"rz": 1, "rx": 1, "ry": 1, "rzz": 2, "rxx": 2, "ryy": 2, "rzx": 2}
+
+# Multiples of pi/2 to test, covering negative angles and angles beyond 2*pi.
+_CLIFFORD_MULTIPLES = [-5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 8, 9]
+
+
+def clifford_rotation_statevector_circuits(gate, num_t_gates=0):
+    """Circuits applying ``gate`` at Clifford angles, saving the statevector.
+
+    ``num_t_gates`` T gates are inserted before the rotation. With none, the
+    circuit is Clifford.
+    """
+    num_qubits = max(_GATE_NUM_QUBITS[gate], 2 if num_t_gates else 1)
+    circuits = []
+    for multiple in _CLIFFORD_MULTIPLES:
+        name = f"{gate}({multiple}*pi/2)"
+        if num_t_gates:
+            name += f" after {num_t_gates}t"
+        circuit = QuantumCircuit(num_qubits, name=name)
+        circuit.h(0)
+        circuit.s(0)
+        for qubit in range(1, num_qubits):
+            circuit.h(qubit)
+        for index in range(num_t_gates):
+            circuit.t(index % num_qubits)
+        getattr(circuit, gate)(multiple * np.pi / 2, *range(_GATE_NUM_QUBITS[gate]))
+        circuit.save_statevector()
+        circuits.append(circuit)
+    return circuits

@@ -13,9 +13,11 @@
 AerSimulator Integration Tests
 """
 
-from ddt import ddt
+import numpy as np
+from ddt import ddt, data
 from test.terra.reference import ref_rotation
 from qiskit import transpile
+from qiskit.quantum_info import Statevector
 from test.terra.backends.simulator_test_case import SimulatorTestCase, supported_methods
 
 SUPPORTED_METHODS = [
@@ -95,6 +97,15 @@ SUPPORTED_METHODS_RZX_CLIFFORD = [
     "tensor_network",
     "extended_stabilizer",
 ]
+
+
+def _without_save_instructions(circuit):
+    """Copy of ``circuit`` without save instructions."""
+    reference = circuit.copy()
+    reference.data = [
+        inst for inst in reference.data if not inst.operation.name.startswith("save_")
+    ]
+    return reference
 
 
 @ddt
@@ -242,3 +253,44 @@ class TestRotation(SimulatorTestCase):
         result = backend.run(circuits, shots=shots).result()
         self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
+
+    # ---------------------------------------------------------------------
+    # Global phase
+    # ---------------------------------------------------------------------
+    @data(*ref_rotation.CLIFFORD_ROTATION_GATES)
+    def test_clifford_rotation_global_phase(self, gate):
+        """Test that extended_stabilizer tracks the global phase of rotation gates."""
+        backend = self.backend(method="extended_stabilizer", seed_simulator=self.SEED)
+        circuits = ref_rotation.clifford_rotation_statevector_circuits(gate)
+        result = backend.run(circuits, shots=1).result()
+        self.assertSuccess(result)
+        for circuit in circuits:
+            actual = np.asarray(result.data(circuit)["statevector"])
+            target = np.asarray(Statevector(_without_save_instructions(circuit)))
+            self.assertTrue(
+                np.allclose(actual, target, atol=1e-7),
+                msg=f"{circuit.name}: {actual} != {target}",
+            )
+
+    @data(*ref_rotation.CLIFFORD_ROTATION_GATES)
+    def test_clifford_rotation_global_phase_many_terms(self, gate):
+        """Test the rotation global phase when the decomposition has chi > 1 terms."""
+        backend = self.backend(method="extended_stabilizer", seed_simulator=self.SEED)
+        for num_t_gates in (1, 2, 3):
+            circuits = ref_rotation.clifford_rotation_statevector_circuits(
+                gate, num_t_gates=num_t_gates
+            )
+            result = backend.run(circuits, shots=1).result()
+            self.assertSuccess(result)
+            for circuit in circuits:
+                actual = np.asarray(result.data(circuit)["statevector"])
+                target = np.asarray(Statevector(_without_save_instructions(circuit)))
+                overlap = np.vdot(target, actual)
+                # A wrong global phase rotates the overlap off the positive real
+                # axis; the smallest error this can produce is pi/4.
+                self.assertAlmostEqual(
+                    np.angle(overlap),
+                    0.0,
+                    places=6,
+                    msg=f"{circuit.name}: overlap {overlap}",
+                )
