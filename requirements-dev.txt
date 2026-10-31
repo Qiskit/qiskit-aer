@@ -5,7 +5,11 @@ cmake!=3.17.1,!=3.17.0
 conan<2.0.0
 scikit-build>=0.11.0
 asv
-cvxpy<1.6.0
+# Pin cvxpy because it has a history of being slow to update for new versions
+# of Python and for pulling new dependencies that are also slow to update.
+# If a newer cvxpy has wheels built for all versions of Python supported by
+# Aer, it should be fine to raise the pinned version.
+cvxpy<1.9
 pylint
 black[jupyter]~=26.10.0
 clang-format~=15.0.7

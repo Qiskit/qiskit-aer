@@ -87,8 +87,6 @@ retained_norm_and_z3(const AER::mps_container_t &tensors) {
 // because a diagonal phase error can leave every computational probability
 // intact.
 void check_diagonal() {
-  MPS_Tensor::set_max_bond_dimension(
-      4); // No bond-cap truncation on four sites.
   unsigned cases = 0;
   long double maximum_error = 0;
   for (const bool lapack : {false, true}) {
@@ -96,6 +94,8 @@ void check_diagonal() {
     AER::reg_t sites{3, 2, 0};
     do {
       MPS mps;
+      mps.set_max_bond_dimension(4);
+      mps.set_truncation_threshold(0);
       mps.initialize(4);
       for (unsigned site = 0; site < 4; ++site)
         mps.apply_u3(site, 0.43 + 0.19 * site, -0.31 + 0.13 * site,
@@ -179,6 +179,12 @@ void check_state(MPS &mps, Complex expected_z, const std::string &label) {
 
   MPS copied(mps), assigned;
   assigned = mps;
+  for (const auto *copy : {&copied, &assigned}) {
+    if (copy->get_max_bond_dimension() != mps.get_max_bond_dimension() ||
+        copy->get_truncation_threshold() != mps.get_truncation_threshold())
+      throw std::runtime_error(label +
+                               " copied state lost its instance settings");
+  }
   mps.apply_x(3);
   check_queries(mps, reference[0], -reference[1], label + " after X3");
   check_queries(copied, reference[0], reference[1], label + " copied");
@@ -190,9 +196,10 @@ void check_circuit() {
   for (const bool lapack : {false, true}) {
     MPS::set_mps_lapack_svd(lapack);
     for (const unsigned bond : {2u, 4u}) {
-      MPS_Tensor::set_max_bond_dimension(bond);
       for (const bool swap : {false, true}) {
         MPS mps;
+        mps.set_max_bond_dimension(bond);
+        mps.set_truncation_threshold(0);
         mps.initialize(4);
         mps.apply_ry(0, std::numbers::pi / 3);
         mps.apply_cnot(0, 1);
@@ -222,6 +229,8 @@ void check_retained(const char *path) {
   input >> value;
   const auto tensors = value.get<AER::mps_container_t>();
   MPS mps(tensors.first.size());
+  mps.set_max_bond_dimension(2);
+  mps.set_truncation_threshold(0);
   mps.initialize_from_mps(tensors);
   check_state(mps, 1, "retained witness");
 }
@@ -230,7 +239,6 @@ void check_retained(const char *path) {
 int main(int argc, char **argv) {
   try {
     MPS::set_omp_threads(1);
-    MPS_Tensor::set_truncation_threshold(0);
     MPS_Tensor::set_chop_threshold(1e-16);
     if (argc == 3 && std::string(argv[1]) == "circuit")
       check_circuit();

@@ -1,0 +1,10 @@
+---
+fixes:
+  - |
+    Fixed a ``TypeError: got multiple values for keyword argument 'seed_simulator'``
+    raised by :class:`.SamplerV2` when ``seed_simulator`` was passed through
+    ``run_options`` and the constructor ``seed`` argument was ``None`` (the default).
+    The ``seed_simulator`` key is now always popped from ``run_options`` before
+    calling :meth:`.AerBackend.run`, with the constructor ``seed`` taking
+    precedence when both are supplied.
+    This fixes `issue #2453 <https://github.com/Qiskit/qiskit-aer/issues/2453>`__.

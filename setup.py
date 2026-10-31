@@ -38,11 +38,11 @@ classifiers = [
     "Operating System :: POSIX :: Linux",
     "Programming Language :: C++",
     "Programming Language :: Python :: 3 :: Only",
-    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
     "Programming Language :: Python :: 3.14",
+    "Programming Language :: Python :: 3.15",
     "Topic :: Scientific/Engineering",
 ]
 
@@ -99,7 +99,7 @@ setup(
     author_email="qiskit@us.ibm.com",
     license="Apache 2.0",
     classifiers=classifiers,
-    python_requires=">=3.10",
+    python_requires=">=3.11",
     install_requires=requirements,
     include_package_data=False,
     package_data={"qiskit_aer": ["VERSION.txt"], "qiskit_aer.library": ["*.csv"]},
