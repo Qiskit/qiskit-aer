@@ -2006,7 +2006,8 @@ mps_container_t MPS::move_to_mps_container() {
   for (uint_t i = 0; i < num_qubits() - 1; i++) {
     ret.second.push_back(std::move(lambda_reg_[i]));
   }
-  initialize(MPS());
+  // Clear the moved payload without resetting the configured instance settings.
+  initialize(0);
   return ret;
 }
 

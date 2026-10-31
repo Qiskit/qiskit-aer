@@ -30,7 +30,7 @@ target_include_directories(aer_mps_pauli_regression PRIVATE
                            "${AER_SOURCE_ROOT}/src" ${AER_SIMULATOR_CPP_EXTERNAL_LIBS})
 target_link_libraries(aer_mps_pauli_regression PRIVATE ${AER_NATIVE_LIBRARIES})
 
-foreach(mode IN ITEMS circuit retained diagonal)
+foreach(mode IN ITEMS circuit retained diagonal lifecycle)
   add_test(NAME aer_mps_pauli_${mode}
            COMMAND aer_mps_pauli_regression ${mode}
                    "${CMAKE_CURRENT_SOURCE_DIR}/fixtures/mps-pauli-truncated.json")

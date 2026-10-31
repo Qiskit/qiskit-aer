@@ -49,6 +49,13 @@ control (2026-10-11), whose SHA256 is
 It retains its explicit basis-bit phase indexing and full-amplitude comparison,
 with 12 focused cases rather than claiming to replay the original 60-case grid.
 
+`aer_mps_pauli_lifecycle` checks non-default per-instance bond and truncation
+settings through copy construction, assignment, self-assignment, destructive
+export and reinitialization. It verifies that export empties the source payload
+without resetting these settings, then restores the saved tensors after
+initializing the source to the required number of sites. It does not establish
+direct import into an empty object or repeated export of an empty object.
+
 ## Fixture and source provenance
 
 The witness and direct-contraction oracle are reduced from the author's

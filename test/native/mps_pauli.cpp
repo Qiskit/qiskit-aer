@@ -234,6 +234,27 @@ void check_retained(const char *path) {
   mps.initialize_from_mps(tensors);
   check_state(mps, 1, "retained witness");
 }
+void check_lifecycle() {
+  MPS source;
+  source.set_max_bond_dimension(2);
+  source.set_truncation_threshold(0.001);
+  source.initialize(4);
+  MPS copied(source), assigned;
+  assigned = source;
+  source = source;
+  const auto saved = source.move_to_mps_container();
+  if (source.num_qubits() != 0 || saved.first.size() != 4)
+    throw std::runtime_error("Destructive export did not move the payload");
+  source.initialize(4);
+  for (const MPS *state : {&source, &copied, &assigned}) {
+    if (state->get_max_bond_dimension() != 2 ||
+        state->get_truncation_threshold() != 0.001)
+      throw std::runtime_error(
+          "Copy/export/reinitialization lost instance settings");
+  }
+  source.initialize_from_mps(saved);
+  check_queries(source, 1, 1, "restored after destructive export");
+}
 } // namespace
 
 int main(int argc, char **argv) {
@@ -244,11 +265,13 @@ int main(int argc, char **argv) {
       check_circuit();
     else if (argc == 3 && std::string(argv[1]) == "diagonal")
       check_diagonal();
+    else if (argc == 3 && std::string(argv[1]) == "lifecycle")
+      check_lifecycle();
     else if (argc == 3 && std::string(argv[1]) == "retained")
       check_retained(argv[2]);
     else
       throw std::runtime_error(
-          "Expected circuit|retained|diagonal and fixture path");
+          "Expected circuit|retained|diagonal|lifecycle and fixture path");
     return 0;
   } catch (const std::exception &error) {
     std::cerr << error.what() << '\n';

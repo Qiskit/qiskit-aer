@@ -6,3 +6,5 @@ fixes:
     The calculation now uses the environments of the retained MPS tensors.
     Also fixed the diagonal-matrix layout when permuting multi-qubit diagonal
     gates in this method.
+    Per-instance bond-dimension and truncation settings are preserved when
+    copying an MPS and when exporting its tensors before reinitialization.
