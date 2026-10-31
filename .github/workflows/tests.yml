@@ -8,6 +8,20 @@ concurrency:
   group: ${{ github.repository }}-${{ github.ref }}-${{ github.head_ref }}-${{ github.workflow }}
   cancel-in-progress: true
 jobs:
+  native-mps:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install native test dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libopenblas-dev nlohmann-json3-dev
+      - name: Configure native MPS tests
+        run: cmake -S test/native -B build/native -DCMAKE_BUILD_TYPE=Release
+      - name: Build native MPS tests
+        run: cmake --build build/native --target aer_mps_pauli_regression --parallel 2
+      - name: Run native MPS tests
+        run: ctest --test-dir build/native -R '^aer_mps_pauli_' --output-on-failure
   lint:
     runs-on: ubuntu-latest
     env:
