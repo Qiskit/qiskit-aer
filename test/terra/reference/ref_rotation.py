@@ -771,6 +771,40 @@ def rotation_circuit(gate, theta, measure=True):
     return circuit
 
 
+def clifford_rotation_basis_circuits(gate):
+    """Circuits applying ``gate`` at Clifford angles, measured in several bases."""
+    num_qubits = _GATE_NUM_QUBITS[gate]
+    # Rotating by ``+k*pi/2`` and by ``-k*pi/2`` differs only by a phase, so
+    # measuring immediately after the rotation cannot tell the two apart. Each
+    # angle is therefore followed by one of several Clifford layers that map
+    # different relative phases onto populations, so that between them the
+    # outcome distributions pin down the rotation including the sign of its angle.
+    preps = [[], [("h", 0)], [("h", 0), ("s", 0)], [("h", 0), ("s", 0), ("h", 0)]]
+    tails = [[], [("h", 0)], [("sdg", 0), ("h", 0)]]
+    circuits = []
+    for multiple in CLIFFORD_MULTIPLES:
+        for prep_index, prep in enumerate(preps):
+            for tail_index, tail in enumerate(tails):
+                circuit = QuantumCircuit(
+                    num_qubits,
+                    num_qubits,
+                    name=f"{gate}({multiple}*pi/2) prep{prep_index} tail{tail_index}",
+                )
+                for name, qubit in prep:
+                    getattr(circuit, name)(qubit)
+                # Put the spectator qubit in a general Clifford state too.
+                for qubit in range(1, num_qubits):
+                    circuit.h(qubit)
+                    circuit.s(qubit)
+                    circuit.h(qubit)
+                getattr(circuit, gate)(multiple * np.pi / 2, *range(num_qubits))
+                for name, qubit in tail:
+                    getattr(circuit, name)(qubit)
+                circuit.measure(range(num_qubits), range(num_qubits))
+                circuits.append(circuit)
+    return circuits
+
+
 def clifford_rotation_statevector_circuits(gate, num_t_gates=0):
     """Circuits applying ``gate`` at Clifford angles, saving the statevector.
 

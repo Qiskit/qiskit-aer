@@ -311,13 +311,23 @@ class TestRotation(SimulatorTestCase):
             self.assertNotSuccess(result)
 
     @supported_methods(["stabilizer", "extended_stabilizer"], CLIFFORD_ROTATION_GATES)
-    def test_rotation_clifford_angle_accepted(self, method, device, gate):
-        """Test the stabilizer methods accept Clifford angles, including negative ones."""
+    def test_rotation_clifford_angle_counts(self, method, device, gate):
+        """Test counts at Clifford angles, including negative ones, against statevector."""
+        shots = 2000
+        circuits = ref_rotation.clifford_rotation_basis_circuits(gate)
         backend = self.backend(method=method, device=device, seed_simulator=self.SEED)
-        for multiple in ref_rotation.CLIFFORD_MULTIPLES:
-            circuit = ref_rotation.rotation_circuit(gate, multiple * np.pi / 2)
-            result = backend.run(circuit, shots=100).result()
-            self.assertSuccess(result)
+        reference = self.backend(method="statevector", seed_simulator=self.SEED)
+        result = backend.run(circuits, shots=shots).result()
+        self.assertSuccess(result)
+        target = reference.run(circuits, shots=shots).result()
+        self.assertSuccess(target)
+        self.compare_counts(
+            result,
+            circuits,
+            [target.get_counts(c) for c in circuits],
+            hex_counts=False,
+            delta=0.06 * shots,
+        )
 
     @data(*CLIFFORD_ROTATION_GATES)
     def test_rotation_angle_tolerance(self, gate):
