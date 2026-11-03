@@ -99,6 +99,9 @@ SUPPORTED_METHODS_RZX_CLIFFORD = [
 ]
 
 
+CLIFFORD_ROTATION_GATES = ref_rotation.CLIFFORD_ROTATION_GATES
+
+
 def _without_save_instructions(circuit):
     """Copy of ``circuit`` without save instructions."""
     reference = circuit.copy()
@@ -294,3 +297,72 @@ class TestRotation(SimulatorTestCase):
                     places=6,
                     msg=f"{circuit.name}: overlap {overlap}",
                 )
+
+    # ---------------------------------------------------------------------
+    # Non-Clifford angles
+    # ---------------------------------------------------------------------
+    @supported_methods(["stabilizer", "extended_stabilizer"], CLIFFORD_ROTATION_GATES)
+    def test_rotation_non_clifford_angle_rejected(self, method, device, gate):
+        """Test the stabilizer methods reject rotation gates at non-Clifford angles."""
+        backend = self.backend(method=method, device=device, seed_simulator=self.SEED)
+        for theta in ref_rotation.NON_CLIFFORD_ANGLES:
+            circuit = ref_rotation.rotation_circuit(gate, theta)
+            result = backend.run(circuit, shots=100).result()
+            self.assertNotSuccess(result)
+
+    @supported_methods(["stabilizer", "extended_stabilizer"], CLIFFORD_ROTATION_GATES)
+    def test_rotation_clifford_angle_accepted(self, method, device, gate):
+        """Test the stabilizer methods accept Clifford angles, including negative ones."""
+        backend = self.backend(method=method, device=device, seed_simulator=self.SEED)
+        for multiple in ref_rotation.CLIFFORD_MULTIPLES:
+            circuit = ref_rotation.rotation_circuit(gate, multiple * np.pi / 2)
+            result = backend.run(circuit, shots=100).result()
+            self.assertSuccess(result)
+
+    @data(*CLIFFORD_ROTATION_GATES)
+    def test_rotation_angle_tolerance(self, gate):
+        """Test the tolerance used to recognise an angle as a multiple of pi/2.
+
+        The angle is snapped to the nearest multiple of pi/2, so the tolerance
+        has to be tight enough that the simulated gate is still the intended
+        one, but loose enough that an angle which has accumulated some roundoff
+        on its way to the simulator is still recognised.
+        """
+        backend = self.backend(method="stabilizer", seed_simulator=self.SEED)
+        for relative_error, accepted in ref_rotation.ANGLE_TOLERANCE_CASES:
+            theta = np.pi / 2 * (1 + relative_error)
+            result = backend.run(ref_rotation.rotation_circuit(gate, theta), shots=100).result()
+            self.assertEqual(
+                result.success,
+                accepted,
+                msg=f"{gate} at pi/2*(1+{relative_error:g}): "
+                f"expected {'accept' if accepted else 'reject'}",
+            )
+
+    # ---------------------------------------------------------------------
+    # Automatic method selection
+    # ---------------------------------------------------------------------
+    @data(*CLIFFORD_ROTATION_GATES)
+    def test_rotation_automatic_method_selection(self, gate):
+        """Test automatic selects stabilizer at Clifford angles and falls back otherwise."""
+        backend = self.backend(method="automatic", seed_simulator=self.SEED)
+        for multiple in ref_rotation.CLIFFORD_MULTIPLES:
+            circuit = ref_rotation.rotation_circuit(gate, multiple * np.pi / 2)
+            result = backend.run(circuit, shots=100).result()
+            self.assertSuccess(result)
+            self.assertEqual(
+                result.results[0].metadata.get("method"),
+                "stabilizer",
+                msg=f"{gate}({multiple}*pi/2) did not select the stabilizer method",
+            )
+
+        # A non-Clifford it falls back to statevector
+        for theta in ref_rotation.NON_CLIFFORD_ANGLES:
+            circuit = ref_rotation.rotation_circuit(gate, theta)
+            result = backend.run(circuit, shots=100).result()
+            self.assertSuccess(result)
+            self.assertNotEqual(
+                result.results[0].metadata.get("method"),
+                "stabilizer",
+                msg=f"{gate}({theta}) should not select the stabilizer method",
+            )

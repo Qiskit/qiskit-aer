@@ -719,7 +719,7 @@ def rzx_gate_clifford_counts(shots, hex_counts=True):
 
 
 # ==========================================================================
-# Global phase of Clifford-angle rotations
+# Clifford-angle rotations
 # ==========================================================================
 
 # Rotation gates that the stabilizer methods support at Clifford angles, with
@@ -729,7 +729,46 @@ CLIFFORD_ROTATION_GATES = ["rz", "rx", "ry", "rzz", "rxx", "ryy", "rzx"]
 _GATE_NUM_QUBITS = {"rz": 1, "rx": 1, "ry": 1, "rzz": 2, "rxx": 2, "ryy": 2, "rzx": 2}
 
 # Multiples of pi/2 to test, covering negative angles and angles beyond 2*pi.
-_CLIFFORD_MULTIPLES = [-5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 8, 9]
+CLIFFORD_MULTIPLES = [-5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 8, 9]
+
+# Angles that are not multiples of pi/2, so not Clifford. Includes values just
+# off a Clifford angle and values near the pi/4 midpoint.
+NON_CLIFFORD_ANGLES = [
+    0.3,
+    -0.3,
+    np.pi / 3,
+    np.pi / 4,
+    -np.pi / 4,
+    3 * np.pi / 4,
+    np.pi / 2 + 0.01,
+    np.pi / 2 - 0.01,
+    2 * np.pi / 3,
+]
+
+# (relative error applied to pi/2, whether the angle should still be accepted).
+# The stabilizer methods snap the angle to the nearest multiple of pi/2, so the
+# tolerance has to reject anything far enough off to be a different gate while
+# still accepting an angle carrying a plausible amount of accumulated roundoff.
+ANGLE_TOLERANCE_CASES = [
+    (0.0, True),
+    (2 * np.finfo(float).eps, True),
+    (1e-15, True),
+    (1e-14, True),
+    (1e-12, False),
+    (1e-9, False),
+    (1e-6, False),
+]
+
+
+def rotation_circuit(gate, theta, measure=True):
+    """Single circuit applying ``gate`` at angle ``theta``."""
+    num_qubits = _GATE_NUM_QUBITS[gate]
+    circuit = QuantumCircuit(num_qubits, num_qubits, name=f"{gate}({theta:g})")
+    circuit.h(0)
+    getattr(circuit, gate)(theta, *range(num_qubits))
+    if measure:
+        circuit.measure(range(num_qubits), range(num_qubits))
+    return circuit
 
 
 def clifford_rotation_statevector_circuits(gate, num_t_gates=0):
@@ -740,7 +779,7 @@ def clifford_rotation_statevector_circuits(gate, num_t_gates=0):
     """
     num_qubits = max(_GATE_NUM_QUBITS[gate], 2 if num_t_gates else 1)
     circuits = []
-    for multiple in _CLIFFORD_MULTIPLES:
+    for multiple in CLIFFORD_MULTIPLES:
         name = f"{gate}({multiple}*pi/2)"
         if num_t_gates:
             name += f" after {num_t_gates}t"

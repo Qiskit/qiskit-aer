@@ -1,0 +1,16 @@
+---
+upgrade:
+  - |
+    The ``stabilizer`` and ``extended_stabilizer`` simulation methods now use a
+    tolerance of ``1e-14``, relative as well as absolute, when deciding whether
+    a rotation angle is an integer multiple of ``pi/2``. Previously the
+    tolerance was a single double precision epsilon (about ``2.2e-16``), which
+    an angle only stays within for a couple of floating point operations. The
+    new value leaves room for an angle that has accumulated roundoff on its way
+    to the simulator, for instance through unit conversion or parameter
+    binding, while still being far tighter than any physically meaningful
+    scale.
+
+    An angle outside the tolerance is still rejected. Note that with
+    ``method="automatic"`` such a circuit does not fail, it simply does not
+    select a stabilizer method.

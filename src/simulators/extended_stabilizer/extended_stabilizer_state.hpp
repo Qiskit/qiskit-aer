@@ -366,22 +366,7 @@ bool State::check_measurement_opt(InputIterator first,
 }
 
 bool State::validate_parameters(const std::vector<Operations::Op> &ops) const {
-  for (uint_t i = 0; i < ops.size(); i++) {
-    if (ops[i].type == OpType::gate) {
-      // check parameter of rotation gates: only k * pi/2 angles are Clifford
-      const auto &name = ops[i].name;
-      if (name == "rz" || name == "rx" || name == "ry" || name == "rzz" ||
-          name == "rxx" || name == "ryy" || name == "rzx") {
-        double pi2 = std::real(ops[i].params[0]) * 2.0 / M_PI;
-        double pi2_int = (double)std::round(pi2);
-
-        if (!AER::Linalg::almost_equal(pi2, pi2_int)) {
-          return false;
-        }
-      }
-    }
-  }
-  return true;
+  return QuantumState::validate_clifford_angles(ops);
 }
 
 //-------------------------------------------------------------------------
