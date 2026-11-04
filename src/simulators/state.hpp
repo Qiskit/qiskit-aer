@@ -39,9 +39,6 @@ namespace QuantumState {
 const stringset_t clifford_rotation_gates = {"rz",  "rx",  "ry", "rzz",
                                              "rxx", "ryy", "rzx"};
 
-// Tolerance for recognising an angle as an integer multiple of pi/2.
-constexpr double clifford_angle_tolerance = 1e-14;
-
 // Return true unless some op is a Pauli rotation at a non-Clifford angle.
 inline bool validate_clifford_angles(const std::vector<Operations::Op> &ops) {
   for (const auto &op : ops) {
@@ -51,9 +48,7 @@ inline bool validate_clifford_angles(const std::vector<Operations::Op> &ops) {
       continue;
     }
     const double pi2 = std::real(op.params[0]) * 2.0 / M_PI;
-    if (!Linalg::almost_equal(pi2, (double)std::round(pi2),
-                              clifford_angle_tolerance,
-                              clifford_angle_tolerance)) {
+    if (!Linalg::almost_equal(pi2, (double)std::round(pi2))) {
       return false;
     }
   }

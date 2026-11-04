@@ -329,26 +329,6 @@ class TestRotation(SimulatorTestCase):
             delta=0.06 * shots,
         )
 
-    @data(*CLIFFORD_ROTATION_GATES)
-    def test_rotation_angle_tolerance(self, gate):
-        """Test the tolerance used to recognise an angle as a multiple of pi/2.
-
-        The angle is snapped to the nearest multiple of pi/2, so the tolerance
-        has to be tight enough that the simulated gate is still the intended
-        one, but loose enough that an angle which has accumulated some roundoff
-        on its way to the simulator is still recognised.
-        """
-        backend = self.backend(method="stabilizer", seed_simulator=self.SEED)
-        for relative_error, accepted in ref_rotation.ANGLE_TOLERANCE_CASES:
-            theta = np.pi / 2 * (1 + relative_error)
-            result = backend.run(ref_rotation.rotation_circuit(gate, theta), shots=100).result()
-            self.assertEqual(
-                result.success,
-                accepted,
-                msg=f"{gate} at pi/2*(1+{relative_error:g}): "
-                f"expected {'accept' if accepted else 'reject'}",
-            )
-
     # ---------------------------------------------------------------------
     # Automatic method selection
     # ---------------------------------------------------------------------

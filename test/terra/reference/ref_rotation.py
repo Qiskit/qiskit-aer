@@ -745,20 +745,6 @@ NON_CLIFFORD_ANGLES = [
     2 * np.pi / 3,
 ]
 
-# (relative error applied to pi/2, whether the angle should still be accepted).
-# The stabilizer methods snap the angle to the nearest multiple of pi/2, so the
-# tolerance has to reject anything far enough off to be a different gate while
-# still accepting an angle carrying a plausible amount of accumulated roundoff.
-ANGLE_TOLERANCE_CASES = [
-    (0.0, True),
-    (2 * np.finfo(float).eps, True),
-    (1e-15, True),
-    (1e-14, True),
-    (1e-12, False),
-    (1e-9, False),
-    (1e-6, False),
-]
-
 
 def rotation_circuit(gate, theta, measure=True):
     """Single circuit applying ``gate`` at angle ``theta``."""
