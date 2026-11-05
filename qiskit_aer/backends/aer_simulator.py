@@ -960,6 +960,9 @@ class AerSimulator(AerBackend):
         config_gates = self._configuration.basis_gates
         if config_gates:
             basis_gates = set(config_gates).intersection(method_gates)
+            # Preserve measure_* variants (e.g. measure_2) — they are always
+            # valid but never appear in the static _BASIS_GATES tables.
+            basis_gates.update(g for g in config_gates if g.startswith("measure_"))
         else:
             basis_gates = method_gates
 
@@ -1022,5 +1025,7 @@ class AerSimulator(AerBackend):
         # check if basis_gates contains non-supported gates
         if method != "automatic":
             for gate in basis_gates:
+                if gate.startswith("measure_"):
+                    continue
                 if gate not in self._BASIS_GATES[method]:
                     raise AerError(f"Invalid gate {gate} for simulation method {method}.")

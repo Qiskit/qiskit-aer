@@ -516,7 +516,7 @@ def target_to_backend_properties(target: Target):
     gates = []
     qubits = []
     for gate, qargs_list in target.items():
-        if gate != "measure":
+        if gate != "measure" and not gate.startswith("measure_"):
             for qargs, props in qargs_list.items():
                 property_list = []
                 if getattr(props, "duration", None) is not None:
