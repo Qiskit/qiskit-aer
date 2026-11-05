@@ -1,0 +1,12 @@
+---
+fixes:
+  - |
+    Fixed LAPACK singular-value decomposition in the matrix product state
+    simulator, including the real workspace required by Intel MKL's ``ZGESDD``
+    and signed 32-bit integers for the LP64 LAPACK interface. Workspace-query
+    errors are checked before using returned factors, and temporary buffers
+    are released on exceptions. Positive ``ZGESDD`` nonconvergence on finite
+    input is retried once with ``ZGESVD`` using the original matrix; recovered
+    factors must pass reconstruction, orthogonality and singular-value checks.
+    The driver-selection boundary and truncation settings are unchanged.
+    No changes to user code are required.
