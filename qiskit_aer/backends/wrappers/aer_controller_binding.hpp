@@ -117,6 +117,8 @@ void bind_aer_controller(MODULE m) {
   aer_config.def_readwrite("zero_threshold", &Config::zero_threshold);
   aer_config.def_readwrite("validation_threshold",
                            &Config::validation_threshold);
+  aer_config.def_readwrite("clifford_angle_tolerance",
+                           &Config::clifford_angle_tolerance);
   aer_config.def_property(
       "max_parallel_threads",
       [](const Config &config) { return config.max_parallel_threads.val; },
@@ -518,11 +520,14 @@ void bind_aer_controller(MODULE m) {
             write_value(80, config.shot_branching_enable),
             write_value(81, config.shot_branching_sampling_enable),
             write_value(82, config.target_gpus),
-            write_value(83, config.runtime_parameter_bind_enable));
+            write_value(83, config.runtime_parameter_bind_enable),
+            write_value(84, config.clifford_angle_tolerance));
+        // New entries must be appended here rather than inserted next to
+        // related options, since these indices are positional.
       },
       [](py::tuple t) {
         AER::Config config;
-        if (t.size() != 84)
+        if (t.size() != 85)
           throw std::runtime_error("Invalid serialization format.");
 
         read_value(t, 0, config.shots);
@@ -614,6 +619,7 @@ void bind_aer_controller(MODULE m) {
         read_value(t, 81, config.shot_branching_sampling_enable);
         read_value(t, 82, config.target_gpus);
         read_value(t, 83, config.runtime_parameter_bind_enable);
+        read_value(t, 84, config.clifford_angle_tolerance);
         return config;
       }));
 }
