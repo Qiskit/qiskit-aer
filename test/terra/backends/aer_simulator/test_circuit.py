@@ -18,7 +18,7 @@ from ddt import ddt
 import numpy as np
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
 from qiskit.circuit.gate import Gate
-from qiskit.circuit.library.standard_gates import HGate, XGate, ZGate
+from qiskit.circuit.library.standard_gates import HGate, SwapGate, XGate, ZGate
 from qiskit.quantum_info import Statevector
 
 from test.terra.backends.simulator_test_case import SimulatorTestCase, supported_methods
@@ -280,6 +280,18 @@ class TestVariousCircuit(SimulatorTestCase):
         circuit.x(1)
         circuit.x(2)
         circuit.compose(cccz, range(num_qubits), inplace=True)
+        job = backend.run(circuit)
+        state = job.result().get_statevector()
+        ref_state = Statevector(circuit)
+        self.assertEqual(state, ref_state)
+
+        # gates with more than one target qubit (issue #2342)
+        num_qubits = 3
+        circuit = QuantumCircuit(num_qubits)
+        circuit.h(0)
+        circuit.h(1)
+        cswap = SwapGate().control(num_ctrl_qubits=1, label=None, ctrl_state=0)
+        circuit.compose(cswap, range(num_qubits), inplace=True)
         job = backend.run(circuit)
         state = job.result().get_statevector()
         ref_state = Statevector(circuit)
