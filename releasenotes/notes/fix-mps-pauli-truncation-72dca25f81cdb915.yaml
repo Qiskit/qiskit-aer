@@ -1,0 +1,10 @@
+---
+fixes:
+  - |
+    Fixed Pauli expectation values on subsets of qubits when using the
+    ``matrix_product_state`` simulation method after bond-dimension truncation.
+    The calculation now uses the environments of the retained MPS tensors.
+    Also fixed the diagonal-matrix layout when permuting multi-qubit diagonal
+    gates in this method.
+    Per-instance bond-dimension and truncation settings are preserved when
+    copying an MPS and when exporting its tensors before reinitialization.

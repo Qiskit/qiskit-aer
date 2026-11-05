@@ -370,6 +370,7 @@ bool is_ordered(const reg_t &qubits) {
 //------------------------------------------------------------------------
 
 void MPS::initialize(uint_t num_qubits) {
+  invalidate_pauli_environments();
   num_qubits_ = num_qubits;
   q_reg_.clear();
   lambda_reg_.clear();
@@ -395,11 +396,16 @@ void MPS::initialize(uint_t num_qubits) {
 
 void MPS::initialize(const MPS &other) {
   if (this != &other) {
+    invalidate_pauli_environments();
     num_qubits_ = other.num_qubits_;
+    max_bond_dimension_ = other.max_bond_dimension_;
+    truncation_threshold_ = other.truncation_threshold_;
     q_reg_ = other.q_reg_;
     lambda_reg_ = other.lambda_reg_;
     qubit_ordering_.order_ = other.qubit_ordering_.order_;
     qubit_ordering_.location_ = other.qubit_ordering_.location_;
+    std::atomic_store(&pauli_environments_,
+                      std::atomic_load(&other.pauli_environments_));
   }
 }
 
@@ -618,6 +624,7 @@ void MPS::apply_2_qubit_gate(uint_t index_A, uint_t index_B, Gates gate_type,
 void MPS::common_apply_2_qubit_gate(
     uint_t A, // the gate is applied to A and A+1
     Gates gate_type, const cmatrix_t &mat, bool swapped, bool is_diagonal) {
+  invalidate_pauli_environments();
   // After we moved the qubits as necessary,
   // the operation is always between qubits A and A+1
 
@@ -682,6 +689,7 @@ void MPS::common_apply_2_qubit_gate(
 
 void MPS::apply_3_qubit_gate(const reg_t &qubits, Gates gate_type,
                              const cmatrix_t &mat, bool is_diagonal) {
+  invalidate_pauli_environments();
   if (qubits.size() != 3) {
     std::stringstream ss;
     ss << "error: apply_3_qubit gate must receive 3 qubits";
@@ -758,6 +766,7 @@ void MPS::apply_matrix(const reg_t &qubits, const cmatrix_t &mat,
 
 void MPS::apply_matrix_internal(const reg_t &qubits, const cmatrix_t &mat,
                                 bool is_diagonal) {
+  invalidate_pauli_environments();
   switch (qubits.size()) {
   case 1:
     q_reg_[qubits[0]].apply_matrix(mat, is_diagonal);
@@ -790,13 +799,18 @@ void MPS::apply_multi_qubit_gate(const reg_t &qubits, const cmatrix_t &mat,
   // change qubit order in the matrix - instead of doing swaps on the qubits
   uint_t nqubits = qubits.size();
   uint_t sidelen = 1 << nqubits;
-  cmatrix_t new_mat(sidelen, sidelen);
-  for (uint_t col = 0; col < sidelen; ++col) {
-    for (uint_t row = 0; row < sidelen; ++row) {
-      if (row == col)
-        new_mat(new_vec[row], new_vec[row]) = mat(row, row);
-      else
-        new_mat(new_vec[row], new_vec[col]) = mat(row, col);
+  cmatrix_t new_mat(is_diagonal ? 1 : sidelen, sidelen);
+  if (is_diagonal) {
+    for (uint_t row = 0; row < sidelen; ++row)
+      new_mat(0, new_vec[row]) = mat(0, row);
+  } else {
+    for (uint_t col = 0; col < sidelen; ++col) {
+      for (uint_t row = 0; row < sidelen; ++row) {
+        if (row == col)
+          new_mat(new_vec[row], new_vec[row]) = mat(row, row);
+        else
+          new_mat(new_vec[row], new_vec[col]) = mat(row, col);
+      }
     }
   }
 
@@ -817,6 +831,7 @@ void MPS::apply_unordered_multi_qubit_gate(const reg_t &qubits,
 void MPS::apply_matrix_to_target_qubits(const reg_t &target_qubits,
                                         const cmatrix_t &mat,
                                         bool is_diagonal) {
+  invalidate_pauli_environments();
   uint_t num_qubits = target_qubits.size();
   uint_t first = target_qubits.front();
   MPS_Tensor sub_tensor(state_vec_as_MPS(first, first + num_qubits - 1));
@@ -1123,23 +1138,62 @@ double MPS::expectation_value_internal(const reg_t &qubits,
 //            a2\o--a3--o--
 //---------------------------------------------------------------
 
+std::shared_ptr<const MPS::PauliEnvironments>
+MPS::get_pauli_environments() const {
+  auto existing = std::atomic_load(&pauli_environments_);
+  if (existing)
+    return existing;
+
+  auto environments = std::make_shared<PauliEnvironments>();
+  environments->left.resize(num_qubits_ + 1);
+  environments->right.resize(num_qubits_ + 1);
+  environments->left[0] = cmatrix_t(1, 1);
+  environments->left[0](0, 0) = 1;
+  environments->right[num_qubits_] = cmatrix_t(1, 1);
+  environments->right[num_qubits_](0, 0) = 1;
+
+  // A site carries its left lambda, so each bond appears once on each chain.
+  for (uint_t site = 0; site < num_qubits_; ++site) {
+    MPS_Tensor tensor = q_reg_[site];
+    if (site > 0)
+      tensor.mul_Gamma_by_left_Lambda(lambda_reg_[site - 1]);
+    MPS_Tensor dagger(AER::Utils::dagger(tensor.get_data(0)),
+                      AER::Utils::dagger(tensor.get_data(1)));
+    MPS_Tensor weighted(environments->left[site] * tensor.get_data(0),
+                        environments->left[site] * tensor.get_data(1));
+    MPS_Tensor::contract_2_dimensions(dagger, weighted, omp_threads_,
+                                    environments->left[site + 1]);
+  }
+  for (uint_t site = num_qubits_; site-- > 0;) {
+    MPS_Tensor tensor = q_reg_[site];
+    if (site > 0)
+      tensor.mul_Gamma_by_left_Lambda(lambda_reg_[site - 1]);
+    MPS_Tensor dagger(AER::Utils::dagger(tensor.get_data(0)),
+                      AER::Utils::dagger(tensor.get_data(1)));
+    MPS_Tensor weighted(tensor.get_data(0) * environments->right[site + 1],
+                        tensor.get_data(1) * environments->right[site + 1]);
+    MPS_Tensor::contract_2_dimensions(weighted, dagger, omp_threads_,
+                                    environments->right[site]);
+  }
+
+  // Const readers may build concurrently, but only immutable data is shared.
+  std::shared_ptr<const PauliEnvironments> completed = environments;
+  if (std::atomic_compare_exchange_strong(&pauli_environments_, &existing,
+                                         completed))
+    return completed;
+  return existing;
+}
+
 complex_t MPS::expectation_value_pauli(const reg_t &qubits,
                                        const std::string &matrices) const {
   reg_t internal_qubits = get_internal_qubits(qubits);
 
-  // instead of computing the expectation value on the specified qubits,
-  // we find the min and max of these qubits, and compute the expectation value
-  // on all the qubits in between, inserting I matrices for those qubits
-  // that were not in the original vector "qubits".
-  // This enhancement was done for performance reasons
+  // Truncation can invalidate canonical exterior environments. Contract the
+  // requested interval against actual environments of the retained MPS.
   reg_t extended_qubits = internal_qubits;
 
-  const auto min =
-      std::min_element(begin(internal_qubits), end(internal_qubits));
-  const auto max =
-      std::max_element(begin(internal_qubits), end(internal_qubits));
-  uint_t min_qubit = *min;
-  uint_t max_qubit = *max;
+  uint_t min_qubit = *std::min_element(internal_qubits.begin(), internal_qubits.end());
+  uint_t max_qubit = *std::max_element(internal_qubits.begin(), internal_qubits.end());
 
   // The number of qubits added  to extended_qubits
   uint_t num_Is = 0;
@@ -1155,15 +1209,23 @@ complex_t MPS::expectation_value_pauli(const reg_t &qubits,
     }
   }
 
+  if (min_qubit == 0 && max_qubit == num_qubits_ - 1)
+    return expectation_value_pauli_internal(extended_qubits, matrices, min_qubit,
+                                            max_qubit, num_Is);
+  const auto environments = get_pauli_environments();
   return expectation_value_pauli_internal(extended_qubits, matrices, min_qubit,
-                                          max_qubit, num_Is);
+                                          max_qubit, num_Is,
+                                          &environments->left[min_qubit],
+                                          &environments->right[max_qubit + 1]);
 }
 
 complex_t MPS::expectation_value_pauli_internal(const reg_t &qubits,
                                                 const std::string &matrices,
                                                 uint_t first_index,
                                                 uint_t last_index,
-                                                uint_t num_Is) const {
+                                                uint_t num_Is,
+                                                const cmatrix_t *left_environment,
+                                                const cmatrix_t *right_environment) const {
   // when computing the expectation value. We only have to sort the pauli
   // matrices to be in the same ordering as the qubits
 
@@ -1189,7 +1251,7 @@ complex_t MPS::expectation_value_pauli_internal(const reg_t &qubits,
   // Here we handle the special case that we are calculating exp val
   // on a single qubit
   // we need to mul every gamma by its right lambda
-  if (first_index == last_index && first_index < num_qubits_ - 1) {
+  if (!right_environment && first_index == last_index && first_index < num_qubits_ - 1) {
     left_tensor.mul_Gamma_by_right_Lambda(lambda_reg_[first_index]);
   }
 
@@ -1203,8 +1265,15 @@ complex_t MPS::expectation_value_pauli_internal(const reg_t &qubits,
   // Before contraction, Gamma0' has size a1 x a0 x i, Gamma0 has size i x a0 x
   // a1 result = left_contract is a matrix of size a1 x a1
   cmatrix_t final_contract;
-  MPS_Tensor::contract_2_dimensions(left_tensor_dagger, left_tensor,
-                                    omp_threads_, final_contract);
+  if (left_environment && first_index > 0) {
+    MPS_Tensor weighted(*left_environment * left_tensor.get_data(0),
+                        *left_environment * left_tensor.get_data(1));
+    MPS_Tensor::contract_2_dimensions(left_tensor_dagger, weighted,
+                                      omp_threads_, final_contract);
+  } else {
+    MPS_Tensor::contract_2_dimensions(left_tensor_dagger, left_tensor,
+                                      omp_threads_, final_contract);
+  }
   for (uint_t qubit_num = first_index + 1; qubit_num <= last_index;
        qubit_num++) {
     // Step 5 - multiply next Gamma by its left lambda (same as Step 1)
@@ -1213,7 +1282,7 @@ complex_t MPS::expectation_value_pauli_internal(const reg_t &qubits,
     next_gamma.mul_Gamma_by_left_Lambda(lambda_reg_[qubit_num - 1]);
 
     // Last qubit must be multiplied by rightmost lambda
-    if (qubit_num == last_index && qubit_num < num_qubits_ - 1)
+    if (!right_environment && qubit_num == last_index && qubit_num < num_qubits_ - 1)
       next_gamma.mul_Gamma_by_right_Lambda(lambda_reg_[qubit_num]);
 
     // Step 6 - prepare the dagger of the next gamma (same as Step 2)
@@ -1242,6 +1311,13 @@ complex_t MPS::expectation_value_pauli_internal(const reg_t &qubits,
   // Step 10 - contract over final matrix of size aN x aN
   // We need to contract the final matrix with itself
   // Compute this by taking the trace of final_contract
+  if (right_environment) {
+    complex_t result = 0;
+    for (uint_t row = 0; row < final_contract.GetRows(); ++row)
+      for (uint_t column = 0; column < final_contract.GetColumns(); ++column)
+        result += final_contract(row, column) * (*right_environment)(column, row);
+    return result;
+  }
   complex_t result = AER::Utils::trace(final_contract);
   return result;
 }
@@ -1754,6 +1830,7 @@ void MPS::initialize_from_statevector_internal(const reg_t &qubits,
 }
 
 void MPS::initialize_from_matrix(uint_t num_qubits, const cmatrix_t &mat) {
+  invalidate_pauli_environments();
   if (!q_reg_.empty())
     q_reg_.clear();
   if (!lambda_reg_.empty())
@@ -1846,6 +1923,7 @@ void MPS::initialize_from_matrix(uint_t num_qubits, const cmatrix_t &mat) {
 void MPS::initialize_component_internal(const reg_t &qubits,
                                         const cvector_t &statevector,
                                         RngEngine &rng) {
+  invalidate_pauli_environments();
   uint_t num_qubits = qubits.size();
   uint_t num_amplitudes = statevector.size();
   reg_t new_qubits(num_qubits);
@@ -1895,6 +1973,7 @@ void MPS::reset_internal(const reg_t &qubits, RngEngine &rng) {
 
 void MPS::measure_reset_update_internal(const reg_t &qubits,
                                         const reg_t &meas_state) {
+  invalidate_pauli_environments();
   for (uint_t i = 0; i < qubits.size(); i++) {
     if (meas_state[i] != 0) {
       q_reg_[qubits[i]].apply_x();
@@ -1916,6 +1995,7 @@ mps_container_t MPS::copy_to_mps_container() {
 }
 
 mps_container_t MPS::move_to_mps_container() {
+  invalidate_pauli_environments();
   move_all_qubits_to_sorted_ordering();
   mps_container_t ret;
   for (uint_t i = 0; i < num_qubits(); i++) {
@@ -1926,11 +2006,13 @@ mps_container_t MPS::move_to_mps_container() {
   for (uint_t i = 0; i < num_qubits() - 1; i++) {
     ret.second.push_back(std::move(lambda_reg_[i]));
   }
-  initialize(MPS());
+  // Clear the moved payload without resetting the configured instance settings.
+  initialize(0);
   return ret;
 }
 
 void MPS::initialize_from_mps(const mps_container_t &mps) {
+  invalidate_pauli_environments();
 
   uint_t num_qubits = mps.first.size();
   // clear and restart all internal structures
