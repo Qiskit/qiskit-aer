@@ -14,9 +14,10 @@ AerSimulator Integration Tests
 """
 
 import itertools
+import numpy as np
 from ddt import ddt
 
-from qiskit import transpile, QuantumCircuit
+from qiskit import QuantumCircuit
 from qiskit.quantum_info.random import random_unitary
 from qiskit.quantum_info import Statevector
 
@@ -100,3 +101,38 @@ class TestUnitaryGates(SimulatorTestCase):
         result = backend.run(circuits, shots=shots).result()
         self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0)
+
+    @supported_methods(METHODS)
+    def test_diagonal_matrix_imaginary_fast_path(self, method, device):
+        """Test 1-qubit diagonal matrices with ±i in fast paths. Regression test for #2475."""
+        backend = self.backend(method=method, device=device)
+        for diag_vals in ([1j, 1], [-1j, 1], [1, 1j], [1, -1j]):
+            mat = np.diag(diag_vals)
+            qc = QuantumCircuit(1)
+            qc.h(0)
+            qc.unitary(mat, [0])
+            qc.save_statevector()
+            exact = Statevector(qc).data
+            res = backend.run(qc).result()
+            self.assertSuccess(res)
+            sv = res.get_statevector()
+            np.testing.assert_allclose(sv, exact, atol=1e-10)
+
+    @supported_methods(["statevector", "unitary"])
+    def test_gate_fusion_diagonal_matrix_imaginary(self, method, device):
+        """Test gate fusion with gates multiplying into diag(i, 1). Regression test for #2475."""
+        backend = self.backend(method=method, device=device, fusion_enable=True)
+        n = 15
+        qc = QuantumCircuit(n)
+        qc.h(range(n))
+        qc.cz(0, 1)
+        qc.y(1)
+        qc.x(1)
+        qc.s(1)
+        exact = Statevector(qc).data
+        qc.save_statevector()
+        res = backend.run(qc).result()
+        self.assertSuccess(res)
+        sv = res.get_statevector()
+        fidelity = abs(np.vdot(exact, np.asarray(sv))) ** 2
+        self.assertAlmostEqual(fidelity, 1.0, places=10)
