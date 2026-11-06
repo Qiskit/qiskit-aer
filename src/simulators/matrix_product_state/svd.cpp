@@ -32,7 +32,8 @@ namespace AER {
 constexpr auto mul_factor = 1e2;
 constexpr long double tiny_factor = 1e30;
 constexpr auto zero_threshold = 1e-50; // threshold for comparing FP values
-constexpr auto THRESHOLD = 1e-9; // threshold for cutting values in reduce_zeros
+// threshold for reduce_zeros truncation and SVD validation
+constexpr auto THRESHOLD = 1e-9;
 constexpr auto NUM_SVD_TRIES = 15;
 
 cmatrix_t diag(rvector_t S, uint_t m, uint_t n);
@@ -143,24 +144,12 @@ double reduce_zeros(cmatrix_t &U, rvector_t &S, cmatrix_t &V,
   return discarded_value;
 }
 
-void validate_SVdD_result(const cmatrix_t &A, const cmatrix_t &U,
-                          const rvector_t &S, const cmatrix_t &V) {
-  const uint_t nrows = A.GetRows(), ncols = A.GetColumns();
-
-  cmatrix_t diag_S = diag(S, nrows, ncols);
-  cmatrix_t product = U * diag_S;
-  product = product * V;
-
-  for (uint_t ii = 0; ii < nrows; ii++)
-    for (uint_t jj = 0; jj < ncols; jj++)
-      if (!Linalg::almost_equal(std::abs(A(ii, jj)), std::abs(product(ii, jj)),
-                                THRESHOLD)) {
-        std::cout << std::abs(A(ii, jj)) << " vs " << std::abs(product(ii, jj))
-                  << std::endl;
-        throw std::runtime_error("Error: Wrong SVD calculations: A != USV*");
-      }
-}
-
+// Validates A == U * diag(S) * V^H where V is the standard (non-dagger) form
+// returned by the internal csvd() routine.
+// In DEBUG builds a mismatch throws; in production it emits a warning to
+// stderr instead.  Some BLAS/LAPACK implementations (OpenBLAS 0.3.15 on RHEL,
+// MKL) produce SVD reconstitution residuals that exceed the 1e-9 threshold on
+// large circuits -- throwing there causes a false-positive crash (issue #2386).
 void validate_SVD_result(const cmatrix_t &A, const cmatrix_t &U,
                          const rvector_t &S, const cmatrix_t &V) {
   const uint_t nrows = A.GetRows(), ncols = A.GetColumns();
@@ -172,8 +161,30 @@ void validate_SVD_result(const cmatrix_t &A, const cmatrix_t &U,
     for (uint_t jj = 0; jj < ncols; jj++)
       if (!Linalg::almost_equal(std::abs(A(ii, jj)), std::abs(product(ii, jj)),
                                 THRESHOLD)) {
+#ifdef DEBUG
+        std::cout << std::abs(A(ii, jj)) << " vs " << std::abs(product(ii, jj))
+                  << std::endl;
         throw std::runtime_error("Error: Wrong SVD calculations: A != USV*");
+#else
+        std::cerr << "WARNING: SVD numerical check failed at (" << ii << ","
+                  << jj << "): |A|=" << std::abs(A(ii, jj))
+                  << " |USV*|=" << std::abs(product(ii, jj))
+                  << " (diff exceeds " << THRESHOLD
+                  << "). This may indicate a BLAS/LAPACK accuracy issue "
+                  << "(e.g. OpenBLAS < 0.3.26 or MKL, issue #2386)."
+                  << std::endl;
+        return;
+#endif
       }
+}
+
+// Validates A == U * diag(S) * Vh where Vh is already the conjugate-transpose
+// of V, as returned directly by LAPACK (zgesvd_/zgesdd_ with jobvt="A").
+void validate_SVdD_result(const cmatrix_t &A, const cmatrix_t &U,
+                          const rvector_t &S, const cmatrix_t &Vh) {
+  // LAPACK returns Vh = V^H directly; csvd() returns V, so taking dagger here
+  // lets us reuse the same validation logic.
+  validate_SVD_result(A, U, S, AER::Utils::dagger(Vh));
 }
 
 // added cut-off at the end
@@ -594,12 +605,19 @@ void qiskit_csvd_wrapper(cmatrix_t &A, cmatrix_t &U, rvector_t &S,
     S[k] /= pow(mul_factor, times);
 }
 
+// Known BLAS/LAPACK implementations that may produce SVD reconstitution
+// residuals exceeding the 1e-9 threshold used by validate_SVdD_result:
+//   - OpenBLAS 0.3.15 (shipped by RHEL 8/9)
+//   - Intel MKL (reported in issue #2386)
+// In DEBUG builds validate_SVdD_result throws on mismatch (useful for
+// catching genuine numerical regressions).  In production it warns to stderr
+// so that circuits continue to run even when the underlying BLAS/LAPACK is
+// slightly imprecise.
 void lapack_csvd_wrapper(cmatrix_t &A, cmatrix_t &U, rvector_t &S,
                          cmatrix_t &V) {
-  // Activated by default as requested in the PR
-  // #ifdef DEBUG
+  // tempA is needed both in DEBUG (to pass original A to validate_SVdD_result)
+  // and in production (same reason -- we warn but still need the original).
   cmatrix_t tempA = A;
-  // #endif
 
   const size_t m = A.GetRows(), n = A.GetColumns();
   const size_t min_dim = std::min(m, n);
@@ -652,10 +670,7 @@ void lapack_csvd_wrapper(cmatrix_t &A, cmatrix_t &U, rvector_t &S,
   for (size_t i = 0; i < min_dim; i++)
     S.push_back(lapackS[i]);
 
-  // Activated by default as requested in the PR
-  // #ifdef DEBUG
   validate_SVdD_result(tempA, U, S, V);
-  // #endif
 
   delete[] lapackS;
   delete[] work;
