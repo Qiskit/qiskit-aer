@@ -60,6 +60,9 @@ public:
   // Initialize the memory and register bits to default values (all 0)
   void initialize(size_t num_memory, size_t num_registers);
 
+  // Reset existing memory and register bits to all 0 without reallocation
+  void reset_to_zero();
+
   // Initialize the memory and register bits to specific values
   void initialize(size_t num_memory, size_t num_registers,
                   const std::string &memory_hex,
@@ -98,9 +101,22 @@ protected:
 //============================================================================
 
 void ClassicalRegister::initialize(size_t num_memory, size_t num_register) {
+  // Reuse existing strings if possible to avoid reallocation
+  if (creg_memory_.size() != num_memory) {
+    creg_memory_.resize(num_memory);
+  }
+  if (creg_register_.size() != num_register) {
+    creg_register_.resize(num_register);
+  }
   // Set registers to the all 0 bit state
-  creg_memory_ = std::string(num_memory, '0');
-  creg_register_ = std::string(num_register, '0');
+  std::fill(creg_memory_.begin(), creg_memory_.end(), '0');
+  std::fill(creg_register_.begin(), creg_register_.end(), '0');
+}
+
+void ClassicalRegister::reset_to_zero() {
+  // Reset to all zeros without reallocation
+  std::fill(creg_memory_.begin(), creg_memory_.end(), '0');
+  std::fill(creg_register_.begin(), creg_register_.end(), '0');
 }
 
 void ClassicalRegister::initialize(size_t num_memory, size_t num_register,
@@ -124,12 +140,12 @@ void ClassicalRegister::store_measure(const reg_t &outcome, const reg_t &memory,
     if (use_mem) {
       // least significant bit first ordering
       const size_t pos = creg_memory_.size() - memory[j] - 1;
-      creg_memory_[pos] = std::to_string(outcome[j])[0]; // int->string->char
+      creg_memory_[pos] = '0' + (outcome[j] & 1); // Fast int->char conversion
     }
     if (use_reg) {
       // least significant bit first ordering
       const size_t pos = creg_register_.size() - registers[j] - 1;
-      creg_register_[pos] = std::to_string(outcome[j])[0]; // int->string->char
+      creg_register_[pos] = '0' + (outcome[j] & 1); // Fast int->char conversion
     }
   }
 }
