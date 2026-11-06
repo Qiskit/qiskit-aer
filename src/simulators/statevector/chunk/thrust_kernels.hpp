@@ -275,8 +275,9 @@ class strided_range {
 public:
   typedef typename thrust::iterator_difference<Iterator>::type difference_type;
 
-  struct stride_functor
-      : public thrust::unary_function<difference_type, difference_type> {
+  struct stride_functor {
+    typedef difference_type argument_type;
+    typedef difference_type result_type;
     difference_type stride;
 
     stride_functor(difference_type _stride) : stride(_stride) {}
@@ -327,9 +328,9 @@ protected:
 };
 
 template <typename data_t>
-struct complex_dot_scan
-    : public thrust::unary_function<thrust::complex<data_t>,
-                                    thrust::complex<data_t>> {
+struct complex_dot_scan {
+  typedef thrust::complex<data_t> argument_type;
+  typedef thrust::complex<data_t> result_type;
   __host__ __device__ thrust::complex<data_t>
   operator()(thrust::complex<data_t> x) {
     return thrust::complex<data_t>(x.real() * x.real() + x.imag() * x.imag(),
@@ -338,8 +339,9 @@ struct complex_dot_scan
 };
 
 template <typename data_t>
-struct complex_norm : public thrust::unary_function<thrust::complex<data_t>,
-                                                    thrust::complex<data_t>> {
+struct complex_norm {
+  typedef thrust::complex<data_t> argument_type;
+  typedef thrust::complex<data_t> result_type;
   __host__ __device__ thrust::complex<double>
   operator()(thrust::complex<data_t> x) {
     return thrust::complex<double>((double)x.real() * (double)x.real(),
