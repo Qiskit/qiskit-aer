@@ -45,7 +45,7 @@ DISABLE_WARNING_POP
 #define AER_CHUNK_BITS 21
 #define AER_MAX_BUFFERS 1
 #define AER_HOST_MPI_BUFFERS 2 // MPI staging: one to send, one to receive
-#define AER_DUMMY_BUFFERS 4 // reserved storage for parameters
+#define AER_DUMMY_BUFFERS 4    // reserved storage for parameters
 
 #define QV_CUDA_NUM_THREADS 1024
 #define QV_MAX_REGISTERS 10
@@ -384,8 +384,7 @@ void ChunkContainer<data_t>::UnmapChunk(Chunk<data_t> &chunk) {
 }
 
 template <typename data_t>
-bool ChunkContainer<data_t>::MapBufferChunk(Chunk<data_t> &chunk,
-                                            uint_t ibuf) {
+bool ChunkContainer<data_t>::MapBufferChunk(Chunk<data_t> &chunk, uint_t ibuf) {
   chunk.map(this->shared_from_this(), num_chunks_ + ibuf);
   return chunk.is_mapped();
 }
