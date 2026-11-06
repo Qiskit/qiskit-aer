@@ -668,7 +668,7 @@ double Executor<state_t>::expval_pauli(const reg_t &qubits,
             }
           } else if (iProc == Base::distributed_rank_) { // pair is on
                                                          // this process
-            BasePar::send_chunk(iChunk - Base::global_state_index_, pair_chunk);
+            BasePar::send_chunk(pair_chunk - Base::global_state_index_, iChunk);
           }
         }
       }
