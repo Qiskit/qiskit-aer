@@ -44,6 +44,7 @@ DISABLE_WARNING_POP
 
 #define AER_CHUNK_BITS 21
 #define AER_MAX_BUFFERS 1
+#define AER_HOST_MPI_BUFFERS 2 // MPI staging: one to send, one to receive
 #define AER_DUMMY_BUFFERS 4 // reserved storage for parameters
 
 #define QV_CUDA_NUM_THREADS 1024
@@ -219,7 +220,7 @@ public:
   size_t size_of_complex(void) { return sizeof(thrust::complex<data_t>); }
 
   bool MapChunk(Chunk<data_t> &chunk);
-  bool MapBufferChunk(Chunk<data_t> &chunk);
+  bool MapBufferChunk(Chunk<data_t> &chunk, uint_t ibuf = 0);
   void UnmapChunk(Chunk<data_t> &chunk);
   void UnmapBuffer(Chunk<data_t> &chunk);
   void unmap_all(void);
@@ -383,8 +384,9 @@ void ChunkContainer<data_t>::UnmapChunk(Chunk<data_t> &chunk) {
 }
 
 template <typename data_t>
-bool ChunkContainer<data_t>::MapBufferChunk(Chunk<data_t> &chunk) {
-  chunk.map(this->shared_from_this(), num_chunks_);
+bool ChunkContainer<data_t>::MapBufferChunk(Chunk<data_t> &chunk,
+                                            uint_t ibuf) {
+  chunk.map(this->shared_from_this(), num_chunks_ + ibuf);
   return chunk.is_mapped();
 }
 

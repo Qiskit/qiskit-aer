@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    Fixed wrong statevectors, and a ``cudaErrorIllegalAddress`` abort with
+    cuStateVec, in GPU builds with ``AER_MPI`` and ``AER_DISABLE_GDR`` when chunks
+    are exchanged between MPI ranks. The send and the receive of one exchange
+    shared one host buffer, a host-to-device copy could still be running when the
+    kernel that reads it started, and ``apply_multi_swaps`` ignored its chunk count.
+    See `#2524 <https://github.com/Qiskit/qiskit-aer/issues/2524>`__.
