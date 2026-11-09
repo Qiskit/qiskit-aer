@@ -20,7 +20,7 @@ pull_request_rules:
         name: automerge
   - name: backport
     conditions:
-      - label=stable backport potential
+      - label=stable-backport-potential
     actions:
       backport:
         branches:
