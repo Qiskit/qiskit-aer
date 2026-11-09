@@ -1,0 +1,10 @@
+---
+fixes:
+  - |
+    Fixed the global phase that the ``extended_stabilizer`` simulation method
+    reports for rotation gates at Clifford angles. These gates are implemented
+    by Clifford circuits that reproduce the gate only up to a phase, and that
+    phase was either missing or applied the wrong number of times, so
+    ``save_statevector`` could return a state whose global phase disagreed with
+    the ``statevector`` method. Sampling and measurement results were not
+    affected.
