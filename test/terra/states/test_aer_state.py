@@ -19,7 +19,7 @@ import numpy as np
 
 from qiskit.circuit import QuantumCircuit, Gate
 from qiskit.quantum_info.random import random_unitary
-from qiskit.quantum_info import random_statevector, random_density_matrix
+from qiskit.quantum_info import Statevector, random_statevector, random_density_matrix
 from qiskit.circuit.library import DiagonalGate
 
 from qiskit_aer import AerSimulator
@@ -397,6 +397,48 @@ class TestAerState(common.QiskitAerTestCase):
 
         for i, amp in enumerate(actual):
             self.assertAlmostEqual(expected[i], amp)
+
+    def test_diagonal_fusion_at_end_of_buffer(self):
+        """Test diagonal fusion when the final buffered operation is diagonal."""
+        initial = Statevector.from_label("+++")
+        diagonals = [
+            ([2], [1, 1j]),
+            ([0], [1, -1]),
+            ([1], [1, np.exp(1j * pi / 3)]),
+            ([2, 0], [1, -1j, np.exp(1j * pi / 5), -1]),
+        ]
+        expected = initial
+        for qubits, diagonal in diagonals:
+            expected = expected.evolve(DiagonalGate(diagonal), qargs=qubits)
+
+        for method in ("statevector", "matrix_product_state"):
+            with self.subTest(method=method):
+                state = AerState(
+                    method=method,
+                    fusion_enable=True,
+                    fusion_threshold=0,
+                    fusion_max_qubit=3,
+                    fusion_verbose=True,
+                )
+                state.allocate_qubits(3)
+                state.initialize(initial.data)
+                self.addCleanup(state.close)
+                for qubits, diagonal in diagonals:
+                    state.apply_diagonal(qubits, diagonal)
+
+                # A save or measurement in the buffer would hide the out-of-bounds
+                # lookahead reported in #2291. Flush the trailing diagonals directly.
+                state.flush()
+                result = state.last_result()
+                actual = state.move_to_ndarray()
+                self.assertTrue(result["success"])
+                fusion = result["metadata"]["fusion"]
+                self.assertTrue(fusion["enabled"])
+                self.assertTrue(fusion["applied"])
+                self.assertEqual(len(fusion["output_ops"]), 1)
+                self.assertEqual(fusion["output_ops"][0]["name"], "diagonal")
+                self.assertEqual(fusion["output_ops"][0]["qubits"], [0, 1, 2])
+                np.testing.assert_allclose(actual, expected.data, rtol=0, atol=1e-12)
 
     def test_appply_mcx(self):
         """Test applying a mcx gate"""
