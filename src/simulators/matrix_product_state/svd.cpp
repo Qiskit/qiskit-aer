@@ -144,19 +144,19 @@ double reduce_zeros(cmatrix_t &U, rvector_t &S, cmatrix_t &V,
   return discarded_value;
 }
 
-// Validates A == U * diag(S) * V^H where V is the standard (non-dagger) form
-// returned by the internal csvd() routine.
+// Validates A == U * diag(S) * Vh where Vh is already the conjugate-transpose
+// of V, as returned directly by LAPACK (zgesvd_/zgesdd_ with jobvt="A").
 // In DEBUG builds a mismatch throws; in production it emits a warning to
 // stderr instead.  Some BLAS/LAPACK implementations (OpenBLAS 0.3.15 on RHEL,
 // MKL) produce SVD reconstitution residuals that exceed the 1e-9 threshold on
 // large circuits -- throwing there causes a false-positive crash (issue #2386).
-void validate_SVD_result(const cmatrix_t &A, const cmatrix_t &U,
-                         const rvector_t &S, const cmatrix_t &V) {
+void validate_SVdD_result(const cmatrix_t &A, const cmatrix_t &U,
+                          const rvector_t &S, const cmatrix_t &Vh) {
   const uint_t nrows = A.GetRows(), ncols = A.GetColumns();
 
   cmatrix_t diag_S = diag(S, nrows, ncols);
   cmatrix_t product = U * diag_S;
-  product = product * AER::Utils::dagger(V);
+  product = product * Vh;
   for (uint_t ii = 0; ii < nrows; ii++)
     for (uint_t jj = 0; jj < ncols; jj++)
       if (!Linalg::almost_equal(std::abs(A(ii, jj)), std::abs(product(ii, jj)),
@@ -178,13 +178,12 @@ void validate_SVD_result(const cmatrix_t &A, const cmatrix_t &U,
       }
 }
 
-// Validates A == U * diag(S) * Vh where Vh is already the conjugate-transpose
-// of V, as returned directly by LAPACK (zgesvd_/zgesdd_ with jobvt="A").
-void validate_SVdD_result(const cmatrix_t &A, const cmatrix_t &U,
-                          const rvector_t &S, const cmatrix_t &Vh) {
-  // LAPACK returns Vh = V^H directly; csvd() returns V, so taking dagger here
-  // lets us reuse the same validation logic.
-  validate_SVD_result(A, U, S, AER::Utils::dagger(Vh));
+// Validates A == U * diag(S) * V^H where V is the standard (non-dagger) form
+// returned by the internal csvd() routine.  Delegates to validate_SVdD_result
+// after computing dagger(V).
+void validate_SVD_result(const cmatrix_t &A, const cmatrix_t &U,
+                         const rvector_t &S, const cmatrix_t &V) {
+  validate_SVdD_result(A, U, S, AER::Utils::dagger(V));
 }
 
 // added cut-off at the end
