@@ -12,6 +12,8 @@
  * that they have been altered from the originals.
  */
 
+// Modified: checked LP64 workspaces and exception-safe nonconvergence recovery.
+
 /*
  * Adapted from: P. A. Businger and G. H. Golub, Comm. ACM 12, 564 (1969)
  */
@@ -20,10 +22,13 @@
 #include "framework/linalg/almost_equal.hpp"
 #include "framework/utils.hpp"
 #include <cassert>
+#include <climits>
 #include <cmath>
 #include <complex>
 #include <iostream>
+#include <limits>
 #include <math.h>
+#include <memory>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -594,78 +599,141 @@ void qiskit_csvd_wrapper(cmatrix_t &A, cmatrix_t &U, rvector_t &S,
     S[k] /= pow(mul_factor, times);
 }
 
+namespace {
+int checked_lapack_integer(size_t value) {
+  static_assert(sizeof(int) == 4, "LP64 LAPACK requires 32-bit integers");
+  if (value == 0 || value > static_cast<size_t>(INT_MAX))
+    throw std::overflow_error("LAPACK dimension/workspace exceeds LP64 range");
+  return static_cast<int>(value);
+}
+
+int queried_lapack_workspace(complex_t value, int info) {
+  if (info != 0)
+    throw std::runtime_error("SVD workspace query failed: LAPACK info=" +
+                             std::to_string(info));
+  if (!std::isfinite(value.real()) || value.real() < 1 ||
+      value.real() > INT_MAX)
+    throw std::runtime_error("SVD workspace query returned an invalid size");
+  return static_cast<int>(value.real());
+}
+
+size_t gesdd_real_workspace(size_t m, size_t n) {
+  // MKL 2026 ZGESDD, JOBZ='A': k*max(5*k+7, 2*max(m,n)+2*k+1).
+  const size_t k = std::min(m, n), largest = std::max(m, n);
+  const size_t limit = std::numeric_limits<size_t>::max();
+  if (k > (limit - 7) / 5 || largest > (limit - 1) / 2 ||
+      k > (limit - 1 - 2 * largest) / 2)
+    throw std::overflow_error("SVD real workspace size overflow");
+  const size_t factor = std::max(5 * k + 7, 2 * largest + 2 * k + 1);
+  if (k && factor > limit / k)
+    throw std::overflow_error("SVD real workspace size overflow");
+  return std::max(size_t(1), k * factor);
+}
+void validate_fallback_factors(const cmatrix_t &U, const rvector_t &S,
+                               const cmatrix_t &VH, double tolerance) {
+  if (U.GetRows() != U.GetColumns() || VH.GetRows() != VH.GetColumns() ||
+      S.size() != std::min(U.GetRows(), VH.GetRows()))
+    throw std::runtime_error("fallback SVD factor dimensions differ");
+  for (size_t i = 0; i < S.size(); ++i)
+    if (!std::isfinite(S[i]) || S[i] < 0 || (i && S[i] > S[i - 1]))
+      throw std::runtime_error("fallback singular values invalid or unordered");
+  // Check the complete returned bases, including zero-singular-value subspaces.
+  for (const auto *matrix : {&U, &VH}) {
+    const size_t dim = matrix->GetRows();
+    for (size_t i = 0; i < dim; ++i)
+      for (size_t j = 0; j <= i; ++j) {
+        complex_t inner = 0.;
+        for (size_t k = 0; k < dim; ++k)
+          inner += matrix == &U ? std::conj((*matrix)(k, i)) * (*matrix)(k, j)
+                                : (*matrix)(i, k) * std::conj((*matrix)(j, k));
+        if (!std::isfinite(inner.real()) || !std::isfinite(inner.imag()) ||
+            std::abs(inner - complex_t(i == j ? 1. : 0.)) > tolerance)
+          throw std::runtime_error("fallback singular vectors not orthonormal");
+      }
+  }
+}
+} // namespace
+
 void lapack_csvd_wrapper(cmatrix_t &A, cmatrix_t &U, rvector_t &S,
                          cmatrix_t &V) {
-  // Activated by default as requested in the PR
-  // #ifdef DEBUG
-  cmatrix_t tempA = A;
-  // #endif
-
-  const size_t m = A.GetRows(), n = A.GetColumns();
-  const size_t min_dim = std::min(m, n);
-  const size_t lda = std::max(m, n);
-  size_t lwork = 2 * min_dim + lda;
+  const int m = checked_lapack_integer(A.GetRows());
+  const int n = checked_lapack_integer(A.GetColumns());
+  const size_t min_dim = std::min(m, n), max_dim = std::max(m, n);
+  if (min_dim > (static_cast<size_t>(INT_MAX) - max_dim) / 2)
+    throw std::overflow_error("LAPACK workspace exceeds LP64 range");
+  int lwork = checked_lapack_integer(2 * min_dim + max_dim);
+  const cmatrix_t original = A;
 
   U.resize(m, m);
   V.resize(n, n);
+  // Matrices retain their buffers if any allocation or validation throws.
+  complex_t *lapackA = A.data(), *lapackU = U.data(), *lapackV = V.data();
+  const auto singular_values = std::make_unique<double[]>(min_dim);
+  const auto work = std::make_unique<complex_t[]>(lwork);
+  int info = 0;
+  const bool use_gesdd = m >= 64 && n >= 64;
 
-  complex_t *lapackA = A.move_to_buffer(), *lapackU = U.move_to_buffer(),
-            *lapackV = V.move_to_buffer();
-
-  double *lapackS = new double[min_dim];
-  complex_t *work = new complex_t[lwork];
-  int info;
-
-  if (m >= 64 && n >= 64) {
-    // From experimental results, matrices equal or bigger than this size
-    // perform better using Divide and Conquer approach
-    int *iwork = new int[8 * min_dim];
-    int rwork_size = std::max(5 * min_dim * min_dim + 5 * min_dim,
-                              2 * m * n + 2 * min_dim * min_dim + min_dim);
-
-    double *rwork = (double *)calloc(rwork_size, sizeof(double));
+  if (use_gesdd) {
+    const auto iwork = std::make_unique<int[]>(8 * min_dim);
+    const auto rwork = std::make_unique<double[]>(gesdd_real_workspace(m, n));
     lwork = -1;
-    zgesdd_("A", &m, &n, lapackA, &m, lapackS, lapackU, &m, lapackV, &n, work,
-            &lwork, rwork, iwork, &info);
-
-    lwork = (int)work[0].real();
-    complex_t *work_ = (complex_t *)calloc(lwork, sizeof(complex_t));
-
-    zgesdd_("A", &m, &n, lapackA, &m, lapackS, lapackU, &m, lapackV, &n, work_,
-            &lwork, rwork, iwork, &info);
-
-    delete[] iwork;
-    free(rwork);
-    free(work_);
+    zgesdd_("A", &m, &n, lapackA, &m, singular_values.get(), lapackU, &m,
+            lapackV, &n, work.get(), &lwork, rwork.get(), iwork.get(), &info);
+    lwork = queried_lapack_workspace(work[0], info);
+    const auto queried_work = std::make_unique<complex_t[]>(lwork);
+    zgesdd_("A", &m, &n, lapackA, &m, singular_values.get(), lapackU, &m,
+            lapackV, &n, queried_work.get(), &lwork, rwork.get(), iwork.get(),
+            &info);
   } else {
-    // Default execution follows original method
-    double *rwork = (double *)calloc(5 * min_dim, sizeof(double));
-    zgesvd_("A", "A", &m, &n, lapackA, &m, lapackS, lapackU, &m, lapackV, &n,
-            work, &lwork, rwork, &info);
-    free(rwork);
+    const auto rwork = std::make_unique<double[]>(5 * min_dim);
+    zgesvd_("A", "A", &m, &n, lapackA, &m, singular_values.get(), lapackU, &m,
+            lapackV, &n, work.get(), &lwork, rwork.get(), &info);
   }
-  A = cmatrix_t::move_from_buffer(m, n, lapackA);
-  U = cmatrix_t::move_from_buffer(m, m, lapackU);
-  V = cmatrix_t::move_from_buffer(n, n, lapackV);
 
-  S.clear();
-  for (size_t i = 0; i < min_dim; i++)
-    S.push_back(lapackS[i]);
+  bool used_fallback = false;
+  if (use_gesdd && info > 0) {
+    bool finite_input = true;
+    for (size_t j = 0; j < static_cast<size_t>(n); ++j)
+      for (size_t i = 0; i < static_cast<size_t>(m); ++i)
+        finite_input = finite_input && std::isfinite(original(i, j).real()) &&
+                       std::isfinite(original(i, j).imag());
+    if (finite_input) {
+      // Both the failed factorization and a workspace query may overwrite A.
+      auto restore_input = [&]() {
+        std::copy(original.data(), original.data() + m * size_t(n), lapackA);
+      };
+      used_fallback = true;
+      const auto rwork = std::make_unique<double[]>(5 * min_dim);
+      complex_t optimal_work;
+      lwork = -1;
+      restore_input();
+      zgesvd_("A", "A", &m, &n, lapackA, &m, singular_values.get(), lapackU, &m,
+              lapackV, &n, &optimal_work, &lwork, rwork.get(), &info);
+      lwork = queried_lapack_workspace(optimal_work, info);
+      const auto fallback_work = std::make_unique<complex_t[]>(lwork);
+      restore_input();
+      zgesvd_("A", "A", &m, &n, lapackA, &m, singular_values.get(), lapackU, &m,
+              lapackV, &n, fallback_work.get(), &lwork, rwork.get(), &info);
+    }
+  }
+  if (info != 0)
+    throw std::runtime_error("SVD failed: LAPACK info=" + std::to_string(info));
 
-  // Activated by default as requested in the PR
-  // #ifdef DEBUG
-  validate_SVdD_result(tempA, U, S, V);
-  // #endif
-
-  delete[] lapackS;
-  delete[] work;
-
-  if (info == 0) {
-    return;
-  } else {
-    std::stringstream ss;
-    ss << " SVD failed";
-    throw std::runtime_error(ss.str());
+  S.assign(singular_values.get(), singular_values.get() + min_dim);
+  validate_SVdD_result(original, U, S, V);
+  if (used_fallback) {
+    validate_fallback_factors(U, S, V, THRESHOLD);
+    // The existing magnitude check alone cannot detect a phase error.
+    for (size_t i = 0; i < static_cast<size_t>(m); ++i)
+      for (size_t j = 0; j < static_cast<size_t>(n); ++j) {
+        complex_t value = 0.;
+        for (size_t k = 0; k < S.size(); ++k)
+          value += U(i, k) * S[k] * V(k, j);
+        if (!std::isfinite(value.real()) || !std::isfinite(value.imag()) ||
+            std::abs(value - original(i, j)) > THRESHOLD)
+          throw std::runtime_error(
+              "fallback complex SVD reconstruction failed");
+      }
   }
 }
 

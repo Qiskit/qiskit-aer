@@ -15,6 +15,8 @@
 #ifndef SVD_HPP_
 #define SVD_HPP_
 
+// Modified: document checked LAPACK calls and nonconvergence recovery.
+
 #include "framework/lapack_protos.hpp"
 #include "framework/types.hpp"
 #include "framework/utils.hpp"
@@ -46,7 +48,16 @@ void csvd_wrapper(cmatrix_t &C, cmatrix_t &U, rvector_t &S, cmatrix_t &V,
 // Original qiskit call
 void qiskit_csvd_wrapper(cmatrix_t &C, cmatrix_t &U, rvector_t &S,
                          cmatrix_t &V);
-// Lapack call
+/**
+ * Compute a full complex SVD through the LP64 LAPACK interface.
+ *
+ * Positive GESDD nonconvergence on finite input permits one GESVD attempt on
+ * the restored original matrix. Recovered factors must pass reconstruction,
+ * orthogonality and singular-value checks. Invalid arguments, workspace-query
+ * failures and unsuccessful recovery throw; driver selection and truncation
+ * tolerances are unchanged. The input matrix retains its buffer ownership but
+ * may be overwritten.
+ */
 void lapack_csvd_wrapper(cmatrix_t &C, cmatrix_t &U, rvector_t &S,
                          cmatrix_t &V);
 
