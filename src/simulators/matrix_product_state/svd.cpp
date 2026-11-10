@@ -32,8 +32,15 @@ namespace AER {
 constexpr auto mul_factor = 1e2;
 constexpr long double tiny_factor = 1e30;
 constexpr auto zero_threshold = 1e-50; // threshold for comparing FP values
-// threshold for reduce_zeros truncation and SVD validation
-constexpr auto THRESHOLD = 1e-9;
+constexpr auto THRESHOLD = 1e-9;       // singular value truncation threshold
+                                       // in reduce_zeros
+// Tolerance for SVD numerical validation in validate_SVdD_result.
+// A backward-stable double-precision SVD satisfies
+//   ||A - U*diag(S)*Vh||_F / ||A||_F = O(eps_mach * kappa(A))
+// where eps_mach ~ 2.2e-16 (Golub & Van Loan, Matrix Computations 4th ed.,
+// §8.6).  SVD_TOL = 1e-6 tolerates condition numbers up to ~1e10, which
+// covers all well-posed MPS bond tensors in practice.
+constexpr double SVD_TOL = 1e-6;
 constexpr auto NUM_SVD_TRIES = 15;
 
 cmatrix_t diag(rvector_t S, uint_t m, uint_t n);
@@ -146,36 +153,90 @@ double reduce_zeros(cmatrix_t &U, rvector_t &S, cmatrix_t &V,
 
 // Validates A == U * diag(S) * Vh where Vh is already the conjugate-transpose
 // of V, as returned directly by LAPACK (zgesvd_/zgesdd_ with jobvt="A").
+//
+// Three checks are performed:
+//   1. Relative Frobenius norm: ||A - U*diag(S)*Vh||_F / ||A||_F < SVD_TOL
+//   2. Unitarity of U and Vh: ||U^H*U - I||_F and ||Vh*Vh^H - I||_F < SVD_TOL
+//   3. Singular values are non-negative and sorted in descending order
+//
+// These are proper numerical accuracy metrics, unlike the previous element-wise
+// |A(i,j)| vs |product(i,j)| comparison which was both phase-insensitive
+// (could pass a wrong SVD) and fired false positives on some BLAS/LAPACK
+// implementations (issue #2386).
+//
 // In DEBUG builds a mismatch throws; in production it emits a warning to
-// stderr instead.  Some BLAS/LAPACK implementations (OpenBLAS 0.3.15 on RHEL,
-// MKL) produce SVD reconstitution residuals that exceed the 1e-9 threshold on
-// large circuits -- throwing there causes a false-positive crash (issue #2386).
+// stderr so that circuits continue to run.
 void validate_SVdD_result(const cmatrix_t &A, const cmatrix_t &U,
                           const rvector_t &S, const cmatrix_t &Vh) {
   const uint_t nrows = A.GetRows(), ncols = A.GetColumns();
 
-  cmatrix_t diag_S = diag(S, nrows, ncols);
-  cmatrix_t product = U * diag_S;
-  product = product * Vh;
+  // Check 1: relative Frobenius reconstruction error
+  cmatrix_t product = U * diag(S, nrows, ncols) * Vh;
+  double norm_A = 0.0, norm_diff = 0.0;
   for (uint_t ii = 0; ii < nrows; ii++)
-    for (uint_t jj = 0; jj < ncols; jj++)
-      if (!Linalg::almost_equal(std::abs(A(ii, jj)), std::abs(product(ii, jj)),
-                                THRESHOLD)) {
+    for (uint_t jj = 0; jj < ncols; jj++) {
+      double a = std::abs(A(ii, jj));
+      double d = std::abs(A(ii, jj) - product(ii, jj));
+      norm_A += a * a;
+      norm_diff += d * d;
+    }
+  norm_A = std::sqrt(norm_A);
+  norm_diff = std::sqrt(norm_diff);
+  // Normalise by ||A||_F; fall back to absolute if A is near-zero
+  double rel_err =
+      (norm_A > zero_threshold) ? norm_diff / norm_A : norm_diff;
+
+  // Check 2: unitarity of U (tall-or-square: U^H*U == I_k)
+  // and Vh (wide-or-square: Vh*Vh^H == I_k)
+  const uint_t k = S.size();
+  double unitary_err_U = 0.0, unitary_err_Vh = 0.0;
+  cmatrix_t UhU = AER::Utils::dagger(U) * U;
+  cmatrix_t VhVhh = Vh * AER::Utils::dagger(Vh);
+  for (uint_t ii = 0; ii < k; ii++)
+    for (uint_t jj = 0; jj < k; jj++) {
+      double expected = (ii == jj) ? 1.0 : 0.0;
+      double dU = std::abs(UhU(ii, jj) - complex_t(expected));
+      double dVh = std::abs(VhVhh(ii, jj) - complex_t(expected));
+      unitary_err_U += dU * dU;
+      unitary_err_Vh += dVh * dVh;
+    }
+  unitary_err_U = std::sqrt(unitary_err_U);
+  unitary_err_Vh = std::sqrt(unitary_err_Vh);
+
+  // Check 3: singular values are non-negative and sorted descending
+  bool sv_ok = true;
+  for (uint_t ii = 0; ii < k; ii++) {
+    if (S[ii] < 0.0) {
+      sv_ok = false;
+      break;
+    }
+    if (ii > 0 && S[ii] > S[ii - 1] + SVD_TOL) {
+      sv_ok = false;
+      break;
+    }
+  }
+
+  bool ok = rel_err < SVD_TOL && unitary_err_U < SVD_TOL &&
+            unitary_err_Vh < SVD_TOL && sv_ok;
+  if (!ok) {
 #ifdef DEBUG
-        std::cout << std::abs(A(ii, jj)) << " vs " << std::abs(product(ii, jj))
-                  << std::endl;
-        throw std::runtime_error("Error: Wrong SVD calculations: A != USV*");
+    std::cout << "SVD validation failed: rel_err=" << rel_err
+              << " unitary_err_U=" << unitary_err_U
+              << " unitary_err_Vh=" << unitary_err_Vh
+              << " sv_sorted=" << sv_ok << std::endl;
+    throw std::runtime_error("Error: Wrong SVD calculations: A != USV*");
 #else
-        std::cerr << "WARNING: SVD numerical check failed at (" << ii << ","
-                  << jj << "): |A|=" << std::abs(A(ii, jj))
-                  << " |USV*|=" << std::abs(product(ii, jj))
-                  << " (diff exceeds " << THRESHOLD
-                  << "). This may indicate a BLAS/LAPACK accuracy issue "
-                  << "(e.g. OpenBLAS < 0.3.26 or MKL, issue #2386)."
-                  << std::endl;
-        return;
+    std::cerr << "WARNING: SVD numerical check failed: "
+              << "rel_err=" << rel_err
+              << " unitary_err_U=" << unitary_err_U
+              << " unitary_err_Vh=" << unitary_err_Vh
+              << " sv_sorted=" << sv_ok
+              << " (tol=" << SVD_TOL
+              << "). This may indicate a BLAS/LAPACK accuracy issue"
+              << " (e.g. OpenBLAS < 0.3.26 or MKL, issue #2386)."
+              << std::endl;
 #endif
-      }
+  }
 }
 
 // Validates A == U * diag(S) * V^H where V is the standard (non-dagger) form
