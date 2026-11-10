@@ -24,6 +24,7 @@
 #include <complex>
 #include <iostream>
 #include <math.h>
+#include <sstream>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -183,8 +184,7 @@ void validate_SVdD_result(const cmatrix_t &A, const cmatrix_t &U,
   norm_A = std::sqrt(norm_A);
   norm_diff = std::sqrt(norm_diff);
   // Normalise by ||A||_F; fall back to absolute if A is near-zero
-  double rel_err =
-      (norm_A > zero_threshold) ? norm_diff / norm_A : norm_diff;
+  double rel_err = (norm_A > zero_threshold) ? norm_diff / norm_A : norm_diff;
 
   // Check 2: unitarity of U (tall-or-square: U^H*U == I_k)
   // and Vh (wide-or-square: Vh*Vh^H == I_k)
@@ -220,21 +220,19 @@ void validate_SVdD_result(const cmatrix_t &A, const cmatrix_t &U,
             unitary_err_Vh < SVD_TOL && sv_ok;
   if (!ok) {
 #ifdef DEBUG
-    std::cout << "SVD validation failed: rel_err=" << rel_err
-              << " unitary_err_U=" << unitary_err_U
-              << " unitary_err_Vh=" << unitary_err_Vh
-              << " sv_sorted=" << sv_ok << std::endl;
+    std::ostringstream oss;
+    oss << "SVD validation failed:"
+        << " rel_err=" << rel_err << " unitary_err_U=" << unitary_err_U
+        << " unitary_err_Vh=" << unitary_err_Vh << " sv_sorted=" << sv_ok;
+    std::cout << oss.str() << "\n";
     throw std::runtime_error("Error: Wrong SVD calculations: A != USV*");
 #else
-    std::cerr << "WARNING: SVD numerical check failed: "
-              << "rel_err=" << rel_err
-              << " unitary_err_U=" << unitary_err_U
-              << " unitary_err_Vh=" << unitary_err_Vh
-              << " sv_sorted=" << sv_ok
-              << " (tol=" << SVD_TOL
-              << "). This may indicate a BLAS/LAPACK accuracy issue"
-              << " (e.g. OpenBLAS < 0.3.26 or MKL, issue #2386)."
-              << std::endl;
+    std::ostringstream oss;
+    oss << "WARNING: SVD numerical check failed:"
+        << " rel_err=" << rel_err << " unitary_err_U=" << unitary_err_U
+        << " unitary_err_Vh=" << unitary_err_Vh << " sv_sorted=" << sv_ok
+        << " tol=" << SVD_TOL << " (OpenBLAS<0.3.26 or MKL, issue #2386).";
+    std::cerr << oss.str() << "\n";
 #endif
   }
 }
