@@ -478,8 +478,8 @@ DensityMatrix<data_t>::expval_pauli(const reg_t &qubits,
   auto phase = std::complex<data_t>(initial_phase);
   QV::add_y_phase(num_y, phase);
 
-  const uint_t mask_u = ~MASKS[x_max + 1];
-  const uint_t mask_l = MASKS[x_max];
+  uint_t mask_u = ~MASKS[x_max + 1];
+  uint_t mask_l = MASKS[x_max];
   auto lambda = [&](const int_t i, double &val_re, double &val_im) -> void {
     (void)val_im; // unused
     auto idx_vec = ((i << 1) & mask_u) | (i & mask_l);
