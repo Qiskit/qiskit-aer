@@ -13,15 +13,10 @@ build-backend = "setuptools.build_meta"
 wheel = ["cibuildwheel~=4.3.0"]
 
 [tool.cibuildwheel]
-# manylinux_2_34 (AlmaLinux 9) ships OpenBLAS 0.3.26+ via dnf, which avoids
-# the false-positive "Wrong SVD calculations" crash with mps_lapack=True
-# (issue #2386).  manylinux_2_28 (AlmaLinux 8) ships 0.3.15 which triggers it.
-# Minimum glibc bumped from 2.28 to 2.34: drops Debian 10, Ubuntu 18.10-21.04,
-# RHEL 8 -- all EOL or near-EOL.
-manylinux-x86_64-image = "manylinux_2_34"
-manylinux-aarch64-image = "manylinux_2_34"
-manylinux-s390x-image = "manylinux_2_34"
-manylinux-ppc64le-image = "manylinux_2_34"
+manylinux-x86_64-image = "manylinux_2_28"
+manylinux-aarch64-image = "manylinux_2_28"
+manylinux-s390x-image = "manylinux_2_28"
+manylinux-ppc64le-image = "manylinux_2_28"
 skip = "*musllinux* *i686* *win32* cp3??t-*"
 test-command = "python {project}/tools/verify_wheels.py"
 # We need to use pre-built versions of Numpy and Scipy in the tests; they have a
