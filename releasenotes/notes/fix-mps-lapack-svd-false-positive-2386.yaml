@@ -1,0 +1,18 @@
+---
+fixes:
+  - |
+    Fixed a spurious crash when using ``mps_lapack=True`` on large circuits
+    (e.g. QAOA from a 100+ node QUBO). The SVD sanity check in
+    ``validate_SVdD_result`` was unconditionally enabled in production builds
+    after its ``#ifdef DEBUG`` guard was accidentally commented out. The check
+    used a hard-coded element-wise magnitude comparison that fired false
+    positives on certain BLAS/LAPACK implementations (OpenBLAS 0.3.15 as
+    shipped by RHEL 8/9, Intel MKL), raising a spurious
+    ``ERROR: Wrong SVD calculations: A != USV*`` even though the decomposition
+    was numerically correct. The check has been replaced with proper numerical
+    metrics (relative Frobenius reconstruction error, unitarity of U and Vh,
+    and singular value ordering), and in production builds a failure now emits
+    a ``stderr`` warning instead of raising an exception so that circuits
+    continue to run. Debug builds retain the exception for catching genuine
+    regressions during development. Fixes `issue #2386
+    <https://github.com/Qiskit/qiskit-aer/issues/2386>`__.
