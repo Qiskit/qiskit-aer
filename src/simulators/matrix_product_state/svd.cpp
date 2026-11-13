@@ -155,7 +155,7 @@ double reduce_zeros(cmatrix_t &U, rvector_t &S, cmatrix_t &V,
 // Validates A == U * diag(S) * Vh where Vh is already the conjugate-transpose
 // of V, as returned directly by LAPACK (zgesvd_/zgesdd_ with jobvt="A").
 //
-// Three checks are performed:
+// Three checks are performed (DEBUG builds only -- see lapack_csvd_wrapper):
 //   1. Relative Frobenius norm: ||A - U*diag(S)*Vh||_F / ||A||_F < SVD_TOL
 //   2. Unitarity of U and Vh: ||U^H*U - I||_F and ||Vh*Vh^H - I||_F < SVD_TOL
 //   3. Singular values are non-negative and sorted in descending order
@@ -164,9 +164,6 @@ double reduce_zeros(cmatrix_t &U, rvector_t &S, cmatrix_t &V,
 // |A(i,j)| vs |product(i,j)| comparison which was both phase-insensitive
 // (could pass a wrong SVD) and fired false positives on some BLAS/LAPACK
 // implementations (issue #2386).
-//
-// In DEBUG builds a mismatch throws; in production it emits a warning to
-// stderr so that circuits continue to run.
 void validate_SVdD_result(const cmatrix_t &A, const cmatrix_t &U,
                           const rvector_t &S, const cmatrix_t &Vh) {
   const uint_t nrows = A.GetRows(), ncols = A.GetColumns();
@@ -219,21 +216,12 @@ void validate_SVdD_result(const cmatrix_t &A, const cmatrix_t &U,
   bool ok = rel_err < SVD_TOL && unitary_err_U < SVD_TOL &&
             unitary_err_Vh < SVD_TOL && sv_ok;
   if (!ok) {
-#ifdef DEBUG
     std::ostringstream oss;
     oss << "SVD validation failed:"
         << " rel_err=" << rel_err << " unitary_err_U=" << unitary_err_U
         << " unitary_err_Vh=" << unitary_err_Vh << " sv_sorted=" << sv_ok;
     std::cout << oss.str() << "\n";
     throw std::runtime_error("Error: Wrong SVD calculations: A != USV*");
-#else
-    std::ostringstream oss;
-    oss << "WARNING: SVD numerical check failed:"
-        << " rel_err=" << rel_err << " unitary_err_U=" << unitary_err_U
-        << " unitary_err_Vh=" << unitary_err_Vh << " sv_sorted=" << sv_ok
-        << " tol=" << SVD_TOL << " (OpenBLAS<0.3.26 or MKL, issue #2386).";
-    std::cerr << oss.str() << "\n";
-#endif
   }
 }
 
@@ -663,19 +651,15 @@ void qiskit_csvd_wrapper(cmatrix_t &A, cmatrix_t &U, rvector_t &S,
     S[k] /= pow(mul_factor, times);
 }
 
-// Known BLAS/LAPACK implementations that may produce SVD reconstitution
-// residuals exceeding the 1e-9 threshold used by validate_SVdD_result:
-//   - OpenBLAS 0.3.15 (shipped by RHEL 8/9)
-//   - Intel MKL (reported in issue #2386)
-// In DEBUG builds validate_SVdD_result throws on mismatch (useful for
-// catching genuine numerical regressions).  In production it warns to stderr
-// so that circuits continue to run even when the underlying BLAS/LAPACK is
-// slightly imprecise.
+// The SVD validation (validate_SVdD_result) is gated behind #ifdef DEBUG
+// because each of its three checks (reconstruction, unitarity of U and Vh)
+// costs O(mn*k) -- roughly the same as the SVD itself -- making it too
+// expensive for production simulations of large circuits (issue #2386).
 void lapack_csvd_wrapper(cmatrix_t &A, cmatrix_t &U, rvector_t &S,
                          cmatrix_t &V) {
-  // tempA is needed both in DEBUG (to pass original A to validate_SVdD_result)
-  // and in production (same reason -- we warn but still need the original).
+#ifdef DEBUG
   cmatrix_t tempA = A;
+#endif
 
   const size_t m = A.GetRows(), n = A.GetColumns();
   const size_t min_dim = std::min(m, n);
@@ -728,7 +712,9 @@ void lapack_csvd_wrapper(cmatrix_t &A, cmatrix_t &U, rvector_t &S,
   for (size_t i = 0; i < min_dim; i++)
     S.push_back(lapackS[i]);
 
+#ifdef DEBUG
   validate_SVdD_result(tempA, U, S, V);
+#endif
 
   delete[] lapackS;
   delete[] work;
