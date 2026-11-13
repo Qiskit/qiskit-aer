@@ -335,11 +335,11 @@ class AerCompiler:
             mark_cargs = {bit_map[c] for c in condition_tuple[0]}
         mark_cargs = set(cargs).union(mark_cargs) - set(instruction.clbits)
 
-        c_if_args = self._convert_jump_conditional(condition_tuple, bit_map)
+        jump_condition = self._convert_jump_conditional(condition_tuple, bit_map)
 
         parent.append(AerMark(continue_label, len(qargs), len(mark_cargs)), qargs, mark_cargs)
         parent.append(
-            AerJump(loop_start_label, len(qargs), len(mark_cargs)).set_conditional(c_if_args),
+            AerJump(loop_start_label, len(qargs), len(mark_cargs)).set_conditional(jump_condition),
             qargs,
             mark_cargs,
         )
@@ -373,7 +373,7 @@ class AerCompiler:
         else:
             if_else_label = if_end_label
 
-        c_if_args = self._convert_jump_conditional(condition_tuple, bit_map)
+        jump_condition = self._convert_jump_conditional(condition_tuple, bit_map)
 
         qargs = [bit_map[q] for q in instruction.qubits]
         cargs = [bit_map[c] for c in instruction.clbits]
@@ -402,7 +402,7 @@ class AerCompiler:
         }
 
         parent.append(
-            AerJump(if_true_label, len(qargs), len(mark_cargs)).set_conditional(c_if_args),
+            AerJump(if_true_label, len(qargs), len(mark_cargs)).set_conditional(jump_condition),
             qargs,
             mark_cargs,
         )
@@ -691,8 +691,8 @@ def assemble_circuit(circuit: QuantumCircuit, basis_gates=None):
         creg_sizes.append([creg.name, creg.size])
 
     is_conditional = any(
-        getattr(inst.operation, "condition_expr", None)
-        or getattr(inst.operation, "condition", None)
+        isinstance(inst.operation, AerJump)
+        and (inst.operation.condition_expr or inst.operation.condition)
         for inst in circuit.data
     )
 
@@ -723,12 +723,13 @@ def assemble_circuit(circuit: QuantumCircuit, basis_gates=None):
     num_of_aer_ops = 0
     index_map = []
     for inst in circuit.data:
-        # To convert to a qobj-style conditional, insert a bfunc prior
-        # to the conditional instruction to map the creg ?= val condition
-        # onto a gating register bit.
+        # Only AerJump can be conditional: control-flow lowering attaches the
+        # condition of the originating IfElseOp/WhileLoopOp/SwitchCaseOp to the
+        # jump that implements it. Insert a bfunc prior to the jump to map the
+        # creg ?= val condition onto a gating register bit.
         conditional_reg = -1
         conditional_expr = None
-        if hasattr(inst.operation, "condition") and inst.operation.condition:
+        if isinstance(inst.operation, AerJump) and inst.operation.condition:
             ctrl_reg, ctrl_val = inst.operation.condition
             mask = 0
             val = 0
@@ -744,7 +745,7 @@ def assemble_circuit(circuit: QuantumCircuit, basis_gates=None):
             aer_circ.bfunc(f"0x{mask:X}", f"0x{val:X}", "==", conditional_reg)
             num_of_aer_ops += 1
             extra_creg_idx += 1
-        elif hasattr(inst.operation, "condition_expr") and inst.operation.condition_expr:
+        elif isinstance(inst.operation, AerJump) and inst.operation.condition_expr:
             conditional_expr = inst.operation.condition_expr
 
         num_of_aer_ops += _assemble_op(
@@ -867,11 +868,6 @@ class _AssembleExprImpl(ExprVisitor):
         raise AerError(f"unsupported expression is used: {node.__class__}")
 
 
-def _check_no_conditional(inst_name, conditional_reg):
-    if conditional_reg >= 0:
-        raise AerError(f"instruction {inst_name} does not support conditional")
-
-
 def _assemble_op(
     circ,
     aer_circ,
@@ -953,10 +949,8 @@ def _assemble_op(
         aer_circ.gate(name, qubits, [], params, conditional_reg, aer_cond_expr,
                       label if label else name)
     elif name == "initialize":
-        _check_no_conditional(name, conditional_reg)
         aer_circ.initialize(qubits, params)
     elif name == "roerror":
-        _check_no_conditional(name, conditional_reg)
         aer_circ.roerror(qubits, params)
     elif name == "multiplexer":
         aer_circ.multiplexer(qubits, params, conditional_reg, aer_cond_expr, label if label else name)
@@ -975,13 +969,10 @@ def _assemble_op(
         "save_state",
         "save_stabilizer",
     }:
-        _check_no_conditional(name, conditional_reg)
         aer_circ.save_state(qubits, name, operation._subtype, label if label else name)
     elif name in {"save_amplitudes", "save_amplitudes_sq"}:
-        _check_no_conditional(name, conditional_reg)
         aer_circ.save_amplitudes(qubits, name, params, operation._subtype, label if label else name)
     elif name in ("save_expval", "save_expval_var"):
-        _check_no_conditional(name, conditional_reg)
         paulis = []
         coeff_reals = []
         coeff_imags = []
@@ -999,32 +990,24 @@ def _assemble_op(
             label if label else name,
         )
     elif name == "set_statevector":
-        _check_no_conditional(name, conditional_reg)
         aer_circ.set_statevector(qubits, params)
     elif name == "set_unitary":
-        _check_no_conditional(name, conditional_reg)
         aer_circ.set_unitary(qubits, params)
     elif name == "set_density_matrix":
-        _check_no_conditional(name, conditional_reg)
         aer_circ.set_density_matrix(qubits, params)
     elif name == "set_stabilizer":
-        _check_no_conditional(name, conditional_reg)
         aer_circ.set_clifford(qubits, params)
     elif name == "set_superop":
-        _check_no_conditional(name, conditional_reg)
         aer_circ.set_superop(qubits, params)
     elif name == "set_matrix_product_state":
-        _check_no_conditional(name, conditional_reg)
         aer_circ.set_matrix_product_state(qubits, params)
     elif name == "superop":
         aer_circ.superop(qubits, params[0], conditional_reg, aer_cond_expr)
     elif name == "barrier":
-        _check_no_conditional(name, conditional_reg)
         num_of_aer_ops = 0
     elif name == "jump":
         aer_circ.jump(qubits, params, conditional_reg, aer_cond_expr)
     elif name == "mark":
-        _check_no_conditional(name, conditional_reg)
         aer_circ.mark(qubits, params)
     elif name == "qerror_loc":
         aer_circ.set_qerror_loc(qubits, label if label else name, conditional_reg, aer_cond_expr)

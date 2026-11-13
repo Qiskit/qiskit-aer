@@ -19,12 +19,11 @@ from test.terra.common import QiskitAerTestCase
 
 import numpy as np
 from ddt import data, ddt
-import qiskit
 from qiskit.circuit import Parameter, QuantumCircuit
 from qiskit.circuit.library import RealAmplitudes
 from qiskit.exceptions import QiskitError
 from qiskit.primitives import EstimatorResult
-from qiskit.quantum_info import Operator, SparsePauliOp
+from qiskit.quantum_info import SparsePauliOp
 
 from qiskit_aer.primitives import Estimator
 
@@ -82,28 +81,6 @@ class TestEstimator(QiskitAerTestCase):
             result = est.run(ansatz, observable, parameter_values=[[0] * 6], seed=15).result()
             self.assertIsInstance(result, EstimatorResult)
             np.testing.assert_allclose(result.values, [-0.4], rtol=0.02)
-
-    @data(True, False)
-    @unittest.skipUnless(
-        qiskit.__version__.startswith("0."),
-        reason="Operator support in primitives was removed following Qiskit 0.46",
-    )
-    def test_init_observable_from_operator(self, abelian_grouping):
-        """test for evaluate without parameters"""
-        circuit = self.ansatz.assign_parameters([0, 1, 1, 2, 3, 5])
-        matrix = Operator(
-            [
-                [-1.06365335, 0.0, 0.0, 0.1809312],
-                [0.0, -1.83696799, 0.1809312, 0.0],
-                [0.0, 0.1809312, -0.24521829, 0.0],
-                [0.1809312, 0.0, 0.0, -1.06365335],
-            ]
-        )
-        with self.assertWarns(DeprecationWarning):
-            est = Estimator(abelian_grouping=abelian_grouping)
-        result = est.run([circuit], [matrix], seed=15, shots=8192).result()
-        self.assertIsInstance(result, EstimatorResult)
-        np.testing.assert_allclose(result.values, [self.expval], rtol=0.02)
 
     @data(True, False)
     def test_evaluate(self, abelian_grouping):
