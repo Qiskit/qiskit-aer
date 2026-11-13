@@ -1,7 +1,63 @@
 .. _running_gpu:
 
+Running with GPU acceleration
+====================this flag sets the qubit number for chunk, should be smaller than the
+smallest memory space on the system (i.e. GPU). Set this parameter to
+satisfy
+``sizeof(complex)*2^(blocking_qubits+4) < size of the smallest memory space``
+in byte.
+
+For AMD ROCm GPUs, recommended blocking_qubits values:
+
+- MI300X (192 GB): blocking_qubits=27 for circuits >32 qubits
+- MI250X (128 GB): blocking_qubits=27 for circuits >32 qubits
+- MI210 (64 GB): blocking_qubits=25 for circuits >31 qubits
+- MI100 (32 GB): blocking_qubits=25 for circuits >30 qubits
+
+Here is an example how we parallelize simulation with multiple GPUs.
+
+.. code:: python
+
+   from qiskit import QuantumCircuit, transpile
+   from qiskit_aer import AerSimulator
+   
+   sim = AerSimulator(method='statevector', device='GPU')
+   circ = transpile(QuantumVolume(32, 10, seed=0))
+   circ.measure_all()
+   
+   # For large circuits, enable blocking
+   result = sim.run(circ, shots=100, 
+                    blocking_enable=True, 
+                    blocking_qubits=27).result()skit Aer supports GPU acceleration for quantum circuit simulation using both
+Nvidia CUDA and AMD ROCm platforms. GPU acceleration can provide significant
+speedups for circuits with 20+ qubits.
+
+GPU Platform Support
+--------------------
+
+- **Nvidia CUDA**: V100, A100, H100, and consumer GPUs (RTX series)
+- **AMD ROCm**: MI100, MI200, MI300 series (data center) and RX 6000/7000 series (consumer)
+
+For AMD ROCm build instructions, see :ref:`BUILDING_ROCM.md`.
+
+Basic GPU Usage
+---------------
+
+.. code:: python
+
+   from qiskit_aer import AerSimulator
+   
+   # Create GPU simulator
+   sim = AerSimulator(method='statevector', device='GPU')
+   
+   # Check available devices
+   print(sim.available_devices())  # Should show ('CPU', 'GPU')
+   
+   # Run simulation
+   result = sim.run(circuit, shots=1000).result()
+
 Running with multiple-GPUs and/or multiple nodes
-================================================
+=================================================
 
 Qiskit Aer parallelizes simulations by distributing quantum states into
 distributed memory space. To decrease data transfer between spaces the
