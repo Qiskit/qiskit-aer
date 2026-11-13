@@ -187,6 +187,9 @@ protected:
   // probabilities can be implemented
   size_t max_qubits_snapshot_probs_ = 32;
 
+  // Tolerance for accepting a rotation angle as a multiple of pi/2
+  double angle_tolerance_ = std::numeric_limits<double>::epsilon();
+
   // Threshold for chopping small values to zero in JSON
   double json_chop_threshold_ = 1e-10;
 
@@ -264,10 +267,12 @@ void State::set_config(const Config &config) {
   // Load max snapshot qubit size and set hard limit of 64 qubits.
   max_qubits_snapshot_probs_ = config.stabilizer_max_snapshot_probabilities;
   max_qubits_snapshot_probs_ = std::max<uint_t>(max_qubits_snapshot_probs_, 64);
+
+  angle_tolerance_ = config.clifford_angle_tolerance;
 }
 
 bool State::validate_parameters(const std::vector<Operations::Op> &ops) const {
-  return QuantumState::validate_clifford_angles(ops);
+  return QuantumState::validate_clifford_angles(ops, angle_tolerance_);
 }
 
 //=========================================================================
