@@ -1413,6 +1413,17 @@ void ParallelStateExecutor<state_t>::apply_multi_chunk_swap(
 #ifdef AER_MPI
   std::vector<MPI_Request> reqSend(nchunk);
   std::vector<MPI_Request> reqRecv(nchunk);
+
+  // wait for one exchange and copy states from recv buffer to chunk
+  auto finish_exchange = [&](uint_t iChunk, uint_t iPeer, uint_t offset) {
+    MPI_Status st;
+    MPI_Wait(&reqSend[iPeer], &st);
+    MPI_Wait(&reqRecv[iPeer], &st);
+
+    Base::states_[iChunk].qreg().apply_chunk_swap(
+        Base::states_[iChunk].qreg(), offset, offset,
+        (1ull << (chunk_bits_ * qubit_scale() - nswap)));
+  };
 #endif
 
   for (int_t iPair = 0; iPair < nPair; iPair++) {
@@ -1467,6 +1478,11 @@ void ParallelStateExecutor<state_t>::apply_multi_chunk_swap(
           auto pSend = Base::states_[iChunk1].qreg().send_buffer(sizeSend);
           MPI_Isend(pSend + offset2, (sizeSend >> nswap), MPI_BYTE, iProc2, tid,
                     Base::distributed_comm_, &reqSend[i2]);
+#ifdef AER_DISABLE_GDR
+          // send_buffer() stages a whole chunk in the host buffer, so the
+          // next chunk of this process must not start before this one is done
+          finish_exchange(iChunk1, i2, offset2);
+#endif
         } else {
           auto pRecv = Base::states_[iChunk2].qreg().recv_buffer(sizeRecv);
           MPI_Irecv(pRecv + offset1, (sizeRecv >> nswap), MPI_BYTE, iProc1, tid,
@@ -1475,6 +1491,9 @@ void ParallelStateExecutor<state_t>::apply_multi_chunk_swap(
           auto pSend = Base::states_[iChunk2].qreg().send_buffer(sizeSend);
           MPI_Isend(pSend + offset1, (sizeSend >> nswap), MPI_BYTE, iProc1, tid,
                     Base::distributed_comm_, &reqSend[i1]);
+#ifdef AER_DISABLE_GDR
+          finish_exchange(iChunk2, i1, offset1);
+#endif
         }
 #endif
       }
@@ -1505,7 +1524,7 @@ void ParallelStateExecutor<state_t>::apply_multi_chunk_swap(
         }
       }
 
-#ifdef AER_MPI
+#if defined(AER_MPI) && !defined(AER_DISABLE_GDR)
       // recv data
       for (i1 = 0; i1 < nchunk; i1++) {
         i2 = i1 ^ iswap;
@@ -1521,14 +1540,7 @@ void ParallelStateExecutor<state_t>::apply_multi_chunk_swap(
             baseChunk + chunk_offset[i1] - Base::global_state_index_;
         uint_t offset2 = i2 << (chunk_bits_ * qubit_scale() - nswap);
 
-        MPI_Status st;
-        MPI_Wait(&reqSend[i2], &st);
-        MPI_Wait(&reqRecv[i2], &st);
-
-        // copy states from recv buffer to chunk
-        Base::states_[iChunk1].qreg().apply_chunk_swap(
-            Base::states_[iChunk1].qreg(), offset2, offset2,
-            (1ull << (chunk_bits_ * qubit_scale() - nswap)));
+        finish_exchange(iChunk1, i2, offset2);
       }
 #endif
     }
