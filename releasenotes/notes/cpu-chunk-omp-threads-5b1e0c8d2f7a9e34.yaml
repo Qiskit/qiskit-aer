@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Fixed the CPU statevector simulator running single threaded when the state
+    vector is split into chunks, which happens with ``blocking_enable=True`` and
+    with MPI. Each chunk now uses the threads given by ``parallel_state_update``
+    (``max_parallel_threads``), as the unchunked state vector does. On a 96-core
+    node a 26-qubit circuit with 8 chunks in one process went from 144 s to 1.8 s.

@@ -439,6 +439,9 @@ void Executor<state_t>::initialize_qreg(uint_t num_qubits) {
 
   for (i = 0; i < Base::states_.size(); i++) {
     Base::states_[i].qreg().set_num_qubits(BasePar::chunk_bits_);
+    // apply the OpenMP settings (parallel_state_update, threshold) to each
+    // chunk; without this every chunk's QubitVector runs single threaded
+    Base::states_[i].initialize_omp();
   }
 
   if (BasePar::chunk_omp_parallel_ && Base::num_groups_ > 1) {
