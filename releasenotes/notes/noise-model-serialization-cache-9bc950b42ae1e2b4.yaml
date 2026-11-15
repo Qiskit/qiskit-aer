@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Improved the performance of :class:`~qiskit_aer.AerSimulator` runs with a
+    noise model.  The noise model was serialized to a dictionary on every
+    ``run()`` call; the serialized form is now cached and only rebuilt when the
+    noise model is modified.  For a 20-qubit model with 119 error entries this
+    reduces the per-run overhead by about a third.

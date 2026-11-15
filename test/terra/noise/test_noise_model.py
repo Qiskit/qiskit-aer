@@ -473,6 +473,22 @@ class TestNoiseModel(QiskitAerTestCase):
         probs2 = [counts2.get(i, 0) / shots for i in ["00", "01", "10", "11"]]
         np.testing.assert_allclose(probs1, probs2, atol=5e-2)
 
+    def test_serializable_dict_cache(self):
+        """Test the cached simulator dict is refreshed when the model changes."""
+        model = NoiseModel()
+        model.add_all_qubit_quantum_error(depolarizing_error(0.1, 1), ["x"])
+        first = model._serializable_dict()
+        self.assertEqual(first, model.to_dict(serializable=True))
+        self.assertIs(first, model._serializable_dict())
+
+        model.add_all_qubit_quantum_error(depolarizing_error(0.2, 1), ["x"])
+        second = model._serializable_dict()
+        self.assertIsNot(first, second)
+        self.assertEqual(second, model.to_dict(serializable=True))
+
+        model.reset()
+        self.assertEqual(model._serializable_dict(), model.to_dict(serializable=True))
+
     def test_from_dict(self):
         noise_ops_1q = [((IGate(), [0]), 0.9), ((XGate(), [0]), 0.1)]
 
