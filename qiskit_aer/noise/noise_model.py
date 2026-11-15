@@ -14,6 +14,7 @@ Noise model class for Aer simulators.
 """
 
 import copy
+import functools
 import json
 import logging
 from typing import Optional
@@ -37,6 +38,17 @@ from .passes import RelaxationNoisePass
 from ..backends.backend_utils import BASIS_GATES
 
 logger = logging.getLogger(__name__)
+
+
+def _invalidate_cache(method):
+    """Clear the cached simulator dictionary when a noise model is modified."""
+
+    @functools.wraps(method)
+    def wrapper(self, *args, **kwargs):
+        self._serialized_dict_cache = None
+        return method(self, *args, **kwargs)
+
+    return wrapper
 
 
 class AerJSONEncoder(json.JSONEncoder):
@@ -221,6 +233,8 @@ class NoiseModel:
         self._local_readout_errors = {}
         # Custom noise passes
         self._custom_noise_passes = []
+        # Cached JSON-serializable dict for the simulator
+        self._serialized_dict_cache = None
 
     @property
     def basis_gates(self):
@@ -667,6 +681,7 @@ class NoiseModel:
                 if name not in ["measure", "reset", "initialize", "kraus", "superop", "roerror"]:
                     self._basis_gates.add(name)
 
+    @_invalidate_cache
     def add_all_qubit_quantum_error(self, error, instructions, warnings=True):
         """
         Add a quantum error to the noise model that applies to all qubits.
@@ -724,6 +739,7 @@ class NoiseModel:
             self._noise_instructions.add(label)
             self.add_basis_gates(name)
 
+    @_invalidate_cache
     def add_quantum_error(self, error, instructions, qubits, warnings=True):
         """
         Add a quantum error to the noise model.
@@ -806,6 +822,7 @@ class NoiseModel:
             self._noise_instructions.add(label)
             self.add_basis_gates(name)
 
+    @_invalidate_cache
     def add_all_qubit_readout_error(self, error, warnings=True):
         """
         Add a single-qubit readout error that applies measure on all qubits.
@@ -856,6 +873,7 @@ class NoiseModel:
                 )
         self._noise_instructions.add("measure")
 
+    @_invalidate_cache
     def add_readout_error(self, error, qubits, warnings=True):
         """
         Add a readout error to the noise model.
@@ -918,6 +936,12 @@ class NoiseModel:
                     qubits,
                 )
         self._noise_instructions.add("measure")
+
+    def _serializable_dict(self):
+        """Return a JSON-serializable dict, cached until the model changes."""
+        if self._serialized_dict_cache is None:
+            self._serialized_dict_cache = self.to_dict(serializable=True)
+        return self._serialized_dict_cache
 
     def to_dict(self, serializable=False):
         """
