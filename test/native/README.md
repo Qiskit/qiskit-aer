@@ -29,8 +29,9 @@ gapped and local queries must agree. Repeated queries, copies and a subsequent
 X3 also check cache reuse and invalidation. The tests do not cover the Python
 API, sampling, performance or general MPS canonicality.
 
-`aer_mps_pauli_diagonal` checks the other production correction: diagonal gates
-use a `1 x 2^n` row-vector representation when permuting gate qubits. For a
+`aer_mps_pauli_diagonal` checks the upstream diagonal-gate handling retained
+during integration: both row-vector and square-matrix diagonal inputs must
+survive gate-qubit permutations. For a
 four-site state it tests all six permutations of the noncontiguous three-qubit
 subset `{0,2,3}`, with both native and LAPACK SVD. Each expected amplitude is
 obtained by direct contraction before the gate and multiplication by the phase
@@ -46,8 +47,10 @@ run in a separate sanitizer-instrumented process.
 This is a reduced permanent version of the R8 private `diagonal_checks.cpp`
 control (2026-10-11), whose SHA256 is
 `0e0082e5486c6de03c3689169b970dfb2ce95622d72b58737e1d0cbd48ce4e81`.
-It retains its explicit basis-bit phase indexing and full-amplitude comparison,
-with 12 focused cases rather than claiming to replay the original 60-case grid.
+It retains its explicit basis-bit phase indexing and full-amplitude comparison.
+Each permutation is checked with both the row-vector and square-matrix diagonal
+inputs accepted by the simulator, for 24 focused cases rather than claiming to
+replay the original 60-case grid.
 
 `aer_mps_pauli_lifecycle` checks non-default per-instance bond and truncation
 settings through copy construction, assignment, self-assignment, destructive

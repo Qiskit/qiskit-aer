@@ -1,0 +1,13 @@
+---
+features:
+  - |
+    Added support for the ``rx``, ``ry``, ``rxx``, ``ryy``, ``rzz``, and ``rzx``
+    rotation gates to the ``stabilizer`` and ``extended_stabilizer`` simulation
+    methods, whenever the rotation angle is an integer multiple of ``pi/2`` and
+    the gate is therefore a Clifford operation. This extends the existing
+    treatment of ``rz`` to the remaining single-parameter Pauli rotations. 
+
+    Since these gates are now Clifford-compatible, a circuit built only from
+    them is recognized as a Clifford circuit by ``method="automatic"`` (the
+    default), which will select ``stabilizer`` method instead of
+    falling back to a statevector simulation.

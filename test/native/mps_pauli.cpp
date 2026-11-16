@@ -124,23 +124,32 @@ void check_diagonal() {
       if (!changes_amplitude || !distinguishes_reversed_order)
         throw std::runtime_error(
             "Diagonal fixture must distinguish phase/order");
-      // apply_diagonal_matrix supplies the public 1 x 2^n row representation.
-      // Let the production method perform its own gate permutation/routing.
       const auto label = std::string(lapack ? "lapack" : "native") +
                          " diagonal sites=" + std::to_string(sites[0]) + "," +
                          std::to_string(sites[1]) + "," +
                          std::to_string(sites[2]);
-      std::cout << label << std::endl;
-      mps.apply_diagonal_matrix(sites, phases);
-      MPS after(mps);
-      const auto actual = retained_amplitudes(after.copy_to_mps_container());
-      for (unsigned basis = 0; basis < actual.size(); ++basis) {
-        check_close(actual[basis], expected[basis],
-                    label + " amplitude " + std::to_string(basis));
-        maximum_error =
-            std::max(maximum_error, std::abs(actual[basis] - expected[basis]));
+      for (const bool square : {false, true}) {
+        const auto form_label = label + (square ? " square" : " row");
+        std::cout << form_label << std::endl;
+        MPS after(mps);
+        if (square) {
+          AER::cmatrix_t diagonal(phases.size(), phases.size());
+          for (unsigned row = 0; row < phases.size(); ++row)
+            for (unsigned col = 0; col < phases.size(); ++col)
+              diagonal(row, col) = row == col ? phases[row] : AER::complex_t{};
+          after.apply_matrix(sites, diagonal, true);
+        } else {
+          after.apply_diagonal_matrix(sites, phases);
+        }
+        const auto actual = retained_amplitudes(after.copy_to_mps_container());
+        for (unsigned basis = 0; basis < actual.size(); ++basis) {
+          check_close(actual[basis], expected[basis],
+                      form_label + " amplitude " + std::to_string(basis));
+          maximum_error =
+              std::max(maximum_error, std::abs(actual[basis] - expected[basis]));
+        }
+        ++cases;
       }
-      ++cases;
     } while (std::prev_permutation(sites.begin(), sites.end()));
   }
   std::cout << std::setprecision(17) << "diagonal cases=" << cases

@@ -31,6 +31,31 @@ namespace AER {
 namespace QuantumState {
 
 //=========================================================================
+// Clifford-angle validation, shared by the stabilizer simulation methods
+//=========================================================================
+
+// Names of the Pauli rotation gates that the stabilizer methods accept only at
+// Clifford angles, i.e. integer multiples of pi/2.
+const stringset_t clifford_rotation_gates = {"rz",  "rx",  "ry", "rzz",
+                                             "rxx", "ryy", "rzx"};
+
+// Return true unless some op is a Pauli rotation at a non-Clifford angle.
+inline bool validate_clifford_angles(const std::vector<Operations::Op> &ops) {
+  for (const auto &op : ops) {
+    if (op.type != Operations::OpType::gate || op.params.empty() ||
+        clifford_rotation_gates.find(op.name) ==
+            clifford_rotation_gates.end()) {
+      continue;
+    }
+    const double pi2 = std::real(op.params[0]) * 2.0 / M_PI;
+    if (!Linalg::almost_equal(pi2, (double)std::round(pi2))) {
+      return false;
+    }
+  }
+  return true;
+}
+
+//=========================================================================
 // State interface base class for Qiskit-Aer
 //=========================================================================
 
