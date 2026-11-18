@@ -35,6 +35,13 @@ if(AER_THRUST_BACKEND STREQUAL "CUDA")
     string(STRIP ${AER_COMPILER_FLAGS} AER_COMPILER_FLAGS_STRIPPED)
     nvcc_add_compiler_options(${AER_COMPILER_FLAGS_STRIPPED} AER_COMPILER_FLAGS_OUT)
     set_target_properties(controller_wrappers PROPERTIES COMPILE_FLAGS "${AER_COMPILER_FLAGS_OUT}")
+    # CCCL 3 (shipped with CUDA 13) requires at least C++17. Older toolkits keep
+    # the default standard.
+    if(CUDAToolkit_VERSION_MAJOR VERSION_GREATER_EQUAL 13)
+        set_target_properties(controller_wrappers PROPERTIES
+            CXX_STANDARD 17 CXX_STANDARD_REQUIRED ON
+            CUDA_STANDARD 17 CUDA_STANDARD_REQUIRED ON)
+    endif()
     enable_language(CUDA)
 elseif(AER_THRUST_BACKEND STREQUAL "ROCM")
 

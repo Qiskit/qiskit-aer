@@ -51,7 +51,21 @@ classifiers = [
 # requirements to be loaded. Also, no ROCm related classifiers are in place that
 # could be used here.
 if ADD_CUDA_REQUIREMENTS and "gpu" in PACKAGE_NAME and "rocm" not in PACKAGE_NAME:
-    if "11" in CUDA_MAJOR:
+    if "13" in CUDA_MAJOR:
+        # CUDA 13 wheels drop the "-cu13" suffix from the nvidia-* packages,
+        # while the cuQuantum ones keep it.
+        requirements_cuda = [
+            "nvidia-cuda-runtime>=13.0",
+            "nvidia-nvjitlink>=13.0",
+            "nvidia-cublas>=13.0",
+            "nvidia-cusolver>=12.0",
+            "nvidia-cusparse>=12.6",
+            "cuquantum-cu13>=25.9.0",
+        ]
+        classifiers_cuda = [
+            "Environment :: GPU :: NVIDIA CUDA :: 13",
+        ]
+    elif "11" in CUDA_MAJOR:
         requirements_cuda = [
             "nvidia-cuda-runtime-cu11>=11.8.89",
             "nvidia-cublas-cu11>=11.11.3.6",
