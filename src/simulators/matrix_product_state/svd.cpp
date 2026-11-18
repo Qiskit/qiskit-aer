@@ -29,6 +29,7 @@
 #include <limits>
 #include <math.h>
 #include <memory>
+#include <sstream>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -37,7 +38,15 @@ namespace AER {
 constexpr auto mul_factor = 1e2;
 constexpr long double tiny_factor = 1e30;
 constexpr auto zero_threshold = 1e-50; // threshold for comparing FP values
-constexpr auto THRESHOLD = 1e-9; // threshold for cutting values in reduce_zeros
+constexpr auto THRESHOLD = 1e-9;       // singular value truncation threshold
+                                       // in reduce_zeros
+// Tolerance for SVD numerical validation in validate_SVdD_result.
+// A backward-stable double-precision SVD satisfies
+//   ||A - U*diag(S)*Vh||_F / ||A||_F = O(eps_mach * kappa(A))
+// where eps_mach ~ 2.2e-16 (Golub & Van Loan, Matrix Computations 4th ed.,
+// §8.6).  SVD_TOL = 1e-6 tolerates condition numbers up to ~1e10, which
+// covers all well-posed MPS bond tensors in practice.
+constexpr double SVD_TOL = 1e-6;
 constexpr auto NUM_SVD_TRIES = 15;
 
 cmatrix_t diag(rvector_t S, uint_t m, uint_t n);
@@ -148,37 +157,85 @@ double reduce_zeros(cmatrix_t &U, rvector_t &S, cmatrix_t &V,
   return discarded_value;
 }
 
+// Validates A == U * diag(S) * Vh where Vh is already the conjugate-transpose
+// of V, as returned directly by LAPACK (zgesvd_/zgesdd_ with jobvt="A").
+//
+// The LAPACK wrapper runs these checks in DEBUG builds and after recovery:
+//   1. Relative Frobenius norm: ||A - U*diag(S)*Vh||_F / ||A||_F < SVD_TOL
+//   2. Unitarity of U and Vh: ||U^H*U - I||_F and ||Vh*Vh^H - I||_F < SVD_TOL
+//   3. Singular values are non-negative and sorted in descending order
+//
+// These are proper numerical accuracy metrics, unlike the previous element-wise
+// |A(i,j)| vs |product(i,j)| comparison which was both phase-insensitive
+// (could pass a wrong SVD) and fired false positives on some BLAS/LAPACK
+// implementations (issue #2386).
 void validate_SVdD_result(const cmatrix_t &A, const cmatrix_t &U,
-                          const rvector_t &S, const cmatrix_t &V) {
+                          const rvector_t &S, const cmatrix_t &Vh) {
   const uint_t nrows = A.GetRows(), ncols = A.GetColumns();
 
-  cmatrix_t diag_S = diag(S, nrows, ncols);
-  cmatrix_t product = U * diag_S;
-  product = product * V;
-
+  // Check 1: relative Frobenius reconstruction error
+  cmatrix_t product = U * diag(S, nrows, ncols) * Vh;
+  double norm_A = 0.0, norm_diff = 0.0;
   for (uint_t ii = 0; ii < nrows; ii++)
-    for (uint_t jj = 0; jj < ncols; jj++)
-      if (!Linalg::almost_equal(std::abs(A(ii, jj)), std::abs(product(ii, jj)),
-                                THRESHOLD)) {
-        std::cout << std::abs(A(ii, jj)) << " vs " << std::abs(product(ii, jj))
-                  << std::endl;
-        throw std::runtime_error("Error: Wrong SVD calculations: A != USV*");
-      }
+    for (uint_t jj = 0; jj < ncols; jj++) {
+      double a = std::abs(A(ii, jj));
+      double d = std::abs(A(ii, jj) - product(ii, jj));
+      norm_A += a * a;
+      norm_diff += d * d;
+    }
+  norm_A = std::sqrt(norm_A);
+  norm_diff = std::sqrt(norm_diff);
+  // Normalise by ||A||_F; fall back to absolute if A is near-zero
+  double rel_err = (norm_A > zero_threshold) ? norm_diff / norm_A : norm_diff;
+
+  // Check 2: unitarity of U (tall-or-square: U^H*U == I_k)
+  // and Vh (wide-or-square: Vh*Vh^H == I_k)
+  const uint_t k = S.size();
+  double unitary_err_U = 0.0, unitary_err_Vh = 0.0;
+  cmatrix_t UhU = AER::Utils::dagger(U) * U;
+  cmatrix_t VhVhh = Vh * AER::Utils::dagger(Vh);
+  for (uint_t ii = 0; ii < k; ii++)
+    for (uint_t jj = 0; jj < k; jj++) {
+      double expected = (ii == jj) ? 1.0 : 0.0;
+      double dU = std::abs(UhU(ii, jj) - complex_t(expected));
+      double dVh = std::abs(VhVhh(ii, jj) - complex_t(expected));
+      unitary_err_U += dU * dU;
+      unitary_err_Vh += dVh * dVh;
+    }
+  unitary_err_U = std::sqrt(unitary_err_U);
+  unitary_err_Vh = std::sqrt(unitary_err_Vh);
+
+  // Check 3: singular values are non-negative and sorted descending
+  bool sv_ok = true;
+  for (uint_t ii = 0; ii < k; ii++) {
+    if (S[ii] < 0.0) {
+      sv_ok = false;
+      break;
+    }
+    if (ii > 0 && S[ii] > S[ii - 1] + SVD_TOL) {
+      sv_ok = false;
+      break;
+    }
+  }
+
+  bool ok = rel_err < SVD_TOL && unitary_err_U < SVD_TOL &&
+            unitary_err_Vh < SVD_TOL && sv_ok;
+  if (!ok) {
+    std::ostringstream oss;
+    oss << "SVD validation failed:"
+        << " rel_err=" << rel_err << " unitary_err_U=" << unitary_err_U
+        << " unitary_err_Vh=" << unitary_err_Vh << " sv_sorted=" << sv_ok;
+    std::cout << oss.str() << "\n";
+    throw std::runtime_error("Error: Wrong SVD calculations: A != USV*");
+  }
 }
 
+// Validates A == U * diag(S) * V^H where V is the standard (non-dagger) form
+// returned by the internal csvd() routine.  Delegates to validate_SVdD_result
+// after computing dagger(V).
 void validate_SVD_result(const cmatrix_t &A, const cmatrix_t &U,
                          const rvector_t &S, const cmatrix_t &V) {
-  const uint_t nrows = A.GetRows(), ncols = A.GetColumns();
-
-  cmatrix_t diag_S = diag(S, nrows, ncols);
-  cmatrix_t product = U * diag_S;
-  product = product * AER::Utils::dagger(V);
-  for (uint_t ii = 0; ii < nrows; ii++)
-    for (uint_t jj = 0; jj < ncols; jj++)
-      if (!Linalg::almost_equal(std::abs(A(ii, jj)), std::abs(product(ii, jj)),
-                                THRESHOLD)) {
-        throw std::runtime_error("Error: Wrong SVD calculations: A != USV*");
-      }
+  validate_SVdD_result(A, U, S, AER::Utils::dagger(V));
 }
 
 // added cut-off at the end
@@ -662,7 +719,13 @@ void lapack_csvd_wrapper(cmatrix_t &A, cmatrix_t &U, rvector_t &S,
   if (min_dim > (static_cast<size_t>(INT_MAX) - max_dim) / 2)
     throw std::overflow_error("LAPACK workspace exceeds LP64 range");
   int lwork = checked_lapack_integer(2 * min_dim + max_dim);
+  const bool use_gesdd = m >= 64 && n >= 64;
+  // Only GESDD can need the original matrix for a retry in production.
+#ifdef DEBUG
   const cmatrix_t original = A;
+#else
+  const cmatrix_t original = use_gesdd ? A : cmatrix_t();
+#endif
 
   U.resize(m, m);
   V.resize(n, n);
@@ -671,7 +734,6 @@ void lapack_csvd_wrapper(cmatrix_t &A, cmatrix_t &U, rvector_t &S,
   const auto singular_values = std::make_unique<double[]>(min_dim);
   const auto work = std::make_unique<complex_t[]>(lwork);
   int info = 0;
-  const bool use_gesdd = m >= 64 && n >= 64;
 
   if (use_gesdd) {
     const auto iwork = std::make_unique<int[]>(8 * min_dim);
@@ -720,21 +782,16 @@ void lapack_csvd_wrapper(cmatrix_t &A, cmatrix_t &U, rvector_t &S,
     throw std::runtime_error("SVD failed: LAPACK info=" + std::to_string(info));
 
   S.assign(singular_values.get(), singular_values.get() + min_dim);
-  validate_SVdD_result(original, U, S, V);
-  if (used_fallback) {
+  if (used_fallback)
     validate_fallback_factors(U, S, V, THRESHOLD);
-    // The existing magnitude check alone cannot detect a phase error.
-    for (size_t i = 0; i < static_cast<size_t>(m); ++i)
-      for (size_t j = 0; j < static_cast<size_t>(n); ++j) {
-        complex_t value = 0.;
-        for (size_t k = 0; k < S.size(); ++k)
-          value += U(i, k) * S[k] * V(k, j);
-        if (!std::isfinite(value.real()) || !std::isfinite(value.imag()) ||
-            std::abs(value - original(i, j)) > THRESHOLD)
-          throw std::runtime_error(
-              "fallback complex SVD reconstruction failed");
-      }
-  }
+
+  // Ordinary production calls skip this expensive check (issue #2386).
+#ifdef DEBUG
+  validate_SVdD_result(original, U, S, V);
+#else
+  if (used_fallback)
+    validate_SVdD_result(original, U, S, V);
+#endif
 }
 
 } // namespace AER

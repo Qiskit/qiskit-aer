@@ -47,7 +47,8 @@ const Operations::OpSet StateOpSet(
     // Gates
     {"CX", "u0",  "u1",  "p",   "cx",    "cz",    "swap", "id",
      "x",  "y",   "z",   "h",   "s",     "sdg",   "sx",   "sxdg",
-     "t",  "tdg", "ccx", "ccz", "delay", "pauli", "ecr",  "rz"});
+     "t",  "tdg", "ccx", "ccz", "delay", "pauli", "ecr",  "rz",
+     "rx", "ry",  "rzz", "rxx", "ryy",   "rzx"});
 
 using chpauli_t = CHSimulator::pauli_t;
 using chstate_t = CHSimulator::Runner;
@@ -115,6 +116,17 @@ protected:
   // clear
   void apply_gate(const Operations::Op &op, RngEngine &rng);
   void apply_gate(const Operations::Op &op, RngEngine &rng, uint_t rank);
+
+  // Accumulate the global phase due to an operation.
+  //
+  // This has no effect on sampling, but tracking it keeps save_statevector
+  // consistent with the other simulation methods.
+  //
+  // This is deliberately implemented outside of apply_gate because that method
+  // is called once per term in the extended stabilizer decomposition, so that
+  // it would result in applying the global phase up to chi times per op instead
+  // of just once.
+  void accumulate_op_global_phase(const Operations::Op &op);
 
   // Apply a multi-qubit Pauli gate
   void apply_pauli(const reg_t &qubits, const std::string &pauli, uint_t rank);
@@ -220,6 +232,8 @@ const stringmap_t<Gates> State::gateset_({
     {"t", Gates::t},       // T-gate (sqrt(S))
     {"tdg", Gates::tdg},   // Conjguate-transpose of T gate
     {"rz", Gates::rz},     // RZ gate (only support k * pi/2 cases)
+    {"rx", Gates::rx},     // RX gate (only support k * pi/2 cases)
+    {"ry", Gates::ry},     // RY gate (only support k * pi/2 cases)
     // Waltz Gates
     {"u0", Gates::u0}, // idle gate in multiples of X90
     {"u1", Gates::u1}, // zero-X90 pulse waltz gate
@@ -230,6 +244,10 @@ const stringmap_t<Gates> State::gateset_({
     {"cz", Gates::cz},     // Controlled-Z gate
     {"swap", Gates::swap}, // SWAP gate
     {"ecr", Gates::ecr},   // ECR Gate
+    {"rzz", Gates::rzz},   // RZZ gate (only support k * pi/2 cases)
+    {"rxx", Gates::rxx},   // RXX gate (only support k * pi/2 cases)
+    {"ryy", Gates::ryy},   // RYY gate (only support k * pi/2 cases)
+    {"rzx", Gates::rzx},   // RZX gate (only support k * pi/2 cases)
     // Three-qubit gates
     {"ccx", Gates::ccx}, // Controlled-CX gate (Toffoli)
     {"ccz", Gates::ccz}, // Constrolled-CZ gate (H3 Toff H3)
@@ -348,20 +366,7 @@ bool State::check_measurement_opt(InputIterator first,
 }
 
 bool State::validate_parameters(const std::vector<Operations::Op> &ops) const {
-  for (uint_t i = 0; i < ops.size(); i++) {
-    if (ops[i].type == OpType::gate) {
-      // check parameter of RZ gates
-      if (ops[i].name == "rz") {
-        double pi2 = std::real(ops[i].params[0]) * 2.0 / M_PI;
-        double pi2_int = (double)std::round(pi2);
-
-        if (!AER::Linalg::almost_equal(pi2, pi2_int)) {
-          return false;
-        }
-      }
-    }
-  }
-  return true;
+  return QuantumState::validate_clifford_angles(ops);
 }
 
 //-------------------------------------------------------------------------
@@ -500,6 +505,13 @@ void State::apply_ops_parallel(InputIterator first, InputIterator last,
     rng_seeds[i] = rng.rand_int<size_t>(0, SIZE_MAX);
   }
 
+  // Accumulate global phase due to each operation.
+  for (auto it = first; it != last; it++) {
+    if (it->type == Operations::OpType::gate) {
+      accumulate_op_global_phase(*it);
+    }
+  }
+
 #pragma omp parallel for if (BaseState::qreg_.check_omp_threshold() &&         \
                              BaseState::threads_ > 1)                          \
     num_threads(BaseState::threads_)
@@ -534,6 +546,7 @@ void State::apply_stabilizer_circuit(InputIterator first, InputIterator last,
     if (BaseState::creg().check_conditional(op)) {
       switch (op.type) {
       case Operations::OpType::gate:
+        accumulate_op_global_phase(op);
         apply_gate(op, rng, 0);
         break;
       case Operations::OpType::reset:
@@ -654,7 +667,44 @@ void State::apply_reset(const reg_t &qubits, AER::RngEngine &rng) {
   }
 }
 
+void State::accumulate_op_global_phase(const Operations::Op &op) {
+  auto it = gateset_.find(op.name);
+  if (it == gateset_.end()) {
+    return;
+  }
+  switch (it->second) {
+  case Gates::sx:
+    // SX = exp(i pi/4) Sdg H Sdg
+    BaseState::add_global_phase(M_PI / 4.);
+    break;
+  case Gates::sxdg:
+    // SXdg = exp(-i pi/4) S H S.
+    BaseState::add_global_phase(-M_PI / 4.);
+    break;
+  // For a Pauli string P, splitting it into eigenprojectors P = Pp - Pm gives
+  //
+  //   R_P(theta) = exp(-i theta P / 2)
+  //              = exp(-i theta / 2) [Pp + exp(i theta) Pm],
+  //
+  // and at theta = m * pi/2 the bracket is the Clifford Pp + i^m Pm. The phase
+  // is therefore exactly exp(-i theta / 2). The circuits in apply_gate are all
+  // written to match this convention.
+  case Gates::rz:
+  case Gates::rx:
+  case Gates::ry:
+  case Gates::rzz:
+  case Gates::rxx:
+  case Gates::ryy:
+  case Gates::rzx:
+    BaseState::add_global_phase(-0.5 * std::real(op.params[0]));
+    break;
+  default:
+    break;
+  }
+}
+
 void State::apply_gate(const Operations::Op &op, RngEngine &rng) {
+  accumulate_op_global_phase(op);
   const int_t NUM_STATES = BaseState::qreg_.get_num_states();
 #pragma omp parallel for if (BaseState::threads_ > 1 &&                        \
                              BaseState::qreg_.check_omp_threshold())           \
@@ -693,11 +743,9 @@ void State::apply_gate(const Operations::Op &op, RngEngine &rng, uint_t rank) {
     BaseState::qreg_.apply_h(op.qubits[0], rank);
     break;
   case Gates::sx:
-    BaseState::add_global_phase(M_PI / 4.);
     BaseState::qreg_.apply_sx(op.qubits[0], rank);
     break;
   case Gates::sxdg:
-    BaseState::add_global_phase(-M_PI / 4.);
     BaseState::qreg_.apply_sxdg(op.qubits[0], rank);
     break;
   case Gates::cx:
@@ -748,6 +796,125 @@ void State::apply_gate(const Operations::Op &op, RngEngine &rng, uint_t rank) {
     } else if (pi2 == 3) {
       // Sdg
       BaseState::qreg_.apply_sdag(op.qubits[0], rank);
+    }
+    break;
+  case Gates::rx:
+    // RX(theta) = H RZ(theta) H
+    pi2 = (int_t)std::round(std::real(op.params[0]) * 2.0 / M_PI) & 3;
+    if (pi2 == 1) {
+      // H S H = SX
+      BaseState::qreg_.apply_h(op.qubits[0], rank);
+      BaseState::qreg_.apply_s(op.qubits[0], rank);
+      BaseState::qreg_.apply_h(op.qubits[0], rank);
+    } else if (pi2 == 2) {
+      // H Z H = X
+      BaseState::qreg_.apply_x(op.qubits[0], rank);
+    } else if (pi2 == 3) {
+      // H Sdg H = SXdg
+      BaseState::qreg_.apply_h(op.qubits[0], rank);
+      BaseState::qreg_.apply_sdag(op.qubits[0], rank);
+      BaseState::qreg_.apply_h(op.qubits[0], rank);
+    }
+    break;
+  case Gates::ry:
+    // RY(theta) = (Sdg H) RZ(theta) (H S), conjugating Z into Y.
+    pi2 = (int_t)std::round(std::real(op.params[0]) * 2.0 / M_PI) & 3;
+    if (pi2 != 0) {
+      BaseState::qreg_.apply_sdag(op.qubits[0], rank);
+      BaseState::qreg_.apply_h(op.qubits[0], rank);
+      if (pi2 == 1) {
+        BaseState::qreg_.apply_s(op.qubits[0], rank);
+      } else if (pi2 == 2) {
+        BaseState::qreg_.apply_z(op.qubits[0], rank);
+      } else {
+        BaseState::qreg_.apply_sdag(op.qubits[0], rank);
+      }
+      BaseState::qreg_.apply_h(op.qubits[0], rank);
+      BaseState::qreg_.apply_s(op.qubits[0], rank);
+    }
+    break;
+  case Gates::rzz:
+    // RZZ(theta) = CX (I x RZ(theta)) CX
+    pi2 = (int_t)std::round(std::real(op.params[0]) * 2.0 / M_PI) & 3;
+    if (pi2 == 1) {
+      // CX (I x S) CX
+      BaseState::qreg_.apply_cx(op.qubits[0], op.qubits[1], rank);
+      BaseState::qreg_.apply_s(op.qubits[1], rank);
+      BaseState::qreg_.apply_cx(op.qubits[0], op.qubits[1], rank);
+    } else if (pi2 == 2) {
+      // CX (I x Z) CX
+      BaseState::qreg_.apply_cx(op.qubits[0], op.qubits[1], rank);
+      BaseState::qreg_.apply_z(op.qubits[1], rank);
+      BaseState::qreg_.apply_cx(op.qubits[0], op.qubits[1], rank);
+    } else if (pi2 == 3) {
+      // CX (I x Sdg) CX
+      BaseState::qreg_.apply_cx(op.qubits[0], op.qubits[1], rank);
+      BaseState::qreg_.apply_sdag(op.qubits[1], rank);
+      BaseState::qreg_.apply_cx(op.qubits[0], op.qubits[1], rank);
+    }
+    break;
+  case Gates::rxx:
+    // RXX(theta) = (H x H) RZZ(theta) (H x H)
+    pi2 = (int_t)std::round(std::real(op.params[0]) * 2.0 / M_PI) & 3;
+    if (pi2 != 0) {
+      BaseState::qreg_.apply_h(op.qubits[0], rank);
+      BaseState::qreg_.apply_h(op.qubits[1], rank);
+      BaseState::qreg_.apply_cx(op.qubits[0], op.qubits[1], rank);
+      if (pi2 == 1) {
+        BaseState::qreg_.apply_s(op.qubits[1], rank);
+      } else if (pi2 == 2) {
+        BaseState::qreg_.apply_z(op.qubits[1], rank);
+      } else {
+        BaseState::qreg_.apply_sdag(op.qubits[1], rank);
+      }
+      BaseState::qreg_.apply_cx(op.qubits[0], op.qubits[1], rank);
+      BaseState::qreg_.apply_h(op.qubits[0], rank);
+      BaseState::qreg_.apply_h(op.qubits[1], rank);
+    }
+    break;
+  case Gates::ryy:
+    // RYY(theta) = (S x S)(H x H) RZZ(theta) (H x H)(Sdg x Sdg)
+    pi2 = (int_t)std::round(std::real(op.params[0]) * 2.0 / M_PI) & 3;
+    if (pi2 != 0) {
+      // Sdg on both qubits
+      BaseState::qreg_.apply_sdag(op.qubits[0], rank);
+      BaseState::qreg_.apply_sdag(op.qubits[1], rank);
+      // H on both qubits
+      BaseState::qreg_.apply_h(op.qubits[0], rank);
+      BaseState::qreg_.apply_h(op.qubits[1], rank);
+      // RZZ inner
+      BaseState::qreg_.apply_cx(op.qubits[0], op.qubits[1], rank);
+      if (pi2 == 1) {
+        BaseState::qreg_.apply_s(op.qubits[1], rank);
+      } else if (pi2 == 2) {
+        BaseState::qreg_.apply_z(op.qubits[1], rank);
+      } else {
+        BaseState::qreg_.apply_sdag(op.qubits[1], rank);
+      }
+      BaseState::qreg_.apply_cx(op.qubits[0], op.qubits[1], rank);
+      // H on both qubits
+      BaseState::qreg_.apply_h(op.qubits[0], rank);
+      BaseState::qreg_.apply_h(op.qubits[1], rank);
+      // S on both qubits
+      BaseState::qreg_.apply_s(op.qubits[0], rank);
+      BaseState::qreg_.apply_s(op.qubits[1], rank);
+    }
+    break;
+  case Gates::rzx:
+    // RZX(theta) = (I x H) RZZ(theta) (I x H)
+    pi2 = (int_t)std::round(std::real(op.params[0]) * 2.0 / M_PI) & 3;
+    if (pi2 != 0) {
+      BaseState::qreg_.apply_h(op.qubits[1], rank);
+      BaseState::qreg_.apply_cx(op.qubits[0], op.qubits[1], rank);
+      if (pi2 == 1) {
+        BaseState::qreg_.apply_s(op.qubits[1], rank);
+      } else if (pi2 == 2) {
+        BaseState::qreg_.apply_z(op.qubits[1], rank);
+      } else {
+        BaseState::qreg_.apply_sdag(op.qubits[1], rank);
+      }
+      BaseState::qreg_.apply_cx(op.qubits[0], op.qubits[1], rank);
+      BaseState::qreg_.apply_h(op.qubits[1], rank);
     }
     break;
   default: // u0 or Identity

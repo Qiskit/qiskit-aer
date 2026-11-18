@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixed ``AerState::probability`` raising an exception when using the
+    ``stabilizer`` simulation method. It now returns the probability of the
+    requested measurement outcome.
+    See `#2258 <https://github.com/Qiskit/qiskit-aer/issues/2258>`_.
