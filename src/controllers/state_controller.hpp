@@ -1424,6 +1424,12 @@ std::vector<double> AerState::probabilities() {
   op.string_params.push_back("s");
   op.save_type = Operations::DataSubType::list;
 
+  if (num_of_qubits_ == 0)
+    return {1.0};
+
+  op.qubits.reserve(num_of_qubits_);
+  for (uint_t i = 0; i < num_of_qubits_; ++i)
+    op.qubits.push_back(i);
   last_result_ = ExperimentResult();
   state_->apply_op(op, last_result_, rng_);
 
