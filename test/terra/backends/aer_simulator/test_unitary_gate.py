@@ -15,8 +15,10 @@ AerSimulator Integration Tests
 
 import itertools
 from ddt import ddt
+import numpy as np
 
 from qiskit import transpile, QuantumCircuit
+from qiskit.circuit.library import DiagonalGate
 from qiskit.quantum_info.random import random_unitary
 from qiskit.quantum_info import Statevector
 
@@ -100,3 +102,35 @@ class TestUnitaryGates(SimulatorTestCase):
         result = backend.run(circuits, shots=shots).result()
         self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0)
+
+    @supported_methods(
+        ["matrix_product_state"],
+        [(0, 1, 2), (2, 0, 1), (0, 2, 4), (4, 0, 2), (0, 1, 2, 3), (3, 0, 4, 1)],
+        ["diagonal", "unitary"],
+        [False, True],
+    )
+    def test_mps_multi_qubit_gate(self, method, device, qubits, gate_type, reorder):
+        """Test multi-qubit matrix ordering, including the diagonal regression in #2292."""
+        backend = self.backend(method=method, device=device, fusion_enable=False)
+        circuit = QuantumCircuit(5)
+        for qubit in range(circuit.num_qubits):
+            circuit.ry((qubit + 1) * np.pi / 11, qubit)
+            circuit.rz((qubit + 1) * np.pi / 13, qubit)
+        if reorder:
+            # A nonlocal gate changes the internal MPS qubit ordering.
+            circuit.cx(0, 4)
+
+        dimension = 2 ** len(qubits)
+        if gate_type == "diagonal":
+            # Distinct, nonsymmetric phases expose incorrect index permutations.
+            diagonal = np.exp(1j * np.arange(dimension) ** 2 / dimension)
+            circuit.append(DiagonalGate(diagonal), qubits)
+        else:
+            circuit.unitary(random_unitary(dimension, seed=1234), qubits)
+
+        target = Statevector(circuit)
+        circuit.save_statevector()
+        # Run the native instructions directly so the diagonal is not decomposed.
+        result = backend.run(circuit, shots=1).result()
+        self.assertSuccess(result)
+        self.compare_statevector(result, [circuit], [target], atol=1e-10, rtol=1e-10)

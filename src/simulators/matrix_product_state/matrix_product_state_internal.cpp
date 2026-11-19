@@ -82,6 +82,7 @@ template <class vec_t>
 void reorder_all_qubits(const vec_t &orig_probvector, const reg_t &qubits,
                         vec_t &new_probvector);
 uint_t reorder_qubits(const reg_t &qubits, uint_t index);
+uint_t reorder_qubits_rev(const reg_t &qubits, uint_t index);
 
 //------------------------------------------------------------------------
 // Function name: permute_all_qubits
@@ -229,6 +230,29 @@ uint_t reorder_qubits(const reg_t &qubits, uint_t index) {
     current_pos = num_qubits - 1 - qubits[i];
     current_val = 1ULL << current_pos;
     new_pos = num_qubits - 1 - i;
+    shift = new_pos - current_pos;
+    if (index & current_val) {
+      if (shift > 0) {
+        new_index += current_val << shift;
+      } else if (shift < 0) {
+        new_index += current_val >> -shift;
+      } else {
+        new_index += current_val;
+      }
+    }
+  }
+  return new_index;
+}
+
+uint_t reorder_qubits_rev(const reg_t &qubits, uint_t index) {
+  uint_t new_index = 0;
+
+  int_t current_pos = 0, current_val = 0, new_pos = 0, shift = 0;
+  uint_t num_qubits = qubits.size();
+  for (uint_t i = 0; i < num_qubits; i++) {
+    current_pos = qubits[i];
+    current_val = 1ULL << current_pos;
+    new_pos = i;
     shift = new_pos - current_pos;
     if (index & current_val) {
       if (shift > 0) {
@@ -825,13 +849,19 @@ void MPS::apply_multi_qubit_gate(const reg_t &qubits, const cmatrix_t &mat,
   // change qubit order in the matrix - instead of doing swaps on the qubits
   uint_t nqubits = qubits.size();
   uint_t sidelen = 1 << nqubits;
-  cmatrix_t new_mat(sidelen, sidelen);
-  for (uint_t col = 0; col < sidelen; ++col) {
-    for (uint_t row = 0; row < sidelen; ++row) {
-      if (row == col)
-        new_mat(new_vec[row], new_vec[row]) = mat(row, row);
-      else
+  cmatrix_t new_mat(is_diagonal ? 1 : sidelen, sidelen);
+
+  if (is_diagonal) {
+    // Accept either a diagonal vector or a full matrix.
+    for (uint_t col = 0; col < sidelen; ++col) {
+      new_mat(0, new_vec[col]) =
+          mat.GetRows() == 1 ? mat(0, col) : mat(col, col);
+    }
+  } else {
+    for (uint_t col = 0; col < sidelen; ++col) {
+      for (uint_t row = 0; row < sidelen; ++row) {
         new_mat(new_vec[row], new_vec[col]) = mat(row, col);
+      }
     }
   }
 
@@ -1386,7 +1416,7 @@ Vector<complex_t> MPS::get_amplitude_vector(const reg_t &base_values) {
     // Since the qubits may not be ordered, we determine the actual index
     // by the internal order of the qubits, to obtain the actual_base_value
     uint_t actual_base_value =
-        reorder_qubits(qubit_ordering_.order_, base_values[i]);
+        reorder_qubits_rev(qubit_ordering_.order_, base_values[i]);
     base_value = AER::Utils::int2string(actual_base_value);
     amplitude_vector[i] = get_single_amplitude(base_value);
   }
