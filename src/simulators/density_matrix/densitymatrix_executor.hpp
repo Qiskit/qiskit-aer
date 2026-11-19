@@ -205,6 +205,9 @@ protected:
 template <class densmat_t>
 void Executor<densmat_t>::initialize_qreg(uint_t num_qubits) {
   for (uint_t i = 0; i < Base::states_.size(); i++) {
+    // apply the OpenMP settings to each chunk before set_num_qubits, as
+    // State::initialize_qreg does
+    Base::states_[i].initialize_omp();
     Base::states_[i].qreg().set_num_qubits(BasePar::chunk_bits_);
   }
 

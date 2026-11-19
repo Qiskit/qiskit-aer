@@ -86,6 +86,9 @@ template <class state_t>
 void Executor<state_t>::initialize_qreg(uint_t num_qubits) {
   uint_t iChunk;
   for (iChunk = 0; iChunk < Base::states_.size(); iChunk++) {
+    // apply the OpenMP settings to each chunk before set_num_qubits, as
+    // State::initialize_qreg does
+    Base::states_[iChunk].initialize_omp();
     Base::states_[iChunk].qreg().set_num_qubits(Base::chunk_bits_);
   }
 
