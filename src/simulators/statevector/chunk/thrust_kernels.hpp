@@ -275,8 +275,7 @@ class strided_range {
 public:
   typedef typename thrust::iterator_difference<Iterator>::type difference_type;
 
-  struct stride_functor
-      : public thrust::unary_function<difference_type, difference_type> {
+  struct stride_functor {
     difference_type stride;
 
     stride_functor(difference_type _stride) : stride(_stride) {}
@@ -326,22 +325,21 @@ protected:
   difference_type stride;
 };
 
+// thrust::unary_function was removed in CCCL 3 (CUDA 13), so these functors
+// do not derive from it.
 template <typename data_t>
-struct complex_dot_scan
-    : public thrust::unary_function<thrust::complex<data_t>,
-                                    thrust::complex<data_t>> {
+struct complex_dot_scan {
   __host__ __device__ thrust::complex<data_t>
-  operator()(thrust::complex<data_t> x) {
+  operator()(thrust::complex<data_t> x) const {
     return thrust::complex<data_t>(x.real() * x.real() + x.imag() * x.imag(),
                                    0);
   }
 };
 
 template <typename data_t>
-struct complex_norm : public thrust::unary_function<thrust::complex<data_t>,
-                                                    thrust::complex<data_t>> {
+struct complex_norm {
   __host__ __device__ thrust::complex<double>
-  operator()(thrust::complex<data_t> x) {
+  operator()(thrust::complex<data_t> x) const {
     return thrust::complex<double>((double)x.real() * (double)x.real(),
                                    (double)x.imag() * (double)x.imag());
   }
