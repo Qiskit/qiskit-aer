@@ -20,9 +20,25 @@ using namespace AER;
 
 PYBIND11_MODULE(controller_wrappers, m) {
 
+// #ifdef AER_MPI
+//   int prov;
+//   MPI_Init_thread(nullptr,nullptr,MPI_THREAD_MULTIPLE,&prov);
+// #endif
 #ifdef AER_MPI
-  int prov;
-  MPI_Init_thread(nullptr,nullptr,MPI_THREAD_MULTIPLE,&prov);
+  int initialized;
+  MPI_Initialized(&initialized);
+  if (!initialized) {
+    int prov;
+    MPI_Init_thread(nullptr, nullptr, MPI_THREAD_MULTIPLE, &prov);
+    
+    std::atexit([]() {
+      int finalized;
+      MPI_Finalized(&finalized);
+      if (!finalized) {
+        MPI_Finalize();
+      }
+    });
+  }
 #endif
     bind_aer_controller(m);
     bind_aer_state(m);
