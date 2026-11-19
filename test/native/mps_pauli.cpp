@@ -8,9 +8,8 @@
 
 #include "framework/linalg/matrix_utils.hpp"
 #include "framework/rng.hpp"
-// The simulator uses the same implementation inclusion in
-// matrix_product_state.hpp.
 #include "simulators/matrix_product_state/matrix_product_state_internal.cpp"
+#include "simulators/matrix_product_state/matrix_product_state_size_estimator.hpp"
 
 #include <algorithm>
 #include <array>
@@ -264,6 +263,85 @@ void check_lifecycle() {
   source.initialize_from_mps(saved);
   check_queries(source, 1, 1, "restored after destructive export");
 }
+
+void check_memory_estimate() {
+  using AER::MatrixProductState::Gates;
+  using AER::MatrixProductState::MPSSizeEstimator;
+  using AER::Operations::Op;
+  using AER::Operations::OpType;
+  constexpr AER::uint_t sites = 28;
+  const auto require = [](bool condition, const char *label) {
+    if (!condition)
+      throw std::runtime_error(label);
+  };
+
+  const AER::stringmap_t<Gates> gates{{"cx", Gates::cx}};
+  const auto estimate_mb = [&](const std::vector<Op> &ops) {
+    return MPSSizeEstimator(sites).estimate_mb(ops, gates, 256);
+  };
+  Op save{};
+  save.type = OpType::save_expval;
+  save.qubits.resize(sites);
+  std::iota(save.qubits.begin(), save.qubits.end(), 0);
+  require(estimate_mb({save}) == estimate_mb({}),
+          "A full-register Pauli save should not reserve a cache");
+  save.qubits = {4};
+  require(estimate_mb({save}) == 1,
+          "A partial Pauli save should round the budget up to MiB");
+  save.type = OpType::save_expval_var;
+  require(estimate_mb({save}) == 1, "Variance should reserve the same cache");
+  save.qubits = {0};
+  require(MPSSizeEstimator(1).estimate_mb({save}, gates, 256) == 0,
+          "A single site has no partial Pauli-save path");
+
+  Op cx{};
+  cx.type = OpType::gate;
+  cx.name = "cx";
+  cx.qubits = {0, 1};
+  const auto product = MPSSizeEstimator(sites).estimate({save}, gates, true);
+  const auto entangled =
+      MPSSizeEstimator(sites).estimate({cx, save}, gates, true);
+  require(entangled > product, "The estimator must model an entangling CX");
+  require(MPSSizeEstimator(sites).estimate({cx, save}, gates, true, 1) ==
+              product,
+          "The configured cap should constrain modeled gate-produced ranks");
+  require(MPSSizeEstimator(sites).estimate({cx, save, save}, gates, true) ==
+              entangled,
+          "Repeated saves reuse one persistent cache");
+
+  // Import a shape whose ranks exceed the configured cap. The estimator must
+  // still account for the existing tensors and the environments of that state.
+  Op imported{};
+  imported.type = OpType::set_mps;
+  constexpr AER::uint_t dimension = 128;
+  for (AER::uint_t site = 0; site < sites; ++site) {
+    const auto left = site == 0 ? 1 : dimension;
+    const auto right = site + 1 == sites ? 1 : dimension;
+    imported.mps.first.emplace_back(AER::cmatrix_t(left, right),
+                                    AER::cmatrix_t(left, right));
+    if (site + 1 != sites)
+      imported.mps.second.emplace_back(right, 1.0);
+  }
+  const auto imported_bytes =
+      MPSSizeEstimator(sites).estimate({imported, save}, gates, true, 1);
+  const auto expected_cache =
+      2 * sizeof(AER::complex_t) * (2 + (sites - 1) * dimension * dimension) +
+      2 * (sites + 1) * sizeof(AER::cmatrix_t);
+  require(imported_bytes ==
+              sites * (32 * dimension * dimension + 8 * dimension) +
+                  expected_cache,
+          "Imported MPS cache must use actual bond dimensions");
+
+  Op dense{};
+  dense.type = OpType::set_statevec;
+  require(MPSSizeEstimator(128).estimate({dense, save}, gates, true) ==
+              std::numeric_limits<AER::uint_t>::max(),
+          "Large hypothetical budgets must saturate without wrapping");
+  require(MPSSizeEstimator(128).estimate_mb(
+              {dense, save}, gates, std::numeric_limits<AER::uint_t>::max()) ==
+              static_cast<AER::uint_t>(std::numeric_limits<int>::max()),
+          "The controller's signed MiB estimate must not wrap");
+}
 } // namespace
 
 int main(int argc, char **argv) {
@@ -278,9 +356,12 @@ int main(int argc, char **argv) {
       check_lifecycle();
     else if (argc == 3 && std::string(argv[1]) == "retained")
       check_retained(argv[2]);
+    else if (argc == 3 && std::string(argv[1]) == "memory")
+      check_memory_estimate();
     else
       throw std::runtime_error(
-          "Expected circuit|retained|diagonal|lifecycle and fixture path");
+          "Expected circuit|retained|diagonal|lifecycle|memory and fixture "
+          "path");
     return 0;
   } catch (const std::exception &error) {
     std::cerr << error.what() << '\n';
