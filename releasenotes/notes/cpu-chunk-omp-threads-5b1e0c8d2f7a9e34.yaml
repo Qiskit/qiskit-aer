@@ -1,0 +1,17 @@
+---
+fixes:
+  - |
+    Fixed the CPU statevector simulator running single threaded when the state
+    vector is split into chunks, which happens with ``blocking_enable=True`` and
+    with MPI. Each chunk now uses the threads given by ``parallel_state_update``
+    (``max_parallel_threads``), as the unchunked state vector does. The threads
+    used per chunk are reported as ``chunk_omp_threads`` in the
+    ``cacheblocking`` metadata of a result.
+
+    The number of threads is not divided by the number of MPI processes. With
+    several MPI processes on one node and neither ``OMP_NUM_THREADS`` nor
+    ``max_parallel_threads`` set, each process now uses all the cores OpenMP
+    reports to it, which can oversubscribe the node where the chunks
+    previously ran on one thread. Set ``max_parallel_threads`` or
+    ``OMP_NUM_THREADS`` to the cores per process in that case, or bind each
+    process to its own cores.

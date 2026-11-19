@@ -888,6 +888,10 @@ void ParallelStateExecutor<state_t>::apply_ops_chunks(
       Base::states_[Base::top_state_of_group_[ig]].qreg().synchronize();
   }
 
+  if (Base::sim_device_ != Device::GPU)
+    result.metadata.add(Base::states_[0].qreg().get_omp_threads(),
+                        "cacheblocking", "chunk_omp_threads");
+
   if (Base::sim_device_ == Device::GPU) {
 #ifdef AER_THRUST_GPU
     int nDev;
