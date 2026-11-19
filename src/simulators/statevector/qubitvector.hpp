@@ -261,8 +261,18 @@ public:
   // If N=1 this implements an optimized single-qubit phase gate
   // If N=2 this implements an optimized CPhase gate
   // If N=3 this implements an optimized CCPhase gate
-  // if phase = -1 this is a Z, CZ, CCZ gate
   void apply_mcphase(const reg_t &qubits, const std::complex<double> phase);
+
+  // Apply a general multi-controlled Z-gate
+  // If N=1 this implements an optimized Z gate
+  // If N=2 this implements an optimized CZ gate
+  // If N=3 this implements an optimized CCZ gate
+  void apply_mcz(const reg_t &qubits);
+
+  void apply_s(const uint_t qubit);
+  void apply_sdg(const uint_t qubit);
+  void apply_t(const uint_t qubit);
+  void apply_tdg(const uint_t qubit);
 
   // Apply a general multi-controlled single-qubit unitary gate
   // If N=1 this implements an optimized single-qubit U gate
@@ -1445,170 +1455,332 @@ void QubitVector<data_t>::apply_permutation_matrix(
 
 template <typename data_t>
 void QubitVector<data_t>::apply_mcx(const reg_t &qubits) {
-  // Calculate the permutation positions for the last qubit.
   const size_t N = qubits.size();
-  const size_t pos0 = MASKS[N - 1];
-  const size_t pos1 = MASKS[N];
-
-  switch (N) {
-  case 1: {
-    // Lambda function for X gate
-    auto lambda = [&](const areg_t<2> &inds) -> void {
-      std::swap(data_[inds[pos0]], data_[inds[pos1]]);
-    };
-    apply_lambda(lambda, areg_t<1>({{qubits[0]}}));
-    return;
+  const size_t target_mask = BITS[qubits[N - 1]];
+  auto qubits_sorted = qubits;
+  std::sort(qubits_sorted.begin(), qubits_sorted.end());
+  size_t control_mask = 0;
+  std::vector<size_t> low_masks(N);
+  std::vector<size_t> high_masks(N);
+  for (size_t k = 0; k < N; k++) {
+    control_mask |= BITS[qubits_sorted[k]];
+    low_masks[k] = MASKS[qubits_sorted[k]];
+    high_masks[k] = ~low_masks[k];
   }
-  case 2: {
-    // Lambda function for CX gate
-    auto lambda = [&](const areg_t<4> &inds) -> void {
-      std::swap(data_[inds[pos0]], data_[inds[pos1]]);
-    };
-    apply_lambda(lambda, areg_t<2>({{qubits[0], qubits[1]}}));
-    return;
+  if (omp_threads_managed() > 1) {
+#pragma omp parallel num_threads(omp_threads_managed())
+    {
+#pragma omp for
+      for (int_t i = 0; i < (data_size_ >> N); i++) {
+        size_t k = i;
+        for (size_t l = 0; l < N; l++) {
+          size_t highpart = k & high_masks[l];
+          k &= low_masks[l];
+          k |= (highpart << 1);
+        }
+        k |= control_mask;
+        auto temp = data_[k];
+        data_[k] = data_[k ^ target_mask];
+        data_[k ^ target_mask] = temp;
+      }
+    }
+  } else {
+    for (int_t i = 0; i < (data_size_ >> N); i++) {
+      size_t k = i;
+      for (size_t l = 0; l < N; l++) {
+        size_t highpart = k & high_masks[l];
+        k &= low_masks[l];
+        k |= (highpart << 1);
+      }
+      k |= control_mask;
+      auto temp = data_[k];
+      data_[k] = data_[k ^ target_mask];
+      data_[k ^ target_mask] = temp;
+    }
   }
-  case 3: {
-    // Lambda function for Toffli gate
-    auto lambda = [&](const areg_t<8> &inds) -> void {
-      std::swap(data_[inds[pos0]], data_[inds[pos1]]);
-    };
-    apply_lambda(lambda, areg_t<3>({{qubits[0], qubits[1], qubits[2]}}));
-    return;
-  }
-  default: {
-    // Lambda function for general multi-controlled X gate
-    auto lambda = [&](const indexes_t &inds) -> void {
-      std::swap(data_[inds[pos0]], data_[inds[pos1]]);
-    };
-    apply_lambda(lambda, qubits);
-  }
-  } // end switch
 }
 
 template <typename data_t>
 void QubitVector<data_t>::apply_mcy(const reg_t &qubits) {
-  // Calculate the permutation positions for the last qubit.
   const size_t N = qubits.size();
-  const size_t pos0 = MASKS[N - 1];
-  const size_t pos1 = MASKS[N];
-  const std::complex<data_t> I(0., 1.);
+  const size_t target_mask = BITS[qubits[N - 1]];
+  auto qubits_sorted = qubits;
+  std::sort(qubits_sorted.begin(), qubits_sorted.end());
+  size_t control_mask = 0;
+  std::vector<size_t> low_masks(N);
+  std::vector<size_t> high_masks(N);
+  for (size_t k = 0; k < N; k++) {
+    control_mask |= BITS[qubits_sorted[k]];
+    low_masks[k] = MASKS[qubits_sorted[k]];
+    high_masks[k] = ~low_masks[k];
+  }
+  if (omp_threads_managed() > 1) {
+#pragma omp parallel num_threads(omp_threads_managed())
+    {
+#pragma omp for
+      for (int_t i = 0; i < (data_size_ >> N); i++) {
+        size_t k = i;
+        for (size_t l = 0; l < N; l++) {
+          size_t highpart = k & high_masks[l];
+          k &= low_masks[l];
+          k |= (highpart << 1);
+        }
+        k |= control_mask;
+        auto temp_r = data_[k].real();
+        auto temp_i = data_[k].imag();
+        data_[k] = std::complex<data_t>(-data_[k ^ target_mask].imag(),
+                                        data_[k ^ target_mask].real());
+        data_[k ^ target_mask] = std::complex<data_t>(temp_i, -temp_r);
+      }
+    }
+  } else {
+    for (int_t i = 0; i < (data_size_ >> N); i++) {
+      size_t k = i;
+      for (size_t l = 0; l < N; l++) {
+        size_t highpart = k & high_masks[l];
+        k &= low_masks[l];
+        k |= (highpart << 1);
+      }
+      k |= control_mask;
+      auto temp_r = data_[k].real();
+      auto temp_i = data_[k].imag();
+      data_[k] = std::complex<data_t>(-data_[k ^ target_mask].imag(),
+                                      data_[k ^ target_mask].real());
+      data_[k ^ target_mask] = std::complex<data_t>(temp_i, -temp_r);
+    }
+  }
+}
 
-  switch (N) {
-  case 1: {
-    // Lambda function for Y gate
-    auto lambda = [&](const areg_t<2> &inds) -> void {
-      const std::complex<data_t> cache = data_[inds[pos0]];
-      data_[inds[pos0]] = -I * data_[inds[pos1]];
-      data_[inds[pos1]] = I * cache;
-    };
-    apply_lambda(lambda, areg_t<1>({{qubits[0]}}));
-    return;
+template <typename data_t>
+void QubitVector<data_t>::apply_mcz(const reg_t &qubits) {
+  const size_t N = qubits.size();
+  auto qubits_sorted = qubits;
+  std::sort(qubits_sorted.begin(), qubits_sorted.end());
+  size_t control_mask = 0;
+  std::vector<size_t> low_masks(N);
+  std::vector<size_t> high_masks(N);
+  for (size_t k = 0; k < N; k++) {
+    control_mask |= BITS[qubits_sorted[k]];
+    low_masks[k] = MASKS[qubits_sorted[k]];
+    high_masks[k] = ~low_masks[k];
   }
-  case 2: {
-    // Lambda function for CY gate
-    auto lambda = [&](const areg_t<4> &inds) -> void {
-      const std::complex<data_t> cache = data_[inds[pos0]];
-      data_[inds[pos0]] = -I * data_[inds[pos1]];
-      data_[inds[pos1]] = I * cache;
-    };
-    apply_lambda(lambda, areg_t<2>({{qubits[0], qubits[1]}}));
-    return;
+  if (omp_threads_managed() > 1) {
+#pragma omp parallel num_threads(omp_threads_managed())
+    {
+#pragma omp for
+      for (int_t i = 0; i < (data_size_ >> N); i++) {
+        size_t k = i;
+        for (size_t l = 0; l < N; l++) {
+          size_t highpart = k & high_masks[l];
+          k &= low_masks[l];
+          k |= (highpart << 1);
+        }
+        k |= control_mask;
+        data_[k] = -data_[k];
+      }
+    }
+  } else {
+    for (int_t i = 0; i < (data_size_ >> N); i++) {
+      size_t k = i;
+      for (size_t l = 0; l < N; l++) {
+        size_t highpart = k & high_masks[l];
+        k &= low_masks[l];
+        k |= (highpart << 1);
+      }
+      k |= control_mask;
+      data_[k] = -data_[k];
+    }
   }
-  case 3: {
-    // Lambda function for CCY gate
-    auto lambda = [&](const areg_t<8> &inds) -> void {
-      const std::complex<data_t> cache = data_[inds[pos0]];
-      data_[inds[pos0]] = -I * data_[inds[pos1]];
-      data_[inds[pos1]] = I * cache;
-    };
-    apply_lambda(lambda, areg_t<3>({{qubits[0], qubits[1], qubits[2]}}));
-    return;
-  }
-  default: {
-    // Lambda function for general multi-controlled Y gate
-    auto lambda = [&](const indexes_t &inds) -> void {
-      const std::complex<data_t> cache = data_[inds[pos0]];
-      data_[inds[pos0]] = -I * data_[inds[pos1]];
-      data_[inds[pos1]] = I * cache;
-    };
-    apply_lambda(lambda, qubits);
-  }
-  } // end switch
 }
 
 template <typename data_t>
 void QubitVector<data_t>::apply_mcswap(const reg_t &qubits) {
-  // Calculate the swap positions for the last two qubits.
-  // If N = 2 this is just a regular SWAP gate rather than a controlled-SWAP
-  // gate.
   const size_t N = qubits.size();
-  const size_t pos0 = MASKS[N - 1];
-  const size_t pos1 = pos0 + BITS[N - 2];
-
-  switch (N) {
-  case 2: {
-    // Lambda function for SWAP gate
-    auto lambda = [&](const areg_t<4> &inds) -> void {
-      std::swap(data_[inds[pos0]], data_[inds[pos1]]);
-    };
-    apply_lambda(lambda, areg_t<2>({{qubits[0], qubits[1]}}));
-    return;
+  const size_t bit1 = BITS[qubits[N - 1]];
+  const size_t bit2 = BITS[qubits[N - 2]];
+  auto qubits_sorted = qubits;
+  std::sort(qubits_sorted.begin(), qubits_sorted.end());
+  size_t control_mask = 0;
+  std::vector<size_t> low_masks(N);
+  std::vector<size_t> high_masks(N);
+  for (size_t k = 0; k < N; k++) {
+    control_mask |= BITS[qubits_sorted[k]];
+    low_masks[k] = MASKS[qubits_sorted[k]];
+    high_masks[k] = ~low_masks[k];
   }
-  case 3: {
-    // Lambda function for C-SWAP gate
-    auto lambda = [&](const areg_t<8> &inds) -> void {
-      std::swap(data_[inds[pos0]], data_[inds[pos1]]);
-    };
-    apply_lambda(lambda, areg_t<3>({{qubits[0], qubits[1], qubits[2]}}));
-    return;
+  if (omp_threads_managed() > 1) {
+#pragma omp parallel num_threads(omp_threads_managed())
+    {
+#pragma omp for
+      for (int_t i = 0; i < (data_size_ >> N); i++) {
+        size_t k = i;
+        for (size_t l = 0; l < N; l++) {
+          size_t highpart = k & high_masks[l];
+          k &= low_masks[l];
+          k |= (highpart << 1);
+        }
+        k |= control_mask;
+        std::swap(data_[k ^ bit1], data_[k ^ bit2]);
+      }
+    }
+  } else {
+    for (int_t i = 0; i < (data_size_ >> N); i++) {
+      size_t k = i;
+      for (size_t l = 0; l < N; l++) {
+        size_t highpart = k & high_masks[l];
+        k &= low_masks[l];
+        k |= (highpart << 1);
+      }
+      k |= control_mask;
+      std::swap(data_[k ^ bit1], data_[k ^ bit2]);
+    }
   }
-  default: {
-    // Lambda function for general multi-controlled SWAP gate
-    auto lambda = [&](const indexes_t &inds) -> void {
-      std::swap(data_[inds[pos0]], data_[inds[pos1]]);
-    };
-    apply_lambda(lambda, qubits);
-  }
-  } // end switch
 }
 
 template <typename data_t>
 void QubitVector<data_t>::apply_mcphase(const reg_t &qubits,
-                                        const std::complex<double> phase) {
+                                        const complex_t phase) {
   const size_t N = qubits.size();
-  switch (N) {
-  case 1: {
-    // Lambda function for arbitrary Phase gate with diagonal [1, phase]
-    auto lambda = [&](const areg_t<2> &inds) -> void {
-      data_[inds[1]] *= phase;
-    };
-    apply_lambda(lambda, areg_t<1>({{qubits[0]}}));
-    return;
+  auto qubits_sorted = qubits;
+  std::sort(qubits_sorted.begin(), qubits_sorted.end());
+  size_t control_mask = 0;
+  size_t END = data_size_ >> N;
+  std::vector<size_t> low_masks(N);
+  std::vector<size_t> high_masks(N);
+  for (size_t k = 0; k < N; k++) {
+    low_masks[k] = MASKS[qubits_sorted[k]];
+    high_masks[k] = ~low_masks[k];
+    control_mask |= BITS[qubits_sorted[k]];
   }
-  case 2: {
-    // Lambda function for CPhase gate with diagonal [1, 1, 1, phase]
-    auto lambda = [&](const areg_t<4> &inds) -> void {
-      data_[inds[3]] *= phase;
-    };
-    apply_lambda(lambda, areg_t<2>({{qubits[0], qubits[1]}}));
-    return;
+  if (omp_threads_managed() > 1) {
+#pragma omp parallel num_threads(omp_threads_managed())
+    {
+#pragma omp for
+      for (int_t i = 0; i < END; i++) {
+        size_t k = i;
+        for (size_t l = 0; l < N; l++) {
+          size_t highpart = k & high_masks[l];
+          k &= low_masks[l];
+          k |= (highpart << 1);
+        }
+        k |= control_mask;
+        data_[k] *= phase;
+      }
+    }
+  } else {
+    for (int_t i = 0; i < END; i++) {
+      size_t k = i;
+      for (size_t l = 0; l < N; l++) {
+        size_t highpart = k & high_masks[l];
+        k &= low_masks[l];
+        k |= (highpart << 1);
+      }
+      k |= control_mask;
+      data_[k] *= phase;
+    }
   }
-  case 3: {
-    auto lambda = [&](const areg_t<8> &inds) -> void {
-      data_[inds[7]] *= phase;
-    };
-    apply_lambda(lambda, areg_t<3>({{qubits[0], qubits[1], qubits[2]}}));
-    return;
+}
+
+template <typename data_t>
+void QubitVector<data_t>::apply_s(const uint_t qubit) {
+  const size_t END = data_size_ >> 1;
+  const size_t mask = MASKS[qubit];
+  if (omp_threads_managed() > 1) {
+#pragma omp parallel num_threads(omp_threads_managed())
+    {
+#pragma omp for
+      for (int_t i = 0; i < END; i++) {
+        size_t lowpart = i & mask;
+        size_t highpart = i & ~mask;
+        size_t k = (highpart << 1) | BITS[qubit] | lowpart;
+        data_[k] = complex_t(-data_[k].imag(), data_[k].real());
+      }
+    }
+  } else {
+    for (int_t i = 0; i < END; i++) {
+      size_t lowpart = i & mask;
+      size_t highpart = i & ~mask;
+      size_t k = (highpart << 1) | BITS[qubit] | lowpart;
+      data_[k] = complex_t(-data_[k].imag(), data_[k].real());
+    }
   }
-  default: {
-    // Lambda function for general multi-controlled Phase gate
-    // with diagonal [1, ..., 1, phase]
-    auto lambda = [&](const indexes_t &inds) -> void {
-      data_[inds[MASKS[N]]] *= phase;
-    };
-    apply_lambda(lambda, qubits);
+}
+
+template <typename data_t>
+void QubitVector<data_t>::apply_sdg(const uint_t qubit) {
+  const size_t END = data_size_ >> 1;
+  const size_t mask = MASKS[qubit];
+  if (omp_threads_managed() > 1) {
+#pragma omp parallel num_threads(omp_threads_managed())
+    {
+#pragma omp for
+      for (int_t i = 0; i < END; i++) {
+        size_t lowpart = i & mask;
+        size_t highpart = i & ~mask;
+        size_t k = (highpart << 1) | BITS[qubit] | lowpart;
+        data_[k] = complex_t(data_[k].imag(), -data_[k].real());
+      }
+    }
+  } else {
+    for (int_t i = 0; i < END; i++) {
+      size_t lowpart = i & mask;
+      size_t highpart = i & ~mask;
+      size_t k = (highpart << 1) | BITS[qubit] | lowpart;
+      data_[k] = complex_t(data_[k].imag(), -data_[k].real());
+    }
   }
-  } // end switch
+}
+
+template <typename data_t>
+void QubitVector<data_t>::apply_t(const uint_t qubit) {
+  const size_t END = data_size_ >> 1;
+  const size_t mask = MASKS[qubit];
+  const double isqrt2 = 1. / std::sqrt(2.);
+  if (omp_threads_managed() > 1) {
+#pragma omp parallel num_threads(omp_threads_managed())
+    {
+#pragma omp for
+      for (int_t i = 0; i < END; i++) {
+        size_t lowpart = i & mask;
+        size_t highpart = i & ~mask;
+        size_t k = (highpart << 1) | BITS[qubit] | lowpart;
+        data_[k] *= complex_t(isqrt2, isqrt2);
+      }
+    }
+  } else {
+    for (int_t i = 0; i < END; i++) {
+      size_t lowpart = i & mask;
+      size_t highpart = i & ~mask;
+      size_t k = (highpart << 1) | BITS[qubit] | lowpart;
+      data_[k] *= complex_t(isqrt2, isqrt2);
+    }
+  }
+}
+
+template <typename data_t>
+void QubitVector<data_t>::apply_tdg(uint_t qubit) {
+  const size_t END = data_size_ >> 1;
+  const size_t mask = MASKS[qubit];
+  const double isqrt2 = 1. / std::sqrt(2.);
+  if (omp_threads_managed() > 1) {
+#pragma omp parallel num_threads(omp_threads_managed())
+    {
+#pragma omp for
+      for (int_t i = 0; i < END; i++) {
+        size_t lowpart = i & mask;
+        size_t highpart = i & ~mask;
+        size_t k = (highpart << 1) | BITS[qubit] | lowpart;
+        data_[k] *= complex_t(isqrt2, -isqrt2);
+      }
+    }
+  } else {
+    for (int_t i = 0; i < END; i++) {
+      size_t lowpart = i & mask;
+      size_t highpart = i & ~mask;
+      size_t k = (highpart << 1) | BITS[qubit] | lowpart;
+      data_[k] *= complex_t(isqrt2, -isqrt2);
+    }
+  }
 }
 
 template <typename data_t>
