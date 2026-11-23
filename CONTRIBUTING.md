@@ -975,10 +975,12 @@ These are the flags:
     Default: Auto
     Example: ``python ./setup.py bdist_wheel -- -DAER_THRUST_BACKEND=CUDA -DAER_CUDA_ARCH="5.2; 5.3"``
 
-    ``Auto`` uses the GPUs found in the build machine (CMake 3.24 or newer) and falls back to
-    ``Common`` if there are none. ``Common`` builds one architecture per major version, with PTX
-    for the newest one, and ``All`` builds every architecture supported by the toolkit
-    (both need CMake 3.23 or newer). Architecture names such as ``Ampere`` are not supported.
+    ``Auto`` uses the GPUs found in the build machine (needs CMake 3.24 or newer) and falls back to
+    ``Common`` if there are none, or if the toolkit does not support them. ``Common`` builds the lowest
+    architecture of each major version (plus Turing, ``7.5``), with PTX for the newest one, and ``All``
+    builds every architecture supported by the toolkit. Both are read from ``nvcc --list-gpu-code``, so
+    they follow the installed CUDA version (for example, no Maxwell, Pascal or Volta with CUDA 13).
+    Architecture names such as ``Ampere`` are not supported.
 
     Compute capabilities with a two-digit major version, such as Blackwell (``10.0``, ``12.0``),
     are supported when listed as plain numbers, optionally followed by ``+PTX``

@@ -303,50 +303,84 @@ if(AER_THRUST_SUPPORTED)
 				set(AER_CUDA_ARCH "Auto")
 			endif()
 		endif()
-		# Resolve the Auto, Common and All keywords using the architecture lists
-		# CMake determines for the CUDA compiler:
+		# Resolve the Auto, Common and All keywords. The architectures supported by
+		# the installed nvcc are queried from nvcc itself, because the lists CMake
+		# keeps for each toolkit version are only up to date for the CMake releases
+		# that know the toolkit (older CMake offers Maxwell/Pascal/Volta targets that
+		# CUDA 13 rejects, and misses Turing).
 		#   Auto   -> GPUs present in this machine (CMAKE_CUDA_ARCHITECTURES_NATIVE,
-		#             CMake >= 3.24), falling back to Common when none is detected
-		#   Common -> one architecture per major version, with PTX for the newest
-		#             (CMAKE_CUDA_ARCHITECTURES_ALL_MAJOR, CMake >= 3.23)
-		#   All    -> every architecture supported by the toolkit
-		#             (CMAKE_CUDA_ARCHITECTURES_ALL, CMake >= 3.23)
+		#             CMake >= 3.24) that nvcc supports, falling back to Common
+		#   Common -> the lowest supported architecture of each major version, with
+		#             PTX for the newest
+		#   All    -> every architecture supported by nvcc, with PTX for the newest
 		# The results are converted to the "N.N" notation of AER_CUDA_ARCH
-		# ("120" -> "12.0", "86-real" -> "8.6").
+		# ("120" -> "12.0").
 		if(AER_CUDA_ARCH STREQUAL "Auto" OR AER_CUDA_ARCH STREQUAL "Common" OR AER_CUDA_ARCH STREQUAL "All")
 			set(_aer_cuda_arch_keyword "${AER_CUDA_ARCH}")
-			set(_aer_cuda_arch_cmake "")
+			execute_process(COMMAND "${CMAKE_CUDA_COMPILER}" --list-gpu-code
+				OUTPUT_VARIABLE _aer_nvcc_sm RESULT_VARIABLE _aer_nvcc_result
+				OUTPUT_STRIP_TRAILING_WHITESPACE ERROR_QUIET)
+			string(REGEX MATCHALL "sm_[0-9]+" _aer_nvcc_sm "${_aer_nvcc_sm}")
+			string(REPLACE "sm_" "" _aer_supported "${_aer_nvcc_sm}")
+			list(REMOVE_DUPLICATES _aer_supported)
+			if(NOT _aer_supported)
+				message(FATAL_ERROR "Cannot list the architectures supported by ${CMAKE_CUDA_COMPILER}. "
+					"Set AER_CUDA_ARCH to an explicit list such as \"7.5 8.0 9.0\".")
+			endif()
+
+			set(_aer_cuda_arch_sm "")
 			if(_aer_cuda_arch_keyword STREQUAL "Auto")
-				set(_aer_cuda_arch_cmake ${CMAKE_CUDA_ARCHITECTURES_NATIVE})
-				if(NOT _aer_cuda_arch_cmake)
-					message(STATUS "No CUDA GPU detected, building for the common architectures")
+				foreach(_cc ${CMAKE_CUDA_ARCHITECTURES_NATIVE})
+					string(REGEX REPLACE "-(real|virtual)$" "" _cc "${_cc}")
+					if(_cc IN_LIST _aer_supported)
+						list(APPEND _aer_cuda_arch_sm ${_cc})
+					else()
+						message(STATUS "Ignoring GPU architecture ${_cc}, not supported by this CUDA toolkit")
+					endif()
+				endforeach()
+				if(NOT _aer_cuda_arch_sm)
+					message(STATUS "No supported CUDA GPU detected, building for the common architectures")
 					set(_aer_cuda_arch_keyword "Common")
 				endif()
 			endif()
 			if(_aer_cuda_arch_keyword STREQUAL "Common")
-				set(_aer_cuda_arch_cmake ${CMAKE_CUDA_ARCHITECTURES_ALL_MAJOR})
+				set(_aer_cuda_arch_majors "")
+				foreach(_cc ${_aer_supported})
+					# A cubin runs on later minor versions of the same major version,
+					# except that Volta (7.0, 7.2) cubins do not run on Turing (7.5).
+					string(REGEX REPLACE "[0-9]$" "" _major "${_cc}")
+					if(_cc EQUAL 75)
+						set(_major 75)
+					endif()
+					list(APPEND _aer_cuda_arch_majors ${_major})
+					if(NOT DEFINED _aer_cuda_arch_lowest_${_major} OR _cc LESS _aer_cuda_arch_lowest_${_major})
+						set(_aer_cuda_arch_lowest_${_major} ${_cc})
+					endif()
+				endforeach()
+				list(REMOVE_DUPLICATES _aer_cuda_arch_majors)
+				foreach(_major ${_aer_cuda_arch_majors})
+					list(APPEND _aer_cuda_arch_sm ${_aer_cuda_arch_lowest_${_major}})
+				endforeach()
 			elseif(_aer_cuda_arch_keyword STREQUAL "All")
-				set(_aer_cuda_arch_cmake ${CMAKE_CUDA_ARCHITECTURES_ALL})
+				set(_aer_cuda_arch_sm ${_aer_supported})
 			endif()
-			if(NOT _aer_cuda_arch_cmake)
-				message(FATAL_ERROR "Cannot resolve AER_CUDA_ARCH=${AER_CUDA_ARCH} with CMake ${CMAKE_VERSION}. "
-					"Set AER_CUDA_ARCH to an explicit list such as \"7.5 8.0 9.0\" "
-					"(Common and All need CMake 3.23, Auto needs CMake 3.24).")
-			endif()
-			set(AER_CUDA_ARCH "")
-			foreach(_cc ${_aer_cuda_arch_cmake})
-				if(_cc MATCHES "^([0-9]+)([0-9])(-real|-virtual)?$")
-					list(APPEND AER_CUDA_ARCH "${CMAKE_MATCH_1}.${CMAKE_MATCH_2}")
+
+			set(_aer_cuda_arch_newest 0)
+			foreach(_cc ${_aer_cuda_arch_sm})
+				if(_cc GREATER _aer_cuda_arch_newest)
+					set(_aer_cuda_arch_newest ${_cc})
 				endif()
 			endforeach()
-			list(REMOVE_DUPLICATES AER_CUDA_ARCH)
-			if(_aer_cuda_arch_keyword STREQUAL "Common")
-				list(LENGTH AER_CUDA_ARCH _aer_cuda_arch_count)
-				math(EXPR _aer_cuda_arch_last "${_aer_cuda_arch_count} - 1")
-				list(GET AER_CUDA_ARCH ${_aer_cuda_arch_last} _aer_cuda_arch_newest)
-				list(REMOVE_AT AER_CUDA_ARCH ${_aer_cuda_arch_last})
-				list(APPEND AER_CUDA_ARCH "${_aer_cuda_arch_newest}+PTX")
-			endif()
+			set(AER_CUDA_ARCH "")
+			foreach(_cc ${_aer_cuda_arch_sm})
+				if(_cc MATCHES "^([0-9]+)([0-9])$")
+					set(_arch "${CMAKE_MATCH_1}.${CMAKE_MATCH_2}")
+					if(NOT _aer_cuda_arch_keyword STREQUAL "Auto" AND _cc EQUAL _aer_cuda_arch_newest)
+						set(_arch "${_arch}+PTX")
+					endif()
+					list(APPEND AER_CUDA_ARCH "${_arch}")
+				endif()
+			endforeach()
 			message(STATUS "AER_CUDA_ARCH = ${AER_CUDA_ARCH}")
 		endif()
 

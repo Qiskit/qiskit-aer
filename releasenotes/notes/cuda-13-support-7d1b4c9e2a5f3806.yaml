@@ -30,11 +30,14 @@ upgrade:
   - |
     The CUDA build now uses CMake's ``FindCUDAToolkit`` module instead of the ``FindCUDA``
     module, which is removed by CMake policy ``CMP0146`` in CMake 3.27 and newer. Building
-    with CUDA requires CMake 3.17 or newer. The ``AER_CUDA_ARCH`` keywords ``Auto``,
-    ``Common`` and ``All`` need CMake 3.24 (``Auto``) or 3.23 (``Common``, ``All``);
-    with older versions set ``AER_CUDA_ARCH`` to an explicit list. ``Auto`` now falls back
-    to ``Common`` when no GPU is detected. Architecture names such as ``Ampere`` are no
-    longer accepted; use the numeric compute capability instead.
+    with CUDA requires CMake 3.17 or newer. The ``AER_CUDA_ARCH`` keywords ``Common`` and
+    ``All`` are resolved from the architectures the installed ``nvcc`` reports
+    (``nvcc --list-gpu-code``), so they never include architectures the toolkit dropped.
+    ``Auto`` detects the GPUs of the build machine, which needs CMake 3.24; with older
+    versions set ``AER_CUDA_ARCH`` to an explicit list. ``Auto`` ignores detected GPUs
+    that the toolkit does not support and falls back to ``Common`` when none is left.
+    Architecture names such as ``Ampere`` are no longer accepted; use the numeric compute
+    capability instead.
   - |
     The functors in the Thrust based GPU kernels no longer derive from
     ``thrust::unary_function``, which was removed in CCCL 3 (shipped with CUDA 13).
