@@ -17,6 +17,7 @@
 
 #include "json.hpp"
 #include "types.hpp"
+#include <limits>
 #include <optional>
 #include <string>
 
@@ -78,6 +79,8 @@ struct Config {
   bool enable_truncation = true;
   double zero_threshold = 1e-10;
   double validation_threshold = 1e-8;
+  // Tolerance for a Pauli rotation gate to be an integer multiple of pi/2
+  double clifford_angle_tolerance = std::numeric_limits<double>::epsilon();
   optional<uint_t> max_parallel_threads;
   optional<uint_t> max_parallel_experiments;
   optional<uint_t> max_parallel_shots;
@@ -185,6 +188,7 @@ struct Config {
     enable_truncation = true;
     zero_threshold = 1e-10;
     validation_threshold = 1e-8;
+    clifford_angle_tolerance = std::numeric_limits<double>::epsilon();
     max_parallel_threads.clear();
     max_parallel_experiments.clear();
     max_parallel_shots.clear();
@@ -289,6 +293,7 @@ struct Config {
     enable_truncation = other.enable_truncation;
     zero_threshold = other.zero_threshold;
     validation_threshold = other.validation_threshold;
+    clifford_angle_tolerance = other.clifford_angle_tolerance;
     if (other.max_parallel_threads.has_value())
       max_parallel_threads.value(other.max_parallel_threads.value());
     if (other.max_parallel_experiments.has_value())
@@ -439,6 +444,7 @@ inline void from_json(const json_t &js, Config &config) {
   get_value(config.enable_truncation, "enable_truncation", js);
   get_value(config.zero_threshold, "zero_threshold", js);
   get_value(config.validation_threshold, "validation_threshold", js);
+  get_value(config.clifford_angle_tolerance, "clifford_angle_tolerance", js);
   get_value(config.max_parallel_threads, "max_parallel_threads", js);
   get_value(config.max_parallel_experiments, "max_parallel_experiments", js);
   get_value(config.max_parallel_shots, "max_parallel_shots", js);

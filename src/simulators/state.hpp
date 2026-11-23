@@ -40,7 +40,9 @@ const stringset_t clifford_rotation_gates = {"rz",  "rx",  "ry", "rzz",
                                              "rxx", "ryy", "rzx"};
 
 // Return true unless some op is a Pauli rotation at a non-Clifford angle.
-inline bool validate_clifford_angles(const std::vector<Operations::Op> &ops) {
+// The angle is snapped to the nearest multiple of pi/2.
+inline bool validate_clifford_angles(const std::vector<Operations::Op> &ops,
+                                     double tolerance) {
   for (const auto &op : ops) {
     if (op.type != Operations::OpType::gate || op.params.empty() ||
         clifford_rotation_gates.find(op.name) ==
@@ -48,7 +50,8 @@ inline bool validate_clifford_angles(const std::vector<Operations::Op> &ops) {
       continue;
     }
     const double pi2 = std::real(op.params[0]) * 2.0 / M_PI;
-    if (!Linalg::almost_equal(pi2, (double)std::round(pi2))) {
+    if (!Linalg::almost_equal(pi2, (double)std::round(pi2), tolerance,
+                              tolerance)) {
       return false;
     }
   }

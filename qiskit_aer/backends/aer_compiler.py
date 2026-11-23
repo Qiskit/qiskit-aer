@@ -557,6 +557,7 @@ BACKEND_RUN_ARG_TYPES = {
     "executor": Executor,
     "zero_threshold": (float, np.floating),
     "validation_threshold": (int, np.integer),
+    "clifford_angle_tolerance": (float, np.floating),
     "max_parallel_threads": (int, np.integer),
     "max_parallel_experiments": (int, np.integer),
     "max_parallel_shots": (int, np.integer),

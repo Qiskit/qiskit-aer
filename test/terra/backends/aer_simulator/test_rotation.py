@@ -13,6 +13,7 @@
 AerSimulator Integration Tests
 """
 
+import sys
 import numpy as np
 from ddt import ddt, data
 from test.terra.reference import ref_rotation
@@ -328,6 +329,50 @@ class TestRotation(SimulatorTestCase):
             hex_counts=False,
             delta=0.06 * shots,
         )
+
+    # ---------------------------------------------------------------------
+    # clifford_angle_tolerance option
+    # ---------------------------------------------------------------------
+    @supported_methods(["stabilizer", "extended_stabilizer"], CLIFFORD_ROTATION_GATES)
+    def test_clifford_angle_tolerance_option(self, method, device, gate):
+        """Test that clifford_angle_tolerance widens the accepted angles."""
+        # Far enough from pi/2 to be rejected by default, but within 1e-14.
+        theta = np.pi / 2 * (1 + 1e-15)
+        circuit = ref_rotation.rotation_circuit(gate, theta)
+
+        default = self.backend(method=method, device=device, seed_simulator=self.SEED)
+        self.assertNotSuccess(default.run(circuit, shots=100).result())
+
+        loosened = self.backend(
+            method=method,
+            device=device,
+            seed_simulator=self.SEED,
+            clifford_angle_tolerance=1e-14,
+        )
+        self.assertSuccess(loosened.run(circuit, shots=100).result())
+
+    @data(*CLIFFORD_ROTATION_GATES)
+    def test_clifford_angle_tolerance_affects_method_selection(self, gate):
+        """Test that the tolerance decides whether automatic picks the stabilizer method."""
+        circuit = ref_rotation.rotation_circuit(gate, np.pi / 2 * (1 + 1e-15))
+
+        default = self.backend(method="automatic", seed_simulator=self.SEED)
+        result = default.run(circuit, shots=100).result()
+        self.assertSuccess(result)
+        self.assertNotEqual(result.results[0].metadata.get("method"), "stabilizer")
+
+        loosened = self.backend(
+            method="automatic",
+            seed_simulator=self.SEED,
+            clifford_angle_tolerance=1e-14,
+        )
+        result = loosened.run(circuit, shots=100).result()
+        self.assertSuccess(result)
+        self.assertEqual(result.results[0].metadata.get("method"), "stabilizer")
+
+    def test_clifford_angle_tolerance_default(self):
+        """Test the option defaults to double precision epsilon, i.e. no change."""
+        self.assertEqual(self.backend().options.clifford_angle_tolerance, sys.float_info.epsilon)
 
     # ---------------------------------------------------------------------
     # Automatic method selection

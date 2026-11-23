@@ -15,6 +15,7 @@ Aer qasm simulator backend.
 
 import copy
 import logging
+import sys
 from warnings import warn
 from qiskit.providers.options import Options
 from qiskit.providers.backend import BackendV2
@@ -154,6 +155,19 @@ class QasmSimulator(AerBackend):
 
     * ``validation_threshold`` (double): Sets the threshold for checking
       if initial states are valid (Default: 1e-8).
+
+    * ``clifford_angle_tolerance`` (double): Sets the tolerance, used as both
+      an absolute and a relative tolerance, for accepting the angle of a Pauli
+      rotation gate such as ``rx`` or ``rzz`` as an integer multiple of
+      ``pi/2``, which is the condition for the gate to be a Clifford operation
+      (Default: ``sys.float_info.epsilon``).
+
+      When ``method="automatic"``, this tolerance helps determine whether the
+      simulation can be done with the ``"stabilizer"`` or
+      ``"extended_stabilizer"`` methods. When the method is ``"stabilizer"`` or
+      ``"extended_stabilizer"``, an in-tolerance angle is snapped to the
+      closest multiple of ``pi / 2``, while an applicable angle outside of
+      tolerance causes simulation failure.
 
     * ``max_parallel_threads`` (int): Sets the maximum number of CPU
       cores used by OpenMP for parallelization. If set to 0 the
@@ -490,6 +504,7 @@ class QasmSimulator(AerBackend):
             enable_truncation=True,
             zero_threshold=1e-10,
             validation_threshold=None,
+            clifford_angle_tolerance=sys.float_info.epsilon,
             max_parallel_threads=None,
             max_parallel_experiments=None,
             max_parallel_shots=None,

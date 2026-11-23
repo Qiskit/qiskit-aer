@@ -1,0 +1,22 @@
+---
+features:
+  - |
+    Added a ``clifford_angle_tolerance`` backend option, which sets the
+    tolerance for accepting the angle of a Pauli rotation gate such as ``rx`` or
+    ``rzz`` as an integer multiple of ``pi/2``, the condition for the gate to be
+    a Clifford operation. It is applied as both an absolute and a relative
+    tolerance.
+
+    .. code-block:: python
+
+        from qiskit_aer import AerSimulator
+
+        simulator = AerSimulator(clifford_angle_tolerance=1e-14)
+
+    Only the ``stabilizer`` and ``extended_stabilizer`` methods require Pauli
+    rotations to be at Clifford angles, and they reject circuits containing ones
+    that are not. The ``automatic`` method also uses this tolerance, to determine
+    whether a stabilizer method can be used.
+
+    The default is ``sys.float_info.epsilon``, which is the value previously
+    hard coded, so behaviour is unchanged unless the option is set.

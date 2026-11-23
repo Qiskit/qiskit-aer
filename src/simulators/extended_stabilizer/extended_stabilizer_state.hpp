@@ -177,6 +177,9 @@ protected:
   // for allowed error \delta
   double approximation_error_ = 0.05;
 
+  // Tolerance for accepting a rotation angle as a multiple of pi/2
+  double angle_tolerance_ = std::numeric_limits<double>::epsilon();
+
   uint_t norm_estimation_samples_ = 100;
 
   uint_t norm_estimation_repetitions_ = 3;
@@ -267,6 +270,8 @@ void State::initialize_qreg(uint_t num_qubits) {
 void State::set_config(const Config &config) {
   // Set the error upper bound in the stabilizer rank approximation
   approximation_error_ = config.extended_stabilizer_approximation_error;
+  // Set the tolerance for accepting an angle as a multiple of pi/2
+  angle_tolerance_ = config.clifford_angle_tolerance;
   // Set the number of samples used in the norm estimation routine
   if (config.extended_stabilizer_norm_estimation_default_samples.has_value())
     norm_estimation_samples_ =
@@ -366,7 +371,7 @@ bool State::check_measurement_opt(InputIterator first,
 }
 
 bool State::validate_parameters(const std::vector<Operations::Op> &ops) const {
-  return QuantumState::validate_clifford_angles(ops);
+  return QuantumState::validate_clifford_angles(ops, angle_tolerance_);
 }
 
 //-------------------------------------------------------------------------
