@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fixed incorrect save_expectation_value results when circuit truncation
+    is enabled and the observable acts on idle or permuted qubits.
