@@ -116,9 +116,13 @@ def check_cuStateVec(devices):
         dummy_circ.id(0)
         # run dummy circuit to check if Aer is built with cuStateVec
         sim = AerSimulator()
-        result = sim.run(
-            dummy_circ, shots=1, method="statevector", device="GPU", cuStateVec_enable=True
-        ).result()
+        try:
+            result = sim.run(
+                dummy_circ, shots=1, method="statevector", device="GPU", cuStateVec_enable=True
+            ).result()
+        except RuntimeError:
+            # Aer built without cuStateVec rejects the option when the config is applied
+            return False
         success = getattr(result, "success", False)
         return success
     else:
