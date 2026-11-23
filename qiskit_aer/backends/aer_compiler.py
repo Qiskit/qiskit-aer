@@ -920,7 +920,10 @@ def _assemble_op(
         if ctrl_state_pos > 0:
             # Add x gates for ctrl qubits which state=0
             ctrl_state = int(name[ctrl_state_pos+2:len(name)])
-            for i in range(len(qubits)-1):
+            # gates such as cswap and mcswap have more than one target qubit,
+            # so the number of control qubits cannot be derived from the qubit count
+            num_ctrl_qubits = getattr(operation, "num_ctrl_qubits", len(qubits) - 1)
+            for i in range(num_ctrl_qubits):
                 if (ctrl_state >> i) & 1 == 0:
                     qubits_i = [qubits[i]]
                     aer_circ.gate("x", qubits_i, params, [], conditional_reg, aer_cond_expr,
@@ -928,7 +931,7 @@ def _assemble_op(
                     num_of_aer_ops += 1
             aer_circ.gate(gate_name, qubits, params, [], conditional_reg, aer_cond_expr,
                           label if label else gate_name)
-            for i in range(len(qubits)-1):
+            for i in range(num_ctrl_qubits):
                 if (ctrl_state >> i) & 1 == 0:
                     qubits_i = [qubits[i]]
                     aer_circ.gate("x", qubits_i, params, [], conditional_reg, aer_cond_expr,
