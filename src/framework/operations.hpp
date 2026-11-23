@@ -1318,10 +1318,11 @@ inline Op make_barrier(const reg_t &qubits) {
 }
 
 inline Op make_measure(const reg_t &qubits, const reg_t &memory,
-                       const reg_t &registers) {
+                       const reg_t &registers,
+                       const std::string &name = "measure") {
   Op op;
   op.type = OpType::measure;
-  op.name = "measure";
+  op.name = name;
   op.qubits = qubits;
   op.memory = memory;
   op.registers = registers;
@@ -1394,7 +1395,8 @@ Op input_to_op_gate(const inputdata_t &input);
 template <typename inputdata_t>
 Op input_to_op_barrier(const inputdata_t &input);
 template <typename inputdata_t>
-Op input_to_op_measure(const inputdata_t &input);
+Op input_to_op_measure(const inputdata_t &input,
+                       const std::string &op_name = "measure");
 template <typename inputdata_t>
 Op input_to_op_reset(const inputdata_t &input);
 template <typename inputdata_t>
@@ -1471,8 +1473,8 @@ Op input_to_op(const inputdata_t &input) {
   if (name == "barrier")
     return input_to_op_barrier(input);
   // Measure & Reset
-  if (name == "measure")
-    return input_to_op_measure(input);
+  if (name == "measure" || name.compare(0, 8, "measure_") == 0)
+    return input_to_op_measure(input, name);
   if (name == "reset")
     return input_to_op_reset(input);
   if (name == "initialize")
@@ -1660,10 +1662,10 @@ Op input_to_op_barrier(const inputdata_t &input) {
 }
 
 template <typename inputdata_t>
-Op input_to_op_measure(const inputdata_t &input) {
+Op input_to_op_measure(const inputdata_t &input, const std::string &op_name) {
   Op op;
   op.type = OpType::measure;
-  op.name = "measure";
+  op.name = op_name;
   Parser<inputdata_t>::get_value(op.qubits, "qubits", input);
   Parser<inputdata_t>::get_value(op.memory, "memory", input);
   Parser<inputdata_t>::get_value(op.registers, "register", input);

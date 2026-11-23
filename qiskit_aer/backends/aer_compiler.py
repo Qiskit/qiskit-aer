@@ -668,6 +668,65 @@ def generate_aer_config(
     return config
 
 
+def _conditional_clbits(circuit: QuantumCircuit) -> set:
+    """Return the set of classical bit indices that feed at least one conditional op.
+
+    Both conditional styles are handled:
+
+    * ``condition_expr`` (Qiskit 2.x ``Expr``-based): the ``Var`` nodes in the
+      expression reference specific clbit indices.  Those indices are collected
+      so the corresponding ``measure`` ops will write to the ``registers`` field,
+      making the values available to ``VarExpr::eval_bool/eval_uint`` via
+      ``creg_memory_``.
+
+    * ``condition`` (old-style ``c_if`` tuple ``(ctrl_reg, val)``): a ``bfunc``
+      instruction is inserted before the conditional gate.  The ``bfunc`` reads
+      ``creg_register_``, which is populated only when the ``measure`` op has a
+      non-empty ``registers`` field.  So the clbits involved in the tuple
+      condition must also be included.
+
+    Args:
+        circuit: The flat (already inlined) circuit to inspect.
+
+    Returns:
+        Set of integer clbit indices whose value is read by at least one
+        conditional gate (either style).
+    """
+    clbit_indices = {clbit: idx for idx, clbit in enumerate(circuit.clbits)}
+    conditional_clbits: set = set()
+
+    for inst in circuit.data:
+        # --- New-style: condition_expr (Expr object on AerJump or gate) ---
+        cond_expr = getattr(inst.operation, "condition_expr", None)
+        if cond_expr is not None:
+            for var_node in iter_vars(cond_expr):
+                if isinstance(var_node.var, Clbit):
+                    idx = clbit_indices.get(var_node.var)
+                    if idx is not None:
+                        conditional_clbits.add(idx)
+                elif isinstance(var_node.var, ClassicalRegister):
+                    for clbit in var_node.var:
+                        idx = clbit_indices.get(clbit)
+                        if idx is not None:
+                            conditional_clbits.add(idx)
+
+        # --- Old-style: condition tuple (ctrl_reg, val) on AerJump or gate ---
+        condition = getattr(inst.operation, "condition", None)
+        if condition is not None:
+            ctrl_reg, _ = condition
+            if isinstance(ctrl_reg, Clbit):
+                idx = clbit_indices.get(ctrl_reg)
+                if idx is not None:
+                    conditional_clbits.add(idx)
+            elif isinstance(ctrl_reg, ClassicalRegister):
+                for clbit in ctrl_reg:
+                    idx = clbit_indices.get(clbit)
+                    if idx is not None:
+                        conditional_clbits.add(idx)
+
+    return conditional_clbits
+
+
 def assemble_circuit(circuit: QuantumCircuit, basis_gates=None):
     """assemble circuit object mapped to AER::Circuit"""
 
@@ -690,11 +749,12 @@ def assemble_circuit(circuit: QuantumCircuit, basis_gates=None):
     for creg in circuit.cregs:
         creg_sizes.append([creg.name, creg.size])
 
-    is_conditional = any(
-        getattr(inst.operation, "condition_expr", None)
-        or getattr(inst.operation, "condition", None)
-        for inst in circuit.data
-    )
+    # Compute the set of classical bit indices that are actually read by
+    # a condition_expr-style conditional gate.  Only measurements whose
+    # target clbits appear in this set will write to the registers field.
+    # Old-style c_if conditions use a separate bfunc/register-slot mechanism
+    # and are unaffected by this set.
+    conditional_clbits = _conditional_clbits(circuit)
 
     header = CircuitHeader(
         n_qubits=num_qubits,
@@ -753,7 +813,7 @@ def assemble_circuit(circuit: QuantumCircuit, basis_gates=None):
             inst,
             qubit_indices,
             clbit_indices,
-            is_conditional,
+            conditional_clbits,
             conditional_reg,
             conditional_expr,
             basis_gates,
@@ -878,7 +938,7 @@ def _assemble_op(
     inst,
     qubit_indices,
     clbit_indices,
-    is_conditional,
+    conditional_clbits,
     conditional_reg,
     conditional_expr,
     basis_gates,
@@ -937,11 +997,20 @@ def _assemble_op(
         else:
             aer_circ.gate(name, qubits, params, [], conditional_reg, aer_cond_expr,
                           label if label else name)
-    elif name == "measure":
-        if is_conditional:
-            aer_circ.measure(qubits, clbits, clbits)
-        else:
-            aer_circ.measure(qubits, clbits, [])
+    elif name == "measure" or name.startswith("measure_"):
+        # Derive a per-measurement op name from the instruction label so a
+        # QuantumError can be targeted at this specific measurement through the
+        # noise-model instruction name f"measure_{label}". A standard Measure()
+        # has label=None and keeps the plain "measure" name, so the fast
+        # measure-sampling path and all existing behaviour are unchanged.
+        if name == "measure" and label:
+            name = f"measure_{label}"
+        # Write to the register file only for the clbits that are actually
+        # read by a downstream condition_expr gate.  This avoids inflating
+        # num_registers for measurements whose results are never used as
+        # classical feedback.
+        reg_clbits = [cb for cb in clbits if cb in conditional_clbits]
+        aer_circ.measure(qubits, clbits, reg_clbits, name)
     elif name == "reset":
         aer_circ.reset(qubits, conditional_reg)
     elif name == "diagonal":

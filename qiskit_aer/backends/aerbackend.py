@@ -248,6 +248,7 @@ class AerBackend(Backend, ABC):
         from qiskit.circuit.library.standard_gates import get_standard_gate_name_mapping
         from qiskit.circuit.parameter import Parameter
         from qiskit.circuit.gate import Gate
+        from qiskit.circuit.measure import Measure
         from qiskit.circuit.controlflow import CONTROL_FLOW_OP_NAMES
         from qiskit.providers.backend import QubitProperties
 
@@ -293,6 +294,8 @@ class AerBackend(Backend, ABC):
                 continue
             if name in qiskit_inst_mapping:
                 inst_name_map[name] = qiskit_inst_mapping[name]
+            elif name.startswith("measure_"):
+                inst_name_map[name] = Measure()
             elif name in gate_configs:
                 this_config = gate_configs[name]
                 params = list(map(Parameter, getattr(this_config, "parameters", [])))
@@ -400,6 +403,18 @@ class AerBackend(Backend, ABC):
                     error=_get_value(qubit_prop, "readout_error"),
                     duration=_get_value(qubit_prop, "readout_length"),
                 )
+
+        # Propagate measure properties to measure_* variants
+        for inst_name in all_instructions:
+            if inst_name.startswith("measure_") and inst_name not in prop_name_map:
+                if "measure" in prop_name_map and prop_name_map["measure"] is not None:
+                    prop_name_map[inst_name] = dict(prop_name_map["measure"])
+                else:
+                    prop_name_map[inst_name] = {
+                        (q,): None
+                        for q in range(configuration.num_qubits)
+                        if q not in faulty_qubits
+                    }
 
         for op in required:
             # Map required ops to each operational qubit
