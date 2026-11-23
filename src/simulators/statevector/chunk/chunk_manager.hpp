@@ -89,7 +89,7 @@ public:
 
   bool MapChunk(Chunk<data_t> &chunk, int iplace = -1);
   bool MapBufferChunk(Chunk<data_t> &out, int idev);
-  bool MapBufferChunkOnHost(Chunk<data_t> &out);
+  bool MapBufferChunkOnHost(Chunk<data_t> &out, uint_t ibuf = 0);
 
   void UnmapChunk(Chunk<data_t> &chunk);
   void UnmapBufferChunk(Chunk<data_t> &buffer);
@@ -379,12 +379,13 @@ uint_t ChunkManager<data_t>::Allocate(int chunk_bits, int nqubits,
       chunks_[iDev]->set_place(iDev, num_places_);
 
 #ifdef AER_DISABLE_GDR
-    // additional host buffer
+    // additional host buffers: MPI sends from one and receives into the other,
+    // both are in flight at the same time
     iplace_host_ = chunks_.size();
     chunks_.push_back(std::make_shared<HostChunkContainer<data_t>>());
-    chunks_[iplace_host_]->Allocate(-1, chunk_bits, nqubits, 0, AER_MAX_BUFFERS,
-                                    multi_shots_, matrix_bit, max_shots,
-                                    density_matrix_);
+    chunks_[iplace_host_]->Allocate(-1, chunk_bits, nqubits, 0,
+                                    AER_HOST_MPI_BUFFERS, multi_shots_,
+                                    matrix_bit, max_shots, density_matrix_);
 #endif
   } else {
     for (iDev = 0; iDev < chunks_.size(); iDev++) {
@@ -440,8 +441,9 @@ bool ChunkManager<data_t>::MapBufferChunk(Chunk<data_t> &out, int idev) {
 }
 
 template <typename data_t>
-bool ChunkManager<data_t>::MapBufferChunkOnHost(Chunk<data_t> &out) {
-  return chunks_[iplace_host_]->MapBufferChunk(out);
+bool ChunkManager<data_t>::MapBufferChunkOnHost(Chunk<data_t> &out,
+                                                uint_t ibuf) {
+  return chunks_[iplace_host_]->MapBufferChunk(out, ibuf);
 }
 
 template <typename data_t>

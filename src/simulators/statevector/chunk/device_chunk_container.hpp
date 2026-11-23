@@ -783,15 +783,18 @@ void DeviceChunkContainer<data_t>::Swap(Chunk<data_t> &src, uint_t iChunk,
   } else {
     thrust::complex<data_t> *pBuffer = buffer_pointer();
     thrust::complex<data_t> *pSrc = src.pointer();
+    // the copies stay on the stream of the kernel, which has to see the
+    // buffer filled
     cudaMemcpyAsync(pBuffer + dest_offset, pSrc + src_offset,
                     size * sizeof(thrust::complex<data_t>),
-                    cudaMemcpyHostToDevice, stream(this->num_chunks_));
+                    cudaMemcpyHostToDevice, stream(iChunk));
     this->Execute(BufferSwap_func<data_t>(chunk_pointer(iChunk) + dest_offset,
                                           pBuffer + dest_offset, size, true),
                   iChunk, 0, 1);
-    cudaMemcpyAsync(pSrc + src_offset, pBuffer + dest_offset,
-                    size * sizeof(thrust::complex<data_t>),
-                    cudaMemcpyDeviceToHost, stream(this->num_chunks_));
+    if (write_back)
+      cudaMemcpyAsync(pSrc + src_offset, pBuffer + dest_offset,
+                      size * sizeof(thrust::complex<data_t>),
+                      cudaMemcpyDeviceToHost, stream(iChunk));
   }
   cudaError_t err = cudaGetLastError();
   if (err != cudaSuccess) {

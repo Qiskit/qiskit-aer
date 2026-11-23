@@ -1146,7 +1146,7 @@ QubitVectorThrust<data_t>::recv_buffer(uint_t &size_in_byte) {
   if (chunk_.device() < 0) {
     chunk_manager_->MapBufferChunk(recv_chunk_, chunk_.place());
   } else { // if there is no GPUDirectRDMA support, receive in CPU memory
-    chunk_manager_->MapBufferChunkOnHost(recv_chunk_);
+    chunk_manager_->MapBufferChunkOnHost(recv_chunk_, 1);
   }
 #else
   if (!recv_chunk_.is_mapped())
@@ -1670,7 +1670,7 @@ void QubitVectorThrust<data_t>::apply_multi_swaps(const reg_t &qubits) {
   if (count == 0)
     return;
 
-  chunk_.apply_multi_swaps(qubits, chunk_.container()->num_chunks());
+  chunk_.apply_multi_swaps(qubits, count);
 }
 
 template <typename data_t>
@@ -1774,6 +1774,7 @@ void QubitVectorThrust<data_t>::apply_chunk_swap(const reg_t &qubits,
     DebugMsg("SWAP chunks between process", qubits);
 #endif
     chunk_.CopyIn(recv_chunk_);
+    chunk_.synchronize(); // the host buffer is reused by the next exchange
   } else {
     thrust::complex<data_t> *pLocal;
     thrust::complex<data_t> *pRemote;
@@ -1784,6 +1785,7 @@ void QubitVectorThrust<data_t>::apply_chunk_swap(const reg_t &qubits,
         0) { // if there is no GPUDirectRDMA support, copy chunk from CPU
       chunk_manager_->MapBufferChunk(buffer, chunk_.place());
       buffer.CopyIn(recv_chunk_);
+      buffer.synchronize(); // the kernel below runs on the stream of chunk_
       pRemote = buffer.pointer();
     } else {
       pRemote = recv_chunk_.pointer();
@@ -2731,6 +2733,7 @@ double QubitVectorThrust<data_t>::expval_pauli(
         0) { // if there is no GPUDirectRDMA support, copy chunk from CPU
       chunk_manager_->MapBufferChunk(buffer, chunk_.place());
       buffer.CopyIn(recv_chunk_);
+      buffer.synchronize(); // the kernel below runs on the stream of chunk_
       pair_ptr = buffer.pointer();
     } else {
       pair_ptr = recv_chunk_.pointer();
