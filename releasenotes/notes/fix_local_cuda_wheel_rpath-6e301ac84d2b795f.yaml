@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixed the runtime library search path in CUDA wheels built locally with
+    ``AER_PYTHON_CUDA_ROOT`` so that CUDA and cuQuantum shared libraries are
+    found without setting ``LD_LIBRARY_PATH``.
