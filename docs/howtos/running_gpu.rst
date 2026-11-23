@@ -90,3 +90,73 @@ passed to Qiskit Aer. To do so add following option to the script.
    from qiskit.utils import algorithm_globals
    algorithm_globals.random_seed = consistent_seed_to_all_processes
 
+
+GPU simulation precision and performance considerations
+-------------------------------------------------------
+
+Running quantum circuit simulations on a GPU does not automatically guarantee a
+speedup compared with CPU execution. Actual performance depends on multiple factors,
+including the GPU model and architecture, CPU baseline capabilities, circuit size
+(number of qubits and gate depth), simulation method, and workload. For smaller
+circuits or shallow depths, GPU kernel launch overhead and host-to-device data transfers
+may offset any computational advantage.
+
+A key factor affecting GPU simulation performance is floating-point precision:
+
+- **Default precision**: By default, Qiskit Aer uses double precision
+  (``precision="double"``) where applicable (such as in ``statevector``,
+  ``density_matrix``, and ``unitary`` simulation methods). In double precision,
+  each complex amplitude is represented using two 64-bit floating-point numbers
+  (16 bytes total).
+
+- **Hardware FP64 vs. FP32 performance**: Different GPU architectures have
+  substantially different performance characteristics for double-precision (FP64)
+  versus single-precision (FP32) arithmetic. Even on high-performance computing
+  accelerators such as the NVIDIA V100, which feature dedicated FP64 hardware,
+  single-precision compute throughput is higher than double precision, and memory
+  traffic is halved. On many other GPUs (such as consumer or workstation GPUs),
+  FP64 throughput is often significantly more constrained relative to FP32.
+  Consequently, running double-precision simulations on such hardware can result
+  in slower execution than anticipated.
+
+- **Configuring single precision**: Users performing GPU statevector simulations
+  should consider setting ``precision="single"`` when appropriate. Single precision
+  halves the memory requirement to 8 bytes per complex amplitude, allowing larger
+  quantum states to fit in GPU memory and potentially providing substantial performance
+  improvements on GPUs where single-precision execution is faster.
+
+- **Numerical accuracy trade-offs**: While single precision can improve GPU
+  performance and reduce memory usage, it provides lower numerical accuracy
+  (approximately 7 decimal digits of precision compared to roughly 15–17 digits
+  for double precision). Single precision is not universally recommended, and users
+  should not use single precision in scenarios such as:
+
+  - Deep circuits with many gate layers, where small floating-point roundoff errors
+    can accumulate.
+  - Algorithms highly sensitive to delicate phase cancellations, small probability
+    amplitudes, or tight error tolerances (such as quantum phase estimation or precision
+    quantum chemistry simulations).
+  - Validation workloads where strict numerical fidelity to the theoretical statevector
+    is required.
+
+Single precision does not guarantee a speedup in every scenario, and users should
+benchmark their specific circuits and workloads on the target hardware to determine
+the optimal balance between performance and numerical accuracy.
+
+Example: Setting precision on AerSimulator
+''''''''''''''''''''''''''''''''''''''''''
+
+To configure an Aer GPU simulator with single precision:
+
+.. code:: python
+
+    from qiskit_aer import AerSimulator
+
+    # Initialize GPU statevector simulator with single precision
+    simulator = AerSimulator(method="statevector", device="GPU", precision="single")
+
+Alternatively, precision can be updated on an existing simulator instance:
+
+.. code:: python
+
+    simulator.set_options(precision="single")
