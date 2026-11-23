@@ -15,8 +15,7 @@ AerSimulator Integration Tests
 
 from math import sqrt
 from ddt import ddt
-import unittest
-from qiskit import transpile, QuantumCircuit, __version__ as qiskit_version
+from qiskit import transpile, QuantumCircuit
 from test.terra.reference import ref_algorithms
 
 from test.terra.backends.simulator_test_case import SimulatorTestCase, supported_methods
@@ -40,24 +39,6 @@ class TestAlgorithms(SimulatorTestCase):
         self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0.1 * shots)
 
-    def _test_teleport(self, **options):
-        """Test teleport circuits."""
-        shots = 1000
-        for key, val in options.items():
-            if "method" == key and "tensor_network" in val:
-                shots = 100
-
-        backend = self.backend(**options)
-
-        circuits = ref_algorithms.teleport_circuit()
-        targets = ref_algorithms.teleport_counts(shots)
-        circuits = transpile(circuits, backend)
-        job = backend.run(circuits, shots=shots)
-        result = job.result()
-
-        self.assertSuccess(result)
-        self.compare_counts(result, circuits, targets, delta=0.05 * shots)
-
     @supported_methods(
         [
             "automatic",
@@ -80,37 +61,10 @@ class TestAlgorithms(SimulatorTestCase):
         }
         self._test_grovers(**opts)
 
-    @supported_methods(
-        [
-            "automatic",
-            "statevector",
-            "density_matrix",
-            "matrix_product_state",
-            "extended_stabilizer",
-            "tensor_network",
-        ]
-    )
-    @unittest.skipUnless(
-        qiskit_version.startswith("0.") or qiskit_version.startswith("1."),
-        reason="c_if support was removed in Qiskit >= 2.0",
-    )
-    def test_teleport(self, method, device):
-        """Test teleport circuits."""
-        self._test_teleport(method=method, device=device)
-
     @supported_methods(["statevector", "density_matrix"])
     def test_grovers_cache_blocking(self, method, device):
         """Test grovers circuits execute."""
         self._test_grovers(method=method, device=device, blocking_qubits=2, max_parallel_threads=1)
-
-    @unittest.skipUnless(
-        qiskit_version.startswith("0.") or qiskit_version.startswith("1."),
-        reason="c_if support was removed in Qiskit >= 2.0",
-    )
-    @supported_methods(["statevector", "density_matrix"])
-    def test_teleport_cache_blocking(self, method, device):
-        """Test teleport circuits."""
-        self._test_teleport(method=method, device=device, blocking_qubits=2, max_parallel_threads=1)
 
     def test_extended_stabilizer_sparse_output_probs(self):
         """
