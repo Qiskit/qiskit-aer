@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixed a segmentation fault in statevector Pauli expectation values with X or Y
+    on a qubit that is distributed over MPI ranks. ``send_chunk`` got the local
+    chunk index and the peer index the wrong way round.
