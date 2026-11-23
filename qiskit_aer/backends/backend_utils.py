@@ -454,7 +454,7 @@ def cpp_execute_circuits(controller, aer_circuits, noise_model, config):
     # loaded at runtime by the simulator extension
     config.library_dir = LIBRARY_DIR
 
-    noise_model = noise_model.to_dict(serializable=True) if noise_model else {}
+    noise_model = noise_model._serializable_dict() if noise_model else {}
 
     return controller.execute(aer_circuits, noise_model, config)
 
