@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Fixed the CPU density matrix and unitary simulators running single
+    threaded when the state is split into chunks (``blocking_enable=True``, and
+    with MPI). Each chunk now uses the threads given by
+    ``parallel_state_update``, as the unchunked state does. This is the same
+    fix as for the statevector method.

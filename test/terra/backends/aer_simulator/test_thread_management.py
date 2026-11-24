@@ -627,6 +627,32 @@ class TestThreadManagement(SimulatorTestCase):
 
     @requires_omp
     @requires_multiprocessing
+    @data("density_matrix", "unitary")
+    def test_chunk_matrix_state_update_threads(self, method):
+        """Test that density matrix and unitary chunks get the parallel_state_update threads"""
+        backend = self.backend(
+            method=method,
+            blocking_enable=True,
+            blocking_qubits=3,
+            **self.backend_options_parallel(),
+        )
+        circuit = transpile(QuantumVolume(5, 2, seed=0), backend)
+        if method == "unitary":
+            circuit.save_unitary()
+            result = backend.run(circuit, shots=1).result()
+        else:
+            circuit.measure_all()
+            result = backend.run(circuit, shots=10).result()
+        self.assertSuccess(result)
+        metadata = result.results[0].metadata
+        self.assertEqual(
+            metadata["cacheblocking"]["chunk_omp_threads"],
+            metadata["parallel_state_update"],
+            msg="chunks do not use the parallel_state_update threads",
+        )
+
+    @requires_omp
+    @requires_multiprocessing
     def _test_qasm_explicit_parallelization(self):
         """test disabling parallel shots because max_parallel_shots is 1"""
         backend = self.backend(
