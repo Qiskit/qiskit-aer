@@ -651,6 +651,14 @@ Before building Aer with cuQuantum support, install required components via pip 
 
 This example is for CUDA 11. Please replace cu11 to cu12 if your system has CUDA 12.
 
+For CUDA 13 the `nvidia-*` packages no longer carry a `-cu13` suffix (only the cuQuantum one does),
+and you also need to build with C++17 compatible host compiler and `QISKIT_AER_CUDA_MAJOR=13`:
+
+    qiskit-aer$ pip install nvidia-cuda-runtime nvidia-nvjitlink nvidia-cublas nvidia-cusolver nvidia-cusparse cuquantum-cu13
+
+CUDA 13 no longer supports Maxwell, Pascal and Volta GPUs (compute capability below 7.5), so
+set `AER_CUDA_ARCH` accordingly (for example `AER_CUDA_ARCH="7.5 8.0 8.6 9.0 10.0 12.0"`).
+
 Then to build with cuQuantum support, set the value `AER_PYTHON_CUDA_ROOT=<root of Python env>` as following example.
 
     qiskit-aer$ python ./setup.py bdist_wheel -- -DAER_THRUST_BACKEND=CUDA -DAER_PYTHON_CUDA_ROOT=qiskit-aer-venv --
@@ -966,6 +974,23 @@ These are the flags:
     Values:  Auto | Common | All | List of valid CUDA architecture(s).
     Default: Auto
     Example: ``python ./setup.py bdist_wheel -- -DAER_THRUST_BACKEND=CUDA -DAER_CUDA_ARCH="5.2; 5.3"``
+
+    ``Auto`` uses the GPUs found in the build machine (needs CMake 3.24 or newer) and falls back to
+    ``Common`` if there are none, or if the toolkit does not support them. ``Common`` builds the lowest
+    architecture of each major version (plus Turing, ``7.5``), with PTX for the newest one, and ``All``
+    builds every architecture supported by the toolkit. Both are read from ``nvcc --list-gpu-code``, so
+    they follow the installed CUDA version (for example, no Maxwell, Pascal or Volta with CUDA 13).
+    Architecture names such as ``Ampere`` are not supported.
+
+    Compute capabilities with a two-digit major version, such as Blackwell (``10.0``, ``12.0``),
+    are supported when listed as plain numbers, optionally followed by ``+PTX``
+    (for example ``-DAER_CUDA_ARCH="8.0 9.0 12.0+PTX"``).
+
+    If ``AER_CUDA_ARCH`` is not set but ``CMAKE_CUDA_ARCHITECTURES`` is, the latter is used
+    (for example ``-DCMAKE_CUDA_ARCHITECTURES="80;90;120"``). Only plain numeric values are
+    understood; values such as ``native`` or ``80-real`` are ignored and the architecture is auto detected.
+
+    The CUDA build uses CMake's ``FindCUDAToolkit`` module and therefore needs CMake 3.17 or newer.
 
 * DISABLE_CONAN
 

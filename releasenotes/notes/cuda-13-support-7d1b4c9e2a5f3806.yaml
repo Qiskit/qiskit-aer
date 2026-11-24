@@ -1,0 +1,45 @@
+---
+features:
+  - |
+    Aer can now be built against CUDA 13. A new ``qiskit-aer-gpu-cu13`` package is
+    built from the same sources by setting ``QISKIT_AER_PACKAGE_NAME=qiskit-aer-gpu-cu13``
+    and ``QISKIT_AER_CUDA_MAJOR=13``. It depends on the CUDA 13 ``nvidia-*`` wheels
+    (which no longer carry a ``-cu13`` suffix) and on ``cuquantum-cu13``. To install it
+    run::
+
+      pip install qiskit-aer-gpu-cu13
+
+    CUDA 13 dropped support for GPUs with a compute capability below 7.5 (Maxwell, Pascal
+    and Volta), so those GPUs can only be used with the ``qiskit-aer-gpu`` (CUDA 12) or
+    ``qiskit-aer-gpu-cu11`` packages.
+  - |
+    ``AER_CUDA_ARCH`` now accepts any explicit list of numeric compute capabilities, such as
+    ``"7.5 8.0 9.0+PTX 10.0 12.0"``. Previously the CMake ``cuda_select_nvcc_arch_flags``
+    helper was used, which cannot handle capabilities with a two-digit major version
+    (``10.0``, ``12.0``) that are needed for Blackwell GPUs. ``Auto``, ``Common`` and
+    ``All`` are still supported and are now resolved from the architecture lists CMake
+    determines for the CUDA compiler. When ``AER_CUDA_ARCH`` is not set, a numeric
+    ``CMAKE_CUDA_ARCHITECTURES`` list such as ``-DCMAKE_CUDA_ARCHITECTURES="80;90;120"``
+    is now honoured.
+fixes:
+  - |
+    Fixed linking against cuQuantum and cuTENSOR installations that keep their libraries
+    directly in ``<root>/lib`` (as the pip packages do) instead of ``<root>/lib/<CUDA major>``,
+    when ``CUQUANTUM_ROOT`` and ``CUTENSOR_ROOT`` are used with ``AER_ENABLE_CUQUANTUM``.
+upgrade:
+  - |
+    The CUDA build now uses CMake's ``FindCUDAToolkit`` module instead of the ``FindCUDA``
+    module, which is removed by CMake policy ``CMP0146`` in CMake 3.27 and newer. Building
+    with CUDA requires CMake 3.17 or newer. The ``AER_CUDA_ARCH`` keywords ``Common`` and
+    ``All`` are resolved from the architectures the installed ``nvcc`` reports
+    (``nvcc --list-gpu-code``), so they never include architectures the toolkit dropped.
+    ``Auto`` detects the GPUs of the build machine, which needs CMake 3.24; with older
+    versions set ``AER_CUDA_ARCH`` to an explicit list. ``Auto`` ignores detected GPUs
+    that the toolkit does not support and falls back to ``Common`` when none is left.
+    Architecture names such as ``Ampere`` are no longer accepted; use the numeric compute
+    capability instead.
+  - |
+    The functors in the Thrust based GPU kernels no longer derive from
+    ``thrust::unary_function``, which was removed in CCCL 3 (shipped with CUDA 13).
+    When building with CUDA 13 the GPU target is now compiled with C++17, as required
+    by CCCL 3. Builds with older CUDA versions keep the default C++ standard.
