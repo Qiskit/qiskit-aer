@@ -240,7 +240,7 @@ void Transformer<Container, data_t>::apply_diagonal_matrix(
     return;
   }
 
-  const size_t N = qubits.size();
+  size_t N = qubits.size();
   auto func = [&](const areg_t<2> &inds,
                   const cvector_t<data_t> &_diag) -> void {
     for (int_t i = 0; i < 2; ++i) {
