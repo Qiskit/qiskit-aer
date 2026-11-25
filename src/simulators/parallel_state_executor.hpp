@@ -45,7 +45,8 @@ protected:
   bool global_chunk_indexing_; // using global index for control qubits and
                                // diagonal matrix
 
-  reg_t qubit_map_; // qubit map to restore swapped qubits
+  reg_t qubit_map_;     // qubit map to restore swapped qubits
+  reg_t logical_qubit_; // logical qubit currently on each physical wire
 
   bool multi_chunk_swap_enable_ = true; // enable multi-chunk swaps
   // maximum buffer size in qubits for chunk swap
@@ -177,6 +178,9 @@ protected:
   auto apply_to_matrix(bool copy = false);
 
   uint_t mapped_index(const uint_t idx);
+
+  // q0 and q1 are physical wires. Exchange the logical qubits that sit there
+  void record_qubit_swap(uint_t q0, uint_t q1);
 };
 
 template <class state_t>
@@ -289,8 +293,10 @@ bool ParallelStateExecutor<state_t>::allocate(uint_t num_qubits,
 
   // initialize qubit map
   qubit_map_.resize(Base::num_qubits_);
+  logical_qubit_.resize(Base::num_qubits_);
   for (i = 0; i < Base::num_qubits_; i++) {
     qubit_map_[i] = i;
+    logical_qubit_[i] = i;
   }
 
   if (chunk_bits_ <= chunk_swap_buffer_qubits_ + 1)
@@ -400,6 +406,16 @@ uint_t ParallelStateExecutor<state_t>::mapped_index(const uint_t idx) {
     t >>= 1;
   }
   return ret;
+}
+
+template <class state_t>
+void ParallelStateExecutor<state_t>::record_qubit_swap(uint_t q0, uint_t q1) {
+  if (qubit_scale() != 1 || q0 == q1)
+    return;
+  const uint_t l0 = logical_qubit_[q0];
+  const uint_t l1 = logical_qubit_[q1];
+  std::swap(qubit_map_[l0], qubit_map_[l1]);
+  std::swap(logical_qubit_[q0], logical_qubit_[q1]);
 }
 
 template <class state_t>
@@ -1141,9 +1157,7 @@ void ParallelStateExecutor<state_t>::apply_chunk_swap(const reg_t &qubits) {
   q0 = qubits[qubits.size() - 2];
   q1 = qubits[qubits.size() - 1];
 
-  if (qubit_scale() == 1) {
-    std::swap(qubit_map_[q0], qubit_map_[q1]);
-  }
+  record_qubit_swap(q0, q1);
 
   if (q0 > q1) {
     std::swap(q0, q1);
@@ -1350,10 +1364,8 @@ void ParallelStateExecutor<state_t>::apply_multi_chunk_swap(
   reg_t chunk_procs(nchunk);
   reg_t chunk_offset(nchunk);
 
-  if (qubit_scale() == 1) {
-    for (int_t i = 0; i < nswap; i++)
-      std::swap(qubit_map_[qubits[i * 2]], qubit_map_[qubits[i * 2] + 1]);
-  }
+  for (int_t i = 0; i < nswap; i++)
+    record_qubit_swap(qubits[i * 2], qubits[i * 2 + 1]);
 
   // define local swaps
   for (int_t i = 0; i < nswap; i++) {

@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixed a bug in ``AerSimulator`` where ``save_amplitudes`` and
+    ``save_amplitudes_squared`` returned incorrect amplitudes under cache
+    blocking (``blocking_enable=True``) after multiple chunk swaps.
+    Fixes `#2544 <https://github.com/Qiskit/qiskit-aer/issues/2544>`__.
