@@ -18,7 +18,7 @@ import numpy as np
 from test.terra.backends.simulator_test_case import SimulatorTestCase, supported_methods
 import qiskit.quantum_info as qi
 from qiskit import QuantumCircuit, transpile
-from qiskit.circuit.library import QFT
+from qiskit.circuit.library import QFT, UnitaryGate
 
 
 @ddt
@@ -138,6 +138,55 @@ class TestSaveAmplitudes(SimulatorTestCase):
             device=device,
             blocking_qubits=2,
             max_parallel_threads=1,
+        )
+
+    @supported_methods(
+        ["statevector"],
+        [False, True],
+        [15, 1],
+    )
+    def test_save_amplitudes_cache_blocking_multi_swap(
+        self, method, device, amp_squared, swap_buffer_qubits
+    ):
+        """Test save_amplitudes after non-involution cache-blocking chunk swaps."""
+
+        def random_haar_unitary(rng, n_qubits):
+            dim = 1 << n_qubits
+            ginibre = (
+                rng.standard_normal((dim, dim)) + 1j * rng.standard_normal((dim, dim))
+            ) / np.sqrt(2.0)
+            unitary, factor = np.linalg.qr(ginibre)
+            phase = np.diag(factor)
+            phase = phase / np.abs(phase)
+            return unitary * phase
+
+        rng = np.random.default_rng(17171017)
+        circ = QuantumCircuit(12)
+        circ.append(UnitaryGate(random_haar_unitary(rng, 5)), [6, 7, 8, 9, 10])
+        circ.append(UnitaryGate(random_haar_unitary(rng, 5)), [3, 4, 5, 6, 7])
+
+        options = {
+            "method": method,
+            "device": device,
+            "blocking_enable": True,
+            "blocking_qubits": 6,
+            "chunk_swap_buffer_qubits": swap_buffer_qubits,
+            "enable_truncation": False,
+            "fusion_enable": False,
+            "max_parallel_threads": 1,
+        }
+        saved = circ.copy()
+        saved.save_statevector()
+        backend = self.backend(**options)
+        result = backend.run(transpile(saved, backend, optimization_level=0), shots=1).result()
+        self.assertTrue(result.success)
+        self.assertTrue(np.allclose(result.data(0)["statevector"], qi.Statevector(circ).data))
+
+        self._test_save_amplitudes(
+            circ,
+            list(range(1 << circ.num_qubits)),
+            amp_squared,
+            **options,
         )
 
     @supported_methods(["statevector", "density_matrix"], AMPLITUDES)
