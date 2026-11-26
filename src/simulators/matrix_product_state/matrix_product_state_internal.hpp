@@ -16,6 +16,7 @@
 #define _aer_matrix_product_state_hpp_
 
 #include <cstdarg>
+#include <memory>
 
 #include "framework/json.hpp"
 #include "framework/operations.hpp"
@@ -82,6 +83,11 @@ enum class MPS_swap_direction { SWAP_LEFT, SWAP_RIGHT };
 class MPS {
 public:
   MPS(uint_t num_qubits = 0) : num_qubits_(num_qubits) {}
+  MPS(const MPS &other) { initialize(other); }
+  MPS &operator=(const MPS &other) {
+    initialize(other);
+    return *this;
+  }
   ~MPS() {}
 
   //--------------------------------------------------------------------------
@@ -116,7 +122,10 @@ public:
   // Parameters: size_t num_qubits - number of qubits to set.
   // Returns: none.
   //----------------------------------------------------------------
-  void set_num_qubits(uint_t num_qubits) { num_qubits_ = num_qubits; }
+  void set_num_qubits(uint_t num_qubits) {
+    invalidate_pauli_environments();
+    num_qubits_ = num_qubits;
+  }
 
   bool empty() const { return (num_qubits_ == 0); }
 
@@ -385,7 +394,22 @@ public:
   mps_container_t move_to_mps_container();
 
 private:
-  MPS_Tensor &get_qubit(uint_t index) { return q_reg_[get_qubit_index(index)]; }
+  struct PauliEnvironments {
+    std::vector<cmatrix_t> left;
+    std::vector<cmatrix_t> right;
+  };
+  mutable std::shared_ptr<const PauliEnvironments> pauli_environments_;
+
+  void invalidate_pauli_environments() {
+    std::atomic_store(&pauli_environments_,
+                      std::shared_ptr<const PauliEnvironments>{});
+  }
+  std::shared_ptr<const PauliEnvironments> get_pauli_environments() const;
+
+  MPS_Tensor &get_qubit(uint_t index) {
+    invalidate_pauli_environments();
+    return q_reg_[get_qubit_index(index)];
+  }
 
   uint_t get_qubit_index(uint_t index) const {
     return qubit_ordering_.location_[index];
@@ -443,7 +467,9 @@ private:
                                              const std::string &matrices,
                                              uint_t first_index,
                                              uint_t last_index,
-                                             uint_t num_Is) const;
+                                             uint_t num_Is,
+                                             const cmatrix_t *left_environment = nullptr,
+                                             const cmatrix_t *right_environment = nullptr) const;
 
   //----------------------------------------------------------------
   // Function name: get_matrices_sizes

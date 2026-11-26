@@ -538,5 +538,9 @@ set(AER_LIBRARIES
 
 set(AER_COMPILER_DEFINITIONS ${AER_COMPILER_DEFINITIONS} ${CONAN_DEFINES})
 
+if(BUILD_TESTS)
+  add_subdirectory(test/native)
+endif()
+
 add_subdirectory(qiskit_aer/backends/wrappers)
 
