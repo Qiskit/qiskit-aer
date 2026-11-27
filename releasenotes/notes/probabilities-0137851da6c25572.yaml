@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixed a crash when calling the C++ method ``AerState::probabilities()``
+    without specifying qubits on an initialized matrix product state simulator.
+    The method now returns probabilities for all allocated qubits.
+    See `#2234 <https://github.com/Qiskit/qiskit-aer/issues/2234>`__ for details.
