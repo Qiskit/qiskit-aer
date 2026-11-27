@@ -36,3 +36,12 @@ docs/_build/
 docs/stubs/
 docs/api/
 
+# Ignore ROCm build artifacts and temporary documentation
+ROCM_*.md
+ROCM_*.txt
+CONAN_*.md
+README_ROCM_DOCS.md
+FINAL_SOLUTION_*.md
+conanbuildinfo_generated.cmake
+dist/
+venv/
